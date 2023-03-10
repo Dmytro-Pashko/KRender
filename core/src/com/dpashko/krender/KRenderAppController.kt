@@ -1,9 +1,11 @@
 package com.dpashko.krender
 
+import com.badlogic.gdx.Gdx
 import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.scene.common.SceneNavigator
 import com.dpashko.krender.scene.editor.EditorScene
 import com.dpashko.krender.scene.editor.EditorSceneController
+import com.dpashko.krender.scene.editor.EditorSceneState
 
 /**
  * Main app controller that initiates app components e.g scenes, and handles navigation between them.
@@ -19,14 +21,27 @@ class KRenderAppController : ApplicationListener {
         // Initialize any app-scoped components here
 
         // Create and start the first scene
-        navigator.pushScene(EditorScene(EditorSceneController()))
+        val entryScene = EditorScene(
+            EditorSceneController(
+                EditorSceneState(
+                    Gdx.graphics.width,
+                    Gdx.graphics.height
+                )
+            )
+        ).apply {
+            create()
+        }
+        navigator.pushScene(entryScene)
     }
 
     /**
      * Update and render the current scene.
      */
-    override fun render() {
-        navigator.activeScene?.render()
+    override fun render(delta: Float) {
+        navigator.activeScene?.let {
+            it.update(delta)
+            it.render()
+        }
     }
 
     /**
@@ -48,5 +63,9 @@ class KRenderAppController : ApplicationListener {
      */
     override fun dispose() {
         navigator.activeScene?.destroy()
+    }
+
+    override fun resize(width: Int, height: Int) {
+        navigator.activeScene?.resize(width, height)
     }
 }

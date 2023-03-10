@@ -11,11 +11,6 @@ interface SceneLifecycle {
     fun create()
 
     /**
-     * This method is called when the scene is being loaded.
-     */
-    fun load()
-
-    /**
      * This method is called when the scene is starting.
      */
     fun start()
@@ -51,4 +46,6 @@ interface SceneLifecycle {
      * This method is called when the scene is being destroyed.
      */
     fun destroy()
+
+    fun resize(width: Int, height: Int)
 }
