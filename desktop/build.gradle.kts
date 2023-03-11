@@ -8,6 +8,8 @@ plugins {
     id("kotlin")
 }
 
+val assetsDir = rootProject.file("assets")
+
 kotlin {
     java {
         sourceCompatibility = VERSION_1_8
@@ -19,31 +21,42 @@ java.sourceSets["main"].java {
     srcDir("src/")
 }
 java.sourceSets["main"].resources {
-    srcDir("../assets")
+    srcDir(assetsDir)
 }
 
-/**
- * Copy resources into build dir for including into final jar file.
- */
-val prepareResourceTask = tasks.register("prepareResources", Copy::class.java) {
-    from(File(rootProject.projectDir.path + "/assets"))
-    into(File(project.buildDir.path + "/tmp/res/assets"))
-}.get()
+tasks {
+    val tmpResDir = project.file("$buildDir/tmp/res/")
 
-val prepareJarTask: ShadowJar = tasks.withType<ShadowJar> {
-    configurations.add(project.configurations["compileClasspath"])
-    from(File(project.buildDir.path + "/tmp/res/"))
+    register("prepareAssets", Copy::class.java) {
+        from(assetsDir)
+        into(project.file("$tmpResDir/assets"))
 
-    archiveBaseName.set(rootProject.name)
-    archiveClassifier.set("debug")
-    archiveVersion.set(rootProject.version.toString())
-
-    manifest {
-        attributes["Main-Class"] = "com.dpashko.vektor.DesktopLauncher"
+        doLast {
+            println("Resource preparation complete.")
+        }
     }
-}.first()
 
-prepareJarTask.dependsOn(prepareResourceTask)
+    // run ./gradle :desktop:shadowJar task in order to assemble executable Jar file
+    // in build/libs/ directory.
+    withType<ShadowJar> {
+        configurations.add(project.configurations.getAt("compileClasspath"))
+        from(project.file("$tmpResDir"))
+
+        archiveBaseName.set(rootProject.name)
+        archiveClassifier.set("debug")
+        archiveVersion.set(rootProject.version.toString())
+
+        manifest {
+            attributes["Main-Class"] = "com.dpashko.krender.DesktopLauncher"
+        }
+        doLast {
+            println(
+                "Jar file successfully assembled. ${this@withType.archiveFile.get().asFile}"
+            )
+        }
+        dependsOn("prepareAssets")
+    }
+}
 
 dependencies {
     implementation(project(":core"))

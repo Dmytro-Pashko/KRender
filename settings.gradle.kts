@@ -1,3 +1,3 @@
 rootProject.name = "KRender SDK"
 
-include(":core", ":desktop", ":android", ":ios")
+include(":core", ":desktop", ":android")

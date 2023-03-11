@@ -21,7 +21,7 @@ class EditorScene(
 
     override fun create() {
         spriteBatch = SpriteBatch()
-        texture = Texture(Gdx.files.internal("badlogic.jpg"))
+        texture = Texture(Gdx.files.internal("assets/badlogic.jpg"))
     }
 
     override fun start() {
