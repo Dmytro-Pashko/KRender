@@ -1,3 +1,3 @@
-rootProject.name = "KRender SDK"
+rootProject.name = "KRenderSDK"
 
 include(":core", ":desktop", ":android")

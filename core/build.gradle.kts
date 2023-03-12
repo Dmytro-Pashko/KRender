@@ -13,8 +13,10 @@ kotlin {
     }
 }
 
-java.sourceSets["main"].java {
-    srcDir("src/")
+sourceSets {
+    getByName("main") {
+        java.srcDir("src/")
+    }
 }
 
 dependencies {

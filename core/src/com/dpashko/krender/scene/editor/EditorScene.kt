@@ -21,7 +21,7 @@ class EditorScene(
 
     override fun create() {
         spriteBatch = SpriteBatch()
-        texture = Texture(Gdx.files.internal("assets/badlogic.jpg"))
+        texture = Texture(Gdx.files.internal("textures/badlogic.jpg"))
     }
 
     override fun start() {
@@ -54,10 +54,13 @@ class EditorScene(
     }
 
     override fun resize(width: Int, height: Int) {
-
-        controller.getState().screenHeight = height
-        controller.getState().screenWidth = width
-        controller.getState().position = Vector2()
+        controller.getState().apply {
+            // Image size ~ 10% of screen width.
+            imageSize = controller.getState().screenWidth * 0.2f
+            screenHeight = height
+            screenWidth = width
+            position = Vector2()
+        }
     }
 
     override fun destroy() {

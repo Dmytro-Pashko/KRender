@@ -11,6 +11,7 @@ class EditorSceneController(
 ) : SceneController<EditorSceneState> {
 
     override fun update(deltaTime: Float) {
+
         // Calculate the new position of linear moving according to direction vector and velocity
         val newPosition = state.position.cpy().add(
             state.direction.x * deltaTime * state.velocity,

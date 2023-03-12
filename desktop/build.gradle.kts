@@ -9,6 +9,7 @@ plugins {
 }
 
 val assetsDir = rootProject.file("assets")
+version = 1.0
 
 kotlin {
     java {
@@ -17,34 +18,21 @@ kotlin {
     }
 }
 
-java.sourceSets["main"].java {
-    srcDir("src/")
-}
-java.sourceSets["main"].resources {
-    srcDir(assetsDir)
+sourceSets {
+    getByName("main") {
+        java.srcDir("src/")
+        resources.srcDir(assetsDir)
+    }
 }
 
 tasks {
-    val tmpResDir = project.file("$buildDir/tmp/res/")
-
-    register("prepareAssets", Copy::class.java) {
-        from(assetsDir)
-        into(project.file("$tmpResDir/assets"))
-
-        doLast {
-            println("Resource preparation complete.")
-        }
-    }
-
     // run ./gradle :desktop:shadowJar task in order to assemble executable Jar file
     // in build/libs/ directory.
     withType<ShadowJar> {
         configurations.add(project.configurations.getAt("compileClasspath"))
-        from(project.file("$tmpResDir"))
-
+        from(assetsDir)
         archiveBaseName.set(rootProject.name)
-        archiveClassifier.set("debug")
-        archiveVersion.set(rootProject.version.toString())
+        archiveVersion.set(project.version.toString())
 
         manifest {
             attributes["Main-Class"] = "com.dpashko.krender.DesktopLauncher"
@@ -54,7 +42,6 @@ tasks {
                 "Jar file successfully assembled. ${this@withType.archiveFile.get().asFile}"
             )
         }
-        dependsOn("prepareAssets")
     }
 }
 
@@ -62,5 +49,4 @@ dependencies {
     implementation(project(":core"))
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.11.0")
     implementation("com.badlogicgames.gdx:gdx-platform:1.11.0:natives-desktop")
-    implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.11.0:natives-desktop")
 }

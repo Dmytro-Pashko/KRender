@@ -1,15 +1,14 @@
-package com.dpashko.krender;
+package com.dpashko.krender
 
-import android.os.Bundle;
+import android.os.Bundle
+import com.badlogic.gdx.backends.android.AndroidApplication
+import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration
 
-import com.badlogic.gdx.backends.android.AndroidApplication;
-import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
+class AndroidLauncher : AndroidApplication() {
 
-public class AndroidLauncher extends AndroidApplication {
-	@Override
-	protected void onCreate (Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
-		initialize(new KRenderApp(), config);
-	}
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val config = AndroidApplicationConfiguration()
+        initialize(KRenderApp(), config)
+    }
 }

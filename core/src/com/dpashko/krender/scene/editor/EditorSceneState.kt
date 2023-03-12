@@ -14,7 +14,7 @@ class EditorSceneState(
 
     var position = Vector2(0f, 0f)
     val direction: Vector2 = Vector2().setToRandomDirection()
-    val imageSize = 100f
+    var imageSize = 100f
     val velocity = 150f
 
     override fun getObjectForPersistence(): ByteArray {
