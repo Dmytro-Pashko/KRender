@@ -10,6 +10,7 @@ public class DesktopLauncher {
   public static void main(String[] arg) {
     Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
     config.setForegroundFPS(60);
+    config.setWindowedMode(1024, 768);
     config.setResizable(false);
     config.setTitle("KRender");
     config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 3);

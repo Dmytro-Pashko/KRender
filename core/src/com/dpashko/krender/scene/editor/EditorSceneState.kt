@@ -15,7 +15,7 @@ class EditorSceneState(
         Gdx.graphics.height.toFloat()
     )
         .apply {
-            near = 1f
+            near = 0.1f
             far = 128f
             up.set(Vector3.Z)
             position.set(Vector3(2f, 3f, 3f))

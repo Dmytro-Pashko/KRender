@@ -1,5 +1,6 @@
 package com.dpashko.krender.scene.editor
 
+import com.badlogic.gdx.Gdx
 import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.shader.AxisShader
 import com.dpashko.krender.shader.GridShader
@@ -14,12 +15,15 @@ class EditorScene(
     private lateinit var ui: EditorSceneUi
     private lateinit var axisShader: AxisShader
     private lateinit var gridShader: GridShader
+    private lateinit var cameraController: EditorSceneCameraController
 
     override fun create() {
-        ui = EditorSceneUi(controller.getState(), SkinProvider.default)
+        ui = EditorSceneUi(controller, SkinProvider.default)
 
         axisShader = AxisShader(axisLength = controller.getState().gridSize.size)
         gridShader = GridShader(gridSize = controller.getState().gridSize.size.toInt())
+        cameraController = EditorSceneCameraController()
+        Gdx.input.inputProcessor = cameraController
     }
 
     override fun start() {
@@ -29,6 +33,7 @@ class EditorScene(
     override fun update(deltaTime: Float) {
         super.update(deltaTime)
         ui.act(deltaTime)
+        cameraController.update(controller.getState().camera, deltaTime)
     }
 
     override fun render() {
