@@ -1,6 +1,5 @@
 package com.dpashko.krender
 
-import com.badlogic.gdx.Gdx
 import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.scene.common.SceneNavigator
 import com.dpashko.krender.scene.editor.EditorScene
@@ -23,10 +22,7 @@ class KRenderAppController : ApplicationListener {
         // Create and start the first scene
         val entryScene = EditorScene(
             EditorSceneController(
-                EditorSceneState(
-                    Gdx.graphics.width,
-                    Gdx.graphics.height
-                )
+                EditorSceneState()
             )
         ).apply {
             create()

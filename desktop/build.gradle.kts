@@ -9,6 +9,7 @@ plugins {
 }
 
 val assetsDir = rootProject.file("assets")
+
 version = 1.0
 
 kotlin {
@@ -39,7 +40,7 @@ tasks {
         }
         doLast {
             println(
-                "Jar file successfully assembled. ${this@withType.archiveFile.get().asFile}"
+                "Jar file successfully assembled.\n${this@withType.archiveFile.get().asFile}"
             )
         }
     }

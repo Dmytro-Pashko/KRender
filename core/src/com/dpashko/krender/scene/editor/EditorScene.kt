@@ -1,10 +1,8 @@
 package com.dpashko.krender.scene.editor
 
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.math.Vector2
 import com.dpashko.krender.scene.common.BaseScene
+import com.dpashko.krender.shader.AxisShader
+import com.dpashko.krender.shader.GridShader
 import com.dpashko.krender.skin.SkinProvider
 
 class EditorScene(
@@ -14,13 +12,14 @@ class EditorScene(
 ) {
 
     private lateinit var ui: EditorSceneUi
-    private lateinit var spriteBatch: SpriteBatch
-    private lateinit var texture: Texture
+//    private lateinit var axisShader: AxisShader
+    private lateinit var gridShader: GridShader
 
     override fun create() {
         ui = EditorSceneUi(controller.getState(), SkinProvider.default)
-        spriteBatch = SpriteBatch()
-        texture = Texture(Gdx.files.internal("textures/badlogic.jpg"))
+
+//        axisShader = AxisShader(axisLength = controller.getState().gridSize.size)
+        gridShader = GridShader(gridSize = controller.getState().gridSize.size.toInt())
     }
 
     override fun start() {
@@ -34,15 +33,12 @@ class EditorScene(
 
     override fun render() {
         val state = controller.getState()
-        spriteBatch.begin()
-        spriteBatch.draw(
-            texture,
-            state.position.x,
-            state.position.y,
-            state.imageSize,
-            state.imageSize
-        )
-        spriteBatch.end()
+        if (state.drawGrid) {
+            gridShader.draw(state.camera)
+        }
+        if (state.drawAxis) {
+//            axisShader.draw(state.camera)
+        }
         ui.draw()
     }
 
@@ -59,18 +55,12 @@ class EditorScene(
     }
 
     override fun resize(width: Int, height: Int) {
-        controller.getState().apply {
-            // Image size ~ 10% of screen width.
-            imageSize = controller.getState().screenWidth * 0.2f
-            screenHeight = height
-            screenWidth = width
-            position = Vector2()
-        }
     }
 
     override fun destroy() {
-        spriteBatch.dispose()
         ui.dispose()
+        gridShader.dispose()
+//        axisShader.dispose()
         super.destroy()
     }
 }

@@ -1,19 +1,37 @@
 package com.dpashko.krender.scene.editor
 
-import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.PerspectiveCamera
+import com.badlogic.gdx.math.Vector3
 import com.dpashko.krender.scene.common.SceneState
 
 class EditorSceneState(
-    var screenWidth: Int,
-    var screenHeight: Int
+    var drawGrid: Boolean = true,
+    var drawAxis: Boolean = true,
+    var gridSize: GridSize = GridSize.S_32,
+    var camera: PerspectiveCamera = PerspectiveCamera(
+        67f,
+        Gdx.graphics.width.toFloat(),
+        Gdx.graphics.height.toFloat()
+    )
+        .apply {
+            near = 1f
+            far = 128f
+            position.set(Vector3(0f, -5f, 5f))
+            lookAt(Vector3.Zero)
+            update()
+        },
 ) : SceneState() {
-
-    var position = Vector2(0f, 0f)
-    val direction: Vector2 = Vector2().setToRandomDirection()
-    var imageSize = 100f
-    val velocity = 150f
 
     override fun getObjectForPersistence(): ByteArray {
         TODO("Not yet implemented")
+    }
+
+    enum class GridSize(val size: Float) {
+        S_16(16.0f),
+        S_32(32.0f),
+        S_64(64.0f);
+
+        override fun toString() = "Size=$size"
     }
 }

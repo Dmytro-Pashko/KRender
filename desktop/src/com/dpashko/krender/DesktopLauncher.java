@@ -12,6 +12,7 @@ public class DesktopLauncher {
     config.setForegroundFPS(60);
     config.setResizable(false);
     config.setTitle("KRender");
+    config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 3);
     new Lwjgl3Application(new KRenderApp(), config);
   }
 }
