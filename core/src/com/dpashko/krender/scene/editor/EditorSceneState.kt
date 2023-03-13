@@ -1,7 +1,3 @@
-/*
- * Property of Medtronic MiniMed.
- */
-
 package com.dpashko.krender.scene.editor
 
 import com.badlogic.gdx.math.Vector2

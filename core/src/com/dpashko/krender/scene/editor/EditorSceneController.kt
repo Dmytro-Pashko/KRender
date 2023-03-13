@@ -1,7 +1,3 @@
-/*
- * Property of Medtronic MiniMed.
- */
-
 package com.dpashko.krender.scene.editor
 
 import com.dpashko.krender.scene.common.SceneController

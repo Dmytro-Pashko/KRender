@@ -1,7 +1,3 @@
-/*
- * Property of Medtronic MiniMed.
- */
-
 package com.dpashko.krender.scene.editor
 
 import com.badlogic.gdx.Gdx
@@ -9,6 +5,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.math.Vector2
 import com.dpashko.krender.scene.common.BaseScene
+import com.dpashko.krender.skin.SkinProvider
 
 class EditorScene(
     private val controller: EditorSceneController
@@ -16,16 +13,23 @@ class EditorScene(
     controller
 ) {
 
+    private lateinit var ui: EditorSceneUi
     private lateinit var spriteBatch: SpriteBatch
     private lateinit var texture: Texture
 
     override fun create() {
+        ui = EditorSceneUi(controller.getState(), SkinProvider.default)
         spriteBatch = SpriteBatch()
         texture = Texture(Gdx.files.internal("textures/badlogic.jpg"))
     }
 
     override fun start() {
         println("Editor scene started.")
+    }
+
+    override fun update(deltaTime: Float) {
+        super.update(deltaTime)
+        ui.act(deltaTime)
     }
 
     override fun render() {
@@ -39,6 +43,7 @@ class EditorScene(
             state.imageSize
         )
         spriteBatch.end()
+        ui.draw()
     }
 
     override fun pause() {
@@ -65,6 +70,7 @@ class EditorScene(
 
     override fun destroy() {
         spriteBatch.dispose()
+        ui.dispose()
         super.destroy()
     }
 }

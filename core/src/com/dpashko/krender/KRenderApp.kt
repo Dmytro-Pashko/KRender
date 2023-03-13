@@ -1,7 +1,3 @@
-/*
- * Property of Medtronic MiniMed.
- */
-
 package com.dpashko.krender
 
 import com.badlogic.gdx.ApplicationAdapter
