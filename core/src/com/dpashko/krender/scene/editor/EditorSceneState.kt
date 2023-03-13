@@ -17,7 +17,8 @@ class EditorSceneState(
         .apply {
             near = 1f
             far = 128f
-            position.set(Vector3(0f, -5f, 5f))
+            up.set(Vector3.Z)
+            position.set(Vector3(2f, 3f, 3f))
             lookAt(Vector3.Zero)
             update()
         },

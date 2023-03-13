@@ -12,13 +12,13 @@ class EditorScene(
 ) {
 
     private lateinit var ui: EditorSceneUi
-//    private lateinit var axisShader: AxisShader
+    private lateinit var axisShader: AxisShader
     private lateinit var gridShader: GridShader
 
     override fun create() {
         ui = EditorSceneUi(controller.getState(), SkinProvider.default)
 
-//        axisShader = AxisShader(axisLength = controller.getState().gridSize.size)
+        axisShader = AxisShader(axisLength = controller.getState().gridSize.size)
         gridShader = GridShader(gridSize = controller.getState().gridSize.size.toInt())
     }
 
@@ -37,7 +37,7 @@ class EditorScene(
             gridShader.draw(state.camera)
         }
         if (state.drawAxis) {
-//            axisShader.draw(state.camera)
+            axisShader.draw(state.camera)
         }
         ui.draw()
     }
@@ -60,7 +60,7 @@ class EditorScene(
     override fun destroy() {
         ui.dispose()
         gridShader.dispose()
-//        axisShader.dispose()
+        axisShader.dispose()
         super.destroy()
     }
 }

@@ -12,14 +12,14 @@ object ShaderProvider {
     private var grid_vertex = Gdx.files.internal("shaders/grid_v.glsl")
 
     fun axisShader(): ShaderProgram {
-        val vertex = axis_vertex.readString()
         val fragment = axis_fragment.readString()
+        val vertex = axis_vertex.readString()
         return ShaderProgram(vertex, fragment)
     }
 
     fun gridShader(): ShaderProgram {
-        val vertex = grid_vertex.readString()
         val fragment = grid_fragment.readString()
+        val vertex = grid_vertex.readString()
         return ShaderProgram(vertex, fragment)
     }
 }
