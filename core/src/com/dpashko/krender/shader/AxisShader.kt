@@ -8,7 +8,7 @@ import com.badlogic.gdx.graphics.glutils.VertexBufferObjectWithVAO
 import com.badlogic.gdx.utils.Disposable
 
 class AxisShader(
-    private val axisLength: Float = 64.0f, private val axisWidth: Float = 3f
+    private var axisLength: Float = 64.0f, private val axisWidth: Float = 3f
 ) : Disposable {
 
     private var vertices = createVertices()
@@ -31,7 +31,12 @@ class AxisShader(
         setVertices(vertices, 0, vertices.size)
     }
 
-    fun draw(camera: Camera) {
+    fun draw(camera: Camera, axisLength: Float) {
+        if (axisLength != this.axisLength) {
+            this.axisLength = axisLength
+            vertices.dispose()
+            vertices = createVertices()
+        }
         shader.bind()
         shader.setUniformMatrix("cameraCombinedMatrix", camera.combined)
         vertices.bind(shader)

@@ -10,13 +10,13 @@ import com.badlogic.gdx.utils.Disposable
 import java.util.LinkedList
 
 class GridShader(
-    private val gridSize: Int = 64,
+    private var gridSize: Int = 64,
     private val gridLineWidth: Float = 1f,
     lineColor: Color = Color.GRAY
 ) : Disposable {
 
     private val colorVector = floatArrayOf(lineColor.r, lineColor.g, lineColor.b, 0f)
-    private val vertices = createVertices()
+    private var vertices = createVertices()
     private val shader = ShaderProvider.gridShader()
 
     private fun createVertices() =
@@ -41,7 +41,12 @@ class GridShader(
             setVertices(vertices.toFloatArray(), 0, vertices.size)
         }
 
-    fun draw(camera: Camera) {
+    fun draw(camera: Camera, gridSize: Int) {
+        if (gridSize != this.gridSize) {
+            this.gridSize = gridSize
+            vertices.dispose()
+            vertices = createVertices()
+        }
         shader.bind()
         shader.setUniformMatrix("cameraCombinedMatrix", camera.combined)
         shader.setUniform4fv("lineColor", colorVector, 0, colorVector.size)

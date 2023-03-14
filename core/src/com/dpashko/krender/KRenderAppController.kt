@@ -20,11 +20,8 @@ class KRenderAppController : ApplicationListener {
         // Initialize any app-scoped components here
 
         // Create and start the first scene
-        val entryScene = EditorScene(
-            EditorSceneController(
-                EditorSceneState()
-            )
-        ).apply {
+        val controller = EditorSceneController(EditorSceneState())
+        val entryScene = EditorScene(controller).apply {
             create()
         }
         navigator.pushScene(entryScene)

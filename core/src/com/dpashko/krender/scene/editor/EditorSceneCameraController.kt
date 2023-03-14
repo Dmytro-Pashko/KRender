@@ -10,14 +10,16 @@ import com.dpashko.krender.scene.editor.EditorSceneCameraController.Companion.mo
 import com.dpashko.krender.scene.editor.EditorSceneCameraController.Companion.zoomSpeed
 
 /**
- * A class that handles camera controls for the editor scene. It implements the InputProcessor interface to
- * receive input events from the user.
- * The camera can be moved using the W, A, S, and D keys. It can be rotated using the middle mouse button,
- * and zoomed in and out using the scroll wheel. The camera cannot be moved above or below the Z=0 plane.
+ * A class that handles camera controls for the editor scene.
+ * It implements the InputProcessor interface to receive input events from the user.
+ * The camera can be moved using the W, A, S, D keys.
+ * It can be rotated using the middle mouse button, and zoomed in and out using the scroll wheel.
  * @property moveSpeed The speed at which the camera moves using keys.
  * @property zoomSpeed The speed at which the camera zooms in and out.
- * @property maxZoomDistance The maximum distance from the intersection point (Camera Direction Vector and plane Z=0).
- * @property minZoomDistance The minimum distance to the intersection point (Camera Direction Vector and plane Z=0).
+ * @property maxZoomDistance
+ * The maximum distance from the target point(Camera direction vector projected onto XY plane).
+ * @property minZoomDistance
+ * The min distance from the target point(Camera direction vector projected onto XY plane).
  */
 class EditorSceneCameraController : InputProcessor {
 
@@ -26,7 +28,7 @@ class EditorSceneCameraController : InputProcessor {
         private const val moveSpeed = 10f
 
         // The speed at which the camera zooms in or out in units per scroll tick.
-        private const val zoomSpeed = 0.5f
+        private const val zoomSpeed = 1f
 
         // The maximum distance from the intersection point.
         private const val maxZoomDistance = 20f
@@ -141,52 +143,58 @@ class EditorSceneCameraController : InputProcessor {
         val camera = state.camera
         val moveAmount = delta * moveSpeed
 
-        val newPosition = Vector3.Zero
+        val displacement = Vector3.Zero
 
         if (forward && !backward) {
-            newPosition.add(camera.direction)
+            displacement.add(camera.direction)
         }
         if (backward && !forward) {
-            newPosition.sub(camera.direction)
+            displacement.sub(camera.direction)
         }
         if (left && !right) {
-            newPosition.add(camera.direction.cpy().rotate(Vector3.Z, 90f))
+            displacement.add(camera.direction.cpy().rotate(Vector3.Z, 90f))
         }
         if (!left && right) {
-            newPosition.add(camera.direction.cpy().rotate(Vector3.Z, -90f))
+            displacement.add(camera.direction.cpy().rotate(Vector3.Z, -90f))
         }
 
-        newPosition.scl(moveAmount, moveAmount, 0f)
-        camera.translate(newPosition)
-        camera.update()
+        // Update camera position and target point only when changing camera position required.
+        if (!displacement.isZero) {
+            displacement.scl(moveAmount, moveAmount, 0f)
+            camera.translate(displacement)
+            camera.update()
 
-        // Calculates the distance between the camera position and the point of intersection
-        // of the camera's direction vector with the Z=0 plane in world coordinates.
-        // It does this by dividing the negative z-coordinate of the camera position by the
-        // z-component of the camera direction vector. This is based on the fact that the
-        // intersection point can be represented as cameraPosition + t * cameraDirection.
-        val t = -camera.position.z / camera.direction.z
-        val intersectionPoint = Vector3(
-            camera.position.x + t * camera.direction.x,
-            camera.position.y + t * camera.direction.y,
-            0f
-        )
-        state.intersectionPoint.set(intersectionPoint)
+            // Calculates the distance between the camera position and the point of intersection
+            // of the camera's direction vector with the Z=0 plane in world coordinates.
+            // It does this by dividing the negative z-coordinate of the camera position by the
+            // z-component of the camera direction vector. This is based on the fact that the
+            // intersection point can be represented as cameraPosition + t * cameraDirection.
+            val t = -camera.position.z / camera.direction.z
+            val intersectionPoint = Vector3(
+                camera.position.x + t * camera.direction.x,
+                camera.position.y + t * camera.direction.y,
+                0f
+            )
+            // Update target point after camera transition.
+            state.target.set(intersectionPoint)
+        }
 
         if (isRotating || isZoomedOut || isZoomedIn) {
             if (isRotating) {
                 val angle = deltaX * delta * 10f
-                camera.rotateAround(intersectionPoint, Vector3.Z, angle)
+                camera.rotateAround(state.target, Vector3.Z, angle)
                 deltaX = 0f
             }
 
             if (isZoomedOut || isZoomedIn) {
                 val zoomDirection = if (isZoomedOut) -1f else 1f
                 val zoomPosition = camera.direction.cpy().scl(zoomSpeed * zoomDirection)
-                val distance = intersectionPoint.dst(camera.position.cpy().add(zoomPosition))
+                val distance = state.target.dst(camera.position.cpy().add(zoomPosition))
+
                 if (isZoomedOut && distance < maxZoomDistance) {
                     camera.translate(zoomPosition)
-                } else if (isZoomedIn && distance > minZoomDistance) {
+                }
+                if (isZoomedIn && distance > minZoomDistance) {
                     camera.translate(zoomPosition)
                 }
                 isZoomedOut = false

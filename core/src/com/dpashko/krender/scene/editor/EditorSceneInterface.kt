@@ -1,29 +1,42 @@
 package com.dpashko.krender.scene.editor
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Event
+import com.badlogic.gdx.scenes.scene2d.EventListener
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.CheckBox
 import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Align
+import com.badlogic.gdx.utils.Array
 import java.text.NumberFormat
 
-class EditorSceneUi(private val controller: EditorSceneController, skin: Skin) : Stage() {
+class EditorSceneInterface(private val controller: EditorSceneController, skin: Skin) : Stage(),
+    EventListener {
 
     private var table = Table(skin)
-    private var gridSizeLabel = Label("Grid size: ", skin)
-    private var fpsLabel = Label("FPS:", skin)
+    private var drawGridCheckBox = CheckBox("Draw grid", skin)
+
+    private var sceneSizeLabel = Label("Scene size: ", skin)
+    private var sceneSizeSelectBox = SelectBox<EditorSceneState.SceneSize>(skin)
+
+    private var drawAxisCheckBox = CheckBox("Draw axis", skin)
+
     private var cameraPositionLabel = Label("Cam.Position:", skin)
     private var cameraPositionValue = Label("", skin)
+
     private var targetPositionLabel = Label("Target:", skin)
     private var targetPositionValue = Label("", skin)
+
     private var distanceLabel = Label("Distance:", skin)
     private var distanceValue = Label("", skin)
+
+    private var fpsLabel = Label("FPS:", skin)
     private var fpsValue = Label("", skin)
-    private var drawGridCheckBox = CheckBox("Draw grid", skin)
-    private var drawAxisCheckBox = CheckBox("Draw axis", skin)
-    private var wireFrameModeCheckBox = CheckBox("Wireframe Mode", skin)
 
     private var hintLabel =
         Label(
@@ -37,24 +50,30 @@ class EditorSceneUi(private val controller: EditorSceneController, skin: Skin) :
     }
 
     init {
-        addActor(initUI(controller.getState()))
-        Gdx.input.inputProcessor = this
+        addActor(buildWidgets())
     }
 
-    private fun initUI(state: EditorSceneState) =
+    private fun buildWidgets() =
         table.apply {
+            val state = controller.getState()
             add(Table().apply {
                 right()
+                // Draw Grid Checkbox.
                 add(drawGridCheckBox.apply {
-                    isChecked = false
+                    isChecked = state.drawGrid
+                    addListener(this@EditorSceneInterface)
                 }).padLeft(10f)
-                add(gridSizeLabel)
+                // Grid Size selector.
+                add(sceneSizeLabel)
                     .padLeft(10f)
-                add(wireFrameModeCheckBox.apply {
-                    isChecked = false
-                }).padLeft(10f)
+                add(sceneSizeSelectBox.apply {
+                    items = Array(EditorSceneState.SceneSize.values())
+                    selected = controller.getState().sceneSize
+                    addListener(this@EditorSceneInterface)
+                })
                 add(drawAxisCheckBox.apply {
-                    isChecked = false
+                    isChecked = state.drawAxis
+                    addListener(this@EditorSceneInterface)
                 }).padLeft(10f).padRight(10f)
             }).fillX().top()
 
@@ -86,7 +105,7 @@ class EditorSceneUi(private val controller: EditorSceneController, skin: Skin) :
     override fun draw() {
         val fps = Gdx.graphics.framesPerSecond
         val cameraPosition = controller.getState().camera.position
-        val intersectionPoint = controller.getState().intersectionPoint
+        val intersectionPoint = controller.getState().target
         val distance = intersectionPoint.dst(cameraPosition)
         fpsValue.setText(fps)
         cameraPositionValue.setText(
@@ -99,7 +118,25 @@ class EditorSceneUi(private val controller: EditorSceneController, skin: Skin) :
                 "${floatValueFormatter.format(intersectionPoint.y)}:" +
                 "${floatValueFormatter.format(intersectionPoint.z)}]"
         )
-        distanceValue.setText("${floatValueFormatter.format(distance)}")
+        distanceValue.setText(floatValueFormatter.format(distance))
         super.draw()
+    }
+
+    override fun handle(event: Event?): Boolean {
+        if (event !is ChangeListener.ChangeEvent) return false
+        changed(event.getTarget())
+        return false
+    }
+
+    /** @param actor The event target, which is the actor that emitted the change event. */
+    private fun changed(actor: Actor) {
+        when (actor) {
+            sceneSizeSelectBox -> controller.onSceneSize(sceneSizeSelectBox.selected)
+            drawAxisCheckBox -> controller.onDrawAxisChanged(drawAxisCheckBox.isChecked)
+            drawGridCheckBox -> {
+                sceneSizeSelectBox.isDisabled = !drawGridCheckBox.isChecked
+                controller.onDrawGridChanged(drawGridCheckBox.isChecked)
+            }
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.dpashko.krender.scene.editor
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.dpashko.krender.scene.common.BaseScene
@@ -9,27 +10,31 @@ import com.dpashko.krender.shader.GridShader
 import com.dpashko.krender.skin.SkinProvider
 
 class EditorScene(
-    private val controller: EditorSceneController
+    private val controller: EditorSceneController,
 ) : BaseScene<EditorSceneState, EditorSceneController>(
     controller
 ) {
 
-    private lateinit var ui: EditorSceneUi
+    private lateinit var ui: EditorSceneInterface
     private lateinit var axisShader: AxisShader
     private lateinit var gridShader: GridShader
     private lateinit var cameraController: EditorSceneCameraController
     private lateinit var debugShapesRenderer: ShapeRenderer
 
     override fun create() {
-        ui = EditorSceneUi(controller, SkinProvider.default)
+        ui = EditorSceneInterface(controller, SkinProvider.default)
 
-        axisShader = AxisShader(axisLength = controller.getState().gridSize.size)
-        gridShader = GridShader(gridSize = controller.getState().gridSize.size.toInt())
+        axisShader = AxisShader(axisLength = controller.getState().sceneSize.size)
+        gridShader = GridShader(gridSize = controller.getState().sceneSize.size.toInt())
         debugShapesRenderer = ShapeRenderer().apply {
             color = Color.GREEN
         }
         cameraController = EditorSceneCameraController()
-        Gdx.input.inputProcessor = cameraController
+
+        Gdx.input.inputProcessor = InputMultiplexer().apply {
+            addProcessor(ui)
+            addProcessor(cameraController)
+        }
     }
 
     override fun start() {
@@ -45,24 +50,24 @@ class EditorScene(
     override fun render() {
         val state = controller.getState()
         if (state.drawGrid) {
-            gridShader.draw(state.camera)
+            gridShader.draw(state.camera, state.sceneSize.size.toInt())
         }
         if (state.drawAxis) {
-            axisShader.draw(state.camera)
+            axisShader.draw(state.camera, state.sceneSize.size)
         }
 
         debugShapesRenderer.apply {
             projectionMatrix = state.camera.combined
             begin(ShapeRenderer.ShapeType.Line)
-            state.cameraLimits.apply {
-                debugShapesRenderer.box(min.x, min.y, max.z, width, height, depth)
+            state.worldBounds.apply {
+                box(min.x, min.y, max.z, width, height, depth)
             }
             end()
             begin(ShapeRenderer.ShapeType.Point)
-            debugShapesRenderer.point(
-                state.intersectionPoint.x,
-                state.intersectionPoint.y,
-                state.intersectionPoint.z
+            point(
+                state.target.x,
+                state.target.y,
+                state.target.z
             )
             end()
         }

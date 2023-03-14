@@ -9,7 +9,7 @@ import com.dpashko.krender.scene.common.SceneState
 class EditorSceneState(
     var drawGrid: Boolean = true,
     var drawAxis: Boolean = true,
-    var gridSize: GridSize = GridSize.S_32,
+    var sceneSize: SceneSize = SceneSize.S_32,
     var camera: PerspectiveCamera = PerspectiveCamera(
         67f,
         Gdx.graphics.width.toFloat(),
@@ -25,13 +25,13 @@ class EditorSceneState(
         },
 
     // Box that limits world space.
-    var cameraLimits: BoundingBox = BoundingBox().apply {
+    var worldBounds: BoundingBox = BoundingBox().apply {
         set(
-            Vector3(-gridSize.size, -gridSize.size, 0f).scl(0.5f),
-            Vector3(gridSize.size, gridSize.size, gridSize.size).scl(0.5f)
+            Vector3(-sceneSize.size, -sceneSize.size, 0f).scl(0.5f),
+            Vector3(sceneSize.size, sceneSize.size, sceneSize.size).scl(0.5f)
         )
     },
-    var intersectionPoint: Vector3 = Vector3().apply {
+    var target: Vector3 = Vector3().apply {
         val t = -camera.position.z / camera.direction.z
         set(
             camera.position.x + t * camera.direction.x,
@@ -42,10 +42,10 @@ class EditorSceneState(
 ) : SceneState() {
 
     override fun getObjectForPersistence(): ByteArray {
-        TODO("Not yet implemented")
+        return ByteArray(0)
     }
 
-    enum class GridSize(val size: Float) {
+    enum class SceneSize(val size: Float) {
         S_16(16.0f),
         S_32(32.0f),
         S_64(64.0f);
