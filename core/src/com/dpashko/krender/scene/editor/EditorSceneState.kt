@@ -3,6 +3,7 @@ package com.dpashko.krender.scene.editor
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.math.collision.BoundingBox
 import com.dpashko.krender.scene.common.SceneState
 
 class EditorSceneState(
@@ -18,10 +19,26 @@ class EditorSceneState(
             near = 0.1f
             far = 128f
             up.set(Vector3.Z)
-            position.set(Vector3(2f, 3f, 3f))
+            position.set(Vector3(5f, 7f, 5f))
             lookAt(Vector3.Zero)
             update()
         },
+
+    // Box that limits world space.
+    var cameraLimits: BoundingBox = BoundingBox().apply {
+        set(
+            Vector3(-gridSize.size, -gridSize.size, 0f).scl(0.5f),
+            Vector3(gridSize.size, gridSize.size, gridSize.size).scl(0.5f)
+        )
+    },
+    var intersectionPoint: Vector3 = Vector3().apply {
+        val t = -camera.position.z / camera.direction.z
+        set(
+            camera.position.x + t * camera.direction.x,
+            camera.position.y + t * camera.direction.y,
+            0f
+        )
+    },
 ) : SceneState() {
 
     override fun getObjectForPersistence(): ByteArray {

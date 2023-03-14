@@ -1,6 +1,8 @@
 package com.dpashko.krender.scene.editor
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.shader.AxisShader
 import com.dpashko.krender.shader.GridShader
@@ -16,12 +18,16 @@ class EditorScene(
     private lateinit var axisShader: AxisShader
     private lateinit var gridShader: GridShader
     private lateinit var cameraController: EditorSceneCameraController
+    private lateinit var debugShapesRenderer: ShapeRenderer
 
     override fun create() {
         ui = EditorSceneUi(controller, SkinProvider.default)
 
         axisShader = AxisShader(axisLength = controller.getState().gridSize.size)
         gridShader = GridShader(gridSize = controller.getState().gridSize.size.toInt())
+        debugShapesRenderer = ShapeRenderer().apply {
+            color = Color.GREEN
+        }
         cameraController = EditorSceneCameraController()
         Gdx.input.inputProcessor = cameraController
     }
@@ -33,7 +39,7 @@ class EditorScene(
     override fun update(deltaTime: Float) {
         super.update(deltaTime)
         ui.act(deltaTime)
-        cameraController.update(controller.getState().camera, deltaTime)
+        cameraController.update(controller.getState(), deltaTime)
     }
 
     override fun render() {
@@ -43,6 +49,22 @@ class EditorScene(
         }
         if (state.drawAxis) {
             axisShader.draw(state.camera)
+        }
+
+        debugShapesRenderer.apply {
+            projectionMatrix = state.camera.combined
+            begin(ShapeRenderer.ShapeType.Line)
+            state.cameraLimits.apply {
+                debugShapesRenderer.box(min.x, min.y, max.z, width, height, depth)
+            }
+            end()
+            begin(ShapeRenderer.ShapeType.Point)
+            debugShapesRenderer.point(
+                state.intersectionPoint.x,
+                state.intersectionPoint.y,
+                state.intersectionPoint.z
+            )
+            end()
         }
         ui.draw()
     }
