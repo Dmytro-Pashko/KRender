@@ -8,12 +8,14 @@ import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.shader.AxisShader
 import com.dpashko.krender.shader.GridShader
 import com.dpashko.krender.skin.SkinProvider
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class EditorScene(
+@Singleton
+class EditorScene @Inject constructor(
     private val controller: EditorSceneController,
-) : BaseScene<EditorSceneState, EditorSceneController>(
-    controller
-), EditorSceneInterfaceWidget.EditorSceneInterfaceListener {
+) : BaseScene<EditorSceneController>(controller),
+    EditorSceneInterfaceWidget.EditorSceneInterfaceListener {
 
     private lateinit var ui: EditorSceneInterfaceWidget
     private lateinit var axisShader: AxisShader
@@ -22,12 +24,14 @@ class EditorScene(
     private lateinit var debugShapesRenderer: ShapeRenderer
 
     override fun create() {
+        println("Editor scene initialization.")
+        super.create()
+
         ui = EditorSceneInterfaceWidget(
             listener = this,
             state = controller.getState(),
             skin = SkinProvider.default
         )
-
         axisShader = AxisShader(axisLength = controller.getState().sceneSize.size)
         gridShader = GridShader(gridSize = controller.getState().sceneSize.size.toInt())
         debugShapesRenderer = ShapeRenderer().apply {
@@ -39,6 +43,7 @@ class EditorScene(
             addProcessor(ui)
             addProcessor(cameraController)
         }
+        println("Editor scene created.")
     }
 
     override fun start() {
@@ -91,13 +96,14 @@ class EditorScene(
     }
 
     override fun resize(width: Int, height: Int) {
+        println("Editor scene resized: w=$width, h=$height")
     }
 
-    override fun destroy() {
+    override fun dispose() {
         ui.dispose()
         gridShader.dispose()
         axisShader.dispose()
-        super.destroy()
+        super.dispose()
     }
 
     override fun onSceneSizeChanged(size: EditorSceneState.SceneSize) {

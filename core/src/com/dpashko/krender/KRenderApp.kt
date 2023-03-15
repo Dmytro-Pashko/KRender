@@ -4,6 +4,8 @@ import com.badlogic.gdx.ApplicationAdapter
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.utils.ScreenUtils
+import com.dpashko.krender.di.DaggerAppComponent
+import javax.inject.Inject
 
 /**
  *  The main application class that initializes and manages the AppController.
@@ -11,11 +13,15 @@ import com.badlogic.gdx.utils.ScreenUtils
 class KRenderApp : ApplicationAdapter() {
 
     /** The instance of the AppController used to manage the application. */
-    private lateinit var appController: ApplicationListener
+    @Inject
+    lateinit var controller: AppController
 
     override fun create() {
-        appController = KRenderAppController()
-        appController.create()
+        DaggerAppComponent.builder()
+            .build()
+            .inject(this)
+
+        controller.create()
     }
 
     /**
@@ -23,25 +29,25 @@ class KRenderApp : ApplicationAdapter() {
      */
     override fun render() {
         ScreenUtils.clear(Color.BLACK)
-        appController.render(Gdx.graphics.deltaTime)
+        controller.update(Gdx.graphics.deltaTime)
     }
 
     override fun resize(width: Int, height: Int) {
-        appController.resize(width, height)
+        controller.resize(width, height)
     }
 
     /**
      * Disposes of the application by calling the AppController's dispose method.
      */
     override fun dispose() {
-        appController.dispose()
+        controller.dispose()
     }
 
     override fun pause() {
-        appController.pause()
+        controller.pause()
     }
 
     override fun resume() {
-        appController.resume()
+        controller.resume()
     }
 }

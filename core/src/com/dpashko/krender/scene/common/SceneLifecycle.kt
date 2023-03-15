@@ -45,7 +45,7 @@ interface SceneLifecycle {
     /**
      * This method is called when the scene is being destroyed.
      */
-    fun destroy()
+    fun dispose()
 
     fun resize(width: Int, height: Int)
 }

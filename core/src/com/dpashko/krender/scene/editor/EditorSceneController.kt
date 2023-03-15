@@ -2,14 +2,19 @@ package com.dpashko.krender.scene.editor
 
 import com.badlogic.gdx.math.Vector3
 import com.dpashko.krender.scene.common.SceneController
+import javax.inject.Inject
 
-class EditorSceneController(
-    private var state: EditorSceneState
-) : SceneController<EditorSceneState> {
+class EditorSceneController @Inject constructor() : SceneController<EditorSceneState> {
+
+    private lateinit var state: EditorSceneState
+
+    override fun init() {
+        state = EditorSceneState()
+    }
 
     override fun update(deltaTime: Float) {}
 
-    override fun destroy() {}
+    override fun dispose() {}
 
     override fun getState(): EditorSceneState = state
 
