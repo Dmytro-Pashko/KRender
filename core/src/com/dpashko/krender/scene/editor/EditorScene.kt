@@ -13,16 +13,20 @@ class EditorScene(
     private val controller: EditorSceneController,
 ) : BaseScene<EditorSceneState, EditorSceneController>(
     controller
-) {
+), EditorSceneInterfaceWidget.EditorSceneInterfaceListener {
 
-    private lateinit var ui: EditorSceneInterface
+    private lateinit var ui: EditorSceneInterfaceWidget
     private lateinit var axisShader: AxisShader
     private lateinit var gridShader: GridShader
     private lateinit var cameraController: EditorSceneCameraController
     private lateinit var debugShapesRenderer: ShapeRenderer
 
     override fun create() {
-        ui = EditorSceneInterface(controller, SkinProvider.default)
+        ui = EditorSceneInterfaceWidget(
+            listener = this,
+            state = controller.getState(),
+            skin = SkinProvider.default
+        )
 
         axisShader = AxisShader(axisLength = controller.getState().sceneSize.size)
         gridShader = GridShader(gridSize = controller.getState().sceneSize.size.toInt())
@@ -50,10 +54,10 @@ class EditorScene(
     override fun render() {
         val state = controller.getState()
         if (state.drawGrid) {
-            gridShader.draw(state.camera, state.sceneSize.size.toInt())
+            gridShader.draw(state.camera)
         }
         if (state.drawAxis) {
-            axisShader.draw(state.camera, state.sceneSize.size)
+            axisShader.draw(state.camera)
         }
 
         debugShapesRenderer.apply {
@@ -71,7 +75,7 @@ class EditorScene(
             )
             end()
         }
-        ui.draw()
+        ui.draw(state = state)
     }
 
     override fun pause() {
@@ -94,5 +98,24 @@ class EditorScene(
         gridShader.dispose()
         axisShader.dispose()
         super.destroy()
+    }
+
+    override fun onSceneSizeChanged(size: EditorSceneState.SceneSize) {
+        println("Scene size changed to: $size")
+        axisShader.dispose()
+        gridShader.dispose()
+        axisShader = AxisShader(axisLength = size.size)
+        gridShader = GridShader(gridSize = size.size.toInt())
+        controller.onSceneSize(size)
+    }
+
+    override fun onDrawAxisChanged(isDrawAxis: Boolean) {
+        println("Draw axis option changed to : $isDrawAxis")
+        controller.onDrawAxisChanged(isDrawAxis)
+    }
+
+    override fun onDrawGridChanged(isDrawGrid: Boolean) {
+        println("Draw grid option changed to : $isDrawGrid")
+        controller.onDrawGridChanged(isDrawGrid)
     }
 }

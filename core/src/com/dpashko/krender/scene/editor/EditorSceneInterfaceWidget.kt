@@ -15,7 +15,12 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import java.text.NumberFormat
 
-class EditorSceneInterface(private val controller: EditorSceneController, skin: Skin) : Stage(),
+class EditorSceneInterfaceWidget(
+    private val listener: EditorSceneInterfaceListener,
+    state: EditorSceneState,
+    skin: Skin
+) :
+    Stage(),
     EventListener {
 
     private var table = Table(skin)
@@ -50,62 +55,60 @@ class EditorSceneInterface(private val controller: EditorSceneController, skin: 
     }
 
     init {
-        addActor(buildWidgets())
+        addActor(
+            table.apply {
+                add(Table().apply {
+                    right()
+                    // Draw Grid Checkbox.
+                    add(drawGridCheckBox.apply {
+                        isChecked = state.drawGrid
+                        addListener(this@EditorSceneInterfaceWidget)
+                    }).padLeft(10f)
+                    // Grid Size selector.
+                    add(sceneSizeLabel)
+                        .padLeft(10f)
+                    add(sceneSizeSelectBox.apply {
+                        items = Array(EditorSceneState.SceneSize.values())
+                        selected = state.sceneSize
+                        addListener(this@EditorSceneInterfaceWidget)
+                    })
+                    add(drawAxisCheckBox.apply {
+                        isChecked = state.drawAxis
+                        addListener(this@EditorSceneInterfaceWidget)
+                    }).padLeft(10f).padRight(10f)
+                }).fillX().top()
+
+                row()
+                add(Table().apply {
+                    add(hintLabel)
+                }).expand().align(Align.right)
+
+                row()
+                add(Table().apply {
+                    left()
+                    // Camera Position.
+                    add(cameraPositionLabel)
+                    add(cameraPositionValue).padRight(10f)
+                    // Camera Target Point.
+                    add(targetPositionLabel)
+                    add(targetPositionValue).padRight(10f)
+                    // Distance from Camera to Target Point.
+                    add(distanceLabel)
+                    add(distanceValue).padRight(10f)
+                    add().expand()
+                    // FPS value.
+                    add(fpsLabel)
+                    add(fpsValue).padRight(10f)
+                }).fillX().bottom()
+                setFillParent(true)
+            },
+        )
     }
 
-    private fun buildWidgets() =
-        table.apply {
-            val state = controller.getState()
-            add(Table().apply {
-                right()
-                // Draw Grid Checkbox.
-                add(drawGridCheckBox.apply {
-                    isChecked = state.drawGrid
-                    addListener(this@EditorSceneInterface)
-                }).padLeft(10f)
-                // Grid Size selector.
-                add(sceneSizeLabel)
-                    .padLeft(10f)
-                add(sceneSizeSelectBox.apply {
-                    items = Array(EditorSceneState.SceneSize.values())
-                    selected = controller.getState().sceneSize
-                    addListener(this@EditorSceneInterface)
-                })
-                add(drawAxisCheckBox.apply {
-                    isChecked = state.drawAxis
-                    addListener(this@EditorSceneInterface)
-                }).padLeft(10f).padRight(10f)
-            }).fillX().top()
-
-            row()
-            add(Table().apply {
-                add(hintLabel)
-            }).expand().align(Align.right)
-
-            row()
-            add(Table().apply {
-                left()
-                // Camera Position.
-                add(cameraPositionLabel)
-                add(cameraPositionValue).padRight(10f)
-                // Camera Target Point.
-                add(targetPositionLabel)
-                add(targetPositionValue).padRight(10f)
-                // Distance from Camera to Target Point.
-                add(distanceLabel)
-                add(distanceValue).padRight(10f)
-                add().expand()
-                // FPS value.
-                add(fpsLabel)
-                add(fpsValue).padRight(10f)
-            }).fillX().bottom()
-            setFillParent(true)
-        }
-
-    override fun draw() {
+    fun draw(state: EditorSceneState) {
         val fps = Gdx.graphics.framesPerSecond
-        val cameraPosition = controller.getState().camera.position
-        val intersectionPoint = controller.getState().target
+        val cameraPosition = state.camera.position
+        val intersectionPoint = state.target
         val distance = intersectionPoint.dst(cameraPosition)
         fpsValue.setText(fps)
         cameraPositionValue.setText(
@@ -131,12 +134,25 @@ class EditorSceneInterface(private val controller: EditorSceneController, skin: 
     /** @param actor The event target, which is the actor that emitted the change event. */
     private fun changed(actor: Actor) {
         when (actor) {
-            sceneSizeSelectBox -> controller.onSceneSize(sceneSizeSelectBox.selected)
-            drawAxisCheckBox -> controller.onDrawAxisChanged(drawAxisCheckBox.isChecked)
+            sceneSizeSelectBox -> listener.onSceneSizeChanged(sceneSizeSelectBox.selected)
+            drawAxisCheckBox -> listener.onDrawAxisChanged(drawAxisCheckBox.isChecked)
             drawGridCheckBox -> {
                 sceneSizeSelectBox.isDisabled = !drawGridCheckBox.isChecked
-                controller.onDrawGridChanged(drawGridCheckBox.isChecked)
+                listener.onDrawGridChanged(drawGridCheckBox.isChecked)
             }
         }
+    }
+
+    /**
+     *
+     * Interface for listeners of EditorSceneInterfaceWidget events.
+     */
+    interface EditorSceneInterfaceListener {
+
+        fun onSceneSizeChanged(size: EditorSceneState.SceneSize)
+
+        fun onDrawAxisChanged(isDrawAxis: Boolean)
+
+        fun onDrawGridChanged(isDrawGrid: Boolean)
     }
 }

@@ -31,12 +31,7 @@ class AxisShader(
         setVertices(vertices, 0, vertices.size)
     }
 
-    fun draw(camera: Camera, axisLength: Float) {
-        if (axisLength != this.axisLength) {
-            this.axisLength = axisLength
-            vertices.dispose()
-            vertices = createVertices()
-        }
+    fun draw(camera: Camera) {
         shader.bind()
         shader.setUniformMatrix("cameraCombinedMatrix", camera.combined)
         vertices.bind(shader)

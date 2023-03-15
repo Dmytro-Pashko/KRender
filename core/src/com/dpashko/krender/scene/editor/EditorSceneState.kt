@@ -6,6 +6,9 @@ import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.math.collision.BoundingBox
 import com.dpashko.krender.scene.common.SceneState
 
+/**
+ * Represents the state of the editor scene.
+ */
 class EditorSceneState(
     var drawGrid: Boolean = true,
     var drawAxis: Boolean = true,
@@ -32,6 +35,11 @@ class EditorSceneState(
         )
     },
     var target: Vector3 = Vector3().apply {
+        // Calculates the distance between the camera position and the point of intersection
+        // of the camera's direction vector with the Z=0 plane in world coordinates.
+        // It does this by dividing the negative z-coordinate of the camera position by the
+        // z-component of the camera direction vector. This is based on the fact that the
+        // intersection point can be represented as cameraPosition + t * cameraDirection.
         val t = -camera.position.z / camera.direction.z
         set(
             camera.position.x + t * camera.direction.x,
@@ -41,6 +49,9 @@ class EditorSceneState(
     },
 ) : SceneState() {
 
+    /**
+     * Returns a byte array representing the object for persistence.
+     */
     override fun getObjectForPersistence(): ByteArray {
         return ByteArray(0)
     }

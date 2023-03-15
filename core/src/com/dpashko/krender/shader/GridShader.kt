@@ -41,12 +41,7 @@ class GridShader(
             setVertices(vertices.toFloatArray(), 0, vertices.size)
         }
 
-    fun draw(camera: Camera, gridSize: Int) {
-        if (gridSize != this.gridSize) {
-            this.gridSize = gridSize
-            vertices.dispose()
-            vertices = createVertices()
-        }
+    fun draw(camera: Camera) {
         shader.bind()
         shader.setUniformMatrix("cameraCombinedMatrix", camera.combined)
         shader.setUniform4fv("lineColor", colorVector, 0, colorVector.size)
