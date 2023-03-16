@@ -10,7 +10,7 @@ import javax.inject.Inject
 /**
  *  The main application class that initializes and manages the AppController.
  */
-class KRenderApp : ApplicationAdapter() {
+class AppEntryPoint : ApplicationAdapter() {
 
     /** The instance of the AppController used to manage the application. */
     @Inject

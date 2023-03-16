@@ -13,21 +13,22 @@ import javax.inject.Singleton
 
 @Singleton
 class EditorScene @Inject constructor(
-    private val controller: EditorSceneController,
-) : BaseScene<EditorSceneController>(controller),
-    EditorSceneInterfaceWidget.EditorSceneInterfaceListener {
+    private val controller: EditorController,
+    private val navigator: EditorSceneNavigator,
+) : BaseScene<EditorController, EditorResult>(controller),
+    EditorUiStage.EditorSceneInterfaceListener {
 
-    private lateinit var ui: EditorSceneInterfaceWidget
+    private lateinit var ui: EditorUiStage
     private lateinit var axisShader: AxisShader
     private lateinit var gridShader: GridShader
-    private lateinit var cameraController: EditorSceneCameraController
+    private lateinit var cameraController: EditorCameraController
     private lateinit var debugShapesRenderer: ShapeRenderer
 
     override fun create() {
         println("Editor scene initialization.")
         super.create()
 
-        ui = EditorSceneInterfaceWidget(
+        ui = EditorUiStage(
             listener = this,
             state = controller.getState(),
             skin = SkinProvider.default
@@ -37,7 +38,7 @@ class EditorScene @Inject constructor(
         debugShapesRenderer = ShapeRenderer().apply {
             color = Color.GREEN
         }
-        cameraController = EditorSceneCameraController()
+        cameraController = EditorCameraController()
 
         Gdx.input.inputProcessor = InputMultiplexer().apply {
             addProcessor(ui)
@@ -81,6 +82,9 @@ class EditorScene @Inject constructor(
             end()
         }
         ui.draw(state = state)
+        if (state.sceneSize.size < 0f) {
+            navigator.generateTerrain()
+        }
     }
 
     override fun pause() {
@@ -106,7 +110,7 @@ class EditorScene @Inject constructor(
         super.dispose()
     }
 
-    override fun onSceneSizeChanged(size: EditorSceneState.SceneSize) {
+    override fun onSceneSizeChanged(size: EditorState.SceneSize) {
         println("Scene size changed to: $size")
         axisShader.dispose()
         gridShader.dispose()

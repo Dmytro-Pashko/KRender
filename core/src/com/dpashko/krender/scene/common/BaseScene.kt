@@ -3,7 +3,7 @@ package com.dpashko.krender.scene.common
 /**
  * The base class for all scenes.
  */
-abstract class BaseScene<in C : SceneController<*>> constructor(
+abstract class BaseScene<in C : SceneController<*>, R> constructor(
     private val controller: C
 ) : SceneLifecycle {
 

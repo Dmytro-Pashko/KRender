@@ -5,10 +5,10 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.math.collision.BoundingBox
-import com.dpashko.krender.scene.editor.EditorSceneCameraController.Companion.maxZoomDistance
-import com.dpashko.krender.scene.editor.EditorSceneCameraController.Companion.minZoomDistance
-import com.dpashko.krender.scene.editor.EditorSceneCameraController.Companion.moveSpeed
-import com.dpashko.krender.scene.editor.EditorSceneCameraController.Companion.zoomSpeed
+import com.dpashko.krender.scene.editor.EditorCameraController.Companion.maxZoomDistance
+import com.dpashko.krender.scene.editor.EditorCameraController.Companion.minZoomDistance
+import com.dpashko.krender.scene.editor.EditorCameraController.Companion.moveSpeed
+import com.dpashko.krender.scene.editor.EditorCameraController.Companion.zoomSpeed
 
 /**
  * A class that handles camera controls for the editor scene.
@@ -22,7 +22,7 @@ import com.dpashko.krender.scene.editor.EditorSceneCameraController.Companion.zo
  * @property minZoomDistance
  * The min distance from the target point(Camera direction vector projected onto XY plane).
  */
-class EditorSceneCameraController : InputProcessor {
+class EditorCameraController : InputProcessor {
 
     companion object {
         // The speed at which the camera moves in units per second.
@@ -140,7 +140,7 @@ class EditorSceneCameraController : InputProcessor {
         return true
     }
 
-    fun update(state: EditorSceneState, delta: Float) {
+    fun update(state: EditorState, delta: Float) {
         state.apply {
             val moveAmount = delta * moveSpeed
             val displacement = Vector3.Zero

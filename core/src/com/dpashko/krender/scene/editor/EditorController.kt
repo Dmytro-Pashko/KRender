@@ -4,21 +4,21 @@ import com.badlogic.gdx.math.Vector3
 import com.dpashko.krender.scene.common.SceneController
 import javax.inject.Inject
 
-class EditorSceneController @Inject constructor() : SceneController<EditorSceneState> {
+class EditorController @Inject constructor() : SceneController<EditorState> {
 
-    private lateinit var state: EditorSceneState
+    private lateinit var state: EditorState
 
     override fun init() {
-        state = EditorSceneState()
+        state = EditorState()
     }
 
     override fun update(deltaTime: Float) {}
 
     override fun dispose() {}
 
-    override fun getState(): EditorSceneState = state
+    override fun getState(): EditorState = state
 
-    fun onSceneSize(selectedSize: EditorSceneState.SceneSize?) {
+    fun onSceneSize(selectedSize: EditorState.SceneSize?) {
         if (selectedSize != null) {
             state.sceneSize = selectedSize
             state.worldBounds.set(

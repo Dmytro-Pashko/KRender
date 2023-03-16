@@ -2,6 +2,8 @@ package com.dpashko.krender
 
 import com.dpashko.krender.scene.SceneFactory
 import com.dpashko.krender.scene.common.BaseScene
+import com.dpashko.krender.scene.editor.EditorResult
+import com.dpashko.krender.scene.navigator.Navigator
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,9 +52,9 @@ interface AppController {
 @Singleton
 class AppControllerImpl @Inject constructor(
     private val sceneFactory: SceneFactory
-) : AppController {
+) : AppController, Navigator<Any> {
 
-    private lateinit var activeScene: BaseScene<*>
+    private lateinit var activeScene: BaseScene<*, *>
 
     /**
      * Initialize any app-scoped components here.
@@ -97,5 +99,16 @@ class AppControllerImpl @Inject constructor(
 
     override fun resize(width: Int, height: Int) {
         activeScene.resize(width, height)
+    }
+
+    override fun navigateTo(action: Any) {
+        println("Received navigation action: $action")
+        activeScene.stop()
+        when (action) {
+            is EditorResult -> handleEditorSceneResult(action)
+        }
+    }
+
+    private fun handleEditorSceneResult(result: EditorResult) {
     }
 }

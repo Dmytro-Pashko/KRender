@@ -9,7 +9,7 @@ import com.dpashko.krender.scene.common.SceneState
 /**
  * Represents the state of the editor scene.
  */
-class EditorSceneState(
+class EditorState(
     var drawGrid: Boolean = true,
     var drawAxis: Boolean = true,
     var sceneSize: SceneSize = SceneSize.S_32,

@@ -15,9 +15,9 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import java.text.NumberFormat
 
-class EditorSceneInterfaceWidget(
+class EditorUiStage(
     private val listener: EditorSceneInterfaceListener,
-    state: EditorSceneState,
+    state: EditorState,
     skin: Skin
 ) :
     Stage(),
@@ -27,7 +27,7 @@ class EditorSceneInterfaceWidget(
     private var drawGridCheckBox = CheckBox("Draw grid", skin)
 
     private var sceneSizeLabel = Label("Scene size: ", skin)
-    private var sceneSizeSelectBox = SelectBox<EditorSceneState.SceneSize>(skin)
+    private var sceneSizeSelectBox = SelectBox<EditorState.SceneSize>(skin)
 
     private var drawAxisCheckBox = CheckBox("Draw axis", skin)
 
@@ -62,19 +62,19 @@ class EditorSceneInterfaceWidget(
                     // Draw Grid Checkbox.
                     add(drawGridCheckBox.apply {
                         isChecked = state.drawGrid
-                        addListener(this@EditorSceneInterfaceWidget)
+                        addListener(this@EditorUiStage)
                     }).padLeft(10f)
                     // Grid Size selector.
                     add(sceneSizeLabel)
                         .padLeft(10f)
                     add(sceneSizeSelectBox.apply {
-                        items = Array(EditorSceneState.SceneSize.values())
+                        items = Array(EditorState.SceneSize.values())
                         selected = state.sceneSize
-                        addListener(this@EditorSceneInterfaceWidget)
+                        addListener(this@EditorUiStage)
                     })
                     add(drawAxisCheckBox.apply {
                         isChecked = state.drawAxis
-                        addListener(this@EditorSceneInterfaceWidget)
+                        addListener(this@EditorUiStage)
                     }).padLeft(10f).padRight(10f)
                 }).fillX().top()
 
@@ -105,7 +105,7 @@ class EditorSceneInterfaceWidget(
         )
     }
 
-    fun draw(state: EditorSceneState) {
+    fun draw(state: EditorState) {
         val fps = Gdx.graphics.framesPerSecond
         val cameraPosition = state.camera.position
         val intersectionPoint = state.target
@@ -149,7 +149,7 @@ class EditorSceneInterfaceWidget(
      */
     interface EditorSceneInterfaceListener {
 
-        fun onSceneSizeChanged(size: EditorSceneState.SceneSize)
+        fun onSceneSizeChanged(size: EditorState.SceneSize)
 
         fun onDrawAxisChanged(isDrawAxis: Boolean)
 

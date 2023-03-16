@@ -10,6 +10,6 @@ class AndroidLauncher : AndroidApplication() {
         super.onCreate(savedInstanceState)
         val config = AndroidApplicationConfiguration()
         config.useGL30 = true
-        initialize(KRenderApp(), config)
+        initialize(AppEntryPoint(), config)
     }
 }

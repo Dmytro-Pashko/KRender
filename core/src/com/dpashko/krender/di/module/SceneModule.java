@@ -19,14 +19,14 @@ public class SceneModule {
   @IntoMap
   @Provides
   @ClassKey(EditorScene.class)
-  public BaseScene<?> editorScene(EditorScene scene) {
+  public BaseScene<?, ?> editorScene(EditorScene scene) {
     return scene;
   }
 
   @Singleton
   @Provides
   public SceneFactory sceneFactory(
-      Map<Class<?>, Provider<BaseScene<?>>> sceneProviders
+      Map<Class<?>, Provider<BaseScene<?, ?>>> sceneProviders
   ) {
     return new SceneFactory(sceneProviders);
   }
