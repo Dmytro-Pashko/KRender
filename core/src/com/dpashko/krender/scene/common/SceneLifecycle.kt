@@ -11,11 +11,6 @@ interface SceneLifecycle {
     fun create()
 
     /**
-     * This method is called when the scene is starting.
-     */
-    fun start()
-
-    /**
      * This method is called every frame to update the scene.
      *
      * @param deltaTime the time elapsed since the last frame, in seconds
@@ -36,11 +31,6 @@ interface SceneLifecycle {
      * This method is called when the scene is being resumed.
      */
     fun resume()
-
-    /**
-     * This method is called when the scene is being stopped.
-     */
-    fun stop()
 
     /**
      * This method is called when the scene is being destroyed.

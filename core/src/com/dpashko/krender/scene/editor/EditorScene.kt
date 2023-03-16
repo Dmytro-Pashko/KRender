@@ -13,8 +13,8 @@ import javax.inject.Singleton
 
 @Singleton
 class EditorScene @Inject constructor(
-    private val controller: EditorController,
-    private val navigator: EditorSceneNavigator,
+    controller: EditorController,
+    private val navigator: EditorNavigator,
 ) : BaseScene<EditorController, EditorResult>(controller),
     EditorUiStage.EditorSceneInterfaceListener {
 
@@ -44,11 +44,7 @@ class EditorScene @Inject constructor(
             addProcessor(ui)
             addProcessor(cameraController)
         }
-        println("Editor scene created.")
-    }
-
-    override fun start() {
-        println("Editor scene started.")
+        println("Editor scene initialized.")
     }
 
     override fun update(deltaTime: Float) {
@@ -95,10 +91,6 @@ class EditorScene @Inject constructor(
         println("Editor scene resumed.")
     }
 
-    override fun stop() {
-        println("Editor scene stopped.")
-    }
-
     override fun resize(width: Int, height: Int) {
         println("Editor scene resized: w=$width, h=$height")
     }
@@ -127,5 +119,9 @@ class EditorScene @Inject constructor(
     override fun onDrawGridChanged(isDrawGrid: Boolean) {
         println("Draw grid option changed to : $isDrawGrid")
         controller.onDrawGridChanged(isDrawGrid)
+    }
+
+    override fun onGenerateTerrainClicked() {
+        navigator.generateTerrain()
     }
 }

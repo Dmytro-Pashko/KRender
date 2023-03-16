@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Event
 import com.badlogic.gdx.scenes.scene2d.EventListener
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.CheckBox
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
@@ -43,6 +44,8 @@ class EditorUiStage(
     private var fpsLabel = Label("FPS:", skin)
     private var fpsValue = Label("", skin)
 
+    private var generateTerrainButton = Button(Label("Generate Terrain", skin), skin)
+
     private var hintLabel =
         Label(
             "Navigation: \nW=forward\nS=backward\nA=left\nD=right\nMid.Mouse=rotate\nWheel=Zoom",
@@ -75,7 +78,10 @@ class EditorUiStage(
                     add(drawAxisCheckBox.apply {
                         isChecked = state.drawAxis
                         addListener(this@EditorUiStage)
-                    }).padLeft(10f).padRight(10f)
+                    }).padRight(10f)
+                    add(generateTerrainButton).apply {
+                        addListener(this@EditorUiStage)
+                    }.padRight(10f)
                 }).fillX().top()
 
                 row()
@@ -140,6 +146,8 @@ class EditorUiStage(
                 sceneSizeSelectBox.isDisabled = !drawGridCheckBox.isChecked
                 listener.onDrawGridChanged(drawGridCheckBox.isChecked)
             }
+
+            generateTerrainButton -> listener.onGenerateTerrainClicked()
         }
     }
 
@@ -154,5 +162,7 @@ class EditorUiStage(
         fun onDrawAxisChanged(isDrawAxis: Boolean)
 
         fun onDrawGridChanged(isDrawGrid: Boolean)
+
+        fun onGenerateTerrainClicked()
     }
 }

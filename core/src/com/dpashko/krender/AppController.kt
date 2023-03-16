@@ -4,6 +4,8 @@ import com.dpashko.krender.scene.SceneFactory
 import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.scene.editor.EditorResult
 import com.dpashko.krender.scene.navigator.Navigator
+import com.dpashko.krender.scene.terrain.generator.TerrainGeneratorResult
+import java.util.Stack
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -47,14 +49,14 @@ interface AppController {
 }
 
 /**
- * Main app controller that initiates app components e.g scenes, and handles navigation between them.
+ * Main app controller that initiates and handles app components e.g scenes lifecycle, navigation.
  */
 @Singleton
 class AppControllerImpl @Inject constructor(
     private val sceneFactory: SceneFactory
 ) : AppController, Navigator<Any> {
 
-    private lateinit var activeScene: BaseScene<*, *>
+    private val sceneStack = Stack<BaseScene<*, *>>()
 
     /**
      * Initialize any app-scoped components here.
@@ -63,52 +65,100 @@ class AppControllerImpl @Inject constructor(
         println("Started AppController initialization.")
         // Initialize any app-scoped components here
 
-        // Create and start the first scene
-        activeScene = sceneFactory.getEntryPointScene().apply {
-            create()
-        }
+        val entryPointScene = sceneFactory.getEditorScene()
+        pushScene(entryPointScene)
         println("AppController initialized.")
     }
 
     override fun update(delta: Float) {
-        activeScene.update(delta)
-        activeScene.render()
+        activeScene()?.update(delta)
+        activeScene()?.render()
     }
 
     /**
      * Pause the current scene.
      */
     override fun pause() {
-        activeScene.pause()
+        activeScene()?.pause()
     }
 
     /**
      * Resume the current scene.
      */
     override fun resume() {
-        activeScene.resume()
+        activeScene()?.resume()
     }
 
     /**
      * Stop and destroy the current scene and dispose of any app-scoped components.
      */
     override fun dispose() {
-        activeScene.dispose()
+        sceneStack.forEach { it.dispose() }
+        sceneStack.clear()
         println("AppController disposed.")
     }
 
     override fun resize(width: Int, height: Int) {
-        activeScene.resize(width, height)
+        activeScene()?.resize(width, height)
     }
 
     override fun navigateTo(action: Any) {
         println("Received navigation action: $action")
-        activeScene.stop()
         when (action) {
             is EditorResult -> handleEditorSceneResult(action)
+            is TerrainGeneratorResult -> handleTerrainGenerator(action)
         }
     }
 
     private fun handleEditorSceneResult(result: EditorResult) {
+        when (result) {
+            EditorResult.GENERATE_TERRAIN -> pushScene(sceneFactory.getTerrainGeneratorScene())
+        }
+    }
+
+    private fun handleTerrainGenerator(result: TerrainGeneratorResult) {
+        when (result) {
+            TerrainGeneratorResult.COMPLETED -> popScene()
+        }
+    }
+
+    private fun activeScene(): BaseScene<*, *>? {
+        return if (sceneStack.isNotEmpty()) {
+            sceneStack.peek()
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Adds the specified scene to the top of the scene stack and sets it as the active scene.
+     *
+     * @param scene The scene to add.
+     */
+    private fun pushScene(scene: BaseScene<*, *>) {
+        activeScene()?.pause()
+        sceneStack.push(scene)
+        scene.create()
+    }
+
+    /**
+     * Replaces the active scene with the specified scene and sets it as the active scene.
+     *
+     * @param scene The scene to replace the active scene with.
+     */
+    private fun replaceScene(scene: BaseScene<*, *>) {
+        activeScene()?.dispose()
+        sceneStack.pop()
+        sceneStack.push(scene)
+        scene.create()
+    }
+
+    /**
+     * Removes the active scene from the top of the scene stack and sets the previous scene as the active scene.
+     */
+    private fun popScene() {
+        activeScene()?.dispose()
+        sceneStack.pop()
+        activeScene()?.resume()
     }
 }
