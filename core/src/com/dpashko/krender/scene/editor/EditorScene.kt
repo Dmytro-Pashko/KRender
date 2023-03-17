@@ -1,7 +1,5 @@
 package com.dpashko.krender.scene.editor
 
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.dpashko.krender.scene.common.BaseScene
@@ -40,7 +38,7 @@ class EditorScene @Inject constructor(
         }
         cameraController = EditorCameraController()
 
-        Gdx.input.inputProcessor = InputMultiplexer().apply {
+        input.apply {
             addProcessor(ui)
             addProcessor(cameraController)
         }
@@ -84,10 +82,12 @@ class EditorScene @Inject constructor(
     }
 
     override fun pause() {
+        super.pause()
         println("Editor scene paused.")
     }
 
     override fun resume() {
+        super.resume()
         println("Editor scene resumed.")
     }
 

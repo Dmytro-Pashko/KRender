@@ -1,19 +1,20 @@
-package com.dpashko.krender;
+package com.dpashko.krender
 
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 
 // Please note that on macOS your application needs to be started with the -XstartOnFirstThread
 // JVM argument
-public class DesktopLauncher {
-
-  public static void main(String[] arg) {
-    Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
-    config.setForegroundFPS(60);
-    config.setWindowedMode(1024, 768);
-    config.setResizable(false);
-    config.setTitle("KRender");
-    config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 3);
-    new Lwjgl3Application(new AppEntryPoint(), config);
-  }
+object DesktopLauncher {
+    @JvmStatic
+    fun main(arg: Array<String>) {
+        val config = Lwjgl3ApplicationConfiguration().apply {
+            setForegroundFPS(60)
+            setWindowedMode(1024, 768)
+            setResizable(false)
+            setTitle("KRender")
+            setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 3)
+        }
+        Lwjgl3Application(AppEntryPoint(), config)
+    }
 }

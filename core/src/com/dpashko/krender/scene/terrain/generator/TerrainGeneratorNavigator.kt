@@ -9,6 +9,6 @@ class TerrainGeneratorNavigator @Inject constructor(
 ) {
 
     fun exit() {
-        globalNavigator.navigateTo(EditorResult.GENERATE_TERRAIN)
+        globalNavigator.navigateTo(TerrainGeneratorResult.COMPLETED)
     }
 }
