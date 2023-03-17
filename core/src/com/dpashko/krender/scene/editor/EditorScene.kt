@@ -16,8 +16,8 @@ class EditorScene @Inject constructor(
 ) : BaseScene<EditorController, EditorResult>(controller),
     EditorUiStage.EditorSceneInterfaceListener {
 
-//    private lateinit var ui: EditorUiStage
-//    private lateinit var axisShader: AxisShader
+    private lateinit var ui: EditorUiStage
+    private lateinit var axisShader: AxisShader
     private lateinit var gridShader: GridShader
     private lateinit var cameraController: EditorCameraController
     private lateinit var debugShapesRenderer: ShapeRenderer
@@ -26,12 +26,12 @@ class EditorScene @Inject constructor(
         println("Editor scene initialization.")
         super.create()
 
-//        ui = EditorUiStage(
-//            listener = this,
-//            state = controller.getState(),
-//            skin = SkinProvider.default
-//        )
-//        axisShader = AxisShader(axisLength = controller.getState().sceneSize.size)
+        ui = EditorUiStage(
+            listener = this,
+            state = controller.getState(),
+            skin = SkinProvider.default
+        )
+        axisShader = AxisShader(axisLength = controller.getState().sceneSize.size)
         gridShader = GridShader(gridSize = controller.getState().sceneSize.size.toInt())
         debugShapesRenderer = ShapeRenderer().apply {
             color = Color.GREEN
@@ -39,7 +39,7 @@ class EditorScene @Inject constructor(
         cameraController = EditorCameraController()
 
         input.apply {
-//            addProcessor(ui)
+            addProcessor(ui)
             addProcessor(cameraController)
         }
         println("Editor scene initialized.")
@@ -47,7 +47,7 @@ class EditorScene @Inject constructor(
 
     override fun update(deltaTime: Float) {
         super.update(deltaTime)
-//        ui.act(deltaTime)
+        ui.act(deltaTime)
         cameraController.update(controller.getState(), deltaTime)
     }
 
@@ -56,9 +56,9 @@ class EditorScene @Inject constructor(
         if (state.drawGrid) {
             gridShader.draw(state.camera)
         }
-//        if (state.drawAxis) {
-//            axisShader.draw(state.camera)
-//        }
+        if (state.drawAxis) {
+            axisShader.draw(state.camera)
+        }
 
         debugShapesRenderer.apply {
             projectionMatrix = state.camera.combined
@@ -75,7 +75,7 @@ class EditorScene @Inject constructor(
             )
             end()
         }
-//        ui.draw(state = state)
+        ui.draw(state = state)
     }
 
     override fun pause() {
@@ -93,18 +93,18 @@ class EditorScene @Inject constructor(
     }
 
     override fun dispose() {
-//        ui.dispose()
+        ui.dispose()
         gridShader.dispose()
-//        axisShader.dispose()
+        axisShader.dispose()
         super.dispose()
     }
 
     override fun onSceneSizeChanged(size: EditorState.SceneSize) {
         println("Scene size changed to: $size")
-//        axisShader.dispose()
+        axisShader.dispose()
         gridShader.dispose()
-//        axisShader = AxisShader(axisLength = size.size)
-//        gridShader = GridShader(gridSize = size.size.toInt())
+        axisShader = AxisShader(axisLength = size.size)
+        gridShader = GridShader(gridSize = size.size.toInt())
         controller.onSceneSize(size)
     }
 
