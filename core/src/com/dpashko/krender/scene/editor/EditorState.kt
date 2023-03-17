@@ -15,8 +15,8 @@ class EditorState(
     var sceneSize: SceneSize = SceneSize.S_32,
     var camera: PerspectiveCamera = PerspectiveCamera(
         67f,
-        Gdx.graphics.width.toFloat(),
-        Gdx.graphics.height.toFloat()
+        1024f,
+        768f
     )
         .apply {
             near = 0.1f

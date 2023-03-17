@@ -28,7 +28,6 @@ class AppEntryPoint : ApplicationAdapter() {
      * Renders the application by calling the AppController's render method.
      */
     override fun render() {
-        ScreenUtils.clear(Color.BLACK)
         controller.update(Gdx.graphics.deltaTime)
     }
 

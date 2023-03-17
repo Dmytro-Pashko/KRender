@@ -21,8 +21,6 @@ sourceSets {
 
 dependencies {
     api("com.badlogicgames.gdx:gdx:1.11.0")
-    // GLTF models support.
-    api("com.github.mgsx-dev.gdx-gltf:core:2.0.0-rc.1")
     api("org.jetbrains.kotlin:kotlin-stdlib:1.8.10")
     // DI
     api("com.google.dagger:dagger:2.44.2")

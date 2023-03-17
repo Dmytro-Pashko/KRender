@@ -6,6 +6,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("java")
     id("kotlin")
+    id("org.jetbrains.compose") version "1.3.1"
 }
 
 val assetsDir = rootProject.file("assets")
@@ -50,4 +51,5 @@ dependencies {
     implementation(project(":core"))
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.11.0")
     implementation("com.badlogicgames.gdx:gdx-platform:1.11.0:natives-desktop")
+    implementation(compose.desktop.currentOs)
 }

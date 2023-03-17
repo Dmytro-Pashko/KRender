@@ -14,15 +14,15 @@ abstract class BaseScene<out C : SceneController<*>, R> constructor(
 
     override fun create() {
         controller.init()
-        Gdx.input.inputProcessor = this
+//        Gdx.input.inputProcessor = this
     }
 
     override fun resume() {
-        Gdx.input.inputProcessor = this
+//        Gdx.input.inputProcessor = this
     }
 
     override fun pause() {
-        Gdx.input.inputProcessor = null
+//        Gdx.input.inputProcessor = null
     }
 
     override fun update(deltaTime: Float) {
@@ -31,6 +31,6 @@ abstract class BaseScene<out C : SceneController<*>, R> constructor(
 
     override fun dispose() {
         controller.dispose()
-        Gdx.input.inputProcessor = null
+//        Gdx.input.inputProcessor = null
     }
 }
