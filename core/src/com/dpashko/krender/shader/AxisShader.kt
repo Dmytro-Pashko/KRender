@@ -35,10 +35,10 @@ class AxisShader(
         shader.bind()
         shader.setUniformMatrix("cameraCombinedMatrix", camera.combined)
         vertices.bind(shader)
-        Gdx.gl.glLineWidth(axisWidth)
-        Gdx.gl.glDrawArrays(GL20.GL_LINES, 0, vertices.numVertices)
+        Gdx.gl20.glLineWidth(axisWidth)
+        Gdx.gl20.glDrawArrays(GL20.GL_LINES, 0, vertices.numVertices)
         vertices.unbind(shader)
-        Gdx.gl.glLineWidth(1f)
+        Gdx.gl20.glLineWidth(1f)
     }
 
     override fun dispose() {

@@ -68,7 +68,14 @@ class CustomGraphics(
         GLFW.glfwGetWindowSize(windowHandle, tmpBuffer, tmpBuffer2)
         logicalWidth = tmpBuffer[0]
         logicalHeight = tmpBuffer2[0]
-        bufferFormat = BufferFormat(8, 8, 8, 8, 8, 0, 0, false)
+        bufferFormat = BufferFormat(/* r = */ 8, /* g = */
+            8, /* b = */
+            8, /* a = */
+            8, /* depth = */
+            8, /* stencil = */
+            0, /* samples = */
+            0, /* coverageSampling = */
+            false)
     }
 
     override fun isGL30Available() = gl30 != null

@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.shader.AxisShader
 import com.dpashko.krender.shader.GridShader
-import com.dpashko.krender.skin.SkinProvider
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,7 +15,6 @@ class EditorScene @Inject constructor(
 ) : BaseScene<EditorController, EditorResult>(controller),
     EditorUiStage.EditorSceneInterfaceListener {
 
-    private lateinit var ui: EditorUiStage
     private lateinit var axisShader: AxisShader
     private lateinit var gridShader: GridShader
     private lateinit var cameraController: EditorCameraController
@@ -26,11 +24,6 @@ class EditorScene @Inject constructor(
         println("Editor scene initialization.")
         super.create()
 
-        ui = EditorUiStage(
-            listener = this,
-            state = controller.getState(),
-            skin = SkinProvider.default
-        )
         axisShader = AxisShader(axisLength = controller.getState().sceneSize.size)
         gridShader = GridShader(gridSize = controller.getState().sceneSize.size.toInt())
         debugShapesRenderer = ShapeRenderer().apply {
@@ -39,7 +32,6 @@ class EditorScene @Inject constructor(
         cameraController = EditorCameraController()
 
         input.apply {
-            addProcessor(ui)
             addProcessor(cameraController)
         }
         println("Editor scene initialized.")
@@ -47,7 +39,6 @@ class EditorScene @Inject constructor(
 
     override fun update(deltaTime: Float) {
         super.update(deltaTime)
-        ui.act(deltaTime)
         cameraController.update(controller.getState(), deltaTime)
     }
 
@@ -75,7 +66,6 @@ class EditorScene @Inject constructor(
             )
             end()
         }
-        ui.draw(state = state)
     }
 
     override fun pause() {
@@ -93,7 +83,6 @@ class EditorScene @Inject constructor(
     }
 
     override fun dispose() {
-        ui.dispose()
         gridShader.dispose()
         axisShader.dispose()
         super.dispose()

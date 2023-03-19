@@ -29,9 +29,6 @@ class AppEntryPoint : ApplicationAdapter() {
      * Renders the application by calling the AppController's render method.
      */
     override fun render() {
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT)
-
         controller.update(Gdx.graphics.deltaTime)
     }
 

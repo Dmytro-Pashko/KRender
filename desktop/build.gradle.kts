@@ -49,7 +49,6 @@ tasks {
 
 dependencies {
     implementation(project(":core"))
-    implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.11.0")
-    implementation("com.badlogicgames.gdx:gdx-platform:1.11.0:natives-desktop")
+    implementation(project(":gdx-backend-lwjgl3"))
     implementation(compose.desktop.currentOs)
 }
