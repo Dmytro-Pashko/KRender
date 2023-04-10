@@ -1,11 +1,30 @@
 package com.dpashko.krender.scene.editor
 
+import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Button
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.unit.Dp
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.dpashko.krender.compose.ComposeRenderer
 import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.shader.AxisShader
 import com.dpashko.krender.shader.GridShader
-import com.dpashko.krender.skin.SkinProvider
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,33 +32,31 @@ import javax.inject.Singleton
 class EditorScene @Inject constructor(
     controller: EditorController,
     private val navigator: EditorNavigator,
-) : BaseScene<EditorController, EditorResult>(controller),
-    EditorUiStage.EditorSceneInterfaceListener {
+) : BaseScene<EditorController, EditorResult>(controller) {
 
-    private lateinit var ui: EditorUiStage
     private lateinit var axisShader: AxisShader
     private lateinit var gridShader: GridShader
     private lateinit var cameraController: EditorCameraController
     private lateinit var debugShapesRenderer: ShapeRenderer
+    private lateinit var composeRenderer: ComposeRenderer
 
     override fun create() {
         println("Editor scene initialization.")
         super.create()
 
-        ui = EditorUiStage(
-            listener = this,
-            state = controller.getState(),
-            skin = SkinProvider.default
-        )
         axisShader = AxisShader(axisLength = controller.getState().sceneSize.size)
         gridShader = GridShader(gridSize = controller.getState().sceneSize.size.toInt())
         debugShapesRenderer = ShapeRenderer().apply {
             color = Color.GREEN
         }
         cameraController = EditorCameraController()
-
+        composeRenderer = ComposeRenderer().apply {
+            init {
+                createInterfaceWidget()
+            }
+        }
         input.apply {
-            addProcessor(ui)
+            addProcessor(composeRenderer)
             addProcessor(cameraController)
         }
         println("Editor scene initialized.")
@@ -47,7 +64,6 @@ class EditorScene @Inject constructor(
 
     override fun update(deltaTime: Float) {
         super.update(deltaTime)
-        ui.act(deltaTime)
         cameraController.update(controller.getState(), deltaTime)
     }
 
@@ -60,22 +76,22 @@ class EditorScene @Inject constructor(
             axisShader.draw(state.camera)
         }
 
-        debugShapesRenderer.apply {
-            projectionMatrix = state.camera.combined
-            begin(ShapeRenderer.ShapeType.Line)
-            state.worldBounds.apply {
-                box(min.x, min.y, max.z, width, height, depth)
-            }
-            end()
-            begin(ShapeRenderer.ShapeType.Point)
-            point(
-                state.target.x,
-                state.target.y,
-                state.target.z
-            )
-            end()
-        }
-        ui.draw(state = state)
+//        debugShapesRenderer.apply {
+//            projectionMatrix = state.camera.combined
+//            begin(ShapeRenderer.ShapeType.Line)
+//            state.worldBounds.apply {
+//                box(min.x, min.y, max.z, width, height, depth)
+//            }
+//            end()
+//            begin(ShapeRenderer.ShapeType.Point)
+//            point(
+//                state.target.x,
+//                state.target.y,
+//                state.target.z
+//            )
+//            end()
+//        }
+        composeRenderer.render()
     }
 
     override fun pause() {
@@ -93,32 +109,58 @@ class EditorScene @Inject constructor(
     }
 
     override fun dispose() {
-        ui.dispose()
         gridShader.dispose()
         axisShader.dispose()
+        composeRenderer.dispose()
         super.dispose()
     }
+}
 
-    override fun onSceneSizeChanged(size: EditorState.SceneSize) {
-        println("Scene size changed to: $size")
-        axisShader.dispose()
-        gridShader.dispose()
-        axisShader = AxisShader(axisLength = size.size)
-        gridShader = GridShader(gridSize = size.size.toInt())
-        controller.onSceneSize(size)
-    }
+@Composable
+@Preview
+fun createInterfaceWidget() {
+    return MaterialTheme {
+        Surface(
+            border = BorderStroke(
+                width = Dp(3f),
+                brush = SolidColor(androidx.compose.ui.graphics.Color.Green)
+            )
+        ) {
+            var text by remember { mutableStateOf("") }
+            val history by remember { mutableStateOf(mutableListOf<String>()) }
 
-    override fun onDrawAxisChanged(isDrawAxis: Boolean) {
-        println("Draw axis option changed to : $isDrawAxis")
-        controller.onDrawAxisChanged(isDrawAxis)
-    }
+            Column {
 
-    override fun onDrawGridChanged(isDrawGrid: Boolean) {
-        println("Draw grid option changed to : $isDrawGrid")
-        controller.onDrawGridChanged(isDrawGrid)
-    }
+                TextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    placeholder = ({
+                        Text("Some input data...")
+                    })
+                )
 
-    override fun onGenerateTerrainClicked() {
-        navigator.generateTerrain()
+                Row(
+                    modifier = Modifier
+                        .padding(Dp(10f))
+                        .align(alignment = Alignment.CenterHorizontally)
+                ) {
+                    Button(
+                        modifier = Modifier.padding(Dp(10f)),
+                        onClick = {
+                            history.add(text)
+                            text = ""
+                        }) {
+                        Text("Add")
+                    }
+                    Button(
+                        modifier = Modifier.padding(Dp(10f)),
+                        onClick = {
+                            history.clear()
+                        }) {
+                        Text("Clear All")
+                    }
+                }
+            }
+        }
     }
 }
