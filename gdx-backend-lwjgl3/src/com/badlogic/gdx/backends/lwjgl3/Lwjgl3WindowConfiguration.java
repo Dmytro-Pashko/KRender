@@ -27,8 +27,8 @@ import com.badlogic.gdx.graphics.Color;
 public class Lwjgl3WindowConfiguration {
 	int windowX = -1;
 	int windowY = -1;
-	int windowWidth = 640;
-	int windowHeight = 480;
+	int windowWidth = 1024;
+	int windowHeight = 768;
 	int windowMinWidth = -1, windowMinHeight = -1, windowMaxWidth = -1, windowMaxHeight = -1;
 	boolean windowResizable = true;
 	boolean windowDecorated = true;

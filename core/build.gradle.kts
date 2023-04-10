@@ -4,6 +4,7 @@ plugins {
     id("java")
     id("kotlin")
     id("kotlin-kapt")
+    id("org.jetbrains.compose") version "1.3.1"
 }
 
 kotlin {
@@ -25,4 +26,6 @@ dependencies {
     // DI
     api("com.google.dagger:dagger:2.44.2")
     kapt("com.google.dagger:dagger-compiler:2.44.2")
+
+    implementation(compose.desktop.currentOs)
 }
