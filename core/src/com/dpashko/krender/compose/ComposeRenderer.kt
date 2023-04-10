@@ -19,6 +19,7 @@ import org.jetbrains.skia.SurfaceColorFormat
 import org.jetbrains.skia.SurfaceOrigin
 import org.jetbrains.skia.SurfaceProps
 import java.awt.Component
+import java.awt.Graphics
 import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent.KEY_LOCATION_UNKNOWN
 import java.awt.event.KeyEvent.KEY_TYPED
@@ -77,43 +78,44 @@ class ComposeRenderer(
     }
 
     override fun keyDown(keycode: Int): Boolean {
-//        if (keycode == Keys.LEFT) {
-//            scene.sendPointerEvent(
-//                PointerEventType.Press,
-//                position = Offset(screenX.toFloat(), screenY.toFloat()),
-//            )
-//            return true
-//        }
+        if (keycode == Keys.LEFT) {
+            scene.sendPointerEvent(
+                PointerEventType.Press,
+                position = Offset(screenX.toFloat(), screenY.toFloat()),
+            )
+            return true
+        }
         return false
     }
 
     override fun keyUp(keycode: Int): Boolean {
-//        if (keycode == Keys.LEFT) {
-//            scene.sendPointerEvent(
-//                PointerEventType.Release,
-//                position = Offset(screenX.toFloat(), screenY.toFloat()),
-//            )
-//            return true
-//        }
+        if (keycode == Keys.LEFT) {
+            scene.sendPointerEvent(
+                PointerEventType.Release,
+                position = Offset(screenX.toFloat(), screenY.toFloat()),
+            )
+            return true
+        }
         return false
     }
 
+    private val stubComponent = StubAwtComponent()
     override fun keyTyped(character: Char): Boolean {
-//        val time = System.nanoTime() / 1_000_000
-//        scene.sendKeyEvent(
-//            androidx.compose.ui.input.key.KeyEvent(
-//                KeyEvent(
-//                    scene as Component,
-//                    java.awt.event.KeyEvent.KEY_TYPED,
-//                    time,
-//                    0,
-//                    0,
-//                    character,
-//                    KEY_LOCATION_UNKNOWN
-//                )
-//            )
-//        )
-        return false
+        val time = System.nanoTime() / 1_000_000
+        scene.sendKeyEvent(
+            androidx.compose.ui.input.key.KeyEvent(
+                KeyEvent(
+                    stubComponent,
+                    KEY_TYPED,
+                    time,
+                    0,
+                    0,
+                    character,
+                    KEY_LOCATION_UNKNOWN
+                )
+            )
+        )
+        return true
     }
 
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
@@ -152,6 +154,10 @@ class ComposeRenderer(
     override fun scrolled(amountX: Float, amountY: Float): Boolean {
         return false
     }
+}
+
+class StubAwtComponent : Component() {
+    override fun paint(g: Graphics) {}
 }
 
 // Runs Dispatcher on Separate thread.
