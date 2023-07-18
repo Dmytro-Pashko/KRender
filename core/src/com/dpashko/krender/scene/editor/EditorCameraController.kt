@@ -119,6 +119,10 @@ class EditorCameraController : InputProcessor {
         return true
     }
 
+    override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+        TODO("Not yet implemented")
+    }
+
     override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
         if (isRotating) {
             deltaX = screenX.toFloat() - lastMouseX.toFloat()

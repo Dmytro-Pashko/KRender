@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.Dp
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.dpashko.krender.compose.ComposeRenderer
@@ -69,6 +70,7 @@ class EditorScene @Inject constructor(
 
     override fun render() {
         val state = controller.getState()
+
         if (state.drawGrid) {
             gridShader.draw(state.camera)
         }
@@ -76,21 +78,24 @@ class EditorScene @Inject constructor(
             axisShader.draw(state.camera)
         }
 
-//        debugShapesRenderer.apply {
-//            projectionMatrix = state.camera.combined
-//            begin(ShapeRenderer.ShapeType.Line)
-//            state.worldBounds.apply {
-//                box(min.x, min.y, max.z, width, height, depth)
-//            }
-//            end()
-//            begin(ShapeRenderer.ShapeType.Point)
-//            point(
-//                state.target.x,
-//                state.target.y,
-//                state.target.z
-//            )
-//            end()
-//        }
+        debugShapesRenderer.apply {
+            projectionMatrix = state.camera.combined
+            // Draw world boundaries.
+            begin(ShapeRenderer.ShapeType.Line)
+            state.worldBounds.apply {
+                box(min.x, min.y, max.z, width, height, depth)
+            }
+            end()
+            // Draw Camera target point
+            begin(ShapeRenderer.ShapeType.Point)
+            point(
+                state.target.x,
+                state.target.y,
+                state.target.z
+            )
+            end()
+        }
+
         composeRenderer.render()
     }
 
@@ -122,8 +127,8 @@ fun createInterfaceWidget() {
     return MaterialTheme {
         Surface(
             border = BorderStroke(
-                width = Dp(3f),
-                brush = SolidColor(androidx.compose.ui.graphics.Color.Green)
+                width = Dp(1f),
+                brush = SolidColor(androidx.compose.ui.graphics.Color.Black)
             )
         ) {
             var text by remember { mutableStateOf("") }

@@ -9,15 +9,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.InputProcessor
 import kotlinx.coroutines.CoroutineDispatcher
-import org.jetbrains.skia.BackendRenderTarget
-import org.jetbrains.skia.ColorSpace
-import org.jetbrains.skia.DirectContext
-import org.jetbrains.skia.FramebufferFormat
-import org.jetbrains.skia.PixelGeometry
-import org.jetbrains.skia.Surface
-import org.jetbrains.skia.SurfaceColorFormat
-import org.jetbrains.skia.SurfaceOrigin
-import org.jetbrains.skia.SurfaceProps
+import org.jetbrains.skia.*
 import java.awt.Component
 import java.awt.Graphics
 import java.awt.event.KeyEvent
@@ -29,7 +21,7 @@ class ComposeRenderer(
     private val dispatcher: UiCoroutineDispatcher = UiCoroutineDispatcher(),
 ) : InputProcessor {
 
-    private val scene = ComposeScene(dispatcher, Density(1f)) {
+    private val scene = ComposeScene(dispatcher, Density(0.7f)) {
         Gdx.graphics.requestRendering()
     }
     private var surface: Surface? = null
@@ -45,6 +37,7 @@ class ComposeRenderer(
     fun render() {
         surface?.canvas.also {
             if (it != null) {
+                context.resetAll()
                 scene.render(it, System.nanoTime())
                 context.flush()
             }
@@ -65,7 +58,7 @@ class ComposeRenderer(
             stencilBits = 8,
             fbId = 0,
             fbFormat = FramebufferFormat.GR_GL_RGBA8
-        );
+        )
 
         return Surface.makeFromBackendRenderTarget(
             context,
@@ -131,6 +124,10 @@ class ComposeRenderer(
             PointerEventType.Release,
             position = Offset(screenX.toFloat(), screenY.toFloat()),
         )
+        return false
+    }
+
+    override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         return false
     }
 
