@@ -52,4 +52,5 @@ dependencies {
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.12.0")
     implementation("com.badlogicgames.gdx:gdx-platform:1.12.0:natives-desktop")
     implementation(compose.desktop.currentOs)
+    runtimeOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.3")
 }

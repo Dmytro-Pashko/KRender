@@ -15,13 +15,13 @@ import java.awt.Graphics
 import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent.KEY_LOCATION_UNKNOWN
 import java.awt.event.KeyEvent.KEY_TYPED
-import kotlin.coroutines.CoroutineContext
 
-class ComposeRenderer(
-    private val dispatcher: UiCoroutineDispatcher = UiCoroutineDispatcher(),
-) : InputProcessor {
+/**
+ * Class uses to render Composes scenes on scope of OpenGL context.
+ */
+class ComposeRenderer(dispatcher: CoroutineDispatcher) : InputProcessor {
 
-    private val scene = ComposeScene(dispatcher, Density(0.7f)) {
+    private val scene = ComposeScene(dispatcher, Density(1f)) {
         Gdx.graphics.requestRendering()
     }
     private var surface: Surface? = null
@@ -31,7 +31,6 @@ class ComposeRenderer(
         context = DirectContext.makeGL()
         surface = createSurface()
         scene.setContent(content)
-        dispatcher.runLoop()
     }
 
     fun render() {
@@ -47,9 +46,13 @@ class ComposeRenderer(
     fun dispose() {
         context.close()
         surface?.close()
-        dispatcher.stop()
     }
 
+    /**
+     * Creates surface in using Skikko AWT wrapper over OpenGL.
+     * Skikko and Skia Compose team doesn't provide any api to create
+     * custom implementation of context.
+     */
     private fun createSurface(): Surface? {
         val renderTarget = BackendRenderTarget.makeGL(
             width = Gdx.graphics.width,
@@ -98,13 +101,7 @@ class ComposeRenderer(
         scene.sendKeyEvent(
             androidx.compose.ui.input.key.KeyEvent(
                 KeyEvent(
-                    stubComponent,
-                    KEY_TYPED,
-                    time,
-                    0,
-                    0,
-                    character,
-                    KEY_LOCATION_UNKNOWN
+                    stubComponent, KEY_TYPED, time, 0, 0, character, KEY_LOCATION_UNKNOWN
                 )
             )
         )
@@ -151,43 +148,8 @@ class ComposeRenderer(
     override fun scrolled(amountX: Float, amountY: Float): Boolean {
         return false
     }
-}
 
-class StubAwtComponent : Component() {
-    override fun paint(g: Graphics) {}
-}
-
-// Runs Dispatcher on Separate thread.
-class UiCoroutineDispatcher : CoroutineDispatcher() {
-    private val tasks = mutableListOf<Runnable>()
-    private val tasksCopy = mutableListOf<Runnable>()
-    private var isStopped = false
-
-    fun runLoop() {
-        Thread {
-            while (!isStopped) {
-                synchronized(tasks) {
-                    tasksCopy.addAll(tasks)
-                    tasks.clear()
-                }
-                for (runnable in tasksCopy) {
-                    if (!isStopped) {
-                        Gdx.app.postRunnable(runnable)
-                    }
-                }
-                tasksCopy.clear()
-            }
-
-        }.start()
-    }
-
-    fun stop() {
-        isStopped = true
-    }
-
-    override fun dispatch(context: CoroutineContext, block: Runnable) {
-        synchronized(tasks) {
-            tasks.add(block)
-        }
+    class StubAwtComponent : Component() {
+        override fun paint(g: Graphics) {}
     }
 }

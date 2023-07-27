@@ -9,7 +9,8 @@ object DesktopLauncher {
     @JvmStatic
     fun main(arg: Array<String>) {
         val config = Lwjgl3ApplicationConfiguration().apply {
-//            setForegroundFPS(60)
+            setForegroundFPS(60)
+            setWindowedMode(1024, 768)
             setResizable(false)
             setTitle("KRender")
             setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL32, 3, 2)

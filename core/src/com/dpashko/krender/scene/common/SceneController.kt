@@ -1,5 +1,8 @@
 package com.dpashko.krender.scene.common
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.StateFlow
+
 /**
  * The base interface for scene controllers.
  *
@@ -7,22 +10,22 @@ package com.dpashko.krender.scene.common
  */
 interface SceneController<S : SceneState> {
 
-    fun init()
+    suspend fun init()
 
     /**
      * Updates the scene state based on the given delta time.
      *
      * @param deltaTime the elapsed time since the last update
      */
-    fun update(deltaTime: Float)
+    suspend fun update(deltaTime: Float)
 
     /**
      * Cleans up any resources used by the controller.
      */
-    fun dispose()
+    suspend fun dispose()
 
     /**
      * Returns the current state of the scene.
      */
-    fun getState(): S
+    fun getState(): StateFlow<S>
 }
