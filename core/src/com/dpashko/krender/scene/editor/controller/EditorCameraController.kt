@@ -11,6 +11,7 @@ import com.dpashko.krender.scene.editor.controller.EditorCameraController.Compan
 import com.dpashko.krender.scene.editor.controller.EditorCameraController.Companion.minZoomDistance
 import com.dpashko.krender.scene.editor.controller.EditorCameraController.Companion.moveSpeed
 import com.dpashko.krender.scene.editor.controller.EditorCameraController.Companion.zoomSpeed
+import com.dpashko.krender.scene.editor.model.EditorCameraState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,10 +64,10 @@ class EditorCameraController(private val sceneController: EditorSceneController)
     private var deltaX: Float = 0f
 
     lateinit var camera: PerspectiveCamera
-    private lateinit var cameraState: MutableStateFlow<CameraState>
+    private lateinit var cameraState: MutableStateFlow<EditorCameraState>
     private lateinit var target: Vector3
 
-    fun getState(): StateFlow<CameraState> = cameraState.asStateFlow()
+    fun getState(): StateFlow<EditorCameraState> = cameraState.asStateFlow()
 
     fun init() {
         camera = PerspectiveCamera(
@@ -96,7 +97,7 @@ class EditorCameraController(private val sceneController: EditorSceneController)
             )
         }
         cameraState = MutableStateFlow(
-            CameraState(
+            com.dpashko.krender.scene.editor.model.EditorCameraState(
                 position = camera.position,
                 direction = camera.direction,
                 far = camera.far,
@@ -198,7 +199,7 @@ class EditorCameraController(private val sceneController: EditorSceneController)
 
     private var isCameraStateChanged = false
     fun update(delta: Float) {
-        val state = sceneController.getState().value
+        val state = sceneController.getSceneState().value
 
         val moveAmount = delta * moveSpeed
         val displacement = Vector3.Zero.cpy()
@@ -281,7 +282,7 @@ class EditorCameraController(private val sceneController: EditorSceneController)
             camera.update()
         }
         if (isCameraStateChanged) {
-            cameraState.value = CameraState(
+            cameraState.value = com.dpashko.krender.scene.editor.model.EditorCameraState(
                 camera.position,
                 camera.direction,
                 camera.near,
@@ -309,30 +310,5 @@ class EditorCameraController(private val sceneController: EditorSceneController)
         if (y < box.min.y) y = box.min.y else if (y > box.max.y) y = box.max.y
         if (z < box.min.z) z = box.min.z else if (z > box.max.z) z = box.max.z
         return Vector3(x, y, z)
-    }
-}
-
-/**
- * Data model that represents Perspective camera state.
- */
-class CameraState(
-    val position: Vector3,
-    val direction: Vector3,
-    val near: Float,
-    val far: Float,
-    val viewportHeight: Float,
-    val viewportWidth: Float
-
-
-) {
-    override fun toString(): String {
-        return "CameraState(" +
-                "position=$position, " +
-                "direction=$direction, " +
-                "near=$near, " +
-                "far=$far, " +
-                "viewportHeight=$viewportHeight, " +
-                "viewportWidth=$viewportWidth" +
-                ")"
     }
 }

@@ -3,7 +3,7 @@ package com.dpashko.krender
 //import com.dpashko.krender.scene.terrain.generator.TerrainGeneratorResult
 import com.dpashko.krender.scene.SceneFactory
 import com.dpashko.krender.scene.common.BaseScene
-import com.dpashko.krender.scene.editor.EditorResult
+import com.dpashko.krender.scene.editor.model.EditorResult
 import com.dpashko.krender.scene.navigator.Navigator
 import java.util.*
 import javax.inject.Inject

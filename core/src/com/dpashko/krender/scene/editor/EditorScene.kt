@@ -17,12 +17,13 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.Dp
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
-import com.dpashko.krender.common.format
+import com.dpashko.krender.common.MemoryFormatter
+import com.dpashko.krender.common.VectorFormatter
 import com.dpashko.krender.compose.ComposeRenderer
 import com.dpashko.krender.scene.common.BaseScene
-import com.dpashko.krender.scene.editor.controller.CameraState
 import com.dpashko.krender.scene.editor.controller.EditorCameraController
 import com.dpashko.krender.scene.editor.controller.EditorSceneController
+import com.dpashko.krender.scene.editor.model.EditorResult
 import com.dpashko.krender.shader.AxisShader
 import com.dpashko.krender.shader.GridShader
 import kotlinx.coroutines.CoroutineScope
@@ -49,8 +50,8 @@ class EditorScene @Inject constructor(
     override fun create() {
         println("Started  Editor scene initialization.")
         super.create()
-        axisShader = AxisShader(axisLength = controller.getState().value.sceneSize.size)
-        gridShader = GridShader(gridSize = controller.getState().value.sceneSize.size.toInt())
+        axisShader = AxisShader(axisLength = controller.getSceneState().value.sceneSize.size)
+        gridShader = GridShader(gridSize = controller.getSceneState().value.sceneSize.size.toInt())
         debugShapesRenderer = ShapeRenderer().apply {
             color = Color.GREEN
         }
@@ -81,8 +82,13 @@ class EditorScene @Inject constructor(
             println("Error: $it")
         }.launchIn(context)
 
-        controller.getState().onEach {
+        controller.getSceneState().onEach {
             println("${Thread.currentThread()}: Scene state changed: $it")
+        }.catch {
+            println("Error: $it")
+        }.launchIn(context)
+        controller.getPerformanceState().onEach {
+            println("${Thread.currentThread()}: Performance state changed: $it")
         }.catch {
             println("Error: $it")
         }.launchIn(context)
@@ -96,7 +102,7 @@ class EditorScene @Inject constructor(
     }
 
     override fun render() {
-        val state = controller.getState().value
+        val state = controller.getSceneState().value
         val camera = cameraController.camera
 
         if (state.drawGrid) {
@@ -144,15 +150,21 @@ class EditorScene @Inject constructor(
 @Preview
 fun createInterfaceWidget(sceneController: EditorSceneController, cameraController: EditorCameraController) {
 
-    val sceneState: EditorState by sceneController.getState().collectAsState()
-    val cameraState: CameraState by cameraController.getState().collectAsState()
+    val sceneState by sceneController.getSceneState().collectAsState()
+    val cameraState by cameraController.getState().collectAsState()
+    val performanceState by sceneController.getPerformanceState().collectAsState()
 
     return MaterialTheme {
-        Surface(border = BorderStroke(width = Dp(1f), brush = SolidColor(androidx.compose.ui.graphics.Color.Black))) {
+        Surface(
+            border = BorderStroke(
+                width = Dp(1f),
+                brush = SolidColor(androidx.compose.ui.graphics.Color.Black)
+            )
+        ) {
             Column(modifier = Modifier.padding(all = Dp(8f))) {
                 Text("[Camera]")
-                Text("Pos=[${cameraState.position.format()}]")
-                Text("Dir=[${cameraState.direction.format()}]")
+                Text("Pos=[${VectorFormatter.formatVector3(cameraState.position)}]")
+                Text("Dir=[${VectorFormatter.formatVector3(cameraState.direction)}]")
                 Text("ViewPortWidth=[${cameraState.viewportWidth}]")
                 Text("ViewPortHeight=[${cameraState.viewportHeight}]")
                 Text("near=[${cameraState.near}]")
@@ -164,6 +176,13 @@ fun createInterfaceWidget(sceneController: EditorSceneController, cameraControll
                 Text("Size=[${sceneState.sceneSize.size}]")
                 Text("Grid=[${sceneState.drawGrid}]")
                 Text("Axis=[${sceneState.drawAxis}]")
+
+                Spacer(Modifier.height(Dp(20f)))
+
+                Text("[Performance]")
+                Text("FPS=[${performanceState.fps}]")
+                Text("Used=[${MemoryFormatter.convertToMB(performanceState.usedMemory)}]")
+                Text("Total=[${MemoryFormatter.convertToMB(performanceState.totalMemory)}]")
 
             }
         }

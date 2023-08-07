@@ -1,13 +1,13 @@
-package com.dpashko.krender.scene.editor
+package com.dpashko.krender.scene.editor.model
 
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.math.collision.BoundingBox
 import com.dpashko.krender.scene.common.SceneState
 
 /**
- * Represents the state of the editor scene.
+ * Represents the state of the Editor scene.
  */
-class EditorState(
+class EditorSceneState(
     var drawGrid: Boolean = true,
     var drawAxis: Boolean = true,
     var sceneSize: SceneSize = SceneSize.S_32,

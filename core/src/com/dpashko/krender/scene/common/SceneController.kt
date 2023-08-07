@@ -1,8 +1,5 @@
 package com.dpashko.krender.scene.common
 
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.StateFlow
-
 /**
  * The base interface for scene controllers.
  *
@@ -23,9 +20,4 @@ interface SceneController<S : SceneState> {
      * Cleans up any resources used by the controller.
      */
     suspend fun dispose()
-
-    /**
-     * Returns the current state of the scene.
-     */
-    fun getState(): StateFlow<S>
 }
