@@ -1,11 +1,11 @@
 package com.dpashko.krender
 
+//import com.dpashko.krender.scene.terrain.generator.TerrainGeneratorResult
 import com.dpashko.krender.scene.SceneFactory
 import com.dpashko.krender.scene.common.BaseScene
-import com.dpashko.krender.scene.editor.EditorResult
+import com.dpashko.krender.scene.editor.model.EditorResult
 import com.dpashko.krender.scene.navigator.Navigator
-import com.dpashko.krender.scene.terrain.generator.TerrainGeneratorResult
-import java.util.Stack
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -106,21 +106,21 @@ class AppControllerImpl @Inject constructor(
         println("Received navigation action: $action")
         when (action) {
             is EditorResult -> handleEditorSceneResult(action)
-            is TerrainGeneratorResult -> handleTerrainGenerator(action)
+//            is TerrainGeneratorResult -> handleTerrainGenerator(action)
         }
     }
 
     private fun handleEditorSceneResult(result: EditorResult) {
-        when (result) {
-            EditorResult.GENERATE_TERRAIN -> pushScene(sceneFactory.getTerrainGeneratorScene())
-        }
+//        when (result) {
+//            EditorResult.GENERATE_TERRAIN -> pushScene(sceneFactory.getTerrainGeneratorScene())
+//        }
     }
 
-    private fun handleTerrainGenerator(result: TerrainGeneratorResult) {
-        when (result) {
-            TerrainGeneratorResult.COMPLETED -> popScene()
-        }
-    }
+//    private fun handleTerrainGenerator(result: TerrainGeneratorResult) {
+//        when (result) {
+//            TerrainGeneratorResult.COMPLETED -> popScene()
+//        }
+//    }
 
     private fun activeScene(): BaseScene<*, *>? {
         return if (sceneStack.isNotEmpty()) {

@@ -2,7 +2,7 @@ package com.dpashko.krender.scene
 
 import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.scene.editor.EditorScene
-import com.dpashko.krender.scene.terrain.generator.TerrainGeneratorScene
+//import com.dpashko.krender.scene.terrain.generator.TerrainGeneratorScene
 import javax.inject.Provider
 
 class SceneFactory(
@@ -13,7 +13,7 @@ class SceneFactory(
         return sceneProviders[EditorScene::class.java]!!.get()
     }
 
-    fun getTerrainGeneratorScene(): BaseScene<*, *> {
-        return sceneProviders[TerrainGeneratorScene::class.java]!!.get()
-    }
+//    fun getTerrainGeneratorScene(): BaseScene<*, *> {
+//        return sceneProviders[TerrainGeneratorScene::class.java]!!.get()
+//    }
 }

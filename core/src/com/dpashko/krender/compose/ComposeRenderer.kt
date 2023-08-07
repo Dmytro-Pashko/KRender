@@ -9,25 +9,17 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.InputProcessor
 import kotlinx.coroutines.CoroutineDispatcher
-import org.jetbrains.skia.BackendRenderTarget
-import org.jetbrains.skia.ColorSpace
-import org.jetbrains.skia.DirectContext
-import org.jetbrains.skia.FramebufferFormat
-import org.jetbrains.skia.PixelGeometry
-import org.jetbrains.skia.Surface
-import org.jetbrains.skia.SurfaceColorFormat
-import org.jetbrains.skia.SurfaceOrigin
-import org.jetbrains.skia.SurfaceProps
+import org.jetbrains.skia.*
 import java.awt.Component
 import java.awt.Graphics
 import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent.KEY_LOCATION_UNKNOWN
 import java.awt.event.KeyEvent.KEY_TYPED
-import kotlin.coroutines.CoroutineContext
 
-class ComposeRenderer(
-    private val dispatcher: UiCoroutineDispatcher = UiCoroutineDispatcher(),
-) : InputProcessor {
+/**
+ * Class uses to render Composes scenes on scope of OpenGL context.
+ */
+class ComposeRenderer(dispatcher: CoroutineDispatcher) : InputProcessor {
 
     private val scene = ComposeScene(dispatcher, Density(1f)) {
         Gdx.graphics.requestRendering()
@@ -39,12 +31,12 @@ class ComposeRenderer(
         context = DirectContext.makeGL()
         surface = createSurface()
         scene.setContent(content)
-        dispatcher.runLoop()
     }
 
     fun render() {
         surface?.canvas.also {
             if (it != null) {
+                context.resetAll()
                 scene.render(it, System.nanoTime())
                 context.flush()
             }
@@ -54,9 +46,13 @@ class ComposeRenderer(
     fun dispose() {
         context.close()
         surface?.close()
-        dispatcher.stop()
     }
 
+    /**
+     * Creates surface in using Skikko AWT wrapper over OpenGL.
+     * Skikko and Skia Compose team doesn't provide any api to create
+     * custom implementation of context.
+     */
     private fun createSurface(): Surface? {
         val renderTarget = BackendRenderTarget.makeGL(
             width = Gdx.graphics.width,
@@ -65,7 +61,7 @@ class ComposeRenderer(
             stencilBits = 8,
             fbId = 0,
             fbFormat = FramebufferFormat.GR_GL_RGBA8
-        );
+        )
 
         return Surface.makeFromBackendRenderTarget(
             context,
@@ -105,13 +101,7 @@ class ComposeRenderer(
         scene.sendKeyEvent(
             androidx.compose.ui.input.key.KeyEvent(
                 KeyEvent(
-                    stubComponent,
-                    KEY_TYPED,
-                    time,
-                    0,
-                    0,
-                    character,
-                    KEY_LOCATION_UNKNOWN
+                    stubComponent, KEY_TYPED, time, 0, 0, character, KEY_LOCATION_UNKNOWN
                 )
             )
         )
@@ -131,6 +121,10 @@ class ComposeRenderer(
             PointerEventType.Release,
             position = Offset(screenX.toFloat(), screenY.toFloat()),
         )
+        return false
+    }
+
+    override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         return false
     }
 
@@ -154,43 +148,8 @@ class ComposeRenderer(
     override fun scrolled(amountX: Float, amountY: Float): Boolean {
         return false
     }
-}
 
-class StubAwtComponent : Component() {
-    override fun paint(g: Graphics) {}
-}
-
-// Runs Dispatcher on Separate thread.
-class UiCoroutineDispatcher : CoroutineDispatcher() {
-    private val tasks = mutableListOf<Runnable>()
-    private val tasksCopy = mutableListOf<Runnable>()
-    private var isStopped = false
-
-    fun runLoop() {
-        Thread {
-            while (!isStopped) {
-                synchronized(tasks) {
-                    tasksCopy.addAll(tasks)
-                    tasks.clear()
-                }
-                for (runnable in tasksCopy) {
-                    if (!isStopped) {
-                        Gdx.app.postRunnable(runnable)
-                    }
-                }
-                tasksCopy.clear()
-            }
-
-        }.start()
-    }
-
-    fun stop() {
-        isStopped = true
-    }
-
-    override fun dispatch(context: CoroutineContext, block: Runnable) {
-        synchronized(tasks) {
-            tasks.add(block)
-        }
+    class StubAwtComponent : Component() {
+        override fun paint(g: Graphics) {}
     }
 }

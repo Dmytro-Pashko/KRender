@@ -9,7 +9,6 @@ class AndroidLauncher : AndroidApplication() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val config = AndroidApplicationConfiguration()
-        config.useGL30 = true
         initialize(AppEntryPoint(), config)
     }
 }

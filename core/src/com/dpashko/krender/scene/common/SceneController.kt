@@ -7,22 +7,17 @@ package com.dpashko.krender.scene.common
  */
 interface SceneController<S : SceneState> {
 
-    fun init()
+    suspend fun init()
 
     /**
      * Updates the scene state based on the given delta time.
      *
      * @param deltaTime the elapsed time since the last update
      */
-    fun update(deltaTime: Float)
+    suspend fun update(deltaTime: Float)
 
     /**
      * Cleans up any resources used by the controller.
      */
-    fun dispose()
-
-    /**
-     * Returns the current state of the scene.
-     */
-    fun getState(): S
+    suspend fun dispose()
 }

@@ -3,36 +3,43 @@ package com.dpashko.krender.scene.editor
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.Dp
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.dpashko.krender.common.MemoryFormatter
+import com.dpashko.krender.common.VectorFormatter
 import com.dpashko.krender.compose.ComposeRenderer
 import com.dpashko.krender.scene.common.BaseScene
+import com.dpashko.krender.scene.editor.controller.EditorCameraController
+import com.dpashko.krender.scene.editor.controller.EditorSceneController
+import com.dpashko.krender.scene.editor.model.EditorResult
 import com.dpashko.krender.shader.AxisShader
 import com.dpashko.krender.shader.GridShader
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class EditorScene @Inject constructor(
-    controller: EditorController,
+    controller: EditorSceneController,
     private val navigator: EditorNavigator,
-) : BaseScene<EditorController, EditorResult>(controller) {
+) : BaseScene<EditorSceneController, EditorResult>(controller) {
 
     private lateinit var axisShader: AxisShader
     private lateinit var gridShader: GridShader
@@ -41,56 +48,79 @@ class EditorScene @Inject constructor(
     private lateinit var composeRenderer: ComposeRenderer
 
     override fun create() {
-        println("Editor scene initialization.")
+        println("Started  Editor scene initialization.")
         super.create()
-
-        axisShader = AxisShader(axisLength = controller.getState().sceneSize.size)
-        gridShader = GridShader(gridSize = controller.getState().sceneSize.size.toInt())
+        axisShader = AxisShader(axisLength = controller.getSceneState().value.sceneSize.size)
+        gridShader = GridShader(gridSize = controller.getSceneState().value.sceneSize.size.toInt())
         debugShapesRenderer = ShapeRenderer().apply {
             color = Color.GREEN
         }
-        cameraController = EditorCameraController()
-        composeRenderer = ComposeRenderer().apply {
+        cameraController = EditorCameraController(controller).apply {
+            init()
+        }
+        composeRenderer = ComposeRenderer(dispatcher = dispatcher).apply {
             init {
-                createInterfaceWidget()
+                createInterfaceWidget(controller, cameraController)
             }
         }
         input.apply {
             addProcessor(composeRenderer)
             addProcessor(cameraController)
         }
+//        trackStateChanges()
         println("Editor scene initialized.")
     }
 
+    /**
+     * For debug purposes only.
+     */
+    private fun trackStateChanges() {
+        val context = CoroutineScope(Dispatchers.IO)
+        cameraController.getState().onEach {
+            println("${Thread.currentThread()}: Camera state changed: $it")
+        }.catch {
+            println("Error: $it")
+        }.launchIn(context)
+
+        controller.getSceneState().onEach {
+            println("${Thread.currentThread()}: Scene state changed: $it")
+        }.catch {
+            println("Error: $it")
+        }.launchIn(context)
+        controller.getPerformanceState().onEach {
+            println("${Thread.currentThread()}: Performance state changed: $it")
+        }.catch {
+            println("Error: $it")
+        }.launchIn(context)
+    }
+
     override fun update(deltaTime: Float) {
+        sceneScope.launch {
+            cameraController.update(deltaTime)
+        }
         super.update(deltaTime)
-        cameraController.update(controller.getState(), deltaTime)
     }
 
     override fun render() {
-        val state = controller.getState()
+        val state = controller.getSceneState().value
+        val camera = cameraController.camera
+
         if (state.drawGrid) {
-            gridShader.draw(state.camera)
+            gridShader.draw(camera)
         }
         if (state.drawAxis) {
-            axisShader.draw(state.camera)
+            axisShader.draw(camera)
         }
 
-//        debugShapesRenderer.apply {
-//            projectionMatrix = state.camera.combined
-//            begin(ShapeRenderer.ShapeType.Line)
-//            state.worldBounds.apply {
-//                box(min.x, min.y, max.z, width, height, depth)
-//            }
-//            end()
-//            begin(ShapeRenderer.ShapeType.Point)
-//            point(
-//                state.target.x,
-//                state.target.y,
-//                state.target.z
-//            )
-//            end()
-//        }
+        debugShapesRenderer.apply {
+            projectionMatrix = camera.combined
+            // Draw world boundaries.
+            begin(ShapeRenderer.ShapeType.Line)
+            state.worldBounds.apply {
+                box(min.x, min.y, max.z, width, height, depth)
+            }
+            end()
+        }
         composeRenderer.render()
     }
 
@@ -118,48 +148,42 @@ class EditorScene @Inject constructor(
 
 @Composable
 @Preview
-fun createInterfaceWidget() {
+fun createInterfaceWidget(sceneController: EditorSceneController, cameraController: EditorCameraController) {
+
+    val sceneState by sceneController.getSceneState().collectAsState()
+    val cameraState by cameraController.getState().collectAsState()
+    val performanceState by sceneController.getPerformanceState().collectAsState()
+
     return MaterialTheme {
         Surface(
             border = BorderStroke(
-                width = Dp(3f),
-                brush = SolidColor(androidx.compose.ui.graphics.Color.Green)
+                width = Dp(1f),
+                brush = SolidColor(androidx.compose.ui.graphics.Color.Black)
             )
         ) {
-            var text by remember { mutableStateOf("") }
-            val history by remember { mutableStateOf(mutableListOf<String>()) }
+            Column(modifier = Modifier.padding(all = Dp(8f))) {
+                Text("[Camera]")
+                Text("Pos=[${VectorFormatter.formatVector3(cameraState.position)}]")
+                Text("Dir=[${VectorFormatter.formatVector3(cameraState.direction)}]")
+                Text("ViewPortWidth=[${cameraState.viewportWidth}]")
+                Text("ViewPortHeight=[${cameraState.viewportHeight}]")
+                Text("near=[${cameraState.near}]")
+                Text("far=[${cameraState.far}]")
 
-            Column {
+                Spacer(Modifier.height(Dp(20f)))
 
-                TextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    placeholder = ({
-                        Text("Some input data...")
-                    })
-                )
+                Text("[Scene]")
+                Text("Size=[${sceneState.sceneSize.size}]")
+                Text("Grid=[${sceneState.drawGrid}]")
+                Text("Axis=[${sceneState.drawAxis}]")
 
-                Row(
-                    modifier = Modifier
-                        .padding(Dp(10f))
-                        .align(alignment = Alignment.CenterHorizontally)
-                ) {
-                    Button(
-                        modifier = Modifier.padding(Dp(10f)),
-                        onClick = {
-                            history.add(text)
-                            text = ""
-                        }) {
-                        Text("Add")
-                    }
-                    Button(
-                        modifier = Modifier.padding(Dp(10f)),
-                        onClick = {
-                            history.clear()
-                        }) {
-                        Text("Clear All")
-                    }
-                }
+                Spacer(Modifier.height(Dp(20f)))
+
+                Text("[Performance]")
+                Text("FPS=[${performanceState.fps}]")
+                Text("Used=[${MemoryFormatter.convertToMB(performanceState.usedMemory)}]")
+                Text("Total=[${MemoryFormatter.convertToMB(performanceState.totalMemory)}]")
+
             }
         }
     }

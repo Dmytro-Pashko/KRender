@@ -3,7 +3,6 @@ package com.dpashko.krender.di.module;
 import com.dpashko.krender.scene.SceneFactory;
 import com.dpashko.krender.scene.common.BaseScene;
 import com.dpashko.krender.scene.editor.EditorScene;
-import com.dpashko.krender.scene.terrain.generator.TerrainGeneratorScene;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.ClassKey;
@@ -24,12 +23,12 @@ public class SceneModule {
     return scene;
   }
 
-  @IntoMap
-  @Provides
-  @ClassKey(TerrainGeneratorScene.class)
-  public BaseScene<?, ?> terrainGenerator(TerrainGeneratorScene scene) {
-    return scene;
-  }
+//  @IntoMap
+//  @Provides
+//  @ClassKey(TerrainGeneratorScene.class)
+//  public BaseScene<?, ?> terrainGenerator(TerrainGeneratorScene scene) {
+//    return scene;
+//  }
 
   @Singleton
   @Provides
