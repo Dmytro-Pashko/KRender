@@ -3,13 +3,14 @@ package com.dpashko.krender
 import com.badlogic.gdx.ApplicationAdapter
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL20
+import com.dpashko.krender.compose.ComposeManager
 import com.dpashko.krender.di.DaggerAppComponent
 import javax.inject.Inject
 
 /**
  *  The main application class that initializes and manages the AppController.
  */
-class AppEntryPoint : ApplicationAdapter() {
+class AppEntryPoint(private val composeManager: ComposeManager) : ApplicationAdapter() {
 
     /** The instance of the AppController used to manage the application. */
     @Inject
@@ -17,6 +18,7 @@ class AppEntryPoint : ApplicationAdapter() {
 
     override fun create() {
         DaggerAppComponent.builder()
+            .composeManager(composeManager)
             .build()
             .inject(this)
 

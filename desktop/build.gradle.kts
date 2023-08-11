@@ -6,7 +6,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("java")
     id("kotlin")
-    id("org.jetbrains.compose") version "1.4.1"
+    id("org.jetbrains.compose")
 }
 
 val assetsDir = rootProject.file("assets")
