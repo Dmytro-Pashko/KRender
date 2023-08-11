@@ -4,6 +4,7 @@ plugins {
     kotlin("android")
     id("com.android.application")
     id("kotlin-kapt")
+    id("org.jetbrains.compose")
 }
 
 val assetsDir = rootProject.file("assets")
@@ -11,12 +12,12 @@ val assetsDir = rootProject.file("assets")
 android {
 
     buildToolsVersion = "30.0.3"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.dpashko.krender"
         minSdk = 26
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }
@@ -86,11 +87,19 @@ configurations {
 
 dependencies {
     api(project(":core"))
-    implementation("com.badlogicgames.gdx:gdx-backend-android:1.11.0")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.8.10")
+    api(project(":gdx-backend-android"))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.0")
 
-    add("natives", "com.badlogicgames.gdx:gdx-platform:1.11.0:natives-armeabi-v7a")
-    add("natives", "com.badlogicgames.gdx:gdx-platform:1.11.0:natives-arm64-v8a")
-    add("natives", "com.badlogicgames.gdx:gdx-platform:1.11.0:natives-x86")
-    add("natives", "com.badlogicgames.gdx:gdx-platform:1.11.0:natives-x86_64")
+    implementation("androidx.compose.foundation:foundation-android:1.5.0")
+    implementation("androidx.compose.material3:material3:1.1.1")
+
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.9.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+
+
+    add("natives", "com.badlogicgames.gdx:gdx-platform:1.12.0:natives-armeabi-v7a")
+    add("natives", "com.badlogicgames.gdx:gdx-platform:1.12.0:natives-arm64-v8a")
+    add("natives", "com.badlogicgames.gdx:gdx-platform:1.12.0:natives-x86")
+    add("natives", "com.badlogicgames.gdx:gdx-platform:1.12.0:natives-x86_64")
 }

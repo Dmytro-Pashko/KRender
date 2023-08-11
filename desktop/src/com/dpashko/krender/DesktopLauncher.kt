@@ -2,6 +2,8 @@ package com.dpashko.krender
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
+import com.dpashko.krender.compose.ComposeManager
+import com.dpashko.krender.compose.DesktopComposeManager
 
 // Please note that on macOS your application needs to be started with the -XstartOnFirstThread
 // JVM argument
@@ -13,8 +15,9 @@ object DesktopLauncher {
             setWindowedMode(1024, 768)
             setResizable(false)
             setTitle("KRender")
-            setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL32, 3, 2)
+            setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 2)
         }
-        Lwjgl3Application(AppEntryPoint(), config)
+        val composeManager = DesktopComposeManager()
+        Lwjgl3Application(AppEntryPoint(composeManager), config)
     }
 }

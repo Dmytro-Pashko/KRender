@@ -19,7 +19,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.dpashko.krender.common.MemoryFormatter
 import com.dpashko.krender.common.VectorFormatter
-import com.dpashko.krender.compose.ComposeRenderer
+import com.dpashko.krender.compose.ComposeManager
 import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.scene.editor.controller.EditorCameraController
 import com.dpashko.krender.scene.editor.controller.EditorSceneController
@@ -39,32 +39,35 @@ import javax.inject.Singleton
 class EditorScene @Inject constructor(
     controller: EditorSceneController,
     private val navigator: EditorNavigator,
+    private val composeManager: ComposeManager,
 ) : BaseScene<EditorSceneController, EditorResult>(controller) {
 
-    private lateinit var axisShader: AxisShader
-    private lateinit var gridShader: GridShader
+//    private lateinit var axisShader: AxisShader
+//    private lateinit var gridShader: GridShader
     private lateinit var cameraController: EditorCameraController
     private lateinit var debugShapesRenderer: ShapeRenderer
-    private lateinit var composeRenderer: ComposeRenderer
 
     override fun create() {
         println("Started  Editor scene initialization.")
         super.create()
-        axisShader = AxisShader(axisLength = controller.getSceneState().value.sceneSize.size)
-        gridShader = GridShader(gridSize = controller.getSceneState().value.sceneSize.size.toInt())
+//        axisShader = AxisShader(axisLength = controller.getSceneState().value.sceneSize.size)
+//        gridShader = GridShader(gridSize = controller.getSceneState().value.sceneSize.size.toInt())
         debugShapesRenderer = ShapeRenderer().apply {
             color = Color.GREEN
         }
         cameraController = EditorCameraController(controller).apply {
             init()
         }
-        composeRenderer = ComposeRenderer(dispatcher = dispatcher).apply {
-            init {
+        if (!composeManager.isInitialized) {
+            composeManager.init()
+        }
+        composeManager.getRenderer().apply {
+            setContent {
                 createInterfaceWidget(controller, cameraController)
             }
         }
         input.apply {
-            addProcessor(composeRenderer)
+            addProcessor(composeManager.inputProcessor())
             addProcessor(cameraController)
         }
 //        trackStateChanges()
@@ -105,12 +108,12 @@ class EditorScene @Inject constructor(
         val state = controller.getSceneState().value
         val camera = cameraController.camera
 
-        if (state.drawGrid) {
-            gridShader.draw(camera)
-        }
-        if (state.drawAxis) {
-            axisShader.draw(camera)
-        }
+//        if (state.drawGrid) {
+//            gridShader.draw(camera)
+//        }
+//        if (state.drawAxis) {
+//            axisShader.draw(camera)
+//        }
 
         debugShapesRenderer.apply {
             projectionMatrix = camera.combined
@@ -121,7 +124,7 @@ class EditorScene @Inject constructor(
             }
             end()
         }
-        composeRenderer.render()
+        composeManager.getRenderer().render()
     }
 
     override fun pause() {
@@ -139,9 +142,9 @@ class EditorScene @Inject constructor(
     }
 
     override fun dispose() {
-        gridShader.dispose()
-        axisShader.dispose()
-        composeRenderer.dispose()
+//        gridShader.dispose()
+//        axisShader.dispose()
+        composeManager.getRenderer().dispose()
         super.dispose()
     }
 }
