@@ -10,7 +10,6 @@ import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration
 import com.badlogic.gdx.backends.android.AndroidGraphics
 import com.dpashko.compose.AndroidComposeManager
 
-
 class EntryPointActivity : AndroidApplication() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,27 +19,23 @@ class EntryPointActivity : AndroidApplication() {
         )
         super.onCreate(savedInstanceState)
 
-
+        // Initializes compose components.
         val composeManager = AndroidComposeManager(this)
-
-        val config = AndroidApplicationConfiguration()
-        initialize(AppEntryPoint(composeManager), config)
-        composeManager.init()
+        initialize(AppEntryPoint(composeManager), AndroidApplicationConfiguration())
 
         val graphics = Gdx.graphics as AndroidGraphics
         val surfaceView = graphics.view
         val composeView = composeManager.androidComposeRenderer.composeView
-        val frameLayout = FrameLayout(this)
 
-        frameLayout.layoutParams =
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        surfaceView.layoutParams =
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        composeView.layoutParams =
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-
-        frameLayout.addView(surfaceView)
-        frameLayout.addView(composeView)
-        setContentView(frameLayout)
+        // Creates FrameLayout that renders compose scene over LibGDX surfaceView.
+        setContentView(FrameLayout(this).apply {
+            layoutParams =
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            addView(surfaceView)
+            addView(composeView)
+        })
     }
 }

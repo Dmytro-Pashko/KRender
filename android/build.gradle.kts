@@ -11,7 +11,6 @@ val assetsDir = rootProject.file("assets")
 
 android {
 
-    buildToolsVersion = "30.0.3"
     compileSdk = 34
 
     defaultConfig {
@@ -20,6 +19,10 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        vectorDrawables {
+            useSupportLibrary = true
+        }
     }
 
     buildTypes {
@@ -79,6 +82,15 @@ android {
         .configureEach {
             dependsOn("copyAndroidNatives")
         }
+
+    buildFeatures {
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.4.3"
+    }
+
 }
 
 configurations {
@@ -90,13 +102,14 @@ dependencies {
     api(project(":gdx-backend-android"))
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.0")
 
-    implementation("androidx.compose.foundation:foundation-android:1.5.0")
     implementation("androidx.compose.material3:material3:1.1.1")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.activity:activity-compose:1.7.2")
+    debugImplementation("androidx.compose.ui:ui-tooling")
 
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.9.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-
 
     add("natives", "com.badlogicgames.gdx:gdx-platform:1.12.0:natives-armeabi-v7a")
     add("natives", "com.badlogicgames.gdx:gdx-platform:1.12.0:natives-arm64-v8a")
