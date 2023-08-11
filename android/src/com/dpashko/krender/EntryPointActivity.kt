@@ -21,7 +21,10 @@ class EntryPointActivity : AndroidApplication() {
 
         // Initializes compose components.
         val composeManager = AndroidComposeManager(this)
-        initialize(AppEntryPoint(composeManager), AndroidApplicationConfiguration())
+        initialize(AppEntryPoint(composeManager), AndroidApplicationConfiguration().apply {
+            // OpenGL 3.0+ requested in Manifest.
+            useGL30 = true
+        })
 
         val graphics = Gdx.graphics as AndroidGraphics
         val surfaceView = graphics.view

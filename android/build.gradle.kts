@@ -11,6 +11,7 @@ val assetsDir = rootProject.file("assets")
 
 android {
 
+    namespace = "com.dpashko.krender"
     compileSdk = 34
 
     defaultConfig {
@@ -31,12 +32,12 @@ android {
         }
     }
 
-    kotlin {
-        java {
-            sourceCompatibility = VERSION_1_8
-            targetCompatibility = VERSION_1_8
-        }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+
 
     sourceSets {
         getByName("main") {
@@ -88,7 +89,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.3"
+        kotlinCompilerExtensionVersion = "1.5.1"
     }
 
 }

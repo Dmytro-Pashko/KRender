@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +24,8 @@ import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.scene.editor.controller.EditorCameraController
 import com.dpashko.krender.scene.editor.controller.EditorSceneController
 import com.dpashko.krender.scene.editor.model.EditorResult
+import com.dpashko.krender.shader.AxisShader
+import com.dpashko.krender.shader.GridShader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
@@ -41,16 +42,16 @@ class EditorScene @Inject constructor(
     private val composeManager: ComposeManager,
 ) : BaseScene<EditorSceneController, EditorResult>(controller) {
 
-    //    private lateinit var axisShader: AxisShader
-//    private lateinit var gridShader: GridShader
+    private lateinit var axisShader: AxisShader
+    private lateinit var gridShader: GridShader
     private lateinit var cameraController: EditorCameraController
     private lateinit var debugShapesRenderer: ShapeRenderer
 
     override fun create() {
         println("Started  Editor scene initialization.")
         super.create()
-//        axisShader = AxisShader(axisLength = controller.getSceneState().value.sceneSize.size)
-//        gridShader = GridShader(gridSize = controller.getSceneState().value.sceneSize.size.toInt())
+        axisShader = AxisShader(axisLength = controller.getSceneState().value.sceneSize.size)
+        gridShader = GridShader(gridSize = controller.getSceneState().value.sceneSize.size.toInt())
         debugShapesRenderer = ShapeRenderer().apply {
             color = Color.GREEN
         }
@@ -107,12 +108,12 @@ class EditorScene @Inject constructor(
         val state = controller.getSceneState().value
         val camera = cameraController.camera
 
-//        if (state.drawGrid) {
-//            gridShader.draw(camera)
-//        }
-//        if (state.drawAxis) {
-//            axisShader.draw(camera)
-//        }
+        if (state.drawGrid) {
+            gridShader.draw(camera)
+        }
+        if (state.drawAxis) {
+            axisShader.draw(camera)
+        }
 
         debugShapesRenderer.apply {
             projectionMatrix = camera.combined
@@ -141,8 +142,8 @@ class EditorScene @Inject constructor(
     }
 
     override fun dispose() {
-//        gridShader.dispose()
-//        axisShader.dispose()
+        gridShader.dispose()
+        axisShader.dispose()
         composeManager.getRenderer().dispose()
         super.dispose()
     }
@@ -160,37 +161,35 @@ fun createInterfaceWidget(
     val performanceState by sceneController.getPerformanceState().collectAsState()
 
     return Box {
-        MaterialTheme {
-            Surface(
-                border = BorderStroke(
-                    width = Dp(1f),
-                    brush = SolidColor(androidx.compose.ui.graphics.Color.Black)
-                )
-            ) {
-                Column(modifier = Modifier.padding(all = Dp(8f))) {
-                    Text("[Camera]")
-                    Text("Pos=[${VectorFormatter.formatVector3(cameraState.position)}]")
-                    Text("Dir=[${VectorFormatter.formatVector3(cameraState.direction)}]")
-                    Text("ViewPortWidth=[${cameraState.viewportWidth}]")
-                    Text("ViewPortHeight=[${cameraState.viewportHeight}]")
-                    Text("near=[${cameraState.near}]")
-                    Text("far=[${cameraState.far}]")
+        Surface(
+            border = BorderStroke(
+                width = Dp(1f),
+                brush = SolidColor(androidx.compose.ui.graphics.Color.Black)
+            )
+        ) {
+            Column(modifier = Modifier.padding(all = Dp(8f))) {
+                Text("[Camera]")
+                Text("Pos=[${VectorFormatter.formatVector3(cameraState.position)}]")
+                Text("Dir=[${VectorFormatter.formatVector3(cameraState.direction)}]")
+                Text("ViewPortWidth=[${cameraState.viewportWidth}]")
+                Text("ViewPortHeight=[${cameraState.viewportHeight}]")
+                Text("near=[${cameraState.near}]")
+                Text("far=[${cameraState.far}]")
 
-                    Spacer(Modifier.height(Dp(20f)))
+                Spacer(Modifier.height(Dp(20f)))
 
-                    Text("[Scene]")
-                    Text("Size=[${sceneState.sceneSize.size}]")
-                    Text("Grid=[${sceneState.drawGrid}]")
-                    Text("Axis=[${sceneState.drawAxis}]")
+                Text("[Scene]")
+                Text("Size=[${sceneState.sceneSize.size}]")
+                Text("Grid=[${sceneState.drawGrid}]")
+                Text("Axis=[${sceneState.drawAxis}]")
 
-                    Spacer(Modifier.height(Dp(20f)))
+                Spacer(Modifier.height(Dp(20f)))
 
-                    Text("[Performance]")
-                    Text("FPS=[${performanceState.fps}]")
-                    Text("Used=[${MemoryFormatter.convertToMB(performanceState.usedMemory)}]")
-                    Text("Total=[${MemoryFormatter.convertToMB(performanceState.totalMemory)}]")
+                Text("[Performance]")
+                Text("FPS=[${performanceState.fps}]")
+                Text("Used=[${MemoryFormatter.convertToMB(performanceState.usedMemory)}]")
+                Text("Total=[${MemoryFormatter.convertToMB(performanceState.totalMemory)}]")
 
-                }
             }
         }
     }
