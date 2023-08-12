@@ -15,6 +15,20 @@ Whether you're building a captivating 3D game, crafting an immersive virtual rea
 
 **Compose Multiplatform UI**: Empower yourself with Compose Multiplatform UI, which empowers you to create modern declarative UIs with ease and offers a rich library of ready-made solutions.
 
-**Kotlin Coroutines**: Say goodbye to the complexities of asynchronous programming. KRender SDK's Kotlin Coroutines provide a clean and readable approach to handling background tasks, network calls, and I/O operations, simplifying concurrent task management without the burden of intricate callback mechanisms.
+**Kotlin Coroutines**: Say goodbye to the complexities of asynchronous programming. KRender provides a clean and readable approach to handling background tasks, network calls, and I/O operations, simplifying concurrent task management without the burden of intricate callback mechanisms.
 
 Discover the limitless possibilities of 3D graphics development with KRender SDK - the ultimate companion for crafting awe-inspiring mobile applications.
+
+## Requirements:
+
+* Java 17
+* Android SDK
+* Device with OpenGL 3.0+ support.
+
+## Screens:
+
+Android:
+![image](https://github.com/Dmytro-Pashko/KRender/assets/15806575/bd73f066-ae6b-4c03-b9dd-a84ef23ca7c0)
+
+Desktop:
+![image](https://github.com/Dmytro-Pashko/KRender/assets/15806575/145ed3b2-66c6-4b67-8f00-5538272e551f)
