@@ -1,34 +1,44 @@
 package com.dpashko.compose
 
 import android.content.Context
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.MeasureResult
-import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.unit.Constraints
 import com.dpashko.krender.compose.ComposeRenderer
 
 class AndroidComposeRenderer(context: Context) : ComposeRenderer() {
 
+    companion object{
+        internal const val uiScaleFactor = 0.6f
+    }
     internal val composeView = ComposeView(context).apply {
         setViewCompositionStrategy(ViewCompositionStrategy.Default)
     }
 
     override fun setContent(content: @Composable () -> Unit) {
         composeView.setContent {
-            MaterialTheme {
-                Layout(
-                    content = content,
-                    measurePolicy = { measurables, constraints ->
-                        measure(
-                            measurables,
-                            constraints
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                Alignment.TopStart
+            ) {
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer(
+                            scaleX = uiScaleFactor,
+                            scaleY = uiScaleFactor,
+                            transformOrigin = TransformOrigin(0.0f, 0.0f),
                         )
-                    })
+                        .align(Alignment.TopStart)
+                ) {
+                    content()
+                }
             }
         }
     }
@@ -39,37 +49,5 @@ class AndroidComposeRenderer(context: Context) : ComposeRenderer() {
 
     override fun dispose() {
         composeView.disposeComposition()
-    }
-
-    private fun MeasureScope.measure(
-        measurables: List<Measurable>,
-        constraints: Constraints
-    ): MeasureResult {
-        return when {
-            measurables.isEmpty() -> {
-                layout(constraints.minWidth, constraints.minHeight) {}
-            }
-
-            measurables.size == 1 -> {
-                val placeable = measurables[0].measure(constraints)
-                layout((constraints.maxWidth), (constraints.maxHeight)) {
-                    placeable.placeRelativeWithLayer(0, 0)
-                }
-            }
-
-            else -> {
-                val placeables = measurables.map {
-                    it.measure(constraints)
-                }
-                layout(
-                    (constraints.maxWidth),
-                    (constraints.maxHeight)
-                ) {
-                    placeables.forEach { placeable ->
-                        placeable.placeRelativeWithLayer(0, 0)
-                    }
-                }
-            }
-        }
     }
 }

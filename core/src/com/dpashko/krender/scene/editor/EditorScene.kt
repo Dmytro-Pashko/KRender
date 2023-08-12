@@ -1,19 +1,18 @@
 package com.dpashko.krender.scene.editor
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.Dp
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
@@ -160,14 +159,13 @@ fun createInterfaceWidget(
     val cameraState by cameraController.getState().collectAsState()
     val performanceState by sceneController.getPerformanceState().collectAsState()
 
-    return Box {
-        Surface(
-            border = BorderStroke(
-                width = Dp(1f),
-                brush = SolidColor(androidx.compose.ui.graphics.Color.Black)
-            )
+    return BoxWithConstraints {
+        Box(
+            modifier = Modifier.background(color = androidx.compose.ui.graphics.Color.White),
         ) {
-            Column(modifier = Modifier.padding(all = Dp(8f))) {
+            Column(
+                modifier = Modifier.padding(all = Dp(8f)),
+            ) {
                 Text("[Camera]")
                 Text("Pos=[${VectorFormatter.formatVector3(cameraState.position)}]")
                 Text("Dir=[${VectorFormatter.formatVector3(cameraState.direction)}]")
