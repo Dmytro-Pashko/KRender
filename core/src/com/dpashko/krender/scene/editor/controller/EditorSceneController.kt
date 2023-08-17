@@ -10,7 +10,11 @@ import com.dpashko.krender.scene.editor.model.PerformanceState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import net.mgsx.gltf.scene3d.scene.Scene
 import net.mgsx.gltf.scene3d.scene.SceneManager
+import net.mgsx.gltf.scene3d.shaders.PBRDepthShaderProvider
+import net.mgsx.gltf.scene3d.shaders.PBRShaderConfig
+import net.mgsx.gltf.scene3d.shaders.PBRShaderProvider
 import javax.inject.Inject
 
 /**
@@ -24,7 +28,16 @@ class EditorSceneController @Inject constructor(
     private var _performanceState = MutableStateFlow(PerformanceState())
 
     var objects: MutableList<ModelInstance> = mutableListOf()
-    var sceneManager = SceneManager()
+    var shaderConfig = PBRShaderConfig().apply {
+        numBones = 60
+        numDirectionalLights = 1
+        numPointLights = 0
+    }
+    var depthConfig = PBRShaderProvider.createDefaultDepthConfig().apply {
+        numBones = 60
+    }
+    var sceneManager =
+        SceneManager(PBRShaderProvider(shaderConfig), PBRDepthShaderProvider(depthConfig))
 
     /**
      * Initializes the Editor scene controller.
@@ -32,10 +45,10 @@ class EditorSceneController @Inject constructor(
      */
     override suspend fun init() {
         println("Editor scene controller initialized.")
+        assetManager.loadAssets()
         _sceneState.value = EditorSceneState(
             isLoading = true
         )
-        assetManager.loadAssets()
     }
 
     /**
@@ -45,13 +58,11 @@ class EditorSceneController @Inject constructor(
      * @param deltaTime The time elapsed since the last update.
      */
     override suspend fun update(deltaTime: Float) {
-        if (!assetManager.isFinished) {
-            assetManager.update()
-        }else{
-            if (_sceneState.value.isLoading){
-//                _sceneState.value = EditorSceneState(
-//                    isLoading = false
-//                )
+        if (assetManager.update()) {
+            if (_sceneState.value.isLoading) {
+                _sceneState.value = EditorSceneState(
+                    isLoading = false
+                )
             }
         }
         sceneManager.update(deltaTime)
@@ -69,16 +80,13 @@ class EditorSceneController @Inject constructor(
      */
     override suspend fun dispose() {
         assetManager.dispose()
+        sceneManager.dispose()
         println("Editor Scene controller disposed.")
     }
 
     fun getSceneState(): StateFlow<EditorSceneState> = _sceneState.asStateFlow()
 
     fun getPerformanceState(): StateFlow<PerformanceState> = _performanceState.asStateFlow()
-
-    private fun loadPlayground() {
-//        objects.add(ModelInstance(assetManager.getPlaygroundModel().scene.model))
-    }
 
     fun addActor() {
         val actor = assetManager.getActorModel()
@@ -88,5 +96,6 @@ class EditorSceneController @Inject constructor(
         }
         instance.calculateTransforms()
         objects.add(instance)
+        sceneManager.addScene(Scene(actor.scene))
     }
 }

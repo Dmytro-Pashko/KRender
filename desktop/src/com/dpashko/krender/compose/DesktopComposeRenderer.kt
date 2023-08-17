@@ -1,29 +1,26 @@
 package com.dpashko.krender.compose
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.MaterialTheme
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Composition
 import androidx.compose.ui.ComposeScene
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.InputProcessor
 import kotlinx.coroutines.CoroutineDispatcher
-import org.jetbrains.skia.*
+import org.jetbrains.skia.BackendRenderTarget
+import org.jetbrains.skia.ColorSpace
+import org.jetbrains.skia.DirectContext
+import org.jetbrains.skia.FramebufferFormat
+import org.jetbrains.skia.PixelGeometry
+import org.jetbrains.skia.Surface
+import org.jetbrains.skia.SurfaceColorFormat
+import org.jetbrains.skia.SurfaceOrigin
+import org.jetbrains.skia.SurfaceProps
 import java.awt.Component
 import java.awt.Graphics
-import java.awt.event.KeyEvent
-import java.awt.event.KeyEvent.KEY_LOCATION_UNKNOWN
-import java.awt.event.KeyEvent.KEY_TYPED
 
 /**
  * Class uses to render Composes scenes on scope of OpenGL context.
@@ -42,10 +39,12 @@ class DesktopComposeRenderer(dispatcher: CoroutineDispatcher) : ComposeRenderer(
     }
 
     override fun setContent(content: @Composable () -> Unit) {
-        scene.constraints.minWidth
         scene.setContent {
             Box(
-                modifier = Modifier.fillMaxSize().background(Color.Red)
+                modifier = Modifier
+                    // Workaround in order to align content size with window.
+                    .width(Dp(Gdx.graphics.width.toFloat()))
+                    .height(Dp(Gdx.graphics.height.toFloat()))
             ) {
                 content()
             }
