@@ -3,11 +3,8 @@ package com.dpashko.krender.scene.editor
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.assets.loaders.FileHandleResolver
-import com.badlogic.gdx.assets.loaders.ShaderProgramLoader
 import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.dpashko.krender.assets.Models
-import com.dpashko.krender.assets.Shaders
 import com.dpashko.krender.texture.TextureLoaderEx
 import net.mgsx.gltf.loaders.glb.GLBAssetLoader
 import net.mgsx.gltf.loaders.gltf.GLTFAssetLoader
@@ -29,7 +26,6 @@ class EditorSceneAssetsManager @Inject constructor() : AssetManager(ASSETS_RESOL
     init {
         setLoader(SceneAsset::class.java, ".gltf", GLTFAssetLoader(ASSETS_RESOLVER))
         setLoader(SceneAsset::class.java, ".glb", GLBAssetLoader(ASSETS_RESOLVER))
-        setLoader(ShaderProgram::class.java, ShaderProgramLoader(ASSETS_RESOLVER))
         setLoader(Texture::class.java, TextureLoaderEx(ASSETS_RESOLVER))
     }
 
@@ -38,22 +34,8 @@ class EditorSceneAssetsManager @Inject constructor() : AssetManager(ASSETS_RESOL
      */
     fun loadAssets() {
         println("${Thread.currentThread()}: Started loading of Editor scene assets.")
-        // Shaders
-        load(Shaders.GRID_SHADER)
-        load(Shaders.AXIS_SHADER)
-        load(Shaders.WIREFRAME_SHADER)
         // Models.
         load(Models.ACTOR_MODEL, SceneAsset::class.java)
-    }
-
-    fun getGridShader(): ShaderProgram = get(Shaders.GRID_SHADER)
-
-    fun getWireframeShader(): ShaderProgram = get(Shaders.WIREFRAME_SHADER)
-
-    fun getAxisShader(): ShaderProgram = get(Shaders.AXIS_SHADER)
-
-    fun isWireframeShaderLoaded(): Boolean {
-        return isLoaded(Shaders.WIREFRAME_SHADER)
     }
 
     fun getActorModel(): SceneAsset = get(Models.ACTOR_MODEL)

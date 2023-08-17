@@ -10,15 +10,20 @@ import com.badlogic.gdx.graphics.glutils.VertexBufferObjectWithVAO
 import com.badlogic.gdx.utils.Disposable
 import java.util.LinkedList
 
-class GridShader(
-    private val shader: ShaderProgram,
-    private var gridSize: Int = 64,
-    private val gridLineWidth: Float = 1f,
-    lineColor: Color = Color.GRAY
-) : Disposable {
+class GridShader() : Disposable {
+
+    private lateinit var shader: ShaderProgram
+    private var gridSize: Int = 64
+    private var gridLineWidth: Float
+    private lateinit var lineColor: Color
 
     private val colorVector = floatArrayOf(lineColor.r, lineColor.g, lineColor.b, 0f)
     private var vertices = createVertices()
+
+    fun init(gridSize: Int = 64, gridLineWidth: Float = 1f, lineColor: Color = Color.GRAY){
+
+
+    }
 
     private fun createVertices() =
         VertexBufferObjectWithVAO(true, 4 * (gridSize + 1), VertexAttribute.Position()).apply {

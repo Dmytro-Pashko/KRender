@@ -7,9 +7,11 @@ import com.dpashko.krender.scene.common.SceneController
 import com.dpashko.krender.scene.editor.EditorSceneAssetsManager
 import com.dpashko.krender.scene.editor.model.EditorSceneState
 import com.dpashko.krender.scene.editor.model.PerformanceState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import net.mgsx.gltf.scene3d.scene.Scene
 import net.mgsx.gltf.scene3d.scene.SceneManager
 import net.mgsx.gltf.scene3d.shaders.PBRDepthShaderProvider

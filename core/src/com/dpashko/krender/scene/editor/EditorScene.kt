@@ -16,11 +16,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import com.badlogic.gdx.graphics.g3d.ModelBatch
-import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.collision.BoundingBox
-import com.dpashko.krender.assets.Shaders
 import com.dpashko.krender.common.MemoryFormatter
 import com.dpashko.krender.common.VectorFormatter
 import com.dpashko.krender.compose.ComposeManager
@@ -29,6 +26,8 @@ import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.scene.editor.controller.EditorCameraController
 import com.dpashko.krender.scene.editor.controller.EditorSceneController
 import com.dpashko.krender.scene.editor.model.EditorResult
+import com.dpashko.krender.shader.AxisShader
+import com.dpashko.krender.shader.GridShader
 import com.dpashko.krender.shader.WireframeShader
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -42,21 +41,21 @@ class EditorScene @Inject constructor(
     private val assetsManager: EditorSceneAssetsManager
 ) : BaseScene<EditorSceneController, EditorResult>(controller) {
 
-    //    private lateinit var axisShader: AxisShader
-//    private lateinit var gridShader: GridShader
+    private val axisShader = AxisShader()
+    private val var gridShader = GridShader()
     private val wireframeShader = WireframeShader()
 
     private lateinit var cameraController: EditorCameraController
     private lateinit var debugShapesRenderer: ShapeRenderer
-    private lateinit var modelBatch: ModelBatch
 
     override fun create() {
         println("Started  Editor scene initialization.")
         super.create()
-//        axisShader = AxisShader(axisLength = controller.getSceneState().value.sceneSize.size)
-//        gridShader = GridShader(assetsManager.getGridShader(), controller.getSceneState().value.sceneSize.size.toInt())
+        axisShader.init()
+        gridShader = GridShader(assetsManager.getGridShader(), controller.getSceneState().value.sceneSize.size.toInt())
 
         wireframeShader.init()
+
         debugShapesRenderer = ShapeRenderer().apply {
             color = com.badlogic.gdx.graphics.Color.GREEN
         }
@@ -78,7 +77,6 @@ class EditorScene @Inject constructor(
             addProcessor(composeManager.inputProcessor())
             addProcessor(cameraController)
         }
-        modelBatch = ModelBatch()
         println("Editor scene initialized.")
     }
 
@@ -94,49 +92,42 @@ class EditorScene @Inject constructor(
         val camera = cameraController.camera
 
         if (!state.isLoading) {
-//            if (state.drawGrid) {
-//                gridShader.draw(camera)
-//            }
-//            if (state.drawAxis) {
-//                axisShader.draw(camera)
-//            }
-            controller.sceneManager.render()
-
-            if (controller.objects.isNotEmpty()) {
-                // Render world objects
-                controller.objects.forEach {
-
-                    wireframeShader.draw(camera, it)
-
-//                    modelBatch.begin(camera)
-                    val boundingBox = BoundingBox().apply {
-                        it.calculateBoundingBox(this)
-                    }
-//                    modelBatch.render(it)
-//                    modelBatch.end()
-
-                    debugShapesRenderer.apply {
-                        projectionMatrix = camera.combined
-                        // Draw world boundaries.
-                        begin(ShapeRenderer.ShapeType.Line)
-                        boundingBox.apply {
-                            box(min.x, min.y, max.z, width, height, depth)
-                        }
-                        end()
-                    }
-                }
+            if (state.drawGrid) {
+                gridShader.draw(camera)
+            }
+            if (state.drawAxis) {
+                axisShader.draw(camera)
             }
 
+            controller.objects.forEach {
+                // Draw wireframe for 3d models.
+                wireframeShader.draw(camera, it)
+
+                val boundingBox = BoundingBox().apply {
+                    it.calculateBoundingBox(this)
+                }
+
+                debugShapesRenderer.apply {
+                    projectionMatrix = camera.combined
+                    // Draw world boundaries.
+                    begin(ShapeRenderer.ShapeType.Line)
+                    boundingBox.apply {
+                        box(min.x, min.y, max.z, width, height, depth)
+                    }
+                    end()
+                }
+            }
+        }
+
+        // Draw world boundaries.
+        debugShapesRenderer.apply {
+            projectionMatrix = camera.combined
             // Draw world boundaries.
-            debugShapesRenderer.apply {
-                projectionMatrix = camera.combined
-                // Draw world boundaries.
-                begin(ShapeRenderer.ShapeType.Line)
-                state.worldBounds.apply {
-                    box(min.x, min.y, max.z, width, height, depth)
-                }
-                end()
+            begin(ShapeRenderer.ShapeType.Line)
+            state.worldBounds.apply {
+                box(min.x, min.y, max.z, width, height, depth)
             }
+            end()
         }
         composeManager.getRenderer().render()
     }
@@ -218,5 +209,3 @@ fun createInterfaceWidget(
         }
     }
 }
-
-
