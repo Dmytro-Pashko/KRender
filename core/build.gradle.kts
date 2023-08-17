@@ -24,6 +24,8 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 
+    api("com.github.mgsx-dev.gdx-gltf:gltf:2.1.0")
+
     implementation(compose.desktop.common)
     // DI
     api("com.google.dagger:dagger:2.47")

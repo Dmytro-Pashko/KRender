@@ -1,21 +1,30 @@
 package com.dpashko.krender.scene.editor.controller
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.math.Vector3
 import com.dpashko.krender.scene.common.SceneController
+import com.dpashko.krender.scene.editor.EditorSceneAssetsManager
 import com.dpashko.krender.scene.editor.model.EditorSceneState
 import com.dpashko.krender.scene.editor.model.PerformanceState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import net.mgsx.gltf.scene3d.scene.SceneManager
 import javax.inject.Inject
 
 /**
  * Controller that manages the logic and state of the Editor scene.
  */
-class EditorSceneController @Inject constructor() : SceneController<EditorSceneState> {
+class EditorSceneController @Inject constructor(
+    private val assetManager: EditorSceneAssetsManager,
+) : SceneController<EditorSceneState> {
 
     private var _sceneState = MutableStateFlow(EditorSceneState())
     private var _performanceState = MutableStateFlow(PerformanceState())
+
+    var objects: MutableList<ModelInstance> = mutableListOf()
+    var sceneManager = SceneManager()
 
     /**
      * Initializes the Editor scene controller.
@@ -23,6 +32,10 @@ class EditorSceneController @Inject constructor() : SceneController<EditorSceneS
      */
     override suspend fun init() {
         println("Editor scene controller initialized.")
+        _sceneState.value = EditorSceneState(
+            isLoading = true
+        )
+        assetManager.loadAssets()
     }
 
     /**
@@ -32,6 +45,17 @@ class EditorSceneController @Inject constructor() : SceneController<EditorSceneS
      * @param deltaTime The time elapsed since the last update.
      */
     override suspend fun update(deltaTime: Float) {
+        if (!assetManager.isFinished) {
+            assetManager.update()
+        }else{
+            if (_sceneState.value.isLoading){
+//                _sceneState.value = EditorSceneState(
+//                    isLoading = false
+//                )
+            }
+        }
+        sceneManager.update(deltaTime)
+        // Collect performance & usage data.
         _performanceState.value = PerformanceState(
             fps = Gdx.graphics.framesPerSecond,
             usedMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory(),
@@ -44,6 +68,7 @@ class EditorSceneController @Inject constructor() : SceneController<EditorSceneS
      * This method is called when the controller is being disposed of or cleaned up.
      */
     override suspend fun dispose() {
+        assetManager.dispose()
         println("Editor Scene controller disposed.")
     }
 
@@ -51,4 +76,17 @@ class EditorSceneController @Inject constructor() : SceneController<EditorSceneS
 
     fun getPerformanceState(): StateFlow<PerformanceState> = _performanceState.asStateFlow()
 
+    private fun loadPlayground() {
+//        objects.add(ModelInstance(assetManager.getPlaygroundModel().scene.model))
+    }
+
+    fun addActor() {
+        val actor = assetManager.getActorModel()
+        val actorModel = actor.scene.model
+        val instance = ModelInstance(actorModel).apply {
+            this.transform.setTranslation(Vector3.Zero)
+        }
+        instance.calculateTransforms()
+        objects.add(instance)
+    }
 }

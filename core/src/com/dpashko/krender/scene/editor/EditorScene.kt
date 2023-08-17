@@ -2,20 +2,23 @@ package com.dpashko.krender.scene.editor
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Button
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
-import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g3d.ModelBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.collision.BoundingBox
 import com.dpashko.krender.common.MemoryFormatter
 import com.dpashko.krender.common.VectorFormatter
 import com.dpashko.krender.compose.ComposeManager
@@ -23,13 +26,6 @@ import com.dpashko.krender.scene.common.BaseScene
 import com.dpashko.krender.scene.editor.controller.EditorCameraController
 import com.dpashko.krender.scene.editor.controller.EditorSceneController
 import com.dpashko.krender.scene.editor.model.EditorResult
-import com.dpashko.krender.shader.AxisShader
-import com.dpashko.krender.shader.GridShader
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,24 +35,27 @@ class EditorScene @Inject constructor(
     controller: EditorSceneController,
     private val navigator: EditorNavigator,
     private val composeManager: ComposeManager,
+    private val assetsManager: EditorSceneAssetsManager
 ) : BaseScene<EditorSceneController, EditorResult>(controller) {
 
-    private lateinit var axisShader: AxisShader
-    private lateinit var gridShader: GridShader
+    //    private lateinit var axisShader: AxisShader
+//    private lateinit var gridShader: GridShader
     private lateinit var cameraController: EditorCameraController
     private lateinit var debugShapesRenderer: ShapeRenderer
+    private lateinit var modelBatch: ModelBatch
 
     override fun create() {
         println("Started  Editor scene initialization.")
         super.create()
-        axisShader = AxisShader(axisLength = controller.getSceneState().value.sceneSize.size)
-        gridShader = GridShader(gridSize = controller.getSceneState().value.sceneSize.size.toInt())
+//        axisShader = AxisShader(axisLength = controller.getSceneState().value.sceneSize.size)
+//        gridShader = GridShader(assetsManager.getGridShader(), controller.getSceneState().value.sceneSize.size.toInt())
         debugShapesRenderer = ShapeRenderer().apply {
-            color = Color.GREEN
+            color = com.badlogic.gdx.graphics.Color.GREEN
         }
         cameraController = EditorCameraController(controller).apply {
             init()
         }
+
         if (!composeManager.isInitialized) {
             composeManager.init()
         }
@@ -69,59 +68,65 @@ class EditorScene @Inject constructor(
             addProcessor(composeManager.inputProcessor())
             addProcessor(cameraController)
         }
-//        trackStateChanges()
+        modelBatch = ModelBatch().apply {
+
+        }
         println("Editor scene initialized.")
     }
 
-    /**
-     * For debug purposes only.
-     */
-    private fun trackStateChanges() {
-        val context = CoroutineScope(Dispatchers.IO)
-        cameraController.getState().onEach {
-            println("${Thread.currentThread()}: Camera state changed: $it")
-        }.catch {
-            println("Error: $it")
-        }.launchIn(context)
-
-        controller.getSceneState().onEach {
-            println("${Thread.currentThread()}: Scene state changed: $it")
-        }.catch {
-            println("Error: $it")
-        }.launchIn(context)
-        controller.getPerformanceState().onEach {
-            println("${Thread.currentThread()}: Performance state changed: $it")
-        }.catch {
-            println("Error: $it")
-        }.launchIn(context)
-    }
-
     override fun update(deltaTime: Float) {
+        super.update(deltaTime)
         sceneScope.launch {
             cameraController.update(deltaTime)
         }
-        super.update(deltaTime)
     }
 
     override fun render() {
         val state = controller.getSceneState().value
         val camera = cameraController.camera
 
-        if (state.drawGrid) {
-            gridShader.draw(camera)
-        }
-        if (state.drawAxis) {
-            axisShader.draw(camera)
-        }
+        if (!state.isLoading) {
 
-        debugShapesRenderer.apply {
-            projectionMatrix = camera.combined
-            // Draw world boundaries.
-            begin(ShapeRenderer.ShapeType.Line)
-            state.worldBounds.apply {
-                box(min.x, min.y, max.z, width, height, depth)
+//            if (state.drawGrid) {
+//                gridShader.draw(camera)
+//            }
+//            if (state.drawAxis) {
+//                axisShader.draw(camera)
+//            }
+
+            if (controller.objects.isNotEmpty()) {
+                // Render world objects
+                controller.objects.forEach {
+                    modelBatch.begin(camera)
+                    val boundingBox = BoundingBox().apply {
+                        it.calculateBoundingBox(this)
+                    }
+                    modelBatch.render(it)
+                    modelBatch.end()
+
+                    debugShapesRenderer.apply {
+                        projectionMatrix = camera.combined
+                        // Draw world boundaries.
+                        begin(ShapeRenderer.ShapeType.Line)
+                        boundingBox.apply {
+                            box(min.x, min.y, max.z, width, height, depth)
+                        }
+                        end()
+                    }
+                }
             }
-            end()
+
+
+            // Draw world boundaries.
+            debugShapesRenderer.apply {
+                projectionMatrix = camera.combined
+                // Draw world boundaries.
+                begin(ShapeRenderer.ShapeType.Line)
+                state.worldBounds.apply {
+                    box(min.x, min.y, max.z, width, height, depth)
+                }
+                end()
+            }
         }
         composeManager.getRenderer().render()
     }
@@ -141,8 +146,8 @@ class EditorScene @Inject constructor(
     }
 
     override fun dispose() {
-        gridShader.dispose()
-        axisShader.dispose()
+//        gridShader.dispose()
+//        axisShader.dispose()
         composeManager.getRenderer().dispose()
         super.dispose()
     }
@@ -158,10 +163,33 @@ fun createInterfaceWidget(
     val sceneState by sceneController.getSceneState().collectAsState()
     val cameraState by cameraController.getState().collectAsState()
     val performanceState by sceneController.getPerformanceState().collectAsState()
-
+    return Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color = Color.Red), contentAlignment = Alignment.Center
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .border(width = Dp(2f), color = Color.DarkGray, RoundedCornerShape(size = Dp(10f)))
+                .background(Color.LightGray, RoundedCornerShape(size = Dp(10f)))
+                .padding(
+                    Dp(20f)
+                )
+        ) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(Dp(10f)))
+                Text("Loading...", style = TextStyle(color = Color.Gray))
+            }
+        }
+    }
     return BoxWithConstraints {
         Box(
-            modifier = Modifier.background(color = androidx.compose.ui.graphics.Color.White),
+            modifier = Modifier.background(color = Color.White),
         ) {
             Column(
                 modifier = Modifier.padding(all = Dp(8f)),
@@ -180,6 +208,7 @@ fun createInterfaceWidget(
                 Text("Size=[${sceneState.sceneSize.size}]")
                 Text("Grid=[${sceneState.drawGrid}]")
                 Text("Axis=[${sceneState.drawAxis}]")
+                Text("Objects=[${sceneController.objects.size}]")
 
                 Spacer(Modifier.height(Dp(20f)))
 
@@ -187,6 +216,13 @@ fun createInterfaceWidget(
                 Text("FPS=[${performanceState.fps}]")
                 Text("Used=[${MemoryFormatter.convertToMB(performanceState.usedMemory)}]")
                 Text("Total=[${MemoryFormatter.convertToMB(performanceState.totalMemory)}]")
+
+                Spacer(Modifier.height(Dp(20f)))
+                Button(onClick = {
+                    sceneController.addActor()
+                }) {
+                    Text("Add Actor")
+                }
 
             }
         }

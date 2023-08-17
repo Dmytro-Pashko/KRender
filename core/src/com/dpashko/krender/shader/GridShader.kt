@@ -5,11 +5,13 @@ import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.VertexAttribute
+import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.VertexBufferObjectWithVAO
 import com.badlogic.gdx.utils.Disposable
 import java.util.LinkedList
 
 class GridShader(
+    private val shader: ShaderProgram,
     private var gridSize: Int = 64,
     private val gridLineWidth: Float = 1f,
     lineColor: Color = Color.GRAY
@@ -17,7 +19,6 @@ class GridShader(
 
     private val colorVector = floatArrayOf(lineColor.r, lineColor.g, lineColor.b, 0f)
     private var vertices = createVertices()
-    private val shader = ShaderProvider.gridShader()
 
     private fun createVertices() =
         VertexBufferObjectWithVAO(true, 4 * (gridSize + 1), VertexAttribute.Position()).apply {

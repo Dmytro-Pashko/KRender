@@ -1,9 +1,18 @@
 package com.dpashko.krender.compose
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Composition
 import androidx.compose.ui.ComposeScene
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.unit.Density
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Keys
@@ -33,7 +42,14 @@ class DesktopComposeRenderer(dispatcher: CoroutineDispatcher) : ComposeRenderer(
     }
 
     override fun setContent(content: @Composable () -> Unit) {
-        scene.setContent(content)
+        scene.constraints.minWidth
+        scene.setContent {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Red)
+            ) {
+                content()
+            }
+        }
     }
 
     override fun render() {

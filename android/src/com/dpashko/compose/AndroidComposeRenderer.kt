@@ -1,6 +1,7 @@
 package com.dpashko.compose
 
 import android.content.Context
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -10,6 +11,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import com.badlogic.gdx.graphics.Color
 import com.dpashko.krender.compose.ComposeRenderer
 
 class AndroidComposeRenderer(context: Context) : ComposeRenderer() {
@@ -25,11 +27,14 @@ class AndroidComposeRenderer(context: Context) : ComposeRenderer() {
         composeView.setContent {
             Box(
                 modifier = Modifier
+                    .background(color = androidx.compose.ui.graphics.Color.Red)
                     .fillMaxSize(),
                 Alignment.TopStart
             ) {
                 Box(
+
                     modifier = Modifier
+                        .background(color = androidx.compose.ui.graphics.Color.Cyan)
                         .graphicsLayer(
                             scaleX = uiScaleFactor,
                             scaleY = uiScaleFactor,
