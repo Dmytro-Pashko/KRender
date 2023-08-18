@@ -42,23 +42,24 @@ class EditorScene @Inject constructor(
 ) : BaseScene<EditorSceneController, EditorResult>(controller) {
 
     private val axisShader = AxisShader()
-    private val var gridShader = GridShader()
-    private val wireframeShader = WireframeShader()
+    private val gridShader = GridShader()
+//    private val debugShapesRenderer = ShapeRenderer()
 
+    private val wireframeShader = WireframeShader()
     private lateinit var cameraController: EditorCameraController
-    private lateinit var debugShapesRenderer: ShapeRenderer
 
     override fun create() {
         println("Started  Editor scene initialization.")
         super.create()
+        // Init shaders.
         axisShader.init()
-        gridShader = GridShader(assetsManager.getGridShader(), controller.getSceneState().value.sceneSize.size.toInt())
-
+        gridShader.init()
         wireframeShader.init()
+//        debugShapesRenderer.apply {
+//            color = com.badlogic.gdx.graphics.Color.GREEN
+//        }
 
-        debugShapesRenderer = ShapeRenderer().apply {
-            color = com.badlogic.gdx.graphics.Color.GREEN
-        }
+
 
         cameraController = EditorCameraController(controller).apply {
             init()
@@ -107,28 +108,28 @@ class EditorScene @Inject constructor(
                     it.calculateBoundingBox(this)
                 }
 
-                debugShapesRenderer.apply {
-                    projectionMatrix = camera.combined
-                    // Draw world boundaries.
-                    begin(ShapeRenderer.ShapeType.Line)
-                    boundingBox.apply {
-                        box(min.x, min.y, max.z, width, height, depth)
-                    }
-                    end()
-                }
+//                debugShapesRenderer.apply {
+//                    projectionMatrix = camera.combined
+//                    // Draw world boundaries.
+//                    begin(ShapeRenderer.ShapeType.Line)
+//                    boundingBox.apply {
+//                        box(min.x, min.y, max.z, width, height, depth)
+//                    }
+//                    end()
+//                }
             }
         }
 
-        // Draw world boundaries.
-        debugShapesRenderer.apply {
-            projectionMatrix = camera.combined
-            // Draw world boundaries.
-            begin(ShapeRenderer.ShapeType.Line)
-            state.worldBounds.apply {
-                box(min.x, min.y, max.z, width, height, depth)
-            }
-            end()
-        }
+//        // Draw world boundaries.
+//        debugShapesRenderer.apply {
+//            projectionMatrix = camera.combined
+//            // Draw world boundaries.
+//            begin(ShapeRenderer.ShapeType.Line)
+//            state.worldBounds.apply {
+//                box(min.x, min.y, max.z, width, height, depth)
+//            }
+//            end()
+//        }
         composeManager.getRenderer().render()
     }
 
