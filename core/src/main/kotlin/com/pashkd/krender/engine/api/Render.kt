@@ -31,6 +31,20 @@ data class DrawLine(
     override val sortKey: Int = 10,
 ) : RenderCommand
 
+data class DrawWorldGrid(
+    val halfExtentCells: Int = 20,
+    val cellSize: Float = 1f,
+    val y: Float = 0f,
+    val color: Color = Color(0.32f, 0.34f, 0.38f, 0.65f),
+    override val sortKey: Int = -20,
+) : RenderCommand
+
+data class DrawWorldAxes(
+    val length: Float = 5f,
+    val lineWidthPixels: Float = 1f,
+    override val sortKey: Int = -10,
+) : RenderCommand
+
 data class DrawText(
     val text: String,
     val position: Vec2,

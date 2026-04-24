@@ -4,6 +4,8 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Component
 import com.pashkd.krender.engine.api.DrawModel
+import com.pashkd.krender.engine.api.DrawWorldAxes
+import com.pashkd.krender.engine.api.DrawWorldGrid
 import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.ShaderAsset
@@ -15,7 +17,15 @@ data class PerspectiveCameraComponent(
     var fieldOfViewDegrees: Float = 67f,
     var near: Float = 0.1f,
     var far: Float = 100f,
-    val lookAt: Vec3 = Vec3.zero(),
+    var lookAt: Vec3? = null,
+) : Component
+
+data class FreeCameraControllerComponent(
+    var moveSpeed: Float = 4.5f,
+    var sprintMultiplier: Float = 2f,
+    var mouseSensitivity: Float = 0.12f,
+    var minPitchDegrees: Float = -89f,
+    var maxPitchDegrees: Float = 89f,
 ) : Component
 
 data class ShaderPipeline(
@@ -65,5 +75,20 @@ class ModelRenderSystem : System() {
                 ),
             )
         }
+    }
+}
+
+class WorldGridSystem(
+    private val halfExtentCells: Int = 20,
+    private val cellSize: Float = 1f,
+) : System() {
+    override fun render(world: SceneWorld, alpha: Float) {
+        world.renderCommands.submit(
+            DrawWorldGrid(
+                halfExtentCells = halfExtentCells,
+                cellSize = cellSize,
+            ),
+        )
+        world.renderCommands.submit(DrawWorldAxes(length = halfExtentCells * cellSize))
     }
 }

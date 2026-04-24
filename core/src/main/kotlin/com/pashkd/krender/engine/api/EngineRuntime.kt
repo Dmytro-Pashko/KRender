@@ -57,7 +57,12 @@ class GameLoop(
         }
 
         runtime.scenes.applyPendingTransitions(runtime)
-        val scene = runtime.scenes.currentScene ?: return
+        val scene = runtime.scenes.currentScene
+        if (scene == null) {
+            backend.input.endFrame()
+            backend.debug.endFrame(delta, fixedUpdates)
+            return
+        }
 
         backend.debug.put("Scene", scene.id)
         backend.debug.put("Scene state", scene.state)
