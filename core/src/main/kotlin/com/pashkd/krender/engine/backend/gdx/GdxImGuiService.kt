@@ -31,6 +31,7 @@ class GdxImGuiService(
     private val debug: DebugService,
     private val logger: Logger,
 ) : UiService {
+    private val debugPanelIds = listOf(DEBUG_PANEL_SCENE_STATISTICS, DEBUG_PANEL_CONTROLS, DEBUG_PANEL_LOGS)
     private val context = Context()
     private val renderer = withContext { ImplGL3() }
     private val inputBridge = GdxImGuiInputBridge(context)
@@ -40,6 +41,7 @@ class GdxImGuiService(
     ).load(logger)
     private var debugWindowLayouts: ImGuiLayoutConfig = defaultDebugWindowLayouts
     private val debugWindowEventLogger = ImGuiWindowEventLogger(logger, "ImGuiDebugUi")
+    private val pendingDebugLayoutInitialization = debugPanelIds.toMutableSet()
     private var frameOpen = false
     private var frameReady = false
 
@@ -119,6 +121,8 @@ class GdxImGuiService(
                 layoutConfig.panels[panelId] ?: fallbackLayout
             },
         )
+        pendingDebugLayoutInitialization.clear()
+        pendingDebugLayoutInitialization += debugPanelIds
     }
 
     /**
@@ -183,9 +187,15 @@ class GdxImGuiService(
      * Draws one shared debug text window with configured default layout.
      */
     private fun drawTextWindow(panelId: String, layout: ImGuiPanelLayout, lines: List<String>) {
-        ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
-        ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
+        val initializationCondition = if (panelId in pendingDebugLayoutInitialization) {
+            Cond.Always
+        } else {
+            Cond.FirstUseEver
+        }
+        ImGui.setNextWindowPos(Vec2(layout.x, layout.y), initializationCondition, Vec2())
+        ImGui.setNextWindowSize(Vec2(layout.width, layout.height), initializationCondition)
         val expanded = ImGui.begin(layout.title)
+        pendingDebugLayoutInitialization -= panelId
         debugWindowEventLogger.observe(panelId, layout.title)
         if (!expanded) {
             ImGui.end()
