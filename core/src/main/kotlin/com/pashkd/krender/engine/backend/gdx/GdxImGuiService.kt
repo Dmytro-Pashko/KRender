@@ -5,9 +5,16 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
 import com.pashkd.krender.engine.api.DebugService
 import com.pashkd.krender.engine.api.LogEntry
+import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.ui.UiCaptureState
+import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
+import com.pashkd.krender.engine.ui.ImGuiPanelLayout
+import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.UiService
+import glm_.vec2.Vec2
 import imgui.ConfigFlag
+import imgui.Cond
 import imgui.ImGui
 import imgui.Key
 import imgui.MouseButton
@@ -16,19 +23,31 @@ import imgui.div
 import imgui.classes.Context
 import imgui.impl.gl.ImplGL3
 
+/**
+ * Owns the shared ImGui context, backend rendering, and debug windows.
+ */
 class GdxImGuiService(
     private val input: GdxInputService,
     private val debug: DebugService,
+    private val logger: Logger,
 ) : UiService {
     private val context = Context()
     private val renderer = withContext { ImplGL3() }
     private val inputBridge = GdxImGuiInputBridge(context)
+    private val debugWindowLayouts = ImGuiLayoutConfigLoader(
+        assetPath = DEBUG_LAYOUT_ASSET_PATH,
+        fallback = DEBUG_WINDOW_LAYOUTS,
+    ).load(logger)
+    private val debugWindowEventLogger = ImGuiWindowEventLogger(logger, "ImGuiDebugUi")
     private var frameOpen = false
     private var frameReady = false
 
     override var captureState: UiCaptureState = UiCaptureState()
         private set
 
+    /**
+     * Configures ImGui and hooks its input bridge into the backend input chain.
+     */
     init {
         withCurrentContext {
             val io = ImGui.io
@@ -39,6 +58,9 @@ class GdxImGuiService(
         input.setUiCaptureProvider { captureState }
     }
 
+    /**
+     * Starts a new ImGui frame and syncs display and mouse state.
+     */
     override fun beginFrame(deltaSeconds: Float) {
         frameReady = false
         withCurrentContext {
@@ -56,6 +78,9 @@ class GdxImGuiService(
         frameOpen = true
     }
 
+    /**
+     * Finalizes the ImGui frame and refreshes capture flags.
+     */
     override fun endFrame() {
         if (!frameOpen) return
 
@@ -71,6 +96,9 @@ class GdxImGuiService(
         frameReady = true
     }
 
+    /**
+     * Submits the prepared ImGui draw data to the GL renderer.
+     */
     override fun render() {
         if (!frameReady) return
 
@@ -80,8 +108,14 @@ class GdxImGuiService(
         frameReady = false
     }
 
+    /**
+     * Accepts resize notifications for API symmetry with the engine UI contract.
+     */
     override fun resize(width: Int, height: Int) = Unit
 
+    /**
+     * Tears down ImGui renderer resources and unregisters the input bridge.
+     */
     override fun dispose() {
         input.removeProcessor(inputBridge)
         input.setUiCaptureProvider { UiCaptureState() }
@@ -91,6 +125,9 @@ class GdxImGuiService(
         }
     }
 
+    /**
+     * Temporarily makes this service's ImGui context current for a returning block.
+     */
     private fun <T> withContext(block: () -> T): T {
         val previous = ImGui.currentContext
         context.setCurrent()
@@ -101,6 +138,9 @@ class GdxImGuiService(
         }
     }
 
+    /**
+     * Temporarily makes this service's ImGui context current for a void block.
+     */
     private fun withCurrentContext(block: () -> Unit) {
         val previous = ImGui.currentContext
         context.setCurrent()
@@ -111,20 +151,30 @@ class GdxImGuiService(
         }
     }
 
+    /**
+     * Draws the shared engine debug windows when their data is available.
+     */
     private fun drawDebugWindows() {
         if (debug.enabled && debug.statEntries.isNotEmpty()) {
-            drawTextWindow("Scene Statistics", debug.statEntries)
+            drawTextWindow(DEBUG_PANEL_SCENE_STATISTICS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_SCENE_STATISTICS), debug.statEntries)
         }
         if (debug.helperLines.isNotEmpty()) {
-            drawTextWindow("Controls", debug.helperLines)
+            drawTextWindow(DEBUG_PANEL_CONTROLS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_CONTROLS), debug.helperLines)
         }
         if (debug.logsEnabled && debug.recentLogs.isNotEmpty()) {
-            drawTextWindow("Logs", debug.recentLogs.map(::formatLogEntry))
+            drawTextWindow(DEBUG_PANEL_LOGS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_LOGS), debug.recentLogs.map(::formatLogEntry))
         }
     }
 
-    private fun drawTextWindow(title: String, lines: List<String>) {
-        if (!ImGui.begin(title)) {
+    /**
+     * Draws one shared debug text window with configured default layout.
+     */
+    private fun drawTextWindow(panelId: String, layout: ImGuiPanelLayout, lines: List<String>) {
+        ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
+        ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
+        val expanded = ImGui.begin(layout.title)
+        debugWindowEventLogger.observe(panelId, layout.title)
+        if (!expanded) {
             ImGui.end()
             return
         }
@@ -133,13 +183,55 @@ class GdxImGuiService(
         ImGui.end()
     }
 
+    /**
+     * Formats one structured log entry for the debug log window.
+     */
     private fun formatLogEntry(entry: LogEntry): String =
         "[${entry.level}][${entry.tag}] ${entry.message}"
+
+    companion object {
+        private const val DEBUG_LAYOUT_ASSET_PATH = "ui/model_viewer_layout.json"
+        private const val DEBUG_PANEL_SCENE_STATISTICS = "sceneStatistics"
+        private const val DEBUG_PANEL_CONTROLS = "debugControls"
+        private const val DEBUG_PANEL_LOGS = "logs"
+
+        private val DEBUG_WINDOW_LAYOUTS = ImGuiLayoutConfig(
+            panels = mapOf(
+                DEBUG_PANEL_SCENE_STATISTICS to ImGuiPanelLayout(
+                    title = "Scene Statistics",
+                    x = 16f,
+                    y = 16f,
+                    width = 320f,
+                    height = 240f,
+                ),
+                DEBUG_PANEL_CONTROLS to ImGuiPanelLayout(
+                    title = "Controls",
+                    x = 16f,
+                    y = 272f,
+                    width = 320f,
+                    height = 220f,
+                ),
+                DEBUG_PANEL_LOGS to ImGuiPanelLayout(
+                    title = "Logs",
+                    x = 16f,
+                    y = 508f,
+                    width = 420f,
+                    height = 220f,
+                ),
+            ),
+        )
+    }
 }
 
+/**
+ * Forwards backend input events into the active ImGui context.
+ */
 private class GdxImGuiInputBridge(
     private val context: Context,
 ) : InputProcessor {
+    /**
+     * Runs an input callback with this bridge's ImGui context current.
+     */
     private fun <T> withContext(block: () -> T): T {
         val previous = ImGui.currentContext
         context.setCurrent()
@@ -150,18 +242,27 @@ private class GdxImGuiInputBridge(
         }
     }
 
+    /**
+     * Pushes a key press into ImGui.
+     */
     override fun keyDown(keycode: Int): Boolean = withContext {
         ImGui.io.addKeyEvent(mapKey(keycode) ?: return@withContext false, true)
         syncModifierKeys()
         false
     }
 
+    /**
+     * Pushes a key release into ImGui.
+     */
     override fun keyUp(keycode: Int): Boolean = withContext {
         ImGui.io.addKeyEvent(mapKey(keycode) ?: return@withContext false, false)
         syncModifierKeys()
         false
     }
 
+    /**
+     * Pushes text input characters into ImGui.
+     */
     override fun keyTyped(character: Char): Boolean = withContext {
         if (!character.isISOControl() || character == '\n' || character == '\t') {
             ImGui.io.addInputCharacter(character)
@@ -169,6 +270,9 @@ private class GdxImGuiInputBridge(
         false
     }
 
+    /**
+     * Forwards a cancelled pointer interaction to ImGui.
+     */
     override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = withContext {
         ImGui.io.addMouseSourceEvent(MouseSource.Mouse)
         ImGui.io.addMousePosEvent(screenX.toFloat(), screenY.toFloat())
@@ -176,6 +280,9 @@ private class GdxImGuiInputBridge(
         false
     }
 
+    /**
+     * Forwards a pointer press to ImGui.
+     */
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = withContext {
         ImGui.io.addMouseSourceEvent(MouseSource.Mouse)
         ImGui.io.addMousePosEvent(screenX.toFloat(), screenY.toFloat())
@@ -183,6 +290,9 @@ private class GdxImGuiInputBridge(
         false
     }
 
+    /**
+     * Forwards a pointer release to ImGui.
+     */
     override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = withContext {
         ImGui.io.addMouseSourceEvent(MouseSource.Mouse)
         ImGui.io.addMousePosEvent(screenX.toFloat(), screenY.toFloat())
@@ -190,23 +300,35 @@ private class GdxImGuiInputBridge(
         false
     }
 
+    /**
+     * Forwards a pointer drag to ImGui.
+     */
     override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean = withContext {
         ImGui.io.addMouseSourceEvent(MouseSource.Mouse)
         ImGui.io.addMousePosEvent(screenX.toFloat(), screenY.toFloat())
         false
     }
 
+    /**
+     * Forwards mouse movement to ImGui.
+     */
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean = withContext {
         ImGui.io.addMouseSourceEvent(MouseSource.Mouse)
         ImGui.io.addMousePosEvent(screenX.toFloat(), screenY.toFloat())
         false
     }
 
+    /**
+     * Forwards mouse wheel scrolling to ImGui.
+     */
     override fun scrolled(amountX: Float, amountY: Float): Boolean = withContext {
         ImGui.io.addMouseWheelEvent(amountX, -amountY)
         false
     }
 
+    /**
+     * Refreshes ImGui's modifier-key state after key events.
+     */
     private fun syncModifierKeys() {
         ImGui.io.addKeyEvent(Key.Mod_Ctrl, isModifierPressed(Input.Keys.CONTROL_LEFT, Input.Keys.CONTROL_RIGHT))
         ImGui.io.addKeyEvent(Key.Mod_Shift, isModifierPressed(Input.Keys.SHIFT_LEFT, Input.Keys.SHIFT_RIGHT))
@@ -214,9 +336,15 @@ private class GdxImGuiInputBridge(
         ImGui.io.addKeyEvent(Key.Mod_Super, Gdx.input.isKeyPressed(Input.Keys.SYM))
     }
 
+    /**
+     * Checks whether either physical key for a modifier is currently held.
+     */
     private fun isModifierPressed(primary: Int, secondary: Int): Boolean =
         Gdx.input.isKeyPressed(primary) || Gdx.input.isKeyPressed(secondary)
 
+    /**
+     * Converts LibGDX mouse button ids to ImGui button ids.
+     */
     private fun mapMouseButton(button: Int): MouseButton? = when (button) {
         Input.Buttons.LEFT -> MouseButton.Left
         Input.Buttons.RIGHT -> MouseButton.Right
@@ -226,6 +354,9 @@ private class GdxImGuiInputBridge(
         else -> null
     }
 
+    /**
+     * Converts LibGDX keycodes to ImGui key ids.
+     */
     private fun mapKey(keycode: Int): Key? = when (keycode) {
         Input.Keys.TAB -> Key.Tab
         Input.Keys.LEFT -> Key.LeftArrow

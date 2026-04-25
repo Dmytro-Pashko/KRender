@@ -43,7 +43,6 @@ import com.pashkd.krender.engine.api.DebugService
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.DrawModel
-import com.pashkd.krender.engine.api.DrawModelViewerOverlay
 import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.DrawWorldGrid
 import com.pashkd.krender.engine.api.EngineBackend
@@ -122,7 +121,7 @@ class LibGdxBackend : EngineBackend {
     override val input: GdxInputService = GdxInputService().also {
         Gdx.input.inputProcessor = it
     }
-    override val ui: UiService = GdxImGuiService(input, debug)
+    override val ui: UiService = GdxImGuiService(input, debug, logger)
     override val assets: GdxAssetService = GdxAssetService()
     override val tasks: TaskService = GdxTaskService()
     override val renderer: Renderer = GdxRenderer3D(assets, debug, ui)
@@ -569,7 +568,6 @@ class GdxRenderer3D(
         wireframeDynamicCommands.forEach { renderWireframeDynamicModel(it, camera) }
         lineRenderer.renderOverlayLines(context.commands, camera)
 
-        drawModelViewerOverlays(context)
         ui.render()
     }
 
@@ -1049,70 +1047,6 @@ class GdxRenderer3D(
         debug.put("Asset progress", "${"%.0f".format(assets.progress() * 100f)}%")
         drawTopLeftDebugPanels()
         drawBottomLeftLogs()
-    }
-
-    private fun drawModelViewerOverlays(context: RenderContext) {
-        context.commands.filterIsInstance<DrawModelViewerOverlay>().forEach { overlay ->
-            drawModelViewerOverlay(overlay)
-        }
-    }
-
-    private fun drawModelViewerOverlay(overlay: DrawModelViewerOverlay) {
-        val layout = overlay.layout
-        val width = layout.width
-        val headerHeight = layout.headerHeight
-        val rowHeight = layout.rowHeight
-        val buttonHeight = layout.buttonHeight
-        val buttonWidth = layout.buttonWidth
-        val padding = layout.padding
-        val listHeight = overlay.models.size * rowHeight
-        val panelHeight = layout.height(overlay.models.size)
-        val x = (this.width - width) * 0.5f
-        val panelBottom = (height - panelHeight) * 0.5f
-
-        Gdx.gl.glEnable(GL20.GL_BLEND)
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
-        shapeRenderer.projectionMatrix = spriteBatch.projectionMatrix
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.color.set(0.06f, 0.07f, 0.08f, 0.88f)
-        shapeRenderer.rect(x, panelBottom, width, panelHeight)
-        shapeRenderer.color.set(0.12f, 0.14f, 0.17f, 1f)
-        shapeRenderer.rect(x, panelBottom + panelHeight - headerHeight, width, headerHeight)
-
-        overlay.models.forEachIndexed { index, _ ->
-            val rowBottom = panelBottom + panelHeight - headerHeight - (index + 1) * rowHeight
-            if (index == overlay.selectedIndex) {
-                shapeRenderer.color.set(0.18f, 0.36f, 0.5f, 1f)
-            } else {
-                shapeRenderer.color.set(if (index % 2 == 0) 0.09f else 0.11f, 0.11f, 0.13f, 1f)
-            }
-            shapeRenderer.rect(x, rowBottom, width, rowHeight)
-        }
-
-        val buttonBottom = panelBottom + padding
-        shapeRenderer.color.set(0.16f, 0.34f, 0.22f, 1f)
-        shapeRenderer.rect(x, buttonBottom, buttonWidth, buttonHeight)
-        shapeRenderer.color.set(0.42f, 0.12f, 0.12f, 1f)
-        shapeRenderer.rect(x + buttonWidth + padding, buttonBottom, buttonWidth, buttonHeight)
-        shapeRenderer.end()
-
-        spriteBatch.begin()
-        font.color.set(1f, 1f, 1f, 1f)
-        font.draw(spriteBatch, "Models:", x + 10f, panelBottom + panelHeight - 11f)
-        font.color.set(0.78f, 0.82f, 0.88f, 1f)
-        font.draw(spriteBatch, "Loaded: ${overlay.loadedModel}", x + 112f, panelBottom + panelHeight - 11f)
-
-        overlay.models.forEachIndexed { index, model ->
-            val rowTop = panelBottom + panelHeight - headerHeight - index * rowHeight
-            font.color.set(if (index == overlay.selectedIndex) 1f else 0.82f, 0.88f, 0.92f, 1f)
-            font.draw(spriteBatch, model, x + 10f, rowTop - 8f)
-        }
-
-        font.color.set(1f, 1f, 1f, 1f)
-        font.draw(spriteBatch, "Load", x + 30f, buttonBottom + 20f)
-        font.draw(spriteBatch, "Exit", x + buttonWidth + padding + 32f, buttonBottom + 20f)
-        spriteBatch.end()
-        Gdx.gl.glDisable(GL20.GL_BLEND)
     }
 
     private fun triangleCountFor(context: RenderContext): Int =

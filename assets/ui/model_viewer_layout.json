@@ -1,0 +1,46 @@
+{
+  "panels": {
+    "modelList": {
+      "title": "Models",
+      "x": 1580,
+      "y": 15,
+      "width": 320,
+      "height": 480
+    },
+    "modelInfo": {
+      "title": "Model Info",
+      "x": 1580,
+      "y": 511,
+      "width": 320,
+      "height": 220
+    },
+    "controls": {
+      "title": "Controls",
+      "x": 15,
+      "y": 279,
+      "width": 320,
+      "height": 220
+    },
+    "sceneStatistics": {
+      "title": "Scene Statistics",
+      "x": 15,
+      "y": 15,
+      "width": 320,
+      "height": 248
+    },
+    "debugControls": {
+      "title": "Controls",
+      "x": 15,
+      "y": 279,
+      "width": 320,
+      "height": 220
+    },
+    "logs": {
+      "title": "Logs",
+      "x": 15,
+      "y": 747,
+      "width": 420,
+      "height": 220
+    }
+  }
+}
