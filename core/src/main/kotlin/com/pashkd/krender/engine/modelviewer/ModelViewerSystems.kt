@@ -51,12 +51,14 @@ class ModelViewerSystem(
         } else {
             null
         }
+        state.assetProgress = assets.progress()
         state.assetLoaded = state.loadedModel?.let(assets::isLoaded) ?: false
         state.loadingStatus = when {
             state.loadedModel == null -> "No model loaded"
             state.assetLoaded -> "Loaded"
-            else -> "Loading"
+            else -> "Loading ${"%.0f".format(state.assetProgress * 100f)}%"
         }
+        state.triangleCount = state.loadedModel?.let(assets::triangleCount)
 
         world.query<ModelComponent>().firstOrNull()?.get<ModelComponent>()?.let { model ->
             if (model.material.wireframe != state.wireframeEnabled) {

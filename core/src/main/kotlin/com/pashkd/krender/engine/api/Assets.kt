@@ -67,11 +67,17 @@ interface AssetService {
     /** Advances pending asset work and returns normalized progress. */
     fun update(budgetMs: Int = 5): Float
 
+    /** Returns normalized progress for currently queued assets. */
+    fun progress(): Float = 1f
+
     /** Reports whether a scheduled asset is ready for use. */
     fun isLoaded(asset: AssetRef<*>): Boolean
 
     /** Resolves a loaded asset into its backend-specific runtime object. */
     fun <T : Any> get(asset: AssetRef<T>): T
+
+    /** Returns the triangle count for a loaded model asset when available. */
+    fun triangleCount(asset: AssetRef<ModelAsset>): Int? = null
 
     /** Releases any runtime state associated with the given asset. */
     fun unload(asset: AssetRef<*>)

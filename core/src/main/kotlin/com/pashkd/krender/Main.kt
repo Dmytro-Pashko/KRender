@@ -8,7 +8,7 @@ import java.io.File
 
 class Main(
     sceneName: String = defaultScene(),
-    modelPath: String = defaultModelPath(),
+    modelPath: String? = defaultModelPath(),
 ) : GdxEngineApplication(
     initialScene = {
         when (sceneName.lowercase()) {
@@ -26,11 +26,11 @@ class Main(
 ) {
     companion object {
         fun defaultScene(): String = System.getProperty("krender.scene", "viewer")
-        fun defaultModelPath(): String = System.getProperty("krender.model", "model/m_grass_plant_01.glb")
+        fun defaultModelPath(): String? = System.getProperty("krender.model")?.takeIf(String::isNotBlank)
         fun defaultTerrainResolution(): Int = System.getProperty("krender.terrain.size", "128").toIntOrNull() ?: 128
         fun defaultTerrainSpacing(): Float = System.getProperty("krender.terrain.spacing", "1.0").toFloatOrNull() ?: 1f
 
-        private fun discoverModelPaths(selectedPath: String): List<String> {
+        private fun discoverModelPaths(selectedPath: String?): List<String> {
             val supportedExtensions = setOf("glb", "gltf", "g3db", "g3dj", "obj", "fbx")
             val discovered = File("model")
                 .listFiles()
@@ -42,7 +42,7 @@ class Main(
                 ?.toMutableList()
                 ?: mutableListOf()
 
-            if (selectedPath !in discovered) {
+            if (!selectedPath.isNullOrBlank() && selectedPath !in discovered) {
                 discovered += selectedPath
             }
             return discovered

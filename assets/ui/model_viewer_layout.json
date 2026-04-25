@@ -41,6 +41,13 @@
       "y": 850,
       "width": 1050,
       "height": 200
+    },
+    "loading": {
+      "title": "Loading",
+      "x": 720,
+      "y": 320,
+      "width": 320,
+      "height": 120
     }
   }
 }

@@ -10,6 +10,7 @@ object ModelViewerPanelIds {
     const val ModelList = "modelList"
     const val ModelInfo = "modelInfo"
     const val Controls = "controls"
+    const val Loading = "loading"
 }
 
 /**
@@ -40,6 +41,13 @@ object ModelViewerUiLayoutDefaults {
                 y = 512f,
                 width = 320f,
                 height = 220f,
+            ),
+            ModelViewerPanelIds.Loading to ImGuiPanelLayout(
+                title = "Loading",
+                x = 720f,
+                y = 320f,
+                width = 320f,
+                height = 120f,
             ),
         ),
     )

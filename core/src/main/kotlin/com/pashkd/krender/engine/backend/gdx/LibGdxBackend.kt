@@ -359,6 +359,7 @@ class GdxAssetService : AssetService {
     private val requested = mutableSetOf<String>()
     private val missing = mutableSetOf<String>()
     private val shaderSources = mutableMapOf<String, String>()
+    private val modelTriangleCounts = mutableMapOf<String, Int>()
 
     init {
         manager.setLoader(Model::class.java, ".g3dj", G3dModelLoader(JsonReader()))
@@ -411,6 +412,12 @@ class GdxAssetService : AssetService {
         return progress()
     }
 
+    override fun progress(): Float {
+        val assetCount = requested.count { !it.startsWith("primitive:") }
+        if (assetCount == 0) return 1f
+        return manager.progress.coerceIn(0f, 1f)
+    }
+
     override fun isLoaded(asset: AssetRef<*>): Boolean {
         if (asset.isPrimitive) return true
         return when (asset.type) {
@@ -432,6 +439,16 @@ class GdxAssetService : AssetService {
         error("Use backend-specific typed accessors for '${asset.path}'. Core code should keep AssetRef handles.")
     }
 
+    override fun triangleCount(asset: AssetRef<ModelAsset>): Int? {
+        if (asset.isPrimitive || !isLoaded(asset)) return null
+        return modelTriangleCounts.getOrPut(asset.path) {
+            when {
+                asset.isGltf() -> gltfScene(asset)?.scene?.model?.let(::countTrianglesInModel) ?: 0
+                else -> gdxModel(asset)?.let(::countTrianglesInModel) ?: 0
+            }
+        }
+    }
+
     override fun unload(asset: AssetRef<*>) {
         if (!asset.isPrimitive && manager.isLoaded(asset.path)) {
             manager.unload(asset.path)
@@ -439,6 +456,7 @@ class GdxAssetService : AssetService {
         requested -= asset.path
         missing -= asset.path
         shaderSources -= asset.path
+        modelTriangleCounts -= asset.path
     }
 
     fun gdxModel(asset: AssetRef<ModelAsset>): Model? {
@@ -455,15 +473,18 @@ class GdxAssetService : AssetService {
         }
     }
 
-    fun progress(): Float {
-        val assetCount = requested.count { !it.startsWith("primitive:") }
-        if (assetCount == 0) return 1f
-        return manager.progress.coerceIn(0f, 1f)
-    }
-
     fun dispose() {
         manager.dispose()
     }
+}
+
+private fun countTrianglesInModel(model: Model): Int =
+    model.meshParts.sumOf(::countTrianglesInMeshPart)
+
+private fun countTrianglesInMeshPart(meshPart: MeshPart): Int = when (meshPart.primitiveType) {
+    GL20.GL_TRIANGLES -> meshPart.size / 3
+    GL20.GL_TRIANGLE_STRIP, GL20.GL_TRIANGLE_FAN -> (meshPart.size - 2).coerceAtLeast(0)
+    else -> 0
 }
 
 class GdxTaskService : TaskService {

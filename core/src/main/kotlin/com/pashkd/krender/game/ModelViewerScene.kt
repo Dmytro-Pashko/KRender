@@ -13,6 +13,7 @@ import com.pashkd.krender.engine.modelviewer.ModelViewerStatsPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerSystem
 import com.pashkd.krender.engine.modelviewer.ModelViewerCameraSystem
 import com.pashkd.krender.engine.modelviewer.ModelViewerControlsPanel
+import com.pashkd.krender.engine.modelviewer.ModelViewerLoadingPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerUiLayoutDefaults
 import com.pashkd.krender.engine.render3d.FreeCameraControllerComponent
 import com.pashkd.krender.engine.render3d.LightComponent
@@ -40,7 +41,7 @@ class ModelViewerScene(
 
     override val requiredAssets: List<AssetPack> = listOf(
         object : AssetPack {
-            override val assets = models
+            override val assets = listOfNotNull(model)
         },
     )
 
@@ -164,6 +165,7 @@ class ModelViewerScene(
             uiSystem.addPanel(ModelViewerPanel(viewerState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(ModelViewerStatsPanel(viewerState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(ModelViewerControlsPanel(viewerState, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(ModelViewerLoadingPanel(viewerState, layoutConfig, panelEventLogger))
         }
 
     /**

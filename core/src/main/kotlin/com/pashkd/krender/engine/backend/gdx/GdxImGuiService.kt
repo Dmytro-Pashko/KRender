@@ -63,6 +63,7 @@ class GdxImGuiService(
      */
     override fun beginFrame(deltaSeconds: Float) {
         frameReady = false
+        debug.put("FPS", Gdx.graphics.framesPerSecond)
         withCurrentContext {
             val io = ImGui.io
             io.deltaTime = deltaSeconds.coerceAtLeast(1f / 1_000f)

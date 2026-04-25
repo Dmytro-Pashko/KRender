@@ -15,9 +15,11 @@ data class ModelViewerState(
     var loadSelectedModelRequested: Boolean = false,
     var exitRequested: Boolean = false,
     var assetLoaded: Boolean = false,
+    var assetProgress: Float = 1f,
     var loadingStatus: String = "No model loaded",
     var errorMessage: String? = null,
     var cameraPosition: String = "0.00, 0.00, 0.00",
+    var triangleCount: Int? = null,
 ) {
     /**
      * Returns the model currently highlighted in the list panel.
@@ -36,4 +38,10 @@ data class ModelViewerState(
      */
     val loadedModelPath: String
         get() = loadedModel?.path ?: "none"
+
+    /**
+     * Returns whether the active model asset is still loading.
+     */
+    val isLoadingModel: Boolean
+        get() = loadedModel != null && !assetLoaded
 }

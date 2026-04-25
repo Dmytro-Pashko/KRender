@@ -9,42 +9,33 @@ import imgui.Cond
 import imgui.ImGui
 
 /**
- * Shows loaded-model and viewer status information.
+ * Displays loading progress while the currently requested model asset is not ready.
  */
-class ModelViewerStatsPanel(
+class ModelViewerLoadingPanel(
     private val state: ModelViewerState,
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     /**
-     * Draws the stats window using the configured default layout.
+     * Draws the loading window only while the active model asset is pending.
      */
     override fun draw() {
-        val layout = layoutConfig.panels.getValue(ModelViewerPanelIds.ModelInfo)
+        if (!state.isLoadingModel) return
+
+        val layout = layoutConfig.panels.getValue(ModelViewerPanelIds.Loading)
         applyWindowDefaults(layout)
         val expanded = ImGui.begin(layout.title)
-        eventLogger.observe(ModelViewerPanelIds.ModelInfo, layout.title)
+        eventLogger.observe(ModelViewerPanelIds.Loading, layout.title)
         if (!expanded) {
             ImGui.end()
             return
         }
 
-        ImGui.text("Loaded model")
+        ImGui.text("Loading model asset")
         ImGui.text("%s", state.loadedModelPath)
-        ImGui.text("Asset state: %s", state.loadingStatus)
-        state.errorMessage?.let { error ->
-            ImGui.text("Error: %s", error)
-        }
-
         ImGui.separator()
-        ImGui.text("Viewer")
-        ImGui.text("Selected: %s", state.selectedModelPath)
-        ImGui.text("Models: %d", state.availableModels.size)
-        ImGui.text("Scale: %.2f", state.modelScale)
-        ImGui.text("Wireframe: %s", if (state.wireframeEnabled) "on" else "off")
-        ImGui.text("Triangles: %s", state.triangleCount?.toString() ?: if (state.isLoadingModel) "loading" else "none")
-        ImGui.text("Camera: %s", state.cameraPosition)
-
+        ImGui.text("Progress: %.0f%%", state.assetProgress * 100f)
+        ImGui.text("%s", state.loadingStatus)
         ImGui.end()
     }
 
