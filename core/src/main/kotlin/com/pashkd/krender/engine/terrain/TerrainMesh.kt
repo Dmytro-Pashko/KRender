@@ -4,6 +4,9 @@ import com.pashkd.krender.engine.api.DynamicMesh
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+/**
+ * CPU-side mesh representation generated from [TerrainData].
+ */
 data class TerrainMeshData(
     val positions: FloatArray,
     val normals: FloatArray,
@@ -11,12 +14,21 @@ data class TerrainMeshData(
     val indices: IntArray,
     val tangents: FloatArray? = null,
 ) {
+    /**
+     * Number of vertices in the mesh.
+     */
     val vertexCount: Int
         get() = positions.size / 3
 
+    /**
+     * Number of indexed triangles in the mesh.
+     */
     val triangleCount: Int
         get() = indices.size / 3
 
+    /**
+     * Converts terrain mesh data to the backend-neutral runtime mesh format.
+     */
     fun toDynamicMesh(): DynamicMesh =
         DynamicMesh(
             positions = positions,
@@ -27,7 +39,13 @@ data class TerrainMeshData(
         )
 }
 
+/**
+ * Builds renderable terrain meshes from terrain data.
+ */
 object TerrainMeshBuilder {
+    /**
+     * Generates positions, UVs, triangle indices, normals, and tangents for [data].
+     */
     fun build(data: TerrainData): TerrainMeshData {
         val vertexCount = data.width * data.height
         val positions = FloatArray(vertexCount * 3)

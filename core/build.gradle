@@ -6,6 +6,8 @@ dependencies {
   api "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
   api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
   api "com.badlogicgames.gdx:gdx:$gdxVersion"
+  implementation "com.github.kotlin-graphics.imgui:imgui-core:1.89.7-1"
+  implementation "com.github.kotlin-graphics.imgui:imgui-gl:1.89.7-1"
   api "com.github.mgsx-dev.gdx-gltf:gltf:$gltfVersion"
   api "com.github.kotcrab.vis-ui:vis-ui:$visUiVersion"
   api "io.github.libktx:ktx-actors:$ktxVersion"

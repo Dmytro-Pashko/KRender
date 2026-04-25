@@ -5,6 +5,12 @@ import com.pashkd.krender.engine.api.TextureAsset
 import kotlin.math.ceil
 import kotlin.math.floor
 
+/**
+ * Describes one editable terrain surface layer.
+ *
+ * Layers keep authoring metadata separate from the generated mesh so future
+ * material blending and texture painting can reuse the same terrain data.
+ */
 data class TerrainLayer(
     val id: Int,
     var name: String,
@@ -12,6 +18,9 @@ data class TerrainLayer(
     val materialId: String? = null,
 )
 
+/**
+ * Serializable layer snapshot used by terrain save/load code.
+ */
 data class TerrainLayerDescriptor(
     val id: Int,
     val name: String,
@@ -20,6 +29,9 @@ data class TerrainLayerDescriptor(
     val weights: FloatArray? = null,
 )
 
+/**
+ * Serializable terrain snapshot containing only data, not runtime render state.
+ */
 data class TerrainDataDescriptor(
     val width: Int,
     val height: Int,
@@ -28,6 +40,13 @@ data class TerrainDataDescriptor(
     val layers: List<TerrainLayerDescriptor> = emptyList(),
 )
 
+/**
+ * Editable heightfield and layer data for a terrain instance.
+ *
+ * This class is the source of truth for terrain authoring. Mesh generation,
+ * rendering, picking, and brush tools should read or modify this model instead
+ * of writing directly into render buffers.
+ */
 class TerrainData(
     val width: Int,
     val height: Int,
@@ -46,34 +65,67 @@ class TerrainData(
         require(this.heights.size == width * height) { "Height array size does not match terrain dimensions" }
     }
 
+    /**
+     * Terrain width in local world units, measured between the first and last vertices.
+     */
     val worldWidth: Float
         get() = (width - 1) * vertexSpacing
 
+    /**
+     * Terrain depth in local world units, measured between the first and last vertices.
+     */
     val worldHeight: Float
         get() = (height - 1) * vertexSpacing
 
+    /**
+     * Local X coordinate of the first height sample.
+     */
     val minLocalX: Float
         get() = -worldWidth * 0.5f
 
+    /**
+     * Local Z coordinate of the first height sample.
+     */
     val minLocalZ: Float
         get() = -worldHeight * 0.5f
 
+    /**
+     * Returns a defensive copy of all height samples in row-major order.
+     */
     fun heightValues(): FloatArray = heights.copyOf()
 
+    /**
+     * Returns the height sample at grid coordinate [x], [y].
+     */
     fun getHeight(x: Int, y: Int): Float = heights[indexOf(x, y)]
 
+    /**
+     * Replaces the height sample at grid coordinate [x], [y].
+     */
     fun setHeight(x: Int, y: Int, value: Float) {
         heights[indexOf(x, y)] = value
     }
 
+    /**
+     * Converts a grid X index into centered local-space X.
+     */
     fun localXAt(x: Int): Float = minLocalX + x * vertexSpacing
 
+    /**
+     * Converts a grid Y index into centered local-space Z.
+     */
     fun localZAt(y: Int): Float = minLocalZ + y * vertexSpacing
 
+    /**
+     * Returns true when the local-space X/Z point lies inside the terrain bounds.
+     */
     fun containsLocal(localX: Float, localZ: Float): Boolean =
         localX in minLocalX..(minLocalX + worldWidth) &&
             localZ in minLocalZ..(minLocalZ + worldHeight)
 
+    /**
+     * Bilinearly samples terrain height at a local-space X/Z point.
+     */
     fun sampleHeight(localX: Float, localZ: Float): Float {
         if (!containsLocal(localX, localZ)) return 0f
 
@@ -98,6 +150,9 @@ class TerrainData(
         return lerp(top, bottom, ty)
     }
 
+    /**
+     * Adds a terrain layer and allocates a matching weight map.
+     */
     fun addLayer(
         name: String,
         texture: AssetRef<TextureAsset>? = null,
@@ -109,6 +164,11 @@ class TerrainData(
         return layer
     }
 
+    /**
+     * Removes a terrain layer and its weight map.
+     *
+     * Returns true when a layer with [layerId] existed.
+     */
     fun removeLayer(layerId: Int): Boolean {
         val removed = layers.removeIf { it.id == layerId }
         if (removed) {
@@ -117,24 +177,42 @@ class TerrainData(
         return removed
     }
 
+    /**
+     * Returns all layers in stable authoring order.
+     */
     fun allLayers(): List<TerrainLayer> = layers.toList()
 
+    /**
+     * Writes one layer weight sample, clamped to the normalized 0..1 range.
+     */
     fun setLayerWeight(layerId: Int, x: Int, y: Int, weight: Float) {
         val weights = layerWeights.getOrPut(layerId) { FloatArray(width * height) }
         weights[indexOf(x, y)] = weight.coerceIn(0f, 1f)
     }
 
+    /**
+     * Returns one layer weight sample, or 0 when the layer has no weight map.
+     */
     fun getLayerWeight(layerId: Int, x: Int, y: Int): Float =
         layerWeights[layerId]?.get(indexOf(x, y)) ?: 0f
 
+    /**
+     * Returns a defensive copy of the layer weight map, if it exists.
+     */
     fun getLayerWeightMap(layerId: Int): FloatArray? = layerWeights[layerId]?.copyOf()
 
+    /**
+     * Converts grid coordinates into the row-major sample index.
+     */
     fun indexOf(x: Int, y: Int): Int {
         require(x in 0 until width) { "Terrain x index out of range: $x" }
         require(y in 0 until height) { "Terrain y index out of range: $y" }
         return y * width + x
     }
 
+    /**
+     * Creates a data-only snapshot for future persistence.
+     */
     fun toDescriptor(): TerrainDataDescriptor =
         TerrainDataDescriptor(
             width = width,
@@ -153,6 +231,9 @@ class TerrainData(
         )
 
     companion object {
+        /**
+         * Restores terrain data from a descriptor produced by [toDescriptor].
+         */
         fun fromDescriptor(descriptor: TerrainDataDescriptor): TerrainData {
             val terrain = TerrainData(
                 width = descriptor.width,

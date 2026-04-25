@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.api
 
+import com.pashkd.krender.engine.ui.UiService
 import kotlin.math.min
 
 data class EngineConfig(
@@ -14,6 +15,7 @@ interface EngineContext {
     val scenes: SceneManager
     val assets: AssetService
     val input: InputService
+    val ui: UiService
     val events: EventBus
     val logger: Logger
     val debug: DebugService
@@ -29,6 +31,7 @@ interface EngineContext {
  */
 interface EngineBackend {
     val input: InputService
+    val ui: UiService
     val assets: AssetService
     val logger: Logger
     val debug: DebugService
@@ -51,10 +54,11 @@ class GameLoop(
 
         backend.debug.beginFrame()
         backend.input.beginFrame()
-        if (backend.input.snapshot().wasPressed(Key.Backtick)) {
+        val inputSnapshot = backend.input.snapshot()
+        if (!inputSnapshot.uiCapturesKeyboard && inputSnapshot.wasPressed(Key.Backtick)) {
             backend.debug.toggle()
         }
-        if (backend.input.snapshot().wasPressed(Key.Tab)) {
+        if (!inputSnapshot.uiCapturesKeyboard && inputSnapshot.wasPressed(Key.Tab)) {
             backend.debug.toggleStats()
         }
 
@@ -138,6 +142,7 @@ class EngineRuntime(
     override val scenes: SceneManager = SceneManager()
     override val assets: AssetService = backend.assets
     override val input: InputService = backend.input
+    override val ui: UiService = backend.ui
     override val events: EventBus = EventBus()
     override val logger: Logger = backend.logger
     override val debug: DebugService = backend.debug
@@ -172,6 +177,7 @@ class EngineRuntime(
 
     fun resize(width: Int, height: Int) {
         scenes.resize(width, height)
+        backend.ui.resize(width, height)
         backend.renderer.resize(width, height)
     }
 
@@ -179,6 +185,7 @@ class EngineRuntime(
         running = false
         scenes.disposeAll()
         backend.renderer.dispose()
+        backend.ui.dispose()
         tasks.dispose()
     }
 

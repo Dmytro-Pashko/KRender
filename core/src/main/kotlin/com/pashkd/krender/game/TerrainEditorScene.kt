@@ -12,23 +12,45 @@ import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
 import com.pashkd.krender.engine.terrain.TerrainCameraControllerSystem
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainData
+import com.pashkd.krender.engine.terrain.TerrainEditorControlPanel
+import com.pashkd.krender.engine.terrain.TerrainEditorPanel
+import com.pashkd.krender.engine.terrain.TerrainEditorState
 import com.pashkd.krender.engine.terrain.TerrainEditorSystem
 import com.pashkd.krender.engine.terrain.TerrainMeshSyncSystem
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.terrain.TerrainRendererComponent
+import com.pashkd.krender.engine.terrain.TerrainViewportDebugRenderSystem
+import com.pashkd.krender.engine.ui.UiSystem
 
+/**
+ * Scene that hosts the terrain editor viewport, terrain entity, and editing systems.
+ */
 class TerrainEditorScene(
     private val terrainResolution: Int = 128,
     private val vertexSpacing: Float = 1f,
 ) : Scene("terrain_editor") {
+    private val terrainGenerator = FlatTerrainGenerator()
+    private lateinit var editorState: TerrainEditorState
     private lateinit var editorSystem: TerrainEditorSystem
 
+    /**
+     * Creates the terrain editor camera, lights, terrain entity, and terrain systems.
+     */
     override fun show() {
-        editorSystem = TerrainEditorSystem(engine.input, engine.logger)
+        editorState = TerrainEditorState(
+            terrainResolution = terrainResolution,
+            vertexSpacing = vertexSpacing,
+        )
+        editorSystem = TerrainEditorSystem(engine.input, engine.logger, editorState, terrainGenerator)
+        val uiSystem = UiSystem(engine.ui)
+        uiSystem.addPanel(TerrainEditorPanel(editorState))
+        uiSystem.addPanel(TerrainEditorControlPanel(editorState))
 
         world.systems.add(TerrainCameraControllerSystem(engine.input))
         world.systems.add(editorSystem)
         world.systems.add(TerrainMeshSyncSystem())
+        world.systems.add(TerrainViewportDebugRenderSystem(editorState))
+        world.systems.add(uiSystem)
         world.systems.add(TerrainRenderSystem())
 
         createCamera()
@@ -36,6 +58,9 @@ class TerrainEditorScene(
         createTerrain()
     }
 
+    /**
+     * Publishes terrain editor state into the debug overlay each frame.
+     */
     override fun update(dt: Float) {
         super.update(dt)
 
@@ -52,14 +77,15 @@ class TerrainEditorScene(
             engine.debug.put("Terrain layers", terrain.data.allLayers().size)
             engine.debug.put("Terrain display", renderer.displayMode.name)
         }
-        engine.debug.put("Brush mode", editorSystem.activeBrushMode.name)
-        engine.debug.put("Brush radius", "%.2f".format(editorSystem.brush.radius))
-        engine.debug.put("Brush strength", "%.2f".format(editorSystem.brush.strength))
+        engine.debug.put("Brush mode", editorState.brushMode.name)
+        engine.debug.put("Brush radius", "%.2f".format(editorState.brushRadius))
+        engine.debug.put("Brush strength", "%.2f".format(editorState.brushStrength))
         engine.debug.put(
             "Hovered terrain",
             hovered?.let { "%.2f, %.2f, %.2f".format(it.x, it.y, it.z) } ?: "none",
         )
 
+        engine.debug.line("Use the Terrain ImGui panel for editor controls.")
         engine.debug.line("Mouse drag - Apply brush")
         engine.debug.line("Mouse wheel - Brush radius")
         engine.debug.line("Shift + Mouse wheel - Brush strength")
@@ -71,6 +97,9 @@ class TerrainEditorScene(
         engine.debug.line("Q/E - Rotate camera")
     }
 
+    /**
+     * Creates the editor camera with a fixed look-at target.
+     */
     private fun createCamera() {
         val camera = world.createEntity("Terrain Camera")
         camera.transform.position.set(0f, 48f, 48f)
@@ -85,6 +114,9 @@ class TerrainEditorScene(
         camera.add(TerrainCameraControllerComponent())
     }
 
+    /**
+     * Adds basic directional and ambient lighting for terrain inspection.
+     */
     private fun createLights() {
         val sun = world.createEntity("Terrain Sun")
         sun.add(
@@ -106,6 +138,9 @@ class TerrainEditorScene(
         )
     }
 
+    /**
+     * Creates a flat terrain entity and attaches data/render components.
+     */
     private fun createTerrain() {
         val terrainData = TerrainData(
             width = terrainResolution,
@@ -113,8 +148,8 @@ class TerrainEditorScene(
             vertexSpacing = vertexSpacing,
         )
         val baseLayer = terrainData.addLayer(name = "Base Layer", materialId = "terrain/base")
-        editorSystem.brush.targetLayerId = baseLayer.id
-        FlatTerrainGenerator().generate(terrainData)
+        editorState.selectedLayerId = baseLayer.id
+        terrainGenerator.generate(terrainData)
 
         val terrain = world.createEntity("Terrain")
         terrain.add(TerrainComponent(terrainData))

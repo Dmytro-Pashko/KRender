@@ -71,6 +71,8 @@ import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.ui.UiCaptureState
+import com.pashkd.krender.engine.ui.UiService
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -120,9 +122,10 @@ class LibGdxBackend : EngineBackend {
     override val input: GdxInputService = GdxInputService().also {
         Gdx.input.inputProcessor = it
     }
+    override val ui: UiService = GdxImGuiService(input, debug)
     override val assets: GdxAssetService = GdxAssetService()
     override val tasks: TaskService = GdxTaskService()
-    override val renderer: Renderer = GdxRenderer3D(assets, debug)
+    override val renderer: Renderer = GdxRenderer3D(assets, debug, ui)
 
     override fun requestExit() {
         Gdx.app.exit()
@@ -134,6 +137,7 @@ class GdxInputService : InputService, InputProcessor {
     private val pressedThisFrame = mutableSetOf<Key>()
     private val releasedThisFrame = mutableSetOf<Key>()
     private val pointers = mutableMapOf<Int, PointerState>()
+    private val processors = mutableListOf<InputProcessor>()
     private val actions = mapOf(
         Action("MoveLeft") to setOf(Key.A),
         Action("MoveRight") to setOf(Key.D),
@@ -143,6 +147,7 @@ class GdxInputService : InputService, InputProcessor {
     )
 
     private var currentSnapshot = InputSnapshot()
+    private var uiCaptureProvider: () -> UiCaptureState = { UiCaptureState() }
     private var mouseX: Int = 0
     private var mouseY: Int = 0
     private var mouseDeltaX: Float = 0f
@@ -153,6 +158,7 @@ class GdxInputService : InputService, InputProcessor {
     private var ignoredWarpY: Int? = null
 
     override fun beginFrame() {
+        val uiCapture = uiCaptureProvider()
         currentSnapshot = InputSnapshot(
             keysDown = keysDown.toSet(),
             keysPressedThisFrame = pressedThisFrame.toSet(),
@@ -162,6 +168,8 @@ class GdxInputService : InputService, InputProcessor {
             scrollDelta = scrollDelta,
             pointers = pointers.values.toList(),
             viewportSize = Vec2(Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat()),
+            uiCapturesMouse = uiCapture.mouse,
+            uiCapturesKeyboard = uiCapture.keyboard,
         )
         keepCursorInsideWindow()
     }
@@ -205,12 +213,25 @@ class GdxInputService : InputService, InputProcessor {
         else -> 0f
     }
 
+    fun addProcessor(processor: InputProcessor) {
+        processors += processor
+    }
+
+    fun removeProcessor(processor: InputProcessor) {
+        processors -= processor
+    }
+
+    fun setUiCaptureProvider(provider: () -> UiCaptureState) {
+        uiCaptureProvider = provider
+    }
+
     override fun keyDown(keycode: Int): Boolean {
         val key = mapKey(keycode)
         if (key !in keysDown) {
             pressedThisFrame += key
         }
         keysDown += key
+        processors.forEach { it.keyDown(keycode) }
         return false
     }
 
@@ -218,6 +239,7 @@ class GdxInputService : InputService, InputProcessor {
         val key = mapKey(keycode)
         keysDown -= key
         releasedThisFrame += key
+        processors.forEach { it.keyUp(keycode) }
         return false
     }
 
@@ -233,39 +255,48 @@ class GdxInputService : InputService, InputProcessor {
         }
         mouseX = screenX
         mouseY = screenY
+        processors.forEach { it.mouseMoved(screenX, screenY) }
         return false
     }
 
     override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
         mouseMoved(screenX, screenY)
         pointers[pointer] = PointerState(pointer, PointerPhase.Move, Vec2(screenX.toFloat(), screenY.toFloat()))
+        processors.forEach { it.touchDragged(screenX, screenY, pointer) }
         return false
     }
 
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         mouseMoved(screenX, screenY)
         pointers[pointer] = PointerState(pointer, PointerPhase.Down, Vec2(screenX.toFloat(), screenY.toFloat()))
+        processors.forEach { it.touchDown(screenX, screenY, pointer, button) }
         return false
     }
 
     override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         mouseMoved(screenX, screenY)
         pointers[pointer] = PointerState(pointer, PointerPhase.Up, Vec2(screenX.toFloat(), screenY.toFloat()))
+        processors.forEach { it.touchUp(screenX, screenY, pointer, button) }
         return false
     }
 
     override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         mouseMoved(screenX, screenY)
         pointers[pointer] = PointerState(pointer, PointerPhase.Cancelled, Vec2(screenX.toFloat(), screenY.toFloat()))
+        processors.forEach { it.touchCancelled(screenX, screenY, pointer, button) }
         return false
     }
 
     override fun scrolled(amountX: Float, amountY: Float): Boolean {
         scrollDelta += amountY
+        processors.forEach { it.scrolled(amountX, amountY) }
         return false
     }
 
-    override fun keyTyped(character: Char): Boolean = false
+    override fun keyTyped(character: Char): Boolean {
+        processors.forEach { it.keyTyped(character) }
+        return false
+    }
 
     private fun mapKey(keycode: Int): Key = when (keycode) {
         Input.Keys.W -> Key.W
@@ -480,6 +511,7 @@ class RenderThreadDispatcher : CoroutineDispatcher() {
 class GdxRenderer3D(
     private val assets: GdxAssetService,
     private val debug: DebugService,
+    private val ui: UiService,
 ) : Renderer {
     private val modelBatch = ModelBatch()
     private val lineRenderer = GdxLineShaderRenderer()
@@ -537,8 +569,8 @@ class GdxRenderer3D(
         wireframeDynamicCommands.forEach { renderWireframeDynamicModel(it, camera) }
         lineRenderer.renderOverlayLines(context.commands, camera)
 
-        drawDebugOverlay(context)
         drawModelViewerOverlays(context)
+        ui.render()
     }
 
     override fun resize(width: Int, height: Int) {

@@ -5,28 +5,43 @@ import com.pashkd.krender.engine.api.DynamicModel
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.Material
 
+/**
+ * ECS component that owns editable terrain data.
+ */
 data class TerrainComponent(
-    val data: TerrainData,
+    var data: TerrainData,
 ) : Component {
     var dirty: Boolean = true
         private set
 
+    /**
+     * Marks the terrain mesh representation as stale after data changes.
+     */
     fun markDirty() {
         dirty = true
     }
 
+    /**
+     * Clears the dirty flag after render mesh synchronization.
+     */
     fun clearDirty() {
         dirty = false
     }
 }
 
+/**
+ * Terrain viewport display mode.
+ */
 enum class TerrainDisplayMode {
     Solid,
     Wireframe,
 }
 
+/**
+ * ECS component that stores terrain render state generated from [TerrainComponent].
+ */
 data class TerrainRendererComponent(
-    val modelId: String,
+    var modelId: String,
     var material: Material = Material(),
     var model: DynamicModel? = null,
     var vertexCount: Int = 0,
@@ -40,6 +55,9 @@ data class TerrainRendererComponent(
     }
         private set
 
+    /**
+     * Switches between solid and wireframe terrain rendering.
+     */
     fun toggleDisplayMode() {
         setDisplayMode(
             if (displayMode == TerrainDisplayMode.Solid) {
@@ -50,12 +68,18 @@ data class TerrainRendererComponent(
         )
     }
 
+    /**
+     * Sets terrain display mode and mirrors it into the material wireframe flag.
+     */
     fun setDisplayMode(mode: TerrainDisplayMode) {
         displayMode = mode
         material = material.copy(wireframe = mode == TerrainDisplayMode.Wireframe)
     }
 }
 
+/**
+ * Terrain editor camera settings for pan, vertical movement, and target rotation.
+ */
 data class TerrainCameraControllerComponent(
     var panSpeed: Float = 18f,
     var rotationSpeedDegrees: Float = 60f,
@@ -63,6 +87,9 @@ data class TerrainCameraControllerComponent(
     var maxDistance: Float = 180f,
 ) : Component
 
+/**
+ * Result of terrain picking in world and terrain-local coordinates.
+ */
 data class TerrainHit(
     val worldPosition: Vec3,
     val localX: Float,

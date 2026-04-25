@@ -4,6 +4,9 @@ import kotlin.math.floor
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+/**
+ * Supported terrain brush operations.
+ */
 enum class TerrainBrushMode {
     Raise,
     Lower,
@@ -12,6 +15,9 @@ enum class TerrainBrushMode {
     PaintLayer,
 }
 
+/**
+ * Mutable editor brush settings shared by terrain tools.
+ */
 data class TerrainBrush(
     var radius: Float = 3f,
     var strength: Float = 4f,
@@ -20,6 +26,9 @@ data class TerrainBrush(
     var targetLayerId: Int? = null,
 )
 
+/**
+ * One brush application request in terrain-local coordinates.
+ */
 data class TerrainBrushStroke(
     val localX: Float,
     val localZ: Float,
@@ -32,7 +41,13 @@ data class TerrainBrushStroke(
     val targetLayerId: Int? = null,
 )
 
+/**
+ * Applies brush strokes to [TerrainData].
+ */
 object TerrainBrushApplier {
+    /**
+     * Applies [stroke] to [data] and returns true if height or layer data changed.
+     */
     fun apply(data: TerrainData, stroke: TerrainBrushStroke): Boolean {
         if (!data.containsLocal(stroke.localX, stroke.localZ)) return false
 

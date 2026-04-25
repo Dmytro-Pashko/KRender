@@ -46,10 +46,13 @@ data class InputSnapshot(
     val scrollDelta: Float = 0f,
     val pointers: List<PointerState> = emptyList(),
     val viewportSize: Vec2 = Vec2.zero(),
+    val uiCapturesMouse: Boolean = false,
+    val uiCapturesKeyboard: Boolean = false,
 ) {
     fun isDown(key: Key): Boolean = key in keysDown
     fun wasPressed(key: Key): Boolean = key in keysPressedThisFrame
     fun wasReleased(key: Key): Boolean = key in keysReleasedThisFrame
+    fun isCapturedByUI(): Boolean = uiCapturesMouse || uiCapturesKeyboard
 }
 
 /**

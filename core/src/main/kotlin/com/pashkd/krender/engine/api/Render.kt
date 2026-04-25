@@ -24,6 +24,12 @@ data class DrawModel(
     override val sortKey: Int = 0,
 ) : RenderCommand
 
+/**
+ * Backend-neutral mesh payload for runtime-generated geometry.
+ *
+ * Terrain uses this to render generated heightfield meshes without going through
+ * file-backed asset loading.
+ */
 data class DynamicMesh(
     val positions: FloatArray,
     val normals: FloatArray,
@@ -31,19 +37,31 @@ data class DynamicMesh(
     val indices: IntArray,
     val tangents: FloatArray? = null,
 ) {
+    /**
+     * Number of vertices encoded in [positions].
+     */
     val vertexCount: Int
         get() = positions.size / 3
 
+    /**
+     * Number of triangles represented by indices or expanded vertices.
+     */
     val triangleCount: Int
         get() = if (indices.isNotEmpty()) indices.size / 3 else vertexCount / 3
 }
 
+/**
+ * Versioned runtime model wrapper around [DynamicMesh].
+ */
 data class DynamicModel(
     val id: String,
     val mesh: DynamicMesh,
     val revision: Long = 0L,
 )
 
+/**
+ * Draw command for runtime-generated geometry such as terrain.
+ */
 data class DrawDynamicModel(
     val entityId: EntityId,
     val model: DynamicModel,

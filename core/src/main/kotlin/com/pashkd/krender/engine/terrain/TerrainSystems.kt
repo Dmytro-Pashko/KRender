@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.terrain
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawLine
+import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.Logger
@@ -21,20 +22,28 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.math.tan
 
+/**
+ * Editor tool system that handles terrain picking, brush input, brush preview, and display toggles.
+ */
 class TerrainEditorSystem(
     private val input: InputService,
     private val logger: Logger,
+    private val state: TerrainEditorState,
+    private val generator: TerrainGenerator = FlatTerrainGenerator(),
 ) : System() {
-    val brush = TerrainBrush()
+    /**
+     * Latest terrain hit under the mouse cursor, if any.
+     */
     var hoveredHit: TerrainHit? = null
-        private set
-    var activeBrushMode: TerrainBrushMode = TerrainBrushMode.Raise
         private set
 
     private var brushActive: Boolean = false
     private var flattenHeight: Float? = null
     private var paintLayerWarningShown: Boolean = false
 
+    /**
+     * Processes editor input and applies brush strokes to terrain data.
+     */
     override fun update(world: SceneWorld, dt: Float) {
         val terrainEntity = world.query<TransformComponent, TerrainComponent, TerrainRendererComponent>().firstOrNull() ?: return
         val terrain = terrainEntity.get<TerrainComponent>() ?: return
@@ -45,19 +54,27 @@ class TerrainEditorSystem(
         val terrainTransform = terrainEntity.get<TransformComponent>() ?: return
         val snapshot = input.snapshot()
 
-        if (snapshot.wasPressed(Key.G)) {
-            terrainRenderer.toggleDisplayMode()
+        processTerrainCommands(terrain, terrainRenderer)
+        syncStateFromTerrain(terrain, terrainRenderer)
+
+        if (!snapshot.uiCapturesKeyboard && snapshot.wasPressed(Key.G)) {
+            state.wireframeEnabled = !state.wireframeEnabled
         }
 
         updateBrushBindings(snapshot)
-        hoveredHit = TerrainRaycaster.pickTerrain(
-            screenPosition = snapshot.mousePosition,
-            viewportSize = snapshot.viewportSize,
-            cameraTransform = cameraTransform,
-            camera = camera,
-            terrainTransform = terrainTransform,
-            terrain = terrain.data,
-        )
+        syncRendererStateFromControls(terrainRenderer)
+        hoveredHit = if (snapshot.uiCapturesMouse) {
+            null
+        } else {
+            TerrainRaycaster.pickTerrain(
+                screenPosition = snapshot.mousePosition,
+                viewportSize = snapshot.viewportSize,
+                cameraTransform = cameraTransform,
+                camera = camera,
+                terrainTransform = terrainTransform,
+                terrain = terrain.data,
+            )
+        }
 
         val pointerDown = snapshot.pointers.any { it.phase == PointerPhase.Down || it.phase == PointerPhase.Move }
         val pointerReleased = snapshot.pointers.any { it.phase == PointerPhase.Up || it.phase == PointerPhase.Cancelled }
@@ -77,16 +94,16 @@ class TerrainEditorSystem(
             val stroke = TerrainBrushStroke(
                 localX = hit.localX,
                 localZ = hit.localZ,
-                radius = brush.radius,
-                strength = brush.strength,
-                falloff = brush.falloff,
-                mode = activeBrushMode,
+                radius = state.brushRadius,
+                strength = state.brushStrength,
+                falloff = state.brushFalloff,
+                mode = state.brushMode,
                 deltaSeconds = dt,
                 flattenHeight = flattenHeight,
-                targetLayerId = brush.targetLayerId,
+                targetLayerId = state.selectedLayerId,
             )
 
-            if (activeBrushMode == TerrainBrushMode.PaintLayer && brush.targetLayerId == null) {
+            if (state.brushMode == TerrainBrushMode.PaintLayer && state.selectedLayerId == null) {
                 if (!paintLayerWarningShown) {
                     logger.warn("TerrainEditor") { "PaintLayer selected without an active terrain layer" }
                     paintLayerWarningShown = true
@@ -100,6 +117,9 @@ class TerrainEditorSystem(
         }
     }
 
+    /**
+     * Emits brush preview lines into the scene render command buffer.
+     */
     override fun debugRender(world: SceneWorld) {
         val terrainEntity = world.query<TransformComponent, TerrainComponent>().firstOrNull() ?: return
         val terrainTransform = terrainEntity.get<TransformComponent>() ?: return
@@ -112,8 +132,8 @@ class TerrainEditorSystem(
 
         for (segment in 0..segments) {
             val angle = (segment.toFloat() / segments.toFloat()) * (PI.toFloat() * 2f)
-            val localX = hit.localX + cos(angle) * brush.radius
-            val localZ = hit.localZ + sin(angle) * brush.radius
+            val localX = hit.localX + cos(angle) * state.brushRadius
+            val localZ = hit.localZ + sin(angle) * state.brushRadius
             val worldPoint = Vec3(
                 terrainTransform.position.x + localX,
                 terrainTransform.position.y + terrain.data.sampleHeight(localX, localZ) + 0.03f,
@@ -125,7 +145,7 @@ class TerrainEditorSystem(
             previous = worldPoint
         }
 
-        val crossHalfSize = brush.radius.coerceAtMost(0.9f)
+        val crossHalfSize = state.brushRadius.coerceAtMost(0.9f)
         val center = hit.worldPosition
         world.renderCommands.submit(
             DrawLine(
@@ -143,25 +163,126 @@ class TerrainEditorSystem(
         )
     }
 
+    /**
+     * Updates brush mode and scalar parameters from normalized input.
+     */
     private fun updateBrushBindings(snapshot: com.pashkd.krender.engine.api.InputSnapshot) {
-        if (snapshot.wasPressed(Key.F1)) activeBrushMode = TerrainBrushMode.Raise
-        if (snapshot.wasPressed(Key.F2)) activeBrushMode = TerrainBrushMode.Lower
-        if (snapshot.wasPressed(Key.F3)) activeBrushMode = TerrainBrushMode.Flatten
-        if (snapshot.wasPressed(Key.F4)) activeBrushMode = TerrainBrushMode.Smooth
-        if (snapshot.wasPressed(Key.Space)) activeBrushMode = TerrainBrushMode.PaintLayer
+        if (!snapshot.uiCapturesKeyboard) {
+            if (snapshot.wasPressed(Key.F1)) state.brushMode = TerrainBrushMode.Raise
+            if (snapshot.wasPressed(Key.F2)) state.brushMode = TerrainBrushMode.Lower
+            if (snapshot.wasPressed(Key.F3)) state.brushMode = TerrainBrushMode.Flatten
+            if (snapshot.wasPressed(Key.F4)) state.brushMode = TerrainBrushMode.Smooth
+            if (snapshot.wasPressed(Key.Space)) state.brushMode = TerrainBrushMode.PaintLayer
+        }
 
-        if (snapshot.scrollDelta != 0f) {
+        if (!snapshot.uiCapturesMouse && snapshot.scrollDelta != 0f) {
             if (snapshot.isDown(Key.ShiftLeft)) {
-                brush.strength = (brush.strength - snapshot.scrollDelta).coerceIn(0.1f, 32f)
+                state.brushStrength = (state.brushStrength - snapshot.scrollDelta).coerceIn(0.1f, 32f)
             } else {
-                brush.radius = (brush.radius - snapshot.scrollDelta).coerceIn(1f, 64f)
+                state.brushRadius = (state.brushRadius - snapshot.scrollDelta).coerceIn(1f, 64f)
             }
         }
-        brush.mode = activeBrushMode
+    }
+
+    private fun syncStateFromTerrain(
+        terrain: TerrainComponent,
+        renderer: TerrainRendererComponent,
+    ) {
+        val layers = terrain.data.allLayers()
+        state.layers = layers.map { TerrainLayerOption(it.id, it.name) }
+        state.vertices = renderer.vertexCount
+        state.triangles = renderer.triangleCount
+        state.wireframeEnabled = renderer.displayMode == TerrainDisplayMode.Wireframe
+        if (state.selectedLayerId !in layers.map(TerrainLayer::id)) {
+            state.selectedLayerId = layers.firstOrNull()?.id
+        }
+    }
+
+    private fun syncRendererStateFromControls(renderer: TerrainRendererComponent) {
+        val expectedMode = if (state.wireframeEnabled) {
+            TerrainDisplayMode.Wireframe
+        } else {
+            TerrainDisplayMode.Solid
+        }
+        if (renderer.displayMode != expectedMode) {
+            renderer.setDisplayMode(expectedMode)
+        }
+    }
+
+    private fun processTerrainCommands(
+        terrain: TerrainComponent,
+        renderer: TerrainRendererComponent,
+    ) {
+        if (state.addLayerRequested) {
+            state.addLayerRequested = false
+            val nextIndex = terrain.data.allLayers().size + 1
+            val layer = terrain.data.addLayer(
+                name = "Layer $nextIndex",
+                materialId = "terrain/layer_$nextIndex",
+            )
+            state.selectedLayerId = layer.id
+        }
+
+        if (state.removeLayerRequested) {
+            state.removeLayerRequested = false
+            val selectedLayerId = state.selectedLayerId
+            if (selectedLayerId != null && terrain.data.removeLayer(selectedLayerId)) {
+                state.selectedLayerId = terrain.data.allLayers().firstOrNull()?.id
+            }
+        }
+
+        if (state.regenerateRequested) {
+            state.regenerateRequested = false
+            regenerateTerrain(terrain, renderer)
+        }
+    }
+
+    private fun regenerateTerrain(
+        terrain: TerrainComponent,
+        renderer: TerrainRendererComponent,
+    ) {
+        val currentLayers = terrain.data.allLayers()
+        val regenerated = TerrainData(
+            width = state.terrainResolution,
+            height = state.terrainResolution,
+            vertexSpacing = state.vertexSpacing,
+        )
+
+        currentLayers.forEachIndexed { index, layer ->
+            val restored = regenerated.addLayer(
+                name = layer.name,
+                texture = layer.texture,
+                materialId = layer.materialId,
+            )
+            if (state.selectedLayerId == layer.id || (state.selectedLayerId == null && index == 0)) {
+                state.selectedLayerId = restored.id
+            }
+        }
+        if (regenerated.allLayers().isEmpty()) {
+            val baseLayer = regenerated.addLayer(name = "Base Layer", materialId = "terrain/base")
+            state.selectedLayerId = baseLayer.id
+        }
+
+        generator.generate(regenerated)
+        terrain.data = regenerated
+        terrain.markDirty()
+        renderer.modelId = "terrain_${regenerated.width}x${regenerated.height}"
+        renderer.model = null
+        renderer.vertexCount = 0
+        renderer.triangleCount = 0
+        hoveredHit = null
+        brushActive = false
+        flattenHeight = null
     }
 }
 
+/**
+ * Synchronizes dirty terrain data into runtime dynamic mesh models.
+ */
 class TerrainMeshSyncSystem : System() {
+    /**
+     * Rebuilds full terrain meshes for dirty terrain entities.
+     */
     override fun update(world: SceneWorld, dt: Float) {
         world.query<TerrainComponent, TerrainRendererComponent>().forEach { entity ->
             val terrain = entity.get<TerrainComponent>() ?: return@forEach
@@ -184,7 +305,13 @@ class TerrainMeshSyncSystem : System() {
     }
 }
 
+/**
+ * Submits terrain dynamic mesh draw commands to the render pipeline.
+ */
 class TerrainRenderSystem : System() {
+    /**
+     * Emits one draw command per renderable terrain entity.
+     */
     override fun render(world: SceneWorld, alpha: Float) {
         world.query<TransformComponent, TerrainRendererComponent>().forEach { entity ->
             val transform = entity.get<TransformComponent>() ?: return@forEach
@@ -202,9 +329,25 @@ class TerrainRenderSystem : System() {
     }
 }
 
+class TerrainViewportDebugRenderSystem(
+    private val state: TerrainEditorState,
+    private val axisLength: Float = 24f,
+) : System() {
+    override fun render(world: SceneWorld, alpha: Float) {
+        if (!state.showAxes) return
+        world.renderCommands.submit(DrawWorldAxes(length = axisLength))
+    }
+}
+
+/**
+ * Camera controller for the terrain editor viewport.
+ */
 class TerrainCameraControllerSystem(
     private val input: InputService,
 ) : System() {
+    /**
+     * Updates terrain camera pan, vertical movement, and rotation around its target.
+     */
     override fun update(world: SceneWorld, dt: Float) {
         val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent, TerrainCameraControllerComponent>()
             .firstOrNull() ?: return
@@ -213,6 +356,7 @@ class TerrainCameraControllerSystem(
         val controller = cameraEntity.get<TerrainCameraControllerComponent>() ?: return
         val lookAt = camera.lookAt ?: Vec3.zero().also { camera.lookAt = it }
         val snapshot = input.snapshot()
+        if (snapshot.isCapturedByUI()) return
         val forward = horizontalForward(transform.position, lookAt)
         val right = Vec3(-forward.z, 0f, forward.x)
 
@@ -256,6 +400,9 @@ class TerrainCameraControllerSystem(
         }
     }
 
+    /**
+     * Rotates the camera position around the active look-at target on the horizontal plane.
+     */
     private fun rotateAroundLookAt(
         transform: TransformComponent,
         lookAt: Vec3,
@@ -272,6 +419,9 @@ class TerrainCameraControllerSystem(
         transform.position.z = lookAt.z + sin(nextAngle) * radius
     }
 
+    /**
+     * Computes the XZ movement direction from camera position to look-at target.
+     */
     private fun horizontalForward(position: Vec3, lookAt: Vec3): Vec3 {
         val x = lookAt.x - position.x
         val z = lookAt.z - position.z
@@ -281,7 +431,16 @@ class TerrainCameraControllerSystem(
     }
 }
 
+/**
+ * Terrain picking helpers for editor tools.
+ */
 object TerrainRaycaster {
+    /**
+     * Projects a screen-space point onto the terrain surface.
+     *
+     * The current implementation uses a temporary ray-plane intersection and then samples
+     * the heightfield at that X/Z coordinate.
+     */
     fun pickTerrain(
         screenPosition: Vec2,
         viewportSize: Vec2,
