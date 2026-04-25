@@ -58,6 +58,7 @@ class ModelViewerScene(
             assetPath = ModelViewerUiLayoutDefaults.assetPath,
             fallback = ModelViewerUiLayoutDefaults.config,
         ).load(engine.logger)
+        engine.ui.setDebugWindowLayout(layoutConfig)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "ModelViewerUi")
         viewerState = ModelViewerState(
             availableModels = models,

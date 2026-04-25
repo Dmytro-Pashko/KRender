@@ -29,7 +29,7 @@ class TerrainEditorSystem(
     private val input: InputService,
     private val logger: Logger,
     private val state: TerrainEditorState,
-    private val generator: TerrainGenerator = FlatTerrainGenerator(),
+    private val generatorsById: Map<String, TerrainGenerator> = listOf(FlatTerrainGenerator()).associateBy(TerrainGenerator::id),
 ) : System() {
     /**
      * Latest terrain hit under the mouse cursor, if any.
@@ -53,6 +53,9 @@ class TerrainEditorSystem(
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
         val terrainTransform = terrainEntity.get<TransformComponent>() ?: return
         val snapshot = input.snapshot()
+        if (state.selectedGeneratorId == null || state.selectedGeneratorId !in generatorsById) {
+            state.selectedGeneratorId = generatorsById.keys.firstOrNull()
+        }
 
         processTerrainCommands(terrain, terrainRenderer)
         syncStateFromTerrain(terrain, terrainRenderer)
@@ -75,6 +78,7 @@ class TerrainEditorSystem(
                 terrain = terrain.data,
             )
         }
+        state.hoveredTerrainPosition = hoveredHit?.worldPosition?.let(::formatPosition) ?: "none"
 
         val pointerDown = snapshot.pointers.any { it.phase == PointerPhase.Down || it.phase == PointerPhase.Move }
         val pointerReleased = snapshot.pointers.any { it.phase == PointerPhase.Up || it.phase == PointerPhase.Cancelled }
@@ -192,6 +196,7 @@ class TerrainEditorSystem(
         state.layers = layers.map { TerrainLayerOption(it.id, it.name) }
         state.vertices = renderer.vertexCount
         state.triangles = renderer.triangleCount
+        state.terrainSize = "${terrain.data.width} x ${terrain.data.height}"
         state.wireframeEnabled = renderer.displayMode == TerrainDisplayMode.Wireframe
         if (state.selectedLayerId !in layers.map(TerrainLayer::id)) {
             state.selectedLayerId = layers.firstOrNull()?.id
@@ -263,7 +268,7 @@ class TerrainEditorSystem(
             state.selectedLayerId = baseLayer.id
         }
 
-        generator.generate(regenerated)
+        activeGenerator().generate(regenerated)
         terrain.data = regenerated
         terrain.markDirty()
         renderer.modelId = "terrain_${regenerated.width}x${regenerated.height}"
@@ -274,6 +279,18 @@ class TerrainEditorSystem(
         brushActive = false
         flattenHeight = null
     }
+
+    /**
+     * Resolves the generator selected in the editor state.
+     */
+    private fun activeGenerator(): TerrainGenerator =
+        generatorsById[state.selectedGeneratorId] ?: generatorsById.values.first()
+
+    /**
+     * Formats a hovered terrain position for UI/debug display.
+     */
+    private fun formatPosition(position: Vec3): String =
+        "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 }
 
 /**

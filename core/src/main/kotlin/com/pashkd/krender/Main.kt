@@ -17,15 +17,24 @@ class Main(
                 availableModels = discoverModelPaths(modelPath).map(AssetRef.Companion::model),
             )
 
-            else -> TerrainEditorScene(
+            "terrain-generator" -> TerrainEditorScene(
                 terrainResolution = defaultTerrainResolution(),
                 vertexSpacing = defaultTerrainSpacing(),
             )
+
+            else -> {
+                System.err.println("Unknown scene '$sceneName', defaulting to model viewer.")
+                ModelViewerScene(
+                    model = null,
+                    availableModels = discoverModelPaths(modelPath).map(AssetRef.Companion::model),
+                )
+
+            }
         }
     },
 ) {
     companion object {
-        fun defaultScene(): String = System.getProperty("krender.scene", "viewer")
+        fun defaultScene(): String = System.getProperty("krender.scene", "model_viewer")
         fun defaultModelPath(): String? = System.getProperty("krender.model")?.takeIf(String::isNotBlank)
         fun defaultTerrainResolution(): Int = System.getProperty("krender.terrain.size", "128").toIntOrNull() ?: 128
         fun defaultTerrainSpacing(): Float = System.getProperty("krender.terrain.spacing", "1.0").toFloatOrNull() ?: 1f

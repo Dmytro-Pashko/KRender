@@ -14,6 +14,7 @@ interface UiContext {
     fun beginFrame(deltaSeconds: Float)
     fun endFrame()
     fun render()
+    fun setDebugWindowLayout(layoutConfig: ImGuiLayoutConfig)
     fun resize(width: Int, height: Int)
     fun dispose()
 }

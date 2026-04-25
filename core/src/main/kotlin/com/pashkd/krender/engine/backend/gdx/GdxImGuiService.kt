@@ -34,10 +34,11 @@ class GdxImGuiService(
     private val context = Context()
     private val renderer = withContext { ImplGL3() }
     private val inputBridge = GdxImGuiInputBridge(context)
-    private val debugWindowLayouts = ImGuiLayoutConfigLoader(
+    private val defaultDebugWindowLayouts = ImGuiLayoutConfigLoader(
         assetPath = DEBUG_LAYOUT_ASSET_PATH,
         fallback = DEBUG_WINDOW_LAYOUTS,
     ).load(logger)
+    private var debugWindowLayouts: ImGuiLayoutConfig = defaultDebugWindowLayouts
     private val debugWindowEventLogger = ImGuiWindowEventLogger(logger, "ImGuiDebugUi")
     private var frameOpen = false
     private var frameReady = false
@@ -107,6 +108,17 @@ class GdxImGuiService(
             ImGui.drawData?.let(renderer::renderDrawData)
         }
         frameReady = false
+    }
+
+    /**
+     * Replaces the shared debug window layout used by the current scene.
+     */
+    override fun setDebugWindowLayout(layoutConfig: ImGuiLayoutConfig) {
+        debugWindowLayouts = ImGuiLayoutConfig(
+            panels = DEBUG_WINDOW_LAYOUTS.panels.mapValues { (panelId, fallbackLayout) ->
+                layoutConfig.panels[panelId] ?: fallbackLayout
+            },
+        )
     }
 
     /**

@@ -8,18 +8,29 @@ import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.Material
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.terrain.FlatTerrainGenerator
+import com.pashkd.krender.engine.terrain.FractalNoiseGenerator
+import com.pashkd.krender.engine.terrain.PerlinNoiseGenerator
+import com.pashkd.krender.engine.terrain.SimplexNoiseGenerator
 import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
 import com.pashkd.krender.engine.terrain.TerrainCameraControllerSystem
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainData
-import com.pashkd.krender.engine.terrain.TerrainEditorControlPanel
-import com.pashkd.krender.engine.terrain.TerrainEditorPanel
+import com.pashkd.krender.engine.terrain.TerrainEditorBrushPanel
+import com.pashkd.krender.engine.terrain.TerrainEditorControlsPanel
+import com.pashkd.krender.engine.terrain.TerrainEditorLayersPanel
+import com.pashkd.krender.engine.terrain.TerrainEditorTerrainPanel
+import com.pashkd.krender.engine.terrain.TerrainEditorUiLayoutDefaults
+import com.pashkd.krender.engine.terrain.TerrainGenerator
+import com.pashkd.krender.engine.terrain.TerrainGeneratorOption
 import com.pashkd.krender.engine.terrain.TerrainEditorState
 import com.pashkd.krender.engine.terrain.TerrainEditorSystem
 import com.pashkd.krender.engine.terrain.TerrainMeshSyncSystem
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.terrain.TerrainRendererComponent
 import com.pashkd.krender.engine.terrain.TerrainViewportDebugRenderSystem
+import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
+import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.UiSystem
 
 /**
@@ -29,7 +40,12 @@ class TerrainEditorScene(
     private val terrainResolution: Int = 128,
     private val vertexSpacing: Float = 1f,
 ) : Scene("terrain_editor") {
-    private val terrainGenerator = FlatTerrainGenerator()
+    private val terrainGenerators = listOf(
+        FlatTerrainGenerator(),
+        PerlinNoiseGenerator(),
+        SimplexNoiseGenerator(),
+        FractalNoiseGenerator(),
+    )
     private lateinit var editorState: TerrainEditorState
     private lateinit var editorSystem: TerrainEditorSystem
 
@@ -37,20 +53,30 @@ class TerrainEditorScene(
      * Creates the terrain editor camera, lights, terrain entity, and terrain systems.
      */
     override fun show() {
+        val layoutConfig = ImGuiLayoutConfigLoader(
+            assetPath = TerrainEditorUiLayoutDefaults.assetPath,
+            fallback = TerrainEditorUiLayoutDefaults.config,
+        ).load(engine.logger)
+        engine.ui.setDebugWindowLayout(layoutConfig)
+        val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "TerrainEditorUi")
         editorState = TerrainEditorState(
+            generators = terrainGenerators.map(::toGeneratorOption),
+            selectedGeneratorId = terrainGenerators.firstOrNull()?.id,
             terrainResolution = terrainResolution,
             vertexSpacing = vertexSpacing,
         )
-        editorSystem = TerrainEditorSystem(engine.input, engine.logger, editorState, terrainGenerator)
-        val uiSystem = UiSystem(engine.ui)
-        uiSystem.addPanel(TerrainEditorPanel(editorState))
-        uiSystem.addPanel(TerrainEditorControlPanel(editorState))
+        editorSystem = TerrainEditorSystem(
+            engine.input,
+            engine.logger,
+            editorState,
+            terrainGenerators.associateBy(TerrainGenerator::id),
+        )
 
         world.systems.add(TerrainCameraControllerSystem(engine.input))
         world.systems.add(editorSystem)
         world.systems.add(TerrainMeshSyncSystem())
         world.systems.add(TerrainViewportDebugRenderSystem(editorState))
-        world.systems.add(uiSystem)
+        world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(TerrainRenderSystem())
 
         createCamera()
@@ -64,27 +90,6 @@ class TerrainEditorScene(
     override fun update(dt: Float) {
         super.update(dt)
 
-        val terrainEntity = world.query<TerrainComponent, TerrainRendererComponent>().firstOrNull()
-        val terrain = terrainEntity?.get<TerrainComponent>()
-        val renderer = terrainEntity?.get<TerrainRendererComponent>()
-        val hovered = editorSystem.hoveredHit?.worldPosition
-
-        if (terrain != null && renderer != null) {
-            engine.debug.put("Terrain size", "${terrain.data.width} x ${terrain.data.height}")
-            engine.debug.put("Terrain spacing", "%.2f".format(terrain.data.vertexSpacing))
-            engine.debug.put("Terrain vertices", renderer.vertexCount)
-            engine.debug.put("Terrain triangles", renderer.triangleCount)
-            engine.debug.put("Terrain layers", terrain.data.allLayers().size)
-            engine.debug.put("Terrain display", renderer.displayMode.name)
-        }
-        engine.debug.put("Brush mode", editorState.brushMode.name)
-        engine.debug.put("Brush radius", "%.2f".format(editorState.brushRadius))
-        engine.debug.put("Brush strength", "%.2f".format(editorState.brushStrength))
-        engine.debug.put(
-            "Hovered terrain",
-            hovered?.let { "%.2f, %.2f, %.2f".format(it.x, it.y, it.z) } ?: "none",
-        )
-
         engine.debug.line("Use the Terrain ImGui panel for editor controls.")
         engine.debug.line("Mouse drag - Apply brush")
         engine.debug.line("Mouse wheel - Brush radius")
@@ -96,6 +101,20 @@ class TerrainEditorScene(
         engine.debug.line("Ctrl/Shift - Up/Down")
         engine.debug.line("Q/E - Rotate camera")
     }
+
+    /**
+     * Registers every Terrain Editor ImGui panel against the shared UI system.
+     */
+    private fun createUiSystem(
+        layoutConfig: ImGuiLayoutConfig,
+        panelEventLogger: ImGuiWindowEventLogger,
+    ): UiSystem =
+        UiSystem(engine.ui).also { uiSystem ->
+            uiSystem.addPanel(TerrainEditorTerrainPanel(editorState, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(TerrainEditorBrushPanel(editorState, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(TerrainEditorLayersPanel(editorState, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(TerrainEditorControlsPanel(editorState, layoutConfig, panelEventLogger))
+        }
 
     /**
      * Creates the editor camera with a fixed look-at target.
@@ -149,7 +168,7 @@ class TerrainEditorScene(
         )
         val baseLayer = terrainData.addLayer(name = "Base Layer", materialId = "terrain/base")
         editorState.selectedLayerId = baseLayer.id
-        terrainGenerator.generate(terrainData)
+        activeGenerator().generate(terrainData)
 
         val terrain = world.createEntity("Terrain")
         terrain.add(TerrainComponent(terrainData))
@@ -160,4 +179,19 @@ class TerrainEditorScene(
             ),
         )
     }
+
+    /**
+     * Resolves the currently selected terrain generator for scene setup.
+     */
+    private fun activeGenerator(): TerrainGenerator =
+        terrainGenerators.firstOrNull { it.id == editorState.selectedGeneratorId } ?: terrainGenerators.first()
+
+    /**
+     * Builds one UI option from a runtime terrain generator.
+     */
+    private fun toGeneratorOption(generator: TerrainGenerator): TerrainGeneratorOption =
+        TerrainGeneratorOption(
+            id = generator.id,
+            label = generator.id.replaceFirstChar { char -> char.uppercase() },
+        )
 }
