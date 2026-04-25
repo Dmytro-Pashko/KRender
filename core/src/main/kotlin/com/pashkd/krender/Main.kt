@@ -10,13 +10,13 @@ class Main(
 ) : GdxEngineApplication(
     initialScene = {
         ModelViewerScene(
-            model = AssetRef.model(modelPath),
+            model = null,
             availableModels = discoverModelPaths(modelPath).map(AssetRef.Companion::model),
         )
     },
 ) {
     companion object {
-        fun defaultModelPath(): String = System.getProperty("krender.model", "model/m_actor_human_0.glb")
+        fun defaultModelPath(): String = System.getProperty("krender.model", "model/m_grass_plant_01.glb")
 
         private fun discoverModelPaths(selectedPath: String): List<String> {
             val supportedExtensions = setOf("glb", "gltf", "g3db", "g3dj", "obj", "fbx")

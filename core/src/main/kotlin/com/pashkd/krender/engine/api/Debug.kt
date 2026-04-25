@@ -51,7 +51,7 @@ data class FrameDebugStats(
  * Per-frame debug collector for overlay values, recent logs, and phase timings.
  */
 interface DebugService {
-    val enabled: Boolean
+    var enabled: Boolean
     val entries: List<String>
     val recentLogs: List<LogEntry>
     val frame: Long
@@ -61,11 +61,12 @@ interface DebugService {
     fun put(label: String, value: Any?)
     fun line(text: String)
     fun recordLog(entry: LogEntry)
+    fun toggle()
     fun <T> measure(name: String, block: () -> T): T
 }
 
 class FrameDebugService(
-    override val enabled: Boolean = true,
+    override var enabled: Boolean = true,
     private val maxLogs: Int = 8,
 ) : DebugService {
     private val values = linkedMapOf<String, String>()
@@ -116,6 +117,10 @@ class FrameDebugService(
         while (logs.size > maxLogs) {
             logs.removeFirst()
         }
+    }
+
+    override fun toggle() {
+        enabled = !enabled
     }
 
     override fun <T> measure(name: String, block: () -> T): T {

@@ -51,6 +51,9 @@ class GameLoop(
 
         backend.debug.beginFrame()
         backend.input.beginFrame()
+        if (backend.input.snapshot().wasPressed(Key.Backtick)) {
+            backend.debug.toggle()
+        }
 
         backend.debug.measure("tasks.flush") {
             backend.tasks.flushMainThreadQueue()

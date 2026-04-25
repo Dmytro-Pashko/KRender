@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.api.DrawModelViewerOverlay
 import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.ModelAsset
+import com.pashkd.krender.engine.api.OverlayLayout
 import com.pashkd.krender.engine.api.PointerPhase
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.SceneWorld
@@ -25,20 +26,23 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 class ModelViewerScene(
-    private val model: AssetRef<ModelAsset>,
-    private val availableModels: List<AssetRef<ModelAsset>> = listOf(model),
+    private val model: AssetRef<ModelAsset>? = null,
+    private val availableModels: List<AssetRef<ModelAsset>> = model?.let(::listOf) ?: emptyList(),
     private val modelScale: Float = 1f,
+    openDialogOnStart: Boolean = true,
 ) : Scene("model_viewer") {
     override val requiredAssets: List<AssetPack> = listOf(
         object : AssetPack {
-            override val assets = availableModels
+            override val assets = availableModels.filterNotNull()
         },
     )
 
-    private var selectedModelIndex: Int = availableModels.indexOf(model).takeIf { it >= 0 } ?: 0
-    private var loadedModel: AssetRef<ModelAsset> = model
+    private val models = availableModels.filterNotNull()
+    private var selectedModelIndex: Int = model?.let(models::indexOf)?.takeIf { it >= 0 } ?: 0
+    private var loadedModel: AssetRef<ModelAsset>? = model
     private var modelEntityId: EntityId? = null
-    private var dialogVisible: Boolean = false
+    private var dialogVisible: Boolean = openDialogOnStart
+    private val overlayLayout = OverlayLayout()
 
     override fun show() {
         world.systems.add(WorldGridSystem(halfExtentCells = 24, cellSize = 1f))
@@ -76,7 +80,7 @@ class ModelViewerScene(
             ),
         )
 
-        createModelEntity(loadedModel)
+        loadedModel?.let(::createModelEntity)
     }
 
     override fun update(dt: Float) {
@@ -99,16 +103,17 @@ class ModelViewerScene(
         }
         engine.debug.put("Input", input.keysDown.joinToString().ifBlank { "none" })
         engine.debug.put("Mouse delta", "${input.mouseDelta.x.toInt()}, ${input.mouseDelta.y.toInt()}")
-        engine.debug.put("Loaded model", loadedModel.path)
+        engine.debug.put("Loaded model", loadedModel?.path ?: "none")
         engine.debug.line("WASD moves the camera. Mouse rotates the view.")
     }
 
     fun overlayCommand(): DrawModelViewerOverlay? {
         if (!dialogVisible) return null
         return DrawModelViewerOverlay(
-        models = availableModels.map { it.path },
-        selectedIndex = selectedModelIndex,
-        loadedModel = loadedModel.path,
+            models = models.map { it.path },
+            selectedIndex = selectedModelIndex,
+            loadedModel = loadedModel?.path ?: "none",
+            layout = overlayLayout,
         )
     }
 
@@ -137,37 +142,41 @@ class ModelViewerScene(
         val x = click.x
         val y = click.y
 
-        if (x < Overlay.X || x > Overlay.X + Overlay.Width || y < Overlay.Y) return
+        val panelX = (input.viewportSize.x - overlayLayout.width) * 0.5f
+        val panelY = (input.viewportSize.y - overlayLayout.height(models.size)) * 0.5f
 
-        val listTop = Overlay.Y + Overlay.HeaderHeight
-        val listBottom = listTop + availableModels.size * Overlay.RowHeight
+        if (x < panelX || x > panelX + overlayLayout.width || y < panelY) return
+
+        val listTop = panelY + overlayLayout.headerHeight
+        val listBottom = listTop + models.size * overlayLayout.rowHeight
         if (y in listTop..listBottom) {
-            val index = ((y - listTop) / Overlay.RowHeight).toInt()
-            if (index in availableModels.indices) {
+            val index = ((y - listTop) / overlayLayout.rowHeight).toInt()
+            if (index in models.indices) {
                 selectedModelIndex = index
             }
             return
         }
 
-        val buttonY = listBottom + Overlay.Padding
-        if (y in buttonY..(buttonY + Overlay.ButtonHeight)) {
-            val loadX = Overlay.X
-            val exitX = Overlay.X + Overlay.ButtonWidth + Overlay.Padding
+        val buttonY = listBottom + overlayLayout.padding
+        if (y in buttonY..(buttonY + overlayLayout.buttonHeight)) {
+            val loadX = panelX
+            val exitX = panelX + overlayLayout.buttonWidth + overlayLayout.padding
             when {
-                x in loadX..(loadX + Overlay.ButtonWidth) -> reloadWithSelectedModel()
-                x in exitX..(exitX + Overlay.ButtonWidth) -> engine.requestExit()
+                x in loadX..(loadX + overlayLayout.buttonWidth) -> reloadWithSelectedModel()
+                x in exitX..(exitX + overlayLayout.buttonWidth) -> engine.requestExit()
             }
         }
     }
 
     private fun reloadWithSelectedModel() {
-        val selectedModel = availableModels.getOrNull(selectedModelIndex) ?: return
+        val selectedModel = models.getOrNull(selectedModelIndex) ?: return
         engine.logger.info("ModelViewer") { "Reloading scene with '${selectedModel.path}'" }
         engine.scenes.replace(
             ModelViewerScene(
                 model = selectedModel,
-                availableModels = availableModels,
+                availableModels = models,
                 modelScale = modelScale,
+                openDialogOnStart = false,
             ),
         )
     }
@@ -207,17 +216,6 @@ class ModelViewerScene(
             transform.position.x += (forward.x * moveZ + right.x * moveX) * speed * dt
             transform.position.z += (forward.z * moveZ + right.z * moveX) * speed * dt
         }
-    }
-
-    private data object Overlay {
-        const val X = 12f
-        const val Y = 12f
-        const val Width = 320f
-        const val HeaderHeight = 34f
-        const val RowHeight = 26f
-        const val ButtonHeight = 30f
-        const val ButtonWidth = 96f
-        const val Padding = 8f
     }
 }
 

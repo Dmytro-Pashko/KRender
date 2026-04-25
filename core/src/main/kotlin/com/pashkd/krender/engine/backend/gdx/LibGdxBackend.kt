@@ -149,6 +149,7 @@ class GdxInputService : InputService, InputProcessor {
             mouseDelta = Vec2(mouseDeltaX, mouseDeltaY),
             scrollDelta = scrollDelta,
             pointers = pointers.values.toList(),
+            viewportSize = Vec2(Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat()),
         )
     }
 
@@ -241,6 +242,7 @@ class GdxInputService : InputService, InputProcessor {
         Input.Keys.F2 -> Key.F2
         Input.Keys.F3 -> Key.F3
         Input.Keys.F4 -> Key.F4
+        Input.Keys.GRAVE -> Key.Backtick
         Input.Keys.SPACE -> Key.Space
         Input.Keys.ESCAPE -> Key.Escape
         Input.Keys.SHIFT_LEFT -> Key.ShiftLeft
@@ -416,8 +418,8 @@ class GdxRenderer3D(
     private val shapeRenderer = ShapeRenderer()
     private val spriteBatch = SpriteBatch()
     private val font = BitmapFont()
-    private val instances = mutableMapOf<Long, ModelInstance>()
-    private val gltfScenes = mutableMapOf<Long, GltfScene>()
+    private val instances = mutableMapOf<ModelCacheKey, ModelInstance>()
+    private val gltfScenes = mutableMapOf<ModelCacheKey, GltfScene>()
     private val primitives = mutableMapOf<String, Model>()
 
     private var width: Int = Gdx.graphics.width
@@ -474,12 +476,13 @@ class GdxRenderer3D(
             assets.gdxModel(command.model)
         } ?: return
 
-        val existing = instances[command.entityId]
+        val cacheKey = ModelCacheKey(command.entityId, command.model.path)
+        val existing = instances[cacheKey]
         val instance = if (existing?.model === model) {
             existing
         } else {
             ModelInstance(model).also { created ->
-                instances[command.entityId] = created
+                instances[cacheKey] = created
             }
         }
 
@@ -509,7 +512,8 @@ class GdxRenderer3D(
     private fun renderGltfScene(command: DrawModel, environment: Environment, camera: Camera) {
         assets.queue(command.model)
         val sceneAsset = assets.gltfScene(command.model) ?: return
-        val scene = gltfScenes.getOrPut(command.entityId) {
+        val cacheKey = ModelCacheKey(command.entityId, command.model.path)
+        val scene = gltfScenes.getOrPut(cacheKey) {
             GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
         }
 
@@ -605,10 +609,10 @@ class GdxRenderer3D(
         if (!debug.enabled) return
 
         spriteBatch.begin()
-        var y = height - 12f
+        var y = 18f
         debug.entries.forEach { line ->
             font.draw(spriteBatch, line, 12f, y)
-            y -= 18f
+            y += 18f
         }
         spriteBatch.end()
     }
@@ -620,17 +624,17 @@ class GdxRenderer3D(
     }
 
     private fun drawModelViewerOverlay(overlay: DrawModelViewerOverlay) {
-        val x = 12f
-        val topY = 12f
-        val width = 320f
-        val headerHeight = 34f
-        val rowHeight = 26f
-        val buttonHeight = 30f
-        val buttonWidth = 96f
-        val padding = 8f
+        val layout = overlay.layout
+        val width = layout.width
+        val headerHeight = layout.headerHeight
+        val rowHeight = layout.rowHeight
+        val buttonHeight = layout.buttonHeight
+        val buttonWidth = layout.buttonWidth
+        val padding = layout.padding
         val listHeight = overlay.models.size * rowHeight
-        val panelHeight = headerHeight + listHeight + padding + buttonHeight + padding
-        val panelBottom = height - topY - panelHeight
+        val panelHeight = layout.height(overlay.models.size)
+        val x = (this.width - width) * 0.5f
+        val panelBottom = (height - panelHeight) * 0.5f
 
         Gdx.gl.glEnable(GL20.GL_BLEND)
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
@@ -660,7 +664,7 @@ class GdxRenderer3D(
 
         spriteBatch.begin()
         font.color.set(1f, 1f, 1f, 1f)
-        font.draw(spriteBatch, "Models (ESC)", x + 10f, panelBottom + panelHeight - 11f)
+        font.draw(spriteBatch, "Models:", x + 10f, panelBottom + panelHeight - 11f)
         font.color.set(0.78f, 0.82f, 0.88f, 1f)
         font.draw(spriteBatch, "Loaded: ${overlay.loadedModel}", x + 112f, panelBottom + panelHeight - 11f)
 
@@ -677,6 +681,11 @@ class GdxRenderer3D(
         Gdx.gl.glDisable(GL20.GL_BLEND)
     }
 }
+
+private data class ModelCacheKey(
+    val entityId: Long,
+    val modelPath: String,
+)
 
 class GdxLineShaderRenderer {
     private val shader = ShaderProgram(

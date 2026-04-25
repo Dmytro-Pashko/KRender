@@ -56,8 +56,20 @@ data class DrawModelViewerOverlay(
     val models: List<String>,
     val selectedIndex: Int,
     val loadedModel: String,
+    val layout: OverlayLayout = OverlayLayout(),
     override val sortKey: Int = 1000,
 ) : RenderCommand
+
+data class OverlayLayout(
+    val width: Float = 360f,
+    val headerHeight: Float = 34f,
+    val rowHeight: Float = 26f,
+    val buttonHeight: Float = 30f,
+    val buttonWidth: Float = 96f,
+    val padding: Float = 8f,
+) {
+    fun height(rowCount: Int): Float = headerHeight + rowCount * rowHeight + padding + buttonHeight + padding
+}
 
 class RenderCommandBuffer {
     private val commands = mutableListOf<RenderCommand>()

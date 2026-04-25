@@ -11,6 +11,7 @@ enum class Key {
     F2,
     F3,
     F4,
+    Backtick,
     Space,
     Escape,
     ShiftLeft,
@@ -41,6 +42,7 @@ data class InputSnapshot(
     val mouseDelta: Vec2 = Vec2.zero(),
     val scrollDelta: Float = 0f,
     val pointers: List<PointerState> = emptyList(),
+    val viewportSize: Vec2 = Vec2.zero(),
 ) {
     fun isDown(key: Key): Boolean = key in keysDown
     fun wasPressed(key: Key): Boolean = key in keysPressedThisFrame
