@@ -45,6 +45,7 @@ class ModelViewerScene(
     private val overlayLayout = OverlayLayout()
 
     override fun show() {
+        syncCursorCapture()
         world.systems.add(WorldGridSystem(halfExtentCells = 24, cellSize = 1f))
         world.systems.add(ModelRenderSystem())
         world.systems.add(ModelViewerOverlaySystem(this))
@@ -85,6 +86,7 @@ class ModelViewerScene(
 
     override fun update(dt: Float) {
         handleDialogToggle()
+        syncCursorCapture()
         if (dialogVisible) {
             handleDialogInput()
         } else {
@@ -104,7 +106,14 @@ class ModelViewerScene(
         engine.debug.put("Input", input.keysDown.joinToString().ifBlank { "none" })
         engine.debug.put("Mouse delta", "${input.mouseDelta.x.toInt()}, ${input.mouseDelta.y.toInt()}")
         engine.debug.put("Loaded model", loadedModel?.path ?: "none")
-        engine.debug.line("WASD moves the camera. Mouse rotates the view.")
+        engine.debug.line("W/A/S/D - Navigation")
+        engine.debug.line("Ctrl/Shift - Up/Down")
+        engine.debug.line("` - Shows logs")
+        engine.debug.line("Tab - Shows scene statistic")
+    }
+
+    override fun hide() {
+        engine.input.setCursorCaptured(false)
     }
 
     fun overlayCommand(): DrawModelViewerOverlay? {
@@ -181,6 +190,10 @@ class ModelViewerScene(
         )
     }
 
+    private fun syncCursorCapture() {
+        engine.input.setCursorCaptured(!dialogVisible)
+    }
+
     private fun updateCamera(dt: Float) {
         val camera = world.query<TransformComponent, PerspectiveCameraComponent, FreeCameraControllerComponent>()
             .firstOrNull() ?: return
@@ -205,15 +218,19 @@ class ModelViewerScene(
         )
 
         var moveX = 0f
+        var moveY = 0f
         var moveZ = 0f
         if (input.isDown(Key.W)) moveZ += 1f
         if (input.isDown(Key.S)) moveZ -= 1f
         if (input.isDown(Key.D)) moveX += 1f
         if (input.isDown(Key.A)) moveX -= 1f
+        if (input.isDown(Key.ShiftLeft)) moveY += 1f
+        if (input.isDown(Key.ControlLeft)) moveY -= 1f
 
-        if (moveX != 0f || moveZ != 0f) {
-            val speed = controller.moveSpeed * if (input.isDown(Key.ShiftLeft)) controller.sprintMultiplier else 1f
+        if (moveX != 0f || moveY != 0f || moveZ != 0f) {
+            val speed = controller.moveSpeed
             transform.position.x += (forward.x * moveZ + right.x * moveX) * speed * dt
+            transform.position.y += moveY * speed * dt
             transform.position.z += (forward.z * moveZ + right.z * moveX) * speed * dt
         }
     }

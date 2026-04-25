@@ -23,7 +23,7 @@ data class PerspectiveCameraComponent(
 data class FreeCameraControllerComponent(
     var moveSpeed: Float = 4.5f,
     var sprintMultiplier: Float = 2f,
-    var mouseSensitivity: Float = 0.12f,
+    var mouseSensitivity: Float = 0.24f,
     var minPitchDegrees: Float = -89f,
     var maxPitchDegrees: Float = 89f,
 ) : Component

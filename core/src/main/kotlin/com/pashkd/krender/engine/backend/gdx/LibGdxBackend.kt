@@ -21,6 +21,7 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader
+import com.badlogic.gdx.graphics.g3d.model.MeshPart
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
@@ -139,14 +140,25 @@ class GdxInputService : InputService, InputProcessor {
     private var mouseDeltaX: Float = 0f
     private var mouseDeltaY: Float = 0f
     private var scrollDelta: Float = 0f
+    private var cursorCaptured: Boolean = false
 
     override fun beginFrame() {
+        val snapshotMousePosition = if (cursorCaptured) {
+            Vec2((Gdx.graphics.width * 0.5f), (Gdx.graphics.height * 0.5f))
+        } else {
+            Vec2(mouseX.toFloat(), mouseY.toFloat())
+        }
+        val snapshotMouseDelta = if (cursorCaptured) {
+            Vec2(Gdx.input.deltaX.toFloat(), Gdx.input.deltaY.toFloat())
+        } else {
+            Vec2(mouseDeltaX, mouseDeltaY)
+        }
         currentSnapshot = InputSnapshot(
             keysDown = keysDown.toSet(),
             keysPressedThisFrame = pressedThisFrame.toSet(),
             keysReleasedThisFrame = releasedThisFrame.toSet(),
-            mousePosition = Vec2(mouseX.toFloat(), mouseY.toFloat()),
-            mouseDelta = Vec2(mouseDeltaX, mouseDeltaY),
+            mousePosition = snapshotMousePosition,
+            mouseDelta = snapshotMouseDelta,
             scrollDelta = scrollDelta,
             pointers = pointers.values.toList(),
             viewportSize = Vec2(Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat()),
@@ -162,6 +174,16 @@ class GdxInputService : InputService, InputProcessor {
         mouseDeltaY = 0f
         scrollDelta = 0f
         pointers.entries.removeIf { it.value.phase == PointerPhase.Up || it.value.phase == PointerPhase.Cancelled }
+    }
+
+    override fun setCursorCaptured(captured: Boolean) {
+        if (cursorCaptured == captured) return
+        cursorCaptured = captured
+        Gdx.input.setCursorCatched(captured)
+        mouseX = Gdx.input.x
+        mouseY = Gdx.input.y
+        mouseDeltaX = 0f
+        mouseDeltaY = 0f
     }
 
     override fun isActionPressed(action: Action): Boolean =
@@ -193,8 +215,10 @@ class GdxInputService : InputService, InputProcessor {
     }
 
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
-        mouseDeltaX += screenX - mouseX
-        mouseDeltaY += screenY - mouseY
+        if (!cursorCaptured) {
+            mouseDeltaX += screenX - mouseX
+            mouseDeltaY += screenY - mouseY
+        }
         mouseX = screenX
         mouseY = screenY
         return false
@@ -245,7 +269,9 @@ class GdxInputService : InputService, InputProcessor {
         Input.Keys.GRAVE -> Key.Backtick
         Input.Keys.SPACE -> Key.Space
         Input.Keys.ESCAPE -> Key.Escape
+        Input.Keys.TAB -> Key.Tab
         Input.Keys.SHIFT_LEFT -> Key.ShiftLeft
+        Input.Keys.CONTROL_LEFT -> Key.ControlLeft
         else -> Key.Unknown
     }
 
@@ -421,6 +447,7 @@ class GdxRenderer3D(
     private val instances = mutableMapOf<ModelCacheKey, ModelInstance>()
     private val gltfScenes = mutableMapOf<ModelCacheKey, GltfScene>()
     private val primitives = mutableMapOf<String, Model>()
+    private val triangleCounts = mutableMapOf<String, Int>()
 
     private var width: Int = Gdx.graphics.width
     private var height: Int = Gdx.graphics.height
@@ -604,17 +631,11 @@ class GdxRenderer3D(
     private fun drawDebugOverlay(context: RenderContext) {
         debug.put("FPS", Gdx.graphics.framesPerSecond)
         debug.put("Render commands", context.commands.size)
+        debug.put("Triangles", triangleCountFor(context))
+        debug.put("Lights", lightCountFor(context))
         debug.put("Asset progress", "${"%.0f".format(assets.progress() * 100f)}%")
-
-        if (!debug.enabled) return
-
-        spriteBatch.begin()
-        var y = 18f
-        debug.entries.forEach { line ->
-            font.draw(spriteBatch, line, 12f, y)
-            y += 18f
-        }
-        spriteBatch.end()
+        drawTopLeftDebugPanels()
+        drawBottomLeftLogs()
     }
 
     private fun drawModelViewerOverlays(context: RenderContext) {
@@ -679,6 +700,119 @@ class GdxRenderer3D(
         font.draw(spriteBatch, "Exit", x + buttonWidth + padding + 32f, buttonBottom + 20f)
         spriteBatch.end()
         Gdx.gl.glDisable(GL20.GL_BLEND)
+    }
+
+    private fun triangleCountFor(context: RenderContext): Int =
+        context.commands.filterIsInstance<DrawModel>().sumOf { triangleCountFor(it) }
+
+    private fun triangleCountFor(command: DrawModel): Int {
+        val cacheKey = command.model.path
+        triangleCounts[cacheKey]?.let { return it }
+
+        val count = when {
+            command.model.isPrimitive -> triangleCountForModel(primitive(command.model.path))
+            command.model.isGltf() -> assets.gltfScene(command.model)?.scene?.model?.let(::triangleCountForModel) ?: 0
+            else -> assets.gdxModel(command.model)?.let(::triangleCountForModel) ?: 0
+        }
+        triangleCounts[cacheKey] = count
+        return count
+    }
+
+    private fun triangleCountForModel(model: Model): Int =
+        model.meshParts.sumOf(::triangleCountForMeshPart)
+
+    private fun triangleCountForMeshPart(meshPart: MeshPart): Int = when (meshPart.primitiveType) {
+        GL20.GL_TRIANGLES -> meshPart.size / 3
+        GL20.GL_TRIANGLE_STRIP, GL20.GL_TRIANGLE_FAN -> (meshPart.size - 2).coerceAtLeast(0)
+        else -> 0
+    }
+
+    private fun lightCountFor(context: RenderContext): Int =
+        context.scene.world.query<LightComponent>()
+            .count { it.get<LightComponent>() != null }
+
+    private fun drawTopLeftDebugPanels() {
+        var top = height - HUD_MARGIN
+        val x = HUD_MARGIN
+
+        if (debug.helperLines.isNotEmpty()) {
+            val helpHeight = panelHeight(debug.helperLines.size)
+            drawPanel(
+                x = x,
+                bottom = top - helpHeight,
+                width = HUD_PANEL_WIDTH,
+                title = "Controls",
+                lines = debug.helperLines,
+            )
+            top -= helpHeight + HUD_GAP
+        }
+
+        if (debug.enabled && debug.statEntries.isNotEmpty()) {
+            val statsHeight = panelHeight(debug.statEntries.size)
+            drawPanel(
+                x = x,
+                bottom = top - statsHeight,
+                width = HUD_PANEL_WIDTH,
+                title = "Scene Statistics",
+                lines = debug.statEntries,
+            )
+        }
+    }
+
+    private fun drawBottomLeftLogs() {
+        val lines = debug.recentLogs.map { "[${it.tag}] ${it.message}" }
+        if (!debug.logsEnabled || lines.isEmpty()) return
+
+        drawPanel(
+            x = HUD_MARGIN,
+            bottom = HUD_MARGIN,
+            width = LOG_PANEL_WIDTH,
+            title = "Logs",
+            lines = lines,
+        )
+    }
+
+    private fun drawPanel(
+        x: Float,
+        bottom: Float,
+        width: Float,
+        title: String,
+        lines: List<String>,
+    ) {
+        val height = panelHeight(lines.size)
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        shapeRenderer.projectionMatrix = spriteBatch.projectionMatrix
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        shapeRenderer.color.set(0.05f, 0.06f, 0.08f, 0.82f)
+        shapeRenderer.rect(x, bottom, width, height)
+        shapeRenderer.color.set(0.12f, 0.16f, 0.2f, 0.95f)
+        shapeRenderer.rect(x, bottom + height - HUD_HEADER_HEIGHT, width, HUD_HEADER_HEIGHT)
+        shapeRenderer.end()
+
+        spriteBatch.begin()
+        font.color.set(1f, 1f, 1f, 1f)
+        font.draw(spriteBatch, title, x + HUD_PADDING, bottom + height - 8f)
+        font.color.set(0.84f, 0.9f, 0.96f, 1f)
+        lines.forEachIndexed { index, line ->
+            val y = bottom + height - HUD_HEADER_HEIGHT - HUD_PADDING - index * HUD_LINE_HEIGHT
+            font.draw(spriteBatch, line, x + HUD_PADDING, y)
+        }
+        spriteBatch.end()
+        Gdx.gl.glDisable(GL20.GL_BLEND)
+    }
+
+    private fun panelHeight(lineCount: Int): Float =
+        HUD_HEADER_HEIGHT + HUD_PADDING * 2f + lineCount * HUD_LINE_HEIGHT
+
+    companion object {
+        private const val HUD_MARGIN = 12f
+        private const val HUD_GAP = 10f
+        private const val HUD_PADDING = 8f
+        private const val HUD_HEADER_HEIGHT = 24f
+        private const val HUD_LINE_HEIGHT = 18f
+        private const val HUD_PANEL_WIDTH = 360f
+        private const val LOG_PANEL_WIDTH = 560f
     }
 }
 

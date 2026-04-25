@@ -14,7 +14,9 @@ enum class Key {
     Backtick,
     Space,
     Escape,
+    Tab,
     ShiftLeft,
+    ControlLeft,
     Unknown,
 }
 
@@ -56,6 +58,7 @@ interface InputService {
     fun beginFrame()
     fun snapshot(): InputSnapshot
     fun endFrame()
+    fun setCursorCaptured(captured: Boolean)
     fun isActionPressed(action: Action): Boolean
     fun isActionJustPressed(action: Action): Boolean
     fun axis(axis: Axis): Float

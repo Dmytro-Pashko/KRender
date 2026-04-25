@@ -52,7 +52,10 @@ data class FrameDebugStats(
  */
 interface DebugService {
     var enabled: Boolean
+    var logsEnabled: Boolean
     val entries: List<String>
+    val statEntries: List<String>
+    val helperLines: List<String>
     val recentLogs: List<LogEntry>
     val frame: Long
 
@@ -62,11 +65,13 @@ interface DebugService {
     fun line(text: String)
     fun recordLog(entry: LogEntry)
     fun toggle()
+    fun toggleStats()
     fun <T> measure(name: String, block: () -> T): T
 }
 
 class FrameDebugService(
     override var enabled: Boolean = true,
+    override var logsEnabled: Boolean = true,
     private val maxLogs: Int = 8,
 ) : DebugService {
     private val values = linkedMapOf<String, String>()
@@ -82,12 +87,21 @@ class FrameDebugService(
     override val recentLogs: List<LogEntry>
         get() = logs.toList()
 
-    override val entries: List<String>
+    override val statEntries: List<String>
         get() {
             val metricLines = values.map { (key, value) -> "$key: $value" }
             val timingLines = lastStats.timings.map { timing -> "${timing.name}: ${"%.2f".format(timing.millis)} ms" }
+            return metricLines + timingLines
+        }
+
+    override val helperLines: List<String>
+        get() = lines.toList()
+
+    override val entries: List<String>
+        get() {
+            val metricLines = statEntries
             val logLines = logs.map { entry -> "[${entry.level}][${entry.tag}] ${entry.message}" }
-            return metricLines + lines + timingLines + logLines
+            return metricLines + lines + logLines
         }
 
     override fun beginFrame() {
@@ -120,6 +134,10 @@ class FrameDebugService(
     }
 
     override fun toggle() {
+        logsEnabled = !logsEnabled
+    }
+
+    override fun toggleStats() {
         enabled = !enabled
     }
 
