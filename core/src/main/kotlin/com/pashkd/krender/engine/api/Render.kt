@@ -24,6 +24,34 @@ data class DrawModel(
     override val sortKey: Int = 0,
 ) : RenderCommand
 
+data class DynamicMesh(
+    val positions: FloatArray,
+    val normals: FloatArray,
+    val uvs: FloatArray,
+    val indices: IntArray,
+    val tangents: FloatArray? = null,
+) {
+    val vertexCount: Int
+        get() = positions.size / 3
+
+    val triangleCount: Int
+        get() = if (indices.isNotEmpty()) indices.size / 3 else vertexCount / 3
+}
+
+data class DynamicModel(
+    val id: String,
+    val mesh: DynamicMesh,
+    val revision: Long = 0L,
+)
+
+data class DrawDynamicModel(
+    val entityId: EntityId,
+    val model: DynamicModel,
+    val transform: TransformSnapshot,
+    val material: Material,
+    override val sortKey: Int = 0,
+) : RenderCommand
+
 data class DrawLine(
     val from: Vec3,
     val to: Vec3,

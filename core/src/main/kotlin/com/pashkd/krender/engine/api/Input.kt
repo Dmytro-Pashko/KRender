@@ -5,6 +5,7 @@ enum class Key {
     A,
     S,
     D,
+    G,
     Q,
     E,
     F1,

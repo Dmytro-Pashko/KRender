@@ -23,6 +23,8 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader
 import com.badlogic.gdx.graphics.g3d.model.MeshPart
+import com.badlogic.gdx.graphics.g3d.model.Node
+import com.badlogic.gdx.graphics.g3d.model.NodePart
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
@@ -38,6 +40,8 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Axis
 import com.pashkd.krender.engine.api.DebugService
+import com.pashkd.krender.engine.api.DrawDynamicModel
+import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.DrawModelViewerOverlay
 import com.pashkd.krender.engine.api.DrawWorldAxes
@@ -268,6 +272,7 @@ class GdxInputService : InputService, InputProcessor {
         Input.Keys.A -> Key.A
         Input.Keys.S -> Key.S
         Input.Keys.D -> Key.D
+        Input.Keys.G -> Key.G
         Input.Keys.Q -> Key.Q
         Input.Keys.E -> Key.E
         Input.Keys.F1 -> Key.F1
@@ -484,6 +489,7 @@ class GdxRenderer3D(
     private val instances = mutableMapOf<ModelCacheKey, ModelInstance>()
     private val gltfScenes = mutableMapOf<ModelCacheKey, GltfScene>()
     private val primitives = mutableMapOf<String, Model>()
+    private val dynamicModels = mutableMapOf<String, DynamicModelCacheEntry>()
     private val triangleCounts = mutableMapOf<String, Int>()
     private val wireframeRenderables = Array<Renderable>()
     private val wireframeRenderablePool = object : Pool<Renderable>() {
@@ -502,6 +508,7 @@ class GdxRenderer3D(
         val camera = cameraFor(context)
         val environment = environmentFor(context)
         val wireframeCommands = mutableListOf<DrawModel>()
+        val wireframeDynamicCommands = mutableListOf<DrawDynamicModel>()
 
         lineRenderer.render(context.commands, camera)
 
@@ -515,11 +522,20 @@ class GdxRenderer3D(
                         renderModel(command, environment, camera)
                     }
                 }
+                is DrawDynamicModel -> {
+                    if (command.material.wireframe) {
+                        wireframeDynamicCommands += command
+                    } else {
+                        renderDynamicModel(command, environment)
+                    }
+                }
                 else -> Unit
             }
         }
         modelBatch.end()
         wireframeCommands.forEach { renderWireframeModel(it, camera) }
+        wireframeDynamicCommands.forEach { renderWireframeDynamicModel(it, camera) }
+        lineRenderer.renderOverlayLines(context.commands, camera)
 
         drawDebugOverlay(context)
         drawModelViewerOverlays(context)
@@ -537,6 +553,7 @@ class GdxRenderer3D(
         spriteBatch.dispose()
         font.dispose()
         primitives.values.forEach { it.dispose() }
+        dynamicModels.values.forEach { it.model.dispose() }
         assets.dispose()
     }
 
@@ -583,6 +600,34 @@ class GdxRenderer3D(
         instance.transform.rotate(Vector3.Z, transform.eulerDegrees.z)
         instance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
 
+        modelBatch.render(instance, environment)
+    }
+
+    private fun renderDynamicModel(command: DrawDynamicModel, environment: Environment) {
+        val model = dynamicGdxModel(command.model)
+        val cacheKey = ModelCacheKey(command.entityId, command.model.id)
+        val existing = instances[cacheKey]
+        val instance = if (existing?.model === model) {
+            existing
+        } else {
+            ModelInstance(model).also { created ->
+                instances[cacheKey] = created
+            }
+        }
+
+        val material = command.material
+        instance.materials.forEach {
+            it.set(
+                ColorAttribute.createDiffuse(
+                    material.baseColor.r,
+                    material.baseColor.g,
+                    material.baseColor.b,
+                    material.baseColor.a,
+                ),
+            )
+        }
+
+        applyTransform(instance, command.transform)
         modelBatch.render(instance, environment)
     }
 
@@ -634,6 +679,23 @@ class GdxRenderer3D(
         lineRenderer.renderVertices(vertices, camera)
     }
 
+    private fun renderWireframeDynamicModel(command: DrawDynamicModel, camera: Camera) {
+        val model = dynamicGdxModel(command.model)
+        val cacheKey = ModelCacheKey(command.entityId, command.model.id)
+        val existing = instances[cacheKey]
+        val instance = if (existing?.model === model) {
+            existing
+        } else {
+            ModelInstance(model).also { created ->
+                instances[cacheKey] = created
+            }
+        }
+
+        applyTransform(instance, command.transform)
+        val vertices = wireframeVerticesFor(instance, command.material.baseColor)
+        lineRenderer.renderVertices(vertices, camera)
+    }
+
     private fun wireframeGltfScene(command: DrawModel, camera: Camera): GltfScene? {
         val sceneAsset = assets.gltfScene(command.model) ?: return null
         val cacheKey = ModelCacheKey(command.entityId, command.model.path)
@@ -646,13 +708,131 @@ class GdxRenderer3D(
     }
 
     private fun applyTransform(instance: ModelInstance, command: DrawModel) {
-        val transform = command.transform
+        applyTransform(instance, command.transform)
+    }
+
+    private fun applyTransform(
+        instance: ModelInstance,
+        transform: com.pashkd.krender.engine.api.TransformSnapshot,
+    ) {
         instance.transform.idt()
         instance.transform.translate(transform.position.x, transform.position.y, transform.position.z)
         instance.transform.rotate(Vector3.X, transform.eulerDegrees.x)
         instance.transform.rotate(Vector3.Y, transform.eulerDegrees.y)
         instance.transform.rotate(Vector3.Z, transform.eulerDegrees.z)
         instance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
+    }
+
+    private fun dynamicGdxModel(dynamicModel: com.pashkd.krender.engine.api.DynamicModel): Model {
+        val cached = dynamicModels[dynamicModel.id]
+        if (cached != null && cached.revision == dynamicModel.revision) {
+            return cached.model
+        }
+
+        cached?.model?.dispose()
+        val built = buildDynamicModel(dynamicModel)
+        dynamicModels[dynamicModel.id] = DynamicModelCacheEntry(dynamicModel.revision, built)
+        triangleCounts[dynamicModel.id] = dynamicModel.mesh.triangleCount
+        return built
+    }
+
+    private fun buildDynamicModel(dynamicModel: com.pashkd.krender.engine.api.DynamicModel): Model {
+        val meshData = dynamicModel.mesh
+        val positions = meshData.positions
+        val normals = meshData.normals
+        val uvs = meshData.uvs
+        val maxIndex = meshData.indices.maxOrNull() ?: -1
+        val canUseIndices = meshData.indices.isNotEmpty() &&
+            meshData.vertexCount <= UNSIGNED_SHORT_MASK &&
+            maxIndex <= UNSIGNED_SHORT_MASK
+
+        val attributes = arrayOf(
+            VertexAttribute.Position(),
+            VertexAttribute.Normal(),
+            VertexAttribute.TexCoords(0),
+        )
+
+        val vertexBuffer = if (canUseIndices) {
+            interleaveVertices(positions, normals, uvs)
+        } else {
+            expandVertices(meshData)
+        }
+
+        val mesh = Mesh(
+            true,
+            vertexBuffer.size / FLOATS_PER_DYNAMIC_VERTEX,
+            if (canUseIndices) meshData.indices.size else 0,
+            *attributes,
+        )
+        mesh.setVertices(vertexBuffer)
+        if (canUseIndices) {
+            mesh.setIndices(meshData.indices.map(Int::toShort).toShortArray())
+        }
+
+        val material = com.badlogic.gdx.graphics.g3d.Material(
+            ColorAttribute.createDiffuse(1f, 1f, 1f, 1f),
+        )
+        val partSize = if (canUseIndices) meshData.indices.size else vertexBuffer.size / FLOATS_PER_DYNAMIC_VERTEX
+        val meshPart = MeshPart(dynamicModel.id, mesh, 0, partSize, GL20.GL_TRIANGLES)
+        val nodePart = NodePart(meshPart, material)
+        val node = Node().apply {
+            id = dynamicModel.id
+            parts.add(nodePart)
+        }
+
+        return Model().also { model ->
+            model.meshes.add(mesh)
+            model.meshParts.add(meshPart)
+            model.materials.add(material)
+            model.nodes.add(node)
+            model.manageDisposable(mesh)
+            model.calculateTransforms()
+        }
+    }
+
+    private fun interleaveVertices(
+        positions: FloatArray,
+        normals: FloatArray,
+        uvs: FloatArray,
+    ): FloatArray {
+        val vertexCount = positions.size / 3
+        val vertices = FloatArray(vertexCount * FLOATS_PER_DYNAMIC_VERTEX)
+        var offset = 0
+        for (vertex in 0 until vertexCount) {
+            val positionBase = vertex * 3
+            val uvBase = vertex * 2
+            vertices[offset++] = positions[positionBase]
+            vertices[offset++] = positions[positionBase + 1]
+            vertices[offset++] = positions[positionBase + 2]
+            vertices[offset++] = normals[positionBase]
+            vertices[offset++] = normals[positionBase + 1]
+            vertices[offset++] = normals[positionBase + 2]
+            vertices[offset++] = uvs[uvBase]
+            vertices[offset++] = uvs[uvBase + 1]
+        }
+        return vertices
+    }
+
+    private fun expandVertices(meshData: com.pashkd.krender.engine.api.DynamicMesh): FloatArray {
+        if (meshData.indices.isEmpty()) {
+            return interleaveVertices(meshData.positions, meshData.normals, meshData.uvs)
+        }
+
+        val vertices = FloatArray(meshData.indices.size * FLOATS_PER_DYNAMIC_VERTEX)
+        var offset = 0
+        meshData.indices.forEach { index ->
+            val positionBase = index * 3
+            val uvBase = index * 2
+            vertices[offset++] = meshData.positions[positionBase]
+            vertices[offset++] = meshData.positions[positionBase + 1]
+            vertices[offset++] = meshData.positions[positionBase + 2]
+            vertices[offset++] = meshData.normals[positionBase]
+            vertices[offset++] = meshData.normals[positionBase + 1]
+            vertices[offset++] = meshData.normals[positionBase + 2]
+            vertices[offset++] = meshData.uvs[uvBase]
+            vertices[offset++] = meshData.uvs[uvBase + 1]
+        }
+        return vertices
     }
 
     private fun wireframeVerticesFor(
@@ -904,7 +1084,13 @@ class GdxRenderer3D(
     }
 
     private fun triangleCountFor(context: RenderContext): Int =
-        context.commands.filterIsInstance<DrawModel>().sumOf { triangleCountFor(it) }
+        context.commands.sumOf { command ->
+            when (command) {
+                is DrawModel -> triangleCountFor(command)
+                is DrawDynamicModel -> command.model.mesh.triangleCount
+                else -> 0
+            }
+        }
 
     private fun triangleCountFor(command: DrawModel): Int {
         val cacheKey = command.model.path
@@ -1014,10 +1200,16 @@ class GdxRenderer3D(
         private const val HUD_LINE_HEIGHT = 18f
         private const val HUD_PANEL_WIDTH = 360f
         private const val LOG_PANEL_WIDTH = 560f
+        private const val FLOATS_PER_DYNAMIC_VERTEX = 8
         private const val FLOAT_BYTES = 4
         private const val UNSIGNED_SHORT_MASK = 0xFFFF
     }
 }
+
+private data class DynamicModelCacheEntry(
+    val revision: Long,
+    val model: Model,
+)
 
 private data class ModelCacheKey(
     val entityId: Long,
@@ -1070,14 +1262,31 @@ class GdxLineShaderRenderer {
         renderVertices(vertices, camera)
     }
 
-    fun renderVertices(vertices: List<Float>, camera: Camera) {
+    fun renderOverlayLines(commands: List<com.pashkd.krender.engine.api.RenderCommand>, camera: Camera) {
+        val vertices = mutableListOf<Float>()
+        commands.filterIsInstance<DrawLine>().forEach { command ->
+            appendLine(vertices, command.from, command.to, command.color)
+        }
+
+        renderVertices(vertices, camera, depthTest = false)
+    }
+
+    fun renderVertices(
+        vertices: List<Float>,
+        camera: Camera,
+        depthTest: Boolean = true,
+    ) {
         val vertexCount = vertices.size / FLOATS_PER_VERTEX
         if (vertexCount == 0) return
 
         val lineMesh = meshFor(vertexCount)
         lineMesh.setVertices(vertices.toFloatArray())
 
-        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST)
+        if (depthTest) {
+            Gdx.gl.glEnable(GL20.GL_DEPTH_TEST)
+        } else {
+            Gdx.gl.glDisable(GL20.GL_DEPTH_TEST)
+        }
         Gdx.gl.glDepthMask(false)
         Gdx.gl.glEnable(GL20.GL_BLEND)
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
@@ -1088,6 +1297,7 @@ class GdxLineShaderRenderer {
         lineMesh.render(shader, GL20.GL_LINES, 0, vertexCount)
 
         Gdx.gl.glDisable(GL20.GL_BLEND)
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST)
         Gdx.gl.glDepthMask(true)
     }
 
