@@ -18,6 +18,7 @@ import com.badlogic.gdx.graphics.g3d.Environment
 import com.badlogic.gdx.graphics.g3d.Model
 import com.badlogic.gdx.graphics.g3d.ModelBatch
 import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.graphics.g3d.Renderable
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader
@@ -26,8 +27,11 @@ import com.badlogic.gdx.graphics.g3d.loader.ObjLoader
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.JsonReader
+import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.utils.UBJsonReader
 import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.AssetRef
@@ -481,6 +485,11 @@ class GdxRenderer3D(
     private val gltfScenes = mutableMapOf<ModelCacheKey, GltfScene>()
     private val primitives = mutableMapOf<String, Model>()
     private val triangleCounts = mutableMapOf<String, Int>()
+    private val wireframeRenderables = Array<Renderable>()
+    private val wireframeRenderablePool = object : Pool<Renderable>() {
+        override fun newObject(): Renderable = Renderable()
+    }
+    private val wireframeTmpVertex = Vector3()
 
     private var width: Int = Gdx.graphics.width
     private var height: Int = Gdx.graphics.height
@@ -492,17 +501,25 @@ class GdxRenderer3D(
 
         val camera = cameraFor(context)
         val environment = environmentFor(context)
+        val wireframeCommands = mutableListOf<DrawModel>()
 
         lineRenderer.render(context.commands, camera)
 
         modelBatch.begin(camera)
         context.commands.forEach { command ->
             when (command) {
-                is DrawModel -> renderModel(command, environment, camera)
+                is DrawModel -> {
+                    if (command.material.wireframe) {
+                        wireframeCommands += command
+                    } else {
+                        renderModel(command, environment, camera)
+                    }
+                }
                 else -> Unit
             }
         }
         modelBatch.end()
+        wireframeCommands.forEach { renderWireframeModel(it, camera) }
 
         drawDebugOverlay(context)
         drawModelViewerOverlays(context)
@@ -586,6 +603,157 @@ class GdxRenderer3D(
         scene.modelInstance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
         scene.update(camera, Gdx.graphics.deltaTime)
         modelBatch.render(scene, environment)
+    }
+
+    private fun renderWireframeModel(command: DrawModel, camera: Camera) {
+        command.material.shader.assets().forEach(assets::queue)
+        assets.queue(command.model)
+
+        val instance = if (command.model.isGltf()) {
+            val scene = wireframeGltfScene(command, camera) ?: return
+            scene.modelInstance
+        } else {
+            val model = if (command.model.isPrimitive) {
+                primitive(command.model.path)
+            } else {
+                assets.gdxModel(command.model)
+            } ?: return
+
+            val cacheKey = ModelCacheKey(command.entityId, command.model.path)
+            val existing = instances[cacheKey]
+            if (existing?.model === model) {
+                existing
+            } else {
+                ModelInstance(model).also { created ->
+                    instances[cacheKey] = created
+                }
+            }.also { applyTransform(it, command) }
+        }
+
+        val vertices = wireframeVerticesFor(instance, command.material.baseColor)
+        lineRenderer.renderVertices(vertices, camera)
+    }
+
+    private fun wireframeGltfScene(command: DrawModel, camera: Camera): GltfScene? {
+        val sceneAsset = assets.gltfScene(command.model) ?: return null
+        val cacheKey = ModelCacheKey(command.entityId, command.model.path)
+        val scene = gltfScenes.getOrPut(cacheKey) {
+            GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
+        }
+        applyTransform(scene.modelInstance, command)
+        scene.update(camera, Gdx.graphics.deltaTime)
+        return scene
+    }
+
+    private fun applyTransform(instance: ModelInstance, command: DrawModel) {
+        val transform = command.transform
+        instance.transform.idt()
+        instance.transform.translate(transform.position.x, transform.position.y, transform.position.z)
+        instance.transform.rotate(Vector3.X, transform.eulerDegrees.x)
+        instance.transform.rotate(Vector3.Y, transform.eulerDegrees.y)
+        instance.transform.rotate(Vector3.Z, transform.eulerDegrees.z)
+        instance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
+    }
+
+    private fun wireframeVerticesFor(
+        instance: ModelInstance,
+        color: com.pashkd.krender.engine.api.Color,
+    ): List<Float> {
+        val vertices = mutableListOf<Float>()
+        wireframeRenderables.clear()
+        instance.getRenderables(wireframeRenderables, wireframeRenderablePool)
+        wireframeRenderables.forEach { renderable ->
+            appendWireframeMeshPart(vertices, renderable.meshPart, renderable.worldTransform, color)
+        }
+        wireframeRenderablePool.freeAll(wireframeRenderables)
+        wireframeRenderables.clear()
+        return vertices
+    }
+
+    private fun appendWireframeMeshPart(
+        vertices: MutableList<Float>,
+        meshPart: MeshPart,
+        transform: Matrix4,
+        color: com.pashkd.krender.engine.api.Color,
+    ) {
+        val mesh = meshPart.mesh
+        val positionAttribute = mesh.getVertexAttribute(VertexAttributes.Usage.Position) ?: return
+        val vertexStride = mesh.vertexSize / FLOAT_BYTES
+        val positionOffset = positionAttribute.offset / FLOAT_BYTES
+        val vertexData = FloatArray(mesh.numVertices * vertexStride)
+        mesh.getVertices(vertexData)
+        val indexData = if (mesh.numIndices > 0) {
+            ShortArray(mesh.numIndices).also(mesh::getIndices)
+        } else {
+            null
+        }
+
+        fun vertexIndex(localIndex: Int): Int {
+            val absoluteIndex = meshPart.offset + localIndex
+            return indexData?.getOrNull(absoluteIndex)?.toInt()?.and(UNSIGNED_SHORT_MASK) ?: absoluteIndex
+        }
+
+        fun appendEdge(localA: Int, localB: Int) {
+            appendWireframeVertex(vertices, vertexData, vertexStride, positionOffset, vertexIndex(localA), transform, color)
+            appendWireframeVertex(vertices, vertexData, vertexStride, positionOffset, vertexIndex(localB), transform, color)
+        }
+
+        when (meshPart.primitiveType) {
+            GL20.GL_TRIANGLES -> {
+                var i = 0
+                while (i + 2 < meshPart.size) {
+                    appendEdge(i, i + 1)
+                    appendEdge(i + 1, i + 2)
+                    appendEdge(i + 2, i)
+                    i += 3
+                }
+            }
+
+            GL20.GL_TRIANGLE_STRIP -> {
+                for (i in 0 until meshPart.size - 2) {
+                    appendEdge(i, i + 1)
+                    appendEdge(i + 1, i + 2)
+                    appendEdge(i + 2, i)
+                }
+            }
+
+            GL20.GL_TRIANGLE_FAN -> {
+                for (i in 1 until meshPart.size - 1) {
+                    appendEdge(0, i)
+                    appendEdge(i, i + 1)
+                    appendEdge(i + 1, 0)
+                }
+            }
+
+            GL20.GL_LINES -> {
+                var i = 0
+                while (i + 1 < meshPart.size) {
+                    appendEdge(i, i + 1)
+                    i += 2
+                }
+            }
+        }
+    }
+
+    private fun appendWireframeVertex(
+        vertices: MutableList<Float>,
+        vertexData: FloatArray,
+        vertexStride: Int,
+        positionOffset: Int,
+        vertexIndex: Int,
+        transform: Matrix4,
+        color: com.pashkd.krender.engine.api.Color,
+    ) {
+        val base = vertexIndex * vertexStride + positionOffset
+        if (base + 2 >= vertexData.size) return
+        wireframeTmpVertex.set(vertexData[base], vertexData[base + 1], vertexData[base + 2]).mul(transform)
+        vertices += wireframeTmpVertex.x
+        vertices += wireframeTmpVertex.y
+        vertices += wireframeTmpVertex.z
+        vertices += color.r
+        vertices += color.g
+        vertices += color.b
+        vertices += color.a
     }
 
     private fun cameraFor(context: RenderContext): PerspectiveCamera {
@@ -846,6 +1014,8 @@ class GdxRenderer3D(
         private const val HUD_LINE_HEIGHT = 18f
         private const val HUD_PANEL_WIDTH = 360f
         private const val LOG_PANEL_WIDTH = 560f
+        private const val FLOAT_BYTES = 4
+        private const val UNSIGNED_SHORT_MASK = 0xFFFF
     }
 }
 
@@ -897,6 +1067,10 @@ class GdxLineShaderRenderer {
             }
         }
 
+        renderVertices(vertices, camera)
+    }
+
+    fun renderVertices(vertices: List<Float>, camera: Camera) {
         val vertexCount = vertices.size / FLOATS_PER_VERTEX
         if (vertexCount == 0) return
 
@@ -946,8 +1120,8 @@ class GdxLineShaderRenderer {
 
     private fun appendAxes(vertices: MutableList<Float>, command: DrawWorldAxes) {
         val length = command.length.coerceAtLeast(1f)
-        appendLine(vertices, Vec3(-length, 0f, 0f), Vec3(length, 0f, 0f), com.pashkd.krender.engine.api.Color(0f, 1f, 0f, 1f))
-        appendLine(vertices, Vec3(0f, -length, 0f), Vec3(0f, length, 0f), com.pashkd.krender.engine.api.Color(1f, 0f, 0f, 1f))
+        appendLine(vertices, Vec3(-length, 0f, 0f), Vec3(length, 0f, 0f), com.pashkd.krender.engine.api.Color(1f, 0f, 0f, 1f))
+        appendLine(vertices, Vec3(0f, -length, 0f), Vec3(0f, length, 0f), com.pashkd.krender.engine.api.Color(0f, 1f, 0f, 1f))
         appendLine(vertices, Vec3(0f, 0f, -length), Vec3(0f, 0f, length), com.pashkd.krender.engine.api.Color(0f, 0.35f, 1f, 1f))
     }
 

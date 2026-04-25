@@ -41,6 +41,7 @@ data class Material(
     val roughness: Float = 0.75f,
     val metallic: Float = 0f,
     val shader: ShaderPipeline = ShaderPipeline(),
+    val wireframe: Boolean = false,
 )
 
 data class ModelComponent(

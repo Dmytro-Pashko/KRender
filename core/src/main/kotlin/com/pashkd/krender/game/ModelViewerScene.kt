@@ -29,6 +29,7 @@ class ModelViewerScene(
     private val model: AssetRef<ModelAsset>? = null,
     private val availableModels: List<AssetRef<ModelAsset>> = model?.let(::listOf) ?: emptyList(),
     private val modelScale: Float = 1f,
+    private var wireframeMode: Boolean = false,
     openDialogOnStart: Boolean = true,
 ) : Scene("model_viewer") {
     override val requiredAssets: List<AssetPack> = listOf(
@@ -86,6 +87,7 @@ class ModelViewerScene(
 
     override fun update(dt: Float) {
         handleDialogToggle()
+        handleWireframeToggle()
         syncCursorCapture()
         if (dialogVisible) {
             handleDialogInput()
@@ -106,8 +108,10 @@ class ModelViewerScene(
         engine.debug.put("Input", input.keysDown.joinToString().ifBlank { "none" })
         engine.debug.put("Mouse delta", "${input.mouseDelta.x.toInt()}, ${input.mouseDelta.y.toInt()}")
         engine.debug.put("Loaded model", loadedModel?.path ?: "none")
+        engine.debug.put("Wireframe", if (wireframeMode) "on" else "off")
         engine.debug.line("W/A/S/D - Navigation")
         engine.debug.line("Ctrl/Shift - Up/Down")
+        engine.debug.line("F1 - Toggle wireframe")
         engine.debug.line("` - Shows logs")
         engine.debug.line("Tab - Shows scene statistic")
     }
@@ -134,7 +138,7 @@ class ModelViewerScene(
         modelEntity.add(
             ModelComponent(
                 model = modelRef,
-                material = Material(baseColor = Color.white()),
+                material = Material(baseColor = Color.white(), wireframe = wireframeMode),
             ),
         )
     }
@@ -185,9 +189,18 @@ class ModelViewerScene(
                 model = selectedModel,
                 availableModels = models,
                 modelScale = modelScale,
+                wireframeMode = wireframeMode,
                 openDialogOnStart = false,
             ),
         )
+    }
+
+    private fun handleWireframeToggle() {
+        if (!engine.input.snapshot().wasPressed(Key.F1)) return
+        wireframeMode = !wireframeMode
+        modelEntityId?.let(world::getEntity)?.get<ModelComponent>()?.let { component ->
+            component.material = component.material.copy(wireframe = wireframeMode)
+        }
     }
 
     private fun syncCursorCapture() {
