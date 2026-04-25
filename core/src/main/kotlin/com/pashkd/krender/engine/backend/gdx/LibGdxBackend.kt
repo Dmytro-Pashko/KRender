@@ -141,28 +141,21 @@ class GdxInputService : InputService, InputProcessor {
     private var mouseDeltaY: Float = 0f
     private var scrollDelta: Float = 0f
     private var cursorCaptured: Boolean = false
+    private var ignoredWarpX: Int? = null
+    private var ignoredWarpY: Int? = null
 
     override fun beginFrame() {
-        val snapshotMousePosition = if (cursorCaptured) {
-            Vec2((Gdx.graphics.width * 0.5f), (Gdx.graphics.height * 0.5f))
-        } else {
-            Vec2(mouseX.toFloat(), mouseY.toFloat())
-        }
-        val snapshotMouseDelta = if (cursorCaptured) {
-            Vec2(Gdx.input.deltaX.toFloat(), Gdx.input.deltaY.toFloat())
-        } else {
-            Vec2(mouseDeltaX, mouseDeltaY)
-        }
         currentSnapshot = InputSnapshot(
             keysDown = keysDown.toSet(),
             keysPressedThisFrame = pressedThisFrame.toSet(),
             keysReleasedThisFrame = releasedThisFrame.toSet(),
-            mousePosition = snapshotMousePosition,
-            mouseDelta = snapshotMouseDelta,
+            mousePosition = Vec2(mouseX.toFloat(), mouseY.toFloat()),
+            mouseDelta = Vec2(mouseDeltaX, mouseDeltaY),
             scrollDelta = scrollDelta,
             pointers = pointers.values.toList(),
             viewportSize = Vec2(Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat()),
         )
+        keepCursorInsideWindow()
     }
 
     override fun snapshot(): InputSnapshot = currentSnapshot
@@ -179,11 +172,17 @@ class GdxInputService : InputService, InputProcessor {
     override fun setCursorCaptured(captured: Boolean) {
         if (cursorCaptured == captured) return
         cursorCaptured = captured
-        Gdx.input.setCursorCatched(captured)
+        Gdx.input.setCursorCatched(false)
         mouseX = Gdx.input.x
         mouseY = Gdx.input.y
         mouseDeltaX = 0f
         mouseDeltaY = 0f
+        if (captured) {
+            moveCursorToWindowCenter()
+        } else {
+            ignoredWarpX = null
+            ignoredWarpY = null
+        }
     }
 
     override fun isActionPressed(action: Action): Boolean =
@@ -215,7 +214,12 @@ class GdxInputService : InputService, InputProcessor {
     }
 
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
-        if (!cursorCaptured) {
+        if (screenX == ignoredWarpX && screenY == ignoredWarpY) {
+            ignoredWarpX = null
+            ignoredWarpY = null
+        } else {
+            ignoredWarpX = null
+            ignoredWarpY = null
             mouseDeltaX += screenX - mouseX
             mouseDeltaY += screenY - mouseY
         }
@@ -279,6 +283,35 @@ class GdxInputService : InputService, InputProcessor {
         val left = if (isDown(negative)) 1f else 0f
         val right = if (isDown(positive)) 1f else 0f
         return right - left
+    }
+
+    private fun keepCursorInsideWindow() {
+        if (!cursorCaptured) return
+
+        val width = Gdx.graphics.width
+        val height = Gdx.graphics.height
+        if (
+            mouseX <= CURSOR_EDGE_MARGIN ||
+            mouseY <= CURSOR_EDGE_MARGIN ||
+            mouseX >= width - CURSOR_EDGE_MARGIN ||
+            mouseY >= height - CURSOR_EDGE_MARGIN
+        ) {
+            moveCursorToWindowCenter()
+        }
+    }
+
+    private fun moveCursorToWindowCenter() {
+        val centerX = Gdx.graphics.width / 2
+        val centerY = Gdx.graphics.height / 2
+        ignoredWarpX = centerX
+        ignoredWarpY = centerY
+        mouseX = centerX
+        mouseY = centerY
+        Gdx.input.setCursorPosition(centerX, centerY)
+    }
+
+    companion object {
+        private const val CURSOR_EDGE_MARGIN = 24
     }
 }
 
