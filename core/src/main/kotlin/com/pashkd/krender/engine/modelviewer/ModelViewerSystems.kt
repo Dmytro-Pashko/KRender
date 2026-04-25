@@ -6,6 +6,7 @@ import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.ModelAsset
+import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
@@ -27,6 +28,8 @@ class ModelViewerSystem(
     private val onReloadSelection: (AssetRef<ModelAsset>) -> Unit,
     private val onExitRequested: () -> Unit,
 ) : System() {
+    private var loggedModelPath: String? = null
+
     /**
      * Updates render toggles, status text, and queued scene actions.
      */
@@ -39,6 +42,7 @@ class ModelViewerSystem(
         }
 
         syncStatus(world)
+        logLoadedModelDetails()
         handleRequests()
     }
 
@@ -72,6 +76,42 @@ class ModelViewerSystem(
     }
 
     /**
+     * Emits one structured metadata dump when the active model finishes loading.
+     */
+    private fun logLoadedModelDetails() {
+        val loadedModel = state.loadedModel
+        if (loadedModel == null || !state.assetLoaded) {
+            loggedModelPath = null
+            return
+        }
+        if (loggedModelPath == loadedModel.path) return
+
+        val info = assets.modelInfo(loadedModel)
+        if (info == null) {
+            logger.warn("ModelViewer") { "Model '${loadedModel.path}' is loaded but no metadata snapshot is available." }
+            loggedModelPath = loadedModel.path
+            return
+        }
+
+        logger.info("ModelViewer") {
+            "Loaded model '${info.path}' (${info.format}) size=${formatSize(info)} " +
+                "nodes=${info.nodeCount} meshes=${info.meshCount} meshParts=${info.meshPartCount} materials=${info.materialCount}"
+        }
+        logger.info("ModelViewer") {
+            "Geometry: vertices=${info.vertexCount} triangles=${info.triangleCount} " +
+                "channels=${formatList(info.vertexChannels)} uv=${formatList(info.uvChannels)}"
+        }
+        logger.info("ModelViewer") {
+            "Textures: unique=${info.textureCount} slots=${info.textureSlotCount} channels=${formatList(info.textureChannels)}"
+        }
+        logger.info("ModelViewer") {
+            "Rig: skeleton=${if (info.hasSkeleton) "yes" else "no"} bones=${info.boneCount} " +
+                "weights=${info.boneWeightChannelCount} animations=${info.animationCount} names=${formatList(info.animationNames)}"
+        }
+        loggedModelPath = loadedModel.path
+    }
+
+    /**
      * Executes deferred actions requested by the UI.
      */
     private fun handleRequests() {
@@ -92,6 +132,21 @@ class ModelViewerSystem(
             onExitRequested()
         }
     }
+
+    /**
+     * Formats a nullable size vector for log output.
+     */
+    private fun formatSize(info: ModelAssetInfo): String = info.size?.let(::formatSize) ?: "unknown"
+
+    /**
+     * Formats one size vector with fixed decimal precision.
+     */
+    private fun formatSize(size: Vec3): String = "%.2f x %.2f x %.2f".format(size.x, size.y, size.z)
+
+    /**
+     * Joins a list for concise structured log output.
+     */
+    private fun formatList(values: List<String>): String = values.ifEmpty { listOf("none") }.joinToString(", ")
 }
 
 /**

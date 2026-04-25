@@ -19,7 +19,9 @@ import com.badlogic.gdx.graphics.g3d.Model
 import com.badlogic.gdx.graphics.g3d.ModelBatch
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.Renderable
+import com.badlogic.gdx.graphics.g3d.Attribute
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader
 import com.badlogic.gdx.graphics.g3d.model.MeshPart
@@ -31,6 +33,7 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.math.collision.BoundingBox
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.Pool
@@ -56,6 +59,7 @@ import com.pashkd.krender.engine.api.LogLevel
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MainThreadTaskQueue
 import com.pashkd.krender.engine.api.ModelAsset
+import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.PointerPhase
 import com.pashkd.krender.engine.api.PointerState
 import com.pashkd.krender.engine.api.RenderContext
@@ -359,6 +363,7 @@ class GdxAssetService : AssetService {
     private val requested = mutableSetOf<String>()
     private val missing = mutableSetOf<String>()
     private val shaderSources = mutableMapOf<String, String>()
+    private val modelInfos = mutableMapOf<String, ModelAssetInfo>()
     private val modelTriangleCounts = mutableMapOf<String, Int>()
 
     init {
@@ -449,6 +454,30 @@ class GdxAssetService : AssetService {
         }
     }
 
+    /**
+     * Builds a stable metadata snapshot for the currently loaded model asset.
+     */
+    override fun modelInfo(asset: AssetRef<ModelAsset>): ModelAssetInfo? {
+        if (asset.isPrimitive || !isLoaded(asset)) return null
+        return modelInfos.getOrPut(asset.path) {
+            when {
+                asset.isGltf() -> {
+                    val sceneAsset = gltfScene(asset)
+                    val model = sceneAsset?.scene?.model
+                    if (model == null) {
+                        emptyModelInfo(asset.path, "glTF")
+                    } else {
+                        buildModelInfo(asset.path, model, sceneAsset)
+                    }
+                }
+
+                else -> gdxModel(asset)?.let { model ->
+                    buildModelInfo(asset.path, model, sceneAsset = null)
+                } ?: emptyModelInfo(asset.path, modelFormat(asset.path))
+            }
+        }
+    }
+
     override fun unload(asset: AssetRef<*>) {
         if (!asset.isPrimitive && manager.isLoaded(asset.path)) {
             manager.unload(asset.path)
@@ -456,6 +485,7 @@ class GdxAssetService : AssetService {
         requested -= asset.path
         missing -= asset.path
         shaderSources -= asset.path
+        modelInfos -= asset.path
         modelTriangleCounts -= asset.path
     }
 
@@ -476,6 +506,173 @@ class GdxAssetService : AssetService {
     fun dispose() {
         manager.dispose()
     }
+
+    /**
+     * Extracts render-relevant metadata from the loaded model and optional glTF scene asset.
+     */
+    private fun buildModelInfo(path: String, model: Model, sceneAsset: SceneAsset?): ModelAssetInfo {
+        val nodes = collectNodes(model.nodes)
+        val nodeParts = nodes.flatMap(::nodePartsOf)
+        val bounds = BoundingBox()
+        val dimensions = model.calculateBoundingBox(bounds).getDimensions(Vector3())
+        val attributeSummary = collectVertexAttributeSummary(model.meshes)
+        val textureChannels = linkedSetOf<String>()
+        val textures = linkedSetOf<Texture>()
+        var textureSlotCount = 0
+        var maxBonesPerPart = 0
+
+        model.materials.forEach { material ->
+            for (attribute in material) {
+                if (attribute is TextureAttribute) {
+                    textureSlotCount += 1
+                    textureChannels += (Attribute.getAttributeAlias(attribute.type) ?: "texture")
+                    textures += attribute.textureDescription.texture
+                }
+            }
+        }
+
+        nodeParts.forEach { part ->
+            maxBonesPerPart = maxOf(maxBonesPerPart, part.bones?.size ?: 0)
+        }
+
+        val animationNames = model.animations.mapNotNull { animation -> animation.id?.takeIf(String::isNotBlank) }
+        val textureCount = sceneAsset?.textures?.size ?: textures.size
+        return ModelAssetInfo(
+            path = path,
+            format = modelFormat(path),
+            nodeCount = nodes.size,
+            meshCount = model.meshes.size,
+            meshPartCount = model.meshParts.size,
+            materialCount = model.materials.size,
+            vertexCount = model.meshes.sumOf { mesh -> mesh.numVertices },
+            triangleCount = triangleCount(asset = AssetRef.model(path)) ?: countTrianglesInModel(model),
+            size = Vec3(dimensions.x, dimensions.y, dimensions.z),
+            vertexChannels = attributeSummary.vertexChannels.toList(),
+            uvChannels = attributeSummary.uvChannels.toList(),
+            textureChannels = textureChannels.toList(),
+            textureCount = textureCount,
+            textureSlotCount = textureSlotCount,
+            hasSkeleton = maxBonesPerPart > 0,
+            boneCount = maxBonesPerPart,
+            boneWeightChannelCount = attributeSummary.boneWeightChannelCount,
+            animationCount = model.animations.size,
+            animationNames = animationNames,
+        )
+    }
+
+    /**
+     * Returns a safe empty metadata snapshot when a backend model cannot be inspected.
+     */
+    private fun emptyModelInfo(path: String, format: String): ModelAssetInfo = ModelAssetInfo(
+        path = path,
+        format = format,
+        nodeCount = 0,
+        meshCount = 0,
+        meshPartCount = 0,
+        materialCount = 0,
+        vertexCount = 0,
+        triangleCount = 0,
+        size = null,
+        vertexChannels = emptyList(),
+        uvChannels = emptyList(),
+        textureChannels = emptyList(),
+        textureCount = 0,
+        textureSlotCount = 0,
+        hasSkeleton = false,
+        boneCount = 0,
+        boneWeightChannelCount = 0,
+        animationCount = 0,
+        animationNames = emptyList(),
+    )
+}
+
+/**
+ * Describes the collected mesh vertex channels for one loaded model.
+ */
+private data class VertexAttributeSummary(
+    /** Unique vertex channel labels across every mesh. */
+    val vertexChannels: LinkedHashSet<String>,
+    /** Unique UV channel labels across every mesh. */
+    val uvChannels: LinkedHashSet<String>,
+    /** Highest number of bone-weight channels available per vertex. */
+    val boneWeightChannelCount: Int,
+)
+
+/**
+ * Flattens the full node hierarchy into one list for logging and inspection.
+ */
+private fun collectNodes(nodes: Array<Node>): List<Node> {
+    val collected = mutableListOf<Node>()
+
+    fun visit(node: Node) {
+        collected += node
+        for (child in node.children) {
+            visit(child)
+        }
+    }
+
+    for (node in nodes) {
+        visit(node)
+    }
+    return collected
+}
+
+/**
+ * Returns every node part attached to the given node.
+ */
+private fun nodePartsOf(node: Node): List<NodePart> = buildList {
+    for (part in node.parts) {
+        add(part)
+    }
+}
+
+/**
+ * Extracts vertex-channel, UV, and skin-weight information from every mesh.
+ */
+private fun collectVertexAttributeSummary(meshes: Array<Mesh>): VertexAttributeSummary {
+    val vertexChannels = linkedSetOf<String>()
+    val uvChannels = linkedSetOf<String>()
+    var boneWeightChannelCount = 0
+
+    meshes.forEach { mesh ->
+        for (attribute in mesh.vertexAttributes) {
+            when (attribute.usage) {
+                VertexAttributes.Usage.Position -> vertexChannels += "Position"
+                VertexAttributes.Usage.Normal -> vertexChannels += "Normal"
+                VertexAttributes.Usage.ColorPacked,
+                VertexAttributes.Usage.ColorUnpacked,
+                -> vertexChannels += "Color"
+                VertexAttributes.Usage.Tangent -> vertexChannels += "Tangent"
+                VertexAttributes.Usage.BiNormal -> vertexChannels += "Binormal"
+                VertexAttributes.Usage.TextureCoordinates -> {
+                    val channel = "UV${attribute.unit}"
+                    uvChannels += channel
+                    vertexChannels += channel
+                }
+
+                VertexAttributes.Usage.BoneWeight -> {
+                    val channel = "BoneWeight${attribute.unit}"
+                    vertexChannels += channel
+                    boneWeightChannelCount = maxOf(boneWeightChannelCount, attribute.unit + 1)
+                }
+
+                else -> vertexChannels += attribute.alias.ifBlank { "Usage${attribute.usage}" }
+            }
+        }
+    }
+
+    return VertexAttributeSummary(vertexChannels, uvChannels, boneWeightChannelCount)
+}
+
+/**
+ * Formats the asset path extension as a readable model-format label.
+ */
+private fun modelFormat(path: String): String = when {
+    path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true) -> "glTF"
+    path.endsWith(".obj", ignoreCase = true) -> "OBJ"
+    path.endsWith(".g3dj", ignoreCase = true) -> "G3DJ"
+    path.endsWith(".g3db", ignoreCase = true) -> "G3DB"
+    else -> "Model"
 }
 
 private fun countTrianglesInModel(model: Model): Int =

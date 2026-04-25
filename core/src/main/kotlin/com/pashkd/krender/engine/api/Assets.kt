@@ -79,6 +79,53 @@ interface AssetService {
     /** Returns the triangle count for a loaded model asset when available. */
     fun triangleCount(asset: AssetRef<ModelAsset>): Int? = null
 
+    /** Returns a metadata snapshot for a loaded model asset when available. */
+    fun modelInfo(asset: AssetRef<ModelAsset>): ModelAssetInfo? = null
+
     /** Releases any runtime state associated with the given asset. */
     fun unload(asset: AssetRef<*>)
 }
+
+/**
+ * Summarizes the essential runtime metadata extracted from a loaded model asset.
+ */
+data class ModelAssetInfo(
+    /** Source path used to load the model. */
+    val path: String,
+    /** File or backend format label such as glTF, OBJ, or G3D. */
+    val format: String,
+    /** Total node count across the loaded model hierarchy. */
+    val nodeCount: Int,
+    /** Total mesh count referenced by the model. */
+    val meshCount: Int,
+    /** Total mesh-part count across all meshes. */
+    val meshPartCount: Int,
+    /** Total material count defined by the model. */
+    val materialCount: Int,
+    /** Total vertex count across all meshes. */
+    val vertexCount: Int,
+    /** Total triangle count across all renderable mesh parts. */
+    val triangleCount: Int,
+    /** Model-space bounding-box size. */
+    val size: Vec3?,
+    /** Vertex channels present in the model meshes. */
+    val vertexChannels: List<String>,
+    /** UV channel labels present in the model meshes. */
+    val uvChannels: List<String>,
+    /** Texture channel aliases referenced by materials. */
+    val textureChannels: List<String>,
+    /** Total number of unique textures referenced by the model. */
+    val textureCount: Int,
+    /** Total number of texture slots referenced by the model materials. */
+    val textureSlotCount: Int,
+    /** Indicates whether the model contains skinned mesh parts. */
+    val hasSkeleton: Boolean,
+    /** Maximum number of bones referenced by a single skinned mesh part. */
+    val boneCount: Int,
+    /** Maximum number of bone-weight channels present per vertex. */
+    val boneWeightChannelCount: Int,
+    /** Total number of animations available on the model. */
+    val animationCount: Int,
+    /** Animation ids exposed by the loaded model. */
+    val animationNames: List<String>,
+)
