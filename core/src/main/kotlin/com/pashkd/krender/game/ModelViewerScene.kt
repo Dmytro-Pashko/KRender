@@ -3,9 +3,14 @@ package com.pashkd.krender.game
 import com.pashkd.krender.engine.api.AssetPack
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Color
+import com.pashkd.krender.engine.api.DrawModelViewerOverlay
+import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.ModelAsset
+import com.pashkd.krender.engine.api.PointerPhase
 import com.pashkd.krender.engine.api.Scene
+import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.FreeCameraControllerComponent
@@ -21,17 +26,24 @@ import kotlin.math.sin
 
 class ModelViewerScene(
     private val model: AssetRef<ModelAsset>,
+    private val availableModels: List<AssetRef<ModelAsset>> = listOf(model),
     private val modelScale: Float = 1f,
 ) : Scene("model_viewer") {
     override val requiredAssets: List<AssetPack> = listOf(
         object : AssetPack {
-            override val assets = listOf(model)
+            override val assets = availableModels
         },
     )
+
+    private var selectedModelIndex: Int = availableModels.indexOf(model).takeIf { it >= 0 } ?: 0
+    private var loadedModel: AssetRef<ModelAsset> = model
+    private var modelEntityId: EntityId? = null
+    private var dialogVisible: Boolean = false
 
     override fun show() {
         world.systems.add(WorldGridSystem(halfExtentCells = 24, cellSize = 1f))
         world.systems.add(ModelRenderSystem())
+        world.systems.add(ModelViewerOverlaySystem(this))
 
         val camera = world.createEntity("Viewer Camera")
         camera.transform.position.set(0f, 1.6f, 5f)
@@ -64,26 +76,19 @@ class ModelViewerScene(
             ),
         )
 
-        val modelEntity = world.createEntity("Asset Model")
-        modelEntity.transform.scale.set(modelScale, modelScale, modelScale)
-        modelEntity.add(
-            ModelComponent(
-                model = model,
-                material = Material(baseColor = Color.white()),
-            ),
-        )
+        createModelEntity(loadedModel)
     }
 
     override fun update(dt: Float) {
-        updateCamera(dt)
+        handleDialogToggle()
+        if (dialogVisible) {
+            handleDialogInput()
+        } else {
+            updateCamera(dt)
+        }
         super.update(dt)
 
         val input = engine.input.snapshot()
-        if (input.wasPressed(Key.Escape)) {
-            engine.scenes.pop()
-            return
-        }
-
         val camera = world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull()
         val cameraPosition = camera?.transform?.position
         if (cameraPosition != null) {
@@ -94,7 +99,77 @@ class ModelViewerScene(
         }
         engine.debug.put("Input", input.keysDown.joinToString().ifBlank { "none" })
         engine.debug.put("Mouse delta", "${input.mouseDelta.x.toInt()}, ${input.mouseDelta.y.toInt()}")
+        engine.debug.put("Loaded model", loadedModel.path)
         engine.debug.line("WASD moves the camera. Mouse rotates the view.")
+    }
+
+    fun overlayCommand(): DrawModelViewerOverlay? {
+        if (!dialogVisible) return null
+        return DrawModelViewerOverlay(
+        models = availableModels.map { it.path },
+        selectedIndex = selectedModelIndex,
+        loadedModel = loadedModel.path,
+        )
+    }
+
+    private fun createModelEntity(modelRef: AssetRef<ModelAsset>) {
+        modelEntityId?.let(world::removeEntity)
+        val modelEntity = world.createEntity("Asset Model")
+        modelEntityId = modelEntity.id
+        modelEntity.transform.scale.set(modelScale, modelScale, modelScale)
+        modelEntity.add(
+            ModelComponent(
+                model = modelRef,
+                material = Material(baseColor = Color.white()),
+            ),
+        )
+    }
+
+    private fun handleDialogToggle() {
+        if (engine.input.snapshot().wasPressed(Key.Escape)) {
+            dialogVisible = !dialogVisible
+        }
+    }
+
+    private fun handleDialogInput() {
+        val input = engine.input.snapshot()
+        val click = input.pointers.firstOrNull { it.phase == PointerPhase.Up }?.screenPosition ?: return
+        val x = click.x
+        val y = click.y
+
+        if (x < Overlay.X || x > Overlay.X + Overlay.Width || y < Overlay.Y) return
+
+        val listTop = Overlay.Y + Overlay.HeaderHeight
+        val listBottom = listTop + availableModels.size * Overlay.RowHeight
+        if (y in listTop..listBottom) {
+            val index = ((y - listTop) / Overlay.RowHeight).toInt()
+            if (index in availableModels.indices) {
+                selectedModelIndex = index
+            }
+            return
+        }
+
+        val buttonY = listBottom + Overlay.Padding
+        if (y in buttonY..(buttonY + Overlay.ButtonHeight)) {
+            val loadX = Overlay.X
+            val exitX = Overlay.X + Overlay.ButtonWidth + Overlay.Padding
+            when {
+                x in loadX..(loadX + Overlay.ButtonWidth) -> reloadWithSelectedModel()
+                x in exitX..(exitX + Overlay.ButtonWidth) -> engine.requestExit()
+            }
+        }
+    }
+
+    private fun reloadWithSelectedModel() {
+        val selectedModel = availableModels.getOrNull(selectedModelIndex) ?: return
+        engine.logger.info("ModelViewer") { "Reloading scene with '${selectedModel.path}'" }
+        engine.scenes.replace(
+            ModelViewerScene(
+                model = selectedModel,
+                availableModels = availableModels,
+                modelScale = modelScale,
+            ),
+        )
     }
 
     private fun updateCamera(dt: Float) {
@@ -132,5 +207,24 @@ class ModelViewerScene(
             transform.position.x += (forward.x * moveZ + right.x * moveX) * speed * dt
             transform.position.z += (forward.z * moveZ + right.z * moveX) * speed * dt
         }
+    }
+
+    private data object Overlay {
+        const val X = 12f
+        const val Y = 12f
+        const val Width = 320f
+        const val HeaderHeight = 34f
+        const val RowHeight = 26f
+        const val ButtonHeight = 30f
+        const val ButtonWidth = 96f
+        const val Padding = 8f
+    }
+}
+
+private class ModelViewerOverlaySystem(
+    private val scene: ModelViewerScene,
+) : System() {
+    override fun render(world: SceneWorld, alpha: Float) {
+        scene.overlayCommand()?.let(world.renderCommands::submit)
     }
 }

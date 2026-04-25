@@ -52,6 +52,13 @@ data class DrawText(
     override val sortKey: Int = 100,
 ) : RenderCommand
 
+data class DrawModelViewerOverlay(
+    val models: List<String>,
+    val selectedIndex: Int,
+    val loadedModel: String,
+    override val sortKey: Int = 1000,
+) : RenderCommand
+
 class RenderCommandBuffer {
     private val commands = mutableListOf<RenderCommand>()
 

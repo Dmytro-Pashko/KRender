@@ -18,6 +18,8 @@ interface EngineContext {
     val logger: Logger
     val debug: DebugService
     val tasks: TaskService
+
+    fun requestExit()
 }
 
 /**
@@ -32,6 +34,8 @@ interface EngineBackend {
     val debug: DebugService
     val tasks: TaskService
     val renderer: Renderer
+
+    fun requestExit()
 }
 
 class GameLoop(
@@ -84,9 +88,19 @@ class GameLoop(
         backend.debug.measure("update") {
             scene.update(delta)
         }
+        if (runtime.completeExitIfRequested()) {
+            backend.input.endFrame()
+            backend.debug.endFrame(delta, fixedUpdates)
+            return
+        }
 
         backend.debug.measure("lateUpdate") {
             scene.lateUpdate(delta)
+        }
+        if (runtime.completeExitIfRequested()) {
+            backend.input.endFrame()
+            backend.debug.endFrame(delta, fixedUpdates)
+            return
         }
 
         backend.debug.measure("render.collect") {
@@ -125,6 +139,7 @@ class EngineRuntime(
 
     private val gameLoop = GameLoop(this, backend, config)
     private var running = false
+    private var exitRequested = false
 
     fun start(scene: Scene) {
         running = true
@@ -136,6 +151,17 @@ class EngineRuntime(
         if (running) {
             gameLoop.renderFrame(deltaSeconds)
         }
+    }
+
+    override fun requestExit() {
+        exitRequested = true
+    }
+
+    internal fun completeExitIfRequested(): Boolean {
+        if (!exitRequested) return false
+        dispose()
+        backend.requestExit()
+        return true
     }
 
     fun resize(width: Int, height: Int) {
