@@ -290,13 +290,24 @@ class TerrainEditorControlsPanel(
         ImGui.checkbox("Wireframe", state::wireframeEnabled)
 
         ImGui.separator()
+        ImGui.text("Controls")
+        ImGui.bulletText("Mouse drag - Apply brush")
+        ImGui.bulletText("Ctrl + Z - Undo")
+        ImGui.bulletText("Ctrl + Y / Ctrl + Shift + Z - Redo")
+        ImGui.bulletText("Mouse wheel - Brush radius")
+        ImGui.bulletText("Shift + Mouse wheel - Brush strength")
+        ImGui.bulletText("W/A/S/D - Pan camera")
+        ImGui.bulletText("R/F - Move camera up/down")
+        ImGui.bulletText("Q/E - Rotate camera")
+
+        ImGui.separator()
         ImGui.text("History")
-        ImGui.text("Unsaved changes: %s", formatBoolean(state.hasUnsavedChanges))
-        ImGui.text("Undo actions: %d", state.undoCount)
-        ImGui.text("Redo actions: %d", state.redoCount)
-        ImGui.text("Next undo: %s", state.undoLabel ?: "none")
-        ImGui.text("Next redo: %s", state.redoLabel ?: "none")
-        ImGui.text("History memory: %s", formatHistoryMemory(state.historyMemoryBytes))
+        ImGui.text("Unsaved changes: ${formatBoolean(state.hasUnsavedChanges)}")
+        ImGui.text("Undo actions: ${state.undoCount}")
+        ImGui.text("Redo actions: ${state.redoCount}")
+        ImGui.text("Next undo: ${state.undoLabel ?: "none"}")
+        ImGui.text("Next redo: ${state.redoLabel ?: "none"}")
+        ImGui.text("History memory: ${formatHistoryMemory(state.historyMemoryBytes)}")
         ImGui.beginDisabled(!state.canUndo)
         with(dsl) {
             button("Undo") {
@@ -323,17 +334,6 @@ class TerrainEditorControlsPanel(
         drawHistoryPreview("--- Undo Stack ---", state.undoPreview)
         drawHistoryPreview("--- Redo Stack ---", state.redoPreview)
 
-        ImGui.separator()
-        ImGui.text("Controls")
-        ImGui.bulletText("Mouse drag - Apply brush")
-        ImGui.bulletText("Ctrl + Z - Undo")
-        ImGui.bulletText("Ctrl + Y / Ctrl + Shift + Z - Redo")
-        ImGui.bulletText("Mouse wheel - Brush radius")
-        ImGui.bulletText("Shift + Mouse wheel - Brush strength")
-        ImGui.bulletText("W/A/S/D - Pan camera")
-        ImGui.bulletText("R/F - Move camera up/down")
-        ImGui.bulletText("Q/E - Rotate camera")
-
         ImGui.end()
     }
 }
@@ -356,7 +356,7 @@ private fun drawHistoryPreview(
         return
     }
     preview.forEach { patch ->
-        ImGui.text("%s", formatPatchInfo(patch))
+        ImGui.text(formatPatchInfo(patch))
     }
 }
 
