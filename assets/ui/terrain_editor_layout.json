@@ -2,21 +2,21 @@
   "panels": {
     "terrain": {
       "title": "Terrain",
-      "x": 1580,
-      "y": 15,
+      "x": 1590,
+      "y": 10,
       "width": 320,
       "height": 360
     },
     "brush": {
       "title": "Brush",
-      "x": 1580,
+      "x": 1590,
       "y": 380,
       "width": 320,
       "height": 300
     },
     "layers": {
       "title": "Layers",
-      "x": 1580,
+      "x": 1590,
       "y": 685,
       "width": 320,
       "height": 300
@@ -24,7 +24,7 @@
     "control": {
       "title": "Control",
       "x": 10,
-      "y": 271,
+      "y": 305,
       "width": 320,
       "height": 260
     },

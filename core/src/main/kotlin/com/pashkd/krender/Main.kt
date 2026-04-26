@@ -12,7 +12,7 @@ class Main(
 ) : GdxEngineApplication(
     initialScene = {
         when (sceneName.lowercase()) {
-            "viewer", "model-viewer", "model_viewer" -> ModelViewerScene(
+            "model-viewer" -> ModelViewerScene(
                 model = null,
                 availableModels = discoverModelPaths(modelPath).map(AssetRef.Companion::model),
             )
@@ -34,7 +34,7 @@ class Main(
     },
 ) {
     companion object {
-        fun defaultScene(): String = System.getProperty("krender.scene", "model_viewer")
+        fun defaultScene(): String = System.getProperty("krender.scene", "terrain-generator")
         fun defaultModelPath(): String? = System.getProperty("krender.model")?.takeIf(String::isNotBlank)
         fun defaultTerrainResolution(): Int = System.getProperty("krender.terrain.size", "128").toIntOrNull() ?: 128
         fun defaultTerrainSpacing(): Float = System.getProperty("krender.terrain.spacing", "1.0").toFloatOrNull() ?: 1f

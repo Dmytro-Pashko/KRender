@@ -28,13 +28,6 @@
       "width": 320,
       "height": 275
     },
-    "debugControls": {
-      "title": "Controls",
-      "x": 15,
-      "y": 279,
-      "width": 320,
-      "height": 220
-    },
     "logs": {
       "title": "Logs",
       "x": 15,
