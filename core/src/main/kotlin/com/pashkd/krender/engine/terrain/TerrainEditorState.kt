@@ -76,6 +76,10 @@ data class TerrainEditorState(
     var redoPreview: List<TerrainEditPatchInfo> = emptyList(),
     /** True when editor terrain data changed since the last save/reset point. */
     var hasUnsavedChanges: Boolean = false,
+    /** Current terrain history revision used for dirty-state checks. */
+    var currentHistoryRevision: Long = 0L,
+    /** Last clean terrain history revision used for dirty-state checks. */
+    var cleanHistoryRevision: Long = 0L,
     /** Queues a terrain regeneration on the next update. */
     var regenerateRequested: Boolean = false,
     /** Queues terrain edit undo on the next update. */

@@ -109,6 +109,7 @@ class GameLoop(
         backend.debug.put("Entities", scene.world.all().size)
         backend.debug.put("Commands", scene.world.commands.size())
         backend.debug.put("Jobs", backend.tasks.inFlightJobs)
+        putJvmMemoryStats(backend.debug)
 
         accumulator += delta
         backend.debug.measure("fixedUpdate") {
@@ -159,6 +160,22 @@ class GameLoop(
         backend.input.endFrame()
         backend.debug.endFrame(delta, fixedUpdates)
     }
+
+    private fun putJvmMemoryStats(debug: DebugService) {
+        val runtime = Runtime.getRuntime()
+        val total = runtime.totalMemory()
+        val free = runtime.freeMemory()
+        val used = total - free
+        val max = runtime.maxMemory()
+        debug.put("JVM Memory", "")
+        debug.put("Used", formatMemoryMb(used))
+        debug.put("Free", formatMemoryMb(free))
+        debug.put("Total", formatMemoryMb(total))
+        debug.put("Max", formatMemoryMb(max))
+    }
+
+    private fun formatMemoryMb(bytes: Long): String =
+        "%.1f MB".format(bytes / 1024f / 1024f)
 }
 
 /**

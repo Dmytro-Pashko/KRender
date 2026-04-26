@@ -88,9 +88,7 @@ class TerrainEditorSystem(
         val pointerReleased = snapshot.pointers.any { it.phase == PointerPhase.Up || it.phase == PointerPhase.Cancelled }
 
         if ((pointerReleased || hoveredHit == null) && brushActive) {
-            if (finishBrushStroke()) {
-                state.hasUnsavedChanges = true
-            }
+            finishBrushStroke()
         }
 
         if (pointerDown && hoveredHit != null) {
@@ -221,6 +219,9 @@ class TerrainEditorSystem(
         state.historyMemoryBytes = editHistory.estimatedMemoryBytes()
         state.undoPreview = editHistory.getUndoPreview()
         state.redoPreview = editHistory.getRedoPreview()
+        state.hasUnsavedChanges = editHistory.hasUnsavedChanges()
+        state.currentHistoryRevision = editHistory.currentRevision()
+        state.cleanHistoryRevision = editHistory.cleanRevision()
     }
 
     private fun processHistoryCommands(
@@ -231,31 +232,27 @@ class TerrainEditorSystem(
         var commandHandled = false
         if (state.clearHistoryRequested) {
             state.clearHistoryRequested = false
-            if (finishBrushStroke()) {
-                state.hasUnsavedChanges = true
-            }
+            finishBrushStroke()
+            val wasDirty = editHistory.hasUnsavedChanges()
             editHistory.clear()
+            if (!wasDirty) {
+                editHistory.markClean()
+            }
             commandHandled = true
         }
         if (state.undoRequested) {
             state.undoRequested = false
-            if (finishBrushStroke()) {
-                state.hasUnsavedChanges = true
-            }
+            finishBrushStroke()
             if (editHistory.undo(terrain.data)) {
                 changed = true
-                state.hasUnsavedChanges = true
             }
             commandHandled = true
         }
         if (state.redoRequested) {
             state.redoRequested = false
-            if (finishBrushStroke()) {
-                state.hasUnsavedChanges = true
-            }
+            finishBrushStroke()
             if (editHistory.redo(terrain.data)) {
                 changed = true
-                state.hasUnsavedChanges = true
             }
             commandHandled = true
         }
@@ -267,20 +264,14 @@ class TerrainEditorSystem(
                 (shiftDown && snapshot.wasPressed(Key.Z))
             val undoPressed = !shiftDown && snapshot.wasPressed(Key.Z)
             if (redoPressed) {
-                if (finishBrushStroke()) {
-                    state.hasUnsavedChanges = true
-                }
+                finishBrushStroke()
                 if (editHistory.redo(terrain.data)) {
                     changed = true
-                    state.hasUnsavedChanges = true
                 }
             } else if (undoPressed) {
-                if (finishBrushStroke()) {
-                    state.hasUnsavedChanges = true
-                }
+                finishBrushStroke()
                 if (editHistory.undo(terrain.data)) {
                     changed = true
-                    state.hasUnsavedChanges = true
                 }
             }
         }
@@ -334,9 +325,7 @@ class TerrainEditorSystem(
 
         if (state.removeLayerRequested) {
             state.removeLayerRequested = false
-            if (finishBrushStroke()) {
-                state.hasUnsavedChanges = true
-            }
+            finishBrushStroke()
             editHistory.clear()
             val selectedLayerId = state.selectedLayerId
             if (selectedLayerId != null && terrain.data.removeLayer(selectedLayerId)) {
@@ -347,9 +336,8 @@ class TerrainEditorSystem(
         if (state.regenerateRequested) {
             state.regenerateRequested = false
             finishBrushStroke()
-            editHistory.clear()
+            editHistory.clearAndMarkClean()
             regenerateTerrain(terrain, renderer)
-            state.hasUnsavedChanges = false
         }
     }
 

@@ -291,10 +291,12 @@ class TerrainEditorControlsPanel(
 
         ImGui.separator()
         ImGui.text("History")
-        ImGui.text("Undo: %s (%d)", state.undoLabel ?: "none", state.undoCount)
-        ImGui.text("Redo: %s (%d)", state.redoLabel ?: "none", state.redoCount)
-        ImGui.text("Memory: %s", formatHistoryMemory(state.historyMemoryBytes))
-        ImGui.text("Unsaved changes: %s", if (state.hasUnsavedChanges) "yes" else "no")
+        ImGui.text("Unsaved changes: %s", formatBoolean(state.hasUnsavedChanges))
+        ImGui.text("Undo actions: %d", state.undoCount)
+        ImGui.text("Redo actions: %d", state.redoCount)
+        ImGui.text("Next undo: %s", state.undoLabel ?: "none")
+        ImGui.text("Next redo: %s", state.redoLabel ?: "none")
+        ImGui.text("History memory: %s", formatHistoryMemory(state.historyMemoryBytes))
         ImGui.beginDisabled(!state.canUndo)
         with(dsl) {
             button("Undo") {
@@ -318,10 +320,8 @@ class TerrainEditorControlsPanel(
             }
         }
         ImGui.endDisabled()
-        ImGui.text("--- Undo Stack ---")
-        drawHistoryPreview(state.undoPreview)
-        ImGui.text("--- Redo Stack ---")
-        drawHistoryPreview(state.redoPreview)
+        drawHistoryPreview("--- Undo Stack ---", state.undoPreview)
+        drawHistoryPreview("--- Redo Stack ---", state.redoPreview)
 
         ImGui.separator()
         ImGui.text("Controls")
@@ -346,16 +346,26 @@ private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
     ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
 }
 
-private fun drawHistoryPreview(preview: List<TerrainEditPatchInfo>) {
+private fun drawHistoryPreview(
+    title: String,
+    preview: List<TerrainEditPatchInfo>,
+) {
+    ImGui.text(title)
     if (preview.isEmpty()) {
         ImGui.text("empty")
         return
     }
     preview.forEach { patch ->
-        val samples = patch.heightChanges + patch.layerChanges
-        ImGui.text("[%s - %d samples]", patch.label, samples)
+        ImGui.text("%s", formatPatchInfo(patch))
     }
 }
+
+private fun formatPatchInfo(info: TerrainEditPatchInfo): String {
+    val total = info.heightChanges + info.layerChanges
+    return "${info.label} | height: ${info.heightChanges} | layers: ${info.layerChanges} | total: $total"
+}
+
+private fun formatBoolean(value: Boolean): String = if (value) "yes" else "no"
 
 private fun formatHistoryMemory(bytes: Long): String =
     if (bytes < 1024L) {

@@ -127,8 +127,11 @@ class TerrainEditPatchBuilder(
 class TerrainEditHistory(
     private val maxUndoSteps: Int = 100,
 ) {
-    private val undoStack = ArrayDeque<TerrainEditPatch>()
-    private val redoStack = ArrayDeque<TerrainEditPatch>()
+    private val undoStack = ArrayDeque<HistoryEntry>()
+    private val redoStack = ArrayDeque<HistoryEntry>()
+    private var nextRevision: Long = 1L
+    private var currentRevision: Long = 0L
+    private var cleanRevision: Long = 0L
 
     init {
         require(maxUndoSteps > 0) { "Terrain edit history must keep at least one undo step" }
@@ -142,49 +145,75 @@ class TerrainEditHistory(
 
     fun push(patch: TerrainEditPatch): Boolean {
         if (patch.isEmpty()) return false
-        undoStack.addLast(patch)
+        val entry = HistoryEntry(
+            patch = patch,
+            beforeRevision = currentRevision,
+            afterRevision = nextRevision(),
+        )
+        undoStack.addLast(entry)
         if (undoStack.size > maxUndoSteps) {
             undoStack.removeFirst()
         }
         redoStack.clear()
+        currentRevision = entry.afterRevision
         return true
     }
 
     fun undo(data: TerrainData): Boolean {
-        val patch = undoStack.removeLastOrNull() ?: return false
-        applyOldValues(data, patch)
-        redoStack.addLast(patch)
+        val entry = undoStack.removeLastOrNull() ?: return false
+        applyOldValues(data, entry.patch)
+        currentRevision = entry.beforeRevision
+        redoStack.addLast(entry)
         return true
     }
 
     fun redo(data: TerrainData): Boolean {
-        val patch = redoStack.removeLastOrNull() ?: return false
-        applyNewValues(data, patch)
-        undoStack.addLast(patch)
+        val entry = redoStack.removeLastOrNull() ?: return false
+        applyNewValues(data, entry.patch)
+        currentRevision = entry.afterRevision
+        undoStack.addLast(entry)
         return true
     }
 
     fun clear() {
         undoStack.clear()
         redoStack.clear()
+        currentRevision = nextRevision()
     }
 
-    fun peekUndoLabel(): String? = undoStack.lastOrNull()?.label
+    fun clearAndMarkClean() {
+        undoStack.clear()
+        redoStack.clear()
+        currentRevision = nextRevision()
+        cleanRevision = currentRevision
+    }
 
-    fun peekRedoLabel(): String? = redoStack.lastOrNull()?.label
+    fun markClean() {
+        cleanRevision = currentRevision
+    }
+
+    fun hasUnsavedChanges(): Boolean = currentRevision != cleanRevision
+
+    fun currentRevision(): Long = currentRevision
+
+    fun cleanRevision(): Long = cleanRevision
+
+    fun peekUndoLabel(): String? = undoStack.lastOrNull()?.patch?.label
+
+    fun peekRedoLabel(): String? = redoStack.lastOrNull()?.patch?.label
 
     fun undoCount(): Int = undoStack.size
 
     fun redoCount(): Int = redoStack.size
 
     fun estimatedMemoryBytes(): Long =
-        (undoStack.asSequence() + redoStack.asSequence()).sumOf { it.estimatedMemoryBytes() }
+        (undoStack.asSequence() + redoStack.asSequence()).sumOf { it.patch.estimatedMemoryBytes() }
 
     fun getUndoPreview(limit: Int = 10): List<TerrainEditPatchInfo> =
-        undoStack.reversed().take(limit.coerceAtLeast(0)).map { it.toInfo() }
+        undoStack.reversed().take(limit.coerceAtLeast(0)).map { it.patch.toInfo() }
 
     fun getRedoPreview(limit: Int = 10): List<TerrainEditPatchInfo> =
-        redoStack.reversed().take(limit.coerceAtLeast(0)).map { it.toInfo() }
+        redoStack.reversed().take(limit.coerceAtLeast(0)).map { it.patch.toInfo() }
 
     fun jumpToUndoIndex(index: Int, data: TerrainData) {
         require(index >= 0) { "Undo index must be >= 0" }
@@ -220,6 +249,14 @@ class TerrainEditHistory(
 
     private fun TerrainEditPatch.estimatedMemoryBytes(): Long =
         heightChanges.size * HEIGHT_CHANGE_BYTES + layerWeightChanges.size * LAYER_WEIGHT_CHANGE_BYTES
+
+    private fun nextRevision(): Long = nextRevision++
+
+    private data class HistoryEntry(
+        val patch: TerrainEditPatch,
+        val beforeRevision: Long,
+        val afterRevision: Long,
+    )
 
     private companion object {
         private const val HEIGHT_CHANGE_BYTES = 16L
