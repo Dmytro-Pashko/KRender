@@ -189,6 +189,15 @@ class TerrainEditorBrushPanel(
         brushModeButton("Paint Layer", TerrainBrushMode.PaintLayer)
 
         ImGui.separator()
+        ImGui.text("Layer Paint")
+        paintModeButton("Add", TerrainLayerPaintMode.Add)
+        ImGui.sameLine()
+        paintModeButton("Erase", TerrainLayerPaintMode.Erase)
+        ImGui.checkbox("Hold Alt to erase", state::eraseWhileAltDown)
+        ImGui.text("Paint mode: %s", formatPaintMode(state.layerPaintMode))
+        ImGui.text("Hold Alt to erase")
+
+        ImGui.separator()
         ImGui.text("Status")
         ImGui.text("Mode: %s", state.brushMode.name)
         ImGui.text("Hovered: %s", state.hoveredTerrainPosition)
@@ -211,6 +220,12 @@ class TerrainEditorBrushPanel(
             button(label) {
                 state.brushMode = mode
             }
+        }
+    }
+
+    private fun paintModeButton(label: String, mode: TerrainLayerPaintMode) {
+        if (ImGui.selectable("$label##layer_paint_$mode", state.layerPaintMode == mode)) {
+            state.layerPaintMode = mode
         }
     }
 }
@@ -442,6 +457,18 @@ class TerrainEditorControlsPanel(
         ImGui.checkbox("Wireframe", state::wireframeEnabled)
 
         ImGui.separator()
+        ImGui.text("Layer Preview")
+        if (ImGui.checkbox("Show color preview", state::showLayerColorPreview)) {
+            state.previewSettingsChanged = true
+        }
+        blendModeButton("Weighted Average", TerrainLayerBlendMode.WeightedAverage)
+        blendModeButton("Ordered Alpha", TerrainLayerBlendMode.OrderedAlpha)
+        blendModeButton("Max Weight", TerrainLayerBlendMode.MaxWeight)
+        if (state.previewMessage.isNotBlank()) {
+            ImGui.text("Preview status: ${state.previewMessage}")
+        }
+
+        ImGui.separator()
         ImGui.text("Controls")
         ImGui.bulletText("Mouse drag - Apply brush")
         ImGui.bulletText("Ctrl + Z - Undo")
@@ -487,6 +514,13 @@ class TerrainEditorControlsPanel(
         drawHistoryPreview("--- Redo Stack ---", state.redoPreview)
 
         ImGui.end()
+    }
+
+    private fun blendModeButton(label: String, mode: TerrainLayerBlendMode) {
+        if (ImGui.selectable("$label##terrain_blend_$mode", state.layerBlendMode == mode)) {
+            state.layerBlendMode = mode
+            state.previewSettingsChanged = true
+        }
     }
 }
 
@@ -547,6 +581,12 @@ private fun formatPatchInfo(info: TerrainEditPatchInfo): String {
 }
 
 private fun formatBoolean(value: Boolean): String = if (value) "yes" else "no"
+
+private fun formatPaintMode(mode: TerrainLayerPaintMode): String =
+    when (mode) {
+        TerrainLayerPaintMode.Add -> "Add"
+        TerrainLayerPaintMode.Erase -> "Erase"
+    }
 
 private fun formatHistoryMemory(bytes: Long): String =
     if (bytes < 1024L) {

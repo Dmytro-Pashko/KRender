@@ -67,6 +67,18 @@ data class TerrainEditorState(
     var showAxes: Boolean = false,
     /** Controls whether terrain is rendered in wireframe mode. */
     var wireframeEnabled: Boolean = false,
+    /** Controls whether terrain uses generated layer color preview vertex colors. */
+    var showLayerColorPreview: Boolean = true,
+    /** Color preview blend mode used by terrain mesh generation. */
+    var layerBlendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
+    /** Queues a terrain mesh rebuild after preview settings changed. */
+    var previewSettingsChanged: Boolean = false,
+    /** Last terrain preview status message shown in the control panel. */
+    var previewMessage: String = "",
+    /** Paint behavior for terrain layer weights when Paint Layer brush mode is active. */
+    var layerPaintMode: TerrainLayerPaintMode = TerrainLayerPaintMode.Add,
+    /** Allows holding Alt to temporarily erase layer paint. */
+    var eraseWhileAltDown: Boolean = true,
     /** Current terrain layer list mirrored from runtime terrain data. */
     var layers: List<TerrainLayerOption> = emptyList(),
     /** Terrain material definitions available for layer assignment. */

@@ -45,6 +45,7 @@ class TerrainEditorSystem(
     private val editHistory = TerrainEditHistory()
     private val terrainPersistence = TerrainPersistence(logger)
     private var activePatchBuilder: TerrainEditPatchBuilder? = null
+    private var activeLayerPaintSign: Float = 1f
 
     /**
      * Processes editor input and applies brush strokes to terrain data.
@@ -108,6 +109,7 @@ class TerrainEditorSystem(
             if (!brushActive) {
                 brushActive = true
                 flattenHeight = terrain.data.sampleHeight(hit.localX, hit.localZ)
+                activeLayerPaintSign = effectiveLayerPaintSign(snapshot)
                 activePatchBuilder = TerrainEditPatchBuilder(buildPatchLabel())
             }
 
@@ -121,6 +123,7 @@ class TerrainEditorSystem(
                 deltaSeconds = dt,
                 flattenHeight = flattenHeight,
                 targetLayerId = state.selectedLayerId,
+                layerWeightDeltaSign = if (state.brushMode == TerrainBrushMode.PaintLayer) activeLayerPaintSign else 1f,
             )
 
             if (TerrainBrushApplier.apply(terrain.data, stroke, activePatchBuilder)) {
@@ -321,6 +324,7 @@ class TerrainEditorSystem(
         activePatchBuilder = null
         brushActive = false
         flattenHeight = null
+        activeLayerPaintSign = 1f
         return pushed
     }
 
@@ -330,7 +334,12 @@ class TerrainEditorSystem(
             TerrainBrushMode.Lower -> "Lower terrain"
             TerrainBrushMode.Flatten -> "Flatten to ${"%.2f".format(flattenHeight ?: 0f)}"
             TerrainBrushMode.Smooth -> "Smooth terrain"
-            TerrainBrushMode.PaintLayer -> "Paint layer: ${state.selectedLayerId ?: "none"}"
+            TerrainBrushMode.PaintLayer -> {
+                val layerLabel = state.layers.firstOrNull { it.id == state.selectedLayerId }?.name
+                    ?: state.selectedLayerId?.toString()
+                    ?: "none"
+                if (activeLayerPaintSign < 0f) "Erase layer: $layerLabel" else "Paint layer: $layerLabel"
+            }
         }
 
     private fun syncRendererStateFromControls(renderer: TerrainRendererComponent) {
@@ -348,6 +357,12 @@ class TerrainEditorSystem(
         terrain: TerrainComponent,
         renderer: TerrainRendererComponent,
     ) {
+        if (state.previewSettingsChanged) {
+            state.previewSettingsChanged = false
+            terrain.markDirty()
+            state.previewMessage = "Preview: ${formatBlendMode(state.layerBlendMode)}"
+        }
+
         if (state.createTerrainRequested) {
             state.createTerrainRequested = false
             finishBrushStroke()
@@ -497,6 +512,7 @@ class TerrainEditorSystem(
                 activePatchBuilder = null
                 brushActive = false
                 flattenHeight = null
+                activeLayerPaintSign = 1f
                 logger.info(TAG) { "Load terrain completed path='${state.terrainFilePath}' name='${descriptor.name}' (${loaded.describeTerrain()})" }
             } catch (error: Exception) {
                 state.persistenceMessage = "Load failed: ${error.message}"
@@ -557,6 +573,7 @@ class TerrainEditorSystem(
         activePatchBuilder = null
         brushActive = false
         flattenHeight = null
+        activeLayerPaintSign = 1f
         logger.debug(TAG) { "Regenerate finished generator='${generator.id}' (${regenerated.describeTerrain()})" }
     }
 
@@ -656,6 +673,17 @@ class TerrainEditorSystem(
     private fun formatPosition(position: Vec3): String =
         "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
+    private fun effectiveLayerPaintSign(snapshot: com.pashkd.krender.engine.api.InputSnapshot): Float {
+        val altErase = state.eraseWhileAltDown && (snapshot.isDown(Key.AltLeft) || snapshot.isDown(Key.AltRight))
+        return if (state.brushMode == TerrainBrushMode.PaintLayer &&
+            (state.layerPaintMode == TerrainLayerPaintMode.Erase || altErase)
+        ) {
+            -1f
+        } else {
+            1f
+        }
+    }
+
     private fun defaultLayerColor(index: Int): TerrainLayerColorDescriptor {
         val colors = listOf(
             TerrainLayerColorDescriptor(0.25f, 0.65f, 0.2f, 1f),
@@ -680,6 +708,8 @@ class TerrainEditorSystem(
  */
 class TerrainMeshSyncSystem(
     private val materialColorResolver: (String?) -> TerrainLayerColorDescriptor? = { null },
+    private val blendModeProvider: () -> TerrainLayerBlendMode = { TerrainLayerBlendMode.WeightedAverage },
+    private val layerColorPreviewProvider: () -> Boolean = { true },
 ) : System() {
     /**
      * Rebuilds full terrain meshes for dirty terrain entities.
@@ -690,7 +720,12 @@ class TerrainMeshSyncSystem(
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
             if (!terrain.dirty) return@forEach
 
-            val mesh = TerrainMeshBuilder.build(terrain.data, materialColorResolver)
+            val mesh = TerrainMeshBuilder.build(
+                data = terrain.data,
+                materialColorResolver = materialColorResolver,
+                blendMode = blendModeProvider(),
+                enableLayerColorPreview = layerColorPreviewProvider(),
+            )
             renderer.meshRevision += 1L
             renderer.model = com.pashkd.krender.engine.api.DynamicModel(
                 id = renderer.modelId,
@@ -957,6 +992,13 @@ private fun distance(a: Vec3, b: Vec3): Float {
 
 private fun TerrainData.describeTerrain(): String =
     "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${allLayers().joinToString { layer -> "${layer.id}:${layer.name}" }}]"
+
+private fun formatBlendMode(mode: TerrainLayerBlendMode): String =
+    when (mode) {
+        TerrainLayerBlendMode.WeightedAverage -> "Weighted Average"
+        TerrainLayerBlendMode.OrderedAlpha -> "Ordered Alpha"
+        TerrainLayerBlendMode.MaxWeight -> "Max Weight"
+    }
 
 internal fun assignTerrainLayerMaterial(
     terrainData: TerrainData,

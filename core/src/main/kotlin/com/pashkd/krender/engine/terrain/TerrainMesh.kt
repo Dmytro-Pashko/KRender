@@ -4,6 +4,12 @@ import com.pashkd.krender.engine.api.DynamicMesh
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+enum class TerrainLayerBlendMode {
+    WeightedAverage,
+    OrderedAlpha,
+    MaxWeight,
+}
+
 /**
  * CPU-side mesh representation generated from [TerrainData].
  */
@@ -51,12 +57,18 @@ object TerrainMeshBuilder {
     fun build(
         data: TerrainData,
         materialColorResolver: (String?) -> TerrainLayerColorDescriptor? = { null },
+        blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
+        enableLayerColorPreview: Boolean = true,
     ): TerrainMeshData {
         val vertexCount = data.width * data.height
         val positions = FloatArray(vertexCount * 3)
         val normals = FloatArray(vertexCount * 3)
         val uvs = FloatArray(vertexCount * 2)
-        val colors = buildLayerColors(data, materialColorResolver)
+        val colors = if (enableLayerColorPreview) {
+            buildLayerColors(data, materialColorResolver, blendMode)
+        } else {
+            null
+        }
         val indices = IntArray((data.width - 1) * (data.height - 1) * 6)
 
         var vertexOffset = 0
@@ -107,47 +119,116 @@ object TerrainMeshBuilder {
     private fun buildLayerColors(
         data: TerrainData,
         materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
+        blendMode: TerrainLayerBlendMode,
     ): FloatArray {
+        // TODO: Texture splatting using material albedo textures will be implemented later in a terrain shader.
         val colors = FloatArray(data.width * data.height * 4)
         val visibleLayers = data.allLayers().filter { it.visible }
-        val baseFallbackColor = visibleLayers.firstOrNull()?.let { layer ->
-            materialColorResolver(layer.materialId) ?: layer.color
-        } ?: BASE_FALLBACK_COLOR
         var colorOffset = 0
         for (y in 0 until data.height) {
             for (x in 0 until data.width) {
-                var r = baseFallbackColor.r
-                var g = baseFallbackColor.g
-                var b = baseFallbackColor.b
-                var a = baseFallbackColor.a
-                var contributed = false
-                visibleLayers.forEach { layer ->
-                    val weight = data.getLayerWeight(layer.id, x, y)
-                    if (weight <= 0f) return@forEach
-                    val layerColor = materialColorResolver(layer.materialId) ?: layer.color
-                    val blend = weight.coerceIn(0f, 1f)
-                    r += (layerColor.r - r) * blend
-                    g += (layerColor.g - g) * blend
-                    b += (layerColor.b - b) * blend
-                    a += (layerColor.a - a) * blend
-                    contributed = true
-                }
-
-                if (contributed || visibleLayers.isNotEmpty()) {
-                    colors[colorOffset++] = r.coerceIn(0f, 1f)
-                    colors[colorOffset++] = g.coerceIn(0f, 1f)
-                    colors[colorOffset++] = b.coerceIn(0f, 1f)
-                    colors[colorOffset++] = a.coerceIn(0f, 1f)
-                } else {
-                    colors[colorOffset++] = BASE_FALLBACK_COLOR.r
-                    colors[colorOffset++] = BASE_FALLBACK_COLOR.g
-                    colors[colorOffset++] = BASE_FALLBACK_COLOR.b
-                    colors[colorOffset++] = BASE_FALLBACK_COLOR.a
-                }
+                val color = blendVertexColor(data, visibleLayers, x, y, materialColorResolver, blendMode)
+                colors[colorOffset++] = color.r.coerceIn(0f, 1f)
+                colors[colorOffset++] = color.g.coerceIn(0f, 1f)
+                colors[colorOffset++] = color.b.coerceIn(0f, 1f)
+                colors[colorOffset++] = color.a.coerceIn(0f, 1f)
             }
         }
         return colors
     }
+
+    private fun blendVertexColor(
+        data: TerrainData,
+        visibleLayers: List<TerrainLayer>,
+        x: Int,
+        y: Int,
+        materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
+        blendMode: TerrainLayerBlendMode,
+    ): TerrainLayerColorDescriptor =
+        when (blendMode) {
+            TerrainLayerBlendMode.WeightedAverage -> weightedAverageColor(data, visibleLayers, x, y, materialColorResolver)
+            TerrainLayerBlendMode.OrderedAlpha -> orderedAlphaColor(data, visibleLayers, x, y, materialColorResolver)
+            TerrainLayerBlendMode.MaxWeight -> maxWeightColor(data, visibleLayers, x, y, materialColorResolver)
+        }
+
+    private fun weightedAverageColor(
+        data: TerrainData,
+        visibleLayers: List<TerrainLayer>,
+        x: Int,
+        y: Int,
+        materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
+    ): TerrainLayerColorDescriptor {
+        var totalWeight = 0f
+        var r = 0f
+        var g = 0f
+        var b = 0f
+        var a = 0f
+        visibleLayers.forEach { layer ->
+            val weight = data.getLayerWeight(layer.id, x, y).coerceIn(0f, 1f)
+            if (weight <= 0f) return@forEach
+            val color = resolveLayerColor(layer, materialColorResolver)
+            r += color.r * weight
+            g += color.g * weight
+            b += color.b * weight
+            a += color.a * weight
+            totalWeight += weight
+        }
+        if (totalWeight <= 0f) return BASE_FALLBACK_COLOR
+        return TerrainLayerColorDescriptor(r / totalWeight, g / totalWeight, b / totalWeight, a / totalWeight)
+    }
+
+    private fun orderedAlphaColor(
+        data: TerrainData,
+        visibleLayers: List<TerrainLayer>,
+        x: Int,
+        y: Int,
+        materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
+    ): TerrainLayerColorDescriptor {
+        var result = BASE_FALLBACK_COLOR
+        visibleLayers.forEach { layer ->
+            val weight = data.getLayerWeight(layer.id, x, y).coerceIn(0f, 1f)
+            if (weight <= 0f) return@forEach
+            result = lerp(result, resolveLayerColor(layer, materialColorResolver), weight)
+        }
+        return result
+    }
+
+    private fun maxWeightColor(
+        data: TerrainData,
+        visibleLayers: List<TerrainLayer>,
+        x: Int,
+        y: Int,
+        materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
+    ): TerrainLayerColorDescriptor {
+        var bestLayer: TerrainLayer? = null
+        var bestWeight = 0f
+        visibleLayers.forEach { layer ->
+            val weight = data.getLayerWeight(layer.id, x, y).coerceIn(0f, 1f)
+            if (weight > bestWeight) {
+                bestWeight = weight
+                bestLayer = layer
+            }
+        }
+        return bestLayer?.let { resolveLayerColor(it, materialColorResolver) } ?: BASE_FALLBACK_COLOR
+    }
+
+    private fun resolveLayerColor(
+        layer: TerrainLayer,
+        materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
+    ): TerrainLayerColorDescriptor =
+        materialColorResolver(layer.materialId) ?: layer.color
+
+    private fun lerp(
+        from: TerrainLayerColorDescriptor,
+        to: TerrainLayerColorDescriptor,
+        t: Float,
+    ): TerrainLayerColorDescriptor =
+        TerrainLayerColorDescriptor(
+            r = from.r + (to.r - from.r) * t,
+            g = from.g + (to.g - from.g) * t,
+            b = from.b + (to.b - from.b) * t,
+            a = from.a + (to.a - from.a) * t,
+        )
 
     private fun accumulateNormals(
         positions: FloatArray,

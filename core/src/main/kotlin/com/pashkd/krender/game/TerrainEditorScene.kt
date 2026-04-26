@@ -101,9 +101,15 @@ class TerrainEditorScene(
 
         world.systems.add(TerrainCameraControllerSystem(engine.input))
         world.systems.add(editorSystem)
-        world.systems.add(TerrainMeshSyncSystem { materialId ->
-            terrainMaterialLibrary.find(materialId)?.fallbackColor
-        })
+        world.systems.add(
+            TerrainMeshSyncSystem(
+                materialColorResolver = { materialId ->
+                    terrainMaterialLibrary.find(materialId)?.fallbackColor
+                },
+                blendModeProvider = { editorState.layerBlendMode },
+                layerColorPreviewProvider = { editorState.showLayerColorPreview },
+            ),
+        )
         world.systems.add(TerrainViewportDebugRenderSystem(editorState))
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(TerrainRenderSystem())
@@ -123,6 +129,7 @@ class TerrainEditorScene(
         engine.debug.line("Mouse drag - Apply brush")
         engine.debug.line("Mouse wheel - Brush radius")
         engine.debug.line("Shift + Mouse wheel - Brush strength")
+        engine.debug.line("Alt - Erase active paint layer")
         engine.debug.line("F1/F2/F3/F4 - Raise/Lower/Flatten/Smooth")
         engine.debug.line("Space - Paint active layer")
         engine.debug.line("G - Toggle terrain wireframe")

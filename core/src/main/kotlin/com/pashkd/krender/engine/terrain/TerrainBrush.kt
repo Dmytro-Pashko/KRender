@@ -15,6 +15,11 @@ enum class TerrainBrushMode {
     PaintLayer,
 }
 
+enum class TerrainLayerPaintMode {
+    Add,
+    Erase,
+}
+
 /**
  * Mutable editor brush settings shared by terrain tools.
  */
@@ -39,6 +44,7 @@ data class TerrainBrushStroke(
     val deltaSeconds: Float,
     val flattenHeight: Float? = null,
     val targetLayerId: Int? = null,
+    val layerWeightDeltaSign: Float = 1f,
 )
 
 /**
@@ -85,7 +91,7 @@ object TerrainBrushApplier {
                     TerrainBrushMode.PaintLayer -> {
                         val layerId = stroke.targetLayerId ?: continue
                         val oldWeight = data.getLayerWeight(layerId, x, y)
-                        val newWeight = (oldWeight + stroke.strength * effect * stroke.deltaSeconds)
+                        val newWeight = (oldWeight + stroke.strength * effect * stroke.deltaSeconds * stroke.layerWeightDeltaSign)
                             .coerceIn(0f, 1f)
                         if (oldWeight != newWeight) {
                             data.setLayerWeight(layerId, x, y, newWeight)

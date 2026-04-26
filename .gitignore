@@ -85,7 +85,7 @@ www-test/
 .loadpath
 .externalToolBuilders/
 *.launch
-
+imgui.log.lck
 
 ## NetBeans:
 
@@ -154,6 +154,7 @@ Thumbs.db
 *#*#
 /.kotlin/
 /assets/assets.txt
+/assets/blender_sources/
 
 ## Special cases:
 

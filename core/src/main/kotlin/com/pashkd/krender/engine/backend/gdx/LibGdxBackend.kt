@@ -325,6 +325,8 @@ class GdxInputService : InputService, InputProcessor {
         Input.Keys.SHIFT_RIGHT -> Key.ShiftRight
         Input.Keys.CONTROL_LEFT -> Key.ControlLeft
         Input.Keys.CONTROL_RIGHT -> Key.ControlRight
+        Input.Keys.ALT_LEFT -> Key.AltLeft
+        Input.Keys.ALT_RIGHT -> Key.AltRight
         else -> Key.Unknown
     }
 

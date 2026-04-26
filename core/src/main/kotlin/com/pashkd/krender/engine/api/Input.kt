@@ -50,6 +50,10 @@ enum class Key {
     ControlLeft,
     /** Right control key. */
     ControlRight,
+    /** Left alt key. */
+    AltLeft,
+    /** Right alt key. */
+    AltRight,
     /** Fallback value for unmapped keys. */
     Unknown,
 }
