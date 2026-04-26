@@ -8,9 +8,11 @@ import glm_.vec2.Vec2
 import imgui.Cond
 import imgui.ImGui
 import imgui.SliderFlag
+import imgui.api.colorButton
 import imgui.api.colorEdit4
 import imgui.api.slider
 import imgui.dsl
+import java.nio.charset.StandardCharsets
 
 /**
  * Defines the stable JSON ids used by the Terrain Editor ImGui panels.
@@ -221,10 +223,17 @@ class TerrainEditorLayersPanel(
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val selectedLayerNameBuffer = ByteArray(TEXT_INPUT_BUFFER_SIZE)
+    private val selectedLayerMaterialBuffer = ByteArray(TEXT_INPUT_BUFFER_SIZE)
+    private var bufferedLayerId: Int? = null
+    private var nameInputActive: Boolean = false
+    private var materialInputActive: Boolean = false
+
     /**
      * Draws the layer management window using the configured default layout.
      */
     override fun draw() {
+        syncTextBuffers()
         val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Layers)
         applyWindowDefaults(layout)
         val expanded = ImGui.begin(layout.title)
@@ -243,17 +252,16 @@ class TerrainEditorLayersPanel(
                 state.updateLayerVisibilityRequested = true
             }
             ImGui.sameLine()
-            if (ImGui.selectable("${layer.name}##layer_${layer.id}", layer.id == state.selectedLayerId)) {
+            if (ImGui.selectable("${formatLayerRow(layer)}##layer_${layer.id}", layer.id == state.selectedLayerId)) {
                 state.selectedLayerId = layer.id
             }
             ImGui.sameLine()
-            ImGui.text(
-                "RGBA %.2f %.2f %.2f %.2f | Tiling: %.2f",
+            colorButton(
+                "Color##color_${layer.id}",
                 layer.color.r,
                 layer.color.g,
                 layer.color.b,
                 layer.color.a,
-                layer.tiling,
             )
         }
 
@@ -309,12 +317,16 @@ class TerrainEditorLayersPanel(
         ImGui.separator()
         ImGui.text("Selected Layer Details")
         ImGui.beginDisabled(state.selectedLayerId == null)
-        if (ImGui.inputText("Name", state::selectedLayerName)) {
+        if (ImGui.inputText("Name", selectedLayerNameBuffer)) {
+            state.selectedLayerName = readBuffer(selectedLayerNameBuffer)
             state.renameLayerRequested = true
         }
-        if (ImGui.inputText("MaterialId", state::selectedLayerMaterialId)) {
+        nameInputActive = ImGui.isItemActive
+        if (ImGui.inputText("MaterialId", selectedLayerMaterialBuffer)) {
+            state.selectedLayerMaterialId = readBuffer(selectedLayerMaterialBuffer)
             state.updateLayerMaterialRequested = true
         }
+        materialInputActive = ImGui.isItemActive
         if (ImGui.checkbox("Visible", state::selectedLayerVisible)) {
             state.updateLayerVisibilityRequested = true
         }
@@ -338,6 +350,48 @@ class TerrainEditorLayersPanel(
         ImGui.endDisabled()
 
         ImGui.end()
+    }
+
+    private fun formatLayerRow(layer: TerrainLayerOption): String =
+        "${layer.name}:RGBA(${formatColorChannel(layer.color.r)},${formatColorChannel(layer.color.g)},${formatColorChannel(layer.color.b)},${formatColorChannel(layer.color.a)})|T:${formatTiling(layer.tiling)}|Color"
+
+    private fun formatColorChannel(value: Float): String =
+        "%.2f".format(value)
+
+    private fun formatTiling(value: Float): String =
+        "%.2f".format(value)
+
+    private fun syncTextBuffers() {
+        val selectedLayerId = state.selectedLayerId
+        if (bufferedLayerId != selectedLayerId) {
+            bufferedLayerId = selectedLayerId
+            writeBuffer(selectedLayerNameBuffer, state.selectedLayerName)
+            writeBuffer(selectedLayerMaterialBuffer, state.selectedLayerMaterialId)
+            return
+        }
+
+        if (!nameInputActive && readBuffer(selectedLayerNameBuffer) != state.selectedLayerName) {
+            writeBuffer(selectedLayerNameBuffer, state.selectedLayerName)
+        }
+        if (!materialInputActive && readBuffer(selectedLayerMaterialBuffer) != state.selectedLayerMaterialId) {
+            writeBuffer(selectedLayerMaterialBuffer, state.selectedLayerMaterialId)
+        }
+    }
+
+    private fun readBuffer(buffer: ByteArray): String {
+        val length = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size
+        return String(buffer, 0, length, StandardCharsets.UTF_8)
+    }
+
+    private fun writeBuffer(buffer: ByteArray, value: String) {
+        buffer.fill(0)
+        val bytes = value.toByteArray(StandardCharsets.UTF_8)
+        val length = minOf(bytes.size, buffer.size - 1)
+        bytes.copyInto(buffer, endIndex = length)
+    }
+
+    companion object {
+        private const val TEXT_INPUT_BUFFER_SIZE = 128
     }
 }
 

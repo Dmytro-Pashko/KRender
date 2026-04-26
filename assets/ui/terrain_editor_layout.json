@@ -16,10 +16,10 @@
     },
     "layers": {
       "title": "Layers",
-      "x": 1550,
+      "x": 1470,
       "y": 710,
-      "width": 370,
-      "height": 300
+      "width": 440,
+      "height": 480
     },
     "control": {
       "title": "Control",
@@ -38,9 +38,9 @@
     "logs": {
       "title": "Logs",
       "x": 5,
-      "y": 865,
-      "width": 1100,
-      "height": 220
+      "y": 1000,
+      "width": 1050,
+      "height": 190
     }
   }
 }
