@@ -37,6 +37,15 @@ data class TerrainEditPatch(
 }
 
 /**
+ * Read-only summary used by editor UI history previews.
+ */
+data class TerrainEditPatchInfo(
+    val label: String,
+    val heightChanges: Int,
+    val layerChanges: Int,
+)
+
+/**
  * Accumulates all sample writes made during one brush drag.
  *
  * A brush may touch the same sample many times while the pointer moves. The
@@ -115,9 +124,15 @@ class TerrainEditPatchBuilder(
 /**
  * Undo/redo stack for terrain edits.
  */
-class TerrainEditHistory {
+class TerrainEditHistory(
+    private val maxUndoSteps: Int = 100,
+) {
     private val undoStack = ArrayDeque<TerrainEditPatch>()
     private val redoStack = ArrayDeque<TerrainEditPatch>()
+
+    init {
+        require(maxUndoSteps > 0) { "Terrain edit history must keep at least one undo step" }
+    }
 
     val canUndo: Boolean
         get() = undoStack.isNotEmpty()
@@ -125,10 +140,14 @@ class TerrainEditHistory {
     val canRedo: Boolean
         get() = redoStack.isNotEmpty()
 
-    fun push(patch: TerrainEditPatch) {
-        if (patch.isEmpty()) return
+    fun push(patch: TerrainEditPatch): Boolean {
+        if (patch.isEmpty()) return false
         undoStack.addLast(patch)
+        if (undoStack.size > maxUndoSteps) {
+            undoStack.removeFirst()
+        }
         redoStack.clear()
+        return true
     }
 
     fun undo(data: TerrainData): Boolean {
@@ -154,6 +173,26 @@ class TerrainEditHistory {
 
     fun peekRedoLabel(): String? = redoStack.lastOrNull()?.label
 
+    fun undoCount(): Int = undoStack.size
+
+    fun redoCount(): Int = redoStack.size
+
+    fun estimatedMemoryBytes(): Long =
+        (undoStack.asSequence() + redoStack.asSequence()).sumOf { it.estimatedMemoryBytes() }
+
+    fun getUndoPreview(limit: Int = 10): List<TerrainEditPatchInfo> =
+        undoStack.reversed().take(limit.coerceAtLeast(0)).map { it.toInfo() }
+
+    fun getRedoPreview(limit: Int = 10): List<TerrainEditPatchInfo> =
+        redoStack.reversed().take(limit.coerceAtLeast(0)).map { it.toInfo() }
+
+    fun jumpToUndoIndex(index: Int, data: TerrainData) {
+        require(index >= 0) { "Undo index must be >= 0" }
+        repeat(minOf(index + 1, undoStack.size)) {
+            undo(data)
+        }
+    }
+
     private fun applyOldValues(data: TerrainData, patch: TerrainEditPatch) {
         patch.heightChanges.forEach { change ->
             data.setHeight(change.x, change.y, change.oldHeight)
@@ -170,5 +209,20 @@ class TerrainEditHistory {
         patch.layerWeightChanges.forEach { change ->
             data.setLayerWeight(change.layerId, change.x, change.y, change.newWeight)
         }
+    }
+
+    private fun TerrainEditPatch.toInfo(): TerrainEditPatchInfo =
+        TerrainEditPatchInfo(
+            label = label,
+            heightChanges = heightChanges.size,
+            layerChanges = layerWeightChanges.size,
+        )
+
+    private fun TerrainEditPatch.estimatedMemoryBytes(): Long =
+        heightChanges.size * HEIGHT_CHANGE_BYTES + layerWeightChanges.size * LAYER_WEIGHT_CHANGE_BYTES
+
+    private companion object {
+        private const val HEIGHT_CHANGE_BYTES = 16L
+        private const val LAYER_WEIGHT_CHANGE_BYTES = 24L
     }
 }

@@ -64,12 +64,26 @@ data class TerrainEditorState(
     var undoLabel: String? = null,
     /** Label for the next redo action, if available. */
     var redoLabel: String? = null,
+    /** Number of undo steps currently retained. */
+    var undoCount: Int = 0,
+    /** Number of redo steps currently retained. */
+    var redoCount: Int = 0,
+    /** Approximate memory used by terrain edit history. */
+    var historyMemoryBytes: Long = 0L,
+    /** Limited newest-first undo stack preview for the controls panel. */
+    var undoPreview: List<TerrainEditPatchInfo> = emptyList(),
+    /** Limited newest-first redo stack preview for the controls panel. */
+    var redoPreview: List<TerrainEditPatchInfo> = emptyList(),
+    /** True when editor terrain data changed since the last save/reset point. */
+    var hasUnsavedChanges: Boolean = false,
     /** Queues a terrain regeneration on the next update. */
     var regenerateRequested: Boolean = false,
     /** Queues terrain edit undo on the next update. */
     var undoRequested: Boolean = false,
     /** Queues terrain edit redo on the next update. */
     var redoRequested: Boolean = false,
+    /** Queues clearing terrain edit history on the next update. */
+    var clearHistoryRequested: Boolean = false,
     /** Queues creation of a new paint layer on the next update. */
     var addLayerRequested: Boolean = false,
     /** Queues removal of the selected paint layer on the next update. */

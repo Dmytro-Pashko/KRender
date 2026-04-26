@@ -88,7 +88,9 @@ class TerrainEditorSystem(
         val pointerReleased = snapshot.pointers.any { it.phase == PointerPhase.Up || it.phase == PointerPhase.Cancelled }
 
         if ((pointerReleased || hoveredHit == null) && brushActive) {
-            finishBrushStroke()
+            if (finishBrushStroke()) {
+                state.hasUnsavedChanges = true
+            }
         }
 
         if (pointerDown && hoveredHit != null) {
@@ -104,7 +106,7 @@ class TerrainEditorSystem(
             if (!brushActive) {
                 brushActive = true
                 flattenHeight = terrain.data.sampleHeight(hit.localX, hit.localZ)
-                activePatchBuilder = TerrainEditPatchBuilder(state.brushMode.name)
+                activePatchBuilder = TerrainEditPatchBuilder(buildPatchLabel())
             }
 
             val stroke = TerrainBrushStroke(
@@ -214,6 +216,11 @@ class TerrainEditorSystem(
         state.canRedo = editHistory.canRedo
         state.undoLabel = editHistory.peekUndoLabel()
         state.redoLabel = editHistory.peekRedoLabel()
+        state.undoCount = editHistory.undoCount()
+        state.redoCount = editHistory.redoCount()
+        state.historyMemoryBytes = editHistory.estimatedMemoryBytes()
+        state.undoPreview = editHistory.getUndoPreview()
+        state.redoPreview = editHistory.getRedoPreview()
     }
 
     private fun processHistoryCommands(
@@ -222,16 +229,34 @@ class TerrainEditorSystem(
     ) {
         var changed = false
         var commandHandled = false
+        if (state.clearHistoryRequested) {
+            state.clearHistoryRequested = false
+            if (finishBrushStroke()) {
+                state.hasUnsavedChanges = true
+            }
+            editHistory.clear()
+            commandHandled = true
+        }
         if (state.undoRequested) {
             state.undoRequested = false
-            finishBrushStroke()
-            changed = editHistory.undo(terrain.data) || changed
+            if (finishBrushStroke()) {
+                state.hasUnsavedChanges = true
+            }
+            if (editHistory.undo(terrain.data)) {
+                changed = true
+                state.hasUnsavedChanges = true
+            }
             commandHandled = true
         }
         if (state.redoRequested) {
             state.redoRequested = false
-            finishBrushStroke()
-            changed = editHistory.redo(terrain.data) || changed
+            if (finishBrushStroke()) {
+                state.hasUnsavedChanges = true
+            }
+            if (editHistory.redo(terrain.data)) {
+                changed = true
+                state.hasUnsavedChanges = true
+            }
             commandHandled = true
         }
 
@@ -242,11 +267,21 @@ class TerrainEditorSystem(
                 (shiftDown && snapshot.wasPressed(Key.Z))
             val undoPressed = !shiftDown && snapshot.wasPressed(Key.Z)
             if (redoPressed) {
-                finishBrushStroke()
-                changed = editHistory.redo(terrain.data) || changed
+                if (finishBrushStroke()) {
+                    state.hasUnsavedChanges = true
+                }
+                if (editHistory.redo(terrain.data)) {
+                    changed = true
+                    state.hasUnsavedChanges = true
+                }
             } else if (undoPressed) {
-                finishBrushStroke()
-                changed = editHistory.undo(terrain.data) || changed
+                if (finishBrushStroke()) {
+                    state.hasUnsavedChanges = true
+                }
+                if (editHistory.undo(terrain.data)) {
+                    changed = true
+                    state.hasUnsavedChanges = true
+                }
             }
         }
 
@@ -255,12 +290,22 @@ class TerrainEditorSystem(
         }
     }
 
-    private fun finishBrushStroke() {
-        activePatchBuilder?.build()?.let(editHistory::push)
+    private fun finishBrushStroke(): Boolean {
+        val pushed = activePatchBuilder?.build()?.let(editHistory::push) == true
         activePatchBuilder = null
         brushActive = false
         flattenHeight = null
+        return pushed
     }
+
+    private fun buildPatchLabel(): String =
+        when (state.brushMode) {
+            TerrainBrushMode.Raise -> "Raise terrain"
+            TerrainBrushMode.Lower -> "Lower terrain"
+            TerrainBrushMode.Flatten -> "Flatten to ${"%.2f".format(flattenHeight ?: 0f)}"
+            TerrainBrushMode.Smooth -> "Smooth terrain"
+            TerrainBrushMode.PaintLayer -> "Paint layer: ${state.selectedLayerId ?: "none"}"
+        }
 
     private fun syncRendererStateFromControls(renderer: TerrainRendererComponent) {
         val expectedMode = if (state.wireframeEnabled) {
@@ -289,6 +334,10 @@ class TerrainEditorSystem(
 
         if (state.removeLayerRequested) {
             state.removeLayerRequested = false
+            if (finishBrushStroke()) {
+                state.hasUnsavedChanges = true
+            }
+            editHistory.clear()
             val selectedLayerId = state.selectedLayerId
             if (selectedLayerId != null && terrain.data.removeLayer(selectedLayerId)) {
                 state.selectedLayerId = terrain.data.allLayers().firstOrNull()?.id
@@ -297,8 +346,10 @@ class TerrainEditorSystem(
 
         if (state.regenerateRequested) {
             state.regenerateRequested = false
+            finishBrushStroke()
             editHistory.clear()
             regenerateTerrain(terrain, renderer)
+            state.hasUnsavedChanges = false
         }
     }
 

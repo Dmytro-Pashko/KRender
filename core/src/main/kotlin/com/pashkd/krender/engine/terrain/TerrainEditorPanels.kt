@@ -291,8 +291,10 @@ class TerrainEditorControlsPanel(
 
         ImGui.separator()
         ImGui.text("History")
-        ImGui.text("Undo: %s", state.undoLabel ?: "none")
-        ImGui.text("Redo: %s", state.redoLabel ?: "none")
+        ImGui.text("Undo: %s (%d)", state.undoLabel ?: "none", state.undoCount)
+        ImGui.text("Redo: %s (%d)", state.redoLabel ?: "none", state.redoCount)
+        ImGui.text("Memory: %s", formatHistoryMemory(state.historyMemoryBytes))
+        ImGui.text("Unsaved changes: %s", if (state.hasUnsavedChanges) "yes" else "no")
         ImGui.beginDisabled(!state.canUndo)
         with(dsl) {
             button("Undo") {
@@ -308,6 +310,18 @@ class TerrainEditorControlsPanel(
             }
         }
         ImGui.endDisabled()
+        ImGui.sameLine()
+        ImGui.beginDisabled(!state.canUndo && !state.canRedo)
+        with(dsl) {
+            button("Clear History") {
+                state.clearHistoryRequested = true
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.text("--- Undo Stack ---")
+        drawHistoryPreview(state.undoPreview)
+        ImGui.text("--- Redo Stack ---")
+        drawHistoryPreview(state.redoPreview)
 
         ImGui.separator()
         ImGui.text("Controls")
@@ -331,3 +345,21 @@ private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
     ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
     ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
 }
+
+private fun drawHistoryPreview(preview: List<TerrainEditPatchInfo>) {
+    if (preview.isEmpty()) {
+        ImGui.text("empty")
+        return
+    }
+    preview.forEach { patch ->
+        val samples = patch.heightChanges + patch.layerChanges
+        ImGui.text("[%s - %d samples]", patch.label, samples)
+    }
+}
+
+private fun formatHistoryMemory(bytes: Long): String =
+    if (bytes < 1024L) {
+        "$bytes B"
+    } else {
+        "%.1f KB".format(bytes / 1024f)
+    }
