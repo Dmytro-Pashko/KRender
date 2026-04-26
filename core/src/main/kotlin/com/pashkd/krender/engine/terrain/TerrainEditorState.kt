@@ -18,6 +18,16 @@ data class TerrainLayerOption(
     val id: Int,
     /** Human-readable layer name. */
     val name: String,
+    /** Material reference id used by persistence and future terrain material blending. */
+    val materialId: String?,
+    /** Editor/debug color used by this layer. */
+    val color: TerrainLayerColorDescriptor,
+    /** Whether this layer contributes to editor/debug visualization. */
+    val visible: Boolean,
+    /** Per-layer material UV tiling parameter. */
+    val tiling: Float,
+    /** Current authoring order index. */
+    val index: Int,
 )
 
 /**
@@ -48,6 +58,16 @@ data class TerrainEditorState(
     var wireframeEnabled: Boolean = false,
     /** Current terrain layer list mirrored from runtime terrain data. */
     var layers: List<TerrainLayerOption> = emptyList(),
+    /** Editable name mirrored from the selected terrain layer. */
+    var selectedLayerName: String = "",
+    /** Editable material id mirrored from the selected terrain layer. */
+    var selectedLayerMaterialId: String = "",
+    /** Editable RGBA color mirrored from the selected terrain layer. */
+    var selectedLayerColor: FloatArray = floatArrayOf(1f, 1f, 1f, 1f),
+    /** Editable visibility flag mirrored from the selected terrain layer. */
+    var selectedLayerVisible: Boolean = true,
+    /** Editable tiling value mirrored from the selected terrain layer. */
+    var selectedLayerTiling: Float = 1f,
     /** Current terrain mesh vertex count. */
     var vertices: Int = 0,
     /** Current terrain mesh triangle count. */
@@ -108,6 +128,22 @@ data class TerrainEditorState(
     var addLayerRequested: Boolean = false,
     /** Queues removal of the selected paint layer on the next update. */
     var removeLayerRequested: Boolean = false,
+    /** Queues renaming of the selected paint layer on the next update. */
+    var renameLayerRequested: Boolean = false,
+    /** Queues material id update of the selected paint layer on the next update. */
+    var updateLayerMaterialRequested: Boolean = false,
+    /** Queues color update of the selected paint layer on the next update. */
+    var updateLayerColorRequested: Boolean = false,
+    /** Queues visibility update of the selected paint layer on the next update. */
+    var updateLayerVisibilityRequested: Boolean = false,
+    /** Queues tiling update of the selected paint layer on the next update. */
+    var updateLayerTilingRequested: Boolean = false,
+    /** Queues moving the selected paint layer up in authoring order. */
+    var moveLayerUpRequested: Boolean = false,
+    /** Queues moving the selected paint layer down in authoring order. */
+    var moveLayerDownRequested: Boolean = false,
+    /** Last terrain layer status message shown in the layer panel. */
+    var layerMessage: String = "",
 ) {
     /**
      * Returns the currently selected generator option, if any.

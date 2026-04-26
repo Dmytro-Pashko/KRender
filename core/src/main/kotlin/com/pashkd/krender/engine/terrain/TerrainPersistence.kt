@@ -31,6 +31,7 @@ class TerrainPersistence {
         setSerializer(TerrainFileDescriptor::class.java, TerrainFileDescriptorSerializer)
         setSerializer(TerrainDataDescriptor::class.java, TerrainDataDescriptorSerializer)
         setSerializer(TerrainLayerDescriptor::class.java, TerrainLayerDescriptorSerializer)
+        setSerializer(TerrainLayerColorDescriptor::class.java, TerrainLayerColorDescriptorSerializer)
     }
 
     /**
@@ -115,8 +116,15 @@ class TerrainPersistence {
         require(terrain.heights.size == terrain.width * terrain.height) {
             "Terrain heights size ${terrain.heights.size} does not match width * height ${terrain.width * terrain.height}"
         }
+        require(terrain.layers.size <= TerrainLayerLimits.MaxLayers) {
+            "Terrain layer count cannot exceed ${TerrainLayerLimits.MaxLayers}"
+        }
 
         terrain.layers.forEach { layer ->
+            require(layer.tiling > 0f) { "Terrain layer '${layer.name}' tiling must be > 0" }
+            require(layer.color.r in 0f..1f && layer.color.g in 0f..1f && layer.color.b in 0f..1f && layer.color.a in 0f..1f) {
+                "Terrain layer '${layer.name}' color channels must be in 0..1"
+            }
             val weights = layer.weights
             require(weights == null || weights.size == terrain.width * terrain.height) {
                 "Terrain layer '${layer.name}' weights size ${weights?.size} does not match width * height ${terrain.width * terrain.height}"
@@ -180,20 +188,60 @@ private object TerrainLayerDescriptorSerializer : Json.Serializer<TerrainLayerDe
         json.writeValue("id", descriptor.id)
         json.writeValue("name", descriptor.name)
         json.writeValue("materialId", descriptor.materialId)
+        json.writeValue("color", descriptor.color.clamped(), TerrainLayerColorDescriptor::class.java)
+        json.writeValue("visible", descriptor.visible)
+        json.writeValue("tiling", descriptor.tiling.coerceIn(0.1f, 128f))
         if (descriptor.weights != null) {
             json.writeValue("weights", descriptor.weights)
         }
         json.writeObjectEnd()
     }
 
-    override fun read(json: Json, jsonData: JsonValue, type: Class<*>?): TerrainLayerDescriptor =
-        TerrainLayerDescriptor(
+    override fun read(json: Json, jsonData: JsonValue, type: Class<*>?): TerrainLayerDescriptor {
+        require(jsonData.get("texturePath") == null) { "Terrain layer '${jsonData.getString("name", "unknown")}' cannot contain texturePath" }
+        return TerrainLayerDescriptor(
             id = jsonData.getInt("id"),
             name = jsonData.getString("name"),
             materialId = jsonData.getString("materialId", null),
+            color = (
+                jsonData.get("color")?.let {
+                    json.readValue(TerrainLayerColorDescriptor::class.java, it)
+                } ?: TerrainLayerColorDescriptor()
+                ).clamped(),
+            visible = jsonData.getBoolean("visible", true),
+            tiling = jsonData.getFloat("tiling", 1f).coerceIn(0.1f, 128f),
             weights = jsonData.get("weights")?.asFloatArray(),
         )
+    }
+}
+
+private object TerrainLayerColorDescriptorSerializer : Json.Serializer<TerrainLayerColorDescriptor> {
+    override fun write(json: Json, descriptor: TerrainLayerColorDescriptor, knownType: Class<*>?) {
+        val color = descriptor.clamped()
+        json.writeObjectStart()
+        json.writeValue("r", color.r)
+        json.writeValue("g", color.g)
+        json.writeValue("b", color.b)
+        json.writeValue("a", color.a)
+        json.writeObjectEnd()
+    }
+
+    override fun read(json: Json, jsonData: JsonValue, type: Class<*>?): TerrainLayerColorDescriptor =
+        TerrainLayerColorDescriptor(
+            r = jsonData.getFloat("r", 1f),
+            g = jsonData.getFloat("g", 1f),
+            b = jsonData.getFloat("b", 1f),
+            a = jsonData.getFloat("a", 1f),
+        ).clamped()
 }
 
 private fun required(jsonData: JsonValue, name: String): JsonValue =
     jsonData.get(name) ?: throw IllegalArgumentException("Terrain file is missing required field '$name'")
+
+private fun TerrainLayerColorDescriptor.clamped(): TerrainLayerColorDescriptor =
+    TerrainLayerColorDescriptor(
+        r = r.coerceIn(0f, 1f),
+        g = g.coerceIn(0f, 1f),
+        b = b.coerceIn(0f, 1f),
+        a = a.coerceIn(0f, 1f),
+    )

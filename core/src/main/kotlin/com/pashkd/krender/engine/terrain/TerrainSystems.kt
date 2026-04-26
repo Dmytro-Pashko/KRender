@@ -201,13 +201,37 @@ class TerrainEditorSystem(
         renderer: TerrainRendererComponent,
     ) {
         val layers = terrain.data.allLayers()
-        state.layers = layers.map { TerrainLayerOption(it.id, it.name) }
+        state.layers = layers.mapIndexed { index, layer ->
+            TerrainLayerOption(
+                id = layer.id,
+                name = layer.name,
+                materialId = layer.materialId,
+                color = layer.color,
+                visible = layer.visible,
+                tiling = layer.tiling,
+                index = index,
+            )
+        }
         state.vertices = renderer.vertexCount
         state.triangles = renderer.triangleCount
         state.terrainSize = "${terrain.data.width} x ${terrain.data.height}"
         state.wireframeEnabled = renderer.displayMode == TerrainDisplayMode.Wireframe
         if (state.selectedLayerId !in layers.map(TerrainLayer::id)) {
             state.selectedLayerId = layers.firstOrNull()?.id
+        }
+        val selected = layers.firstOrNull { it.id == state.selectedLayerId }
+        if (selected != null) {
+            state.selectedLayerName = selected.name
+            state.selectedLayerMaterialId = selected.materialId ?: ""
+            state.selectedLayerColor = floatArrayOf(selected.color.r, selected.color.g, selected.color.b, selected.color.a)
+            state.selectedLayerVisible = selected.visible
+            state.selectedLayerTiling = selected.tiling
+        } else {
+            state.selectedLayerName = ""
+            state.selectedLayerMaterialId = ""
+            state.selectedLayerColor = floatArrayOf(1f, 1f, 1f, 1f)
+            state.selectedLayerVisible = true
+            state.selectedLayerTiling = 1f
         }
     }
 
@@ -326,12 +350,23 @@ class TerrainEditorSystem(
 
         if (state.addLayerRequested) {
             state.addLayerRequested = false
+            if (terrain.data.allLayers().size >= TerrainLayerLimits.MaxLayers) {
+                state.layerMessage = "Maximum terrain layers reached: ${TerrainLayerLimits.MaxLayers}"
+                return
+            }
+            finishBrushStroke()
+            editHistory.clear()
             val nextIndex = terrain.data.allLayers().size + 1
             val layer = terrain.data.addLayer(
                 name = "Layer $nextIndex",
                 materialId = "terrain/layer_$nextIndex",
+                color = defaultLayerColor(nextIndex - 1),
+                visible = true,
+                tiling = 1f,
             )
             state.selectedLayerId = layer.id
+            terrain.markDirty()
+            state.layerMessage = "Added layer: ${layer.name}"
         }
 
         if (state.removeLayerRequested) {
@@ -339,10 +374,42 @@ class TerrainEditorSystem(
             finishBrushStroke()
             editHistory.clear()
             val selectedLayerId = state.selectedLayerId
+            val selectedIndex = terrain.data.allLayers().indexOfFirst { it.id == selectedLayerId }
             if (selectedLayerId != null && terrain.data.removeLayer(selectedLayerId)) {
-                state.selectedLayerId = terrain.data.allLayers().firstOrNull()?.id
+                val remainingLayers = terrain.data.allLayers()
+                state.selectedLayerId = remainingLayers.getOrNull(selectedIndex.coerceIn(0, remainingLayers.lastIndex.coerceAtLeast(0)))?.id
+                terrain.markDirty()
+                state.layerMessage = "Removed layer"
             }
         }
+
+        if (state.moveLayerUpRequested) {
+            state.moveLayerUpRequested = false
+            val selectedLayerId = state.selectedLayerId
+            if (selectedLayerId != null) {
+                finishBrushStroke()
+                editHistory.clear()
+                if (terrain.data.moveLayerUp(selectedLayerId)) {
+                    terrain.markDirty()
+                    state.layerMessage = "Moved layer"
+                }
+            }
+        }
+
+        if (state.moveLayerDownRequested) {
+            state.moveLayerDownRequested = false
+            val selectedLayerId = state.selectedLayerId
+            if (selectedLayerId != null) {
+                finishBrushStroke()
+                editHistory.clear()
+                if (terrain.data.moveLayerDown(selectedLayerId)) {
+                    terrain.markDirty()
+                    state.layerMessage = "Moved layer"
+                }
+            }
+        }
+
+        processLayerMetadataCommands(terrain)
 
         if (state.regenerateRequested) {
             state.regenerateRequested = false
@@ -430,6 +497,9 @@ class TerrainEditorSystem(
                 name = layer.name,
                 texture = layer.texture,
                 materialId = layer.materialId,
+                color = layer.color,
+                visible = layer.visible,
+                tiling = layer.tiling,
             )
             if (state.selectedLayerId == layer.id || (state.selectedLayerId == null && index == 0)) {
                 state.selectedLayerId = restored.id
@@ -459,11 +529,84 @@ class TerrainEditorSystem(
     private fun activeGenerator(): TerrainGenerator =
         generatorsById[state.selectedGeneratorId] ?: generatorsById.values.first()
 
+    private fun processLayerMetadataCommands(terrain: TerrainComponent) {
+        val selectedLayerId = state.selectedLayerId
+        var changed = false
+
+        fun applyUpdate(update: (Int) -> Boolean) {
+            if (selectedLayerId == null) return
+            if (!changed) {
+                finishBrushStroke()
+                editHistory.clear()
+            }
+            changed = update(selectedLayerId) || changed
+        }
+
+        if (state.renameLayerRequested) {
+            state.renameLayerRequested = false
+            applyUpdate { layerId -> terrain.data.renameLayer(layerId, state.selectedLayerName) }
+        }
+        if (state.updateLayerMaterialRequested) {
+            state.updateLayerMaterialRequested = false
+            applyUpdate { layerId ->
+                terrain.data.updateLayerMaterial(
+                    layerId,
+                    state.selectedLayerMaterialId.takeIf(String::isNotBlank),
+                )
+            }
+        }
+        if (state.updateLayerColorRequested) {
+            state.updateLayerColorRequested = false
+            applyUpdate { layerId ->
+                terrain.data.updateLayerColor(
+                    layerId,
+                    TerrainLayerColorDescriptor(
+                        r = state.selectedLayerColor.getOrElse(0) { 1f },
+                        g = state.selectedLayerColor.getOrElse(1) { 1f },
+                        b = state.selectedLayerColor.getOrElse(2) { 1f },
+                        a = state.selectedLayerColor.getOrElse(3) { 1f },
+                    ),
+                )
+            }
+        }
+        if (state.updateLayerVisibilityRequested) {
+            state.updateLayerVisibilityRequested = false
+            applyUpdate { layerId ->
+                terrain.data.updateLayerVisibility(layerId, state.selectedLayerVisible)
+            }
+        }
+        if (state.updateLayerTilingRequested) {
+            state.updateLayerTilingRequested = false
+            applyUpdate { layerId ->
+                terrain.data.updateLayerTiling(layerId, state.selectedLayerTiling)
+            }
+        }
+
+        if (changed) {
+            terrain.markDirty()
+            state.layerMessage = "Updated layer"
+        }
+    }
+
     /**
      * Formats a hovered terrain position for UI/debug display.
      */
     private fun formatPosition(position: Vec3): String =
         "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
+
+    private fun defaultLayerColor(index: Int): TerrainLayerColorDescriptor {
+        val colors = listOf(
+            TerrainLayerColorDescriptor(0.25f, 0.65f, 0.2f, 1f),
+            TerrainLayerColorDescriptor(0.55f, 0.42f, 0.28f, 1f),
+            TerrainLayerColorDescriptor(0.55f, 0.55f, 0.58f, 1f),
+            TerrainLayerColorDescriptor(0.82f, 0.78f, 0.62f, 1f),
+            TerrainLayerColorDescriptor(0.35f, 0.5f, 0.75f, 1f),
+            TerrainLayerColorDescriptor(0.8f, 0.85f, 0.9f, 1f),
+            TerrainLayerColorDescriptor(0.45f, 0.32f, 0.2f, 1f),
+            TerrainLayerColorDescriptor(0.8f, 0.45f, 0.25f, 1f),
+        )
+        return colors[index % colors.size]
+    }
 }
 
 /**

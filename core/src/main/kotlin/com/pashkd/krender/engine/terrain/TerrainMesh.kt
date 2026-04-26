@@ -13,6 +13,7 @@ data class TerrainMeshData(
     val uvs: FloatArray,
     val indices: IntArray,
     val tangents: FloatArray? = null,
+    val colors: FloatArray? = null,
 ) {
     /**
      * Number of vertices in the mesh.
@@ -36,6 +37,7 @@ data class TerrainMeshData(
             uvs = uvs,
             indices = indices,
             tangents = tangents,
+            colors = colors,
         )
 }
 
@@ -51,6 +53,7 @@ object TerrainMeshBuilder {
         val positions = FloatArray(vertexCount * 3)
         val normals = FloatArray(vertexCount * 3)
         val uvs = FloatArray(vertexCount * 2)
+        val colors = buildLayerColors(data)
         val indices = IntArray((data.width - 1) * (data.height - 1) * 6)
 
         var vertexOffset = 0
@@ -94,7 +97,45 @@ object TerrainMeshBuilder {
             uvs = uvs,
             indices = indices,
             tangents = tangents,
+            colors = colors,
         )
+    }
+
+    private fun buildLayerColors(data: TerrainData): FloatArray {
+        val colors = FloatArray(data.width * data.height * 4)
+        val visibleLayers = data.allLayers().filter { it.visible }
+        var colorOffset = 0
+        for (y in 0 until data.height) {
+            for (x in 0 until data.width) {
+                var r = 0f
+                var g = 0f
+                var b = 0f
+                var a = 0f
+                var totalWeight = 0f
+                visibleLayers.forEach { layer ->
+                    val weight = data.getLayerWeight(layer.id, x, y)
+                    if (weight <= 0f) return@forEach
+                    r += layer.color.r * weight
+                    g += layer.color.g * weight
+                    b += layer.color.b * weight
+                    a += layer.color.a * weight
+                    totalWeight += weight
+                }
+
+                if (totalWeight > 0f) {
+                    colors[colorOffset++] = (r / totalWeight).coerceIn(0f, 1f)
+                    colors[colorOffset++] = (g / totalWeight).coerceIn(0f, 1f)
+                    colors[colorOffset++] = (b / totalWeight).coerceIn(0f, 1f)
+                    colors[colorOffset++] = (a / totalWeight).coerceIn(0f, 1f)
+                } else {
+                    colors[colorOffset++] = BASE_FALLBACK_COLOR.r
+                    colors[colorOffset++] = BASE_FALLBACK_COLOR.g
+                    colors[colorOffset++] = BASE_FALLBACK_COLOR.b
+                    colors[colorOffset++] = BASE_FALLBACK_COLOR.a
+                }
+            }
+        }
+        return colors
     }
 
     private fun accumulateNormals(
@@ -220,4 +261,6 @@ object TerrainMeshBuilder {
         buffer[base + 1] = y / length
         buffer[base + 2] = z / length
     }
+
+    private val BASE_FALLBACK_COLOR = TerrainLayerColorDescriptor(0.38f, 0.48f, 0.30f, 1f)
 }

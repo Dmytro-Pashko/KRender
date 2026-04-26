@@ -8,6 +8,7 @@ import glm_.vec2.Vec2
 import imgui.Cond
 import imgui.ImGui
 import imgui.SliderFlag
+import imgui.api.colorEdit4
 import imgui.api.slider
 import imgui.dsl
 
@@ -233,16 +234,35 @@ class TerrainEditorLayersPanel(
             return
         }
 
-        ImGui.text("Terrain layers")
+        ImGui.text("Terrain layers (max ${TerrainLayerLimits.MaxLayers})")
+        ImGui.text("Layer count: ${state.layers.size} / ${TerrainLayerLimits.MaxLayers}")
         state.layers.forEach { layer ->
-            if (ImGui.selectable(layer.name, layer.id == state.selectedLayerId)) {
+            if (ImGui.smallButton("${if (layer.visible) "[x]" else "[ ]"}##visible_${layer.id}")) {
+                state.selectedLayerId = layer.id
+                state.selectedLayerVisible = !layer.visible
+                state.updateLayerVisibilityRequested = true
+            }
+            ImGui.sameLine()
+            if (ImGui.selectable("${layer.name}##layer_${layer.id}", layer.id == state.selectedLayerId)) {
                 state.selectedLayerId = layer.id
             }
+            ImGui.sameLine()
+            ImGui.text(
+                "RGBA %.2f %.2f %.2f %.2f | Tiling: %.2f",
+                layer.color.r,
+                layer.color.g,
+                layer.color.b,
+                layer.color.a,
+                layer.tiling,
+            )
         }
 
         ImGui.separator()
         ImGui.text("Selection")
         ImGui.text("Active layer: %s", state.selectedLayerId?.toString() ?: "none")
+        if (state.selectedLayerId != null && !state.selectedLayerVisible) {
+            ImGui.text("Selected layer is hidden")
+        }
         with(dsl) {
             button("Paint selected layer") {
                 state.brushMode = TerrainBrushMode.PaintLayer
@@ -251,17 +271,71 @@ class TerrainEditorLayersPanel(
 
         ImGui.separator()
         ImGui.text("Actions")
+        ImGui.beginDisabled(state.layers.size >= TerrainLayerLimits.MaxLayers)
         with(dsl) {
             button("Add layer") {
                 state.addLayerRequested = true
             }
         }
+        ImGui.endDisabled()
         ImGui.sameLine()
+        ImGui.beginDisabled(state.selectedLayerId == null)
         with(dsl) {
             button("Remove layer") {
                 state.removeLayerRequested = true
             }
         }
+        ImGui.endDisabled()
+        val selectedLayer = state.layers.firstOrNull { it.id == state.selectedLayerId }
+        ImGui.beginDisabled(selectedLayer == null || selectedLayer.index == 0)
+        with(dsl) {
+            button("Move Up") {
+                state.moveLayerUpRequested = true
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.sameLine()
+        ImGui.beginDisabled(selectedLayer == null || selectedLayer.index == state.layers.lastIndex)
+        with(dsl) {
+            button("Move Down") {
+                state.moveLayerDownRequested = true
+            }
+        }
+        ImGui.endDisabled()
+        if (state.layerMessage.isNotBlank()) {
+            ImGui.text("Status: ${state.layerMessage}")
+        }
+
+        ImGui.separator()
+        ImGui.text("Selected Layer Details")
+        ImGui.beginDisabled(state.selectedLayerId == null)
+        if (ImGui.inputText("Name", state::selectedLayerName)) {
+            state.renameLayerRequested = true
+        }
+        if (ImGui.inputText("MaterialId", state::selectedLayerMaterialId)) {
+            state.updateLayerMaterialRequested = true
+        }
+        if (ImGui.checkbox("Visible", state::selectedLayerVisible)) {
+            state.updateLayerVisibilityRequested = true
+        }
+        val color = state.selectedLayerColor
+        if (
+            colorEdit4(
+                "Color",
+                color.getOrElse(0) { 1f },
+                color.getOrElse(1) { 1f },
+                color.getOrElse(2) { 1f },
+                color.getOrElse(3) { 1f },
+            ) { r, g, b, a ->
+                state.selectedLayerColor = floatArrayOf(r, g, b, a)
+            }
+        ) {
+            state.updateLayerColorRequested = true
+        }
+        if (slider("Tiling", state::selectedLayerTiling, 0.1f, 128f, "%.2f", SliderFlag.AlwaysClamp)) {
+            state.updateLayerTilingRequested = true
+        }
+        ImGui.endDisabled()
 
         ImGui.end()
     }

@@ -6,6 +6,23 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 /**
+ * Terrain layer authoring limits.
+ */
+object TerrainLayerLimits {
+    const val MaxLayers = 8
+}
+
+/**
+ * Serializable editor/debug color used by terrain layers.
+ */
+data class TerrainLayerColorDescriptor(
+    val r: Float = 1f,
+    val g: Float = 1f,
+    val b: Float = 1f,
+    val a: Float = 1f,
+)
+
+/**
  * Describes one editable terrain surface layer.
  *
  * Layers keep authoring metadata separate from the generated mesh so future
@@ -15,7 +32,10 @@ data class TerrainLayer(
     val id: Int,
     var name: String,
     val texture: AssetRef<TextureAsset>? = null,
-    val materialId: String? = null,
+    var materialId: String? = null,
+    var color: TerrainLayerColorDescriptor = TerrainLayerColorDescriptor(),
+    var visible: Boolean = true,
+    var tiling: Float = 1f,
 )
 
 /**
@@ -25,6 +45,9 @@ data class TerrainLayerDescriptor(
     val id: Int,
     val name: String,
     val materialId: String? = null,
+    val color: TerrainLayerColorDescriptor = TerrainLayerColorDescriptor(),
+    val visible: Boolean = true,
+    val tiling: Float = 1f,
     val weights: FloatArray? = null,
 )
 
@@ -156,8 +179,23 @@ class TerrainData(
         name: String,
         texture: AssetRef<TextureAsset>? = null,
         materialId: String? = null,
+        color: TerrainLayerColorDescriptor = TerrainLayerColorDescriptor(),
+        visible: Boolean = true,
+        tiling: Float = 1f,
     ): TerrainLayer {
-        val layer = TerrainLayer(nextLayerId++, name, texture, materialId)
+        require(layers.size < TerrainLayerLimits.MaxLayers) {
+            "Terrain layer count cannot exceed ${TerrainLayerLimits.MaxLayers}"
+        }
+        val layerId = nextLayerId++
+        val layer = TerrainLayer(
+            id = layerId,
+            name = sanitizeLayerName(name, layerId),
+            texture = texture,
+            materialId = materialId,
+            color = color.clamped(),
+            visible = visible,
+            tiling = tiling.clampedTiling(),
+        )
         layers += layer
         layerWeights[layer.id] = FloatArray(width * height)
         return layer
@@ -181,6 +219,56 @@ class TerrainData(
      */
     fun allLayers(): List<TerrainLayer> = layers.toList()
 
+    fun updateLayerColor(layerId: Int, color: TerrainLayerColorDescriptor): Boolean {
+        val layer = findLayer(layerId) ?: return false
+        layer.color = color.clamped()
+        return true
+    }
+
+    fun updateLayerVisibility(layerId: Int, visible: Boolean): Boolean {
+        val layer = findLayer(layerId) ?: return false
+        layer.visible = visible
+        return true
+    }
+
+    fun updateLayerTiling(layerId: Int, tiling: Float): Boolean {
+        val layer = findLayer(layerId) ?: return false
+        layer.tiling = tiling.clampedTiling()
+        return true
+    }
+
+    fun updateLayerMaterial(layerId: Int, materialId: String?): Boolean {
+        val layer = findLayer(layerId) ?: return false
+        layer.materialId = materialId?.trim()?.takeIf(String::isNotEmpty)
+        return true
+    }
+
+    fun renameLayer(layerId: Int, name: String): Boolean {
+        val layer = findLayer(layerId) ?: return false
+        layer.name = sanitizeLayerName(name, layer.id)
+        return true
+    }
+
+    fun moveLayerUp(layerId: Int): Boolean {
+        val index = layers.indexOfFirst { it.id == layerId }
+        if (index <= 0) return false
+        return moveLayer(layerId, index - 1)
+    }
+
+    fun moveLayerDown(layerId: Int): Boolean {
+        val index = layers.indexOfFirst { it.id == layerId }
+        if (index < 0 || index >= layers.lastIndex) return false
+        return moveLayer(layerId, index + 1)
+    }
+
+    fun moveLayer(layerId: Int, newIndex: Int): Boolean {
+        val currentIndex = layers.indexOfFirst { it.id == layerId }
+        if (currentIndex < 0 || newIndex !in layers.indices || currentIndex == newIndex) return false
+        val layer = layers.removeAt(currentIndex)
+        layers.add(newIndex, layer)
+        return true
+    }
+
     /**
      * Writes one layer weight sample, clamped to the normalized 0..1 range.
      */
@@ -199,6 +287,9 @@ class TerrainData(
      * Returns a defensive copy of the layer weight map, if it exists.
      */
     fun getLayerWeightMap(layerId: Int): FloatArray? = layerWeights[layerId]?.copyOf()
+
+    private fun findLayer(layerId: Int): TerrainLayer? =
+        layers.firstOrNull { it.id == layerId }
 
     /**
      * Converts grid coordinates into the row-major sample index.
@@ -223,6 +314,9 @@ class TerrainData(
                     id = layer.id,
                     name = layer.name,
                     materialId = layer.materialId,
+                    color = layer.color.clamped(),
+                    visible = layer.visible,
+                    tiling = layer.tiling.clampedTiling(),
                     weights = layerWeights[layer.id]?.copyOf(),
                 )
             },
@@ -233,6 +327,9 @@ class TerrainData(
          * Restores terrain data from a descriptor produced by [toDescriptor].
          */
         fun fromDescriptor(descriptor: TerrainDataDescriptor): TerrainData {
+            require(descriptor.layers.size <= TerrainLayerLimits.MaxLayers) {
+                "Terrain layer count cannot exceed ${TerrainLayerLimits.MaxLayers}"
+            }
             val terrain = TerrainData(
                 width = descriptor.width,
                 height = descriptor.height,
@@ -242,9 +339,12 @@ class TerrainData(
             descriptor.layers.forEach { layer ->
                 val restored = TerrainLayer(
                     id = layer.id,
-                    name = layer.name,
+                    name = sanitizeLayerName(layer.name, layer.id),
                     texture = null,
                     materialId = layer.materialId,
+                    color = layer.color.clamped(),
+                    visible = layer.visible,
+                    tiling = layer.tiling.clampedTiling(),
                 )
                 terrain.layers += restored
                 terrain.layerWeights[restored.id] =
@@ -257,3 +357,16 @@ class TerrainData(
 }
 
 private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t
+
+private fun sanitizeLayerName(name: String, id: Int): String =
+    name.trim().takeIf(String::isNotEmpty) ?: "Layer $id"
+
+private fun Float.clampedTiling(): Float = coerceIn(0.1f, 128f)
+
+private fun TerrainLayerColorDescriptor.clamped(): TerrainLayerColorDescriptor =
+    TerrainLayerColorDescriptor(
+        r = r.coerceIn(0f, 1f),
+        g = g.coerceIn(0f, 1f),
+        b = b.coerceIn(0f, 1f),
+        a = a.coerceIn(0f, 1f),
+    )

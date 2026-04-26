@@ -57,6 +57,8 @@ data class DynamicMesh(
     val indices: IntArray,
     /** Optional packed tangents. */
     val tangents: FloatArray? = null,
+    /** Optional packed RGBA vertex colors. */
+    val colors: FloatArray? = null,
 ) {
     /**
      * Number of vertices encoded in [positions].

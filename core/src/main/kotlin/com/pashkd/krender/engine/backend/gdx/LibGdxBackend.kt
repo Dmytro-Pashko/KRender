@@ -995,28 +995,33 @@ class GdxRenderer3D(
         val positions = meshData.positions
         val normals = meshData.normals
         val uvs = meshData.uvs
+        val hasColors = meshData.hasVertexColors()
         val maxIndex = meshData.indices.maxOrNull() ?: -1
         val canUseIndices = meshData.indices.isNotEmpty() &&
             meshData.vertexCount <= UNSIGNED_SHORT_MASK &&
             maxIndex <= UNSIGNED_SHORT_MASK
 
-        val attributes = arrayOf(
+        val attributes = mutableListOf(
             VertexAttribute.Position(),
             VertexAttribute.Normal(),
             VertexAttribute.TexCoords(0),
         )
+        if (hasColors) {
+            attributes += VertexAttribute.ColorUnpacked()
+        }
 
         val vertexBuffer = if (canUseIndices) {
-            interleaveVertices(positions, normals, uvs)
+            interleaveVertices(positions, normals, uvs, meshData.colors)
         } else {
             expandVertices(meshData)
         }
+        val vertexStride = dynamicVertexFloatCount(hasColors)
 
         val mesh = Mesh(
             true,
-            vertexBuffer.size / FLOATS_PER_DYNAMIC_VERTEX,
+            vertexBuffer.size / vertexStride,
             if (canUseIndices) meshData.indices.size else 0,
-            *attributes,
+            *attributes.toTypedArray(),
         )
         mesh.setVertices(vertexBuffer)
         if (canUseIndices) {
@@ -1026,7 +1031,7 @@ class GdxRenderer3D(
         val material = com.badlogic.gdx.graphics.g3d.Material(
             ColorAttribute.createDiffuse(1f, 1f, 1f, 1f),
         )
-        val partSize = if (canUseIndices) meshData.indices.size else vertexBuffer.size / FLOATS_PER_DYNAMIC_VERTEX
+        val partSize = if (canUseIndices) meshData.indices.size else vertexBuffer.size / vertexStride
         val meshPart = MeshPart(dynamicModel.id, mesh, 0, partSize, GL20.GL_TRIANGLES)
         val nodePart = NodePart(meshPart, material)
         val node = Node().apply {
@@ -1048,13 +1053,16 @@ class GdxRenderer3D(
         positions: FloatArray,
         normals: FloatArray,
         uvs: FloatArray,
+        colors: FloatArray?,
     ): FloatArray {
         val vertexCount = positions.size / 3
-        val vertices = FloatArray(vertexCount * FLOATS_PER_DYNAMIC_VERTEX)
+        val hasColors = colors != null && colors.size == vertexCount * 4
+        val vertices = FloatArray(vertexCount * dynamicVertexFloatCount(hasColors))
         var offset = 0
         for (vertex in 0 until vertexCount) {
             val positionBase = vertex * 3
             val uvBase = vertex * 2
+            val colorBase = vertex * 4
             vertices[offset++] = positions[positionBase]
             vertices[offset++] = positions[positionBase + 1]
             vertices[offset++] = positions[positionBase + 2]
@@ -1063,20 +1071,28 @@ class GdxRenderer3D(
             vertices[offset++] = normals[positionBase + 2]
             vertices[offset++] = uvs[uvBase]
             vertices[offset++] = uvs[uvBase + 1]
+            if (hasColors) {
+                vertices[offset++] = colors[colorBase]
+                vertices[offset++] = colors[colorBase + 1]
+                vertices[offset++] = colors[colorBase + 2]
+                vertices[offset++] = colors[colorBase + 3]
+            }
         }
         return vertices
     }
 
     private fun expandVertices(meshData: com.pashkd.krender.engine.api.DynamicMesh): FloatArray {
         if (meshData.indices.isEmpty()) {
-            return interleaveVertices(meshData.positions, meshData.normals, meshData.uvs)
+            return interleaveVertices(meshData.positions, meshData.normals, meshData.uvs, meshData.colors)
         }
 
-        val vertices = FloatArray(meshData.indices.size * FLOATS_PER_DYNAMIC_VERTEX)
+        val hasColors = meshData.hasVertexColors()
+        val vertices = FloatArray(meshData.indices.size * dynamicVertexFloatCount(hasColors))
         var offset = 0
         meshData.indices.forEach { index ->
             val positionBase = index * 3
             val uvBase = index * 2
+            val colorBase = index * 4
             vertices[offset++] = meshData.positions[positionBase]
             vertices[offset++] = meshData.positions[positionBase + 1]
             vertices[offset++] = meshData.positions[positionBase + 2]
@@ -1085,9 +1101,22 @@ class GdxRenderer3D(
             vertices[offset++] = meshData.normals[positionBase + 2]
             vertices[offset++] = meshData.uvs[uvBase]
             vertices[offset++] = meshData.uvs[uvBase + 1]
+            if (hasColors) {
+                val colors = meshData.colors ?: return@forEach
+                vertices[offset++] = colors[colorBase]
+                vertices[offset++] = colors[colorBase + 1]
+                vertices[offset++] = colors[colorBase + 2]
+                vertices[offset++] = colors[colorBase + 3]
+            }
         }
         return vertices
     }
+
+    private fun com.pashkd.krender.engine.api.DynamicMesh.hasVertexColors(): Boolean =
+        colors != null && colors.size == vertexCount * 4
+
+    private fun dynamicVertexFloatCount(hasColors: Boolean): Int =
+        if (hasColors) FLOATS_PER_COLORED_DYNAMIC_VERTEX else FLOATS_PER_DYNAMIC_VERTEX
 
     private fun wireframeVerticesFor(
         instance: ModelInstance,
@@ -1391,6 +1420,7 @@ class GdxRenderer3D(
         private const val HUD_PANEL_WIDTH = 360f
         private const val LOG_PANEL_WIDTH = 560f
         private const val FLOATS_PER_DYNAMIC_VERTEX = 8
+        private const val FLOATS_PER_COLORED_DYNAMIC_VERTEX = 12
         private const val FLOAT_BYTES = 4
         private const val UNSIGNED_SHORT_MASK = 0xFFFF
     }
