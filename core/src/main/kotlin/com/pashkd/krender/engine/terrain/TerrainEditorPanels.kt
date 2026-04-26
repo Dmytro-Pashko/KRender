@@ -224,10 +224,8 @@ class TerrainEditorLayersPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private val selectedLayerNameBuffer = ByteArray(TEXT_INPUT_BUFFER_SIZE)
-    private val selectedLayerMaterialBuffer = ByteArray(TEXT_INPUT_BUFFER_SIZE)
     private var bufferedLayerId: Int? = null
     private var nameInputActive: Boolean = false
-    private var materialInputActive: Boolean = false
 
     /**
      * Draws the layer management window using the configured default layout.
@@ -322,11 +320,7 @@ class TerrainEditorLayersPanel(
             state.renameLayerRequested = true
         }
         nameInputActive = ImGui.isItemActive
-        if (ImGui.inputText("MaterialId", selectedLayerMaterialBuffer)) {
-            state.selectedLayerMaterialId = readBuffer(selectedLayerMaterialBuffer)
-            state.updateLayerMaterialRequested = true
-        }
-        materialInputActive = ImGui.isItemActive
+        drawMaterialSelector()
         if (ImGui.checkbox("Visible", state::selectedLayerVisible)) {
             state.updateLayerVisibilityRequested = true
         }
@@ -353,7 +347,38 @@ class TerrainEditorLayersPanel(
     }
 
     private fun formatLayerRow(layer: TerrainLayerOption): String =
-        "${layer.name}:RGBA(${formatColorChannel(layer.color.r)},${formatColorChannel(layer.color.g)},${formatColorChannel(layer.color.b)},${formatColorChannel(layer.color.a)})|T:${formatTiling(layer.tiling)}|Color"
+        "${layer.name}:${layer.materialId ?: "none"}|T:${formatTiling(layer.tiling)}|Color"
+
+    private fun drawMaterialSelector() {
+        ImGui.text("Material")
+        if (state.terrainMaterials.isEmpty()) {
+            ImGui.text("No terrain materials loaded")
+            return
+        }
+
+        val selectedMaterial = state.terrainMaterials.firstOrNull { it.id == state.selectedLayerMaterialId }
+        ImGui.text("Name: %s", selectedMaterial?.name ?: "Missing")
+        ImGui.text("Id: %s", state.selectedLayerMaterialId.ifBlank { "none" })
+        ImGui.text("Texture: %s", selectedMaterial?.albedoTexture ?: "none")
+        ImGui.text("Materials")
+        state.terrainMaterials.forEachIndexed { index, material ->
+            if (ImGui.selectable("${material.name}##terrain_material_${material.id}", index == state.selectedLayerMaterialIndex)) {
+                state.selectedLayerMaterialIndex = index
+                state.selectedLayerMaterialId = material.id
+                state.selectedLayerColor = floatArrayOf(
+                    material.fallbackColor.r,
+                    material.fallbackColor.g,
+                    material.fallbackColor.b,
+                    material.fallbackColor.a,
+                )
+                state.selectedLayerTiling = material.defaultTiling
+                state.updateLayerMaterialRequested = true
+            }
+        }
+        if (state.materialMessage.isNotBlank()) {
+            ImGui.text("Material status: ${state.materialMessage}")
+        }
+    }
 
     private fun formatColorChannel(value: Float): String =
         "%.2f".format(value)
@@ -366,15 +391,11 @@ class TerrainEditorLayersPanel(
         if (bufferedLayerId != selectedLayerId) {
             bufferedLayerId = selectedLayerId
             writeBuffer(selectedLayerNameBuffer, state.selectedLayerName)
-            writeBuffer(selectedLayerMaterialBuffer, state.selectedLayerMaterialId)
             return
         }
 
         if (!nameInputActive && readBuffer(selectedLayerNameBuffer) != state.selectedLayerName) {
             writeBuffer(selectedLayerNameBuffer, state.selectedLayerName)
-        }
-        if (!materialInputActive && readBuffer(selectedLayerMaterialBuffer) != state.selectedLayerMaterialId) {
-            writeBuffer(selectedLayerMaterialBuffer, state.selectedLayerMaterialId)
         }
     }
 

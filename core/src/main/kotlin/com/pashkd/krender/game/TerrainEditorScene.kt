@@ -3,6 +3,7 @@ package com.pashkd.krender.game
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.material.TerrainMaterialLibrary
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.Material
@@ -22,6 +23,8 @@ import com.pashkd.krender.engine.terrain.TerrainEditorTerrainPanel
 import com.pashkd.krender.engine.terrain.TerrainEditorUiLayoutDefaults
 import com.pashkd.krender.engine.terrain.TerrainGenerator
 import com.pashkd.krender.engine.terrain.TerrainGeneratorOption
+import com.pashkd.krender.engine.terrain.TerrainLayerColorDescriptor
+import com.pashkd.krender.engine.terrain.TerrainMaterialOption
 import com.pashkd.krender.engine.terrain.TerrainEditorState
 import com.pashkd.krender.engine.terrain.TerrainEditorSystem
 import com.pashkd.krender.engine.terrain.TerrainMeshSyncSystem
@@ -49,6 +52,7 @@ class TerrainEditorScene(
         FractalNoiseGenerator(),
     )
     private lateinit var terrainPersistence: TerrainPersistence
+    private lateinit var terrainMaterialLibrary: TerrainMaterialLibrary
     private lateinit var editorState: TerrainEditorState
     private lateinit var editorSystem: TerrainEditorSystem
 
@@ -57,9 +61,12 @@ class TerrainEditorScene(
      */
     override fun show() {
         terrainPersistence = TerrainPersistence(engine.logger)
+        terrainMaterialLibrary = TerrainMaterialLibrary(engine.logger).also { library ->
+            library.load("materials/terrain_materials.json")
+        }
         engine.logger.info(TAG) {
             "Showing terrain editor path='$terrainFilePath' defaultResolution=$terrainResolution spacing=${"%.2f".format(vertexSpacing)} " +
-                "generators=${terrainGenerators.joinToString { it.id }}"
+                "generators=${terrainGenerators.joinToString { it.id }} materials=${terrainMaterialLibrary.all().size}"
         }
         val layoutConfig = ImGuiLayoutConfigLoader(
             assetPath = TerrainEditorUiLayoutDefaults.assetPath,
@@ -74,17 +81,29 @@ class TerrainEditorScene(
             vertexSpacing = vertexSpacing,
             terrainFilePath = terrainFilePath,
             terrainSaveName = terrainPersistence.fileNameFromPath(terrainFilePath),
+            terrainMaterials = terrainMaterialLibrary.all().map { material ->
+                TerrainMaterialOption(
+                    id = material.id,
+                    name = material.name,
+                    albedoTexture = material.albedoTexture,
+                    fallbackColor = material.fallbackColor,
+                    defaultTiling = material.defaultTiling,
+                )
+            },
         )
         editorSystem = TerrainEditorSystem(
             engine.input,
             engine.logger,
             editorState,
             terrainGenerators.associateBy(TerrainGenerator::id),
+            terrainMaterialLibrary.all().associateBy { it.id },
         )
 
         world.systems.add(TerrainCameraControllerSystem(engine.input))
         world.systems.add(editorSystem)
-        world.systems.add(TerrainMeshSyncSystem())
+        world.systems.add(TerrainMeshSyncSystem { materialId ->
+            terrainMaterialLibrary.find(materialId)?.fallbackColor
+        })
         world.systems.add(TerrainViewportDebugRenderSystem(editorState))
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(TerrainRenderSystem())
@@ -233,7 +252,13 @@ class TerrainEditorScene(
             height = terrainResolution,
             vertexSpacing = vertexSpacing,
         )
-        terrainData.addLayer(name = "Base Layer", materialId = "terrain/base")
+        val baseMaterial = preferredBaseMaterial()
+        terrainData.addLayer(
+            name = "Base Layer",
+            materialId = baseMaterial?.id ?: "terrain/base",
+            color = baseMaterial?.fallbackColor ?: TerrainLayerColorDescriptor(),
+            tiling = baseMaterial?.defaultTiling ?: 1f,
+        )
         generator.generate(terrainData)
         engine.logger.info(TAG) { "Default terrain generation completed (${terrainData.describeTerrain()})" }
         return terrainData
@@ -253,6 +278,11 @@ class TerrainEditorScene(
             id = generator.id,
             label = generator.id.replaceFirstChar { char -> char.uppercase() },
         )
+
+    private fun preferredBaseMaterial() =
+        terrainMaterialLibrary.find("terrain/grass")
+            ?: terrainMaterialLibrary.find("terrain/ground_grass")
+            ?: terrainMaterialLibrary.firstOrNull()
 
     companion object {
         private const val TAG = "TerrainEditor"

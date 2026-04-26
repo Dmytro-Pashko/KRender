@@ -48,12 +48,15 @@ object TerrainMeshBuilder {
     /**
      * Generates positions, UVs, triangle indices, normals, and tangents for [data].
      */
-    fun build(data: TerrainData): TerrainMeshData {
+    fun build(
+        data: TerrainData,
+        materialColorResolver: (String?) -> TerrainLayerColorDescriptor? = { null },
+    ): TerrainMeshData {
         val vertexCount = data.width * data.height
         val positions = FloatArray(vertexCount * 3)
         val normals = FloatArray(vertexCount * 3)
         val uvs = FloatArray(vertexCount * 2)
-        val colors = buildLayerColors(data)
+        val colors = buildLayerColors(data, materialColorResolver)
         val indices = IntArray((data.width - 1) * (data.height - 1) * 6)
 
         var vertexOffset = 0
@@ -101,32 +104,40 @@ object TerrainMeshBuilder {
         )
     }
 
-    private fun buildLayerColors(data: TerrainData): FloatArray {
+    private fun buildLayerColors(
+        data: TerrainData,
+        materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
+    ): FloatArray {
         val colors = FloatArray(data.width * data.height * 4)
         val visibleLayers = data.allLayers().filter { it.visible }
+        val baseFallbackColor = visibleLayers.firstOrNull()?.let { layer ->
+            materialColorResolver(layer.materialId) ?: layer.color
+        } ?: BASE_FALLBACK_COLOR
         var colorOffset = 0
         for (y in 0 until data.height) {
             for (x in 0 until data.width) {
-                var r = 0f
-                var g = 0f
-                var b = 0f
-                var a = 0f
-                var totalWeight = 0f
+                var r = baseFallbackColor.r
+                var g = baseFallbackColor.g
+                var b = baseFallbackColor.b
+                var a = baseFallbackColor.a
+                var contributed = false
                 visibleLayers.forEach { layer ->
                     val weight = data.getLayerWeight(layer.id, x, y)
                     if (weight <= 0f) return@forEach
-                    r += layer.color.r * weight
-                    g += layer.color.g * weight
-                    b += layer.color.b * weight
-                    a += layer.color.a * weight
-                    totalWeight += weight
+                    val layerColor = materialColorResolver(layer.materialId) ?: layer.color
+                    val blend = weight.coerceIn(0f, 1f)
+                    r += (layerColor.r - r) * blend
+                    g += (layerColor.g - g) * blend
+                    b += (layerColor.b - b) * blend
+                    a += (layerColor.a - a) * blend
+                    contributed = true
                 }
 
-                if (totalWeight > 0f) {
-                    colors[colorOffset++] = (r / totalWeight).coerceIn(0f, 1f)
-                    colors[colorOffset++] = (g / totalWeight).coerceIn(0f, 1f)
-                    colors[colorOffset++] = (b / totalWeight).coerceIn(0f, 1f)
-                    colors[colorOffset++] = (a / totalWeight).coerceIn(0f, 1f)
+                if (contributed || visibleLayers.isNotEmpty()) {
+                    colors[colorOffset++] = r.coerceIn(0f, 1f)
+                    colors[colorOffset++] = g.coerceIn(0f, 1f)
+                    colors[colorOffset++] = b.coerceIn(0f, 1f)
+                    colors[colorOffset++] = a.coerceIn(0f, 1f)
                 } else {
                     colors[colorOffset++] = BASE_FALLBACK_COLOR.r
                     colors[colorOffset++] = BASE_FALLBACK_COLOR.g

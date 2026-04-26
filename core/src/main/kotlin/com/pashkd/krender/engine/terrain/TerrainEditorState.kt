@@ -31,6 +31,17 @@ data class TerrainLayerOption(
 )
 
 /**
+ * Describes one terrain material option exposed to the layer UI.
+ */
+data class TerrainMaterialOption(
+    val id: String,
+    val name: String,
+    val albedoTexture: String,
+    val fallbackColor: TerrainLayerColorDescriptor,
+    val defaultTiling: Float,
+)
+
+/**
  * Holds mutable state shared between Terrain Editor panels and systems.
  */
 data class TerrainEditorState(
@@ -58,10 +69,14 @@ data class TerrainEditorState(
     var wireframeEnabled: Boolean = false,
     /** Current terrain layer list mirrored from runtime terrain data. */
     var layers: List<TerrainLayerOption> = emptyList(),
+    /** Terrain material definitions available for layer assignment. */
+    var terrainMaterials: List<TerrainMaterialOption> = emptyList(),
     /** Editable name mirrored from the selected terrain layer. */
     var selectedLayerName: String = "",
     /** Editable material id mirrored from the selected terrain layer. */
     var selectedLayerMaterialId: String = "",
+    /** Selected material option index for the active terrain layer. */
+    var selectedLayerMaterialIndex: Int = -1,
     /** Editable RGBA color mirrored from the selected terrain layer. */
     var selectedLayerColor: FloatArray = floatArrayOf(1f, 1f, 1f, 1f),
     /** Editable visibility flag mirrored from the selected terrain layer. */
@@ -144,6 +159,8 @@ data class TerrainEditorState(
     var moveLayerDownRequested: Boolean = false,
     /** Last terrain layer status message shown in the layer panel. */
     var layerMessage: String = "",
+    /** Last terrain material status or warning shown in the layer panel. */
+    var materialMessage: String = "",
 ) {
     /**
      * Returns the currently selected generator option, if any.

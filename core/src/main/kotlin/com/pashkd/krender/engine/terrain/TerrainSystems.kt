@@ -13,6 +13,7 @@ import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.material.TerrainMaterialDescriptor
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import kotlin.math.PI
 import kotlin.math.cos
@@ -30,6 +31,7 @@ class TerrainEditorSystem(
     private val logger: Logger,
     private val state: TerrainEditorState,
     private val generatorsById: Map<String, TerrainGenerator> = listOf(FlatTerrainGenerator()).associateBy(TerrainGenerator::id),
+    private val terrainMaterialsById: Map<String, TerrainMaterialDescriptor> = emptyMap(),
 ) : System() {
     /**
      * Latest terrain hit under the mouse cursor, if any.
@@ -223,12 +225,19 @@ class TerrainEditorSystem(
         if (selected != null) {
             state.selectedLayerName = selected.name
             state.selectedLayerMaterialId = selected.materialId ?: ""
+            state.selectedLayerMaterialIndex = state.terrainMaterials.indexOfFirst { it.id == selected.materialId }
             state.selectedLayerColor = floatArrayOf(selected.color.r, selected.color.g, selected.color.b, selected.color.a)
             state.selectedLayerVisible = selected.visible
             state.selectedLayerTiling = selected.tiling
+            if (selected.materialId != null && state.selectedLayerMaterialIndex < 0) {
+                state.materialMessage = "Missing material: ${selected.materialId}"
+            } else if (state.materialMessage.startsWith("Missing material:")) {
+                state.materialMessage = ""
+            }
         } else {
             state.selectedLayerName = ""
             state.selectedLayerMaterialId = ""
+            state.selectedLayerMaterialIndex = -1
             state.selectedLayerColor = floatArrayOf(1f, 1f, 1f, 1f)
             state.selectedLayerVisible = true
             state.selectedLayerTiling = 1f
@@ -361,12 +370,13 @@ class TerrainEditorSystem(
             finishBrushStroke()
             editHistory.clear()
             val nextIndex = terrain.data.allLayers().size + 1
+            val material = state.terrainMaterials.firstOrNull()
             val layer = terrain.data.addLayer(
                 name = "Layer $nextIndex",
-                materialId = "terrain/layer_$nextIndex",
-                color = defaultLayerColor(nextIndex - 1),
+                materialId = material?.id ?: "terrain/layer_$nextIndex",
+                color = material?.fallbackColor ?: defaultLayerColor(nextIndex - 1),
                 visible = true,
-                tiling = 1f,
+                tiling = material?.defaultTiling ?: 1f,
             )
             state.selectedLayerId = layer.id
             terrain.markDirty()
@@ -526,7 +536,13 @@ class TerrainEditorSystem(
             }
         }
         if (regenerated.allLayers().isEmpty()) {
-            val baseLayer = regenerated.addLayer(name = "Base Layer", materialId = "terrain/base")
+            val material = preferredBaseMaterial() ?: state.terrainMaterials.firstOrNull()
+            val baseLayer = regenerated.addLayer(
+                name = "Base Layer",
+                materialId = material?.id ?: "terrain/base",
+                color = material?.fallbackColor ?: TerrainLayerColorDescriptor(),
+                tiling = material?.defaultTiling ?: 1f,
+            )
             state.selectedLayerId = baseLayer.id
         }
 
@@ -550,6 +566,10 @@ class TerrainEditorSystem(
     private fun activeGenerator(): TerrainGenerator =
         generatorsById[state.selectedGeneratorId] ?: generatorsById.values.first()
 
+    private fun preferredBaseMaterial(): TerrainMaterialOption? =
+        state.terrainMaterials.firstOrNull { it.id == "terrain/grass" }
+            ?: state.terrainMaterials.firstOrNull { it.id == "terrain/ground_grass" }
+
     private fun processLayerMetadataCommands(terrain: TerrainComponent) {
         val selectedLayerId = state.selectedLayerId
         var changed = false
@@ -570,10 +590,7 @@ class TerrainEditorSystem(
         if (state.updateLayerMaterialRequested) {
             state.updateLayerMaterialRequested = false
             applyUpdate { layerId ->
-                terrain.data.updateLayerMaterial(
-                    layerId,
-                    state.selectedLayerMaterialId.takeIf(String::isNotBlank),
-                )
+                applyLayerMaterial(terrain.data, layerId)
             }
         }
         if (state.updateLayerColorRequested) {
@@ -609,6 +626,30 @@ class TerrainEditorSystem(
         }
     }
 
+    private fun applyLayerMaterial(
+        terrainData: TerrainData,
+        layerId: Int,
+    ): Boolean {
+        val materialId = state.selectedLayerMaterialId.takeIf(String::isNotBlank)
+        val material = materialId?.let(terrainMaterialsById::get)
+        val changed = assignTerrainLayerMaterial(terrainData, layerId, materialId, material)
+        if (material != null) {
+            state.selectedLayerColor = floatArrayOf(
+                material.fallbackColor.r,
+                material.fallbackColor.g,
+                material.fallbackColor.b,
+                material.fallbackColor.a,
+            )
+            state.selectedLayerTiling = material.defaultTiling
+            state.materialMessage = "Assigned material: ${material.name}"
+        } else if (materialId != null) {
+            state.materialMessage = "Missing material: $materialId"
+        } else {
+            state.materialMessage = "Cleared material"
+        }
+        return changed
+    }
+
     /**
      * Formats a hovered terrain position for UI/debug display.
      */
@@ -637,7 +678,9 @@ class TerrainEditorSystem(
 /**
  * Synchronizes dirty terrain data into runtime dynamic mesh models.
  */
-class TerrainMeshSyncSystem : System() {
+class TerrainMeshSyncSystem(
+    private val materialColorResolver: (String?) -> TerrainLayerColorDescriptor? = { null },
+) : System() {
     /**
      * Rebuilds full terrain meshes for dirty terrain entities.
      */
@@ -647,7 +690,7 @@ class TerrainMeshSyncSystem : System() {
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
             if (!terrain.dirty) return@forEach
 
-            val mesh = TerrainMeshBuilder.build(terrain.data)
+            val mesh = TerrainMeshBuilder.build(terrain.data, materialColorResolver)
             renderer.meshRevision += 1L
             renderer.model = com.pashkd.krender.engine.api.DynamicModel(
                 id = renderer.modelId,
@@ -914,3 +957,17 @@ private fun distance(a: Vec3, b: Vec3): Float {
 
 private fun TerrainData.describeTerrain(): String =
     "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${allLayers().joinToString { layer -> "${layer.id}:${layer.name}" }}]"
+
+internal fun assignTerrainLayerMaterial(
+    terrainData: TerrainData,
+    layerId: Int,
+    materialId: String?,
+    material: TerrainMaterialDescriptor?,
+): Boolean {
+    var changed = terrainData.updateLayerMaterial(layerId, materialId)
+    if (material != null) {
+        changed = terrainData.updateLayerColor(layerId, material.fallbackColor) || changed
+        changed = terrainData.updateLayerTiling(layerId, material.defaultTiling) || changed
+    }
+    return changed
+}
