@@ -48,7 +48,7 @@ class TerrainEditorScene(
         SimplexNoiseGenerator(),
         FractalNoiseGenerator(),
     )
-    private val terrainPersistence = TerrainPersistence()
+    private lateinit var terrainPersistence: TerrainPersistence
     private lateinit var editorState: TerrainEditorState
     private lateinit var editorSystem: TerrainEditorSystem
 
@@ -56,6 +56,11 @@ class TerrainEditorScene(
      * Creates the terrain editor camera, lights, terrain entity, and terrain systems.
      */
     override fun show() {
+        terrainPersistence = TerrainPersistence(engine.logger)
+        engine.logger.info(TAG) {
+            "Showing terrain editor path='$terrainFilePath' defaultResolution=$terrainResolution spacing=${"%.2f".format(vertexSpacing)} " +
+                "generators=${terrainGenerators.joinToString { it.id }}"
+        }
         val layoutConfig = ImGuiLayoutConfigLoader(
             assetPath = TerrainEditorUiLayoutDefaults.assetPath,
             fallback = TerrainEditorUiLayoutDefaults.config,
@@ -167,6 +172,7 @@ class TerrainEditorScene(
      */
     private fun createTerrain() {
         val terrainData = createInitialTerrainData()
+        engine.logger.info(TAG) { "Creating terrain entity (${terrainData.describeTerrain()})" }
         editorState.selectedLayerId = terrainData.allLayers().firstOrNull()?.id
         editorState.terrainResolution = terrainData.width
         editorState.vertexSpacing = terrainData.vertexSpacing
@@ -186,25 +192,31 @@ class TerrainEditorScene(
      */
     private fun createInitialTerrainData(): TerrainData {
         editorState.terrainFileExists = terrainPersistence.exists(terrainFilePath)
+        engine.logger.debug(TAG) { "Initial terrain file check path='$terrainFilePath' exists=${editorState.terrainFileExists}" }
         if (editorState.terrainFileExists) {
             return try {
+                engine.logger.info(TAG) { "Initial terrain load started path='$terrainFilePath'" }
                 val descriptor = terrainPersistence.loadDescriptor(terrainFilePath)
                 editorState.terrainSaveName = descriptor.name
                 editorState.persistenceMessage = "Loaded terrain: $terrainFilePath"
                 editorState.persistenceError = false
-                TerrainData.fromDescriptor(descriptor.terrain)
+                TerrainData.fromDescriptor(descriptor.terrain).also { data ->
+                    engine.logger.info(TAG) { "Initial terrain load completed path='$terrainFilePath' name='${descriptor.name}' (${data.describeTerrain()})" }
+                }
             } catch (error: Exception) {
-                engine.logger.error("TerrainEditor", error) {
+                engine.logger.error(TAG, error) {
                     "Failed to load terrain '$terrainFilePath': ${error.message}"
                 }
                 editorState.persistenceMessage = "Load failed: ${error.message}"
                 editorState.persistenceError = true
+                engine.logger.warn(TAG) { "Falling back to generated default terrain after load failure path='$terrainFilePath'" }
                 createDefaultTerrain()
             }
         }
 
         editorState.persistenceMessage = "Created default terrain: $terrainFilePath"
         editorState.persistenceError = false
+        engine.logger.info(TAG) { "No terrain file found. Creating generated default terrain path='$terrainFilePath'" }
         return createDefaultTerrain()
     }
 
@@ -212,13 +224,18 @@ class TerrainEditorScene(
      * Creates a generated default terrain without writing it to disk.
      */
     private fun createDefaultTerrain(): TerrainData {
+        val generator = activeGenerator()
+        engine.logger.info(TAG) {
+            "Default terrain generation started generator='${generator.id}' resolution=$terrainResolution spacing=${"%.2f".format(vertexSpacing)}"
+        }
         val terrainData = TerrainData(
             width = terrainResolution,
             height = terrainResolution,
             vertexSpacing = vertexSpacing,
         )
         terrainData.addLayer(name = "Base Layer", materialId = "terrain/base")
-        activeGenerator().generate(terrainData)
+        generator.generate(terrainData)
+        engine.logger.info(TAG) { "Default terrain generation completed (${terrainData.describeTerrain()})" }
         return terrainData
     }
 
@@ -236,4 +253,11 @@ class TerrainEditorScene(
             id = generator.id,
             label = generator.id.replaceFirstChar { char -> char.uppercase() },
         )
+
+    companion object {
+        private const val TAG = "TerrainEditor"
+    }
 }
+
+private fun TerrainData.describeTerrain(): String =
+    "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${allLayers().joinToString { layer -> "${layer.id}:${layer.name}" }}]"

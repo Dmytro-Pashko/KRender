@@ -41,7 +41,7 @@ class TerrainEditorSystem(
     private var flattenHeight: Float? = null
     private var paintLayerWarningShown: Boolean = false
     private val editHistory = TerrainEditHistory()
-    private val terrainPersistence = TerrainPersistence()
+    private val terrainPersistence = TerrainPersistence(logger)
     private var activePatchBuilder: TerrainEditPatchBuilder? = null
 
     /**
@@ -343,9 +343,13 @@ class TerrainEditorSystem(
             state.createTerrainRequested = false
             finishBrushStroke()
             editHistory.clearAndMarkClean()
+            logger.info(TAG) {
+                "Creating terrain from generator='${activeGenerator().id}' resolution=${state.terrainResolution} spacing=${"%.2f".format(state.vertexSpacing)}"
+            }
             regenerateTerrain(terrain, renderer)
             state.persistenceMessage = "Created terrain: ${state.terrainSaveName}"
             state.persistenceError = false
+            logger.info(TAG) { "Created terrain '${state.terrainSaveName}' (${terrain.data.describeTerrain()})" }
         }
 
         if (state.addLayerRequested) {
@@ -415,7 +419,11 @@ class TerrainEditorSystem(
             state.regenerateRequested = false
             finishBrushStroke()
             editHistory.clearAndMarkClean()
+            logger.info(TAG) {
+                "Regenerating terrain with generator='${activeGenerator().id}' resolution=${state.terrainResolution} spacing=${"%.2f".format(state.vertexSpacing)}"
+            }
             regenerateTerrain(terrain, renderer)
+            logger.info(TAG) { "Regenerated terrain (${terrain.data.describeTerrain()})" }
         }
     }
 
@@ -428,6 +436,9 @@ class TerrainEditorSystem(
             finishBrushStroke()
 
             try {
+                logger.info(TAG) {
+                    "Save terrain requested path='${state.terrainFilePath}' name='${state.terrainSaveName}' (${terrain.data.describeTerrain()})"
+                }
                 terrainPersistence.save(
                     data = terrain.data,
                     filePath = state.terrainFilePath,
@@ -437,10 +448,11 @@ class TerrainEditorSystem(
                 state.terrainFileExists = true
                 state.persistenceMessage = "Saved terrain: ${state.terrainFilePath}"
                 state.persistenceError = false
+                logger.info(TAG) { "Save terrain completed path='${state.terrainFilePath}'" }
             } catch (error: Exception) {
                 state.persistenceMessage = "Save failed: ${error.message}"
                 state.persistenceError = true
-                logger.error("TerrainEditor", error) { "Failed to save terrain: ${error.message}" }
+                logger.error(TAG, error) { "Failed to save terrain path='${state.terrainFilePath}': ${error.message}" }
             }
         }
 
@@ -449,8 +461,10 @@ class TerrainEditorSystem(
             finishBrushStroke()
 
             try {
+                logger.info(TAG) { "Load terrain requested path='${state.terrainFilePath}'" }
                 val descriptor = terrainPersistence.loadDescriptor(state.terrainFilePath)
                 val loaded = TerrainData.fromDescriptor(descriptor.terrain)
+                logger.debug(TAG) { "Applying loaded terrain '${descriptor.name}' (${loaded.describeTerrain()})" }
 
                 terrain.data = loaded
                 terrain.markDirty()
@@ -473,10 +487,11 @@ class TerrainEditorSystem(
                 activePatchBuilder = null
                 brushActive = false
                 flattenHeight = null
+                logger.info(TAG) { "Load terrain completed path='${state.terrainFilePath}' name='${descriptor.name}' (${loaded.describeTerrain()})" }
             } catch (error: Exception) {
                 state.persistenceMessage = "Load failed: ${error.message}"
                 state.persistenceError = true
-                logger.error("TerrainEditor", error) { "Failed to load terrain: ${error.message}" }
+                logger.error(TAG, error) { "Failed to load terrain path='${state.terrainFilePath}': ${error.message}" }
             }
         }
     }
@@ -486,6 +501,11 @@ class TerrainEditorSystem(
         renderer: TerrainRendererComponent,
     ) {
         val currentLayers = terrain.data.allLayers()
+        val generator = activeGenerator()
+        logger.debug(TAG) {
+            "Regenerate start generator='${generator.id}' target=${state.terrainResolution}x${state.terrainResolution} " +
+                "spacing=${"%.2f".format(state.vertexSpacing)} preservedLayers=${currentLayers.size}"
+        }
         val regenerated = TerrainData(
             width = state.terrainResolution,
             height = state.terrainResolution,
@@ -510,7 +530,7 @@ class TerrainEditorSystem(
             state.selectedLayerId = baseLayer.id
         }
 
-        activeGenerator().generate(regenerated)
+        generator.generate(regenerated)
         terrain.data = regenerated
         terrain.markDirty()
         renderer.modelId = "terrain_${regenerated.width}x${regenerated.height}"
@@ -521,6 +541,7 @@ class TerrainEditorSystem(
         activePatchBuilder = null
         brushActive = false
         flattenHeight = null
+        logger.debug(TAG) { "Regenerate finished generator='${generator.id}' (${regenerated.describeTerrain()})" }
     }
 
     /**
@@ -606,6 +627,10 @@ class TerrainEditorSystem(
             TerrainLayerColorDescriptor(0.8f, 0.45f, 0.25f, 1f),
         )
         return colors[index % colors.size]
+    }
+
+    companion object {
+        private const val TAG = "TerrainEditor"
     }
 }
 
@@ -886,3 +911,6 @@ private fun distance(a: Vec3, b: Vec3): Float {
     val dz = a.z - b.z
     return sqrt(dx * dx + dy * dy + dz * dz)
 }
+
+private fun TerrainData.describeTerrain(): String =
+    "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${allLayers().joinToString { layer -> "${layer.id}:${layer.name}" }}]"

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.JsonValue
 import com.badlogic.gdx.utils.JsonWriter
+import com.pashkd.krender.engine.api.Logger
 
 /**
  * Versioned terrain asset file wrapper.
@@ -25,7 +26,9 @@ object TerrainFileFormat {
 /**
  * Saves and loads terrain data assets without runtime renderer state.
  */
-class TerrainPersistence {
+class TerrainPersistence(
+    private val logger: Logger? = null,
+) {
     private val json = Json().apply {
         setOutputType(JsonWriter.OutputType.json)
         setSerializer(TerrainFileDescriptor::class.java, TerrainFileDescriptorSerializer)
@@ -38,21 +41,35 @@ class TerrainPersistence {
      * Writes [data] as a versioned terrain file.
      */
     fun save(data: TerrainData, filePath: String, name: String = "terrain") {
+        logger?.info(TAG) { "Saving terrain '$name' to '$filePath' (${data.describeTerrain()})" }
         val file = Gdx.files.local(filePath)
         file.parent()?.mkdirs()
-        file.writeString(encode(data, name), false, "UTF-8")
+        val encoded = encode(data, name)
+        file.writeString(encoded, false, "UTF-8")
+        logger?.info(TAG) { "Saved terrain '$name' to '$filePath' (${encoded.length} chars)" }
     }
 
     /**
      * Reads a versioned terrain file and returns editable terrain data.
      */
-    fun load(filePath: String): TerrainData = decode(Gdx.files.local(filePath).readString("UTF-8"))
+    fun load(filePath: String): TerrainData {
+        logger?.info(TAG) { "Loading terrain data from '$filePath'" }
+        val data = decode(Gdx.files.local(filePath).readString("UTF-8"))
+        logger?.info(TAG) { "Loaded terrain data from '$filePath' (${data.describeTerrain()})" }
+        return data
+    }
 
     /**
      * Reads a complete terrain file descriptor, including file metadata.
      */
-    fun loadDescriptor(filePath: String): TerrainFileDescriptor =
-        decodeDescriptor(Gdx.files.local(filePath).readString("UTF-8"))
+    fun loadDescriptor(filePath: String): TerrainFileDescriptor {
+        logger?.info(TAG) { "Loading terrain descriptor from '$filePath'" }
+        val jsonText = Gdx.files.local(filePath).readString("UTF-8")
+        logger?.debug(TAG) { "Read terrain descriptor from '$filePath' (${jsonText.length} chars)" }
+        val descriptor = decodeDescriptor(jsonText)
+        logger?.info(TAG) { "Loaded terrain descriptor '${descriptor.name}' from '$filePath' (${descriptor.terrain.describeTerrain()})" }
+        return descriptor
+    }
 
     /**
      * Returns true when a local terrain file exists at [filePath].
@@ -75,8 +92,13 @@ class TerrainPersistence {
      * Encodes a terrain file descriptor to JSON. Exposed for malformed descriptor tests.
      */
     fun encode(descriptor: TerrainFileDescriptor): String {
+        logger?.debug(TAG) {
+            "Encoding terrain descriptor '${descriptor.name}' format=${descriptor.formatVersion} (${descriptor.terrain.describeTerrain()})"
+        }
         validate(descriptor)
-        return json.prettyPrint(descriptor)
+        val encoded = json.prettyPrint(descriptor)
+        logger?.debug(TAG) { "Encoded terrain descriptor '${descriptor.name}' (${encoded.length} chars)" }
+        return encoded
     }
 
     /**
@@ -99,12 +121,19 @@ class TerrainPersistence {
      * Decodes terrain JSON into a validated file descriptor.
      */
     fun decodeDescriptor(jsonText: String): TerrainFileDescriptor {
+        logger?.debug(TAG) { "Decoding terrain descriptor (${jsonText.length} chars)" }
         val descriptor = json.fromJson(TerrainFileDescriptor::class.java, jsonText)
         validate(descriptor)
+        logger?.debug(TAG) {
+            "Decoded terrain descriptor '${descriptor.name}' format=${descriptor.formatVersion} (${descriptor.terrain.describeTerrain()})"
+        }
         return descriptor
     }
 
     private fun validate(descriptor: TerrainFileDescriptor) {
+        logger?.debug(TAG) {
+            "Validating terrain descriptor '${descriptor.name}' format=${descriptor.formatVersion} (${descriptor.terrain.describeTerrain()})"
+        }
         require(descriptor.formatVersion == TerrainFileFormat.CurrentVersion) {
             "Unsupported terrain format version: ${descriptor.formatVersion}"
         }
@@ -130,6 +159,11 @@ class TerrainPersistence {
                 "Terrain layer '${layer.name}' weights size ${weights?.size} does not match width * height ${terrain.width * terrain.height}"
             }
         }
+        logger?.debug(TAG) { "Validated terrain descriptor '${descriptor.name}'" }
+    }
+
+    companion object {
+        private const val TAG = "TerrainPersistence"
     }
 }
 
@@ -245,3 +279,9 @@ private fun TerrainLayerColorDescriptor.clamped(): TerrainLayerColorDescriptor =
         b = b.coerceIn(0f, 1f),
         a = a.coerceIn(0f, 1f),
     )
+
+private fun TerrainData.describeTerrain(): String =
+    "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${allLayers().joinToString { layer -> "${layer.id}:${layer.name}" }}]"
+
+private fun TerrainDataDescriptor.describeTerrain(): String =
+    "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${layers.size} [${layers.joinToString { layer -> "${layer.id}:${layer.name}" }}]"
