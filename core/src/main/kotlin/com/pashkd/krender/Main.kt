@@ -20,6 +20,7 @@ class Main(
             "terrain-generator" -> TerrainEditorScene(
                 terrainResolution = defaultTerrainResolution(),
                 vertexSpacing = defaultTerrainSpacing(),
+                terrainFilePath = defaultTerrainFilePath(),
             )
 
             else -> {
@@ -38,6 +39,8 @@ class Main(
         fun defaultModelPath(): String? = System.getProperty("krender.model")?.takeIf(String::isNotBlank)
         fun defaultTerrainResolution(): Int = System.getProperty("krender.terrain.size", "128").toIntOrNull() ?: 128
         fun defaultTerrainSpacing(): Float = System.getProperty("krender.terrain.spacing", "1.0").toFloatOrNull() ?: 1f
+        fun defaultTerrainFilePath(): String =
+            System.getProperty("krender.terrain.path", "terrains/terrain.json")
 
         private fun discoverModelPaths(selectedPath: String?): List<String> {
             val supportedExtensions = setOf("glb", "gltf", "g3db", "g3dj", "obj", "fbx")

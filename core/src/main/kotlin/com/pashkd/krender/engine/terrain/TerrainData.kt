@@ -24,7 +24,6 @@ data class TerrainLayer(
 data class TerrainLayerDescriptor(
     val id: Int,
     val name: String,
-    val texturePath: String? = null,
     val materialId: String? = null,
     val weights: FloatArray? = null,
 )
@@ -223,7 +222,6 @@ class TerrainData(
                 TerrainLayerDescriptor(
                     id = layer.id,
                     name = layer.name,
-                    texturePath = layer.texture?.path,
                     materialId = layer.materialId,
                     weights = layerWeights[layer.id]?.copyOf(),
                 )
@@ -245,7 +243,7 @@ class TerrainData(
                 val restored = TerrainLayer(
                     id = layer.id,
                     name = layer.name,
-                    texture = layer.texturePath?.let(AssetRef.Companion::texture),
+                    texture = null,
                     materialId = layer.materialId,
                 )
                 terrain.layers += restored

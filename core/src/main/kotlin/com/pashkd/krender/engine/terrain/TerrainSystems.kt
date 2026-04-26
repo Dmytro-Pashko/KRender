@@ -41,6 +41,7 @@ class TerrainEditorSystem(
     private var flattenHeight: Float? = null
     private var paintLayerWarningShown: Boolean = false
     private val editHistory = TerrainEditHistory()
+    private val terrainPersistence = TerrainPersistence()
     private var activePatchBuilder: TerrainEditPatchBuilder? = null
 
     /**
@@ -60,6 +61,7 @@ class TerrainEditorSystem(
         }
 
         processTerrainCommands(terrain, terrainRenderer)
+        processPersistenceCommands(terrain, terrainRenderer)
         processHistoryCommands(terrain, snapshot)
         syncStateFromTerrain(terrain, terrainRenderer)
         syncHistoryState()
@@ -313,6 +315,15 @@ class TerrainEditorSystem(
         terrain: TerrainComponent,
         renderer: TerrainRendererComponent,
     ) {
+        if (state.createTerrainRequested) {
+            state.createTerrainRequested = false
+            finishBrushStroke()
+            editHistory.clearAndMarkClean()
+            regenerateTerrain(terrain, renderer)
+            state.persistenceMessage = "Created terrain: ${state.terrainSaveName}"
+            state.persistenceError = false
+        }
+
         if (state.addLayerRequested) {
             state.addLayerRequested = false
             val nextIndex = terrain.data.allLayers().size + 1
@@ -338,6 +349,68 @@ class TerrainEditorSystem(
             finishBrushStroke()
             editHistory.clearAndMarkClean()
             regenerateTerrain(terrain, renderer)
+        }
+    }
+
+    private fun processPersistenceCommands(
+        terrain: TerrainComponent,
+        renderer: TerrainRendererComponent,
+    ) {
+        if (state.saveTerrainRequested) {
+            state.saveTerrainRequested = false
+            finishBrushStroke()
+
+            try {
+                terrainPersistence.save(
+                    data = terrain.data,
+                    filePath = state.terrainFilePath,
+                    name = state.terrainSaveName,
+                )
+                editHistory.markClean()
+                state.terrainFileExists = true
+                state.persistenceMessage = "Saved terrain: ${state.terrainFilePath}"
+                state.persistenceError = false
+            } catch (error: Exception) {
+                state.persistenceMessage = "Save failed: ${error.message}"
+                state.persistenceError = true
+                logger.error("TerrainEditor", error) { "Failed to save terrain: ${error.message}" }
+            }
+        }
+
+        if (state.loadTerrainRequested) {
+            state.loadTerrainRequested = false
+            finishBrushStroke()
+
+            try {
+                val descriptor = terrainPersistence.loadDescriptor(state.terrainFilePath)
+                val loaded = TerrainData.fromDescriptor(descriptor.terrain)
+
+                terrain.data = loaded
+                terrain.markDirty()
+
+                renderer.modelId = "terrain_${loaded.width}x${loaded.height}"
+                renderer.model = null
+                renderer.vertexCount = 0
+                renderer.triangleCount = 0
+
+                editHistory.clearAndMarkClean()
+
+                state.selectedLayerId = loaded.allLayers().firstOrNull()?.id
+                state.terrainResolution = loaded.width
+                state.vertexSpacing = loaded.vertexSpacing
+                state.terrainSaveName = descriptor.name
+                state.terrainFileExists = true
+                state.persistenceMessage = "Loaded terrain: ${state.terrainFilePath}"
+                state.persistenceError = false
+                hoveredHit = null
+                activePatchBuilder = null
+                brushActive = false
+                flattenHeight = null
+            } catch (error: Exception) {
+                state.persistenceMessage = "Load failed: ${error.message}"
+                state.persistenceError = true
+                logger.error("TerrainEditor", error) { "Failed to load terrain: ${error.message}" }
+            }
         }
     }
 

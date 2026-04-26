@@ -25,6 +25,7 @@ import com.pashkd.krender.engine.terrain.TerrainGeneratorOption
 import com.pashkd.krender.engine.terrain.TerrainEditorState
 import com.pashkd.krender.engine.terrain.TerrainEditorSystem
 import com.pashkd.krender.engine.terrain.TerrainMeshSyncSystem
+import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.terrain.TerrainRendererComponent
 import com.pashkd.krender.engine.terrain.TerrainViewportDebugRenderSystem
@@ -39,6 +40,7 @@ import com.pashkd.krender.engine.ui.UiSystem
 class TerrainEditorScene(
     private val terrainResolution: Int = 128,
     private val vertexSpacing: Float = 1f,
+    private val terrainFilePath: String = "terrains/terrain.kterrain.json",
 ) : Scene("terrain_editor") {
     private val terrainGenerators = listOf(
         FlatTerrainGenerator(),
@@ -46,6 +48,7 @@ class TerrainEditorScene(
         SimplexNoiseGenerator(),
         FractalNoiseGenerator(),
     )
+    private val terrainPersistence = TerrainPersistence()
     private lateinit var editorState: TerrainEditorState
     private lateinit var editorSystem: TerrainEditorSystem
 
@@ -64,6 +67,8 @@ class TerrainEditorScene(
             selectedGeneratorId = terrainGenerators.firstOrNull()?.id,
             terrainResolution = terrainResolution,
             vertexSpacing = vertexSpacing,
+            terrainFilePath = terrainFilePath,
+            terrainSaveName = terrainPersistence.fileNameFromPath(terrainFilePath),
         )
         editorSystem = TerrainEditorSystem(
             engine.input,
@@ -158,26 +163,63 @@ class TerrainEditorScene(
     }
 
     /**
-     * Creates a flat terrain entity and attaches data/render components.
+     * Creates or loads a terrain entity and attaches data/render components.
      */
     private fun createTerrain() {
-        val terrainData = TerrainData(
-            width = terrainResolution,
-            height = terrainResolution,
-            vertexSpacing = vertexSpacing,
-        )
-        val baseLayer = terrainData.addLayer(name = "Base Layer", materialId = "terrain/base")
-        editorState.selectedLayerId = baseLayer.id
-        activeGenerator().generate(terrainData)
+        val terrainData = createInitialTerrainData()
+        editorState.selectedLayerId = terrainData.allLayers().firstOrNull()?.id
+        editorState.terrainResolution = terrainData.width
+        editorState.vertexSpacing = terrainData.vertexSpacing
 
         val terrain = world.createEntity("Terrain")
         terrain.add(TerrainComponent(terrainData))
         terrain.add(
             TerrainRendererComponent(
-                modelId = "terrain_${terrainResolution}x${terrainResolution}",
+                modelId = "terrain_${terrainData.width}x${terrainData.height}",
                 material = Material(baseColor = Color(0.38f, 0.63f, 0.31f)),
             ),
         )
+    }
+
+    /**
+     * Loads the configured terrain file when present, otherwise creates a generated default terrain.
+     */
+    private fun createInitialTerrainData(): TerrainData {
+        editorState.terrainFileExists = terrainPersistence.exists(terrainFilePath)
+        if (editorState.terrainFileExists) {
+            return try {
+                val descriptor = terrainPersistence.loadDescriptor(terrainFilePath)
+                editorState.terrainSaveName = descriptor.name
+                editorState.persistenceMessage = "Loaded terrain: $terrainFilePath"
+                editorState.persistenceError = false
+                TerrainData.fromDescriptor(descriptor.terrain)
+            } catch (error: Exception) {
+                engine.logger.error("TerrainEditor", error) {
+                    "Failed to load terrain '$terrainFilePath': ${error.message}"
+                }
+                editorState.persistenceMessage = "Load failed: ${error.message}"
+                editorState.persistenceError = true
+                createDefaultTerrain()
+            }
+        }
+
+        editorState.persistenceMessage = "Created default terrain: $terrainFilePath"
+        editorState.persistenceError = false
+        return createDefaultTerrain()
+    }
+
+    /**
+     * Creates a generated default terrain without writing it to disk.
+     */
+    private fun createDefaultTerrain(): TerrainData {
+        val terrainData = TerrainData(
+            width = terrainResolution,
+            height = terrainResolution,
+            vertexSpacing = vertexSpacing,
+        )
+        terrainData.addLayer(name = "Base Layer", materialId = "terrain/base")
+        activeGenerator().generate(terrainData)
+        return terrainData
     }
 
     /**

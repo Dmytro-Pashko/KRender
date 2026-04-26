@@ -34,7 +34,7 @@ object TerrainEditorUiLayoutDefaults {
                 x = 16f,
                 y = 16f,
                 width = 320f,
-                height = 360f,
+                height = 520f,
             ),
             TerrainEditorPanelIds.Brush to ImGuiPanelLayout(
                 title = "Brush",
@@ -55,7 +55,7 @@ object TerrainEditorUiLayoutDefaults {
                 x = 352f,
                 y = 348f,
                 width = 320f,
-                height = 260f,
+                height = 300f,
             ),
         ),
     )
@@ -125,6 +125,9 @@ class TerrainEditorTerrainPanel(
                 state.regenerateRequested = true
             }
         }
+
+        ImGui.separator()
+        drawPersistenceControls(state)
 
         ImGui.end()
     }
@@ -344,6 +347,35 @@ class TerrainEditorControlsPanel(
 private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
     ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
     ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
+}
+
+private fun drawPersistenceControls(state: TerrainEditorState) {
+    ImGui.text("Persistence")
+    ImGui.text("Path: ${state.terrainFilePath}")
+    ImGui.text("File exists: ${formatBoolean(state.terrainFileExists)}")
+    ImGui.text("Unsaved changes: ${formatBoolean(state.hasUnsavedChanges)}")
+    with(dsl) {
+        button("New Terrain") {
+            state.createTerrainRequested = true
+        }
+    }
+    ImGui.sameLine()
+    with(dsl) {
+        button("Save Terrain") {
+            state.saveTerrainRequested = true
+        }
+    }
+    ImGui.sameLine()
+    ImGui.beginDisabled(state.terrainFilePath.isBlank())
+    with(dsl) {
+        button("Load Terrain") {
+            state.loadTerrainRequested = true
+        }
+    }
+    ImGui.endDisabled()
+    if (state.persistenceMessage.isNotBlank()) {
+        ImGui.text("Status: ${state.persistenceMessage}")
+    }
 }
 
 private fun drawHistoryPreview(

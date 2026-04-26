@@ -80,6 +80,22 @@ data class TerrainEditorState(
     var currentHistoryRevision: Long = 0L,
     /** Last clean terrain history revision used for dirty-state checks. */
     var cleanHistoryRevision: Long = 0L,
+    /** Relative local file path used by terrain save/load. */
+    var terrainFilePath: String = "terrains/terrain.kterrain.json",
+    /** Terrain asset display name written into terrain save files. */
+    var terrainSaveName: String = "terrain",
+    /** True when the configured terrain file currently exists on disk. */
+    var terrainFileExists: Boolean = false,
+    /** Queues creation of a new editable terrain on the next update. */
+    var createTerrainRequested: Boolean = false,
+    /** Queues terrain save on the next update. */
+    var saveTerrainRequested: Boolean = false,
+    /** Queues terrain load on the next update. */
+    var loadTerrainRequested: Boolean = false,
+    /** Last terrain persistence status message shown in the editor UI. */
+    var persistenceMessage: String = "",
+    /** True when the last terrain persistence operation failed. */
+    var persistenceError: Boolean = false,
     /** Queues a terrain regeneration on the next update. */
     var regenerateRequested: Boolean = false,
     /** Queues terrain edit undo on the next update. */

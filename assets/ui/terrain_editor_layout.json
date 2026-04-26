@@ -2,44 +2,44 @@
   "panels": {
     "terrain": {
       "title": "Terrain",
-      "x": 1590,
-      "y": 10,
-      "width": 320,
-      "height": 360
+      "x": 1550,
+      "y": 5,
+      "width": 370,
+      "height": 420
     },
     "brush": {
       "title": "Brush",
-      "x": 1590,
-      "y": 380,
-      "width": 320,
-      "height": 300
+      "x": 1550,
+      "y": 430,
+      "width": 370,
+      "height": 270
     },
     "layers": {
       "title": "Layers",
-      "x": 1590,
-      "y": 685,
-      "width": 320,
+      "x": 1550,
+      "y": 710,
+      "width": 370,
       "height": 300
     },
     "control": {
       "title": "Control",
-      "x": 10,
-      "y": 305,
-      "width": 320,
-      "height": 450
+      "x": 5,
+      "y": 370,
+      "width": 305,
+      "height": 490
     },
     "sceneStatistics": {
       "title": "Scene Statistics",
-      "x": 10,
-      "y": 10,
-      "width": 320,
-      "height": 290
+      "x": 5,
+      "y": 5,
+      "width": 200,
+      "height": 360
     },
     "logs": {
       "title": "Logs",
-      "x": 10,
+      "x": 5,
       "y": 865,
-      "width": 1050,
+      "width": 1100,
       "height": 220
     }
   }
