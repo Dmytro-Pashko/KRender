@@ -56,8 +56,20 @@ data class TerrainEditorState(
     var terrainSize: String = "0 x 0",
     /** Current hovered terrain world position label for the debug panel. */
     var hoveredTerrainPosition: String = "none",
+    /** True when an undo patch is available. */
+    var canUndo: Boolean = false,
+    /** True when a redo patch is available. */
+    var canRedo: Boolean = false,
+    /** Label for the next undo action, if available. */
+    var undoLabel: String? = null,
+    /** Label for the next redo action, if available. */
+    var redoLabel: String? = null,
     /** Queues a terrain regeneration on the next update. */
     var regenerateRequested: Boolean = false,
+    /** Queues terrain edit undo on the next update. */
+    var undoRequested: Boolean = false,
+    /** Queues terrain edit redo on the next update. */
+    var redoRequested: Boolean = false,
     /** Queues creation of a new paint layer on the next update. */
     var addLayerRequested: Boolean = false,
     /** Queues removal of the selected paint layer on the next update. */

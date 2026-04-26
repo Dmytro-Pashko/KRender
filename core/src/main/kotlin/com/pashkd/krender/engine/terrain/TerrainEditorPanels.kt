@@ -290,11 +290,34 @@ class TerrainEditorControlsPanel(
         ImGui.checkbox("Wireframe", state::wireframeEnabled)
 
         ImGui.separator()
+        ImGui.text("History")
+        ImGui.text("Undo: %s", state.undoLabel ?: "none")
+        ImGui.text("Redo: %s", state.redoLabel ?: "none")
+        ImGui.beginDisabled(!state.canUndo)
+        with(dsl) {
+            button("Undo") {
+                state.undoRequested = true
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.sameLine()
+        ImGui.beginDisabled(!state.canRedo)
+        with(dsl) {
+            button("Redo") {
+                state.redoRequested = true
+            }
+        }
+        ImGui.endDisabled()
+
+        ImGui.separator()
         ImGui.text("Controls")
         ImGui.bulletText("Mouse drag - Apply brush")
+        ImGui.bulletText("Ctrl + Z - Undo")
+        ImGui.bulletText("Ctrl + Y / Ctrl + Shift + Z - Redo")
         ImGui.bulletText("Mouse wheel - Brush radius")
         ImGui.bulletText("Shift + Mouse wheel - Brush strength")
         ImGui.bulletText("W/A/S/D - Pan camera")
+        ImGui.bulletText("R/F - Move camera up/down")
         ImGui.bulletText("Q/E - Rotate camera")
 
         ImGui.end()

@@ -14,6 +14,14 @@ enum class Key {
     D,
     /** Auxiliary gameplay key used by tools and scenes. */
     G,
+    /** Vertical camera movement key. */
+    R,
+    /** Vertical camera movement key. */
+    F,
+    /** Undo/redo shortcut key. */
+    Y,
+    /** Undo/redo shortcut key. */
+    Z,
     /** Secondary action key often used for left rotation. */
     Q,
     /** Secondary action key often used for right rotation. */
@@ -36,8 +44,12 @@ enum class Key {
     Tab,
     /** Left shift key. */
     ShiftLeft,
+    /** Right shift key. */
+    ShiftRight,
     /** Left control key. */
     ControlLeft,
+    /** Right control key. */
+    ControlRight,
     /** Fallback value for unmapped keys. */
     Unknown,
 }

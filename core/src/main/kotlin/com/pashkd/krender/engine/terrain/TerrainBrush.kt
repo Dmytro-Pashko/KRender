@@ -48,7 +48,11 @@ object TerrainBrushApplier {
     /**
      * Applies [stroke] to [data] and returns true if height or layer data changed.
      */
-    fun apply(data: TerrainData, stroke: TerrainBrushStroke): Boolean {
+    fun apply(
+        data: TerrainData,
+        stroke: TerrainBrushStroke,
+        patchBuilder: TerrainEditPatchBuilder? = null,
+    ): Boolean {
         if (!data.containsLocal(stroke.localX, stroke.localZ)) return false
 
         val minX = sampleMin(stroke.localX, stroke.radius, data.minLocalX, data.vertexSpacing)
@@ -60,7 +64,11 @@ object TerrainBrushApplier {
         val maxY = sampleMax(stroke.localZ, stroke.radius, data.minLocalZ, data.vertexSpacing)
             .coerceIn(0, data.height - 1)
 
-        val originalHeights = if (stroke.mode == TerrainBrushMode.Smooth) data.heightValues() else null
+        val smoothHeights = if (stroke.mode == TerrainBrushMode.Smooth) {
+            captureSmoothHeightSnapshot(data, minX, maxX, minY, maxY)
+        } else {
+            null
+        }
         var changed = false
 
         for (y in minY..maxY) {
@@ -81,6 +89,7 @@ object TerrainBrushApplier {
                             .coerceIn(0f, 1f)
                         if (oldWeight != newWeight) {
                             data.setLayerWeight(layerId, x, y, newWeight)
+                            patchBuilder?.recordLayerWeightChange(layerId, data, x, y, oldWeight, newWeight)
                             changed = true
                         }
                     }
@@ -96,7 +105,7 @@ object TerrainBrushApplier {
                             }
 
                             TerrainBrushMode.Smooth -> {
-                                val average = sampleAverageHeight(data, x, y, originalHeights ?: data.heightValues())
+                                val average = sampleAverageHeight(data, x, y, smoothHeights)
                                 lerp(oldHeight, average, (stroke.strength * effect * stroke.deltaSeconds).coerceIn(0f, 1f))
                             }
 
@@ -105,6 +114,7 @@ object TerrainBrushApplier {
 
                         if (oldHeight != newHeight) {
                             data.setHeight(x, y, newHeight)
+                            patchBuilder?.recordHeightChange(data, x, y, oldHeight, newHeight)
                             changed = true
                         }
                     }
@@ -119,7 +129,7 @@ object TerrainBrushApplier {
         data: TerrainData,
         x: Int,
         y: Int,
-        originalHeights: FloatArray,
+        smoothHeights: SmoothHeightSnapshot?,
     ): Float {
         var total = 0f
         var samples = 0
@@ -127,11 +137,44 @@ object TerrainBrushApplier {
             for (offsetX in -1..1) {
                 val sampleX = (x + offsetX).coerceIn(0, data.width - 1)
                 val sampleY = (y + offsetY).coerceIn(0, data.height - 1)
-                total += originalHeights[data.indexOf(sampleX, sampleY)]
+                total += smoothHeights?.get(sampleX, sampleY) ?: data.getHeight(sampleX, sampleY)
                 samples += 1
             }
         }
         return if (samples == 0) data.getHeight(x, y) else total / samples
+    }
+
+    private fun captureSmoothHeightSnapshot(
+        data: TerrainData,
+        minX: Int,
+        maxX: Int,
+        minY: Int,
+        maxY: Int,
+    ): SmoothHeightSnapshot {
+        val snapshotMinX = (minX - 1).coerceIn(0, data.width - 1)
+        val snapshotMaxX = (maxX + 1).coerceIn(0, data.width - 1)
+        val snapshotMinY = (minY - 1).coerceIn(0, data.height - 1)
+        val snapshotMaxY = (maxY + 1).coerceIn(0, data.height - 1)
+        val snapshotWidth = snapshotMaxX - snapshotMinX + 1
+        val values = FloatArray(snapshotWidth * (snapshotMaxY - snapshotMinY + 1))
+
+        var index = 0
+        for (sampleY in snapshotMinY..snapshotMaxY) {
+            for (sampleX in snapshotMinX..snapshotMaxX) {
+                values[index] = data.getHeight(sampleX, sampleY)
+                index += 1
+            }
+        }
+        return SmoothHeightSnapshot(snapshotMinX, snapshotMinY, snapshotWidth, values)
+    }
+
+    private data class SmoothHeightSnapshot(
+        val minX: Int,
+        val minY: Int,
+        val width: Int,
+        val values: FloatArray,
+    ) {
+        fun get(x: Int, y: Int): Float = values[(y - minY) * width + (x - minX)]
     }
 
     private fun brushEffect(distance: Float, radius: Float, falloff: Float): Float {

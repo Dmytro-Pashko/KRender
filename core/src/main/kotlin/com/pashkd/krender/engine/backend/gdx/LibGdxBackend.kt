@@ -307,6 +307,10 @@ class GdxInputService : InputService, InputProcessor {
         Input.Keys.S -> Key.S
         Input.Keys.D -> Key.D
         Input.Keys.G -> Key.G
+        Input.Keys.R -> Key.R
+        Input.Keys.F -> Key.F
+        Input.Keys.Y -> Key.Y
+        Input.Keys.Z -> Key.Z
         Input.Keys.Q -> Key.Q
         Input.Keys.E -> Key.E
         Input.Keys.F1 -> Key.F1
@@ -318,7 +322,9 @@ class GdxInputService : InputService, InputProcessor {
         Input.Keys.ESCAPE -> Key.Escape
         Input.Keys.TAB -> Key.Tab
         Input.Keys.SHIFT_LEFT -> Key.ShiftLeft
+        Input.Keys.SHIFT_RIGHT -> Key.ShiftRight
         Input.Keys.CONTROL_LEFT -> Key.ControlLeft
+        Input.Keys.CONTROL_RIGHT -> Key.ControlRight
         else -> Key.Unknown
     }
 

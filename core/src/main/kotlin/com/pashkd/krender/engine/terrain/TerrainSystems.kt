@@ -40,6 +40,8 @@ class TerrainEditorSystem(
     private var brushActive: Boolean = false
     private var flattenHeight: Float? = null
     private var paintLayerWarningShown: Boolean = false
+    private val editHistory = TerrainEditHistory()
+    private var activePatchBuilder: TerrainEditPatchBuilder? = null
 
     /**
      * Processes editor input and applies brush strokes to terrain data.
@@ -58,7 +60,9 @@ class TerrainEditorSystem(
         }
 
         processTerrainCommands(terrain, terrainRenderer)
+        processHistoryCommands(terrain, snapshot)
         syncStateFromTerrain(terrain, terrainRenderer)
+        syncHistoryState()
 
         if (!snapshot.uiCapturesKeyboard && snapshot.wasPressed(Key.G)) {
             state.wireframeEnabled = !state.wireframeEnabled
@@ -83,16 +87,24 @@ class TerrainEditorSystem(
         val pointerDown = snapshot.pointers.any { it.phase == PointerPhase.Down || it.phase == PointerPhase.Move }
         val pointerReleased = snapshot.pointers.any { it.phase == PointerPhase.Up || it.phase == PointerPhase.Cancelled }
 
-        if (pointerReleased || hoveredHit == null) {
-            brushActive = false
-            flattenHeight = null
+        if ((pointerReleased || hoveredHit == null) && brushActive) {
+            finishBrushStroke()
         }
 
         if (pointerDown && hoveredHit != null) {
             val hit = hoveredHit ?: return
+            if (state.brushMode == TerrainBrushMode.PaintLayer && state.selectedLayerId == null) {
+                if (!paintLayerWarningShown) {
+                    logger.warn("TerrainEditor") { "PaintLayer selected without an active terrain layer" }
+                    paintLayerWarningShown = true
+                }
+                return
+            }
+
             if (!brushActive) {
                 brushActive = true
                 flattenHeight = terrain.data.sampleHeight(hit.localX, hit.localZ)
+                activePatchBuilder = TerrainEditPatchBuilder(state.brushMode.name)
             }
 
             val stroke = TerrainBrushStroke(
@@ -107,18 +119,12 @@ class TerrainEditorSystem(
                 targetLayerId = state.selectedLayerId,
             )
 
-            if (state.brushMode == TerrainBrushMode.PaintLayer && state.selectedLayerId == null) {
-                if (!paintLayerWarningShown) {
-                    logger.warn("TerrainEditor") { "PaintLayer selected without an active terrain layer" }
-                    paintLayerWarningShown = true
-                }
-                return
-            }
-
-            if (TerrainBrushApplier.apply(terrain.data, stroke)) {
+            if (TerrainBrushApplier.apply(terrain.data, stroke, activePatchBuilder)) {
                 terrain.markDirty()
             }
         }
+
+        syncHistoryState()
     }
 
     /**
@@ -203,6 +209,59 @@ class TerrainEditorSystem(
         }
     }
 
+    private fun syncHistoryState() {
+        state.canUndo = editHistory.canUndo
+        state.canRedo = editHistory.canRedo
+        state.undoLabel = editHistory.peekUndoLabel()
+        state.redoLabel = editHistory.peekRedoLabel()
+    }
+
+    private fun processHistoryCommands(
+        terrain: TerrainComponent,
+        snapshot: com.pashkd.krender.engine.api.InputSnapshot,
+    ) {
+        var changed = false
+        var commandHandled = false
+        if (state.undoRequested) {
+            state.undoRequested = false
+            finishBrushStroke()
+            changed = editHistory.undo(terrain.data) || changed
+            commandHandled = true
+        }
+        if (state.redoRequested) {
+            state.redoRequested = false
+            finishBrushStroke()
+            changed = editHistory.redo(terrain.data) || changed
+            commandHandled = true
+        }
+
+        val controlDown = snapshot.isDown(Key.ControlLeft) || snapshot.isDown(Key.ControlRight)
+        val shiftDown = snapshot.isDown(Key.ShiftLeft) || snapshot.isDown(Key.ShiftRight)
+        if (!commandHandled && !snapshot.uiCapturesKeyboard && controlDown) {
+            val redoPressed = snapshot.wasPressed(Key.Y) ||
+                (shiftDown && snapshot.wasPressed(Key.Z))
+            val undoPressed = !shiftDown && snapshot.wasPressed(Key.Z)
+            if (redoPressed) {
+                finishBrushStroke()
+                changed = editHistory.redo(terrain.data) || changed
+            } else if (undoPressed) {
+                finishBrushStroke()
+                changed = editHistory.undo(terrain.data) || changed
+            }
+        }
+
+        if (changed) {
+            terrain.markDirty()
+        }
+    }
+
+    private fun finishBrushStroke() {
+        activePatchBuilder?.build()?.let(editHistory::push)
+        activePatchBuilder = null
+        brushActive = false
+        flattenHeight = null
+    }
+
     private fun syncRendererStateFromControls(renderer: TerrainRendererComponent) {
         val expectedMode = if (state.wireframeEnabled) {
             TerrainDisplayMode.Wireframe
@@ -238,6 +297,7 @@ class TerrainEditorSystem(
 
         if (state.regenerateRequested) {
             state.regenerateRequested = false
+            editHistory.clear()
             regenerateTerrain(terrain, renderer)
         }
     }
@@ -276,6 +336,7 @@ class TerrainEditorSystem(
         renderer.vertexCount = 0
         renderer.triangleCount = 0
         hoveredHit = null
+        activePatchBuilder = null
         brushActive = false
         flattenHeight = null
     }
@@ -388,8 +449,8 @@ class TerrainCameraControllerSystem(
             else -> 0f
         }
         val panY = when {
-            snapshot.isDown(Key.ControlLeft) -> 1f
-            snapshot.isDown(Key.ShiftLeft) -> -1f
+            snapshot.isDown(Key.R) -> 1f
+            snapshot.isDown(Key.F) -> -1f
             else -> 0f
         }
 
