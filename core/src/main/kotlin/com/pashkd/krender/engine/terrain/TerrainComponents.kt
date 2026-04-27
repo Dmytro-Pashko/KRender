@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.terrain
 
+import com.badlogic.gdx.graphics.Texture
 import com.pashkd.krender.engine.api.Component
 import com.pashkd.krender.engine.api.DynamicModel
 import com.pashkd.krender.engine.api.Vec3
@@ -44,6 +45,9 @@ data class TerrainRendererComponent(
     var modelId: String,
     var material: Material = Material(),
     var model: DynamicModel? = null,
+    var previewDiffuseTexture: Texture? = null,
+    var previewMode: TerrainPreviewMode = TerrainPreviewMode.MaterialColor,
+    var previewResolution: Int = 0,
     var vertexCount: Int = 0,
     var triangleCount: Int = 0,
     var meshRevision: Long = 0L,
@@ -74,6 +78,15 @@ data class TerrainRendererComponent(
     fun setDisplayMode(mode: TerrainDisplayMode) {
         displayMode = mode
         material = material.copy(wireframe = mode == TerrainDisplayMode.Wireframe)
+    }
+
+    /**
+     * Replaces the editor-only material preview texture and releases the previous one.
+     */
+    fun replacePreviewDiffuseTexture(texture: Texture?) {
+        if (previewDiffuseTexture === texture) return
+        previewDiffuseTexture?.dispose()
+        previewDiffuseTexture = texture
     }
 }
 

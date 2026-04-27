@@ -10,6 +10,12 @@ enum class TerrainLayerBlendMode {
     MaxWeight,
 }
 
+enum class TerrainPreviewMode {
+    LayerColor,
+    MaterialColor,
+    MaterialTexture,
+}
+
 /**
  * CPU-side mesh representation generated from [TerrainData].
  */
@@ -216,7 +222,9 @@ object TerrainMeshBuilder {
         layer: TerrainLayer,
         materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
     ): TerrainLayerColorDescriptor =
-        layer.color
+        // Layer Color preview may pass resolver = { null }.
+        // Material Color preview passes resolver from TerrainMaterialLibrary.
+        materialColorResolver(layer.materialId) ?: layer.color
 
     private fun lerp(
         from: TerrainLayerColorDescriptor,

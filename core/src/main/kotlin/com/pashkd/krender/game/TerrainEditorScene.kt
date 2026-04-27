@@ -108,6 +108,18 @@ class TerrainEditorScene(
                 },
                 blendModeProvider = { editorState.layerBlendMode },
                 layerColorPreviewProvider = { editorState.showLayerColorPreview },
+                previewModeProvider = { editorState.terrainPreviewMode },
+                materialPreviewResolutionProvider = { editorState.materialPreviewResolution },
+                materialPreviewDirtyProvider = { editorState.materialPreviewDirty },
+                materialPreviewStatusSink = { message ->
+                    editorState.materialPreviewMessage = message
+                    editorState.previewMessage = message
+                },
+                materialPreviewCleanSink = {
+                    editorState.materialPreviewDirty = false
+                },
+                materialLibrary = terrainMaterialLibrary,
+                logger = engine.logger,
             ),
         )
         world.systems.add(TerrainViewportDebugRenderSystem(editorState))

@@ -69,8 +69,16 @@ data class TerrainEditorState(
     var wireframeEnabled: Boolean = false,
     /** Controls whether terrain uses generated layer color preview vertex colors. */
     var showLayerColorPreview: Boolean = true,
+    /** Active terrain material preview mode. */
+    var terrainPreviewMode: TerrainPreviewMode = TerrainPreviewMode.MaterialColor,
     /** Color preview blend mode used by terrain mesh generation. */
     var layerBlendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
+    /** CPU-baked material texture preview resolution. */
+    var materialPreviewResolution: Int = 512,
+    /** Queues a CPU material preview bake. */
+    var materialPreviewDirty: Boolean = true,
+    /** Last CPU material preview bake status shown in the editor UI. */
+    var materialPreviewMessage: String = "",
     /** Queues a terrain mesh rebuild after preview settings changed. */
     var previewSettingsChanged: Boolean = false,
     /** Last terrain preview status message shown in the control panel. */

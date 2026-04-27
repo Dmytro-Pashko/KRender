@@ -173,6 +173,33 @@ class TerrainData(
     }
 
     /**
+     * Bilinearly samples a layer weight at a local-space X/Z point.
+     */
+    fun sampleLayerWeight(layerId: Int, localX: Float, localZ: Float): Float {
+        if (!containsLocal(localX, localZ)) return 0f
+
+        val gridX = ((localX - minLocalX) / vertexSpacing).coerceIn(0f, (width - 1).toFloat())
+        val gridY = ((localZ - minLocalZ) / vertexSpacing).coerceIn(0f, (height - 1).toFloat())
+
+        val x0 = floor(gridX).toInt().coerceIn(0, width - 1)
+        val x1 = ceil(gridX).toInt().coerceIn(0, width - 1)
+        val y0 = floor(gridY).toInt().coerceIn(0, height - 1)
+        val y1 = ceil(gridY).toInt().coerceIn(0, height - 1)
+
+        val tx = gridX - x0
+        val ty = gridY - y0
+
+        val w00 = getLayerWeight(layerId, x0, y0).coerceIn(0f, 1f)
+        val w10 = getLayerWeight(layerId, x1, y0).coerceIn(0f, 1f)
+        val w01 = getLayerWeight(layerId, x0, y1).coerceIn(0f, 1f)
+        val w11 = getLayerWeight(layerId, x1, y1).coerceIn(0f, 1f)
+
+        val top = lerp(w00, w10, tx)
+        val bottom = lerp(w01, w11, tx)
+        return lerp(top, bottom, ty).coerceIn(0f, 1f)
+    }
+
+    /**
      * Adds a terrain layer and allocates a matching weight map.
      */
     fun addLayer(

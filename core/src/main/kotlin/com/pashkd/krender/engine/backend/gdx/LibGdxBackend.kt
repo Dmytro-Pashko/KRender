@@ -836,17 +836,7 @@ class GdxRenderer3D(
             }
         }
 
-        val material = command.material
-        instance.materials.forEach {
-            it.set(
-                ColorAttribute.createDiffuse(
-                    material.baseColor.r,
-                    material.baseColor.g,
-                    material.baseColor.b,
-                    material.baseColor.a,
-                ),
-            )
-        }
+        instance.materials.forEach { applyMaterialAttributes(it, command.material) }
 
         val transform = command.transform
         instance.transform.idt()
@@ -871,20 +861,30 @@ class GdxRenderer3D(
             }
         }
 
-        val material = command.material
-        instance.materials.forEach {
-            it.set(
-                ColorAttribute.createDiffuse(
-                    material.baseColor.r,
-                    material.baseColor.g,
-                    material.baseColor.b,
-                    material.baseColor.a,
-                ),
-            )
-        }
+        instance.materials.forEach { applyMaterialAttributes(it, command.material) }
 
         applyTransform(instance, command.transform)
         modelBatch.render(instance, environment)
+    }
+
+    private fun applyMaterialAttributes(
+        gdxMaterial: com.badlogic.gdx.graphics.g3d.Material,
+        material: com.pashkd.krender.engine.render3d.Material,
+    ) {
+        gdxMaterial.set(
+            ColorAttribute.createDiffuse(
+                material.baseColor.r,
+                material.baseColor.g,
+                material.baseColor.b,
+                material.baseColor.a,
+            ),
+        )
+        val diffuseTexture = material.diffuseTexture
+        if (diffuseTexture != null) {
+            gdxMaterial.set(TextureAttribute.createDiffuse(diffuseTexture))
+        } else {
+            gdxMaterial.remove(TextureAttribute.Diffuse)
+        }
     }
 
     private fun renderGltfScene(command: DrawModel, environment: Environment, camera: Camera) {

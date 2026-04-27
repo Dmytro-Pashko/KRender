@@ -457,13 +457,33 @@ class TerrainEditorControlsPanel(
         ImGui.checkbox("Wireframe", state::wireframeEnabled)
 
         ImGui.separator()
-        ImGui.text("Layer Preview")
-        if (ImGui.checkbox("Show color preview", state::showLayerColorPreview)) {
-            state.previewSettingsChanged = true
-        }
+        ImGui.text("Preview")
+        ImGui.text("Mode")
+        previewModeButton("Layer Color", TerrainPreviewMode.LayerColor)
+        previewModeButton("Material Color", TerrainPreviewMode.MaterialColor)
+        previewModeButton("Material Texture", TerrainPreviewMode.MaterialTexture)
+        ImGui.text("Blend Mode")
         blendModeButton("Weighted Average", TerrainLayerBlendMode.WeightedAverage)
         blendModeButton("Ordered Alpha", TerrainLayerBlendMode.OrderedAlpha)
         blendModeButton("Max Weight", TerrainLayerBlendMode.MaxWeight)
+        ImGui.text("Texture preview resolution")
+        previewResolutionButton(256)
+        ImGui.sameLine()
+        previewResolutionButton(512)
+        ImGui.sameLine()
+        previewResolutionButton(1024)
+        ImGui.sameLine()
+        previewResolutionButton(4096)
+        previewResolutionButton(8192)
+        ImGui.text("Preview mode: ${formatPreviewMode(state.terrainPreviewMode)}")
+        ImGui.text("Blend mode: ${formatBlendMode(state.layerBlendMode)}")
+        ImGui.text("Preview resolution: ${state.materialPreviewResolution}")
+        if (state.terrainPreviewMode == TerrainPreviewMode.MaterialTexture) {
+            ImGui.text("Material Texture preview is CPU baked editor preview")
+        }
+        if (state.materialPreviewMessage.isNotBlank()) {
+            ImGui.text("Material preview status: ${state.materialPreviewMessage}")
+        }
         if (state.previewMessage.isNotBlank()) {
             ImGui.text("Preview status: ${state.previewMessage}")
         }
@@ -520,6 +540,33 @@ class TerrainEditorControlsPanel(
         if (ImGui.selectable("$label##terrain_blend_$mode", state.layerBlendMode == mode)) {
             state.layerBlendMode = mode
             state.previewSettingsChanged = true
+            state.materialPreviewDirty = true
+        }
+    }
+
+    private fun previewModeButton(label: String, mode: TerrainPreviewMode) {
+        if (ImGui.selectable("$label##terrain_preview_$mode", state.terrainPreviewMode == mode)) {
+            state.terrainPreviewMode = mode
+            state.showLayerColorPreview = mode != TerrainPreviewMode.MaterialTexture
+            state.previewSettingsChanged = true
+            state.materialPreviewDirty = true
+        }
+    }
+
+    private fun previewResolutionButton(resolution: Int) {
+        val selected = state.materialPreviewResolution == resolution
+        if (selected) {
+            ImGui.beginDisabled(true)
+        }
+        val label = formatPreviewResolution(resolution)
+        val clicked = ImGui.smallButton("${if (selected) "[$label]" else label}##terrain_preview_resolution_$resolution")
+        if (selected) {
+            ImGui.endDisabled()
+        }
+        if (clicked && !selected) {
+            state.materialPreviewResolution = resolution
+            state.previewSettingsChanged = true
+            state.materialPreviewDirty = true
         }
     }
 }
@@ -586,6 +633,27 @@ private fun formatPaintMode(mode: TerrainLayerPaintMode): String =
     when (mode) {
         TerrainLayerPaintMode.Add -> "Add"
         TerrainLayerPaintMode.Erase -> "Erase"
+    }
+
+private fun formatPreviewMode(mode: TerrainPreviewMode): String =
+    when (mode) {
+        TerrainPreviewMode.LayerColor -> "Layer Color"
+        TerrainPreviewMode.MaterialColor -> "Material Color"
+        TerrainPreviewMode.MaterialTexture -> "Material Texture"
+    }
+
+private fun formatPreviewResolution(resolution: Int): String =
+    if (resolution >= 1024 && resolution % 1024 == 0) {
+        "${resolution / 1024}K"
+    } else {
+        resolution.toString()
+    }
+
+private fun formatBlendMode(mode: TerrainLayerBlendMode): String =
+    when (mode) {
+        TerrainLayerBlendMode.WeightedAverage -> "Weighted Average"
+        TerrainLayerBlendMode.OrderedAlpha -> "Ordered Alpha"
+        TerrainLayerBlendMode.MaxWeight -> "Max Weight"
     }
 
 private fun formatHistoryMemory(bytes: Long): String =

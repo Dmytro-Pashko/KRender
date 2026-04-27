@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.render3d
 
+import com.badlogic.gdx.graphics.Texture
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Component
@@ -42,6 +43,7 @@ data class Material(
     val metallic: Float = 0f,
     val shader: ShaderPipeline = ShaderPipeline(),
     val wireframe: Boolean = false,
+    val diffuseTexture: Texture? = null,
 )
 
 data class ModelComponent(
