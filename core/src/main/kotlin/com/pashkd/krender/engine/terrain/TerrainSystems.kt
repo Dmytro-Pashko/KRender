@@ -191,7 +191,7 @@ class TerrainEditorSystem(
             if (snapshot.wasPressed(Key.F2)) state.brushMode = TerrainBrushMode.Lower
             if (snapshot.wasPressed(Key.F3)) state.brushMode = TerrainBrushMode.Flatten
             if (snapshot.wasPressed(Key.F4)) state.brushMode = TerrainBrushMode.Smooth
-            if (snapshot.wasPressed(Key.Space)) state.brushMode = TerrainBrushMode.PaintLayer
+            if (snapshot.wasPressed(Key.F5)) state.brushMode = TerrainBrushMode.PaintLayer
         }
 
         if (!snapshot.uiCapturesMouse && snapshot.scrollDelta != 0f) {
@@ -257,8 +257,6 @@ class TerrainEditorSystem(
         state.undoCount = editHistory.undoCount()
         state.redoCount = editHistory.redoCount()
         state.historyMemoryBytes = editHistory.estimatedMemoryBytes()
-        state.undoPreview = editHistory.getUndoPreview()
-        state.redoPreview = editHistory.getRedoPreview()
         state.hasUnsavedChanges = editHistory.hasUnsavedChanges()
         state.currentHistoryRevision = editHistory.currentRevision()
         state.cleanHistoryRevision = editHistory.cleanRevision()
@@ -681,7 +679,7 @@ class TerrainEditorSystem(
         "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
     private fun effectiveLayerPaintSign(snapshot: com.pashkd.krender.engine.api.InputSnapshot): Float {
-        val altErase = state.eraseWhileAltDown && (snapshot.isDown(Key.AltLeft) || snapshot.isDown(Key.AltRight))
+        val altErase = snapshot.isDown(Key.AltLeft) || snapshot.isDown(Key.AltRight)
         return if (state.brushMode == TerrainBrushMode.PaintLayer &&
             (state.layerPaintMode == TerrainLayerPaintMode.Erase || altErase)
         ) {

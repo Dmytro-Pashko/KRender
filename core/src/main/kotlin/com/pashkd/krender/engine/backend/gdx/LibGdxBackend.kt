@@ -317,6 +317,7 @@ class GdxInputService : InputService, InputProcessor {
         Input.Keys.F2 -> Key.F2
         Input.Keys.F3 -> Key.F3
         Input.Keys.F4 -> Key.F4
+        Input.Keys.F5 -> Key.F5
         Input.Keys.GRAVE -> Key.Backtick
         Input.Keys.SPACE -> Key.Space
         Input.Keys.ESCAPE -> Key.Escape

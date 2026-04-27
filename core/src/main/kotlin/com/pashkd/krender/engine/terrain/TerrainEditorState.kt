@@ -87,8 +87,6 @@ data class TerrainEditorState(
     var previewMessage: String = "",
     /** Paint behavior for terrain layer weights when Paint Layer brush mode is active. */
     var layerPaintMode: TerrainLayerPaintMode = TerrainLayerPaintMode.Add,
-    /** Allows holding Alt to temporarily erase layer paint. */
-    var eraseWhileAltDown: Boolean = true,
     /** Current terrain layer list mirrored from runtime terrain data. */
     var layers: List<TerrainLayerOption> = emptyList(),
     /** Terrain material definitions available for layer assignment. */
@@ -127,10 +125,6 @@ data class TerrainEditorState(
     var redoCount: Int = 0,
     /** Approximate memory used by terrain edit history. */
     var historyMemoryBytes: Long = 0L,
-    /** Limited newest-first undo stack preview for the controls panel. */
-    var undoPreview: List<TerrainEditPatchInfo> = emptyList(),
-    /** Limited newest-first redo stack preview for the controls panel. */
-    var redoPreview: List<TerrainEditPatchInfo> = emptyList(),
     /** True when editor terrain data changed since the last save/reset point. */
     var hasUnsavedChanges: Boolean = false,
     /** Current terrain history revision used for dirty-state checks. */

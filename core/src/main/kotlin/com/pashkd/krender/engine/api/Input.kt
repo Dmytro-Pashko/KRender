@@ -34,6 +34,8 @@ enum class Key {
     F3,
     /** Fourth function key. */
     F4,
+    /** Fifth function key. */
+    F5,
     /** Console or debug toggle key. */
     Backtick,
     /** Spacebar key. */

@@ -174,15 +174,8 @@ class TerrainEditorBrushPanel(
         brushModeButton("Flatten", TerrainBrushMode.Flatten)
         ImGui.sameLine()
         brushModeButton("Smooth", TerrainBrushMode.Smooth)
-
-        ImGui.separator()
-        ImGui.text("Layer Paint")
-        paintModeButton("Add", TerrainLayerPaintMode.Add)
         ImGui.sameLine()
-        paintModeButton("Erase", TerrainLayerPaintMode.Erase)
-        ImGui.checkbox("Hold Alt to erase", state::eraseWhileAltDown)
-        ImGui.text("Paint mode: %s", formatPaintMode(state.layerPaintMode))
-        ImGui.text("Hold Alt to erase")
+        brushModeButton("Paint", TerrainBrushMode.PaintLayer)
 
         ImGui.separator()
         ImGui.text("Status")
@@ -194,6 +187,7 @@ class TerrainEditorBrushPanel(
         }
         if (state.brushMode == TerrainBrushMode.PaintLayer) {
             ImGui.text("Selected layer: %s", state.selectedLayerId?.toString() ?: "none")
+            ImGui.text("Hold Alt to erase")
         }
 
         ImGui.end()
@@ -210,11 +204,6 @@ class TerrainEditorBrushPanel(
         }
     }
 
-    private fun paintModeButton(label: String, mode: TerrainLayerPaintMode) {
-        if (ImGui.selectable("$label##layer_paint_$mode", state.layerPaintMode == mode)) {
-            state.layerPaintMode = mode
-        }
-    }
 }
 
 /**
@@ -243,7 +232,7 @@ class TerrainEditorLayersPanel(
             return
         }
 
-        ImGui.text("Terrain layers (max ${TerrainLayerLimits.MaxLayers})")
+        ImGui.text("Layers list")
         ImGui.text("Layer count: ${state.layers.size} / ${TerrainLayerLimits.MaxLayers}")
         state.layers.forEach { layer ->
             if (ImGui.smallButton("${if (layer.visible) "[x]" else "[ ]"}##visible_${layer.id}")) {
@@ -266,66 +255,29 @@ class TerrainEditorLayersPanel(
         }
 
         ImGui.separator()
-        ImGui.text("Selection")
+        ImGui.text("Selected layer")
+        ImGui.text("Paint: %s", if (state.brushMode == TerrainBrushMode.PaintLayer) "enabled" else "disabled")
         ImGui.text("Active layer: %s", state.selectedLayerId?.toString() ?: "none")
         if (state.selectedLayerId != null && !state.selectedLayerVisible) {
             ImGui.text("Selected layer is hidden")
         }
-        with(dsl) {
-            button("Paint selected layer") {
-                state.brushMode = TerrainBrushMode.PaintLayer
-            }
-        }
-
-        ImGui.separator()
-        ImGui.text("Actions")
-        ImGui.beginDisabled(state.layers.size >= TerrainLayerLimits.MaxLayers)
-        with(dsl) {
-            button("Add layer") {
-                state.addLayerRequested = true
-            }
-        }
-        ImGui.endDisabled()
-        ImGui.sameLine()
-        ImGui.beginDisabled(state.selectedLayerId == null)
-        with(dsl) {
-            button("Remove layer") {
-                state.removeLayerRequested = true
-            }
-        }
-        ImGui.endDisabled()
         val selectedLayer = state.layers.firstOrNull { it.id == state.selectedLayerId }
-        ImGui.beginDisabled(selectedLayer == null || selectedLayer.index == 0)
-        with(dsl) {
-            button("Move Up") {
-                state.moveLayerUpRequested = true
-            }
-        }
-        ImGui.endDisabled()
-        ImGui.sameLine()
-        ImGui.beginDisabled(selectedLayer == null || selectedLayer.index == state.layers.lastIndex)
-        with(dsl) {
-            button("Move Down") {
-                state.moveLayerDownRequested = true
-            }
-        }
-        ImGui.endDisabled()
-        if (state.layerMessage.isNotBlank()) {
-            ImGui.text("Status: ${state.layerMessage}")
-        }
-
-        ImGui.separator()
-        ImGui.text("Selected Layer Details")
         ImGui.beginDisabled(state.selectedLayerId == null)
         if (ImGui.inputText("Name", selectedLayerNameBuffer)) {
             state.selectedLayerName = readBuffer(selectedLayerNameBuffer)
             state.renameLayerRequested = true
         }
         nameInputActive = ImGui.isItemActive
-        drawMaterialSelector()
         if (ImGui.checkbox("Visible", state::selectedLayerVisible)) {
             state.updateLayerVisibilityRequested = true
         }
+        ImGui.endDisabled()
+
+        ImGui.text("Status: ${state.layerMessage.ifBlank { "none" }}")
+        drawLayerActionRow(selectedLayer)
+
+        ImGui.beginDisabled(state.selectedLayerId == null)
+        drawMaterialSelector()
         val color = state.selectedLayerColor
         if (
             colorEdit4(
@@ -353,6 +305,7 @@ class TerrainEditorLayersPanel(
 
     private fun drawMaterialSelector() {
         ImGui.separator()
+        ImGui.text("Material section:")
         ImGui.text("[Material]")
         if (state.terrainMaterials.isEmpty()) {
             ImGui.text("No terrain materials loaded")
@@ -367,6 +320,43 @@ class TerrainEditorLayersPanel(
         if (state.materialMessage.isNotBlank()) {
             ImGui.text("Material status: ${state.materialMessage}")
         }
+    }
+
+    private fun drawLayerActionRow(selectedLayer: TerrainLayerOption?) {
+        ImGui.beginDisabled(state.layers.size >= TerrainLayerLimits.MaxLayers)
+        with(dsl) {
+            button("Add") {
+                state.addLayerRequested = true
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.sameLine()
+
+        ImGui.beginDisabled(state.selectedLayerId == null)
+        with(dsl) {
+            button("Remove") {
+                state.removeLayerRequested = true
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.sameLine()
+
+        ImGui.beginDisabled(selectedLayer == null || selectedLayer.index == 0)
+        with(dsl) {
+            button("Move Up") {
+                state.moveLayerUpRequested = true
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.sameLine()
+
+        ImGui.beginDisabled(selectedLayer == null || selectedLayer.index == state.layers.lastIndex)
+        with(dsl) {
+            button("Move Down") {
+                state.moveLayerDownRequested = true
+            }
+        }
+        ImGui.endDisabled()
     }
 
     private fun drawMaterialCombo(selectedMaterial: TerrainMaterialOption?) {
@@ -454,8 +444,7 @@ class TerrainEditorControlsPanel(
         ImGui.checkbox("Wireframe", state::wireframeEnabled)
 
         ImGui.separator()
-        ImGui.text("Preview")
-        ImGui.text("[Mode]")
+        ImGui.text("[Preview Mode]")
         previewModeButton("Layer Color", TerrainPreviewMode.LayerColor)
         previewModeButton("Material Color", TerrainPreviewMode.MaterialColor)
         previewModeButton("Material Texture", TerrainPreviewMode.MaterialTexture)
@@ -494,6 +483,11 @@ class TerrainEditorControlsPanel(
 
         ImGui.separator()
         ImGui.text("Controls")
+        ImGui.bulletText("F1 - Raise")
+        ImGui.bulletText("F2 - Lower")
+        ImGui.bulletText("F3 - Flatten")
+        ImGui.bulletText("F4 - Smooth")
+        ImGui.bulletText("F5 - Paint selected layer")
         ImGui.bulletText("Mouse drag - Apply brush")
         ImGui.bulletText("Ctrl + Z - Undo")
         ImGui.bulletText("Ctrl + Y / Ctrl + Shift + Z - Redo")
@@ -506,8 +500,8 @@ class TerrainEditorControlsPanel(
         ImGui.separator()
         ImGui.text("History")
         ImGui.text("Unsaved changes: ${formatBoolean(state.hasUnsavedChanges)}")
-        ImGui.text("Undo actions: ${state.undoCount}")
-        ImGui.text("Redo actions: ${state.redoCount}")
+        ImGui.text("Undo Stack: ${state.undoCount}")
+        ImGui.text("Redo Stack: ${state.redoCount}")
         ImGui.text("Next undo: ${state.undoLabel ?: "none"}")
         ImGui.text("Next redo: ${state.redoLabel ?: "none"}")
         ImGui.text("History memory: ${formatHistoryMemory(state.historyMemoryBytes)}")
@@ -534,8 +528,6 @@ class TerrainEditorControlsPanel(
             }
         }
         ImGui.endDisabled()
-        drawHistoryPreview("--- Undo Stack ---", state.undoPreview)
-        drawHistoryPreview("--- Redo Stack ---", state.redoPreview)
 
         ImGui.end()
     }
@@ -610,25 +602,6 @@ private fun drawPersistenceControls(state: TerrainEditorState) {
     if (state.persistenceMessage.isNotBlank()) {
         ImGui.text("Status: ${state.persistenceMessage}")
     }
-}
-
-private fun drawHistoryPreview(
-    title: String,
-    preview: List<TerrainEditPatchInfo>,
-) {
-    ImGui.text(title)
-    if (preview.isEmpty()) {
-        ImGui.text("empty")
-        return
-    }
-    preview.forEach { patch ->
-        ImGui.text(formatPatchInfo(patch))
-    }
-}
-
-private fun formatPatchInfo(info: TerrainEditPatchInfo): String {
-    val total = info.heightChanges + info.layerChanges
-    return "${info.label} | height: ${info.heightChanges} | layers: ${info.layerChanges} | total: $total"
 }
 
 private fun formatBoolean(value: Boolean): String = if (value) "yes" else "no"
