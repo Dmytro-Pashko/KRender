@@ -29,6 +29,8 @@ interface EngineContext {
     val events: EventBus
     /** Shared structured logger. */
     val logger: Logger
+    /** Shared structured log history and sinks. */
+    val logs: LogService
     /** Shared async task service. */
     val tasks: TaskService
 
@@ -202,6 +204,8 @@ class EngineRuntime(
     override val events: EventBus = EventBus()
     /** Shared logger exposed to scenes. */
     override val logger: Logger = backend.logger
+    /** Shared log service exposed to scenes. */
+    override val logs: LogService = backend.logs
     /** Shared task service exposed to scenes. */
     override val tasks: TaskService = backend.tasks
 

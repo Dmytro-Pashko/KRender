@@ -39,7 +39,6 @@ import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Axis
-import com.pashkd.krender.engine.api.BufferedLogService
 import com.pashkd.krender.engine.api.DebugOverlayState
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawLine
@@ -47,6 +46,7 @@ import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.DrawWorldGrid
 import com.pashkd.krender.engine.api.DefaultDebugOverlayState
+import com.pashkd.krender.engine.api.EngineLogService
 import com.pashkd.krender.engine.api.EngineBackend
 import com.pashkd.krender.engine.api.EngineRuntime
 import com.pashkd.krender.engine.api.FrameProfilerService
@@ -54,8 +54,6 @@ import com.pashkd.krender.engine.api.FrameRuntimeStatsService
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.InputSnapshot
 import com.pashkd.krender.engine.api.Key
-import com.pashkd.krender.engine.api.LogEntry
-import com.pashkd.krender.engine.api.LogLevel
 import com.pashkd.krender.engine.api.LogService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MainThreadTaskQueue
@@ -133,11 +131,14 @@ open class GdxEngineApplication(
  * Concrete engine backend that wires LibGDX services into the core runtime.
  */
 class LibGdxBackend : EngineBackend {
-    override val logs: LogService = BufferedLogService()
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
+    override val logs: EngineLogService = EngineLogService(frameProvider = runtimeStats::frame).also { service ->
+        service.addSink(GdxAppLogSink())
+        service.addSink(FileLogSink())
+    }
     override val profiler: ProfilerService = FrameProfilerService()
     override val debugOverlay: DebugOverlayState = DefaultDebugOverlayState()
-    override val logger: Logger = GdxLogger(logs, runtimeStats)
+    override val logger: Logger = logs
     override val input: GdxInputService = GdxInputService().also {
         Gdx.input.inputProcessor = it
     }
@@ -1573,34 +1574,6 @@ class GdxLineShaderRenderer {
 
     companion object {
         private const val FLOATS_PER_VERTEX = 7
-    }
-}
-
-/** Logger implementation that mirrors messages to both debug history and LibGDX logging. */
-class GdxLogger(
-    private val logs: LogService,
-    private val runtimeStats: RuntimeStatsService,
-) : Logger {
-    /** Records and forwards one log entry if the level is enabled. */
-    override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) {
-        if (!isEnabled(level)) return
-        val text = message()
-        logs.record(
-            LogEntry(
-                level = level,
-                tag = tag,
-                message = text,
-                frame = runtimeStats.frame,
-                threadName = Thread.currentThread().name,
-                error = error,
-            ),
-        )
-        when (level) {
-            LogLevel.Trace, LogLevel.Debug -> Gdx.app.debug(tag, text)
-            LogLevel.Info -> Gdx.app.log(tag, text)
-            LogLevel.Warn -> Gdx.app.log(tag, "WARN: $text")
-            LogLevel.Error -> Gdx.app.error(tag, text, error)
-        }
     }
 }
 

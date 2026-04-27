@@ -11,6 +11,7 @@ object ModelViewerPanelIds {
     const val ModelInfo = "modelInfo"
     const val Controls = "controls"
     const val Loading = "loading"
+    const val Logs = "runtimeLogs"
 }
 
 /**
@@ -48,6 +49,13 @@ object ModelViewerUiLayoutDefaults {
                 y = 320f,
                 width = 320f,
                 height = 120f,
+            ),
+            ModelViewerPanelIds.Logs to ImGuiPanelLayout(
+                title = "Runtime Logs",
+                x = 352f,
+                y = 252f,
+                width = 640f,
+                height = 480f,
             ),
         ),
     )

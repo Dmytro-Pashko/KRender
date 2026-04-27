@@ -193,7 +193,7 @@ class SceneManager {
         stack.push(scene)
         scene.show()
         scene.setState(SceneState.Active)
-        context.logger.info("Scene") { "Switched to '${scene.id}'" }
+        context.logger.info(TAG) { "Switched to '${scene.id}'" }
     }
 
     /** Hides, disposes, and marks a scene as removed. */
@@ -202,5 +202,9 @@ class SceneManager {
         scene.hide()
         scene.dispose()
         scene.setState(SceneState.Disposed)
+    }
+
+    companion object {
+        private const val TAG = "SceneManager"
     }
 }

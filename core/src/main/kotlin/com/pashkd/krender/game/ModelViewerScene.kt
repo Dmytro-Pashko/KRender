@@ -26,6 +26,7 @@ import com.pashkd.krender.engine.render3d.WorldGridSystem
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
+import com.pashkd.krender.engine.ui.LogsPanel
 import com.pashkd.krender.engine.ui.UiSystem
 
 /**
@@ -167,6 +168,7 @@ class ModelViewerScene(
             uiSystem.addPanel(ModelViewerStatsPanel(viewerState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(ModelViewerControlsPanel(viewerState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(ModelViewerLoadingPanel(viewerState, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
         }
 
     /**

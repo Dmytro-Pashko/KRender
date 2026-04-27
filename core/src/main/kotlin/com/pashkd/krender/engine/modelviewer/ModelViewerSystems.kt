@@ -88,23 +88,23 @@ class ModelViewerSystem(
 
         val info = assets.modelInfo(loadedModel)
         if (info == null) {
-            logger.warn("ModelViewer") { "Model '${loadedModel.path}' is loaded but no metadata snapshot is available." }
+            logger.warn(TAG) { "Model '${loadedModel.path}' is loaded but no metadata snapshot is available." }
             loggedModelPath = loadedModel.path
             return
         }
 
-        logger.info("ModelViewer") {
+        logger.info(TAG) {
             "Loaded model '${info.path}' (${info.format}) size=${formatSize(info)} " +
                 "nodes=${info.nodeCount} meshes=${info.meshCount} meshParts=${info.meshPartCount} materials=${info.materialCount}"
         }
-        logger.info("ModelViewer") {
+        logger.info(TAG) {
             "Geometry: vertices=${info.vertexCount} triangles=${info.triangleCount} " +
                 "channels=${formatList(info.vertexChannels)} uv=${formatList(info.uvChannels)}"
         }
-        logger.info("ModelViewer") {
+        logger.info(TAG) {
             "Textures: unique=${info.textureCount} slots=${info.textureSlotCount} channels=${formatList(info.textureChannels)}"
         }
-        logger.info("ModelViewer") {
+        logger.info(TAG) {
             "Rig: skeleton=${if (info.hasSkeleton) "yes" else "no"} bones=${info.boneCount} " +
                 "weights=${info.boneWeightChannelCount} animations=${info.animationCount} names=${formatList(info.animationNames)}"
         }
@@ -121,7 +121,7 @@ class ModelViewerSystem(
             if (selectedModel == null) {
                 state.errorMessage = "Select a model before loading."
             } else {
-                logger.info("ModelViewer") { "Reloading scene with '${selectedModel.path}'" }
+                logger.info(TAG) { "Reloading scene with '${selectedModel.path}'" }
                 onReloadSelection(selectedModel)
                 return
             }
@@ -147,6 +147,10 @@ class ModelViewerSystem(
      * Joins a list for concise structured log output.
      */
     private fun formatList(values: List<String>): String = values.ifEmpty { listOf("none") }.joinToString(", ")
+
+    companion object {
+        private const val TAG = "ModelViewerSystem"
+    }
 }
 
 /**

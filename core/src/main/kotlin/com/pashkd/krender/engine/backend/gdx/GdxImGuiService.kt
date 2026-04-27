@@ -14,6 +14,7 @@ import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
+import com.pashkd.krender.engine.ui.LogsPanelIds
 import com.pashkd.krender.engine.ui.UiService
 import glm_.vec2.Vec2
 import imgui.ConfigFlag
@@ -25,6 +26,9 @@ import imgui.MouseSource
 import imgui.div
 import imgui.classes.Context
 import imgui.impl.gl.ImplGL3
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * Owns the shared ImGui context, backend rendering, and debug windows.
@@ -123,9 +127,9 @@ class GdxImGuiService(
      */
     override fun setDebugWindowLayout(layoutConfig: ImGuiLayoutConfig) {
         debugWindowLayouts = ImGuiLayoutConfig(
-            panels = DEBUG_WINDOW_LAYOUTS.panels.mapValues { (panelId, fallbackLayout) ->
-                layoutConfig.panels[panelId] ?: fallbackLayout
-            },
+            panels = DEBUG_WINDOW_LAYOUTS.panels
+                .filterKeys { it !in layoutConfig.panels }
+                .plus(layoutConfig.panels),
         )
         pendingDebugLayoutInitialization.clear()
         pendingDebugLayoutInitialization += debugPanelIds
@@ -183,7 +187,11 @@ class GdxImGuiService(
             drawTextWindow(DEBUG_PANEL_SCENE_STATISTICS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_SCENE_STATISTICS), statLines)
         }
         val logLines = logs.recentEntries.map(::formatLogEntry)
-        if (overlayState.logsVisible && logLines.isNotEmpty()) {
+        if (
+            overlayState.logsVisible &&
+            logLines.isNotEmpty() &&
+            LogsPanelIds.RuntimeLogs !in debugWindowLayouts.panels
+        ) {
             drawTextWindow(DEBUG_PANEL_LOGS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_LOGS), logLines)
         }
     }
@@ -230,12 +238,14 @@ class GdxImGuiService(
      * Formats one structured log entry for the debug log window.
      */
     private fun formatLogEntry(entry: LogEntry): String =
-        "[${entry.level}][${entry.tag}] ${entry.message}"
+        "${TIMESTAMP_FORMATTER.format(Instant.ofEpochMilli(entry.timestampMillis).atZone(ZoneId.systemDefault()))} " +
+            "[${entry.level}] [${entry.tag}] ${entry.message}"
 
     companion object {
         private const val DEBUG_LAYOUT_ASSET_PATH = "ui/model_viewer_layout.json"
         private const val DEBUG_PANEL_SCENE_STATISTICS = "sceneStatistics"
         private const val DEBUG_PANEL_LOGS = "logs"
+        private val TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
 
         private val DEBUG_WINDOW_LAYOUTS = ImGuiLayoutConfig(
             panels = mapOf(

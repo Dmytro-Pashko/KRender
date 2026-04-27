@@ -35,6 +35,7 @@ import com.pashkd.krender.engine.terrain.terrainMaterialPreviewExportPath
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
+import com.pashkd.krender.engine.ui.LogsPanel
 import com.pashkd.krender.engine.ui.UiSystem
 
 /**
@@ -171,6 +172,7 @@ class TerrainEditorScene(
             uiSystem.addPanel(TerrainEditorBrushPanel(editorState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(TerrainEditorLayersPanel(editorState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(TerrainEditorControlsPanel(editorState, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
         }
 
     /**

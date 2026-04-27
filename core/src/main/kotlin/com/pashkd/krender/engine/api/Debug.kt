@@ -32,6 +32,8 @@ data class LogEntry(
     val frame: Long,
     /** Thread that produced the log entry. */
     val threadName: String,
+    /** Wall-clock timestamp in milliseconds when the entry was recorded. */
+    val timestampMillis: Long,
     /** Optional error attached to the log entry. */
     val error: Throwable? = null,
 )
@@ -105,17 +107,39 @@ data class ProfileFrameSnapshot(
 )
 
 /**
+ * One destination that receives structured log entries.
+ */
+interface LogSink {
+    /** Writes one structured log entry to the sink. */
+    fun write(entry: LogEntry)
+
+    /** Flushes any buffered sink output. */
+    fun flush() = Unit
+
+    /** Releases any sink resources. */
+    fun dispose() = Unit
+}
+
+/**
  * Structured log storage used by backend loggers and debug UIs.
  */
 interface LogService {
     /** Returns recently recorded structured logs. */
     val recentEntries: List<LogEntry>
+    /** Minimum accepted log level for storage and sinks. */
+    var minLevel: LogLevel
 
     /** Records a structured log entry for later display. */
     fun record(entry: LogEntry)
 
     /** Clears buffered log history. */
     fun clear()
+
+    /** Registers one sink that receives accepted log entries. */
+    fun addSink(sink: LogSink)
+
+    /** Unregisters one sink that receives accepted log entries. */
+    fun removeSink(sink: LogSink)
 }
 
 /**
@@ -171,28 +195,79 @@ interface DebugOverlayState {
 }
 
 /**
- * Default in-memory structured log buffer used by the engine runtime.
+ * Default in-memory structured log service used by the engine runtime.
  */
-class BufferedLogService(
-    private val maxEntries: Int = 8,
-) : LogService {
+class EngineLogService(
+    private val frameProvider: () -> Long = { 0L },
+    private val maxEntries: Int = 2_000,
+    override var minLevel: LogLevel = LogLevel.Trace,
+) : LogService, Logger {
+    private val lock = Any()
     private val entries = ArrayDeque<LogEntry>()
+    private val sinks = linkedSetOf<LogSink>()
 
     /** Exposes recent logs as a stable list snapshot. */
     override val recentEntries: List<LogEntry>
-        get() = entries.toList()
+        get() = synchronized(lock) { entries.toList() }
 
-    /** Adds a log entry while enforcing the configured retention cap. */
+    /** Returns whether the service currently accepts the given log level. */
+    override fun isEnabled(level: LogLevel): Boolean = level.ordinal >= minLevel.ordinal
+
+    /** Adds a prebuilt log entry while enforcing the configured retention cap. */
     override fun record(entry: LogEntry) {
-        entries += entry
-        while (entries.size > maxEntries) {
-            entries.removeFirst()
+        if (!isEnabled(entry.level)) return
+
+        val sinkSnapshot = synchronized(lock) {
+            entries += entry
+            while (entries.size > maxEntries) {
+                entries.removeFirst()
+            }
+            sinks.toList()
         }
+        sinkSnapshot.forEach { sink ->
+            sink.write(entry)
+        }
+    }
+
+    /** Builds and records one structured log entry when the level is accepted. */
+    override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) {
+        if (!isEnabled(level)) return
+        record(
+            LogEntry(
+                level = level,
+                tag = tag,
+                message = message(),
+                frame = frameProvider(),
+                threadName = Thread.currentThread().name,
+                timestampMillis = java.lang.System.currentTimeMillis(),
+                error = error,
+            ),
+        )
     }
 
     /** Clears buffered log history. */
     override fun clear() {
-        entries.clear()
+        synchronized(lock) {
+            entries.clear()
+        }
+    }
+
+    /** Registers one sink for accepted log entries. */
+    override fun addSink(sink: LogSink) {
+        synchronized(lock) {
+            sinks += sink
+        }
+    }
+
+    /** Unregisters one sink and disposes it. */
+    override fun removeSink(sink: LogSink) {
+        val removed = synchronized(lock) {
+            sinks.remove(sink)
+        }
+        if (removed) {
+            sink.flush()
+            sink.dispose()
+        }
     }
 }
 

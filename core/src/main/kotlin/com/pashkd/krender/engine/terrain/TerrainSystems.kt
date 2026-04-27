@@ -139,7 +139,7 @@ class TerrainEditorSystem(
             val hit = hoveredHit ?: return
             if (state.brushMode == TerrainBrushMode.PaintLayer && state.selectedLayerId == null) {
                 if (!paintLayerWarningShown) {
-                    logger.warn("TerrainEditor") { "PaintLayer selected without an active terrain layer" }
+                    logger.warn(TAG) { "PaintLayer selected without an active terrain layer" }
                     paintLayerWarningShown = true
                 }
                 return
@@ -847,7 +847,7 @@ class TerrainEditorSystem(
     }
 
     companion object {
-        private const val TAG = "TerrainEditor"
+        private const val TAG = "TerrainEditorSystem"
     }
 }
 

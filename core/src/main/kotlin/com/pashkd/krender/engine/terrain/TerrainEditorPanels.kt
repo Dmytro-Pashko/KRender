@@ -22,6 +22,7 @@ object TerrainEditorPanelIds {
     const val Brush = "brush"
     const val Layers = "layers"
     const val Control = "control"
+    const val Logs = "runtimeLogs"
 }
 
 /**
@@ -59,6 +60,13 @@ object TerrainEditorUiLayoutDefaults {
                 y = 348f,
                 width = 320f,
                 height = 300f,
+            ),
+            TerrainEditorPanelIds.Logs to ImGuiPanelLayout(
+                title = "Runtime Logs",
+                x = 688f,
+                y = 16f,
+                width = 560f,
+                height = 632f,
             ),
         ),
     )
