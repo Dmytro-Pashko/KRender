@@ -88,18 +88,6 @@ class TerrainEditorTerrainPanel(
             return
         }
 
-        ImGui.text("Generator")
-        if (state.generators.isEmpty()) {
-            ImGui.text("No generators are available.")
-        } else {
-            state.generators.forEach { generator ->
-                if (ImGui.selectable(generator.label, generator.id == state.selectedGeneratorId)) {
-                    state.selectedGeneratorId = generator.id
-                }
-            }
-        }
-
-        ImGui.separator()
         ImGui.text("Mesh")
         if (
             slider(
@@ -186,7 +174,6 @@ class TerrainEditorBrushPanel(
         brushModeButton("Flatten", TerrainBrushMode.Flatten)
         ImGui.sameLine()
         brushModeButton("Smooth", TerrainBrushMode.Smooth)
-        brushModeButton("Paint Layer", TerrainBrushMode.PaintLayer)
 
         ImGui.separator()
         ImGui.text("Layer Paint")
@@ -365,7 +352,8 @@ class TerrainEditorLayersPanel(
         "#${layer.index + 1} ${layer.name}:RGBA(${formatColorChannel(layer.color.r)},${formatColorChannel(layer.color.g)},${formatColorChannel(layer.color.b)},${formatColorChannel(layer.color.a)})|T:${formatTiling(layer.tiling)}|Color"
 
     private fun drawMaterialSelector() {
-        ImGui.text("Material")
+        ImGui.separator()
+        ImGui.text("[Material]")
         if (state.terrainMaterials.isEmpty()) {
             ImGui.text("No terrain materials loaded")
             return
@@ -375,7 +363,18 @@ class TerrainEditorLayersPanel(
         ImGui.text("Name: %s", selectedMaterial?.name ?: "Missing")
         ImGui.text("Id: %s", state.selectedLayerMaterialId.ifBlank { "none" })
         ImGui.text("Texture: %s", selectedMaterial?.albedoTexture ?: "none")
-        ImGui.text("Materials")
+        drawMaterialCombo(selectedMaterial)
+        if (state.materialMessage.isNotBlank()) {
+            ImGui.text("Material status: ${state.materialMessage}")
+        }
+    }
+
+    private fun drawMaterialCombo(selectedMaterial: TerrainMaterialOption?) {
+        val preview = selectedMaterial?.name ?: "Select material"
+        if (!ImGui.beginCombo("Material##terrain_material_combo", preview)) {
+            return
+        }
+
         state.terrainMaterials.forEachIndexed { index, material ->
             if (ImGui.selectable("${material.name}##terrain_material_${material.id}", index == state.selectedLayerMaterialIndex)) {
                 state.selectedLayerMaterialIndex = index
@@ -390,9 +389,7 @@ class TerrainEditorLayersPanel(
                 state.updateLayerMaterialRequested = true
             }
         }
-        if (state.materialMessage.isNotBlank()) {
-            ImGui.text("Material status: ${state.materialMessage}")
-        }
+        ImGui.endCombo()
     }
 
     private fun formatColorChannel(value: Float): String =
@@ -458,11 +455,11 @@ class TerrainEditorControlsPanel(
 
         ImGui.separator()
         ImGui.text("Preview")
-        ImGui.text("Mode")
+        ImGui.text("[Mode]")
         previewModeButton("Layer Color", TerrainPreviewMode.LayerColor)
         previewModeButton("Material Color", TerrainPreviewMode.MaterialColor)
         previewModeButton("Material Texture", TerrainPreviewMode.MaterialTexture)
-        ImGui.text("Blend Mode")
+        ImGui.text("[Blend Mode]")
         blendModeButton("Weighted Average", TerrainLayerBlendMode.WeightedAverage)
         blendModeButton("Ordered Alpha", TerrainLayerBlendMode.OrderedAlpha)
         blendModeButton("Max Weight", TerrainLayerBlendMode.MaxWeight)
@@ -474,6 +471,7 @@ class TerrainEditorControlsPanel(
         previewResolutionButton(1024)
         ImGui.sameLine()
         previewResolutionButton(4096)
+        ImGui.sameLine()
         previewResolutionButton(8192)
         ImGui.text("Preview mode: ${formatPreviewMode(state.terrainPreviewMode)}")
         ImGui.text("Blend mode: ${formatBlendMode(state.layerBlendMode)}")

@@ -24,7 +24,7 @@ fun main(args: Array<String>) {
         //// You may also need to configure GPU drivers to fully disable Vsync; this can cause screen tearing.
 
 
-        setWindowedMode(1920, 1200)
+        setWindowedMode(1920, 1280)
         //// You can change these files; they are in lwjgl3/src/main/resources/ .
         //// They can also be loaded from the root of assets/ .
         setWindowIcon(*(arrayOf(128, 64, 32, 16).map { "libgdx$it.png" }.toTypedArray()))
