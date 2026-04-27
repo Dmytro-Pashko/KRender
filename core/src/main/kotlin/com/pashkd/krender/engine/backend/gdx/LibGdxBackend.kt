@@ -93,32 +93,42 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.math.cos
 import kotlin.math.sin
 
+/**
+ * LibGDX application entry point that bootstraps the engine runtime.
+ */
 open class GdxEngineApplication(
     private val initialScene: () -> Scene,
 ) : ApplicationAdapter() {
     private lateinit var backend: LibGdxBackend
     private lateinit var runtime: EngineRuntime
 
+    /** Creates the backend and starts the initial scene. */
     override fun create() {
         backend = LibGdxBackend()
-        Gdx.input.setCursorCatched(false)
+        Gdx.input.isCursorCatched = false
         runtime = EngineRuntime(backend)
         runtime.start(initialScene())
     }
 
+    /** Renders one engine frame using LibGDX delta time. */
     override fun render() {
         runtime.renderFrame(Gdx.graphics.deltaTime)
     }
 
+    /** Forwards window resize events to the runtime. */
     override fun resize(width: Int, height: Int) {
         runtime.resize(width, height)
     }
 
+    /** Disposes the runtime and all backend resources. */
     override fun dispose() {
         runtime.dispose()
     }
 }
 
+/**
+ * Concrete engine backend that wires LibGDX services into the core runtime.
+ */
 class LibGdxBackend : EngineBackend {
     override val debug: DebugService = FrameDebugService()
     override val logger: Logger = GdxLogger(debug)
@@ -130,11 +140,15 @@ class LibGdxBackend : EngineBackend {
     override val tasks: TaskService = GdxTaskService()
     override val renderer: Renderer = GdxRenderer3D(assets, debug, ui)
 
+    /** Requests application shutdown through the LibGDX app instance. */
     override fun requestExit() {
         Gdx.app.exit()
     }
 }
 
+/**
+ * LibGDX-backed input service that snapshots keyboard, mouse, pointer, and UI capture state.
+ */
 class GdxInputService : InputService, InputProcessor {
     private val keysDown = mutableSetOf<Key>()
     private val pressedThisFrame = mutableSetOf<Key>()
@@ -160,6 +174,7 @@ class GdxInputService : InputService, InputProcessor {
     private var ignoredWarpX: Int? = null
     private var ignoredWarpY: Int? = null
 
+    /** Captures the current raw input state into the frame snapshot. */
     override fun beginFrame() {
         val uiCapture = uiCaptureProvider()
         currentSnapshot = InputSnapshot(
@@ -177,8 +192,10 @@ class GdxInputService : InputService, InputProcessor {
         keepCursorInsideWindow()
     }
 
+    /** Returns the immutable input snapshot prepared in [beginFrame]. */
     override fun snapshot(): InputSnapshot = currentSnapshot
 
+    /** Clears one-frame input deltas and retires finished pointer events. */
     override fun endFrame() {
         pressedThisFrame.clear()
         releasedThisFrame.clear()
@@ -188,10 +205,11 @@ class GdxInputService : InputService, InputProcessor {
         pointers.entries.removeIf { it.value.phase == PointerPhase.Up || it.value.phase == PointerPhase.Cancelled }
     }
 
+    /** Enables or disables cursor recentering used for captured mouse input. */
     override fun setCursorCaptured(captured: Boolean) {
         if (cursorCaptured == captured) return
         cursorCaptured = captured
-        Gdx.input.setCursorCatched(false)
+        Gdx.input.isCursorCatched = false
         mouseX = Gdx.input.x
         mouseY = Gdx.input.y
         mouseDeltaX = 0f
@@ -204,30 +222,37 @@ class GdxInputService : InputService, InputProcessor {
         }
     }
 
+    /** Returns whether any key bound to the action is currently held. */
     override fun isActionPressed(action: Action): Boolean =
         actions[action]?.any { it in currentSnapshot.keysDown } == true
 
+    /** Returns whether any key bound to the action was pressed this frame. */
     override fun isActionJustPressed(action: Action): Boolean =
         actions[action]?.any { it in currentSnapshot.keysPressedThisFrame } == true
 
+    /** Resolves named digital axes from the current snapshot. */
     override fun axis(axis: Axis): Float = when (axis.name) {
         "Horizontal" -> currentSnapshot.booleanAxis(Key.A, Key.D)
         "Vertical" -> currentSnapshot.booleanAxis(Key.S, Key.W)
         else -> 0f
     }
 
+    /** Registers an additional LibGDX input processor for mirrored callbacks. */
     fun addProcessor(processor: InputProcessor) {
         processors += processor
     }
 
+    /** Unregisters a mirrored LibGDX input processor. */
     fun removeProcessor(processor: InputProcessor) {
         processors -= processor
     }
 
+    /** Supplies the current UI capture state used when building snapshots. */
     fun setUiCaptureProvider(provider: () -> UiCaptureState) {
         uiCaptureProvider = provider
     }
 
+    /** Records a key-down event and forwards it to child processors. */
     override fun keyDown(keycode: Int): Boolean {
         val key = mapKey(keycode)
         if (key !in keysDown) {
@@ -238,6 +263,7 @@ class GdxInputService : InputService, InputProcessor {
         return false
     }
 
+    /** Records a key-up event and forwards it to child processors. */
     override fun keyUp(keycode: Int): Boolean {
         val key = mapKey(keycode)
         keysDown -= key
@@ -246,6 +272,7 @@ class GdxInputService : InputService, InputProcessor {
         return false
     }
 
+    /** Updates mouse position and delta, ignoring synthetic warp events when needed. */
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
         if (screenX == ignoredWarpX && screenY == ignoredWarpY) {
             ignoredWarpX = null
@@ -262,6 +289,7 @@ class GdxInputService : InputService, InputProcessor {
         return false
     }
 
+    /** Treats a dragged pointer as both mouse movement and pointer motion. */
     override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
         mouseMoved(screenX, screenY)
         pointers[pointer] = PointerState(pointer, PointerPhase.Move, Vec2(screenX.toFloat(), screenY.toFloat()))
@@ -269,6 +297,7 @@ class GdxInputService : InputService, InputProcessor {
         return false
     }
 
+    /** Starts a tracked pointer interaction. */
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         mouseMoved(screenX, screenY)
         pointers[pointer] = PointerState(pointer, PointerPhase.Down, Vec2(screenX.toFloat(), screenY.toFloat()))
@@ -276,6 +305,7 @@ class GdxInputService : InputService, InputProcessor {
         return false
     }
 
+    /** Ends a tracked pointer interaction. */
     override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         mouseMoved(screenX, screenY)
         pointers[pointer] = PointerState(pointer, PointerPhase.Up, Vec2(screenX.toFloat(), screenY.toFloat()))
@@ -283,6 +313,7 @@ class GdxInputService : InputService, InputProcessor {
         return false
     }
 
+    /** Marks a tracked pointer as cancelled. */
     override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         mouseMoved(screenX, screenY)
         pointers[pointer] = PointerState(pointer, PointerPhase.Cancelled, Vec2(screenX.toFloat(), screenY.toFloat()))
@@ -290,17 +321,20 @@ class GdxInputService : InputService, InputProcessor {
         return false
     }
 
+    /** Accumulates scroll input for the current frame. */
     override fun scrolled(amountX: Float, amountY: Float): Boolean {
         scrollDelta += amountY
         processors.forEach { it.scrolled(amountX, amountY) }
         return false
     }
 
+    /** Forwards typed-character events to child processors. */
     override fun keyTyped(character: Char): Boolean {
         processors.forEach { it.keyTyped(character) }
         return false
     }
 
+    /** Maps LibGDX key codes to engine key enums. */
     private fun mapKey(keycode: Int): Key = when (keycode) {
         Input.Keys.W -> Key.W
         Input.Keys.A -> Key.A
@@ -331,12 +365,14 @@ class GdxInputService : InputService, InputProcessor {
         else -> Key.Unknown
     }
 
+    /** Converts two digital keys into a -1..1 axis value. */
     private fun InputSnapshot.booleanAxis(negative: Key, positive: Key): Float {
         val left = if (isDown(negative)) 1f else 0f
         val right = if (isDown(positive)) 1f else 0f
         return right - left
     }
 
+    /** Recenters the cursor if captured input reaches the window edge. */
     private fun keepCursorInsideWindow() {
         if (!cursorCaptured) return
 
@@ -352,6 +388,7 @@ class GdxInputService : InputService, InputProcessor {
         }
     }
 
+    /** Warps the cursor to the window center and suppresses the synthetic move event. */
     private fun moveCursorToWindowCenter() {
         val centerX = Gdx.graphics.width / 2
         val centerY = Gdx.graphics.height / 2
@@ -367,6 +404,9 @@ class GdxInputService : InputService, InputProcessor {
     }
 }
 
+/**
+ * Asset service that queues, loads, inspects, and unloads LibGDX-backed assets.
+ */
 class GdxAssetService : AssetService {
     private val manager = AssetManager()
     private val requested = mutableSetOf<String>()
@@ -383,6 +423,7 @@ class GdxAssetService : AssetService {
         manager.setLoader(SceneAsset::class.java, ".glb", GLBAssetLoader())
     }
 
+    /** Queues a supported asset for loading if it exists and is not already tracked. */
     override fun queue(asset: AssetRef<*>) {
         if (asset.isPrimitive || asset.path in requested || asset.path in missing) return
 
@@ -421,17 +462,20 @@ class GdxAssetService : AssetService {
         }
     }
 
+    /** Advances asynchronous loading for up to the given time budget. */
     override fun update(budgetMs: Int): Float {
         manager.update(budgetMs)
         return progress()
     }
 
+    /** Returns normalized loading progress for queued non-primitive assets. */
     override fun progress(): Float {
         val assetCount = requested.count { !it.startsWith("primitive:") }
         if (assetCount == 0) return 1f
         return manager.progress.coerceIn(0f, 1f)
     }
 
+    /** Returns whether the asset is available through the underlying backend loaders. */
     override fun isLoaded(asset: AssetRef<*>): Boolean {
         if (asset.isPrimitive) return true
         return when (asset.type) {
@@ -449,10 +493,12 @@ class GdxAssetService : AssetService {
         }
     }
 
+    /** Rejects untyped access because core code should keep using asset references. */
     override fun <T : Any> get(asset: AssetRef<T>): T {
         error("Use backend-specific typed accessors for '${asset.path}'. Core code should keep AssetRef handles.")
     }
 
+    /** Returns the triangle count for a loaded backend model, caching the result. */
     override fun triangleCount(asset: AssetRef<ModelAsset>): Int? {
         if (asset.isPrimitive || !isLoaded(asset)) return null
         return modelTriangleCounts.getOrPut(asset.path) {
@@ -487,6 +533,7 @@ class GdxAssetService : AssetService {
         }
     }
 
+    /** Unloads a tracked asset and clears any cached metadata derived from it. */
     override fun unload(asset: AssetRef<*>) {
         if (!asset.isPrimitive && manager.isLoaded(asset.path)) {
             manager.unload(asset.path)
@@ -498,11 +545,13 @@ class GdxAssetService : AssetService {
         modelTriangleCounts -= asset.path
     }
 
+    /** Returns a loaded LibGDX model for non-glTF model assets. */
     fun gdxModel(asset: AssetRef<ModelAsset>): Model? {
         if (asset.isPrimitive || asset.isGltf()) return null
         return if (manager.isLoaded(asset.path)) manager.get(asset.path, Model::class.java) else null
     }
 
+    /** Returns a loaded glTF scene asset when the asset reference points to glTF content. */
     fun gltfScene(asset: AssetRef<ModelAsset>): SceneAsset? {
         if (!asset.isGltf()) return null
         return if (manager.isLoaded(asset.path, SceneAsset::class.java)) {
@@ -512,6 +561,7 @@ class GdxAssetService : AssetService {
         }
     }
 
+    /** Disposes the underlying LibGDX asset manager. */
     fun dispose() {
         manager.dispose()
     }
@@ -684,15 +734,20 @@ private fun modelFormat(path: String): String = when {
     else -> "Model"
 }
 
+/** Returns the total triangle count across all mesh parts in the model. */
 private fun countTrianglesInModel(model: Model): Int =
     model.meshParts.sumOf(::countTrianglesInMeshPart)
 
+/** Converts a mesh part's primitive topology into triangle count. */
 private fun countTrianglesInMeshPart(meshPart: MeshPart): Int = when (meshPart.primitiveType) {
     GL20.GL_TRIANGLES -> meshPart.size / 3
     GL20.GL_TRIANGLE_STRIP, GL20.GL_TRIANGLE_FAN -> (meshPart.size - 2).coerceAtLeast(0)
     else -> 0
 }
 
+/**
+ * Coroutine-backed task service with explicit background, IO, and render-thread dispatch.
+ */
 class GdxTaskService : TaskService {
     private val job = SupervisorJob()
     private val backgroundScope = CoroutineScope(job + Dispatchers.Default)
@@ -703,6 +758,7 @@ class GdxTaskService : TaskService {
     override val inFlightJobs: Int
         get() = jobs.count { it.isActive }
 
+    /** Launches a tracked background coroutine. */
     override fun launchBackground(name: String, block: suspend CoroutineScope.() -> Unit): Job {
         val launched = backgroundScope.launch(block = block)
         jobs += launched
@@ -710,30 +766,43 @@ class GdxTaskService : TaskService {
         return launched
     }
 
+    /** Runs the block on the default background dispatcher. */
     override suspend fun <T> onBackground(block: suspend () -> T): T = withContext(Dispatchers.Default) { block() }
+
+    /** Runs the block on the IO dispatcher. */
     override suspend fun <T> onIo(block: suspend () -> T): T = withContext(Dispatchers.IO) { block() }
+
+    /** Runs the block on the render thread dispatcher. */
     override suspend fun <T> onMain(block: suspend () -> T): T = withContext(mainDispatcher) { block() }
 
+    /** Queues a task for the main-thread task queue. */
     override fun postToMain(block: () -> Unit) {
         mainQueue.post(block)
     }
 
+    /** Executes all queued main-thread tasks immediately. */
     override fun flushMainThreadQueue() {
         mainQueue.flush()
     }
 
+    /** Cancels all background work owned by the service. */
     override fun dispose() {
         backgroundScope.cancel()
         job.cancel()
     }
 }
 
+/** Coroutine dispatcher that posts work onto the LibGDX application thread. */
 class RenderThreadDispatcher : CoroutineDispatcher() {
+    /** Schedules the runnable through LibGDX's `postRunnable` callback queue. */
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         Gdx.app.postRunnable(block)
     }
 }
 
+/**
+ * LibGDX renderer that draws static models, dynamic meshes, wireframes, lines, and UI.
+ */
 class GdxRenderer3D(
     private val assets: GdxAssetService,
     private val debug: DebugService,
@@ -758,6 +827,7 @@ class GdxRenderer3D(
     private var width: Int = Gdx.graphics.width
     private var height: Int = Gdx.graphics.height
 
+    /** Renders the full frame for the provided render context. */
     override fun render(context: RenderContext) {
         Gdx.gl.glViewport(0, 0, width, height)
         Gdx.gl.glClearColor(0.08f, 0.09f, 0.11f, 1f)
@@ -798,11 +868,13 @@ class GdxRenderer3D(
         ui.render()
     }
 
+    /** Updates the cached viewport size used for camera creation. */
     override fun resize(width: Int, height: Int) {
         this.width = width.coerceAtLeast(1)
         this.height = height.coerceAtLeast(1)
     }
 
+    /** Disposes renderer-owned GPU resources and cached backend assets. */
     override fun dispose() {
         modelBatch.dispose()
         lineRenderer.dispose()
@@ -814,6 +886,7 @@ class GdxRenderer3D(
         assets.dispose()
     }
 
+    /** Renders one static model command, including primitive and glTF handling. */
     private fun renderModel(command: DrawModel, environment: Environment, camera: Camera) {
         command.material.shader.assets().forEach(assets::queue)
         assets.queue(command.model)
@@ -850,6 +923,7 @@ class GdxRenderer3D(
         modelBatch.render(instance, environment)
     }
 
+    /** Renders one dynamic mesh-backed model command. */
     private fun renderDynamicModel(command: DrawDynamicModel, environment: Environment) {
         val model = dynamicGdxModel(command.model)
         val cacheKey = ModelCacheKey(command.entityId, command.model.id)
@@ -868,6 +942,7 @@ class GdxRenderer3D(
         modelBatch.render(instance, environment)
     }
 
+    /** Applies engine material color and optional diffuse texture to a LibGDX material. */
     private fun applyMaterialAttributes(
         gdxMaterial: com.badlogic.gdx.graphics.g3d.Material,
         material: com.pashkd.krender.engine.render3d.Material,
@@ -888,6 +963,7 @@ class GdxRenderer3D(
         }
     }
 
+    /** Renders a cached glTF scene instance. */
     private fun renderGltfScene(command: DrawModel, environment: Environment, camera: Camera) {
         assets.queue(command.model)
         val sceneAsset = assets.gltfScene(command.model) ?: return
@@ -907,6 +983,7 @@ class GdxRenderer3D(
         modelBatch.render(scene, environment)
     }
 
+    /** Converts a static model command into line vertices and draws it as wireframe. */
     private fun renderWireframeModel(command: DrawModel, camera: Camera) {
         command.material.shader.assets().forEach(assets::queue)
         assets.queue(command.model)
@@ -936,6 +1013,7 @@ class GdxRenderer3D(
         lineRenderer.renderVertices(vertices, camera)
     }
 
+    /** Converts a dynamic model command into line vertices and draws it as wireframe. */
     private fun renderWireframeDynamicModel(command: DrawDynamicModel, camera: Camera) {
         val model = dynamicGdxModel(command.model)
         val cacheKey = ModelCacheKey(command.entityId, command.model.id)
@@ -953,6 +1031,7 @@ class GdxRenderer3D(
         lineRenderer.renderVertices(vertices, camera)
     }
 
+    /** Returns a transformed glTF scene instance for wireframe extraction. */
     private fun wireframeGltfScene(command: DrawModel, camera: Camera): GltfScene? {
         val sceneAsset = assets.gltfScene(command.model) ?: return null
         val cacheKey = ModelCacheKey(command.entityId, command.model.path)
@@ -964,10 +1043,12 @@ class GdxRenderer3D(
         return scene
     }
 
+    /** Applies a draw command's transform to the instance. */
     private fun applyTransform(instance: ModelInstance, command: DrawModel) {
         applyTransform(instance, command.transform)
     }
 
+    /** Applies an engine transform snapshot to the LibGDX model instance. */
     private fun applyTransform(
         instance: ModelInstance,
         transform: com.pashkd.krender.engine.api.TransformSnapshot,
@@ -980,6 +1061,7 @@ class GdxRenderer3D(
         instance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
     }
 
+    /** Returns a cached LibGDX model for the dynamic mesh revision, rebuilding when needed. */
     private fun dynamicGdxModel(dynamicModel: com.pashkd.krender.engine.api.DynamicModel): Model {
         val cached = dynamicModels[dynamicModel.id]
         if (cached != null && cached.revision == dynamicModel.revision) {
@@ -993,6 +1075,7 @@ class GdxRenderer3D(
         return built
     }
 
+    /** Builds a LibGDX [Model] from engine dynamic mesh data. */
     private fun buildDynamicModel(dynamicModel: com.pashkd.krender.engine.api.DynamicModel): Model {
         val meshData = dynamicModel.mesh
         val positions = meshData.positions
@@ -1052,6 +1135,7 @@ class GdxRenderer3D(
         }
     }
 
+    /** Interleaves indexed vertex attributes into one packed float buffer. */
     private fun interleaveVertices(
         positions: FloatArray,
         normals: FloatArray,
@@ -1084,6 +1168,7 @@ class GdxRenderer3D(
         return vertices
     }
 
+    /** Expands indexed mesh data into a non-indexed vertex buffer when required. */
     private fun expandVertices(meshData: com.pashkd.krender.engine.api.DynamicMesh): FloatArray {
         if (meshData.indices.isEmpty()) {
             return interleaveVertices(meshData.positions, meshData.normals, meshData.uvs, meshData.colors)
@@ -1115,12 +1200,15 @@ class GdxRenderer3D(
         return vertices
     }
 
+    /** Returns whether the dynamic mesh contains one RGBA color per vertex. */
     private fun com.pashkd.krender.engine.api.DynamicMesh.hasVertexColors(): Boolean =
         colors != null && colors.size == vertexCount * 4
 
+    /** Returns the packed float count for one dynamic vertex. */
     private fun dynamicVertexFloatCount(hasColors: Boolean): Int =
         if (hasColors) FLOATS_PER_COLORED_DYNAMIC_VERTEX else FLOATS_PER_DYNAMIC_VERTEX
 
+    /** Extracts world-space wireframe vertices from a model instance. */
     private fun wireframeVerticesFor(
         instance: ModelInstance,
         color: com.pashkd.krender.engine.api.Color,
@@ -1136,6 +1224,7 @@ class GdxRenderer3D(
         return vertices
     }
 
+    /** Appends the line edges needed to visualize one mesh part as wireframe. */
     private fun appendWireframeMeshPart(
         vertices: MutableList<Float>,
         meshPart: MeshPart,
@@ -1201,6 +1290,7 @@ class GdxRenderer3D(
         }
     }
 
+    /** Appends one transformed wireframe vertex with color. */
     private fun appendWireframeVertex(
         vertices: MutableList<Float>,
         vertexData: FloatArray,
@@ -1222,6 +1312,7 @@ class GdxRenderer3D(
         vertices += color.a
     }
 
+    /** Builds a LibGDX perspective camera from the active scene camera components. */
     private fun cameraFor(context: RenderContext): PerspectiveCamera {
         val cameraEntity = context.scene.world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull()
         val cameraTransform = cameraEntity?.get<TransformComponent>()
@@ -1252,6 +1343,7 @@ class GdxRenderer3D(
         return camera
     }
 
+    /** Builds a LibGDX lighting environment from scene light components. */
     private fun environmentFor(context: RenderContext): Environment {
         val environment = Environment()
         context.scene.world.query<LightComponent>()
@@ -1285,6 +1377,7 @@ class GdxRenderer3D(
         return environment
     }
 
+    /** Returns a cached primitive model for built-in placeholder assets. */
     private fun primitive(path: String): Model = primitives.getOrPut(path) {
         ModelBuilder().createBox(
             1f,
@@ -1295,6 +1388,7 @@ class GdxRenderer3D(
         )
     }
 
+    /** Draws the on-screen debug HUD for stats, help text, and logs. */
     private fun drawDebugOverlay(context: RenderContext) {
         debug.put("FPS", Gdx.graphics.framesPerSecond)
         debug.put("Render commands", context.commands.size)
@@ -1305,6 +1399,7 @@ class GdxRenderer3D(
         drawBottomLeftLogs()
     }
 
+    /** Counts triangles referenced by all draw commands in the frame. */
     private fun triangleCountFor(context: RenderContext): Int =
         context.commands.sumOf { command ->
             when (command) {
@@ -1314,6 +1409,7 @@ class GdxRenderer3D(
             }
         }
 
+    /** Returns the triangle count for one static model command, caching backend results. */
     private fun triangleCountFor(command: DrawModel): Int {
         val cacheKey = command.model.path
         triangleCounts[cacheKey]?.let { return it }
@@ -1327,19 +1423,23 @@ class GdxRenderer3D(
         return count
     }
 
+    /** Returns the total triangle count for the model. */
     private fun triangleCountForModel(model: Model): Int =
         model.meshParts.sumOf(::triangleCountForMeshPart)
 
+    /** Converts a mesh part topology into triangle count for debug statistics. */
     private fun triangleCountForMeshPart(meshPart: MeshPart): Int = when (meshPart.primitiveType) {
         GL20.GL_TRIANGLES -> meshPart.size / 3
         GL20.GL_TRIANGLE_STRIP, GL20.GL_TRIANGLE_FAN -> (meshPart.size - 2).coerceAtLeast(0)
         else -> 0
     }
 
+    /** Counts the number of light components currently active in the scene. */
     private fun lightCountFor(context: RenderContext): Int =
         context.scene.world.query<LightComponent>()
             .count { it.get<LightComponent>() != null }
 
+    /** Draws top-left debug panels for controls and scene statistics. */
     private fun drawTopLeftDebugPanels() {
         var top = height - HUD_MARGIN
         val x = HUD_MARGIN
@@ -1368,6 +1468,7 @@ class GdxRenderer3D(
         }
     }
 
+    /** Draws the recent log panel in the lower-left corner. */
     private fun drawBottomLeftLogs() {
         val lines = debug.recentLogs.map { "[${it.tag}] ${it.message}" }
         if (!debug.logsEnabled || lines.isEmpty()) return
@@ -1381,6 +1482,7 @@ class GdxRenderer3D(
         )
     }
 
+    /** Draws one rectangular HUD panel with a title and text lines. */
     private fun drawPanel(
         x: Float,
         bottom: Float,
@@ -1411,6 +1513,7 @@ class GdxRenderer3D(
         Gdx.gl.glDisable(GL20.GL_BLEND)
     }
 
+    /** Returns the HUD height needed for the given number of text lines. */
     private fun panelHeight(lineCount: Int): Float =
         HUD_HEADER_HEIGHT + HUD_PADDING * 2f + lineCount * HUD_LINE_HEIGHT
 
@@ -1429,16 +1532,21 @@ class GdxRenderer3D(
     }
 }
 
+/** Cached LibGDX model entry keyed by the engine dynamic mesh revision. */
 private data class DynamicModelCacheEntry(
     val revision: Long,
     val model: Model,
 )
 
+/** Composite cache key that distinguishes model instances by entity and asset id. */
 private data class ModelCacheKey(
     val entityId: Long,
     val modelPath: String,
 )
 
+/**
+ * Minimal shader-based line renderer used for debug grids, axes, and wireframes.
+ */
 class GdxLineShaderRenderer {
     private val shader = ShaderProgram(
         """
@@ -1472,6 +1580,7 @@ class GdxLineShaderRenderer {
         check(shader.isCompiled) { shader.log }
     }
 
+    /** Renders non-overlay world debug lines such as grids and axes. */
     fun render(commands: List<com.pashkd.krender.engine.api.RenderCommand>, camera: Camera) {
         val vertices = mutableListOf<Float>()
         commands.forEach { command ->
@@ -1485,6 +1594,7 @@ class GdxLineShaderRenderer {
         renderVertices(vertices, camera)
     }
 
+    /** Renders explicit overlay lines without depth testing. */
     fun renderOverlayLines(commands: List<com.pashkd.krender.engine.api.RenderCommand>, camera: Camera) {
         val vertices = mutableListOf<Float>()
         commands.filterIsInstance<DrawLine>().forEach { command ->
@@ -1494,6 +1604,7 @@ class GdxLineShaderRenderer {
         renderVertices(vertices, camera, depthTest = false)
     }
 
+    /** Uploads line vertices and renders them with the internal shader. */
     fun renderVertices(
         vertices: List<Float>,
         camera: Camera,
@@ -1524,11 +1635,13 @@ class GdxLineShaderRenderer {
         Gdx.gl.glDepthMask(true)
     }
 
+    /** Disposes the reusable mesh and shader program. */
     fun dispose() {
         mesh?.dispose()
         shader.dispose()
     }
 
+    /** Appends a world grid to the vertex list. */
     private fun appendGrid(vertices: MutableList<Float>, command: DrawWorldGrid) {
         val half = command.halfExtentCells.coerceAtLeast(1)
         val min = -half * command.cellSize
@@ -1551,6 +1664,7 @@ class GdxLineShaderRenderer {
         }
     }
 
+    /** Appends RGB world axes centered at the origin. */
     private fun appendAxes(vertices: MutableList<Float>, command: DrawWorldAxes) {
         val length = command.length.coerceAtLeast(1f)
         appendLine(vertices, Vec3(-length, 0f, 0f), Vec3(length, 0f, 0f), com.pashkd.krender.engine.api.Color(1f, 0f, 0f, 1f))
@@ -1558,6 +1672,7 @@ class GdxLineShaderRenderer {
         appendLine(vertices, Vec3(0f, 0f, -length), Vec3(0f, 0f, length), com.pashkd.krender.engine.api.Color(0f, 0.35f, 1f, 1f))
     }
 
+    /** Appends one colored line segment. */
     private fun appendLine(
         vertices: MutableList<Float>,
         from: Vec3,
@@ -1568,6 +1683,7 @@ class GdxLineShaderRenderer {
         appendVertex(vertices, to, color)
     }
 
+    /** Appends one colored line vertex. */
     private fun appendVertex(vertices: MutableList<Float>, position: Vec3, color: com.pashkd.krender.engine.api.Color) {
         vertices += position.x
         vertices += position.y
@@ -1578,6 +1694,7 @@ class GdxLineShaderRenderer {
         vertices += color.a
     }
 
+    /** Returns a reusable mesh with capacity for the requested vertex count. */
     private fun meshFor(vertexCount: Int): Mesh {
         if (mesh == null || vertexCount > vertexCapacity) {
             mesh?.dispose()
@@ -1598,9 +1715,11 @@ class GdxLineShaderRenderer {
     }
 }
 
+/** Logger implementation that mirrors messages to both debug history and LibGDX logging. */
 class GdxLogger(
     private val debug: DebugService,
 ) : Logger {
+    /** Records and forwards one log entry if the level is enabled. */
     override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) {
         if (!isEnabled(level)) return
         val text = message()
@@ -1623,5 +1742,6 @@ class GdxLogger(
     }
 }
 
+/** Returns whether the asset reference points to a glTF or GLB model. */
 private fun AssetRef<*>.isGltf(): Boolean =
     path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true)
