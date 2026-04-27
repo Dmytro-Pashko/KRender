@@ -29,8 +29,6 @@ interface EngineContext {
     val events: EventBus
     /** Shared structured logger. */
     val logger: Logger
-    /** Shared debug collector. */
-    val debug: DebugService
     /** Shared async task service. */
     val tasks: TaskService
 
@@ -52,8 +50,14 @@ interface EngineBackend {
     val assets: AssetService
     /** Backend logger implementation. */
     val logger: Logger
-    /** Backend debug collector implementation. */
-    val debug: DebugService
+    /** Backend log history implementation. */
+    val logs: LogService
+    /** Backend runtime telemetry implementation. */
+    val runtimeStats: RuntimeStatsService
+    /** Backend profiler implementation. */
+    val profiler: ProfilerService
+    /** Backend debug overlay visibility state. */
+    val debugOverlay: DebugOverlayState
     /** Backend task implementation. */
     val tasks: TaskService
     /** Backend renderer implementation. */
@@ -78,18 +82,19 @@ class GameLoop(
         val delta = min(rawDelta, config.maxFrameDeltaSeconds)
         var fixedUpdates = 0
 
-        backend.debug.beginFrame()
+        backend.runtimeStats.beginFrame()
+        backend.profiler.beginFrame(backend.runtimeStats.frame)
         backend.input.beginFrame()
         val inputSnapshot = backend.input.snapshot()
         if (!inputSnapshot.uiCapturesKeyboard && inputSnapshot.wasPressed(Key.Backtick)) {
-            backend.debug.toggle()
+            backend.debugOverlay.toggleLogs()
         }
 
-        backend.debug.measure("tasks.flush") {
+        backend.profiler.measure("tasks.flush") {
             backend.tasks.flushMainThreadQueue()
         }
 
-        backend.debug.measure("assets.update") {
+        backend.profiler.measure("assets.update") {
             backend.assets.update()
         }
 
@@ -97,19 +102,20 @@ class GameLoop(
         val scene = runtime.scenes.currentScene
         if (scene == null) {
             backend.input.endFrame()
-            backend.debug.endFrame(delta, fixedUpdates)
+            backend.runtimeStats.endFrame(delta, fixedUpdates)
+            backend.profiler.endFrame(backend.runtimeStats.frame)
             return
         }
 
-        backend.debug.put("Scene", scene.id)
-        backend.debug.put("Scene state", scene.state)
-        backend.debug.put("Entities", scene.world.all().size)
-        backend.debug.put("Commands", scene.world.commands.size())
-        backend.debug.put("Jobs", backend.tasks.inFlightJobs)
-        putJvmMemoryStats(backend.debug)
+        backend.runtimeStats.put("Scene", scene.id)
+        backend.runtimeStats.put("Scene state", scene.state)
+        backend.runtimeStats.put("Entities", scene.world.all().size)
+        backend.runtimeStats.put("Commands", scene.world.commands.size())
+        backend.runtimeStats.put("Jobs", backend.tasks.inFlightJobs)
+        putJvmMemoryStats(backend.runtimeStats)
 
         accumulator += delta
-        backend.debug.measure("fixedUpdate") {
+        backend.profiler.measure("fixedUpdate") {
             while (accumulator >= config.fixedStepSeconds) {
                 scene.fixedUpdate(config.fixedStepSeconds)
                 accumulator -= config.fixedStepSeconds
@@ -119,56 +125,58 @@ class GameLoop(
 
         val alpha = accumulator / config.fixedStepSeconds
 
-        backend.debug.measure("update") {
+        backend.profiler.measure("update") {
             scene.update(delta)
         }
         if (runtime.completeExitIfRequested()) {
             backend.input.endFrame()
-            backend.debug.endFrame(delta, fixedUpdates)
+            backend.runtimeStats.endFrame(delta, fixedUpdates)
+            backend.profiler.endFrame(backend.runtimeStats.frame)
             return
         }
 
-        backend.debug.measure("lateUpdate") {
+        backend.profiler.measure("lateUpdate") {
             scene.lateUpdate(delta)
         }
         if (runtime.completeExitIfRequested()) {
             backend.input.endFrame()
-            backend.debug.endFrame(delta, fixedUpdates)
+            backend.runtimeStats.endFrame(delta, fixedUpdates)
+            backend.profiler.endFrame(backend.runtimeStats.frame)
             return
         }
 
-        backend.debug.measure("render.collect") {
+        backend.profiler.measure("render.collect") {
             scene.render(alpha)
             scene.debugRender()
         }
 
-        backend.debug.measure("render.submit") {
+        backend.profiler.measure("render.submit") {
             backend.renderer.render(
                 RenderContext(
                     scene = scene,
                     alpha = alpha,
                     deltaSeconds = delta,
                     commands = scene.world.renderCommands.snapshot(),
-                    debug = backend.debug,
                 ),
             )
         }
 
         backend.input.endFrame()
-        backend.debug.endFrame(delta, fixedUpdates)
+        backend.runtimeStats.endFrame(delta, fixedUpdates)
+        backend.profiler.endFrame(backend.runtimeStats.frame)
     }
 
-    private fun putJvmMemoryStats(debug: DebugService) {
+    private fun putJvmMemoryStats(runtimeStats: RuntimeStatsService) {
         val runtime = Runtime.getRuntime()
         val total = runtime.totalMemory()
         val free = runtime.freeMemory()
         val used = total - free
         val max = runtime.maxMemory()
-        debug.put("JVM Memory", "")
-        debug.put("Used", formatMemoryMb(used))
-        debug.put("Free", formatMemoryMb(free))
-        debug.put("Total", formatMemoryMb(total))
-        debug.put("Max", formatMemoryMb(max))
+        runtimeStats.put("JVM Memory", "")
+        runtimeStats.put("Used", formatMemoryMb(used))
+        runtimeStats.put("Free", formatMemoryMb(free))
+        runtimeStats.put("Total", formatMemoryMb(total))
+        runtimeStats.put("Max", formatMemoryMb(max))
     }
 
     private fun formatMemoryMb(bytes: Long): String =
@@ -194,8 +202,6 @@ class EngineRuntime(
     override val events: EventBus = EventBus()
     /** Shared logger exposed to scenes. */
     override val logger: Logger = backend.logger
-    /** Shared debug service exposed to scenes. */
-    override val debug: DebugService = backend.debug
     /** Shared task service exposed to scenes. */
     override val tasks: TaskService = backend.tasks
 

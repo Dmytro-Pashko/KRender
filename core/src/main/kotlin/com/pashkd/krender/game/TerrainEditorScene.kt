@@ -152,25 +152,6 @@ class TerrainEditorScene(
         createTerrain()
     }
 
-    /**
-     * Publishes terrain editor state into the debug overlay each frame.
-     */
-    override fun update(dt: Float) {
-        super.update(dt)
-
-        engine.debug.line("Use the Terrain ImGui panel for editor controls.")
-        engine.debug.line("Tab - Toggle UI/viewport input focus")
-        engine.debug.line("Mouse drag - Apply brush")
-        engine.debug.line("Mouse wheel - Brush radius")
-        engine.debug.line("Shift + Mouse wheel - Brush strength")
-        engine.debug.line("Alt - Erase active paint layer while painting")
-        engine.debug.line("F1/F2/F3/F4/F5 - Raise/Lower/Flatten/Smooth/PaintLayer")
-        engine.debug.line("G - Toggle terrain wireframe")
-        engine.debug.line("W/A/S/D - Pan camera")
-        engine.debug.line("Ctrl/Shift - Up/Down")
-        engine.debug.line("Q/E - Rotate camera")
-    }
-
     override fun dispose() {
         if (::meshSyncSystem.isInitialized) {
             meshSyncSystem.dispose()

@@ -12,8 +12,6 @@ import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.VertexAttribute
 import com.badlogic.gdx.graphics.VertexAttributes
-import com.badlogic.gdx.graphics.g2d.BitmapFont
-import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.Environment
 import com.badlogic.gdx.graphics.g3d.Model
 import com.badlogic.gdx.graphics.g3d.ModelBatch
@@ -30,7 +28,6 @@ import com.badlogic.gdx.graphics.g3d.model.NodePart
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.math.collision.BoundingBox
@@ -42,20 +39,24 @@ import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Axis
-import com.pashkd.krender.engine.api.DebugService
+import com.pashkd.krender.engine.api.BufferedLogService
+import com.pashkd.krender.engine.api.DebugOverlayState
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.DrawWorldGrid
+import com.pashkd.krender.engine.api.DefaultDebugOverlayState
 import com.pashkd.krender.engine.api.EngineBackend
 import com.pashkd.krender.engine.api.EngineRuntime
-import com.pashkd.krender.engine.api.FrameDebugService
+import com.pashkd.krender.engine.api.FrameProfilerService
+import com.pashkd.krender.engine.api.FrameRuntimeStatsService
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.InputSnapshot
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.LogEntry
 import com.pashkd.krender.engine.api.LogLevel
+import com.pashkd.krender.engine.api.LogService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MainThreadTaskQueue
 import com.pashkd.krender.engine.api.ModelAsset
@@ -69,6 +70,8 @@ import com.pashkd.krender.engine.api.ShaderAsset
 import com.pashkd.krender.engine.api.TaskService
 import com.pashkd.krender.engine.api.TextureAsset
 import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.api.ProfilerService
+import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
@@ -130,15 +133,18 @@ open class GdxEngineApplication(
  * Concrete engine backend that wires LibGDX services into the core runtime.
  */
 class LibGdxBackend : EngineBackend {
-    override val debug: DebugService = FrameDebugService()
-    override val logger: Logger = GdxLogger(debug)
+    override val logs: LogService = BufferedLogService()
+    override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
+    override val profiler: ProfilerService = FrameProfilerService()
+    override val debugOverlay: DebugOverlayState = DefaultDebugOverlayState()
+    override val logger: Logger = GdxLogger(logs, runtimeStats)
     override val input: GdxInputService = GdxInputService().also {
         Gdx.input.inputProcessor = it
     }
-    override val ui: UiService = GdxImGuiService(input, debug, logger)
+    override val ui: UiService = GdxImGuiService(input, logs, runtimeStats, profiler, debugOverlay, logger)
     override val assets: GdxAssetService = GdxAssetService()
     override val tasks: TaskService = GdxTaskService()
-    override val renderer: Renderer = GdxRenderer3D(assets, debug, ui)
+    override val renderer: Renderer = GdxRenderer3D(assets, ui)
 
     /** Requests application shutdown through the LibGDX app instance. */
     override fun requestExit() {
@@ -805,19 +811,14 @@ class RenderThreadDispatcher : CoroutineDispatcher() {
  */
 class GdxRenderer3D(
     private val assets: GdxAssetService,
-    private val debug: DebugService,
     private val ui: UiService,
 ) : Renderer {
     private val modelBatch = ModelBatch()
     private val lineRenderer = GdxLineShaderRenderer()
-    private val shapeRenderer = ShapeRenderer()
-    private val spriteBatch = SpriteBatch()
-    private val font = BitmapFont()
     private val instances = mutableMapOf<ModelCacheKey, ModelInstance>()
     private val gltfScenes = mutableMapOf<ModelCacheKey, GltfScene>()
     private val primitives = mutableMapOf<String, Model>()
     private val dynamicModels = mutableMapOf<String, DynamicModelCacheEntry>()
-    private val triangleCounts = mutableMapOf<String, Int>()
     private val wireframeRenderables = Array<Renderable>()
     private val wireframeRenderablePool = object : Pool<Renderable>() {
         override fun newObject(): Renderable = Renderable()
@@ -878,9 +879,6 @@ class GdxRenderer3D(
     override fun dispose() {
         modelBatch.dispose()
         lineRenderer.dispose()
-        shapeRenderer.dispose()
-        spriteBatch.dispose()
-        font.dispose()
         primitives.values.forEach { it.dispose() }
         dynamicModels.values.forEach { it.model.dispose() }
         assets.dispose()
@@ -1071,7 +1069,6 @@ class GdxRenderer3D(
         cached?.model?.dispose()
         val built = buildDynamicModel(dynamicModel)
         dynamicModels[dynamicModel.id] = DynamicModelCacheEntry(dynamicModel.revision, built)
-        triangleCounts[dynamicModel.id] = dynamicModel.mesh.triangleCount
         return built
     }
 
@@ -1388,143 +1385,7 @@ class GdxRenderer3D(
         )
     }
 
-    /** Draws the on-screen debug HUD for stats, help text, and logs. */
-    private fun drawDebugOverlay(context: RenderContext) {
-        debug.put("FPS", Gdx.graphics.framesPerSecond)
-        debug.put("Render commands", context.commands.size)
-        debug.put("Triangles", triangleCountFor(context))
-        debug.put("Lights", lightCountFor(context))
-        debug.put("Asset progress", "${"%.0f".format(assets.progress() * 100f)}%")
-        drawTopLeftDebugPanels()
-        drawBottomLeftLogs()
-    }
-
-    /** Counts triangles referenced by all draw commands in the frame. */
-    private fun triangleCountFor(context: RenderContext): Int =
-        context.commands.sumOf { command ->
-            when (command) {
-                is DrawModel -> triangleCountFor(command)
-                is DrawDynamicModel -> command.model.mesh.triangleCount
-                else -> 0
-            }
-        }
-
-    /** Returns the triangle count for one static model command, caching backend results. */
-    private fun triangleCountFor(command: DrawModel): Int {
-        val cacheKey = command.model.path
-        triangleCounts[cacheKey]?.let { return it }
-
-        val count = when {
-            command.model.isPrimitive -> triangleCountForModel(primitive(command.model.path))
-            command.model.isGltf() -> assets.gltfScene(command.model)?.scene?.model?.let(::triangleCountForModel) ?: 0
-            else -> assets.gdxModel(command.model)?.let(::triangleCountForModel) ?: 0
-        }
-        triangleCounts[cacheKey] = count
-        return count
-    }
-
-    /** Returns the total triangle count for the model. */
-    private fun triangleCountForModel(model: Model): Int =
-        model.meshParts.sumOf(::triangleCountForMeshPart)
-
-    /** Converts a mesh part topology into triangle count for debug statistics. */
-    private fun triangleCountForMeshPart(meshPart: MeshPart): Int = when (meshPart.primitiveType) {
-        GL20.GL_TRIANGLES -> meshPart.size / 3
-        GL20.GL_TRIANGLE_STRIP, GL20.GL_TRIANGLE_FAN -> (meshPart.size - 2).coerceAtLeast(0)
-        else -> 0
-    }
-
-    /** Counts the number of light components currently active in the scene. */
-    private fun lightCountFor(context: RenderContext): Int =
-        context.scene.world.query<LightComponent>()
-            .count { it.get<LightComponent>() != null }
-
-    /** Draws top-left debug panels for controls and scene statistics. */
-    private fun drawTopLeftDebugPanels() {
-        var top = height - HUD_MARGIN
-        val x = HUD_MARGIN
-
-        if (debug.helperLines.isNotEmpty()) {
-            val helpHeight = panelHeight(debug.helperLines.size)
-            drawPanel(
-                x = x,
-                bottom = top - helpHeight,
-                width = HUD_PANEL_WIDTH,
-                title = "Controls",
-                lines = debug.helperLines,
-            )
-            top -= helpHeight + HUD_GAP
-        }
-
-        if (debug.enabled && debug.statEntries.isNotEmpty()) {
-            val statsHeight = panelHeight(debug.statEntries.size)
-            drawPanel(
-                x = x,
-                bottom = top - statsHeight,
-                width = HUD_PANEL_WIDTH,
-                title = "Scene Statistics",
-                lines = debug.statEntries,
-            )
-        }
-    }
-
-    /** Draws the recent log panel in the lower-left corner. */
-    private fun drawBottomLeftLogs() {
-        val lines = debug.recentLogs.map { "[${it.tag}] ${it.message}" }
-        if (!debug.logsEnabled || lines.isEmpty()) return
-
-        drawPanel(
-            x = HUD_MARGIN,
-            bottom = HUD_MARGIN,
-            width = LOG_PANEL_WIDTH,
-            title = "Logs",
-            lines = lines,
-        )
-    }
-
-    /** Draws one rectangular HUD panel with a title and text lines. */
-    private fun drawPanel(
-        x: Float,
-        bottom: Float,
-        width: Float,
-        title: String,
-        lines: List<String>,
-    ) {
-        val height = panelHeight(lines.size)
-        Gdx.gl.glEnable(GL20.GL_BLEND)
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
-        shapeRenderer.projectionMatrix = spriteBatch.projectionMatrix
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.color.set(0.05f, 0.06f, 0.08f, 0.82f)
-        shapeRenderer.rect(x, bottom, width, height)
-        shapeRenderer.color.set(0.12f, 0.16f, 0.2f, 0.95f)
-        shapeRenderer.rect(x, bottom + height - HUD_HEADER_HEIGHT, width, HUD_HEADER_HEIGHT)
-        shapeRenderer.end()
-
-        spriteBatch.begin()
-        font.color.set(1f, 1f, 1f, 1f)
-        font.draw(spriteBatch, title, x + HUD_PADDING, bottom + height - 8f)
-        font.color.set(0.84f, 0.9f, 0.96f, 1f)
-        lines.forEachIndexed { index, line ->
-            val y = bottom + height - HUD_HEADER_HEIGHT - HUD_PADDING - index * HUD_LINE_HEIGHT
-            font.draw(spriteBatch, line, x + HUD_PADDING, y)
-        }
-        spriteBatch.end()
-        Gdx.gl.glDisable(GL20.GL_BLEND)
-    }
-
-    /** Returns the HUD height needed for the given number of text lines. */
-    private fun panelHeight(lineCount: Int): Float =
-        HUD_HEADER_HEIGHT + HUD_PADDING * 2f + lineCount * HUD_LINE_HEIGHT
-
     companion object {
-        private const val HUD_MARGIN = 12f
-        private const val HUD_GAP = 10f
-        private const val HUD_PADDING = 8f
-        private const val HUD_HEADER_HEIGHT = 24f
-        private const val HUD_LINE_HEIGHT = 18f
-        private const val HUD_PANEL_WIDTH = 360f
-        private const val LOG_PANEL_WIDTH = 560f
         private const val FLOATS_PER_DYNAMIC_VERTEX = 8
         private const val FLOATS_PER_COLORED_DYNAMIC_VERTEX = 12
         private const val FLOAT_BYTES = 4
@@ -1717,18 +1578,19 @@ class GdxLineShaderRenderer {
 
 /** Logger implementation that mirrors messages to both debug history and LibGDX logging. */
 class GdxLogger(
-    private val debug: DebugService,
+    private val logs: LogService,
+    private val runtimeStats: RuntimeStatsService,
 ) : Logger {
     /** Records and forwards one log entry if the level is enabled. */
     override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) {
         if (!isEnabled(level)) return
         val text = message()
-        debug.recordLog(
+        logs.record(
             LogEntry(
                 level = level,
                 tag = tag,
                 message = text,
-                frame = debug.frame,
+                frame = runtimeStats.frame,
                 threadName = Thread.currentThread().name,
                 error = error,
             ),

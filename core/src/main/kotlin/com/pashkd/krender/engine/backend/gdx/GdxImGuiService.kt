@@ -3,9 +3,12 @@ package com.pashkd.krender.engine.backend.gdx
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
-import com.pashkd.krender.engine.api.DebugService
+import com.pashkd.krender.engine.api.DebugOverlayState
 import com.pashkd.krender.engine.api.LogEntry
+import com.pashkd.krender.engine.api.LogService
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.api.ProfilerService
+import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.ui.UiCaptureState
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
@@ -28,10 +31,13 @@ import imgui.impl.gl.ImplGL3
  */
 class GdxImGuiService(
     private val input: GdxInputService,
-    private val debug: DebugService,
+    private val logs: LogService,
+    private val runtimeStats: RuntimeStatsService,
+    private val profiler: ProfilerService,
+    private val overlayState: DebugOverlayState,
     private val logger: Logger,
 ) : UiService {
-    private val debugPanelIds = listOf(DEBUG_PANEL_SCENE_STATISTICS, DEBUG_PANEL_CONTROLS, DEBUG_PANEL_LOGS)
+    private val debugPanelIds = listOf(DEBUG_PANEL_SCENE_STATISTICS, DEBUG_PANEL_LOGS)
     private val context = Context()
     private val renderer = withContext { ImplGL3() }
     private val inputBridge = GdxImGuiInputBridge(context)
@@ -66,7 +72,7 @@ class GdxImGuiService(
      */
     override fun beginFrame(deltaSeconds: Float) {
         frameReady = false
-        debug.put("FPS", Gdx.graphics.framesPerSecond)
+        runtimeStats.put("FPS", Gdx.graphics.framesPerSecond)
         withCurrentContext {
             val io = ImGui.io
             io.deltaTime = deltaSeconds.coerceAtLeast(1f / 1_000f)
@@ -172,15 +178,29 @@ class GdxImGuiService(
      * Draws the shared engine debug windows when their data is available.
      */
     private fun drawDebugWindows() {
-        if (debug.enabled && debug.statEntries.isNotEmpty()) {
-            drawTextWindow(DEBUG_PANEL_SCENE_STATISTICS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_SCENE_STATISTICS), debug.statEntries)
+        val statLines = formatStatLines()
+        if (overlayState.statsVisible && statLines.isNotEmpty()) {
+            drawTextWindow(DEBUG_PANEL_SCENE_STATISTICS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_SCENE_STATISTICS), statLines)
         }
-        if (debug.helperLines.isNotEmpty()) {
-            drawTextWindow(DEBUG_PANEL_CONTROLS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_CONTROLS), debug.helperLines)
+        val logLines = logs.recentEntries.map(::formatLogEntry)
+        if (overlayState.logsVisible && logLines.isNotEmpty()) {
+            drawTextWindow(DEBUG_PANEL_LOGS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_LOGS), logLines)
         }
-        if (debug.logsEnabled && debug.recentLogs.isNotEmpty()) {
-            drawTextWindow(DEBUG_PANEL_LOGS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_LOGS), debug.recentLogs.map(::formatLogEntry))
+    }
+
+    /**
+     * Formats the runtime and profiler snapshots currently shown in the statistics window.
+     */
+    private fun formatStatLines(): List<String> {
+        val lines = runtimeStats.metrics.map { metric -> "${metric.label}: ${metric.value}" }.toMutableList()
+        runtimeStats.lastCompletedFrame?.let { frame ->
+            lines += "Delta: ${"%.2f".format(frame.deltaSeconds * 1000f)} ms"
+            lines += "Fixed updates: ${frame.fixedUpdates}"
         }
+        profiler.lastCompletedFrame?.timings?.forEach { timing ->
+            lines += "${timing.name}: ${"%.2f".format(timing.millis)} ms"
+        }
+        return lines
     }
 
     /**
@@ -215,7 +235,6 @@ class GdxImGuiService(
     companion object {
         private const val DEBUG_LAYOUT_ASSET_PATH = "ui/model_viewer_layout.json"
         private const val DEBUG_PANEL_SCENE_STATISTICS = "sceneStatistics"
-        private const val DEBUG_PANEL_CONTROLS = "debugControls"
         private const val DEBUG_PANEL_LOGS = "logs"
 
         private val DEBUG_WINDOW_LAYOUTS = ImGuiLayoutConfig(
@@ -226,13 +245,6 @@ class GdxImGuiService(
                     y = 16f,
                     width = 320f,
                     height = 240f,
-                ),
-                DEBUG_PANEL_CONTROLS to ImGuiPanelLayout(
-                    title = "Controls",
-                    x = 16f,
-                    y = 272f,
-                    width = 320f,
-                    height = 220f,
                 ),
                 DEBUG_PANEL_LOGS to ImGuiPanelLayout(
                     title = "Logs",

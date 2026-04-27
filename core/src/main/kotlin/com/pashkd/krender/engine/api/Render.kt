@@ -189,8 +189,6 @@ data class RenderContext(
     val deltaSeconds: Float,
     /** Sorted draw commands collected for the frame. */
     val commands: List<RenderCommand>,
-    /** Shared debug collector for frame metrics. */
-    val debug: DebugService,
 )
 
 /**
