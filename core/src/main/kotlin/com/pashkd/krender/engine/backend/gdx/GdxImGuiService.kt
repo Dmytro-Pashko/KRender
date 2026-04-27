@@ -194,7 +194,7 @@ class GdxImGuiService(
         }
         ImGui.setNextWindowPos(Vec2(layout.x, layout.y), initializationCondition, Vec2())
         ImGui.setNextWindowSize(Vec2(layout.width, layout.height), initializationCondition)
-        val expanded = ImGui.begin(layout.title)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, "debug_$panelId"))
         pendingDebugLayoutInitialization -= panelId
         debugWindowEventLogger.observe(panelId, layout.title)
         if (!expanded) {
@@ -245,6 +245,8 @@ class GdxImGuiService(
         )
     }
 }
+
+private fun imguiWindowName(title: String, id: String): String = "$title###$id"
 
 /**
  * Forwards backend input events into the active ImGui context.

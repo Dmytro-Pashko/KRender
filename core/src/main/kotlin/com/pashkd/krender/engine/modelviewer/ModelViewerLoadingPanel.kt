@@ -24,7 +24,7 @@ class ModelViewerLoadingPanel(
 
         val layout = layoutConfig.panels.getValue(ModelViewerPanelIds.Loading)
         applyWindowDefaults(layout)
-        val expanded = ImGui.begin(layout.title)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, ModelViewerPanelIds.Loading))
         eventLogger.observe(ModelViewerPanelIds.Loading, layout.title)
         if (!expanded) {
             ImGui.end()

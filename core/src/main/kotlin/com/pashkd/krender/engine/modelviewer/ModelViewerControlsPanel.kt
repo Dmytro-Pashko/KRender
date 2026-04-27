@@ -23,7 +23,7 @@ class ModelViewerControlsPanel(
     override fun draw() {
         val layout = layoutConfig.panels.getValue(ModelViewerPanelIds.Controls)
         applyWindowDefaults(layout)
-        val expanded = ImGui.begin(layout.title)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, ModelViewerPanelIds.Controls))
         eventLogger.observe(ModelViewerPanelIds.Controls, layout.title)
         if (!expanded) {
             ImGui.end()

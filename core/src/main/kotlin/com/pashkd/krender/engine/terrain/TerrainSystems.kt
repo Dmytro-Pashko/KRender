@@ -18,14 +18,25 @@ import com.pashkd.krender.engine.material.TerrainMaterialLibrary
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import kotlin.math.PI
 import kotlin.math.cos
-import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.math.tan
 
 /**
- * Editor tool system that handles terrain picking, brush input, brush preview, and display toggles.
+ * Editor-side terrain workflow controller.
+ *
+ * This system sits between raw input, persistent editor state, and mutable
+ * [TerrainData]. Each frame it:
+ * 1. Resolves the active terrain and camera entities.
+ * 2. Applies queued UI commands such as create/load/save/undo.
+ * 3. Converts mouse input into a hovered terrain hit.
+ * 4. Builds and applies brush strokes while the pointer is held down.
+ * 5. Keeps renderer/UI preview state synchronized with the underlying terrain.
+ *
+ * The class is intentionally stateful because a single drag stroke spans many
+ * frames and needs transient data such as [flattenHeight] and an accumulating
+ * [activePatchBuilder] for undo/redo.
  */
 class TerrainEditorSystem(
     private val input: InputService,
@@ -50,7 +61,12 @@ class TerrainEditorSystem(
     private var lastObservedSelectedLayerId: Int? = null
 
     /**
-     * Processes editor input and applies brush strokes to terrain data.
+     * Processes one editor frame.
+     *
+     * The method first resolves command-style state changes (terrain creation,
+     * persistence, history operations), then handles interactive viewport input.
+     * Brush strokes are assembled incrementally while the pointer remains down so
+     * a drag gesture becomes a single history entry instead of many tiny edits.
      */
     override fun update(world: SceneWorld, dt: Float) {
         val terrainEntity = world.query<TransformComponent, TerrainComponent, TerrainRendererComponent>().firstOrNull() ?: return
@@ -61,6 +77,8 @@ class TerrainEditorSystem(
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
         val terrainTransform = terrainEntity.get<TransformComponent>() ?: return
         val snapshot = input.snapshot()
+        // Tab swaps keyboard/mouse ownership between UI widgets and the viewport.
+        // If focus leaves the viewport mid-stroke, the stroke is committed first.
         if (snapshot.wasPressed(Key.Tab)) {
             state.inputFocus = when (state.inputFocus) {
                 TerrainEditorInputFocus.Ui -> TerrainEditorInputFocus.Viewport
@@ -81,6 +99,8 @@ class TerrainEditorSystem(
         syncSelectedLayerPreviewState(terrain)
         syncHistoryState()
 
+        // Viewport input is allowed either when the viewport explicitly owns focus
+        // or when the UI reports that it is not consuming that device.
         val viewportFocus = state.inputFocus == TerrainEditorInputFocus.Viewport
         val keyboardAvailable = viewportFocus || !snapshot.uiCapturesKeyboard
         val mouseAvailable = viewportFocus || !snapshot.uiCapturesMouse
@@ -91,6 +111,7 @@ class TerrainEditorSystem(
 
         updateBrushBindings(snapshot, keyboardAvailable, mouseAvailable)
         syncRendererStateFromControls(terrainRenderer)
+        // Mouse hover is only meaningful when the viewport can consume the mouse.
         hoveredHit = if (!mouseAvailable) {
             null
         } else {
@@ -105,6 +126,8 @@ class TerrainEditorSystem(
         }
         state.hoveredTerrainPosition = hoveredHit?.worldPosition?.let(::formatPosition) ?: "none"
 
+        // Treat both Down and Move as a continuous pressed stroke so painting can
+        // continue while the pointer is dragged across the terrain.
         val pointerDown = snapshot.pointers.any { it.phase == PointerPhase.Down || it.phase == PointerPhase.Move }
         val pointerReleased = snapshot.pointers.any { it.phase == PointerPhase.Up || it.phase == PointerPhase.Cancelled }
 
@@ -123,6 +146,9 @@ class TerrainEditorSystem(
             }
 
             if (!brushActive) {
+                // Capture any per-stroke values exactly once. Flatten must keep a
+                // stable target height for the full drag, and history should treat
+                // the drag as one named edit.
                 brushActive = true
                 flattenHeight = terrain.data.sampleHeight(hit.localX, hit.localZ)
                 activeLayerPaintSign = effectiveLayerPaintSign(snapshot)
@@ -152,6 +178,9 @@ class TerrainEditorSystem(
 
     /**
      * Emits brush preview lines into the scene render command buffer.
+     *
+     * The preview is drawn as an approximated circle plus a small center cross so
+     * the user can see both the current radius and exact hit point.
      */
     override fun debugRender(world: SceneWorld) {
         val terrainEntity = world.query<TransformComponent, TerrainComponent>().firstOrNull() ?: return
@@ -163,6 +192,9 @@ class TerrainEditorSystem(
         val segments = 40
         var previous: Vec3? = null
 
+        // Sample points around the brush radius and connect them with line
+        // segments. Each point is lifted slightly above the terrain so the guide
+        // remains visible without z-fighting against the surface.
         for (segment in 0..segments) {
             val angle = (segment.toFloat() / segments.toFloat()) * (PI.toFloat() * 2f)
             val localX = hit.localX + cos(angle) * state.brushRadius
@@ -198,6 +230,9 @@ class TerrainEditorSystem(
 
     /**
      * Updates brush mode and scalar parameters from normalized input.
+     *
+     * Function keys choose the active mode, while the mouse wheel adjusts either
+     * radius or strength depending on whether Shift is held.
      */
     private fun updateBrushBindings(
         snapshot: com.pashkd.krender.engine.api.InputSnapshot,
@@ -225,6 +260,8 @@ class TerrainEditorSystem(
         terrain: TerrainComponent,
         renderer: TerrainRendererComponent,
     ) {
+        // Rebuild the editor-facing layer list from terrain data every frame so
+        // UI widgets always reflect the current terrain ordering and metadata.
         val layers = terrain.data.allLayers()
         state.layers = layers.mapIndexed { index, layer ->
             TerrainLayerOption(
@@ -268,6 +305,8 @@ class TerrainEditorSystem(
     }
 
     private fun syncHistoryState() {
+        // Mirror the history model into the editor state so UI code can stay dumb
+        // and simply display the latest derived values.
         state.canUndo = editHistory.canUndo
         state.canRedo = editHistory.canRedo
         state.undoLabel = editHistory.peekUndoLabel()
@@ -280,6 +319,12 @@ class TerrainEditorSystem(
         state.cleanHistoryRevision = editHistory.cleanRevision()
     }
 
+    /**
+     * Applies history-related commands from both UI buttons and keyboard shortcuts.
+     *
+     * Any active brush stroke is committed before undo/redo so partial drag edits
+     * cannot be left hanging outside the history stack.
+     */
     private fun processHistoryCommands(
         terrain: TerrainComponent,
         snapshot: com.pashkd.krender.engine.api.InputSnapshot,
@@ -316,6 +361,8 @@ class TerrainEditorSystem(
         val controlDown = snapshot.isDown(Key.ControlLeft) || snapshot.isDown(Key.ControlRight)
         val shiftDown = snapshot.isDown(Key.ShiftLeft) || snapshot.isDown(Key.ShiftRight)
         val keyboardAvailable = state.inputFocus == TerrainEditorInputFocus.Viewport || !snapshot.uiCapturesKeyboard
+        // Support both Ctrl+Y and Ctrl+Shift+Z for redo to match common editor
+        // conventions on different platforms.
         if (!commandHandled && keyboardAvailable && controlDown) {
             val redoPressed = snapshot.wasPressed(Key.Y) ||
                 (shiftDown && snapshot.wasPressed(Key.Z))
@@ -338,6 +385,11 @@ class TerrainEditorSystem(
         }
     }
 
+    /**
+     * Finalizes the currently active brush stroke and pushes it into undo history.
+     *
+     * Returns `true` when a non-empty patch was produced and stored.
+     */
     private fun finishBrushStroke(): Boolean {
         val pushed = activePatchBuilder?.build()?.let(editHistory::push) == true
         activePatchBuilder = null
@@ -347,6 +399,9 @@ class TerrainEditorSystem(
         return pushed
     }
 
+    /**
+     * Builds the human-readable history label for the current brush stroke.
+     */
     private fun buildPatchLabel(): String =
         when (state.brushMode) {
             TerrainBrushMode.Raise -> "Raise terrain"
@@ -361,6 +416,9 @@ class TerrainEditorSystem(
             }
         }
 
+    /**
+     * Pushes display mode toggles from editor state into the terrain renderer.
+     */
     private fun syncRendererStateFromControls(renderer: TerrainRendererComponent) {
         val expectedMode = if (state.wireframeEnabled) {
             TerrainDisplayMode.Wireframe
@@ -372,6 +430,13 @@ class TerrainEditorSystem(
         }
     }
 
+    /**
+     * Applies queued terrain-structure and preview commands from the editor state.
+     *
+     * This includes creating/regenerating the terrain, adding/removing/reordering
+     * layers, and handling preview mode changes that require a mesh/material
+     * refresh.
+     */
     private fun processTerrainCommands(
         terrain: TerrainComponent,
         renderer: TerrainRendererComponent,
@@ -471,6 +536,12 @@ class TerrainEditorSystem(
         }
     }
 
+    /**
+     * Executes save/load requests for terrain files.
+     *
+     * Loading replaces the active terrain object and resets transient editor-side
+     * state that would otherwise refer to the previous terrain instance.
+     */
     private fun processPersistenceCommands(
         terrain: TerrainComponent,
         renderer: TerrainRendererComponent,
@@ -541,6 +612,13 @@ class TerrainEditorSystem(
         }
     }
 
+    /**
+     * Rebuilds the terrain from the selected generator while preserving layer metadata.
+     *
+     * Geometry and weights are regenerated, but layer names/materials/colors/
+     * visibility/tiling are copied forward so the user's material setup survives
+     * a procedural terrain refresh.
+     */
     private fun regenerateTerrain(
         terrain: TerrainComponent,
         renderer: TerrainRendererComponent,
@@ -557,6 +635,8 @@ class TerrainEditorSystem(
             vertexSpacing = state.vertexSpacing,
         )
 
+        // Recreate layers in the new terrain so generator output can reuse the
+        // same logical material stack as the previous terrain.
         currentLayers.forEachIndexed { index, layer ->
             val restored = regenerated.addLayer(
                 name = layer.name,
@@ -602,14 +682,25 @@ class TerrainEditorSystem(
     private fun activeGenerator(): TerrainGenerator =
         generatorsById[state.selectedGeneratorId] ?: generatorsById.values.first()
 
+    /**
+     * Picks a sensible default base material for brand-new terrains.
+     */
     private fun preferredBaseMaterial(): TerrainMaterialOption? =
         state.terrainMaterials.firstOrNull { it.id == "terrain/grass" }
             ?: state.terrainMaterials.firstOrNull { it.id == "terrain/ground_grass" }
 
+    /**
+     * Applies queued edits to the currently selected layer's metadata.
+     *
+     * Metadata edits are treated separately from brush painting because they act
+     * on layer definitions rather than per-vertex content.
+     */
     private fun processLayerMetadataCommands(terrain: TerrainComponent) {
         val selectedLayerId = state.selectedLayerId
         var changed = false
 
+        // Multiple UI flags can be set in one frame; this helper ensures history
+        // is cleared only once before the first successful metadata mutation.
         fun applyUpdate(update: (Int) -> Boolean) {
             if (selectedLayerId == null) return
             if (!changed) {
@@ -662,11 +753,20 @@ class TerrainEditorSystem(
         }
     }
 
+    /**
+     * Marks both geometry and material previews as stale after a terrain change.
+     */
     private fun markPreviewDirty(terrain: TerrainComponent) {
         terrain.markDirty()
         state.materialPreviewDirty = true
     }
 
+    /**
+     * Keeps selected-layer preview labels synchronized with the editor selection.
+     *
+     * When the preview mode isolates a single layer mask, changing the selection
+     * must trigger a rebake even if the terrain data itself did not change.
+     */
     private fun syncSelectedLayerPreviewState(terrain: TerrainComponent) {
         val selected = state.layers.firstOrNull { it.id == state.selectedLayerId }
         state.selectedLayerMaskMessage = selected?.let { "Layer #${it.index + 1}: ${it.name}" } ?: "No layer selected"
@@ -678,6 +778,10 @@ class TerrainEditorSystem(
         }
     }
 
+    /**
+     * Assigns the selected material to a layer and mirrors material defaults back
+     * into editor controls such as fallback color and tiling.
+     */
     private fun applyLayerMaterial(
         terrainData: TerrainData,
         layerId: Int,
@@ -708,6 +812,12 @@ class TerrainEditorSystem(
     private fun formatPosition(position: Vec3): String =
         "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
+    /**
+     * Resolves whether the current layer paint stroke should add or erase weight.
+     *
+     * Alt acts as a temporary erase modifier even when the persistent paint mode
+     * is set to add.
+     */
     private fun effectiveLayerPaintSign(snapshot: com.pashkd.krender.engine.api.InputSnapshot): Float {
         val altErase = snapshot.isDown(Key.AltLeft) || snapshot.isDown(Key.AltRight)
         return if (state.brushMode == TerrainBrushMode.PaintLayer &&
@@ -719,6 +829,9 @@ class TerrainEditorSystem(
         }
     }
 
+    /**
+     * Returns a fallback debug-friendly color for newly created layers.
+     */
     private fun defaultLayerColor(index: Int): TerrainLayerColorDescriptor {
         val colors = listOf(
             TerrainLayerColorDescriptor(0.25f, 0.65f, 0.2f, 1f),
@@ -739,7 +852,12 @@ class TerrainEditorSystem(
 }
 
 /**
- * Synchronizes dirty terrain data into runtime dynamic mesh models.
+ * Rebuilds renderable terrain resources from editable terrain data.
+ *
+ * This system converts dirty [TerrainData] into runtime mesh/model objects and,
+ * when requested, also bakes texture-based preview images used by the editor.
+ * It is intentionally conservative: any relevant change triggers a full rebuild
+ * of the current terrain representation.
  */
 class TerrainMeshSyncSystem(
     private val materialColorResolver: (String?) -> TerrainLayerColorDescriptor? = { null },
@@ -764,6 +882,9 @@ class TerrainMeshSyncSystem(
 
     /**
      * Rebuilds full terrain meshes for dirty terrain entities.
+     *
+     * The early-return gate skips expensive work unless geometry, preview mode,
+     * preview resolution, or preview export state changed.
      */
     override fun update(world: SceneWorld, dt: Float) {
         world.query<TerrainComponent, TerrainRendererComponent>().forEach { entity ->
@@ -785,6 +906,8 @@ class TerrainMeshSyncSystem(
                 return@forEach
             }
 
+            // Mesh colors and texture previews are driven by the selected preview
+            // mode, so the mesh build and preview bake must use the same mode.
             val blendMode = blendModeProvider()
             val mesh = TerrainMeshBuilder.build(
                 data = terrain.data,
@@ -824,6 +947,13 @@ class TerrainMeshSyncSystem(
         }
     }
 
+    /**
+     * Synchronizes the renderer's optional preview texture with the active preview mode.
+     *
+     * Texture previews are baked only for modes that require them. Non-texture
+     * modes explicitly clear any previous preview texture so stale images cannot
+     * leak into later renders.
+     */
     private fun syncMaterialPreviewTexture(
         renderer: TerrainRendererComponent,
         terrain: TerrainData,
@@ -859,6 +989,8 @@ class TerrainMeshSyncSystem(
             }
             val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
             previewBakeStatsSink(elapsedMs, baker.cacheStats())
+            // Upload the baked pixmap immediately, then dispose CPU-side pixels to
+            // avoid leaking temporary preview image memory.
             val texture = try {
                 Texture(pixmap).also {
                     it.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
@@ -887,6 +1019,9 @@ class TerrainMeshSyncSystem(
         }
     }
 
+    /**
+     * Exports the current texture-based terrain preview to a PNG file.
+     */
     private fun exportMaterialPreviewPng(
         terrain: TerrainData,
         previewMode: TerrainPreviewMode,
@@ -926,6 +1061,9 @@ class TerrainMeshSyncSystem(
         }
     }
 
+    /**
+     * Releases any cached preview baking resources.
+     */
     fun dispose() {
         materialPreviewBaker?.dispose()
     }
@@ -933,10 +1071,16 @@ class TerrainMeshSyncSystem(
 
 /**
  * Submits terrain dynamic mesh draw commands to the render pipeline.
+ *
+ * The renderer chooses between the base terrain material, vertex colors, and an
+ * editor preview texture depending on which data is currently available.
  */
 class TerrainRenderSystem : System() {
     /**
      * Emits one draw command per renderable terrain entity.
+     *
+     * Material selection is intentionally lightweight here: this system assumes
+     * mesh generation and preview baking have already prepared the correct data.
      */
     override fun render(world: SceneWorld, alpha: Float) {
         world.query<TransformComponent, TerrainRendererComponent>().forEach { entity ->
@@ -968,11 +1112,15 @@ class TerrainRenderSystem : System() {
     }
 }
 
+/** Returns `true` when the preview mode requires a baked texture image. */
 private fun TerrainPreviewMode.usesTexturePreview(): Boolean =
     this == TerrainPreviewMode.MaterialTexture || this == TerrainPreviewMode.SelectedLayerMask
 
 /**
  * Camera controller for the terrain editor viewport.
+ *
+ * Movement is target-centric: the camera translates together with its look-at
+ * point and rotates around that look-at point on the horizontal plane.
  */
 class TerrainCameraControllerSystem(
     private val input: InputService,
@@ -980,6 +1128,9 @@ class TerrainCameraControllerSystem(
 ) : System() {
     /**
      * Updates terrain camera pan, vertical movement, and rotation around its target.
+     *
+     * WASD pans along the camera's horizontal forward/right axes, R/F move the
+     * camera vertically, and Q/E orbit around the current look-at target.
      */
     override fun update(world: SceneWorld, dt: Float) {
         val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent, TerrainCameraControllerComponent>()
@@ -990,6 +1141,7 @@ class TerrainCameraControllerSystem(
         val lookAt = camera.lookAt ?: Vec3.zero().also { camera.lookAt = it }
         val snapshot = input.snapshot()
         if (state?.inputFocus != TerrainEditorInputFocus.Viewport && snapshot.isCapturedByUI()) return
+        // Movement ignores camera pitch so WASD remains parallel to the ground.
         val forward = horizontalForward(transform.position, lookAt)
         val right = Vec3(-forward.z, 0f, forward.x)
 
@@ -1010,6 +1162,8 @@ class TerrainCameraControllerSystem(
         }
 
         if (panX != 0f || panY != 0f || panZ != 0f) {
+            // Translate both eye and target together so the relative viewing
+            // direction stays unchanged while panning.
             val speed = controller.panSpeed * dt
             val deltaX = (right.x * panX + forward.x * panZ) * speed
             val deltaY = panY * speed
@@ -1041,6 +1195,8 @@ class TerrainCameraControllerSystem(
         lookAt: Vec3,
         deltaDegrees: Float,
     ) {
+        // Convert the camera-to-target offset into polar form, rotate the angle,
+        // then reconstruct the position while preserving orbit radius.
         val offsetX = transform.position.x - lookAt.x
         val offsetZ = transform.position.z - lookAt.z
         val radius = sqrt(offsetX * offsetX + offsetZ * offsetZ)
@@ -1066,13 +1222,20 @@ class TerrainCameraControllerSystem(
 
 /**
  * Terrain picking helpers for editor tools.
+ *
+ * These helpers convert a 2D screen position into an approximate terrain hit by
+ * constructing a camera ray and projecting it onto the terrain heightfield.
  */
 object TerrainRaycaster {
     /**
      * Projects a screen-space point onto the terrain surface.
      *
-     * The current implementation uses a temporary ray-plane intersection and then samples
-     * the heightfield at that X/Z coordinate.
+     * The current implementation first intersects the camera ray with the terrain
+     * base plane, then clamps the projected X/Z into terrain bounds and samples
+     * the heightfield at that location.
+     *
+     * This is an approximation: steep cliffs or overhang-like geometry would
+     * require a real triangle/heightfield ray cast instead.
      */
     fun pickTerrain(
         screenPosition: Vec2,
@@ -1086,6 +1249,8 @@ object TerrainRaycaster {
         val planeY = terrainTransform.position.y
         if (kotlin.math.abs(ray.direction.y) <= 1e-5f) return null
 
+        // Intersect the view ray with the terrain's base Y plane. The resulting
+        // X/Z becomes the sample position used to query terrain height.
         val distance = (planeY - ray.origin.y) / ray.direction.y
         if (distance <= 0f) return null
 
@@ -1095,6 +1260,8 @@ object TerrainRaycaster {
         val localX = projectedLocalX.coerceIn(terrain.minLocalX, terrain.minLocalX + terrain.worldWidth)
         val localZ = projectedLocalZ.coerceIn(terrain.minLocalZ, terrain.minLocalZ + terrain.worldHeight)
 
+        // After finding the projected local position, lift the hit onto the real
+        // heightfield surface and compute the nearest discrete sample indices.
         val surfaceY = terrainTransform.position.y + terrain.sampleHeight(localX, localZ)
         val sampleX = (((localX - terrain.minLocalX) / terrain.vertexSpacing).roundToInt())
             .coerceIn(0, terrain.width - 1)
@@ -1115,6 +1282,9 @@ object TerrainRaycaster {
         )
     }
 
+    /**
+     * Builds a world-space camera ray from a screen-space cursor position.
+     */
     private fun rayFromScreen(
         screenPosition: Vec2,
         viewportSize: Vec2,
@@ -1123,6 +1293,8 @@ object TerrainRaycaster {
     ): CameraRay? {
         if (viewportSize.x <= 0f || viewportSize.y <= 0f) return null
 
+        // Convert the cursor into normalized device coordinates, then expand from
+        // camera forward using the view basis vectors and tangent of half-FOV.
         val aspect = viewportSize.x / viewportSize.y
         val ndcX = (screenPosition.x / viewportSize.x) * 2f - 1f
         val ndcY = 1f - (screenPosition.y / viewportSize.y) * 2f
@@ -1139,6 +1311,10 @@ object TerrainRaycaster {
         return CameraRay(cameraTransform.position.copy(), direction)
     }
 
+    /**
+     * Resolves the camera's forward direction from either its explicit look-at
+     * target or fallback Euler rotation.
+     */
     private fun forwardVector(
         cameraTransform: TransformComponent,
         camera: PerspectiveCameraComponent,
@@ -1159,21 +1335,28 @@ object TerrainRaycaster {
     }
 }
 
+/** Simple ray representation used only during terrain picking calculations. */
 private data class CameraRay(
     val origin: Vec3,
     val direction: Vec3,
 )
 
+/** Upper safety limit for editor-generated material preview textures. */
 private const val MAX_MATERIAL_PREVIEW_RESOLUTION = 8192
 
+/** Returns a shallow copy of the vector. */
 private fun Vec3.copy(): Vec3 = Vec3(x, y, z)
 
+/** Vector subtraction helper for local picking math. */
 private operator fun Vec3.minus(other: Vec3): Vec3 = Vec3(x - other.x, y - other.y, z - other.z)
 
+/** Vector addition helper for local picking math. */
 private operator fun Vec3.plus(other: Vec3): Vec3 = Vec3(x + other.x, y + other.y, z + other.z)
 
+/** Scalar multiply helper for ray marching and basis-vector math. */
 private operator fun Vec3.times(scale: Float): Vec3 = Vec3(x * scale, y * scale, z * scale)
 
+/** Computes the cross product used to derive camera right/up basis vectors. */
 private fun cross(a: Vec3, b: Vec3): Vec3 =
     Vec3(
         x = a.y * b.z - a.z * b.y,
@@ -1181,12 +1364,14 @@ private fun cross(a: Vec3, b: Vec3): Vec3 =
         z = a.x * b.y - a.y * b.x,
     )
 
+/** Returns the normalized direction of [vector], or zero when its length is tiny. */
 private fun normalize(vector: Vec3): Vec3 {
     val length = sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z)
     if (length <= 1e-6f) return Vec3.zero()
     return Vec3(vector.x / length, vector.y / length, vector.z / length)
 }
 
+/** Computes 3D Euclidean distance between two points. */
 private fun distance(a: Vec3, b: Vec3): Float {
     val dx = a.x - b.x
     val dy = a.y - b.y
@@ -1194,9 +1379,11 @@ private fun distance(a: Vec3, b: Vec3): Float {
     return sqrt(dx * dx + dy * dy + dz * dz)
 }
 
+/** Produces a compact terrain description for logs and status messages. */
 private fun TerrainData.describeTerrain(): String =
     "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${allLayers().joinToString { layer -> "${layer.id}:${layer.name}" }}]"
 
+/** Converts a blend mode enum into a user-facing label. */
 private fun formatBlendMode(mode: TerrainLayerBlendMode): String =
     when (mode) {
         TerrainLayerBlendMode.WeightedAverage -> "Weighted Average"
@@ -1204,6 +1391,7 @@ private fun formatBlendMode(mode: TerrainLayerBlendMode): String =
         TerrainLayerBlendMode.MaxWeight -> "Max Weight"
     }
 
+/** Converts a terrain preview mode enum into a user-facing label. */
 private fun formatPreviewMode(mode: TerrainPreviewMode): String =
     when (mode) {
         TerrainPreviewMode.LayerColor -> "Layer Color"
@@ -1212,6 +1400,10 @@ private fun formatPreviewMode(mode: TerrainPreviewMode): String =
         TerrainPreviewMode.SelectedLayerMask -> "Selected Layer Mask"
     }
 
+/**
+ * Applies a material assignment to a terrain layer and, when available, copies
+ * the material's default preview color and tiling into the layer metadata.
+ */
 internal fun assignTerrainLayerMaterial(
     terrainData: TerrainData,
     layerId: Int,

@@ -81,7 +81,7 @@ class TerrainEditorTerrainPanel(
         syncResolutionIndex()
         val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Terrain)
         applyWindowDefaults(layout)
-        val expanded = ImGui.begin(layout.title)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, TerrainEditorPanelIds.Terrain))
         eventLogger.observe(TerrainEditorPanelIds.Terrain, layout.title)
         if (!expanded) {
             ImGui.end()
@@ -153,7 +153,7 @@ class TerrainEditorBrushPanel(
     override fun draw() {
         val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Brush)
         applyWindowDefaults(layout)
-        val expanded = ImGui.begin(layout.title)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, TerrainEditorPanelIds.Brush))
         eventLogger.observe(TerrainEditorPanelIds.Brush, layout.title)
         if (!expanded) {
             ImGui.end()
@@ -225,7 +225,7 @@ class TerrainEditorLayersPanel(
         syncTextBuffers()
         val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Layers)
         applyWindowDefaults(layout)
-        val expanded = ImGui.begin(layout.title)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, TerrainEditorPanelIds.Layers))
         eventLogger.observe(TerrainEditorPanelIds.Layers, layout.title)
         if (!expanded) {
             ImGui.end()
@@ -432,7 +432,7 @@ class TerrainEditorControlsPanel(
     override fun draw() {
         val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Control)
         applyWindowDefaults(layout)
-        val expanded = ImGui.begin(layout.title)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, TerrainEditorPanelIds.Control))
         eventLogger.observe(TerrainEditorPanelIds.Control, layout.title)
         if (!expanded) {
             ImGui.end()
@@ -582,6 +582,8 @@ private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
     ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
     ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
 }
+
+private fun imguiWindowName(title: String, id: String): String = "$title###$id"
 
 private fun drawPersistenceControls(state: TerrainEditorState) {
     ImGui.text("Persistence")

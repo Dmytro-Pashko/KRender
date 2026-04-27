@@ -23,7 +23,7 @@ class ModelViewerPanel(
     override fun draw() {
         val layout = layoutConfig.panels.getValue(ModelViewerPanelIds.ModelList)
         applyWindowDefaults(layout)
-        val expanded = ImGui.begin(layout.title)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, ModelViewerPanelIds.ModelList))
         eventLogger.observe(ModelViewerPanelIds.ModelList, layout.title)
         if (!expanded) {
             ImGui.end()
@@ -61,3 +61,5 @@ class ModelViewerPanel(
         ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
     }
 }
+
+internal fun imguiWindowName(title: String, id: String): String = "$title###$id"

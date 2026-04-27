@@ -14,6 +14,13 @@ import kotlin.math.roundToInt
  *
  * This creates a simple diffuse texture for immediate paint feedback in the
  * Terrain Editor. It is not a runtime splat shader and it is not persisted.
+ *
+ * The baker walks a regular preview image grid, maps each output pixel back into
+ * terrain-local coordinates, samples every visible terrain layer at that point,
+ * and blends the resulting colors according to [TerrainLayerBlendMode].
+ *
+ * Texture files referenced by terrain materials are cached as [Pixmap] instances
+ * so repeated preview bakes do not need to reload image data from disk.
  */
 class TerrainMaterialPreviewBaker(
     private val materialLibrary: TerrainMaterialLibrary,
@@ -21,6 +28,13 @@ class TerrainMaterialPreviewBaker(
 ) {
     private val texturePixmapCache = linkedMapOf<String, Pixmap>()
 
+    /**
+     * Bakes a full-color terrain preview into a newly allocated pixmap.
+     *
+     * The output image spans the full terrain bounds. Each pixel samples the
+     * terrain at the corresponding normalized position and blends visible layers
+     * using the supplied [blendMode].
+     */
     fun bakePixmap(
         terrain: TerrainData,
         resolution: Int,
@@ -29,6 +43,8 @@ class TerrainMaterialPreviewBaker(
         require(resolution > 0) { "Preview resolution must be > 0" }
         val output = Pixmap(resolution, resolution, Pixmap.Format.RGBA8888)
         try {
+            // Map integer pixel coordinates into normalized 0..1 UV space so the
+            // outermost pixels land exactly on the terrain bounds.
             val denominator = (resolution - 1).coerceAtLeast(1).toFloat()
             for (y in 0 until resolution) {
                 val v = y / denominator
@@ -47,6 +63,12 @@ class TerrainMaterialPreviewBaker(
         }
     }
 
+    /**
+     * Bakes a grayscale mask showing the sampled weight of one terrain layer.
+     *
+     * White means full weight, black means zero weight. When no layer is
+     * selected, the preview falls back to a solid black image.
+     */
     fun bakeSelectedLayerMaskPixmap(
         terrain: TerrainData,
         selectedLayerId: Int?,
@@ -62,6 +84,8 @@ class TerrainMaterialPreviewBaker(
         }
 
         try {
+            // The selected layer mask reuses the same terrain-space mapping as
+            // the full preview, but writes weight into RGB for a neutral mask.
             for (y in 0 until resolution) {
                 val v = y / denominator
                 val localZ = terrain.minLocalZ + v * terrain.worldHeight
@@ -85,6 +109,9 @@ class TerrainMaterialPreviewBaker(
 
     /**
      * Bakes the editor preview and writes it as a PNG under LibGDX local storage.
+     *
+     * This is a convenience wrapper around [bakePixmap] and [writePng] that also
+     * guarantees the temporary pixmap is disposed after writing.
      */
     fun bakePng(
         terrain: TerrainData,
@@ -103,6 +130,9 @@ class TerrainMaterialPreviewBaker(
 
     /**
      * Writes an existing preview pixmap as a PNG under LibGDX local storage.
+     *
+     * The path is normalized to ensure a `.png` extension and parent folders are
+     * created before the image is written.
      */
     fun writePng(
         pixmap: Pixmap,
@@ -116,15 +146,26 @@ class TerrainMaterialPreviewBaker(
         return normalizedPath
     }
 
+    /**
+     * Releases every cached material pixmap and empties the texture cache.
+     */
     fun clearTextureCache() {
         texturePixmapCache.values.forEach(Pixmap::dispose)
         texturePixmapCache.clear()
     }
 
+    /**
+     * Disposes all baker-owned resources.
+     */
     fun dispose() {
         clearTextureCache()
     }
 
+    /**
+     * Returns lightweight statistics for the current material texture cache.
+     *
+     * Memory usage is approximate and assumes 4 bytes per pixel in RGBA8888 form.
+     */
     fun cacheStats(): TerrainPreviewTextureCacheStats =
         TerrainPreviewTextureCacheStats(
             textureCount = texturePixmapCache.size,
@@ -133,6 +174,10 @@ class TerrainMaterialPreviewBaker(
             },
         )
 
+    /**
+     * Samples every visible layer at one terrain location and blends the result
+     * into a single preview color.
+     */
     private fun blendPreviewColor(
         terrain: TerrainData,
         u: Float,
@@ -141,6 +186,8 @@ class TerrainMaterialPreviewBaker(
         localZ: Float,
         blendMode: TerrainLayerBlendMode,
     ): TerrainLayerColorDescriptor {
+        // Preview layers are gathered as color/weight pairs first, then blended
+        // by the same logical mode selected in the editor.
         val samples = terrain.allLayers()
             .filter { it.visible }
             .map { layer ->
@@ -153,6 +200,12 @@ class TerrainMaterialPreviewBaker(
         return TerrainMaterialPreviewColorBlender.blend(samples, blendMode, BASE_FALLBACK_COLOR)
     }
 
+    /**
+     * Resolves the preview color for one terrain layer at normalized coordinates.
+     *
+     * If the material or its texture cannot be used, the code falls back to the
+     * layer or material fallback color instead of failing the whole bake.
+     */
     private fun sampleLayerTextureColor(
         layer: TerrainLayer,
         u: Float,
@@ -160,11 +213,18 @@ class TerrainMaterialPreviewBaker(
     ): TerrainLayerColorDescriptor {
         val material = materialLibrary.find(layer.materialId) ?: return layer.color
         val source = loadMaterialPixmap(material) ?: return fallbackColor(material)
+        // Tiling is applied in UV space, and fract() wraps the coordinates so the
+        // material repeats seamlessly across the terrain.
         val tiledU = fract(u * layer.tiling)
         val tiledV = fract(v * layer.tiling)
         return samplePixmapNearest(source, tiledU, tiledV)
     }
 
+    /**
+     * Loads and caches the pixmap for a terrain material's albedo texture.
+     *
+     * Returns `null` when the material has no texture path or loading fails.
+     */
     private fun loadMaterialPixmap(
         material: TerrainMaterialDescriptor,
     ): Pixmap? {
@@ -184,11 +244,16 @@ class TerrainMaterialPreviewBaker(
         return pixmap
     }
 
+    /**
+     * Samples a pixmap using nearest-neighbor lookup in normalized UV space.
+     */
     private fun samplePixmapNearest(
         pixmap: Pixmap,
         u: Float,
         v: Float,
     ): TerrainLayerColorDescriptor {
+        // UVs are clamped to protect against tiny floating-point overshoot, then
+        // converted into integer texel coordinates.
         val x = (u.coerceIn(0f, 1f) * (pixmap.width - 1).coerceAtLeast(0)).roundToInt()
             .coerceIn(0, pixmap.width - 1)
         val y = (v.coerceIn(0f, 1f) * (pixmap.height - 1).coerceAtLeast(0)).roundToInt()
@@ -202,14 +267,17 @@ class TerrainMaterialPreviewBaker(
         )
     }
 
+    /** Returns the baked preview fallback color defined by the material itself. */
     private fun fallbackColor(material: TerrainMaterialDescriptor): TerrainLayerColorDescriptor =
         material.fallbackColor
 
+    /** Ensures preview export paths are non-empty and end with `.png`. */
     private fun normalizePngPath(filePath: String): String {
         val trimmed = filePath.trim().takeIf(String::isNotEmpty) ?: DEFAULT_PREVIEW_EXPORT_PATH
         return if (trimmed.endsWith(".png", ignoreCase = true)) trimmed else "$trimmed.png"
     }
 
+    /** Packs floating-point RGBA channels into LibGDX RGBA8888 integer format. */
     private fun toIntRgba8888(color: TerrainLayerColorDescriptor): Int {
         val r = (color.r.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
         val g = (color.g.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
@@ -218,6 +286,7 @@ class TerrainMaterialPreviewBaker(
         return (r shl 24) or (g shl 16) or (b shl 8) or a
     }
 
+    /** Returns the fractional part of a value, used for repeating tiled UVs. */
     private fun fract(value: Float): Float = value - floor(value)
 
     private companion object {
@@ -227,18 +296,41 @@ class TerrainMaterialPreviewBaker(
     }
 }
 
+/**
+ * Summary of the preview baker's in-memory source texture cache.
+ */
 data class TerrainPreviewTextureCacheStats(
+    /** Number of distinct texture paths currently cached as pixmaps. */
     val textureCount: Int,
+
+    /** Approximate total cache size in bytes assuming RGBA8888 storage. */
     val approximateMemoryBytes: Long,
 )
 
+/**
+ * One color/weight pair passed into preview color blending.
+ */
 internal data class TerrainMaterialPreviewLayerSample(
+    /** Sampled layer color after texture lookup or fallback resolution. */
     val color: TerrainLayerColorDescriptor,
+
+    /** Layer influence at the current terrain sample position. */
     val weight: Float,
+
+    /** Whether the layer should participate in preview blending. */
     val visible: Boolean = true,
 )
 
+/**
+ * CPU-side preview color blender used by [TerrainMaterialPreviewBaker].
+ *
+ * The blender mirrors the editor's terrain preview blend modes, but operates on
+ * simple per-layer color samples instead of GPU shading data.
+ */
 internal object TerrainMaterialPreviewColorBlender {
+    /**
+     * Blends the provided layer samples according to the selected blend mode.
+     */
     fun blend(
         samples: List<TerrainMaterialPreviewLayerSample>,
         blendMode: TerrainLayerBlendMode,
@@ -252,6 +344,9 @@ internal object TerrainMaterialPreviewColorBlender {
         }
     }
 
+    /**
+     * Computes a normalized weighted average of all contributing layer colors.
+     */
     private fun weightedAverageColor(
         samples: List<TerrainMaterialPreviewLayerSample>,
         baseFallbackColor: TerrainLayerColorDescriptor,
@@ -262,6 +357,7 @@ internal object TerrainMaterialPreviewColorBlender {
         var b = 0f
         var a = 0f
         samples.forEach { sample ->
+            // Clamp weights for safety and ignore layers with no contribution.
             val weight = sample.weight.coerceIn(0f, 1f)
             if (weight <= 0f) return@forEach
             r += sample.color.r * weight
@@ -274,12 +370,16 @@ internal object TerrainMaterialPreviewColorBlender {
         return TerrainLayerColorDescriptor(r / totalWeight, g / totalWeight, b / totalWeight, a / totalWeight)
     }
 
+    /**
+     * Applies layers in order using each weight as a simple alpha toward the next color.
+     */
     private fun orderedAlphaColor(
         samples: List<TerrainMaterialPreviewLayerSample>,
         baseFallbackColor: TerrainLayerColorDescriptor,
     ): TerrainLayerColorDescriptor {
         var result = baseFallbackColor
         samples.forEach { sample ->
+            // Each layer progressively pulls the result toward its own color.
             val weight = sample.weight.coerceIn(0f, 1f)
             if (weight <= 0f) return@forEach
             result = lerp(result, sample.color, weight)
@@ -287,6 +387,9 @@ internal object TerrainMaterialPreviewColorBlender {
         return result
     }
 
+    /**
+     * Chooses the color of the single layer with the highest sampled weight.
+     */
     private fun maxWeightColor(
         samples: List<TerrainMaterialPreviewLayerSample>,
         baseFallbackColor: TerrainLayerColorDescriptor,
@@ -303,6 +406,7 @@ internal object TerrainMaterialPreviewColorBlender {
         return bestSample?.color ?: baseFallbackColor
     }
 
+    /** Linearly interpolates between two colors by factor [t]. */
     private fun lerp(
         from: TerrainLayerColorDescriptor,
         to: TerrainLayerColorDescriptor,

@@ -22,7 +22,7 @@ class ModelViewerStatsPanel(
     override fun draw() {
         val layout = layoutConfig.panels.getValue(ModelViewerPanelIds.ModelInfo)
         applyWindowDefaults(layout)
-        val expanded = ImGui.begin(layout.title)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, ModelViewerPanelIds.ModelInfo))
         eventLogger.observe(ModelViewerPanelIds.ModelInfo, layout.title)
         if (!expanded) {
             ImGui.end()
