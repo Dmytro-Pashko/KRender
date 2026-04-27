@@ -179,22 +179,6 @@ interface ProfilerService {
 }
 
 /**
- * UI-facing visibility state for optional debug overlay windows.
- */
-interface DebugOverlayState {
-    /** Controls whether statistics panels are shown. */
-    var statsVisible: Boolean
-    /** Controls whether recent logs are shown. */
-    var logsVisible: Boolean
-
-    /** Toggles log visibility. */
-    fun toggleLogs()
-
-    /** Toggles statistics visibility. */
-    fun toggleStats()
-}
-
-/**
  * Default in-memory structured log service used by the engine runtime.
  */
 class EngineLogService(
@@ -338,23 +322,5 @@ class FrameProfilerService : ProfilerService {
         }
         timings += PhaseTiming(name, elapsed / 1_000_000f)
         return result
-    }
-}
-
-/**
- * Default mutable overlay visibility state used by backend debug UI.
- */
-class DefaultDebugOverlayState(
-    override var statsVisible: Boolean = true,
-    override var logsVisible: Boolean = true,
-) : DebugOverlayState {
-    /** Toggles log visibility. */
-    override fun toggleLogs() {
-        logsVisible = !logsVisible
-    }
-
-    /** Toggles statistics visibility. */
-    override fun toggleStats() {
-        statsVisible = !statsVisible
     }
 }

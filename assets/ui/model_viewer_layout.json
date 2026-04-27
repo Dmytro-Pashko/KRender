@@ -21,20 +21,6 @@
       "width": 320,
       "height": 220
     },
-    "sceneStatistics": {
-      "title": "Scene Statistics",
-      "x": 15,
-      "y": 15,
-      "width": 320,
-      "height": 275
-    },
-    "logs": {
-      "title": "Logs",
-      "x": 15,
-      "y": 850,
-      "width": 1050,
-      "height": 200
-    },
     "loading": {
       "title": "Loading",
       "x": 720,

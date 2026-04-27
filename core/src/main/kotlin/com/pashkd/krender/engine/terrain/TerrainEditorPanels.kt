@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.terrain
 
+import com.pashkd.krender.engine.api.ProfilerService
+import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
@@ -18,6 +20,7 @@ import java.nio.charset.StandardCharsets
  * Defines the stable JSON ids used by the Terrain Editor ImGui panels.
  */
 object TerrainEditorPanelIds {
+    const val Statistics = "sceneStatistics"
     const val Terrain = "terrain"
     const val Brush = "brush"
     const val Layers = "layers"
@@ -33,12 +36,19 @@ object TerrainEditorUiLayoutDefaults {
 
     val config = ImGuiLayoutConfig(
         panels = mapOf(
-            TerrainEditorPanelIds.Terrain to ImGuiPanelLayout(
-                title = "Terrain",
+            TerrainEditorPanelIds.Statistics to ImGuiPanelLayout(
+                title = "Scene Statistics",
                 x = 16f,
                 y = 16f,
                 width = 320f,
-                height = 520f,
+                height = 360f,
+            ),
+            TerrainEditorPanelIds.Terrain to ImGuiPanelLayout(
+                title = "Terrain",
+                x = 16f,
+                y = 392f,
+                width = 320f,
+                height = 500f,
             ),
             TerrainEditorPanelIds.Brush to ImGuiPanelLayout(
                 title = "Brush",
@@ -70,6 +80,51 @@ object TerrainEditorUiLayoutDefaults {
             ),
         ),
     )
+}
+
+/**
+ * Presents runtime statistics and profiler timings as a regular scene panel.
+ */
+class TerrainEditorStatisticsPanel(
+    private val runtimeStats: RuntimeStatsService,
+    private val profiler: ProfilerService,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    /**
+     * Draws the scene statistics window using the configured default layout.
+     */
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Statistics)
+        applyWindowDefaults(layout)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, TerrainEditorPanelIds.Statistics))
+        eventLogger.observe(TerrainEditorPanelIds.Statistics, layout.title)
+        if (!expanded) {
+            ImGui.end()
+            return
+        }
+
+        runtimeStats.metrics.forEach { metric ->
+            ImGui.text("${metric.label}: ${metric.value}")
+        }
+
+        runtimeStats.lastCompletedFrame?.let { frame ->
+            ImGui.separator()
+            ImGui.text("Frame timing")
+            ImGui.text("Delta: ${"%.2f".format(frame.deltaSeconds * 1000f)} ms")
+            ImGui.text("Fixed updates: ${frame.fixedUpdates}")
+        }
+
+        profiler.lastCompletedFrame?.timings?.takeIf(List<*>::isNotEmpty)?.let { timings ->
+            ImGui.separator()
+            ImGui.text("Profiler")
+            timings.forEach { timing ->
+                ImGui.text("${timing.name}: ${"%.2f".format(timing.millis)} ms")
+            }
+        }
+
+        ImGui.end()
+    }
 }
 
 /**

@@ -39,13 +39,11 @@ import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Axis
-import com.pashkd.krender.engine.api.DebugOverlayState
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.DrawWorldGrid
-import com.pashkd.krender.engine.api.DefaultDebugOverlayState
 import com.pashkd.krender.engine.api.EngineLogService
 import com.pashkd.krender.engine.api.EngineBackend
 import com.pashkd.krender.engine.api.EngineRuntime
@@ -137,12 +135,11 @@ class LibGdxBackend : EngineBackend {
         service.addSink(FileLogSink())
     }
     override val profiler: ProfilerService = FrameProfilerService()
-    override val debugOverlay: DebugOverlayState = DefaultDebugOverlayState()
     override val logger: Logger = logs
     override val input: GdxInputService = GdxInputService().also {
         Gdx.input.inputProcessor = it
     }
-    override val ui: UiService = GdxImGuiService(input, logs, runtimeStats, profiler, debugOverlay, logger)
+    override val ui: UiService = GdxImGuiService(input, runtimeStats)
     override val assets: GdxAssetService = GdxAssetService()
     override val tasks: TaskService = GdxTaskService()
     override val renderer: Renderer = GdxRenderer3D(assets, ui)

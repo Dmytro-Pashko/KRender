@@ -35,19 +35,19 @@
       "width": 200,
       "height": 360
     },
-    "logs": {
-      "title": "Logs",
-      "x": 350,
-      "y": 1100,
-      "width": 1140,
-      "height": 170
-    },
     "runtimeLogs": {
       "title": "Runtime Logs",
       "x": 350,
       "y": 5,
       "width": 1140,
       "height": 1090
+    },
+    "sceneStatistics": {
+      "title": "Scene Statistics",
+      "x": 5,
+      "y": 5,
+      "width": 200,
+      "height": 360
     }
   }
 }

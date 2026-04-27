@@ -31,6 +31,10 @@ interface EngineContext {
     val logger: Logger
     /** Shared structured log history and sinks. */
     val logs: LogService
+    /** Shared runtime statistics. */
+    val runtimeStats: RuntimeStatsService
+    /** Shared frame profiler snapshots. */
+    val profiler: ProfilerService
     /** Shared async task service. */
     val tasks: TaskService
 
@@ -58,8 +62,6 @@ interface EngineBackend {
     val runtimeStats: RuntimeStatsService
     /** Backend profiler implementation. */
     val profiler: ProfilerService
-    /** Backend debug overlay visibility state. */
-    val debugOverlay: DebugOverlayState
     /** Backend task implementation. */
     val tasks: TaskService
     /** Backend renderer implementation. */
@@ -88,10 +90,6 @@ class GameLoop(
         backend.profiler.beginFrame(backend.runtimeStats.frame)
         backend.input.beginFrame()
         val inputSnapshot = backend.input.snapshot()
-        if (!inputSnapshot.uiCapturesKeyboard && inputSnapshot.wasPressed(Key.Backtick)) {
-            backend.debugOverlay.toggleLogs()
-        }
-
         backend.profiler.measure("tasks.flush") {
             backend.tasks.flushMainThreadQueue()
         }
@@ -206,6 +204,10 @@ class EngineRuntime(
     override val logger: Logger = backend.logger
     /** Shared log service exposed to scenes. */
     override val logs: LogService = backend.logs
+    /** Shared runtime statistics exposed to scenes. */
+    override val runtimeStats: RuntimeStatsService = backend.runtimeStats
+    /** Shared profiler snapshots exposed to scenes. */
+    override val profiler: ProfilerService = backend.profiler
     /** Shared task service exposed to scenes. */
     override val tasks: TaskService = backend.tasks
 

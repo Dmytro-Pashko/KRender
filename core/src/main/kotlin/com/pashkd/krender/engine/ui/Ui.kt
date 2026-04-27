@@ -30,9 +30,6 @@ interface UiContext {
     /** Submits the prepared UI draw data to the active renderer. */
     fun render()
 
-    /** Applies the shared debug window layout used by the current scene. */
-    fun setDebugWindowLayout(layoutConfig: ImGuiLayoutConfig)
-
     /** Informs the UI backend about viewport size changes. */
     fun resize(width: Int, height: Int)
 

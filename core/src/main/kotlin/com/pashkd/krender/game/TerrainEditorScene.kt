@@ -19,6 +19,7 @@ import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainEditorBrushPanel
 import com.pashkd.krender.engine.terrain.TerrainEditorControlsPanel
 import com.pashkd.krender.engine.terrain.TerrainEditorLayersPanel
+import com.pashkd.krender.engine.terrain.TerrainEditorStatisticsPanel
 import com.pashkd.krender.engine.terrain.TerrainEditorTerrainPanel
 import com.pashkd.krender.engine.terrain.TerrainEditorUiLayoutDefaults
 import com.pashkd.krender.engine.terrain.TerrainGenerator
@@ -74,7 +75,6 @@ class TerrainEditorScene(
             assetPath = TerrainEditorUiLayoutDefaults.assetPath,
             fallback = TerrainEditorUiLayoutDefaults.config,
         ).load(engine.logger)
-        engine.ui.setDebugWindowLayout(layoutConfig)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "TerrainEditorUi")
         editorState = TerrainEditorState(
             generators = terrainGenerators.map(::toGeneratorOption),
@@ -168,6 +168,7 @@ class TerrainEditorScene(
         panelEventLogger: ImGuiWindowEventLogger,
     ): UiSystem =
         UiSystem(engine.ui).also { uiSystem ->
+            uiSystem.addPanel(TerrainEditorStatisticsPanel(engine.runtimeStats, engine.profiler, layoutConfig, panelEventLogger))
             uiSystem.addPanel(TerrainEditorTerrainPanel(editorState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(TerrainEditorBrushPanel(editorState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(TerrainEditorLayersPanel(editorState, layoutConfig, panelEventLogger))

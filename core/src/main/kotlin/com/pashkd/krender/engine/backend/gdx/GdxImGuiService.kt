@@ -3,22 +3,10 @@ package com.pashkd.krender.engine.backend.gdx
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
-import com.pashkd.krender.engine.api.DebugOverlayState
-import com.pashkd.krender.engine.api.LogEntry
-import com.pashkd.krender.engine.api.LogService
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.ProfilerService
 import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.ui.UiCaptureState
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
-import com.pashkd.krender.engine.ui.ImGuiPanelLayout
-import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.LogsPanelIds
 import com.pashkd.krender.engine.ui.UiService
-import glm_.vec2.Vec2
 import imgui.ConfigFlag
-import imgui.Cond
 import imgui.ImGui
 import imgui.Key
 import imgui.MouseButton
@@ -26,32 +14,17 @@ import imgui.MouseSource
 import imgui.div
 import imgui.classes.Context
 import imgui.impl.gl.ImplGL3
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 /**
- * Owns the shared ImGui context, backend rendering, and debug windows.
+ * Owns the shared ImGui context and backend renderer.
  */
 class GdxImGuiService(
     private val input: GdxInputService,
-    private val logs: LogService,
     private val runtimeStats: RuntimeStatsService,
-    private val profiler: ProfilerService,
-    private val overlayState: DebugOverlayState,
-    private val logger: Logger,
 ) : UiService {
-    private val debugPanelIds = listOf(DEBUG_PANEL_SCENE_STATISTICS, DEBUG_PANEL_LOGS)
     private val context = Context()
     private val renderer = withContext { ImplGL3() }
     private val inputBridge = GdxImGuiInputBridge(context)
-    private val defaultDebugWindowLayouts = ImGuiLayoutConfigLoader(
-        assetPath = DEBUG_LAYOUT_ASSET_PATH,
-        fallback = DEBUG_WINDOW_LAYOUTS,
-    ).load(logger)
-    private var debugWindowLayouts: ImGuiLayoutConfig = defaultDebugWindowLayouts
-    private val debugWindowEventLogger = ImGuiWindowEventLogger(logger, "ImGuiDebugUi")
-    private val pendingDebugLayoutInitialization = debugPanelIds.toMutableSet()
     private var frameOpen = false
     private var frameReady = false
 
@@ -99,7 +72,6 @@ class GdxImGuiService(
         if (!frameOpen) return
 
         withCurrentContext {
-            drawDebugWindows()
             ImGui.render()
             captureState = UiCaptureState(
                 mouse = ImGui.io.wantCaptureMouse,
@@ -120,19 +92,6 @@ class GdxImGuiService(
             ImGui.drawData?.let(renderer::renderDrawData)
         }
         frameReady = false
-    }
-
-    /**
-     * Replaces the shared debug window layout used by the current scene.
-     */
-    override fun setDebugWindowLayout(layoutConfig: ImGuiLayoutConfig) {
-        debugWindowLayouts = ImGuiLayoutConfig(
-            panels = DEBUG_WINDOW_LAYOUTS.panels
-                .filterKeys { it !in layoutConfig.panels }
-                .plus(layoutConfig.panels),
-        )
-        pendingDebugLayoutInitialization.clear()
-        pendingDebugLayoutInitialization += debugPanelIds
     }
 
     /**
@@ -178,97 +137,7 @@ class GdxImGuiService(
         }
     }
 
-    /**
-     * Draws the shared engine debug windows when their data is available.
-     */
-    private fun drawDebugWindows() {
-        val statLines = formatStatLines()
-        if (overlayState.statsVisible && statLines.isNotEmpty()) {
-            drawTextWindow(DEBUG_PANEL_SCENE_STATISTICS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_SCENE_STATISTICS), statLines)
-        }
-        val logLines = logs.recentEntries.map(::formatLogEntry)
-        if (
-            overlayState.logsVisible &&
-            logLines.isNotEmpty() &&
-            LogsPanelIds.RuntimeLogs !in debugWindowLayouts.panels
-        ) {
-            drawTextWindow(DEBUG_PANEL_LOGS, debugWindowLayouts.panels.getValue(DEBUG_PANEL_LOGS), logLines)
-        }
-    }
-
-    /**
-     * Formats the runtime and profiler snapshots currently shown in the statistics window.
-     */
-    private fun formatStatLines(): List<String> {
-        val lines = runtimeStats.metrics.map { metric -> "${metric.label}: ${metric.value}" }.toMutableList()
-        runtimeStats.lastCompletedFrame?.let { frame ->
-            lines += "Delta: ${"%.2f".format(frame.deltaSeconds * 1000f)} ms"
-            lines += "Fixed updates: ${frame.fixedUpdates}"
-        }
-        profiler.lastCompletedFrame?.timings?.forEach { timing ->
-            lines += "${timing.name}: ${"%.2f".format(timing.millis)} ms"
-        }
-        return lines
-    }
-
-    /**
-     * Draws one shared debug text window with configured default layout.
-     */
-    private fun drawTextWindow(panelId: String, layout: ImGuiPanelLayout, lines: List<String>) {
-        val initializationCondition = if (panelId in pendingDebugLayoutInitialization) {
-            Cond.Always
-        } else {
-            Cond.FirstUseEver
-        }
-        ImGui.setNextWindowPos(Vec2(layout.x, layout.y), initializationCondition, Vec2())
-        ImGui.setNextWindowSize(Vec2(layout.width, layout.height), initializationCondition)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, "debug_$panelId"))
-        pendingDebugLayoutInitialization -= panelId
-        debugWindowEventLogger.observe(panelId, layout.title)
-        if (!expanded) {
-            ImGui.end()
-            return
-        }
-
-        lines.forEach(ImGui::text)
-        ImGui.end()
-    }
-
-    /**
-     * Formats one structured log entry for the debug log window.
-     */
-    private fun formatLogEntry(entry: LogEntry): String =
-        "${TIMESTAMP_FORMATTER.format(Instant.ofEpochMilli(entry.timestampMillis).atZone(ZoneId.systemDefault()))} " +
-            "[${entry.level}] [${entry.tag}] ${entry.message}"
-
-    companion object {
-        private const val DEBUG_LAYOUT_ASSET_PATH = "ui/model_viewer_layout.json"
-        private const val DEBUG_PANEL_SCENE_STATISTICS = "sceneStatistics"
-        private const val DEBUG_PANEL_LOGS = "logs"
-        private val TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
-
-        private val DEBUG_WINDOW_LAYOUTS = ImGuiLayoutConfig(
-            panels = mapOf(
-                DEBUG_PANEL_SCENE_STATISTICS to ImGuiPanelLayout(
-                    title = "Scene Statistics",
-                    x = 16f,
-                    y = 16f,
-                    width = 320f,
-                    height = 240f,
-                ),
-                DEBUG_PANEL_LOGS to ImGuiPanelLayout(
-                    title = "Logs",
-                    x = 16f,
-                    y = 508f,
-                    width = 420f,
-                    height = 220f,
-                ),
-            ),
-        )
-    }
 }
-
-private fun imguiWindowName(title: String, id: String): String = "$title###$id"
 
 /**
  * Forwards backend input events into the active ImGui context.
