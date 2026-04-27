@@ -19,6 +19,8 @@ class TerrainMaterialPreviewBaker(
     private val materialLibrary: TerrainMaterialLibrary,
     private val logger: Logger? = null,
 ) {
+    private val texturePixmapCache = linkedMapOf<String, Pixmap>()
+
     fun bakePixmap(
         terrain: TerrainData,
         resolution: Int,
@@ -26,7 +28,6 @@ class TerrainMaterialPreviewBaker(
     ): Pixmap {
         require(resolution > 0) { "Preview resolution must be > 0" }
         val output = Pixmap(resolution, resolution, Pixmap.Format.RGBA8888)
-        val textureCache = mutableMapOf<String, Pixmap?>()
         try {
             val denominator = (resolution - 1).coerceAtLeast(1).toFloat()
             for (y in 0 until resolution) {
@@ -35,7 +36,7 @@ class TerrainMaterialPreviewBaker(
                 for (x in 0 until resolution) {
                     val u = x / denominator
                     val localX = terrain.minLocalX + u * terrain.worldWidth
-                    val color = blendPreviewColor(terrain, u, v, localX, localZ, blendMode, textureCache)
+                    val color = blendPreviewColor(terrain, u, v, localX, localZ, blendMode)
                     output.drawPixel(x, y, toIntRgba8888(color))
                 }
             }
@@ -43,8 +44,42 @@ class TerrainMaterialPreviewBaker(
         } catch (error: Exception) {
             output.dispose()
             throw error
-        } finally {
-            textureCache.values.filterNotNull().distinct().forEach(Pixmap::dispose)
+        }
+    }
+
+    fun bakeSelectedLayerMaskPixmap(
+        terrain: TerrainData,
+        selectedLayerId: Int?,
+        resolution: Int,
+    ): Pixmap {
+        require(resolution > 0) { "Preview resolution must be > 0" }
+        val output = Pixmap(resolution, resolution, Pixmap.Format.RGBA8888)
+        val denominator = (resolution - 1).coerceAtLeast(1).toFloat()
+        if (selectedLayerId == null) {
+            output.setColor(0f, 0f, 0f, 1f)
+            output.fill()
+            return output
+        }
+
+        try {
+            for (y in 0 until resolution) {
+                val v = y / denominator
+                val localZ = terrain.minLocalZ + v * terrain.worldHeight
+                for (x in 0 until resolution) {
+                    val u = x / denominator
+                    val localX = terrain.minLocalX + u * terrain.worldWidth
+                    val weight = terrain.sampleLayerWeight(selectedLayerId, localX, localZ).coerceIn(0f, 1f)
+                    output.drawPixel(
+                        x,
+                        y,
+                        toIntRgba8888(TerrainLayerColorDescriptor(weight, weight, weight, 1f)),
+                    )
+                }
+            }
+            return output
+        } catch (error: Exception) {
+            output.dispose()
+            throw error
         }
     }
 
@@ -81,6 +116,23 @@ class TerrainMaterialPreviewBaker(
         return normalizedPath
     }
 
+    fun clearTextureCache() {
+        texturePixmapCache.values.forEach(Pixmap::dispose)
+        texturePixmapCache.clear()
+    }
+
+    fun dispose() {
+        clearTextureCache()
+    }
+
+    fun cacheStats(): TerrainPreviewTextureCacheStats =
+        TerrainPreviewTextureCacheStats(
+            textureCount = texturePixmapCache.size,
+            approximateMemoryBytes = texturePixmapCache.values.sumOf { pixmap ->
+                pixmap.width.toLong() * pixmap.height.toLong() * 4L
+            },
+        )
+
     private fun blendPreviewColor(
         terrain: TerrainData,
         u: Float,
@@ -88,13 +140,12 @@ class TerrainMaterialPreviewBaker(
         localX: Float,
         localZ: Float,
         blendMode: TerrainLayerBlendMode,
-        textureCache: MutableMap<String, Pixmap?>,
     ): TerrainLayerColorDescriptor {
         val samples = terrain.allLayers()
             .filter { it.visible }
             .map { layer ->
                 TerrainMaterialPreviewLayerSample(
-                    color = sampleLayerTextureColor(layer, u, v, textureCache),
+                    color = sampleLayerTextureColor(layer, u, v),
                     weight = terrain.sampleLayerWeight(layer.id, localX, localZ),
                     visible = true,
                 )
@@ -106,10 +157,9 @@ class TerrainMaterialPreviewBaker(
         layer: TerrainLayer,
         u: Float,
         v: Float,
-        textureCache: MutableMap<String, Pixmap?>,
     ): TerrainLayerColorDescriptor {
         val material = materialLibrary.find(layer.materialId) ?: return layer.color
-        val source = loadMaterialPixmap(material, textureCache) ?: return fallbackColor(material)
+        val source = loadMaterialPixmap(material) ?: return fallbackColor(material)
         val tiledU = fract(u * layer.tiling)
         val tiledV = fract(v * layer.tiling)
         return samplePixmapNearest(source, tiledU, tiledV)
@@ -117,11 +167,10 @@ class TerrainMaterialPreviewBaker(
 
     private fun loadMaterialPixmap(
         material: TerrainMaterialDescriptor,
-        textureCache: MutableMap<String, Pixmap?>,
     ): Pixmap? {
         val path = material.albedoTexture.trim()
         if (path.isBlank()) return null
-        if (textureCache.containsKey(path)) return textureCache[path]
+        texturePixmapCache[path]?.let { return it }
 
         val pixmap = try {
             Pixmap(Gdx.files.internal(path))
@@ -129,7 +178,9 @@ class TerrainMaterialPreviewBaker(
             logger?.warn(TAG, error) { "Failed to load terrain preview texture '$path': ${error.message}" }
             null
         }
-        textureCache[path] = pixmap
+        if (pixmap != null) {
+            texturePixmapCache[path] = pixmap
+        }
         return pixmap
     }
 
@@ -175,6 +226,11 @@ class TerrainMaterialPreviewBaker(
         private val BASE_FALLBACK_COLOR = TerrainLayerColorDescriptor(0.38f, 0.48f, 0.30f, 1f)
     }
 }
+
+data class TerrainPreviewTextureCacheStats(
+    val textureCount: Int,
+    val approximateMemoryBytes: Long,
+)
 
 internal data class TerrainMaterialPreviewLayerSample(
     val color: TerrainLayerColorDescriptor,

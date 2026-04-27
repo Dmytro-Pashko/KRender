@@ -55,6 +55,7 @@ class TerrainEditorScene(
     private lateinit var terrainMaterialLibrary: TerrainMaterialLibrary
     private lateinit var editorState: TerrainEditorState
     private lateinit var editorSystem: TerrainEditorSystem
+    private lateinit var meshSyncSystem: TerrainMeshSyncSystem
 
     /**
      * Creates the terrain editor camera, lights, terrain entity, and terrain systems.
@@ -102,34 +103,47 @@ class TerrainEditorScene(
 
         world.systems.add(TerrainCameraControllerSystem(engine.input, editorState))
         world.systems.add(editorSystem)
-        world.systems.add(
-            TerrainMeshSyncSystem(
-                materialColorResolver = { materialId ->
-                    terrainMaterialLibrary.find(materialId)?.fallbackColor
-                },
-                blendModeProvider = { editorState.layerBlendMode },
-                layerColorPreviewProvider = { editorState.showLayerColorPreview },
-                previewModeProvider = { editorState.terrainPreviewMode },
-                materialPreviewResolutionProvider = { editorState.materialPreviewResolution },
-                materialPreviewDirtyProvider = { editorState.materialPreviewDirty },
-                materialPreviewStatusSink = { message ->
-                    editorState.materialPreviewMessage = message
-                    editorState.previewMessage = message
-                },
-                materialPreviewCleanSink = {
-                    editorState.materialPreviewDirty = false
-                },
-                materialPreviewExportRequestedProvider = { editorState.materialPreviewExportRequested },
-                materialPreviewExportPathProvider = { editorState.materialPreviewExportPath },
-                materialPreviewExportCompleteSink = { message ->
-                    editorState.materialPreviewExportRequested = false
-                    editorState.materialPreviewMessage = message
-                    editorState.previewMessage = message
-                },
-                materialLibrary = terrainMaterialLibrary,
-                logger = engine.logger,
-            ),
+        meshSyncSystem = TerrainMeshSyncSystem(
+            materialColorResolver = { materialId ->
+                terrainMaterialLibrary.find(materialId)?.fallbackColor
+            },
+            blendModeProvider = { editorState.layerBlendMode },
+            layerColorPreviewProvider = { editorState.showLayerColorPreview },
+            previewModeProvider = { editorState.terrainPreviewMode },
+            materialPreviewResolutionProvider = { editorState.materialPreviewResolution },
+            materialPreviewDirtyProvider = { editorState.materialPreviewDirty },
+            selectedLayerIdProvider = { editorState.selectedLayerId },
+            materialPreviewStatusSink = { message ->
+                editorState.materialPreviewMessage = message
+                editorState.previewMessage = message
+            },
+            previewBakeStatsSink = { elapsedMs, stats ->
+                editorState.lastPreviewBakeTimeMs = elapsedMs
+                val previousCount = editorState.previewBakeCount
+                editorState.averagePreviewBakeTimeMs =
+                    if (previousCount <= 0) {
+                        elapsedMs
+                    } else {
+                        ((editorState.averagePreviewBakeTimeMs * previousCount) + elapsedMs) / (previousCount + 1)
+                    }
+                editorState.previewBakeCount = previousCount + 1
+                editorState.previewTextureCacheSize = stats.textureCount
+                editorState.previewTextureCacheMemoryBytes = stats.approximateMemoryBytes
+            },
+            materialPreviewCleanSink = {
+                editorState.materialPreviewDirty = false
+            },
+            materialPreviewExportRequestedProvider = { editorState.materialPreviewExportRequested },
+            materialPreviewExportPathProvider = { editorState.materialPreviewExportPath },
+            materialPreviewExportCompleteSink = { message ->
+                editorState.materialPreviewExportRequested = false
+                editorState.materialPreviewMessage = message
+                editorState.previewMessage = message
+            },
+            materialLibrary = terrainMaterialLibrary,
+            logger = engine.logger,
         )
+        world.systems.add(meshSyncSystem)
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(TerrainRenderSystem())
 
@@ -155,6 +169,13 @@ class TerrainEditorScene(
         engine.debug.line("W/A/S/D - Pan camera")
         engine.debug.line("Ctrl/Shift - Up/Down")
         engine.debug.line("Q/E - Rotate camera")
+    }
+
+    override fun dispose() {
+        if (::meshSyncSystem.isInitialized) {
+            meshSyncSystem.dispose()
+        }
+        super.dispose()
     }
 
     /**

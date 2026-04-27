@@ -82,8 +82,20 @@ data class TerrainEditorState(
     var materialPreviewResolution: Int = 512,
     /** Queues a CPU material preview bake. */
     var materialPreviewDirty: Boolean = true,
+    /** Most recent CPU preview bake duration in milliseconds. */
+    var lastPreviewBakeTimeMs: Float = 0f,
+    /** Running average CPU preview bake duration in milliseconds. */
+    var averagePreviewBakeTimeMs: Float = 0f,
+    /** Total number of completed CPU preview bakes. */
+    var previewBakeCount: Int = 0,
+    /** Number of cached texture pixmaps retained for preview baking. */
+    var previewTextureCacheSize: Int = 0,
+    /** Approximate memory used by cached preview pixmaps. */
+    var previewTextureCacheMemoryBytes: Long = 0L,
     /** Last CPU material preview bake status shown in the editor UI. */
     var materialPreviewMessage: String = "",
+    /** Selected layer mask preview message shown in the editor UI. */
+    var selectedLayerMaskMessage: String = "",
     /** Queues writing the current baked material preview to a PNG file. */
     var materialPreviewExportRequested: Boolean = false,
     /** Queues a terrain mesh rebuild after preview settings changed. */

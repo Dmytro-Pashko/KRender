@@ -47,6 +47,7 @@ class TerrainEditorSystem(
     private val terrainPersistence = TerrainPersistence(logger)
     private var activePatchBuilder: TerrainEditPatchBuilder? = null
     private var activeLayerPaintSign: Float = 1f
+    private var lastObservedSelectedLayerId: Int? = null
 
     /**
      * Processes editor input and applies brush strokes to terrain data.
@@ -77,6 +78,7 @@ class TerrainEditorSystem(
         processPersistenceCommands(terrain, terrainRenderer)
         processHistoryCommands(terrain, snapshot)
         syncStateFromTerrain(terrain, terrainRenderer)
+        syncSelectedLayerPreviewState(terrain)
         syncHistoryState()
 
         val viewportFocus = state.inputFocus == TerrainEditorInputFocus.Viewport
@@ -141,7 +143,7 @@ class TerrainEditorSystem(
             )
 
             if (TerrainBrushApplier.apply(terrain.data, stroke, activePatchBuilder)) {
-                markTerrainDirty(terrain)
+                markPreviewDirty(terrain)
             }
         }
 
@@ -332,7 +334,7 @@ class TerrainEditorSystem(
         }
 
         if (changed) {
-            markTerrainDirty(terrain)
+            markPreviewDirty(terrain)
         }
     }
 
@@ -376,7 +378,7 @@ class TerrainEditorSystem(
     ) {
         if (state.previewSettingsChanged) {
             state.previewSettingsChanged = false
-            markTerrainDirty(terrain)
+            markPreviewDirty(terrain)
             state.previewMessage = "Preview: ${formatPreviewMode(state.terrainPreviewMode)} / ${formatBlendMode(state.layerBlendMode)}"
         }
 
@@ -411,7 +413,7 @@ class TerrainEditorSystem(
                 tiling = material?.defaultTiling ?: 1f,
             )
             state.selectedLayerId = layer.id
-            markTerrainDirty(terrain)
+            markPreviewDirty(terrain)
             state.layerMessage = "Added layer: ${layer.name}"
         }
 
@@ -424,7 +426,7 @@ class TerrainEditorSystem(
             if (selectedLayerId != null && terrain.data.removeLayer(selectedLayerId)) {
                 val remainingLayers = terrain.data.allLayers()
                 state.selectedLayerId = remainingLayers.getOrNull(selectedIndex.coerceIn(0, remainingLayers.lastIndex.coerceAtLeast(0)))?.id
-                markTerrainDirty(terrain)
+                markPreviewDirty(terrain)
                 state.layerMessage = "Removed layer"
             }
         }
@@ -436,7 +438,7 @@ class TerrainEditorSystem(
                 finishBrushStroke()
                 editHistory.clear()
                 if (terrain.data.moveLayerUp(selectedLayerId)) {
-                    markTerrainDirty(terrain)
+                    markPreviewDirty(terrain)
                     state.layerMessage = "Moved layer"
                 }
             }
@@ -449,7 +451,7 @@ class TerrainEditorSystem(
                 finishBrushStroke()
                 editHistory.clear()
                 if (terrain.data.moveLayerDown(selectedLayerId)) {
-                    markTerrainDirty(terrain)
+                    markPreviewDirty(terrain)
                     state.layerMessage = "Moved layer"
                 }
             }
@@ -509,7 +511,7 @@ class TerrainEditorSystem(
                 logger.debug(TAG) { "Applying loaded terrain '${descriptor.name}' (${loaded.describeTerrain()})" }
 
                 terrain.data = loaded
-                markTerrainDirty(terrain)
+                markPreviewDirty(terrain)
 
                 renderer.modelId = "terrain_${loaded.width}x${loaded.height}"
                 renderer.model = null
@@ -581,7 +583,7 @@ class TerrainEditorSystem(
 
         generator.generate(regenerated)
         terrain.data = regenerated
-        markTerrainDirty(terrain)
+        markPreviewDirty(terrain)
         renderer.modelId = "terrain_${regenerated.width}x${regenerated.height}"
         renderer.model = null
         renderer.vertexCount = 0
@@ -655,14 +657,25 @@ class TerrainEditorSystem(
         }
 
         if (changed) {
-            markTerrainDirty(terrain)
+            markPreviewDirty(terrain)
             state.layerMessage = "Updated layer"
         }
     }
 
-    private fun markTerrainDirty(terrain: TerrainComponent) {
+    private fun markPreviewDirty(terrain: TerrainComponent) {
         terrain.markDirty()
         state.materialPreviewDirty = true
+    }
+
+    private fun syncSelectedLayerPreviewState(terrain: TerrainComponent) {
+        val selected = state.layers.firstOrNull { it.id == state.selectedLayerId }
+        state.selectedLayerMaskMessage = selected?.let { "Layer #${it.index + 1}: ${it.name}" } ?: "No layer selected"
+        if (lastObservedSelectedLayerId != state.selectedLayerId) {
+            lastObservedSelectedLayerId = state.selectedLayerId
+            if (state.terrainPreviewMode == TerrainPreviewMode.SelectedLayerMask) {
+                markPreviewDirty(terrain)
+            }
+        }
     }
 
     private fun applyLayerMaterial(
@@ -737,7 +750,9 @@ class TerrainMeshSyncSystem(
     },
     private val materialPreviewResolutionProvider: () -> Int = { 512 },
     private val materialPreviewDirtyProvider: () -> Boolean = { false },
+    private val selectedLayerIdProvider: () -> Int? = { null },
     private val materialPreviewStatusSink: (String) -> Unit = {},
+    private val previewBakeStatsSink: (Float, TerrainPreviewTextureCacheStats) -> Unit = { _, _ -> },
     private val materialPreviewCleanSink: () -> Unit = {},
     private val materialPreviewExportRequestedProvider: () -> Boolean = { false },
     private val materialPreviewExportPathProvider: () -> String = { "terrains/material_preview.png" },
@@ -758,7 +773,7 @@ class TerrainMeshSyncSystem(
             val previewResolution = materialPreviewResolutionProvider().coerceIn(1, MAX_MATERIAL_PREVIEW_RESOLUTION)
             val exportRequested = materialPreviewExportRequestedProvider()
             val previewResolutionChanged =
-                previewMode == TerrainPreviewMode.MaterialTexture &&
+                previewMode.usesTexturePreview() &&
                     renderer.previewResolution != previewResolution
             if (
                 !terrain.dirty &&
@@ -777,10 +792,11 @@ class TerrainMeshSyncSystem(
                     TerrainPreviewMode.LayerColor -> { _: String? -> null }
                     TerrainPreviewMode.MaterialColor,
                     TerrainPreviewMode.MaterialTexture,
+                    TerrainPreviewMode.SelectedLayerMask,
                     -> materialColorResolver
                 },
                 blendMode = blendMode,
-                enableLayerColorPreview = previewMode != TerrainPreviewMode.MaterialTexture && layerColorPreviewProvider(),
+                enableLayerColorPreview = !previewMode.usesTexturePreview() && layerColorPreviewProvider(),
             )
             renderer.meshRevision += 1L
             renderer.model = com.pashkd.krender.engine.api.DynamicModel(
@@ -791,9 +807,16 @@ class TerrainMeshSyncSystem(
             renderer.vertexCount = mesh.vertexCount
             renderer.triangleCount = mesh.triangleCount
             renderer.previewMode = previewMode
-            syncMaterialPreviewTexture(renderer, terrain.data, previewMode, previewResolution, blendMode)
+            syncMaterialPreviewTexture(
+                renderer = renderer,
+                terrain = terrain.data,
+                previewMode = previewMode,
+                resolution = previewResolution,
+                blendMode = blendMode,
+                selectedLayerId = selectedLayerIdProvider(),
+            )
             if (exportRequested) {
-                exportMaterialPreviewPng(terrain.data, previewResolution, blendMode)
+                exportMaterialPreviewPng(terrain.data, previewMode, previewResolution, blendMode, selectedLayerIdProvider())
             }
             terrain.clearDirty()
 
@@ -807,8 +830,9 @@ class TerrainMeshSyncSystem(
         previewMode: TerrainPreviewMode,
         resolution: Int,
         blendMode: TerrainLayerBlendMode,
+        selectedLayerId: Int?,
     ) {
-        if (previewMode != TerrainPreviewMode.MaterialTexture) {
+        if (!previewMode.usesTexturePreview()) {
             renderer.replacePreviewDiffuseTexture(null)
             renderer.previewResolution = 0
             materialPreviewCleanSink()
@@ -825,7 +849,16 @@ class TerrainMeshSyncSystem(
         }
 
         try {
-            val pixmap = baker.bakePixmap(terrain, resolution, blendMode)
+            val startNs = java.lang.System.nanoTime()
+            val pixmap = when (previewMode) {
+                TerrainPreviewMode.MaterialTexture -> baker.bakePixmap(terrain, resolution, blendMode)
+                TerrainPreviewMode.SelectedLayerMask -> baker.bakeSelectedLayerMaskPixmap(terrain, selectedLayerId, resolution)
+                TerrainPreviewMode.LayerColor,
+                TerrainPreviewMode.MaterialColor,
+                -> error("Unsupported texture preview mode: $previewMode")
+            }
+            val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
+            previewBakeStatsSink(elapsedMs, baker.cacheStats())
             val texture = try {
                 Texture(pixmap).also {
                     it.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
@@ -836,7 +869,15 @@ class TerrainMeshSyncSystem(
             }
             renderer.replacePreviewDiffuseTexture(texture)
             renderer.previewResolution = resolution
-            materialPreviewStatusSink("Material preview baked: ${resolution}x$resolution")
+            materialPreviewStatusSink(
+                when (previewMode) {
+                    TerrainPreviewMode.MaterialTexture -> "Material preview baked: ${resolution}x$resolution"
+                    TerrainPreviewMode.SelectedLayerMask -> "Selected layer mask baked: ${resolution}x$resolution"
+                    TerrainPreviewMode.LayerColor,
+                    TerrainPreviewMode.MaterialColor,
+                    -> ""
+                },
+            )
         } catch (error: Exception) {
             renderer.replacePreviewDiffuseTexture(null)
             renderer.previewResolution = 0
@@ -848,26 +889,45 @@ class TerrainMeshSyncSystem(
 
     private fun exportMaterialPreviewPng(
         terrain: TerrainData,
+        previewMode: TerrainPreviewMode,
         resolution: Int,
         blendMode: TerrainLayerBlendMode,
+        selectedLayerId: Int?,
     ) {
         val baker = materialPreviewBaker
         if (baker == null) {
             materialPreviewExportCompleteSink("Material preview export failed: material library unavailable")
             return
         }
+        if (!previewMode.usesTexturePreview()) {
+            materialPreviewExportCompleteSink("Material preview export failed: select Material Texture or Selected Layer Mask")
+            return
+        }
 
         try {
-            val path = baker.bakePng(
-                terrain = terrain,
-                resolution = resolution,
-                blendMode = blendMode,
-                filePath = materialPreviewExportPathProvider(),
-            )
+            val startNs = java.lang.System.nanoTime()
+            val pixmap = when (previewMode) {
+                TerrainPreviewMode.MaterialTexture -> baker.bakePixmap(terrain, resolution, blendMode)
+                TerrainPreviewMode.SelectedLayerMask -> baker.bakeSelectedLayerMaskPixmap(terrain, selectedLayerId, resolution)
+                TerrainPreviewMode.LayerColor,
+                TerrainPreviewMode.MaterialColor,
+                -> error("Unsupported texture preview mode: $previewMode")
+            }
+            val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
+            previewBakeStatsSink(elapsedMs, baker.cacheStats())
+            val path = try {
+                baker.writePng(pixmap, materialPreviewExportPathProvider())
+            } finally {
+                pixmap.dispose()
+            }
             materialPreviewExportCompleteSink("Material preview exported: $path")
         } catch (error: Exception) {
             materialPreviewExportCompleteSink("Material preview export failed: ${error.message ?: error::class.simpleName}")
         }
+    }
+
+    fun dispose() {
+        materialPreviewBaker?.dispose()
     }
 }
 
@@ -883,10 +943,15 @@ class TerrainRenderSystem : System() {
             val transform = entity.get<TransformComponent>() ?: return@forEach
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
             val model = renderer.model ?: return@forEach
-            val material = if (renderer.previewMode == TerrainPreviewMode.MaterialTexture) {
+            val material = if (renderer.previewDiffuseTexture != null) {
                 renderer.material.copy(
                     baseColor = Color.white(),
                     diffuseTexture = renderer.previewDiffuseTexture,
+                )
+            } else if (model.mesh.colors != null) {
+                renderer.material.copy(
+                    baseColor = Color.white(),
+                    diffuseTexture = null,
                 )
             } else {
                 renderer.material.copy(diffuseTexture = null)
@@ -902,6 +967,9 @@ class TerrainRenderSystem : System() {
         }
     }
 }
+
+private fun TerrainPreviewMode.usesTexturePreview(): Boolean =
+    this == TerrainPreviewMode.MaterialTexture || this == TerrainPreviewMode.SelectedLayerMask
 
 /**
  * Camera controller for the terrain editor viewport.
@@ -1141,6 +1209,7 @@ private fun formatPreviewMode(mode: TerrainPreviewMode): String =
         TerrainPreviewMode.LayerColor -> "Layer Color"
         TerrainPreviewMode.MaterialColor -> "Material Color"
         TerrainPreviewMode.MaterialTexture -> "Material Texture"
+        TerrainPreviewMode.SelectedLayerMask -> "Selected Layer Mask"
     }
 
 internal fun assignTerrainLayerMaterial(

@@ -448,6 +448,7 @@ class TerrainEditorControlsPanel(
         previewModeButton("Layer Color", TerrainPreviewMode.LayerColor)
         previewModeButton("Material Color", TerrainPreviewMode.MaterialColor)
         previewModeButton("Material Texture", TerrainPreviewMode.MaterialTexture)
+        previewModeButton("Selected Layer Mask", TerrainPreviewMode.SelectedLayerMask)
         ImGui.text("[Blend Mode]")
         blendModeButton("Weighted Average", TerrainLayerBlendMode.WeightedAverage)
         blendModeButton("Ordered Alpha", TerrainLayerBlendMode.OrderedAlpha)
@@ -465,6 +466,10 @@ class TerrainEditorControlsPanel(
         ImGui.text("Preview mode: ${formatPreviewMode(state.terrainPreviewMode)}")
         ImGui.text("Blend mode: ${formatBlendMode(state.layerBlendMode)}")
         ImGui.text("Preview resolution: ${state.materialPreviewResolution}")
+        ImGui.text("Last bake: ${formatPreviewTiming(state.lastPreviewBakeTimeMs)}")
+        ImGui.text("Average bake: ${formatPreviewTiming(state.averagePreviewBakeTimeMs)} (${state.previewBakeCount})")
+        ImGui.text("Cache size: ${state.previewTextureCacheSize}")
+        ImGui.text("Cache memory: ${formatByteCount(state.previewTextureCacheMemoryBytes)}")
         ImGui.text("Export path: ${state.materialPreviewExportPath}")
         with(dsl) {
             button("Save preview PNG") {
@@ -473,6 +478,9 @@ class TerrainEditorControlsPanel(
         }
         if (state.terrainPreviewMode == TerrainPreviewMode.MaterialTexture) {
             ImGui.text("Material Texture preview is CPU baked editor preview")
+        }
+        if (state.terrainPreviewMode == TerrainPreviewMode.SelectedLayerMask) {
+            ImGui.text("Mask: ${state.selectedLayerMaskMessage.ifBlank { "No layer selected" }}")
         }
         if (state.materialPreviewMessage.isNotBlank()) {
             ImGui.text("Material preview status: ${state.materialPreviewMessage}")
@@ -543,7 +551,7 @@ class TerrainEditorControlsPanel(
     private fun previewModeButton(label: String, mode: TerrainPreviewMode) {
         if (ImGui.selectable("$label##terrain_preview_$mode", state.terrainPreviewMode == mode)) {
             state.terrainPreviewMode = mode
-            state.showLayerColorPreview = mode != TerrainPreviewMode.MaterialTexture
+            state.showLayerColorPreview = mode == TerrainPreviewMode.LayerColor || mode == TerrainPreviewMode.MaterialColor
             state.previewSettingsChanged = true
             state.materialPreviewDirty = true
         }
@@ -617,6 +625,7 @@ private fun formatPreviewMode(mode: TerrainPreviewMode): String =
         TerrainPreviewMode.LayerColor -> "Layer Color"
         TerrainPreviewMode.MaterialColor -> "Material Color"
         TerrainPreviewMode.MaterialTexture -> "Material Texture"
+        TerrainPreviewMode.SelectedLayerMask -> "Selected Layer Mask"
     }
 
 private fun formatInputFocus(focus: TerrainEditorInputFocus): String =
@@ -644,4 +653,14 @@ private fun formatHistoryMemory(bytes: Long): String =
         "$bytes B"
     } else {
         "%.1f KB".format(bytes / 1024f)
+    }
+
+private fun formatPreviewTiming(milliseconds: Float): String =
+    "%.2f ms".format(milliseconds)
+
+private fun formatByteCount(bytes: Long): String =
+    when {
+        bytes < 1024L -> "$bytes B"
+        bytes < 1024L * 1024L -> "%.1f KB".format(bytes / 1024f)
+        else -> "%.2f MB".format(bytes / (1024f * 1024f))
     }

@@ -14,6 +14,7 @@ enum class TerrainPreviewMode {
     LayerColor,
     MaterialColor,
     MaterialTexture,
+    SelectedLayerMask,
 }
 
 /**
