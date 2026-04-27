@@ -4,7 +4,6 @@ import com.badlogic.gdx.graphics.Texture
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawLine
-import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.Logger
@@ -901,16 +900,6 @@ class TerrainRenderSystem : System() {
                 ),
             )
         }
-    }
-}
-
-class TerrainViewportDebugRenderSystem(
-    private val state: TerrainEditorState,
-    private val axisLength: Float = 24f,
-) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
-        if (!state.showAxes) return
-        world.renderCommands.submit(DrawWorldAxes(length = axisLength))
     }
 }
 

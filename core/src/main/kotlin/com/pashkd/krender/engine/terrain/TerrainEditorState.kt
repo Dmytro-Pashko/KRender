@@ -68,8 +68,6 @@ data class TerrainEditorState(
     var terrainResolution: Int = 128,
     /** Requested vertex spacing for regenerated terrain. */
     var vertexSpacing: Float = 1f,
-    /** Controls whether the world axes helper is rendered. */
-    var showAxes: Boolean = false,
     /** Determines whether keyboard/mouse input is currently routed to ImGui or terrain tools. */
     var inputFocus: TerrainEditorInputFocus = TerrainEditorInputFocus.Ui,
     /** Controls whether terrain is rendered in wireframe mode. */

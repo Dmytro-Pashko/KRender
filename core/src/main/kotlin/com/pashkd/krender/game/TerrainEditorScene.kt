@@ -31,7 +31,6 @@ import com.pashkd.krender.engine.terrain.TerrainMeshSyncSystem
 import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.terrain.TerrainRendererComponent
-import com.pashkd.krender.engine.terrain.TerrainViewportDebugRenderSystem
 import com.pashkd.krender.engine.terrain.terrainMaterialPreviewExportPath
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
@@ -131,7 +130,6 @@ class TerrainEditorScene(
                 logger = engine.logger,
             ),
         )
-        world.systems.add(TerrainViewportDebugRenderSystem(editorState))
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(TerrainRenderSystem())
 

@@ -442,8 +442,6 @@ class TerrainEditorControlsPanel(
         ImGui.text("Viewport")
         ImGui.text("Input focus: ${formatInputFocus(state.inputFocus)}")
         ImGui.text("Tab toggles UI/viewport focus")
-        ImGui.checkbox("Draw X/Y/Z axis", state::showAxes)
-        ImGui.checkbox("Wireframe", state::wireframeEnabled)
 
         ImGui.separator()
         ImGui.text("[Preview Mode]")
