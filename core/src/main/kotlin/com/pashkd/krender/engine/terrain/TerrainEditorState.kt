@@ -41,6 +41,11 @@ data class TerrainMaterialOption(
     val defaultTiling: Float,
 )
 
+enum class TerrainEditorInputFocus {
+    Ui,
+    Viewport,
+}
+
 /**
  * Holds mutable state shared between Terrain Editor panels and systems.
  */
@@ -65,6 +70,8 @@ data class TerrainEditorState(
     var vertexSpacing: Float = 1f,
     /** Controls whether the world axes helper is rendered. */
     var showAxes: Boolean = false,
+    /** Determines whether keyboard/mouse input is currently routed to ImGui or terrain tools. */
+    var inputFocus: TerrainEditorInputFocus = TerrainEditorInputFocus.Ui,
     /** Controls whether terrain is rendered in wireframe mode. */
     var wireframeEnabled: Boolean = false,
     /** Controls whether terrain uses generated layer color preview vertex colors. */

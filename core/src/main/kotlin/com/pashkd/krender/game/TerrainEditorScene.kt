@@ -101,7 +101,7 @@ class TerrainEditorScene(
             terrainMaterialLibrary.all().associateBy { it.id },
         )
 
-        world.systems.add(TerrainCameraControllerSystem(engine.input))
+        world.systems.add(TerrainCameraControllerSystem(engine.input, editorState))
         world.systems.add(editorSystem)
         world.systems.add(
             TerrainMeshSyncSystem(
@@ -147,6 +147,7 @@ class TerrainEditorScene(
         super.update(dt)
 
         engine.debug.line("Use the Terrain ImGui panel for editor controls.")
+        engine.debug.line("Tab - Toggle UI/viewport input focus")
         engine.debug.line("Mouse drag - Apply brush")
         engine.debug.line("Mouse wheel - Brush radius")
         engine.debug.line("Shift + Mouse wheel - Brush strength")

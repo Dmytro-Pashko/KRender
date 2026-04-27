@@ -61,6 +61,15 @@ class TerrainEditorSystem(
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
         val terrainTransform = terrainEntity.get<TransformComponent>() ?: return
         val snapshot = input.snapshot()
+        if (snapshot.wasPressed(Key.Tab)) {
+            state.inputFocus = when (state.inputFocus) {
+                TerrainEditorInputFocus.Ui -> TerrainEditorInputFocus.Viewport
+                TerrainEditorInputFocus.Viewport -> TerrainEditorInputFocus.Ui
+            }
+            if (state.inputFocus == TerrainEditorInputFocus.Ui && brushActive) {
+                finishBrushStroke()
+            }
+        }
         if (state.selectedGeneratorId == null || state.selectedGeneratorId !in generatorsById) {
             state.selectedGeneratorId = generatorsById.keys.firstOrNull()
         }
@@ -71,13 +80,17 @@ class TerrainEditorSystem(
         syncStateFromTerrain(terrain, terrainRenderer)
         syncHistoryState()
 
-        if (!snapshot.uiCapturesKeyboard && snapshot.wasPressed(Key.G)) {
+        val viewportFocus = state.inputFocus == TerrainEditorInputFocus.Viewport
+        val keyboardAvailable = viewportFocus || !snapshot.uiCapturesKeyboard
+        val mouseAvailable = viewportFocus || !snapshot.uiCapturesMouse
+
+        if (keyboardAvailable && snapshot.wasPressed(Key.G)) {
             state.wireframeEnabled = !state.wireframeEnabled
         }
 
-        updateBrushBindings(snapshot)
+        updateBrushBindings(snapshot, keyboardAvailable, mouseAvailable)
         syncRendererStateFromControls(terrainRenderer)
-        hoveredHit = if (snapshot.uiCapturesMouse) {
+        hoveredHit = if (!mouseAvailable) {
             null
         } else {
             TerrainRaycaster.pickTerrain(
@@ -185,8 +198,12 @@ class TerrainEditorSystem(
     /**
      * Updates brush mode and scalar parameters from normalized input.
      */
-    private fun updateBrushBindings(snapshot: com.pashkd.krender.engine.api.InputSnapshot) {
-        if (!snapshot.uiCapturesKeyboard) {
+    private fun updateBrushBindings(
+        snapshot: com.pashkd.krender.engine.api.InputSnapshot,
+        keyboardAvailable: Boolean,
+        mouseAvailable: Boolean,
+    ) {
+        if (keyboardAvailable) {
             if (snapshot.wasPressed(Key.F1)) state.brushMode = TerrainBrushMode.Raise
             if (snapshot.wasPressed(Key.F2)) state.brushMode = TerrainBrushMode.Lower
             if (snapshot.wasPressed(Key.F3)) state.brushMode = TerrainBrushMode.Flatten
@@ -194,7 +211,7 @@ class TerrainEditorSystem(
             if (snapshot.wasPressed(Key.F5)) state.brushMode = TerrainBrushMode.PaintLayer
         }
 
-        if (!snapshot.uiCapturesMouse && snapshot.scrollDelta != 0f) {
+        if (mouseAvailable && snapshot.scrollDelta != 0f) {
             if (snapshot.isDown(Key.ShiftLeft)) {
                 state.brushStrength = (state.brushStrength - snapshot.scrollDelta).coerceIn(0.1f, 32f)
             } else {
@@ -297,7 +314,8 @@ class TerrainEditorSystem(
 
         val controlDown = snapshot.isDown(Key.ControlLeft) || snapshot.isDown(Key.ControlRight)
         val shiftDown = snapshot.isDown(Key.ShiftLeft) || snapshot.isDown(Key.ShiftRight)
-        if (!commandHandled && !snapshot.uiCapturesKeyboard && controlDown) {
+        val keyboardAvailable = state.inputFocus == TerrainEditorInputFocus.Viewport || !snapshot.uiCapturesKeyboard
+        if (!commandHandled && keyboardAvailable && controlDown) {
             val redoPressed = snapshot.wasPressed(Key.Y) ||
                 (shiftDown && snapshot.wasPressed(Key.Z))
             val undoPressed = !shiftDown && snapshot.wasPressed(Key.Z)
@@ -901,6 +919,7 @@ class TerrainViewportDebugRenderSystem(
  */
 class TerrainCameraControllerSystem(
     private val input: InputService,
+    private val state: TerrainEditorState? = null,
 ) : System() {
     /**
      * Updates terrain camera pan, vertical movement, and rotation around its target.
@@ -913,7 +932,7 @@ class TerrainCameraControllerSystem(
         val controller = cameraEntity.get<TerrainCameraControllerComponent>() ?: return
         val lookAt = camera.lookAt ?: Vec3.zero().also { camera.lookAt = it }
         val snapshot = input.snapshot()
-        if (snapshot.isCapturedByUI()) return
+        if (state?.inputFocus != TerrainEditorInputFocus.Viewport && snapshot.isCapturedByUI()) return
         val forward = horizontalForward(transform.position, lookAt)
         val right = Vec3(-forward.z, 0f, forward.x)
 
