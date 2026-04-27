@@ -216,7 +216,7 @@ object TerrainMeshBuilder {
         layer: TerrainLayer,
         materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
     ): TerrainLayerColorDescriptor =
-        materialColorResolver(layer.materialId) ?: layer.color
+        layer.color
 
     private fun lerp(
         from: TerrainLayerColorDescriptor,

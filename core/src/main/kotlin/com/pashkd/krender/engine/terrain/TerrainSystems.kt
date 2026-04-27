@@ -893,9 +893,10 @@ object TerrainRaycaster {
         if (distance <= 0f) return null
 
         val planeHit = ray.origin + ray.direction * distance
-        val localX = planeHit.x - terrainTransform.position.x
-        val localZ = planeHit.z - terrainTransform.position.z
-        if (!terrain.containsLocal(localX, localZ)) return null
+        val projectedLocalX = planeHit.x - terrainTransform.position.x
+        val projectedLocalZ = planeHit.z - terrainTransform.position.z
+        val localX = projectedLocalX.coerceIn(terrain.minLocalX, terrain.minLocalX + terrain.worldWidth)
+        val localZ = projectedLocalZ.coerceIn(terrain.minLocalZ, terrain.minLocalZ + terrain.worldHeight)
 
         val surfaceY = terrainTransform.position.y + terrain.sampleHeight(localX, localZ)
         val sampleX = (((localX - terrain.minLocalX) / terrain.vertexSpacing).roundToInt())
@@ -905,7 +906,11 @@ object TerrainRaycaster {
 
         // TODO: Replace the temporary plane projection with a real heightfield/triangle ray test.
         return TerrainHit(
-            worldPosition = Vec3(planeHit.x, surfaceY, planeHit.z),
+            worldPosition = Vec3(
+                terrainTransform.position.x + localX,
+                surfaceY,
+                terrainTransform.position.z + localZ,
+            ),
             localX = localX,
             localZ = localZ,
             sampleX = sampleX,

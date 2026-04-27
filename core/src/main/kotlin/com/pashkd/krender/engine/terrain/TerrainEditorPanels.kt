@@ -362,7 +362,7 @@ class TerrainEditorLayersPanel(
     }
 
     private fun formatLayerRow(layer: TerrainLayerOption): String =
-        "${layer.name}:${layer.materialId ?: "none"}|T:${formatTiling(layer.tiling)}|Color"
+        "#${layer.index + 1} ${layer.name}:RGBA(${formatColorChannel(layer.color.r)},${formatColorChannel(layer.color.g)},${formatColorChannel(layer.color.b)},${formatColorChannel(layer.color.a)})|T:${formatTiling(layer.tiling)}|Color"
 
     private fun drawMaterialSelector() {
         ImGui.text("Material")

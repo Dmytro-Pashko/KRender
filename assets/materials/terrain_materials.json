@@ -40,7 +40,7 @@
       "id": "terrain/stone",
       "name": "Stone",
       "albedoTexture": "textures/t_stone_01_s.png",
-      "fallbackColor": { "r": 0.42, "g": 0.42, "b": 0.40, "a": 1.0 },
+      "fallbackColor": { "r": 0.191, "g": 0.191, "b": 0.191, "a": 1.0 },
       "defaultTiling": 8.0
     }
   ]
