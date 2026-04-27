@@ -478,6 +478,12 @@ class TerrainEditorControlsPanel(
         ImGui.text("Preview mode: ${formatPreviewMode(state.terrainPreviewMode)}")
         ImGui.text("Blend mode: ${formatBlendMode(state.layerBlendMode)}")
         ImGui.text("Preview resolution: ${state.materialPreviewResolution}")
+        ImGui.text("Export path: ${state.materialPreviewExportPath}")
+        with(dsl) {
+            button("Save preview PNG") {
+                state.materialPreviewExportRequested = true
+            }
+        }
         if (state.terrainPreviewMode == TerrainPreviewMode.MaterialTexture) {
             ImGui.text("Material Texture preview is CPU baked editor preview")
         }

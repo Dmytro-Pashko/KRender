@@ -79,6 +79,8 @@ data class TerrainEditorState(
     var materialPreviewDirty: Boolean = true,
     /** Last CPU material preview bake status shown in the editor UI. */
     var materialPreviewMessage: String = "",
+    /** Queues writing the current baked material preview to a PNG file. */
+    var materialPreviewExportRequested: Boolean = false,
     /** Queues a terrain mesh rebuild after preview settings changed. */
     var previewSettingsChanged: Boolean = false,
     /** Last terrain preview status message shown in the control panel. */
@@ -137,6 +139,8 @@ data class TerrainEditorState(
     var cleanHistoryRevision: Long = 0L,
     /** Relative local file path used by terrain save/load. */
     var terrainFilePath: String = "terrains/terrain.kterrain.json",
+    /** Relative local PNG path used when exporting the baked material preview. */
+    var materialPreviewExportPath: String = terrainMaterialPreviewExportPath(terrainFilePath),
     /** Terrain asset display name written into terrain save files. */
     var terrainSaveName: String = "terrain",
     /** True when the configured terrain file currently exists on disk. */
@@ -187,4 +191,10 @@ data class TerrainEditorState(
      */
     val selectedGenerator: TerrainGeneratorOption?
         get() = generators.firstOrNull { it.id == selectedGeneratorId }
+}
+
+fun terrainMaterialPreviewExportPath(terrainFilePath: String): String {
+    val leaf = terrainFilePath.substringAfterLast('/').substringAfterLast('\\')
+    val terrainName = leaf.substringBeforeLast('.', leaf).trim().takeIf(String::isNotEmpty) ?: "terrain"
+    return "terrains/${terrainName}_preview.png"
 }

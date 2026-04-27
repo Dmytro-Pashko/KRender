@@ -2,6 +2,7 @@ package com.pashkd.krender.engine.terrain
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.PixmapIO
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.material.TerrainMaterialDescriptor
 import com.pashkd.krender.engine.material.TerrainMaterialLibrary
@@ -45,6 +46,39 @@ class TerrainMaterialPreviewBaker(
         } finally {
             textureCache.values.filterNotNull().distinct().forEach(Pixmap::dispose)
         }
+    }
+
+    /**
+     * Bakes the editor preview and writes it as a PNG under LibGDX local storage.
+     */
+    fun bakePng(
+        terrain: TerrainData,
+        resolution: Int,
+        blendMode: TerrainLayerBlendMode,
+        filePath: String,
+    ): String {
+        val normalizedPath = normalizePngPath(filePath)
+        val pixmap = bakePixmap(terrain, resolution, blendMode)
+        return try {
+            writePng(pixmap, normalizedPath)
+        } finally {
+            pixmap.dispose()
+        }
+    }
+
+    /**
+     * Writes an existing preview pixmap as a PNG under LibGDX local storage.
+     */
+    fun writePng(
+        pixmap: Pixmap,
+        filePath: String,
+    ): String {
+        val normalizedPath = normalizePngPath(filePath)
+        val file = Gdx.files.local(normalizedPath)
+        file.parent()?.mkdirs()
+        PixmapIO.writePNG(file, pixmap)
+        logger?.info(TAG) { "Saved terrain material preview PNG to '$normalizedPath'" }
+        return normalizedPath
     }
 
     private fun blendPreviewColor(
@@ -120,6 +154,11 @@ class TerrainMaterialPreviewBaker(
     private fun fallbackColor(material: TerrainMaterialDescriptor): TerrainLayerColorDescriptor =
         material.fallbackColor
 
+    private fun normalizePngPath(filePath: String): String {
+        val trimmed = filePath.trim().takeIf(String::isNotEmpty) ?: DEFAULT_PREVIEW_EXPORT_PATH
+        return if (trimmed.endsWith(".png", ignoreCase = true)) trimmed else "$trimmed.png"
+    }
+
     private fun toIntRgba8888(color: TerrainLayerColorDescriptor): Int {
         val r = (color.r.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
         val g = (color.g.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
@@ -132,6 +171,7 @@ class TerrainMaterialPreviewBaker(
 
     private companion object {
         private const val TAG = "TerrainMaterialPreviewBaker"
+        private const val DEFAULT_PREVIEW_EXPORT_PATH = "terrains/terrain_preview.png"
         private val BASE_FALLBACK_COLOR = TerrainLayerColorDescriptor(0.38f, 0.48f, 0.30f, 1f)
     }
 }

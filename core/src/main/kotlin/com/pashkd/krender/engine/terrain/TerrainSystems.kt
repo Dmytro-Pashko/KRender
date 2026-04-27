@@ -724,6 +724,9 @@ class TerrainMeshSyncSystem(
     private val materialPreviewDirtyProvider: () -> Boolean = { false },
     private val materialPreviewStatusSink: (String) -> Unit = {},
     private val materialPreviewCleanSink: () -> Unit = {},
+    private val materialPreviewExportRequestedProvider: () -> Boolean = { false },
+    private val materialPreviewExportPathProvider: () -> String = { "terrains/material_preview.png" },
+    private val materialPreviewExportCompleteSink: (String) -> Unit = {},
     materialLibrary: TerrainMaterialLibrary? = null,
     logger: Logger? = null,
 ) : System() {
@@ -738,12 +741,14 @@ class TerrainMeshSyncSystem(
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
             val previewMode = previewModeProvider()
             val previewResolution = materialPreviewResolutionProvider().coerceIn(1, MAX_MATERIAL_PREVIEW_RESOLUTION)
+            val exportRequested = materialPreviewExportRequestedProvider()
             val previewResolutionChanged =
                 previewMode == TerrainPreviewMode.MaterialTexture &&
                     renderer.previewResolution != previewResolution
             if (
                 !terrain.dirty &&
                 !materialPreviewDirtyProvider() &&
+                !exportRequested &&
                 renderer.previewMode == previewMode &&
                 !previewResolutionChanged
             ) {
@@ -772,6 +777,9 @@ class TerrainMeshSyncSystem(
             renderer.triangleCount = mesh.triangleCount
             renderer.previewMode = previewMode
             syncMaterialPreviewTexture(renderer, terrain.data, previewMode, previewResolution, blendMode)
+            if (exportRequested) {
+                exportMaterialPreviewPng(terrain.data, previewResolution, blendMode)
+            }
             terrain.clearDirty()
 
             // TODO: Replace the full rebuild with chunked/partial uploads once terrain chunks exist.
@@ -820,6 +828,30 @@ class TerrainMeshSyncSystem(
             materialPreviewStatusSink("Material preview failed: ${error.message ?: error::class.simpleName}")
         } finally {
             materialPreviewCleanSink()
+        }
+    }
+
+    private fun exportMaterialPreviewPng(
+        terrain: TerrainData,
+        resolution: Int,
+        blendMode: TerrainLayerBlendMode,
+    ) {
+        val baker = materialPreviewBaker
+        if (baker == null) {
+            materialPreviewExportCompleteSink("Material preview export failed: material library unavailable")
+            return
+        }
+
+        try {
+            val path = baker.bakePng(
+                terrain = terrain,
+                resolution = resolution,
+                blendMode = blendMode,
+                filePath = materialPreviewExportPathProvider(),
+            )
+            materialPreviewExportCompleteSink("Material preview exported: $path")
+        } catch (error: Exception) {
+            materialPreviewExportCompleteSink("Material preview export failed: ${error.message ?: error::class.simpleName}")
         }
     }
 }

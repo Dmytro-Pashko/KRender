@@ -32,6 +32,7 @@ import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.terrain.TerrainRendererComponent
 import com.pashkd.krender.engine.terrain.TerrainViewportDebugRenderSystem
+import com.pashkd.krender.engine.terrain.terrainMaterialPreviewExportPath
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
@@ -80,6 +81,7 @@ class TerrainEditorScene(
             terrainResolution = terrainResolution,
             vertexSpacing = vertexSpacing,
             terrainFilePath = terrainFilePath,
+            materialPreviewExportPath = terrainMaterialPreviewExportPath(terrainFilePath),
             terrainSaveName = terrainPersistence.fileNameFromPath(terrainFilePath),
             terrainMaterials = terrainMaterialLibrary.all().map { material ->
                 TerrainMaterialOption(
@@ -117,6 +119,13 @@ class TerrainEditorScene(
                 },
                 materialPreviewCleanSink = {
                     editorState.materialPreviewDirty = false
+                },
+                materialPreviewExportRequestedProvider = { editorState.materialPreviewExportRequested },
+                materialPreviewExportPathProvider = { editorState.materialPreviewExportPath },
+                materialPreviewExportCompleteSink = { message ->
+                    editorState.materialPreviewExportRequested = false
+                    editorState.materialPreviewMessage = message
+                    editorState.previewMessage = message
                 },
                 materialLibrary = terrainMaterialLibrary,
                 logger = engine.logger,
