@@ -19,6 +19,16 @@ data class AssetBrowserState(
     var activationRequestedAssetId: AssetId? = null,
     var selectedModelStatus: String = "No model selected.",
     var selectedModelInfo: ModelAssetInfo? = null,
+    var isScanning: Boolean = false,
+    var scanErrorCount: Int = 0,
+    var lastScanFinishedAtMillis: Long = 0L,
+    var showCreateDialog: Boolean = false,
+    var showRenameDialog: Boolean = false,
+    var showDeleteDialog: Boolean = false,
+    var createNameBuffer: String = "",
+    var renameBuffer: String = "",
+    var createType: AssetType = AssetType.Material,
+    var createCategory: AssetCategory = AssetCategory.Material,
 )
 
 enum class AssetBrowserViewMode {

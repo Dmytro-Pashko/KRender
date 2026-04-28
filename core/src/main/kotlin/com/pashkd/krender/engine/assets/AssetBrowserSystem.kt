@@ -5,29 +5,34 @@ import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
+import com.pashkd.krender.engine.api.TaskService
 
 /**
  * Keeps asset browser state synchronized with the registry and runtime asset service.
+ *
+ * Scans run on a background coroutine; results are applied on the main thread via [TaskService.postToMain].
  */
 class AssetBrowserSystem(
     private val registry: AssetRegistryService,
     private val assets: AssetService,
+    private val tasks: TaskService,
     private val logger: Logger,
     private val state: AssetBrowserState,
     private val onAssetActivated: (AssetDescriptor) -> Unit,
 ) : System() {
-    private var scanned = false
+    private var initialScanRequested = false
+    private var scanInFlight = false
     private var queuedModelPath: String? = null
 
     override fun update(world: SceneWorld, dt: Float) {
-        if (!scanned) {
-            scanned = true
-            scanRegistry()
+        if (!initialScanRequested) {
+            initialScanRequested = true
+            requestScan(reason = "initial")
         }
 
         if (state.refreshRequested) {
             state.refreshRequested = false
-            scanRegistry()
+            requestScan(reason = "refresh")
         }
 
         applyFilteringAndSorting()
@@ -35,22 +40,45 @@ class AssetBrowserSystem(
         handleActivationRequest()
     }
 
-    /**
-     * Returns the current selected asset descriptor, if any.
-     */
+    /** Returns the currently selected asset descriptor, if any. */
     fun selectedAsset(): AssetDescriptor? =
         state.selectedAssetId?.let(registry::findById)
 
-    private fun scanRegistry() {
-        try {
-            registry.scan()
-            state.assets = registry.all()
-            state.errorMessage = null
-            state.statusMessage = "Indexed ${state.assets.size} assets."
-        } catch (error: Exception) {
-            state.errorMessage = "Asset scan failed: ${error.message}"
-            logger.error(TAG, error) { "Asset scan failed: ${error.message}" }
+    private fun requestScan(reason: String) {
+        if (scanInFlight) {
+            logger.info(TAG) { "Scan already in flight, ignoring '$reason' trigger" }
+            return
         }
+        scanInFlight = true
+        state.isScanning = true
+        state.statusMessage = "Scanning assets ($reason)..."
+        tasks.launchBackground("asset-browser-scan") {
+            val snapshot = try {
+                registry.scanSnapshot()
+            } catch (error: Exception) {
+                logger.error(TAG, error) { "Background scan failed: ${error.message}" }
+                tasks.postToMain {
+                    scanInFlight = false
+                    state.isScanning = false
+                    state.errorMessage = "Asset scan failed: ${error.message}"
+                }
+                return@launchBackground
+            }
+            tasks.postToMain {
+                applyScanResult(snapshot)
+            }
+        }
+    }
+
+    private fun applyScanResult(snapshot: AssetRegistrySnapshot) {
+        registry.applySnapshot(snapshot)
+        state.assets = snapshot.assets
+        state.scanErrorCount = snapshot.errors.size
+        state.lastScanFinishedAtMillis = snapshot.scannedAtMillis
+        state.errorMessage = snapshot.errors.firstOrNull()?.let { "Scan error: ${it.path} (${it.message})" }
+        state.statusMessage = "Indexed ${snapshot.assets.size} assets in ${snapshot.durationMillis} ms."
+        state.isScanning = false
+        scanInFlight = false
     }
 
     private fun applyFilteringAndSorting() {
@@ -127,4 +155,3 @@ class AssetBrowserSystem(
         private const val TAG = "AssetBrowserSystem"
     }
 }
-

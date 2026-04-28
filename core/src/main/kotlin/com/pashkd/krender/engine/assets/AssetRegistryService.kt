@@ -6,35 +6,71 @@ import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 /**
+ * Immutable result of a registry scan, suitable for posting from a background thread.
+ */
+data class AssetRegistrySnapshot(
+    val assets: List<AssetDescriptor>,
+    val scannedAtMillis: Long,
+    val durationMillis: Long,
+    val errors: List<AssetRegistryError>,
+)
+
+/**
+ * Structured scan error.
+ */
+data class AssetRegistryError(
+    val path: String,
+    val message: String,
+)
+
+/**
  * Asset registry API used by editor browser systems.
+ *
+ * The scan is split into [scanSnapshot] (safe for background threads, returns an immutable snapshot)
+ * and [applySnapshot] (must run on the main thread, mutates the in-memory descriptor list).
  */
 interface AssetRegistryService {
-    fun scan()
-    fun all(): List<AssetDescriptor>
+    /** Current main-thread descriptor list. */
+    val assets: List<AssetDescriptor>
+
+    /** Performs filesystem scan. Safe to call from a background thread. */
+    fun scanSnapshot(): AssetRegistrySnapshot
+
+    /** Applies a snapshot to the in-memory state. Must be called on the main thread. */
+    fun applySnapshot(snapshot: AssetRegistrySnapshot)
+
     fun findById(id: AssetId): AssetDescriptor?
     fun findByPath(path: String): AssetDescriptor?
     fun byCategory(category: AssetCategory): List<AssetDescriptor>
-    fun refresh(path: String)
 }
 
 /**
- * Local filesystem registry that scans project asset roots and maintains .krmeta sidecars.
+ * Local filesystem registry that scans project asset roots and maintains `.krmeta` sidecars.
  */
 class LocalAssetRegistryService(
     private val logger: Logger,
+    private val importers: AssetImporterRegistry,
     private val baseDirectory: File = defaultBaseDirectory(),
     private val rootPaths: List<String> = DefaultRootPaths,
 ) : AssetRegistryService {
+    @Volatile
     private var descriptors: List<AssetDescriptor> = emptyList()
 
+    override val assets: List<AssetDescriptor>
+        get() = descriptors
+
     /**
-     * Scans configured roots, creates missing metadata, and updates the in-memory descriptor list.
+     * Scans configured roots, creates missing metadata, and returns an immutable snapshot.
+     *
+     * Pure IO — safe for background threads. Does not mutate registry state.
      */
-    override fun scan() {
+    override fun scanSnapshot(): AssetRegistrySnapshot {
+        val started = System.currentTimeMillis()
         logger.info(TAG) {
             "Asset scan started base='${baseDirectory.path}' roots=${rootPaths.joinToString(", ")}"
         }
         val scanned = mutableListOf<AssetDescriptor>()
+        val errors = mutableListOf<AssetRegistryError>()
         rootPaths.distinct().forEach { rootPath ->
             val root = File(baseDirectory, rootPath)
             if (!root.exists()) return@forEach
@@ -50,18 +86,32 @@ class LocalAssetRegistryService(
                     try {
                         scanned += describe(file)
                     } catch (error: Exception) {
-                        logger.warn(TAG, error) { "Failed to index asset '${file.path}': ${error.message}" }
+                        val rel = relativeAssetPath(file)
+                        logger.warn(TAG, error) { "Failed to index asset '$rel': ${error.message}" }
+                        errors += AssetRegistryError(rel, error.message ?: error.javaClass.simpleName)
                     }
                 }
         }
 
-        descriptors = scanned
+        val finalAssets = scanned
             .distinctBy(AssetDescriptor::path)
             .sortedWith(compareBy<AssetDescriptor> { it.category.sortOrder }.thenBy { it.name.lowercase() })
-        logger.info(TAG) { "Asset scan completed assets=${descriptors.size}" }
+        val finished = System.currentTimeMillis()
+        logger.info(TAG) {
+            "Asset scan completed assets=${finalAssets.size} errors=${errors.size} duration=${finished - started}ms"
+        }
+        return AssetRegistrySnapshot(
+            assets = finalAssets,
+            scannedAtMillis = finished,
+            durationMillis = finished - started,
+            errors = errors,
+        )
     }
 
-    override fun all(): List<AssetDescriptor> = descriptors
+    override fun applySnapshot(snapshot: AssetRegistrySnapshot) {
+        descriptors = snapshot.assets
+        logger.info(TAG) { "Snapshot applied assets=${snapshot.assets.size} errors=${snapshot.errors.size}" }
+    }
 
     override fun findById(id: AssetId): AssetDescriptor? =
         descriptors.firstOrNull { it.id == id }
@@ -74,25 +124,29 @@ class LocalAssetRegistryService(
     override fun byCategory(category: AssetCategory): List<AssetDescriptor> =
         descriptors.filter { it.category == category }
 
-    /**
-     * Refreshes registry contents after an asset path changes.
-     */
-    override fun refresh(path: String) {
-        logger.info(TAG) { "Refreshing asset registry for '${normalizePath(path)}'" }
-        scan()
-    }
-
     private fun describe(file: File): AssetDescriptor {
         val path = relativeAssetPath(file)
-        val detection = AssetTypeDetector.detect(path)
-        val metadata = readOrCreateMetadata(file, detection)
+        val importer = importers.resolve(path)
+        val detection = if (importer != null) {
+            AssetTypeDetection(importer.outputType, importer.outputCategory)
+        } else {
+            AssetTypeDetector.detect(path)
+        }
+        val document = readOrCreateMetadata(file, detection, importer)
         val extension = file.extension.lowercase()
-        val displayName = metadata.displayName.takeIf(String::isNotBlank) ?: file.nameWithoutExtension
-        val type = metadata.type.takeUnless { it == AssetType.Unknown } ?: detection.type
-        val category = metadata.category.takeUnless { it == AssetCategory.Unknown } ?: detection.category
-        val descriptorMetadata = metadata.metadata + textureMetadata(file, category) + terrainMetadata(file, category)
+        val displayName = document.displayName.takeIf(String::isNotBlank) ?: file.nameWithoutExtension
+        val type = enumValueOrNull<AssetType>(document.type)?.takeUnless { it == AssetType.Unknown } ?: detection.type
+        val category = enumValueOrNull<AssetCategory>(document.category)?.takeUnless { it == AssetCategory.Unknown } ?: detection.category
+        val descriptorMetadata = buildMap<String, String> {
+            put("displayName", displayName)
+            put("importSettings", encodeImportSettings(document.importSettings))
+            document.importerId?.let { put("importerId", it) }
+            putAll(importer?.readMetadata(file) ?: emptyMap())
+            putAll(textureMetadata(file, category))
+            putAll(terrainMetadata(file, category))
+        }
         return AssetDescriptor(
-            id = metadata.id,
+            id = AssetId(document.id),
             name = displayName,
             path = path,
             category = category,
@@ -100,9 +154,14 @@ class LocalAssetRegistryService(
             extension = extension,
             sizeBytes = file.length(),
             modifiedAtMillis = file.lastModified(),
-            tags = metadata.tags,
+            tags = document.tags,
             metadata = descriptorMetadata,
         )
+    }
+
+    private fun encodeImportSettings(settings: Map<String, Any?>): String {
+        if (settings.isEmpty()) return "{}"
+        return settings.entries.joinToString(prefix = "{", postfix = "}") { (k, v) -> "$k=$v" }
     }
 
     private fun textureMetadata(file: File, category: AssetCategory): Map<String, String> {
@@ -128,20 +187,25 @@ class LocalAssetRegistryService(
         )
     }
 
-    private fun readOrCreateMetadata(file: File, detection: AssetTypeDetection): AssetMetadata {
+    private fun readOrCreateMetadata(
+        file: File,
+        detection: AssetTypeDetection,
+        importer: AssetImporter?,
+    ): AssetMetadataDocument {
         val metadataFile = metadataFileFor(file)
         if (!metadataFile.exists()) {
-            return createMetadata(metadataFile, file, detection, reason = "missing")
+            return createMetadata(metadataFile, file, detection, importer, reason = "missing")
         }
 
         val text = metadataFile.readText(StandardCharsets.UTF_8)
         return try {
-            AssetMetadataCodec.decode(text, fallbackDisplayName = file.nameWithoutExtension)
+            val parsed = AssetMetadataCodec.decode(text)
+            if (parsed.displayName.isBlank()) parsed.copy(displayName = file.nameWithoutExtension) else parsed
         } catch (error: Exception) {
             logger.warn(TAG, error) {
                 "Malformed metadata '${relativeAssetPath(metadataFile)}'. Recreating safe metadata: ${error.message}"
             }
-            createMetadata(metadataFile, file, detection, reason = "malformed")
+            createMetadata(metadataFile, file, detection, importer, reason = "malformed")
         }
     }
 
@@ -149,23 +213,22 @@ class LocalAssetRegistryService(
         metadataFile: File,
         assetFile: File,
         detection: AssetTypeDetection,
+        importer: AssetImporter?,
         reason: String,
-    ): AssetMetadata {
-        val metadata = AssetMetadata(
-            id = AssetId("asset:${UUID.randomUUID()}"),
-            type = detection.type,
-            category = detection.category,
+    ): AssetMetadataDocument {
+        val document = AssetMetadataDocument(
+            id = "asset:${UUID.randomUUID()}",
+            type = detection.type.name,
+            category = detection.category.name,
             displayName = assetFile.nameWithoutExtension,
             tags = emptyList(),
-            metadata = mapOf(
-                "displayName" to assetFile.nameWithoutExtension,
-                "importSettings" to "{}",
-            ),
+            importerId = importer?.id,
+            importSettings = emptyMap(),
         )
         metadataFile.parentFile?.mkdirs()
-        metadataFile.writeText(AssetMetadataCodec.encode(metadata), StandardCharsets.UTF_8)
-        logger.info(TAG) { "Created .krmeta (${reason}) '${relativeAssetPath(metadataFile)}' id='${metadata.id.value}'" }
-        return metadata
+        metadataFile.writeText(AssetMetadataCodec.encode(document), StandardCharsets.UTF_8)
+        logger.info(TAG) { "Created .krmeta (${reason}) '${relativeAssetPath(metadataFile)}' id='${document.id}'" }
+        return document
     }
 
     private fun metadataFileFor(file: File): File =
@@ -182,6 +245,12 @@ class LocalAssetRegistryService(
             file.name.startsWith(".") ||
             file.isHidden
 
+    /** Returns the base directory used to resolve relative asset paths. */
+    fun baseDir(): File = baseDirectory
+
+    /** Resolves a relative descriptor path to a concrete [File]. */
+    fun resolve(descriptor: AssetDescriptor): File = File(baseDirectory, descriptor.path)
+
     companion object {
         private const val TAG = "LocalAssetRegistryService"
         val DefaultRootPaths = listOf("model", "textures", "materials", "terrains", "shaders", "assets")
@@ -197,78 +266,5 @@ class LocalAssetRegistryService(
     }
 }
 
-/**
- * In-memory representation of .krmeta files.
- */
-private data class AssetMetadata(
-    val id: AssetId,
-    val type: AssetType,
-    val category: AssetCategory,
-    val displayName: String,
-    val tags: List<String>,
-    val metadata: Map<String, String>,
-)
-
-/**
- * Minimal JSON codec for the flat .krmeta shape used by the asset browser.
- */
-private object AssetMetadataCodec {
-    fun encode(metadata: AssetMetadata): String =
-        buildString {
-            appendLine("{")
-            appendLine("  \"id\": \"${escape(metadata.id.value)}\",")
-            appendLine("  \"type\": \"${metadata.type.name}\",")
-            appendLine("  \"category\": \"${metadata.category.name}\",")
-            appendLine("  \"displayName\": \"${escape(metadata.displayName)}\",")
-            appendLine("  \"tags\": [${metadata.tags.joinToString(", ") { "\"${escape(it)}\"" }}],")
-            appendLine("  \"importSettings\": {}")
-            appendLine("}")
-        }
-
-    fun decode(text: String, fallbackDisplayName: String): AssetMetadata {
-        val id = readString(text, "id")?.takeIf(String::isNotBlank)
-            ?: throw IllegalArgumentException("missing id")
-        val type = readEnum<AssetType>(text, "type") ?: AssetType.Unknown
-        val category = readEnum<AssetCategory>(text, "category") ?: AssetCategory.Unknown
-        val displayName = readString(text, "displayName")?.takeIf(String::isNotBlank) ?: fallbackDisplayName
-        val tags = readStringArray(text, "tags")
-        return AssetMetadata(
-            id = AssetId(id),
-            type = type,
-            category = category,
-            displayName = displayName,
-            tags = tags,
-            metadata = mapOf(
-                "displayName" to displayName,
-                "importSettings" to readObjectText(text, "importSettings"),
-            ),
-        )
-    }
-
-    private inline fun <reified T : Enum<T>> readEnum(text: String, name: String): T? =
-        readString(text, name)?.let { value ->
-            enumValues<T>().firstOrNull { it.name.equals(value, ignoreCase = true) }
-        }
-
-    private fun readString(text: String, name: String): String? {
-        val pattern = Regex("\"${Regex.escape(name)}\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"")
-        return pattern.find(text)?.groupValues?.get(1)?.let(::unescape)
-    }
-
-    private fun readStringArray(text: String, name: String): List<String> {
-        val pattern = Regex("\"${Regex.escape(name)}\"\\s*:\\s*\\[(.*?)]", RegexOption.DOT_MATCHES_ALL)
-        val body = pattern.find(text)?.groupValues?.get(1) ?: return emptyList()
-        return Regex("\"((?:\\\\.|[^\"])*)\"").findAll(body).map { unescape(it.groupValues[1]) }.toList()
-    }
-
-    private fun readObjectText(text: String, name: String): String {
-        val pattern = Regex("\"${Regex.escape(name)}\"\\s*:\\s*(\\{[^}]*})", RegexOption.DOT_MATCHES_ALL)
-        return pattern.find(text)?.groupValues?.get(1)?.trim() ?: "{}"
-    }
-
-    private fun escape(value: String): String =
-        value.replace("\\", "\\\\").replace("\"", "\\\"")
-
-    private fun unescape(value: String): String =
-        value.replace("\\\"", "\"").replace("\\\\", "\\")
-}
+private inline fun <reified T : Enum<T>> enumValueOrNull(name: String): T? =
+    enumValues<T>().firstOrNull { it.name.equals(name, ignoreCase = true) }
