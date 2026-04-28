@@ -2,6 +2,7 @@ package com.pashkd.krender
 
 import com.pashkd.krender.engine.backend.gdx.GdxEngineApplication
 import com.pashkd.krender.engine.api.AssetRef
+import com.pashkd.krender.game.AssetBrowserScene
 import com.pashkd.krender.game.ModelViewerScene
 import com.pashkd.krender.game.TerrainEditorScene
 import java.io.File
@@ -12,6 +13,8 @@ class Main(
 ) : GdxEngineApplication(
     initialScene = {
         when (sceneName.lowercase()) {
+            "asset-browser" -> AssetBrowserScene()
+
             "model-viewer" -> ModelViewerScene(
                 model = null,
                 availableModels = discoverModelPaths(modelPath).map(AssetRef.Companion::model),
@@ -35,7 +38,7 @@ class Main(
     },
 ) {
     companion object {
-        fun defaultScene(): String = System.getProperty("krender.scene", "terrain-generator")
+        fun defaultScene(): String = System.getProperty("krender.scene", "asset-browser")
         fun defaultModelPath(): String? = System.getProperty("krender.model")?.takeIf(String::isNotBlank)
         fun defaultTerrainResolution(): Int = System.getProperty("krender.terrain.size", "128").toIntOrNull() ?: 128
         fun defaultTerrainSpacing(): Float = System.getProperty("krender.terrain.spacing", "1.0").toFloatOrNull() ?: 1f
