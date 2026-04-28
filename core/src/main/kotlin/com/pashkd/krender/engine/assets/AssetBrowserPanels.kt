@@ -27,9 +27,14 @@ class AssetBrowserPanel(
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
     private val panelId: String = AssetBrowserPanelIds.Browser,
+    private val operations: AssetBrowserOperationsHandler = AssetBrowserOperationsHandler.NoOp,
 ) : UiPanel {
     private val searchBuffer = ByteArray(TextInputBufferSize)
+    private val createNameByteBuffer = ByteArray(TextInputBufferSize)
+    private val renameByteBuffer = ByteArray(TextInputBufferSize)
     private var searchInputActive = false
+    private var createBufferSynced = false
+    private var renameBufferSynced = false
 
     override fun draw() {
         syncSearchBuffer()
@@ -49,6 +54,12 @@ class AssetBrowserPanel(
         drawStatus()
 
         ImGui.end()
+
+        if (mode == AssetBrowserMode.Full) {
+            drawCreateDialog()
+            drawRenameDialog()
+            drawDeleteDialog()
+        }
     }
 
     private fun drawToolbar() {
@@ -71,13 +82,20 @@ class AssetBrowserPanel(
             ImGui.sameLine()
             with(dsl) {
                 button("Create##$panelId") {
-                    state.statusMessage = "Create asset is not implemented yet."
+                    state.createNameBuffer = ""
+                    createBufferSynced = false
+                    state.showCreateDialog = true
                 }
             }
             ImGui.sameLine()
             drawViewModeCombo()
             ImGui.sameLine()
             drawSortModeCombo()
+        }
+
+        if (state.isScanning) {
+            ImGui.sameLine()
+            ImGui.textUnformatted("Scanning...")
         }
     }
 
@@ -143,7 +161,50 @@ class AssetBrowserPanel(
             onAssetSelected(asset)
             onAssetActivated(asset)
         }
+        drawAssetContextMenu(asset)
     }
+
+    private fun drawAssetContextMenu(asset: AssetDescriptor) {
+        if (mode != AssetBrowserMode.Full) return
+        if (!ImGui.beginPopupContextItem("assetCtx_${asset.id.value}")) return
+        if (ImGui.menuItem("Open")) {
+            onAssetSelected(asset)
+            onAssetActivated(asset)
+        }
+        val tools = operations.toolsFor(asset)
+        if (tools.isNotEmpty() && ImGui.beginMenu("Open With")) {
+            tools.forEach { toolId ->
+                if (ImGui.menuItem(toolId.label)) {
+                    onAssetSelected(asset)
+                    operations.openWith(asset, toolId.id)
+                }
+            }
+            ImGui.endMenu()
+        }
+        ImGui.separator()
+        if (ImGui.menuItem("Rename...")) {
+            onAssetSelected(asset)
+            state.renameBuffer = asset.name
+            renameBufferSynced = false
+            state.showRenameDialog = true
+        }
+        if (ImGui.menuItem("Duplicate")) {
+            onAssetSelected(asset)
+            operations.duplicate(asset, "${baseName(asset)}_copy")
+        }
+        if (ImGui.menuItem("Delete")) {
+            onAssetSelected(asset)
+            state.showDeleteDialog = true
+        }
+        ImGui.separator()
+        if (ImGui.menuItem("Reveal in Files")) {
+            operations.reveal(asset)
+        }
+        ImGui.endPopup()
+    }
+
+    private fun baseName(asset: AssetDescriptor): String =
+        asset.name
 
     private fun drawStatus() {
         textLine("Assets: ${state.filteredAssets.size} / ${state.assets.size}")
@@ -191,6 +252,123 @@ class AssetBrowserPanel(
         if (!searchInputActive && readBuffer(searchBuffer) != state.searchQuery) {
             writeBuffer(searchBuffer, state.searchQuery)
         }
+    }
+
+    private fun drawCreateDialog() {
+        if (!state.showCreateDialog) return
+        if (!createBufferSynced) {
+            writeBuffer(createNameByteBuffer, state.createNameBuffer)
+            createBufferSynced = true
+        }
+        ImGui.openPopup("Create Asset##${panelId}_create")
+        if (!ImGui.beginPopupModal("Create Asset##${panelId}_create")) return
+        ImGui.text("Name")
+        ImGui.sameLine()
+        if (ImGui.inputText("##${panelId}_create_name", createNameByteBuffer)) {
+            state.createNameBuffer = readBuffer(createNameByteBuffer)
+        }
+        if (ImGui.beginCombo("Category##${panelId}_create_cat", state.createCategory.displayName)) {
+            AssetCategory.entries.forEach { c ->
+                if (ImGui.selectable(c.displayName, state.createCategory == c)) {
+                    state.createCategory = c
+                }
+            }
+            ImGui.endCombo()
+        }
+        if (ImGui.beginCombo("Type##${panelId}_create_type", state.createType.name)) {
+            AssetType.entries.forEach { t ->
+                if (ImGui.selectable(t.name, state.createType == t)) {
+                    state.createType = t
+                }
+            }
+            ImGui.endCombo()
+        }
+        ImGui.separator()
+        with(dsl) {
+            button("Create##${panelId}_create_ok") {
+                operations.create(state.createNameBuffer, state.createType, state.createCategory)
+                state.showCreateDialog = false
+                createBufferSynced = false
+                ImGui.closeCurrentPopup()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Cancel##${panelId}_create_cancel") {
+                state.showCreateDialog = false
+                createBufferSynced = false
+                ImGui.closeCurrentPopup()
+            }
+        }
+        ImGui.endPopup()
+    }
+
+    private fun drawRenameDialog() {
+        if (!state.showRenameDialog) return
+        val asset = state.selectedAssetId?.let { id -> state.assets.firstOrNull { it.id == id } }
+        if (asset == null) {
+            state.showRenameDialog = false
+            return
+        }
+        if (!renameBufferSynced) {
+            writeBuffer(renameByteBuffer, state.renameBuffer)
+            renameBufferSynced = true
+        }
+        ImGui.openPopup("Rename Asset##${panelId}_rename")
+        if (!ImGui.beginPopupModal("Rename Asset##${panelId}_rename")) return
+        textLine("Path: ${asset.path}")
+        ImGui.text("New name")
+        ImGui.sameLine()
+        if (ImGui.inputText("##${panelId}_rename_name", renameByteBuffer)) {
+            state.renameBuffer = readBuffer(renameByteBuffer)
+        }
+        ImGui.separator()
+        with(dsl) {
+            button("Rename##${panelId}_rename_ok") {
+                operations.rename(asset, state.renameBuffer)
+                state.showRenameDialog = false
+                renameBufferSynced = false
+                ImGui.closeCurrentPopup()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Cancel##${panelId}_rename_cancel") {
+                state.showRenameDialog = false
+                renameBufferSynced = false
+                ImGui.closeCurrentPopup()
+            }
+        }
+        ImGui.endPopup()
+    }
+
+    private fun drawDeleteDialog() {
+        if (!state.showDeleteDialog) return
+        val asset = state.selectedAssetId?.let { id -> state.assets.firstOrNull { it.id == id } }
+        if (asset == null) {
+            state.showDeleteDialog = false
+            return
+        }
+        ImGui.openPopup("Delete Asset##${panelId}_delete")
+        if (!ImGui.beginPopupModal("Delete Asset##${panelId}_delete")) return
+        ImGui.textUnformatted("Permanently delete '${asset.name}'?")
+        textLine("Path: ${asset.path}")
+        ImGui.separator()
+        with(dsl) {
+            button("Delete##${panelId}_delete_ok") {
+                operations.delete(asset)
+                state.showDeleteDialog = false
+                ImGui.closeCurrentPopup()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Cancel##${panelId}_delete_cancel") {
+                state.showDeleteDialog = false
+                ImGui.closeCurrentPopup()
+            }
+        }
+        ImGui.endPopup()
     }
 
     companion object {
@@ -302,6 +480,40 @@ class AssetDetailsPanel(
         ImGui.text("Settings:")
         textLine("Size: ${asset.metadata["terrainSize"] ?: "unknown"}")
         textLine("Layers: ${asset.metadata["terrainLayerCount"] ?: "unknown"}")
+    }
+}
+
+/**
+ * Identifier + display label for a tool exposed in the "Open With" menu.
+ */
+data class AssetToolDescriptor(val id: String, val label: String)
+
+/**
+ * UI-facing handler for asset operations and tool resolution.
+ *
+ * Implementations bridge [AssetBrowserPanel] to the asset operations service and tool registry
+ * without requiring panels to perform IO directly.
+ */
+interface AssetBrowserOperationsHandler {
+    fun create(name: String, type: AssetType, category: AssetCategory)
+    fun rename(asset: AssetDescriptor, newName: String)
+    fun duplicate(asset: AssetDescriptor, targetName: String)
+    fun delete(asset: AssetDescriptor)
+    fun reveal(asset: AssetDescriptor)
+    fun toolsFor(asset: AssetDescriptor): List<AssetToolDescriptor>
+    fun openWith(asset: AssetDescriptor, toolId: String)
+
+    companion object {
+        /** Default no-op handler used when the panel runs without operations support (e.g. picker mode). */
+        val NoOp: AssetBrowserOperationsHandler = object : AssetBrowserOperationsHandler {
+            override fun create(name: String, type: AssetType, category: AssetCategory) = Unit
+            override fun rename(asset: AssetDescriptor, newName: String) = Unit
+            override fun duplicate(asset: AssetDescriptor, targetName: String) = Unit
+            override fun delete(asset: AssetDescriptor) = Unit
+            override fun reveal(asset: AssetDescriptor) = Unit
+            override fun toolsFor(asset: AssetDescriptor): List<AssetToolDescriptor> = emptyList()
+            override fun openWith(asset: AssetDescriptor, toolId: String) = Unit
+        }
     }
 }
 
