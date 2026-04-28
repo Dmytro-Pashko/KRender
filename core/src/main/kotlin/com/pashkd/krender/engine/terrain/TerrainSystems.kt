@@ -69,13 +69,41 @@ class TerrainEditorSystem(
      * a drag gesture becomes a single history entry instead of many tiny edits.
      */
     override fun update(world: SceneWorld, dt: Float) {
-        val terrainEntity = world.query<TransformComponent, TerrainComponent, TerrainRendererComponent>().firstOrNull() ?: return
-        val terrain = terrainEntity.get<TerrainComponent>() ?: return
-        val terrainRenderer = terrainEntity.get<TerrainRendererComponent>() ?: return
-        val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull() ?: return
-        val cameraTransform = cameraEntity.get<TransformComponent>() ?: return
-        val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
-        val terrainTransform = terrainEntity.get<TransformComponent>() ?: return
+        val terrainEntity = world.query<TransformComponent, TerrainComponent, TerrainRendererComponent>().firstOrNull()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val terrain = terrainEntity.get<TerrainComponent>()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val terrainRenderer = terrainEntity.get<TerrainRendererComponent>()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val cameraTransform = cameraEntity.get<TransformComponent>()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val camera = cameraEntity.get<PerspectiveCameraComponent>()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val terrainTransform = terrainEntity.get<TransformComponent>()
+            ?: run {
+                resetBrushState()
+                return
+            }
         val snapshot = input.snapshot()
         // Tab swaps keyboard/mouse ownership between UI widgets and the viewport.
         // If focus leaves the viewport mid-stroke, the stroke is committed first.
@@ -142,6 +170,7 @@ class TerrainEditorSystem(
                     logger.warn(TAG) { "PaintLayer selected without an active terrain layer" }
                     paintLayerWarningShown = true
                 }
+                finishBrushStroke()
                 return
             }
 
@@ -393,12 +422,16 @@ class TerrainEditorSystem(
      */
     private fun finishBrushStroke(): Boolean {
         val pushed = activePatchBuilder?.build()?.let(editHistory::push) == true
+        resetBrushState()
+        return pushed
+    }
+
+    private fun resetBrushState() {
         activePatchBuilder = null
         brushActive = false
         state.brushActive = false
         flattenHeight = null
         activeLayerPaintSign = 1f
-        return pushed
     }
 
     /**
@@ -601,10 +634,7 @@ class TerrainEditorSystem(
                 state.persistenceMessage = "Loaded terrain: ${state.terrainFilePath}"
                 state.persistenceError = false
                 hoveredHit = null
-                activePatchBuilder = null
-                brushActive = false
-                flattenHeight = null
-                activeLayerPaintSign = 1f
+                resetBrushState()
                 logger.info(TAG) { "Load terrain completed path='${state.terrainFilePath}' name='${descriptor.name}' (${loaded.describeTerrain()})" }
             } catch (error: Exception) {
                 state.persistenceMessage = "Load failed: ${error.message}"
@@ -671,10 +701,7 @@ class TerrainEditorSystem(
         renderer.vertexCount = 0
         renderer.triangleCount = 0
         hoveredHit = null
-        activePatchBuilder = null
-        brushActive = false
-        flattenHeight = null
-        activeLayerPaintSign = 1f
+        resetBrushState()
         logger.debug(TAG) { "Regenerate finished generator='${generator.id}' (${regenerated.describeTerrain()})" }
     }
 

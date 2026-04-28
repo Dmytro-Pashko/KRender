@@ -85,96 +85,84 @@ class GameLoop(
     fun renderFrame(rawDelta: Float) {
         val delta = min(rawDelta, config.maxFrameDeltaSeconds)
         var fixedUpdates = 0
+        var uiFrameEnded = false
 
-        backend.runtimeStats.beginFrame()
-        backend.profiler.beginFrame(backend.runtimeStats.frame)
-        // Open the UI frame before sampling input so that ImGui's hover-based
-        // capture flags are computed for the *current* frame and become
-        // available to the input snapshot consumed by all systems below.
-        backend.ui.beginFrame(delta)
-        backend.input.beginFrame()
-        val inputSnapshot = backend.input.snapshot()
-        backend.profiler.measure("tasks.flush") {
-            backend.tasks.flushMainThreadQueue()
-        }
-
-        backend.profiler.measure("assets.update") {
-            backend.assets.update()
-        }
-
-        runtime.scenes.applyPendingTransitions(runtime)
-        val scene = runtime.scenes.currentScene
-        if (scene == null) {
-            backend.ui.endFrame()
-            backend.input.endFrame()
-            backend.runtimeStats.endFrame(delta, fixedUpdates)
-            backend.profiler.endFrame(backend.runtimeStats.frame)
-            return
-        }
-
-        backend.runtimeStats.put("Scene", scene.id)
-        backend.runtimeStats.put("Scene state", scene.state)
-        backend.runtimeStats.put("Entities", scene.world.all().size)
-        backend.runtimeStats.put("Commands", scene.world.commands.size())
-        backend.runtimeStats.put("Jobs", backend.tasks.inFlightJobs)
-        putJvmMemoryStats(backend.runtimeStats)
-
-        accumulator += delta
-        backend.profiler.measure("fixedUpdate") {
-            while (accumulator >= config.fixedStepSeconds) {
-                scene.fixedUpdate(config.fixedStepSeconds)
-                accumulator -= config.fixedStepSeconds
-                fixedUpdates += 1
+        try {
+            backend.runtimeStats.beginFrame()
+            backend.profiler.beginFrame(backend.runtimeStats.frame)
+            // Open the UI frame before sampling input so that ImGui's hover-based
+            // capture flags are computed for the *current* frame and become
+            // available to the input snapshot consumed by all systems below.
+            backend.ui.beginFrame(delta)
+            backend.input.beginFrame()
+            val inputSnapshot = backend.input.snapshot()
+            backend.profiler.measure("tasks.flush") {
+                backend.tasks.flushMainThreadQueue()
             }
-        }
 
-        val alpha = accumulator / config.fixedStepSeconds
+            backend.profiler.measure("assets.update") {
+                backend.assets.update()
+            }
 
-        backend.profiler.measure("update") {
-            scene.update(delta)
-        }
-        if (runtime.completeExitIfRequested()) {
+            runtime.scenes.applyPendingTransitions(runtime)
+            val scene = runtime.scenes.currentScene ?: return
+
+            backend.runtimeStats.put("Scene", scene.id)
+            backend.runtimeStats.put("Scene state", scene.state)
+            backend.runtimeStats.put("Entities", scene.world.all().size)
+            backend.runtimeStats.put("Commands", scene.world.commands.size())
+            backend.runtimeStats.put("Jobs", backend.tasks.inFlightJobs)
+            putJvmMemoryStats(backend.runtimeStats)
+
+            accumulator += delta
+            backend.profiler.measure("fixedUpdate") {
+                while (accumulator >= config.fixedStepSeconds) {
+                    scene.fixedUpdate(config.fixedStepSeconds)
+                    accumulator -= config.fixedStepSeconds
+                    fixedUpdates += 1
+                }
+            }
+
+            val alpha = accumulator / config.fixedStepSeconds
+
+            backend.profiler.measure("update") {
+                scene.update(delta)
+            }
+            if (runtime.completeExitIfRequested()) return
+
+            backend.profiler.measure("lateUpdate") {
+                scene.lateUpdate(delta)
+            }
+            if (runtime.completeExitIfRequested()) return
+
+            // Close the UI frame after panels have drawn but before the renderer
+            // submits, so [Renderer.render] can call [UiService.render] last.
             backend.ui.endFrame()
+            uiFrameEnded = true
+
+            backend.profiler.measure("render.collect") {
+                scene.render(alpha)
+                scene.debugRender()
+            }
+
+            backend.profiler.measure("render.submit") {
+                backend.renderer.render(
+                    RenderContext(
+                        scene = scene,
+                        alpha = alpha,
+                        deltaSeconds = delta,
+                        commands = scene.world.renderCommands.snapshot(),
+                    ),
+                )
+            }
+        } finally {
+            if (!uiFrameEnded) {
+                backend.ui.endFrame()
+            }
             backend.input.endFrame()
             backend.runtimeStats.endFrame(delta, fixedUpdates)
             backend.profiler.endFrame(backend.runtimeStats.frame)
-            return
         }
-
-        backend.profiler.measure("lateUpdate") {
-            scene.lateUpdate(delta)
-        }
-        if (runtime.completeExitIfRequested()) {
-            backend.ui.endFrame()
-            backend.input.endFrame()
-            backend.runtimeStats.endFrame(delta, fixedUpdates)
-            backend.profiler.endFrame(backend.runtimeStats.frame)
-            return
-        }
-
-        // Close the UI frame after panels have drawn but before the renderer
-        // submits, so [Renderer.render] can call [UiService.render] last.
-        backend.ui.endFrame()
-
-        backend.profiler.measure("render.collect") {
-            scene.render(alpha)
-            scene.debugRender()
-        }
-
-        backend.profiler.measure("render.submit") {
-            backend.renderer.render(
-                RenderContext(
-                    scene = scene,
-                    alpha = alpha,
-                    deltaSeconds = delta,
-                    commands = scene.world.renderCommands.snapshot(),
-                ),
-            )
-        }
-
-        backend.input.endFrame()
-        backend.runtimeStats.endFrame(delta, fixedUpdates)
-        backend.profiler.endFrame(backend.runtimeStats.frame)
     }
 
     private fun putJvmMemoryStats(runtimeStats: RuntimeStatsService) {
