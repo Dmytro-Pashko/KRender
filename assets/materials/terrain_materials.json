@@ -42,6 +42,13 @@
       "albedoTexture": "textures/t_stone_01_s.png",
       "fallbackColor": { "r": 0.191, "g": 0.191, "b": 0.191, "a": 1.0 },
       "defaultTiling": 8.0
+    },
+    {
+      "id": "terrain/moss",
+      "name": "Moss",
+      "albedoTexture": "textures/t_ground_moss_01_s.png",
+      "fallbackColor": { "r": 0.191, "g": 0.191, "b": 0.222, "a": 1.0 },
+      "defaultTiling": 8.0
     }
   ]
 }
