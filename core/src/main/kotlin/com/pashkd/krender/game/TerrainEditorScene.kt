@@ -141,6 +141,7 @@ class TerrainEditorScene(
                 editorState.materialPreviewMessage = message
                 editorState.previewMessage = message
             },
+            brushActiveProvider = { editorState.brushActive },
             materialLibrary = terrainMaterialLibrary,
             logger = engine.logger,
         )

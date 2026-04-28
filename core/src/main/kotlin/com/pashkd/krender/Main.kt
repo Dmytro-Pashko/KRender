@@ -38,7 +38,7 @@ class Main(
     },
 ) {
     companion object {
-        fun defaultScene(): String = System.getProperty("krender.scene", "asset-browser")
+        fun defaultScene(): String = System.getProperty("krender.scene", "terrain-generator")
         fun defaultModelPath(): String? = System.getProperty("krender.model")?.takeIf(String::isNotBlank)
         fun defaultTerrainResolution(): Int = System.getProperty("krender.terrain.size", "128").toIntOrNull() ?: 128
         fun defaultTerrainSpacing(): Float = System.getProperty("krender.terrain.spacing", "1.0").toFloatOrNull() ?: 1f

@@ -69,13 +69,41 @@ class TerrainEditorSystem(
      * a drag gesture becomes a single history entry instead of many tiny edits.
      */
     override fun update(world: SceneWorld, dt: Float) {
-        val terrainEntity = world.query<TransformComponent, TerrainComponent, TerrainRendererComponent>().firstOrNull() ?: return
-        val terrain = terrainEntity.get<TerrainComponent>() ?: return
-        val terrainRenderer = terrainEntity.get<TerrainRendererComponent>() ?: return
-        val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull() ?: return
-        val cameraTransform = cameraEntity.get<TransformComponent>() ?: return
-        val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
-        val terrainTransform = terrainEntity.get<TransformComponent>() ?: return
+        val terrainEntity = world.query<TransformComponent, TerrainComponent, TerrainRendererComponent>().firstOrNull()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val terrain = terrainEntity.get<TerrainComponent>()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val terrainRenderer = terrainEntity.get<TerrainRendererComponent>()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val cameraTransform = cameraEntity.get<TransformComponent>()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val camera = cameraEntity.get<PerspectiveCameraComponent>()
+            ?: run {
+                resetBrushState()
+                return
+            }
+        val terrainTransform = terrainEntity.get<TransformComponent>()
+            ?: run {
+                resetBrushState()
+                return
+            }
         val snapshot = input.snapshot()
         // Tab swaps keyboard/mouse ownership between UI widgets and the viewport.
         // If focus leaves the viewport mid-stroke, the stroke is committed first.
@@ -142,6 +170,7 @@ class TerrainEditorSystem(
                     logger.warn(TAG) { "PaintLayer selected without an active terrain layer" }
                     paintLayerWarningShown = true
                 }
+                finishBrushStroke()
                 return
             }
 
@@ -150,6 +179,7 @@ class TerrainEditorSystem(
                 // stable target height for the full drag, and history should treat
                 // the drag as one named edit.
                 brushActive = true
+                state.brushActive = true
                 flattenHeight = terrain.data.sampleHeight(hit.localX, hit.localZ)
                 activeLayerPaintSign = effectiveLayerPaintSign(snapshot)
                 activePatchBuilder = TerrainEditPatchBuilder(buildPatchLabel())
@@ -392,11 +422,16 @@ class TerrainEditorSystem(
      */
     private fun finishBrushStroke(): Boolean {
         val pushed = activePatchBuilder?.build()?.let(editHistory::push) == true
+        resetBrushState()
+        return pushed
+    }
+
+    private fun resetBrushState() {
         activePatchBuilder = null
         brushActive = false
+        state.brushActive = false
         flattenHeight = null
         activeLayerPaintSign = 1f
-        return pushed
     }
 
     /**
@@ -599,10 +634,7 @@ class TerrainEditorSystem(
                 state.persistenceMessage = "Loaded terrain: ${state.terrainFilePath}"
                 state.persistenceError = false
                 hoveredHit = null
-                activePatchBuilder = null
-                brushActive = false
-                flattenHeight = null
-                activeLayerPaintSign = 1f
+                resetBrushState()
                 logger.info(TAG) { "Load terrain completed path='${state.terrainFilePath}' name='${descriptor.name}' (${loaded.describeTerrain()})" }
             } catch (error: Exception) {
                 state.persistenceMessage = "Load failed: ${error.message}"
@@ -669,10 +701,7 @@ class TerrainEditorSystem(
         renderer.vertexCount = 0
         renderer.triangleCount = 0
         hoveredHit = null
-        activePatchBuilder = null
-        brushActive = false
-        flattenHeight = null
-        activeLayerPaintSign = 1f
+        resetBrushState()
         logger.debug(TAG) { "Regenerate finished generator='${generator.id}' (${regenerated.describeTerrain()})" }
     }
 
@@ -875,10 +904,14 @@ class TerrainMeshSyncSystem(
     private val materialPreviewExportRequestedProvider: () -> Boolean = { false },
     private val materialPreviewExportPathProvider: () -> String = { "terrains/material_preview.png" },
     private val materialPreviewExportCompleteSink: (String) -> Unit = {},
+    private val brushActiveProvider: () -> Boolean = { false },
+    private val strokeMeshRebuildIntervalMs: Double = STROKE_MESH_REBUILD_INTERVAL_MS,
+    private val nowNanos: () -> Long = java.lang.System::nanoTime,
     materialLibrary: TerrainMaterialLibrary? = null,
     logger: Logger? = null,
 ) : System() {
     private val materialPreviewBaker = materialLibrary?.let { TerrainMaterialPreviewBaker(it, logger) }
+    private var lastMeshRebuildNanos: Long = 0L
 
     /**
      * Rebuilds full terrain meshes for dirty terrain entities.
@@ -887,6 +920,8 @@ class TerrainMeshSyncSystem(
      * preview resolution, or preview export state changed.
      */
     override fun update(world: SceneWorld, dt: Float) {
+        val brushActive = brushActiveProvider()
+        val now = nowNanos()
         world.query<TerrainComponent, TerrainRendererComponent>().forEach { entity ->
             val terrain = entity.get<TerrainComponent>() ?: return@forEach
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
@@ -903,6 +938,23 @@ class TerrainMeshSyncSystem(
                 renderer.previewMode == previewMode &&
                 !previewResolutionChanged
             ) {
+                return@forEach
+            }
+
+            // While the brush is being dragged, mesh and CPU material-preview
+            // bakes both run on every paint frame and dominate frame time,
+            // which causes UI panels (FPS, profiler, stats text) to visibly
+            // jitter. Coalesce mesh rebuilds at a fixed cadence and skip the
+            // preview bake entirely; the dirty flags survive across frames so
+            // the next non-stroke frame produces the final, accurate mesh and
+            // preview texture.
+            val withinStrokeThrottleWindow = brushActive &&
+                lastMeshRebuildNanos != 0L &&
+                (now - lastMeshRebuildNanos) / 1_000_000.0 < strokeMeshRebuildIntervalMs &&
+                renderer.previewMode == previewMode &&
+                !previewResolutionChanged &&
+                !exportRequested
+            if (withinStrokeThrottleWindow) {
                 return@forEach
             }
 
@@ -930,6 +982,14 @@ class TerrainMeshSyncSystem(
             renderer.vertexCount = mesh.vertexCount
             renderer.triangleCount = mesh.triangleCount
             renderer.previewMode = previewMode
+            lastMeshRebuildNanos = now
+            if (brushActive) {
+                // Defer the expensive CPU pixmap bake + GL texture upload until
+                // the stroke ends. The mesh revision still updated above so the
+                // 3D viewport reflects the in-progress edit at throttled rate.
+                terrain.clearDirty()
+                return@forEach
+            }
             syncMaterialPreviewTexture(
                 renderer = renderer,
                 terrain = terrain.data,
@@ -1343,6 +1403,13 @@ private data class CameraRay(
 
 /** Upper safety limit for editor-generated material preview textures. */
 private const val MAX_MATERIAL_PREVIEW_RESOLUTION = 8192
+
+/**
+ * Default minimum interval between full terrain mesh rebuilds while the brush
+ * is being dragged. ~33 ms ≈ 30 Hz, enough for responsive paint feedback while
+ * keeping per-frame cost low so ImGui panels stay smooth.
+ */
+private const val STROKE_MESH_REBUILD_INTERVAL_MS: Double = 33.0
 
 /** Returns a shallow copy of the vector. */
 private fun Vec3.copy(): Vec3 = Vec3(x, y, z)

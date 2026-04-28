@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "2337309a-be61-4139-ab0c-78b484dd13dd",
+  "type": "Terrain",
+  "category": "Terrain",
+  "displayName": "terrain_editor_layout",
+  "tags": [],
+  "importerId": "terrain",
+  "importSettings": {}
+}
