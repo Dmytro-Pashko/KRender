@@ -57,10 +57,19 @@ class GdxImGuiService(
             io.displaySize.y = Gdx.graphics.height
             io.displayFramebufferScale.x = 1f
             io.displayFramebufferScale.y = 1f
-            io.addMousePosEvent(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
+            // Mouse position is fed to ImGui by [GdxImGuiInputBridge] from libgdx
+            // input callbacks; re-adding it here would split a single physical
+            // move into two virtual events and could desync hover/active state.
 
             renderer.newFrame()
             ImGui.newFrame()
+            // Refresh capture flags right after NewFrame so consumers sampling
+            // capture state at the start of the frame (e.g. InputService) see
+            // the current frame's hover decision instead of the previous one.
+            captureState = UiCaptureState(
+                mouse = ImGui.io.wantCaptureMouse,
+                keyboard = ImGui.io.wantCaptureKeyboard,
+            )
         }
         frameOpen = true
     }

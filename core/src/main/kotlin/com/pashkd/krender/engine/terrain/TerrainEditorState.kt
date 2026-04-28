@@ -196,6 +196,8 @@ data class TerrainEditorState(
     var layerMessage: String = "",
     /** Last terrain material status or warning shown in the layer panel. */
     var materialMessage: String = "",
+    /** True while a brush stroke is being applied (mouse dragged with brush). */
+    var brushActive: Boolean = false,
 ) {
     /**
      * Returns the currently selected generator option, if any.

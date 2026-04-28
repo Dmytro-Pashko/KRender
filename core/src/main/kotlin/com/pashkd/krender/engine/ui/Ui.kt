@@ -51,10 +51,16 @@ fun interface UiPanel {
 }
 
 /**
- * System that drives UI frame begin/end and panel drawing.
+ * System that drives panel drawing inside an externally-managed UI frame.
+ *
+ * The owning [com.pashkd.krender.engine.api.GameLoop] is responsible for
+ * calling [UiService.beginFrame] before scene systems run and
+ * [UiService.endFrame] afterwards. Centralizing the frame boundary keeps the
+ * current-frame UI capture flags (e.g. `wantCaptureMouse`) available to the
+ * input snapshot used by every other system, instead of being one frame stale.
  */
 class UiSystem(
-    private val ui: UiService,
+    @Suppress("unused") private val ui: UiService,
     private val panels: MutableList<UiPanel> = mutableListOf(),
 ) : System() {
     /** Registers a panel to be drawn every UI frame. */
@@ -63,13 +69,8 @@ class UiSystem(
         return panel
     }
 
-    /** Opens a UI frame, draws all registered panels, and closes the frame safely. */
+    /** Draws all registered panels inside the active UI frame. */
     override fun update(world: SceneWorld, dt: Float) {
-        ui.beginFrame(dt)
-        try {
-            panels.forEach(UiPanel::draw)
-        } finally {
-            ui.endFrame()
-        }
+        panels.forEach(UiPanel::draw)
     }
 }

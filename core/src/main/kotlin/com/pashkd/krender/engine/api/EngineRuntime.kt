@@ -88,6 +88,10 @@ class GameLoop(
 
         backend.runtimeStats.beginFrame()
         backend.profiler.beginFrame(backend.runtimeStats.frame)
+        // Open the UI frame before sampling input so that ImGui's hover-based
+        // capture flags are computed for the *current* frame and become
+        // available to the input snapshot consumed by all systems below.
+        backend.ui.beginFrame(delta)
         backend.input.beginFrame()
         val inputSnapshot = backend.input.snapshot()
         backend.profiler.measure("tasks.flush") {
@@ -101,6 +105,7 @@ class GameLoop(
         runtime.scenes.applyPendingTransitions(runtime)
         val scene = runtime.scenes.currentScene
         if (scene == null) {
+            backend.ui.endFrame()
             backend.input.endFrame()
             backend.runtimeStats.endFrame(delta, fixedUpdates)
             backend.profiler.endFrame(backend.runtimeStats.frame)
@@ -129,6 +134,7 @@ class GameLoop(
             scene.update(delta)
         }
         if (runtime.completeExitIfRequested()) {
+            backend.ui.endFrame()
             backend.input.endFrame()
             backend.runtimeStats.endFrame(delta, fixedUpdates)
             backend.profiler.endFrame(backend.runtimeStats.frame)
@@ -139,11 +145,16 @@ class GameLoop(
             scene.lateUpdate(delta)
         }
         if (runtime.completeExitIfRequested()) {
+            backend.ui.endFrame()
             backend.input.endFrame()
             backend.runtimeStats.endFrame(delta, fixedUpdates)
             backend.profiler.endFrame(backend.runtimeStats.frame)
             return
         }
+
+        // Close the UI frame after panels have drawn but before the renderer
+        // submits, so [Renderer.render] can call [UiService.render] last.
+        backend.ui.endFrame()
 
         backend.profiler.measure("render.collect") {
             scene.render(alpha)
