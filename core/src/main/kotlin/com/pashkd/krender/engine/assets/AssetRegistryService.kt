@@ -90,7 +90,7 @@ class LocalAssetRegistryService(
         val displayName = metadata.displayName.takeIf(String::isNotBlank) ?: file.nameWithoutExtension
         val type = metadata.type.takeUnless { it == AssetType.Unknown } ?: detection.type
         val category = metadata.category.takeUnless { it == AssetCategory.Unknown } ?: detection.category
-        val descriptorMetadata = metadata.metadata + textureMetadata(file, category)
+        val descriptorMetadata = metadata.metadata + textureMetadata(file, category) + terrainMetadata(file, category)
         return AssetDescriptor(
             id = metadata.id,
             name = displayName,
@@ -114,6 +114,17 @@ class LocalAssetRegistryService(
             "textureHeight" to texture.height.toString(),
             "textureHasAlpha" to texture.hasAlpha.toString(),
             "textureColorFormat" to texture.colorFormat,
+        )
+    }
+
+    private fun terrainMetadata(file: File, category: AssetCategory): Map<String, String> {
+        if (category != AssetCategory.Terrain) return emptyMap()
+        val terrain = TerrainMetadataReader.read(file) ?: return emptyMap()
+        return mapOf(
+            "terrainSize" to terrain.size,
+            "terrainWidth" to terrain.width.toString(),
+            "terrainHeight" to terrain.height.toString(),
+            "terrainLayerCount" to terrain.layerCount.toString(),
         )
     }
 

@@ -251,6 +251,10 @@ class AssetDetailsPanel(
             drawTextureMetadata(asset)
             return
         }
+        if (asset.category == AssetCategory.Terrain) {
+            drawTerrainMetadata(asset)
+            return
+        }
 
         if (asset.metadata.isEmpty()) {
             ImGui.text("none")
@@ -291,6 +295,13 @@ class AssetDetailsPanel(
         val colorFormat = asset.metadata["textureColorFormat"] ?: "unknown"
         textLine("Resolution: $resolution")
         textLine("Format: $colorFormat")
+    }
+
+    private fun drawTerrainMetadata(asset: AssetDescriptor) {
+        textLine("Display Name: ${asset.metadata["displayName"] ?: asset.name}")
+        ImGui.text("Settings:")
+        textLine("Size: ${asset.metadata["terrainSize"] ?: "unknown"}")
+        textLine("Layers: ${asset.metadata["terrainLayerCount"] ?: "unknown"}")
     }
 }
 
