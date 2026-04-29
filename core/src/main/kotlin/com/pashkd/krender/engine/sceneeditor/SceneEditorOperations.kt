@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.sceneeditor
 
+import com.badlogic.gdx.Gdx
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Entity
 import com.pashkd.krender.engine.api.Logger
@@ -27,7 +28,82 @@ class SceneEditorOperations(
     }
 
     fun requestSave() {
-        state.statusMessage = "Scene persistence is not implemented yet."
+        logger.info(TAG) { "Scene save requested currentPath='${state.currentScenePath ?: "<none>"}'" }
+        val path = state.currentScenePath
+        if (path.isNullOrBlank()) {
+            requestSaveAs()
+            return
+        }
+        saveToPath(path)
+    }
+
+    fun requestSaveAs() {
+        if (state.saveAsPath.isBlank()) {
+            state.saveAsPath = defaultSavePath()
+        }
+        state.saveAsRequested = true
+        state.statusMessage = "Choose a path for Save As."
+    }
+
+    fun saveAs(path: String) {
+        saveToPath(path)
+    }
+
+    fun requestOpenPlaceholder() {
+        state.statusMessage = "Open Scene is not implemented yet."
+    }
+
+    fun requestPlayPlaceholder() {
+        state.statusMessage = "Play Mode is not implemented yet."
+    }
+
+    private fun saveToPath(rawPath: String) {
+        try {
+            val path = normalizeScenePath(rawPath)
+            logger.info(TAG) { "Saving scene path='$path'" }
+            val descriptor = SceneSerializer.toDescriptor(document, state)
+            logger.info(TAG) {
+                "Scene descriptor prepared id='${descriptor.id}' entities=${descriptor.entities.size}"
+            }
+            val encoded = SceneSerializer.encode(descriptor)
+            val file = Gdx.files.local(path)
+            file.parent()?.mkdirs()
+            file.writeString(encoded, false, "UTF-8")
+
+            document.descriptor = descriptor
+            state.currentScenePath = path
+            state.saveAsPath = path
+            state.saveAsRequested = false
+            state.saveErrorMessage = null
+            state.hasUnsavedChanges = false
+            state.statusMessage = "Scene saved: $path"
+            logger.info(TAG) { "Scene saved path='$path' id='${descriptor.id}' entities=${descriptor.entities.size}" }
+        } catch (error: Exception) {
+            state.saveErrorMessage = error.message
+            state.statusMessage = "Save failed: ${error.message}"
+            logger.error(TAG, error) { "Failed to save scene path='$rawPath': ${error.message}" }
+        }
+    }
+
+    private fun defaultSavePath(): String = "scenes/${sanitizeSceneName(state.sceneName)}.krscene"
+
+    private fun sanitizeSceneName(name: String): String {
+        val sanitized = name.trim().replace(Regex("\\s+"), "_")
+        return sanitized.takeIf(String::isNotBlank) ?: "Untitled_Scene"
+    }
+
+    private fun normalizeScenePath(path: String): String {
+        val trimmed = path.trim().replace('\\', '/')
+        require(trimmed.isNotBlank()) { "Scene path cannot be blank" }
+        val leaf = trimmed.substringAfterLast('/')
+        val extension = leaf.substringAfterLast('.', missingDelimiterValue = "")
+        if (extension.isBlank()) {
+            return "$trimmed.krscene"
+        }
+        if (extension.equals("krscene", ignoreCase = true) || extension.equals("json", ignoreCase = true)) {
+            return trimmed
+        }
+        return trimmed.removeSuffix(".$extension") + ".krscene"
     }
 
     companion object {

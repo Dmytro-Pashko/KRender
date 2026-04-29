@@ -15,6 +15,7 @@ import glm_.vec2.Vec2
 import imgui.Cond
 import imgui.ImGui
 import imgui.dsl
+import java.nio.charset.StandardCharsets
 
 /**
  * Top-level scene editor action/status panel.
@@ -25,6 +26,9 @@ class SceneEditorToolbarPanel(
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val saveAsPathBuffer = ByteArray(TextInputBufferSize)
+    private var saveAsBufferSynced = false
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Toolbar)
         applyWindowDefaults(layout)
@@ -42,8 +46,27 @@ class SceneEditorToolbarPanel(
         }
         ImGui.sameLine()
         with(dsl) {
+            button("Open##scene_editor_open") {
+                operations.requestOpenPlaceholder()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
             button("Save##scene_editor_save") {
                 operations.requestSave()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Save As##scene_editor_save_as") {
+                operations.requestSaveAs()
+                saveAsBufferSynced = false
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Play##scene_editor_play") {
+                operations.requestPlayPlaceholder()
             }
         }
 
@@ -56,6 +79,50 @@ class SceneEditorToolbarPanel(
         ImGui.text("Status: ${state.statusMessage}")
 
         ImGui.end()
+        drawSaveAsDialog()
+    }
+
+    private fun drawSaveAsDialog() {
+        if (!state.saveAsRequested) return
+        if (!saveAsBufferSynced) {
+            writeBuffer(saveAsPathBuffer, state.saveAsPath)
+            saveAsBufferSynced = true
+        }
+        ImGui.openPopup("Save Scene As##scene_editor_save_as_popup")
+        if (!ImGui.beginPopupModal("Save Scene As##scene_editor_save_as_popup")) return
+
+        ImGui.text("Path")
+        ImGui.sameLine()
+        if (ImGui.inputText("##scene_editor_save_as_path", saveAsPathBuffer)) {
+            state.saveAsPath = readBuffer(saveAsPathBuffer)
+        }
+        state.saveErrorMessage?.let { error ->
+            ImGui.text("Last error: $error")
+        }
+
+        ImGui.separator()
+        with(dsl) {
+            button("Save##scene_editor_save_as_ok") {
+                operations.saveAs(state.saveAsPath)
+                if (!state.saveAsRequested) {
+                    saveAsBufferSynced = false
+                    ImGui.closeCurrentPopup()
+                }
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Cancel##scene_editor_save_as_cancel") {
+                state.saveAsRequested = false
+                saveAsBufferSynced = false
+                ImGui.closeCurrentPopup()
+            }
+        }
+        ImGui.endPopup()
+    }
+
+    companion object {
+        private const val TextInputBufferSize = 256
     }
 }
 
@@ -233,3 +300,15 @@ private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
 }
 
 private fun imguiWindowName(title: String, id: String): String = "$title###$id"
+
+private fun readBuffer(buffer: ByteArray): String {
+    val length = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size
+    return String(buffer, 0, length, StandardCharsets.UTF_8)
+}
+
+private fun writeBuffer(buffer: ByteArray, value: String) {
+    buffer.fill(0)
+    val bytes = value.toByteArray(StandardCharsets.UTF_8)
+    val length = minOf(bytes.size, buffer.size - 1)
+    bytes.copyInto(buffer, endIndex = length)
+}

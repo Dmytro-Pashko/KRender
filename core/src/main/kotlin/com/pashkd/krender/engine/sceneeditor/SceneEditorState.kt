@@ -11,5 +11,7 @@ data class SceneEditorState(
     var selectedEntityId: EntityId? = null,
     var hasUnsavedChanges: Boolean = false,
     var statusMessage: String = "Scene Editor ready.",
+    var saveAsRequested: Boolean = false,
+    var saveAsPath: String = "",
+    var saveErrorMessage: String? = null,
 )
-
