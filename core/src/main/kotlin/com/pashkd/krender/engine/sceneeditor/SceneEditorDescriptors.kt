@@ -20,6 +20,7 @@ data class SceneDescriptor(
 data class EntityDescriptor(
     val id: Long,
     val name: String,
+    val active: Boolean = true,
     val parentId: Long? = null,
     val components: List<ComponentDescriptor> = emptyList(),
 )
@@ -39,4 +40,3 @@ data class SceneSettingsDescriptor(
     val activeCameraEntityId: Long? = null,
     val ambientLightEntityId: Long? = null,
 )
-

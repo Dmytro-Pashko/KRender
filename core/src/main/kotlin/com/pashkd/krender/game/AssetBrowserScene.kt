@@ -188,11 +188,12 @@ private class SceneOperationsHandler(
             AssetType.GdxModel -> "g3dj"
             AssetType.Texture -> "png"
             AssetType.Terrain -> "json"
-            AssetType.Scene -> "json"
+            AssetType.Scene -> "krscene"
             AssetType.Material -> "json"
             AssetType.Shader -> "glsl"
             AssetType.Unknown -> when (category) {
-                AssetCategory.Material, AssetCategory.Terrain, AssetCategory.Scene -> "json"
+                AssetCategory.Scene -> "krscene"
+                AssetCategory.Material, AssetCategory.Terrain -> "json"
                 AssetCategory.Shader -> "glsl"
                 else -> "bin"
             }

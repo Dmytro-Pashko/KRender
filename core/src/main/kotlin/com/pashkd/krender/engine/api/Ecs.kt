@@ -279,6 +279,15 @@ class SceneWorld {
     /** Returns all entities as a list snapshot. */
     fun all(): List<Entity> = entities.values.toList()
 
+    /** Removes every entity and pending mutation while keeping systems bound to this world. */
+    fun clear() {
+        commands.drain()
+        entities.values.forEach { entity -> entity.scene = null }
+        entities.clear()
+        renderCommands.clear()
+        nextEntityId = 1L
+    }
+
     @JvmName("query1")
     /** Returns active entities containing component [A]. */
     inline fun <reified A : Component> query(): List<Entity> =

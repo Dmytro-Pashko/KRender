@@ -1,8 +1,8 @@
 package com.pashkd.krender.engine.sceneeditor
 
 import com.pashkd.krender.engine.api.Entity
-import com.pashkd.krender.engine.api.NameComponent
-import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.EntityId
+import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
@@ -21,6 +21,7 @@ import imgui.dsl
  */
 class SceneEditorToolbarPanel(
     private val state: SceneEditorState,
+    private val operations: SceneEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
@@ -36,17 +37,13 @@ class SceneEditorToolbarPanel(
 
         with(dsl) {
             button("New Scene##scene_editor_new") {
-                state.currentScenePath = null
-                state.sceneName = "Untitled Scene"
-                state.selectedEntityId = null
-                state.hasUnsavedChanges = false
-                state.statusMessage = "New empty scene initialized."
+                operations.createNewScene()
             }
         }
         ImGui.sameLine()
         with(dsl) {
             button("Save##scene_editor_save") {
-                state.statusMessage = "Scene persistence is not implemented yet."
+                operations.requestSave()
             }
         }
 
@@ -67,10 +64,13 @@ class SceneEditorToolbarPanel(
  */
 class SceneHierarchyPanel(
     private val state: SceneEditorState,
-    private val world: SceneWorld,
+    private val document: SceneEditorDocument,
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
+    private val logger: Logger,
 ) : UiPanel {
+    private var lastFilteredEditorOnlyIds: Set<EntityId> = emptySet()
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Hierarchy)
         applyWindowDefaults(layout)
@@ -81,7 +81,7 @@ class SceneHierarchyPanel(
             return
         }
 
-        val entities = world.all()
+        val entities = visibleSceneEntities()
         if (entities.isEmpty()) {
             ImGui.text("No entities.")
         } else {
@@ -97,6 +97,23 @@ class SceneHierarchyPanel(
 
         ImGui.end()
     }
+
+    private fun visibleSceneEntities(): List<Entity> {
+        val allEntities = document.world.all()
+        val filteredIds = allEntities
+            .filter { entity -> entity.get<EditorOnlyComponent>() != null }
+            .map(Entity::id)
+            .toSet()
+        if (filteredIds.isNotEmpty() && filteredIds != lastFilteredEditorOnlyIds) {
+            logger.debug(TAG) { "Filtering editor-only entities from hierarchy: ${filteredIds.joinToString()}" }
+        }
+        lastFilteredEditorOnlyIds = filteredIds
+        return allEntities.filter { entity -> entity.get<EditorOnlyComponent>() == null }
+    }
+
+    companion object {
+        private const val TAG = "SceneHierarchyPanel"
+    }
 }
 
 /**
@@ -104,9 +121,10 @@ class SceneHierarchyPanel(
  */
 class SceneInspectorPanel(
     private val state: SceneEditorState,
-    private val world: SceneWorld,
+    private val document: SceneEditorDocument,
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
+    private val logger: Logger,
 ) : UiPanel {
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Inspector)
@@ -118,7 +136,14 @@ class SceneInspectorPanel(
             return
         }
 
-        val entity = state.selectedEntityId?.let(world::getEntity)
+        val entity = state.selectedEntityId?.let(document.world::getEntity)
+        if (entity?.get<EditorOnlyComponent>() != null) {
+            logger.debug(TAG) { "Clearing editor-only selection entityId=${entity.id}" }
+            state.selectedEntityId = null
+            ImGui.text("No entity selected.")
+            ImGui.end()
+            return
+        }
         if (entity == null) {
             ImGui.text("No entity selected.")
             ImGui.end()
@@ -166,6 +191,10 @@ class SceneInspectorPanel(
     private fun drawVec3(label: String, value: Vec3) {
         ImGui.text("$label: ${"%.2f".format(value.x)}, ${"%.2f".format(value.y)}, ${"%.2f".format(value.z)}")
     }
+
+    companion object {
+        private const val TAG = "SceneInspectorPanel"
+    }
 }
 
 /**
@@ -173,7 +202,7 @@ class SceneInspectorPanel(
  */
 class SceneViewportPanel(
     private val state: SceneEditorState,
-    private val world: SceneWorld,
+    private val document: SceneEditorDocument,
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
@@ -190,7 +219,7 @@ class SceneViewportPanel(
         ImGui.beginChild("scene_editor_viewport_body", Vec2(0f, 0f), true)
         ImGui.text("Scene view")
         ImGui.separator()
-        ImGui.text("Entities: ${world.all().size}")
+        ImGui.text("Entities: ${document.world.all().count { entity -> entity.get<EditorOnlyComponent>() == null }}")
         ImGui.text("Selected: ${state.selectedEntityId?.toString() ?: "none"}")
         ImGui.text("Camera and light placeholders are present in the runtime world.")
         ImGui.endChild()
@@ -204,4 +233,3 @@ private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
 }
 
 private fun imguiWindowName(title: String, id: String): String = "$title###$id"
-
