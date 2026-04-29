@@ -27,7 +27,9 @@ class SceneEditorToolbarPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private val saveAsPathBuffer = ByteArray(TextInputBufferSize)
+    private val openPathBuffer = ByteArray(TextInputBufferSize)
     private var saveAsBufferSynced = false
+    private var openBufferSynced = false
 
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Toolbar)
@@ -47,7 +49,8 @@ class SceneEditorToolbarPanel(
         ImGui.sameLine()
         with(dsl) {
             button("Open##scene_editor_open") {
-                operations.requestOpenPlaceholder()
+                operations.requestOpen()
+                openBufferSynced = false
             }
         }
         ImGui.sameLine()
@@ -79,7 +82,49 @@ class SceneEditorToolbarPanel(
         ImGui.text("Status: ${state.statusMessage}")
 
         ImGui.end()
+        drawOpenDialog()
         drawSaveAsDialog()
+    }
+
+    private fun drawOpenDialog() {
+        if (!state.openRequested) return
+        if (!openBufferSynced) {
+            writeBuffer(openPathBuffer, state.openPath.ifBlank { DefaultScenePath })
+            state.openPath = readBuffer(openPathBuffer)
+            openBufferSynced = true
+        }
+        ImGui.openPopup("Open Scene##scene_editor_open_popup")
+        if (!ImGui.beginPopupModal("Open Scene##scene_editor_open_popup")) return
+
+        ImGui.text("Path")
+        ImGui.sameLine()
+        if (ImGui.inputText("##scene_editor_open_path", openPathBuffer)) {
+            state.openPath = readBuffer(openPathBuffer)
+        }
+        state.openErrorMessage?.let { error ->
+            ImGui.text("Last error: $error")
+        }
+
+        ImGui.separator()
+        with(dsl) {
+            button("Open##scene_editor_open_ok") {
+                operations.open(state.openPath)
+                if (!state.openRequested) {
+                    openBufferSynced = false
+                    ImGui.closeCurrentPopup()
+                }
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Cancel##scene_editor_open_cancel") {
+                state.openRequested = false
+                state.openErrorMessage = null
+                openBufferSynced = false
+                ImGui.closeCurrentPopup()
+            }
+        }
+        ImGui.endPopup()
     }
 
     private fun drawSaveAsDialog() {
@@ -123,6 +168,7 @@ class SceneEditorToolbarPanel(
 
     companion object {
         private const val TextInputBufferSize = 256
+        private const val DefaultScenePath = "scenes/Untitled_Scene.krscene"
     }
 }
 

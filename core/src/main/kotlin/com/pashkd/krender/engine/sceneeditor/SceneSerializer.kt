@@ -5,11 +5,14 @@ import com.badlogic.gdx.utils.JsonValue
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Component
 import com.pashkd.krender.engine.api.Entity
+import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.NameComponent
 import com.pashkd.krender.engine.api.ParentComponent
+import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import java.util.UUID
 
@@ -76,6 +79,14 @@ object SceneSerializer {
             entities = readEntities(root.get("entities")),
             settings = readSettings(root.get("settings")),
         )
+    }
+
+    fun applyToWorld(
+        descriptor: SceneDescriptor,
+        world: SceneWorld,
+        logger: Logger? = null,
+    ) {
+        SceneDeserializer.applyToWorld(descriptor, world, logger)
     }
 
     private fun toEntityDescriptor(entity: Entity): EntityDescriptor =
@@ -230,4 +241,195 @@ object SceneSerializer {
             }
             append('"')
         }
+}
+
+/**
+ * Rebuilds a SceneWorld from a decoded descriptor while preserving serialized entity ids.
+ */
+object SceneDeserializer {
+    fun applyToWorld(
+        descriptor: SceneDescriptor,
+        world: SceneWorld,
+        logger: Logger? = null,
+    ) {
+        world.clear()
+        descriptor.entities.forEach { entityDescriptor ->
+            val entity = world.createEntityWithId(entityDescriptor.id, entityDescriptor.name)
+            entity.active = entityDescriptor.active
+            applyComponents(entityDescriptor, entity, logger)
+            if (entity.get<ParentComponent>() == null) {
+                entityDescriptor.parentId?.let { parentId -> entity.add(ParentComponent(parentId)) }
+            }
+        }
+    }
+
+    private fun applyComponents(
+        descriptor: EntityDescriptor,
+        entity: Entity,
+        logger: Logger?,
+    ) {
+        descriptor.components.forEach { component ->
+            when (component.type) {
+                "NameComponent" -> entity.add(
+                    NameComponent(component.properties["name"] ?: descriptor.name),
+                )
+
+                "TransformComponent" -> entity.add(readTransform(component, entity.id, logger))
+
+                "ParentComponent" -> readLong(
+                    raw = component.properties["parentId"],
+                    defaultValue = descriptor.parentId,
+                    context = "ParentComponent.parentId",
+                    entityId = entity.id,
+                    logger = logger,
+                )?.let { parentId -> entity.add(ParentComponent(parentId)) }
+
+                "PerspectiveCameraComponent" -> entity.add(readCamera(component, entity.id, logger))
+
+                "LightComponent" -> entity.add(readLight(component, entity.id, logger))
+            }
+        }
+    }
+
+    private fun readTransform(
+        component: ComponentDescriptor,
+        entityId: Long,
+        logger: Logger?,
+    ): TransformComponent =
+        TransformComponent(
+            position = readVec3(component.properties["position"], Vec3.zero(), "TransformComponent.position", entityId, logger),
+            eulerDegrees = readVec3(component.properties["rotation"], Vec3.zero(), "TransformComponent.rotation", entityId, logger),
+            scale = readVec3(component.properties["scale"], Vec3.one(), "TransformComponent.scale", entityId, logger),
+        )
+
+    private fun readCamera(
+        component: ComponentDescriptor,
+        entityId: Long,
+        logger: Logger?,
+    ): PerspectiveCameraComponent =
+        PerspectiveCameraComponent(
+            fieldOfViewDegrees = readFloat(
+                component.properties["fieldOfViewDegrees"],
+                PerspectiveCameraComponent().fieldOfViewDegrees,
+                "PerspectiveCameraComponent.fieldOfViewDegrees",
+                entityId,
+                logger,
+            ),
+            near = readFloat(
+                component.properties["near"],
+                PerspectiveCameraComponent().near,
+                "PerspectiveCameraComponent.near",
+                entityId,
+                logger,
+            ),
+            far = readFloat(
+                component.properties["far"],
+                PerspectiveCameraComponent().far,
+                "PerspectiveCameraComponent.far",
+                entityId,
+                logger,
+            ),
+        )
+
+    private fun readLight(
+        component: ComponentDescriptor,
+        entityId: Long,
+        logger: Logger?,
+    ): LightComponent =
+        LightComponent(
+            type = readLightType(component.properties["type"], LightType.Directional, entityId, logger),
+            intensity = readFloat(component.properties["intensity"], 1f, "LightComponent.intensity", entityId, logger),
+            color = readColor(component.properties["color"], Color.white(), "LightComponent.color", entityId, logger),
+            direction = readVec3(
+                component.properties["direction"],
+                Vec3(-1f, -0.8f, -0.2f),
+                "LightComponent.direction",
+                entityId,
+                logger,
+            ),
+        )
+
+    private fun readVec3(
+        raw: String?,
+        defaultValue: Vec3,
+        context: String,
+        entityId: Long,
+        logger: Logger?,
+    ): Vec3 {
+        val values = raw?.split(',')?.map { it.trim().toFloatOrNull() }
+        if (values != null && values.size >= 3 && values.take(3).all { it != null }) {
+            return Vec3(values[0] ?: defaultValue.x, values[1] ?: defaultValue.y, values[2] ?: defaultValue.z)
+        }
+        warnParse(raw, context, entityId, logger)
+        return defaultValue
+    }
+
+    private fun readColor(
+        raw: String?,
+        defaultValue: Color,
+        context: String,
+        entityId: Long,
+        logger: Logger?,
+    ): Color {
+        val values = raw?.split(',')?.map { it.trim().toFloatOrNull() }
+        if (values != null && values.size >= 3 && values.take(3).all { it != null }) {
+            return Color(
+                r = values[0] ?: defaultValue.r,
+                g = values[1] ?: defaultValue.g,
+                b = values[2] ?: defaultValue.b,
+                a = values.getOrNull(3) ?: defaultValue.a,
+            )
+        }
+        warnParse(raw, context, entityId, logger)
+        return defaultValue
+    }
+
+    private fun readFloat(
+        raw: String?,
+        defaultValue: Float,
+        context: String,
+        entityId: Long,
+        logger: Logger?,
+    ): Float {
+        val value = raw?.trim()?.toFloatOrNull()
+        if (value != null) return value
+        warnParse(raw, context, entityId, logger)
+        return defaultValue
+    }
+
+    private fun readLong(
+        raw: String?,
+        defaultValue: Long?,
+        context: String,
+        entityId: Long,
+        logger: Logger?,
+    ): Long? {
+        val value = raw?.trim()?.toLongOrNull()
+        if (value != null) return value
+        if (raw != null) warnParse(raw, context, entityId, logger)
+        return defaultValue
+    }
+
+    private fun readLightType(
+        raw: String?,
+        defaultValue: LightType,
+        entityId: Long,
+        logger: Logger?,
+    ): LightType {
+        val value = LightType.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
+        if (value != null) return value
+        warnParse(raw, "LightComponent.type", entityId, logger)
+        return defaultValue
+    }
+
+    private fun warnParse(
+        raw: String?,
+        context: String,
+        entityId: Long,
+        logger: Logger?,
+    ) {
+        logger?.warn(TAG) { "Invalid $context for entityId=$entityId value='${raw ?: "<missing>"}'; using default" }
+    }
+
+    private const val TAG = "SceneDeserializer"
 }

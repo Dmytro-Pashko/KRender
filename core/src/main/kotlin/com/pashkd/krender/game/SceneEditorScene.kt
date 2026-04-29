@@ -53,10 +53,7 @@ class SceneEditorScene(
         engine.logger.info(TAG) { "Initializing Scene Editor document world" }
         operations.createNewScene()
         scenePath?.let { path ->
-            editorState.currentScenePath = path
-            editorState.sceneName = initialSceneName
-            editorState.hasUnsavedChanges = false
-            editorState.statusMessage = "Scene document initialized. Load is not implemented yet."
+            operations.open(path)
         }
 
         world.systems.add(WorldGridSystem(halfExtentCells = 24, cellSize = 1f))

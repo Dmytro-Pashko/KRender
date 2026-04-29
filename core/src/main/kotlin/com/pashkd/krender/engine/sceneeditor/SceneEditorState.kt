@@ -14,4 +14,7 @@ data class SceneEditorState(
     var saveAsRequested: Boolean = false,
     var saveAsPath: String = "",
     var saveErrorMessage: String? = null,
+    var openRequested: Boolean = false,
+    var openPath: String = "",
+    var openErrorMessage: String? = null,
 )

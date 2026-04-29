@@ -254,6 +254,21 @@ class SceneWorld {
         return entity
     }
 
+    /** Creates a named entity using a caller-controlled id, advancing future generated ids beyond it. */
+    fun createEntityWithId(id: EntityId, name: String): Entity {
+        val entity = Entity(id)
+        entity.add(NameComponent(name))
+        entity.add(TransformComponent())
+        addEntityWithId(entity)
+        return entity
+    }
+
+    /** Adds an entity using its existing id, advancing future generated ids beyond it. */
+    fun addEntityWithId(entity: Entity): Entity {
+        advanceNextEntityIdPast(entity.id)
+        return addEntity(entity)
+    }
+
     /** Adds an entity immediately or defers it if systems are iterating. */
     fun addEntity(entity: Entity): Entity {
         if (iterating) {
@@ -357,6 +372,13 @@ class SceneWorld {
     private fun attach(entity: Entity) {
         entities[entity.id] = entity
         entity.scene = this
+        advanceNextEntityIdPast(entity.id)
+    }
+
+    private fun advanceNextEntityIdPast(entityId: EntityId) {
+        if (entityId >= nextEntityId) {
+            nextEntityId = entityId + 1L
+        }
     }
 
     /** Marks a critical section where world mutations must be deferred. */

@@ -48,8 +48,48 @@ class SceneEditorOperations(
         saveToPath(path)
     }
 
-    fun requestOpenPlaceholder() {
-        state.statusMessage = "Open Scene is not implemented yet."
+    fun requestOpen() {
+        context.logger.info(TAG) { "Scene open requested currentPath='${state.currentScenePath ?: "<none>"}'" }
+        if (state.openPath.isBlank()) {
+            state.openPath = state.currentScenePath ?: defaultSavePath()
+        }
+        state.openErrorMessage = null
+        state.openRequested = true
+        state.statusMessage = "Choose a scene path to open."
+    }
+
+    fun open(path: String) {
+        try {
+            val normalizedPath = ScenePathUtils.normalizeScenePath(path)
+            context.logger.info(TAG) { "Opening scene path='$normalizedPath'" }
+            val text = context.sceneFiles.readText(normalizedPath)
+            val descriptor = SceneSerializer.decode(text)
+            context.logger.info(TAG) {
+                "Decoded scene id='${descriptor.id}' name='${descriptor.name}' entities=${descriptor.entities.size}"
+            }
+
+            val loadedWorld = SceneWorld()
+            SceneSerializer.applyToWorld(descriptor, loadedWorld, context.logger)
+
+            document.world = loadedWorld
+            document.descriptor = descriptor
+            state.currentScenePath = normalizedPath
+            state.sceneName = descriptor.name
+            state.selectedEntityId = descriptor.settings.activeCameraEntityId
+                ?.takeIf { entityId -> document.world.getEntity(entityId) != null }
+            state.hasUnsavedChanges = false
+            state.openRequested = false
+            state.openPath = normalizedPath
+            state.openErrorMessage = null
+            state.statusMessage = "Scene opened: $normalizedPath"
+            context.logger.info(TAG) {
+                "Scene opened path='$normalizedPath' id='${descriptor.id}' entities=${descriptor.entities.size}"
+            }
+        } catch (error: Exception) {
+            state.openErrorMessage = error.message
+            state.statusMessage = "Open failed: ${error.message}"
+            context.logger.error(TAG, error) { "Failed to open scene path='$path': ${error.message}" }
+        }
     }
 
     fun requestPlayPlaceholder() {
@@ -61,7 +101,7 @@ class SceneEditorOperations(
 
     private fun saveToPath(rawPath: String) {
         try {
-            val path = normalizeScenePath(rawPath)
+            val path = ScenePathUtils.normalizeScenePath(rawPath)
             context.logger.info(TAG) { "Saving scene path='$path'" }
             val descriptor = SceneSerializer.toDescriptor(document, state)
             context.logger.info(TAG) {
@@ -91,20 +131,6 @@ class SceneEditorOperations(
     private fun sanitizeSceneName(name: String): String {
         val sanitized = name.trim().replace(Regex("\\s+"), "_")
         return sanitized.takeIf(String::isNotBlank) ?: "Untitled_Scene"
-    }
-
-    private fun normalizeScenePath(path: String): String {
-        val trimmed = path.trim().replace('\\', '/')
-        require(trimmed.isNotBlank()) { "Scene path cannot be blank" }
-        val leaf = trimmed.substringAfterLast('/')
-        val extension = leaf.substringAfterLast('.', missingDelimiterValue = "")
-        if (extension.isBlank()) {
-            return "$trimmed.krscene"
-        }
-        if (extension.equals("krscene", ignoreCase = true) || extension.equals("json", ignoreCase = true)) {
-            return trimmed
-        }
-        return trimmed.removeSuffix(".$extension") + ".krscene"
     }
 
     companion object {
