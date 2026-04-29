@@ -70,9 +70,11 @@ import com.pashkd.krender.engine.api.ProfilerService
 import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.backend.gdx.scene.GdxSceneFileService
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.ui.UiCaptureState
 import com.pashkd.krender.engine.ui.UiService
 import kotlinx.coroutines.CoroutineDispatcher
@@ -141,6 +143,7 @@ class LibGdxBackend : EngineBackend {
     }
     override val ui: UiService = GdxImGuiService(input, runtimeStats)
     override val assets: GdxAssetService = GdxAssetService()
+    override val sceneFiles: SceneFileService = GdxSceneFileService()
     override val tasks: TaskService = GdxTaskService()
     override val renderer: Renderer = GdxRenderer3D(assets, ui)
 

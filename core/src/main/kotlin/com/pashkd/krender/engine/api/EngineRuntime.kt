@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.api
 
+import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.ui.UiService
 import kotlin.math.min
 
@@ -21,6 +22,8 @@ interface EngineContext {
     val scenes: SceneManager
     /** Shared asset service. */
     val assets: AssetService
+    /** Shared scene file service. */
+    val sceneFiles: SceneFileService
     /** Shared normalized input service. */
     val input: InputService
     /** Shared ImGui-backed UI service. */
@@ -54,6 +57,8 @@ interface EngineBackend {
     val ui: UiService
     /** Backend asset implementation. */
     val assets: AssetService
+    /** Backend scene file implementation. */
+    val sceneFiles: SceneFileService
     /** Backend logger implementation. */
     val logger: Logger
     /** Backend log history implementation. */
@@ -193,6 +198,8 @@ class EngineRuntime(
     override val scenes: SceneManager = SceneManager()
     /** Shared asset service exposed to scenes. */
     override val assets: AssetService = backend.assets
+    /** Shared scene file service exposed to scenes. */
+    override val sceneFiles: SceneFileService = backend.sceneFiles
     /** Shared input service exposed to scenes. */
     override val input: InputService = backend.input
     /** Shared UI service exposed to scenes. */

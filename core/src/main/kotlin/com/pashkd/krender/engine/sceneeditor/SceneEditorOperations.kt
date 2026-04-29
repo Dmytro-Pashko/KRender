@@ -1,9 +1,8 @@
 package com.pashkd.krender.engine.sceneeditor
 
-import com.badlogic.gdx.Gdx
 import com.pashkd.krender.engine.api.Color
+import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Entity
-import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
@@ -17,18 +16,18 @@ import java.util.UUID
 class SceneEditorOperations(
     private val document: SceneEditorDocument,
     private val state: SceneEditorState,
-    private val logger: Logger,
+    private val context: EngineContext,
 ) {
     fun createNewScene() {
-        logger.info(TAG) { "New scene creation started" }
+        context.logger.info(TAG) { "New scene creation started" }
         SceneEditorSceneFactory.createNewScene(document, state)
-        logger.info(TAG) {
+        context.logger.info(TAG) {
             "New scene created id='${document.descriptor?.id ?: "<missing>"}' entities=${document.world.all().size}"
         }
     }
 
     fun requestSave() {
-        logger.info(TAG) { "Scene save requested currentPath='${state.currentScenePath ?: "<none>"}'" }
+        context.logger.info(TAG) { "Scene save requested currentPath='${state.currentScenePath ?: "<none>"}'" }
         val path = state.currentScenePath
         if (path.isNullOrBlank()) {
             requestSaveAs()
@@ -57,18 +56,20 @@ class SceneEditorOperations(
         state.statusMessage = "Play Mode is not implemented yet."
     }
 
+    fun readSceneText(path: String): String =
+        context.sceneFiles.readText(path)
+
     private fun saveToPath(rawPath: String) {
         try {
             val path = normalizeScenePath(rawPath)
-            logger.info(TAG) { "Saving scene path='$path'" }
+            context.logger.info(TAG) { "Saving scene path='$path'" }
             val descriptor = SceneSerializer.toDescriptor(document, state)
-            logger.info(TAG) {
+            context.logger.info(TAG) {
                 "Scene descriptor prepared id='${descriptor.id}' entities=${descriptor.entities.size}"
             }
             val encoded = SceneSerializer.encode(descriptor)
-            val file = Gdx.files.local(path)
-            file.parent()?.mkdirs()
-            file.writeString(encoded, false, "UTF-8")
+            context.sceneFiles.ensureDirectories(path)
+            context.sceneFiles.writeText(path, encoded)
 
             document.descriptor = descriptor
             state.currentScenePath = path
@@ -77,11 +78,11 @@ class SceneEditorOperations(
             state.saveErrorMessage = null
             state.hasUnsavedChanges = false
             state.statusMessage = "Scene saved: $path"
-            logger.info(TAG) { "Scene saved path='$path' id='${descriptor.id}' entities=${descriptor.entities.size}" }
+            context.logger.info(TAG) { "Scene saved path='$path' id='${descriptor.id}' entities=${descriptor.entities.size}" }
         } catch (error: Exception) {
             state.saveErrorMessage = error.message
             state.statusMessage = "Save failed: ${error.message}"
-            logger.error(TAG, error) { "Failed to save scene path='$rawPath': ${error.message}" }
+            context.logger.error(TAG, error) { "Failed to save scene path='$rawPath': ${error.message}" }
         }
     }
 

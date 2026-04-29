@@ -49,7 +49,7 @@ class SceneEditorScene(
             sceneName = initialSceneName,
         )
         document = SceneEditorDocument(world = SceneWorld())
-        operations = SceneEditorOperations(document, editorState, engine.logger)
+        operations = SceneEditorOperations(document, editorState, engine)
         engine.logger.info(TAG) { "Initializing Scene Editor document world" }
         operations.createNewScene()
         scenePath?.let { path ->
