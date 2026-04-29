@@ -1,6 +1,27 @@
 package com.pashkd.krender.engine.sceneeditor
 
 import com.pashkd.krender.engine.api.EntityId
+import com.pashkd.krender.engine.api.Vec3
+
+/**
+ * Runtime-only camera settings mirrored into the Scene Editor UI.
+ */
+data class SceneEditorCameraState(
+    /** Current editor camera world-space position. */
+    var position: Vec3 = Vec3(0f, 2f, 6f),
+
+    /** Current editor camera euler rotation in degrees. */
+    var eulerDegrees: Vec3 = Vec3(-10f, 180f, 0f),
+
+    /** Base free-camera movement speed in world units per second. */
+    var speed: Float = 6f,
+
+    /** Mouse-look sensitivity in degrees per pixel. */
+    var sensitivity: Float = 0.18f,
+
+    /** True while right mouse is actively driving viewport camera navigation. */
+    var navigating: Boolean = false,
+)
 
 /**
  * Mutable UI state owned by one Scene Editor scene instance.
@@ -38,4 +59,10 @@ data class SceneEditorState(
 
     /** Non-null when the last open attempt failed; displayed in the UI as an error notice. */
     var openErrorMessage: String? = null,
+
+    /** Runtime-only editor viewport camera state; never serialized into `.krscene` files. */
+    var camera: SceneEditorCameraState = SceneEditorCameraState(),
+
+    /** True when the viewport panel is hovered or focused and can claim camera input. */
+    var viewportFocused: Boolean = false,
 )

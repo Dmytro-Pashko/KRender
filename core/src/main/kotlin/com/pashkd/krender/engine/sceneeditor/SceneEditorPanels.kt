@@ -67,12 +67,6 @@ class SceneEditorToolbarPanel(
                 saveAsBufferSynced = false
             }
         }
-        ImGui.sameLine()
-        with(dsl) {
-            button("Play##scene_editor_play") {
-                operations.requestPlayPlaceholder()
-            }
-        }
 
         ImGui.separator()
         ImGui.text("Scene: ${state.sceneName}")
@@ -80,6 +74,8 @@ class SceneEditorToolbarPanel(
         ImGui.text("Path: ${state.currentScenePath ?: "<memory>"}")
         ImGui.sameLine()
         ImGui.text("Dirty: ${if (state.hasUnsavedChanges) "yes" else "no"}")
+        ImGui.sameLine()
+        ImGui.text("Camera speed: ${"%.2f".format(state.camera.speed)}")
         ImGui.text("Status: ${state.statusMessage}")
 
         ImGui.end()
@@ -509,20 +505,27 @@ class SceneViewportPanel(
         val expanded = ImGui.begin(imguiWindowName(layout.title, SceneEditorPanelIds.Viewport))
         eventLogger.observe(SceneEditorPanelIds.Viewport, layout.title)
         if (!expanded) {
+            state.viewportFocused = false
             ImGui.end()
             return
         }
 
         ImGui.beginChild("scene_editor_viewport_body", Vec2(0f, 0f), true)
+        state.viewportFocused = ImGui.isWindowHovered() || ImGui.isWindowFocused()
         ImGui.text("Scene view")
         ImGui.separator()
         ImGui.text("Entities: ${document.world.all().count { entity -> entity.get<EditorOnlyComponent>() == null }}")
         ImGui.text("Selected: ${state.selectedEntityId?.toString() ?: "none"}")
-        ImGui.text("Camera and light placeholders are present in the runtime world.")
+        ImGui.text("Camera: ${formatPosition(state.camera.position)}")
+        ImGui.text("Speed: ${"%.2f".format(state.camera.speed)}${if (state.camera.navigating) " (navigating)" else ""}")
+        ImGui.text("RMB look, WASD move, Q/E down/up, wheel speed, Shift faster.")
         ImGui.endChild()
         ImGui.end()
     }
 }
+
+private fun formatPosition(position: Vec3): String =
+    "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
 private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
     ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())

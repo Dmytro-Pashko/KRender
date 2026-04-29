@@ -7,3 +7,7 @@ import com.pashkd.krender.engine.api.Component
  */
 class EditorOnlyComponent : Component
 
+/**
+ * Identifies the runtime camera used to inspect Scene Editor content.
+ */
+class SceneEditorCameraComponent : Component

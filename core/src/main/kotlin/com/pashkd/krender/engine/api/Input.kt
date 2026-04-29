@@ -75,6 +75,24 @@ enum class PointerPhase {
 }
 
 /**
+ * Enumerates normalized mouse buttons used by tools and editor cameras.
+ */
+enum class MouseButton {
+    /** Primary mouse button. */
+    Left,
+    /** Secondary mouse button. */
+    Right,
+    /** Middle mouse button or wheel click. */
+    Middle,
+    /** Browser/back auxiliary mouse button. */
+    Back,
+    /** Browser/forward auxiliary mouse button. */
+    Forward,
+    /** Fallback value for unmapped buttons. */
+    Unknown,
+}
+
+/**
  * Stores the state of one pointer for the current frame.
  */
 data class PointerState(
@@ -102,6 +120,12 @@ data class InputSnapshot(
     val keysPressedThisFrame: Set<Key> = emptySet(),
     /** Keys released during this frame. */
     val keysReleasedThisFrame: Set<Key> = emptySet(),
+    /** Mouse buttons currently held down. */
+    val mouseButtonsDown: Set<MouseButton> = emptySet(),
+    /** Mouse buttons pressed during this frame. */
+    val mouseButtonsPressedThisFrame: Set<MouseButton> = emptySet(),
+    /** Mouse buttons released during this frame. */
+    val mouseButtonsReleasedThisFrame: Set<MouseButton> = emptySet(),
     /** Current mouse position in viewport pixel space. */
     val mousePosition: Vec2 = Vec2.zero(),
     /** Mouse delta accumulated this frame. */
@@ -123,6 +147,12 @@ data class InputSnapshot(
     fun wasPressed(key: Key): Boolean = key in keysPressedThisFrame
     /** Returns whether the given key was released during this frame. */
     fun wasReleased(key: Key): Boolean = key in keysReleasedThisFrame
+    /** Returns whether the given mouse button is currently held. */
+    fun isMouseDown(button: MouseButton): Boolean = button in mouseButtonsDown
+    /** Returns whether the given mouse button was pressed during this frame. */
+    fun wasMousePressed(button: MouseButton): Boolean = button in mouseButtonsPressedThisFrame
+    /** Returns whether the given mouse button was released during this frame. */
+    fun wasMouseReleased(button: MouseButton): Boolean = button in mouseButtonsReleasedThisFrame
     /** Returns whether any UI layer is currently consuming user input. */
     fun isCapturedByUI(): Boolean = uiCapturesMouse || uiCapturesKeyboard
 }

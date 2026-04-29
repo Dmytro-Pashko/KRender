@@ -12,6 +12,8 @@ import com.pashkd.krender.engine.render3d.WorldGridSystem
 import com.pashkd.krender.engine.sceneeditor.EditorOnlyComponent
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocument
 import com.pashkd.krender.engine.sceneeditor.SceneEditorOperations
+import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraComponent
+import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorState
 import com.pashkd.krender.engine.sceneeditor.SceneEditorToolbarPanel
 import com.pashkd.krender.engine.sceneeditor.SceneEditorUiLayoutDefaults
@@ -56,12 +58,17 @@ class SceneEditorScene(
             operations.open(path)
         }
 
-        world.systems.add(WorldGridSystem(halfExtentCells = 24, cellSize = 1f))
-        world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
-        world.systems.add(ModelRenderSystem())
-
         createEditorCamera()
         createEditorLights()
+
+        world.systems.add(WorldGridSystem(halfExtentCells = 24, cellSize = 1f))
+        world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
+        world.systems.add(SceneEditorCameraSystem(engine.input, editorState))
+        world.systems.add(ModelRenderSystem())
+    }
+
+    override fun hide() {
+        engine.input.setCursorCaptured(false)
     }
 
     private fun createUiSystem(
@@ -82,14 +89,16 @@ class SceneEditorScene(
         camera.transform.position.set(0f, 2f, 6f)
         camera.transform.eulerDegrees.set(-10f, 180f, 0f)
         camera.add(EditorOnlyComponent())
+        camera.add(SceneEditorCameraComponent())
         camera.add(
             PerspectiveCameraComponent(
                 fieldOfViewDegrees = 67f,
                 near = 0.05f,
                 far = 250f,
-                lookAt = Vec3.zero(),
             ),
         )
+        editorState.camera.position = camera.transform.position.copy()
+        editorState.camera.eulerDegrees = camera.transform.eulerDegrees.copy()
     }
 
     private fun createEditorLights() {
