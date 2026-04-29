@@ -5,6 +5,7 @@ package com.pashkd.krender.engine.sceneeditor
  */
 data class SceneDescriptor(
     val schemaVersion: Int = CurrentSchemaVersion,
+    val id: String,
     val name: String,
     val entities: List<EntityDescriptor> = emptyList(),
     val settings: SceneSettingsDescriptor = SceneSettingsDescriptor(),

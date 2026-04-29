@@ -1,12 +1,14 @@
 package com.pashkd.krender.engine.sceneeditor
 
 import com.pashkd.krender.engine.api.Color
+import com.pashkd.krender.engine.api.Entity
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import java.util.UUID
 
 /**
  * Scene Editor UI operations. Keeps panel callbacks out of direct scene mutation details.
@@ -17,8 +19,11 @@ class SceneEditorOperations(
     private val logger: Logger,
 ) {
     fun createNewScene() {
-        logger.info(TAG) { "Creating new Scene Editor document" }
-        SceneEditorSceneFactory.createNewScene(document.world, state)
+        logger.info(TAG) { "New scene creation started" }
+        SceneEditorSceneFactory.createNewScene(document, state)
+        logger.info(TAG) {
+            "New scene created id='${document.descriptor?.id ?: "<missing>"}' entities=${document.world.all().size}"
+        }
     }
 
     fun requestSave() {
@@ -34,9 +39,35 @@ class SceneEditorOperations(
  * Creates the default editable scene content for a new scene document.
  */
 object SceneEditorSceneFactory {
-    fun createNewScene(world: SceneWorld, state: SceneEditorState) {
+    fun createNewScene(
+        document: SceneEditorDocument,
+        state: SceneEditorState,
+        sceneName: String = "Untitled Scene",
+    ) {
+        val world = document.world
         world.clear()
 
+        val camera = createDefaultCamera(world)
+        createDefaultDirectionalLight(world)
+
+        document.descriptor = SceneDescriptor(
+            id = generateSceneId(),
+            name = sceneName,
+            entities = emptyList(),
+            settings = SceneSettingsDescriptor(
+                activeCameraEntityId = camera.id,
+                ambientLightEntityId = null,
+            ),
+        )
+
+        state.sceneName = sceneName
+        state.currentScenePath = null
+        state.selectedEntityId = camera.id
+        state.hasUnsavedChanges = true
+        state.statusMessage = "New scene created"
+    }
+
+    private fun createDefaultCamera(world: SceneWorld): Entity {
         val camera = world.createEntity("Main Camera")
         camera.transform.position.set(0f, 2f, 6f)
         camera.transform.eulerDegrees.set(-10f, 180f, 0f)
@@ -48,7 +79,10 @@ object SceneEditorSceneFactory {
                 lookAt = Vec3.zero(),
             ),
         )
+        return camera
+    }
 
+    private fun createDefaultDirectionalLight(world: SceneWorld): Entity {
         val light = world.createEntity("Directional Light")
         light.add(
             LightComponent(
@@ -58,12 +92,8 @@ object SceneEditorSceneFactory {
                 direction = Vec3(-0.45f, -0.8f, -0.35f),
             ),
         )
-
-        state.sceneName = "Untitled Scene"
-        state.currentScenePath = null
-        state.selectedEntityId = null
-        state.hasUnsavedChanges = true
-        state.statusMessage = "New scene created"
+        return light
     }
-}
 
+    private fun generateSceneId(): String = "scene:${UUID.randomUUID()}"
+}

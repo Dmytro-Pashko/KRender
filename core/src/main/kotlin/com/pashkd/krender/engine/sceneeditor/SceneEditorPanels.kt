@@ -157,7 +157,7 @@ class SceneInspectorPanel(
     private fun drawEntity(entity: Entity) {
         ImGui.text("Name: ${entity.name}")
         ImGui.text("Id: ${entity.id}")
-        ImGui.checkbox("Active##scene_entity_active_${entity.id}", entity::active)
+        ImGui.text("Active: ${if (entity.active) "yes" else "no"}")
 
         entity.get<TransformComponent>()?.let { transform ->
             ImGui.separator()

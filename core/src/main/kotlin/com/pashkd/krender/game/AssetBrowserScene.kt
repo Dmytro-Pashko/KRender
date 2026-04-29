@@ -210,6 +210,7 @@ private class SceneOperationsHandler(
         """
         {
           "schemaVersion": 1,
+          "id": "scene:new",
           "name": "Untitled Scene",
           "entities": [],
           "settings": {}
