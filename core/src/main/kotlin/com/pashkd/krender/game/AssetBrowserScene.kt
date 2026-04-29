@@ -54,6 +54,7 @@ class AssetBrowserScene : Scene("asset_browser") {
         tools = AssetToolRegistry(engine.logger).apply {
             register(ModelViewerAssetTool { registry })
             register(TerrainEditorAssetTool())
+            register(SceneEditorAssetTool())
         }
         operations = LocalAssetOperationsService(
             registry = registry,
@@ -175,6 +176,7 @@ private class SceneOperationsHandler(
             AssetCategory.Texture -> "textures"
             AssetCategory.Material -> "materials"
             AssetCategory.Terrain -> "terrains"
+            AssetCategory.Scene -> "scenes"
             AssetCategory.Shader -> "shaders"
             else -> "assets"
         }
@@ -186,10 +188,11 @@ private class SceneOperationsHandler(
             AssetType.GdxModel -> "g3dj"
             AssetType.Texture -> "png"
             AssetType.Terrain -> "json"
+            AssetType.Scene -> "json"
             AssetType.Material -> "json"
             AssetType.Shader -> "glsl"
             AssetType.Unknown -> when (category) {
-                AssetCategory.Material, AssetCategory.Terrain -> "json"
+                AssetCategory.Material, AssetCategory.Terrain, AssetCategory.Scene -> "json"
                 AssetCategory.Shader -> "glsl"
                 else -> "bin"
             }
@@ -198,8 +201,19 @@ private class SceneOperationsHandler(
     private fun defaultContent(category: AssetCategory): ByteArray? =
         when (category) {
             AssetCategory.Material, AssetCategory.Terrain -> "{}\n".toByteArray()
+            AssetCategory.Scene -> defaultSceneContent().toByteArray()
             else -> null
         }
+
+    private fun defaultSceneContent(): String =
+        """
+        {
+          "schemaVersion": 1,
+          "name": "Untitled Scene",
+          "entities": [],
+          "settings": {}
+        }
+        """.trimIndent() + "\n"
 
     companion object {
         private const val TAG = "AssetBrowserSceneOps"
@@ -247,5 +261,28 @@ class TerrainEditorAssetTool : AssetTool {
 
     companion object {
         private const val TAG = "TerrainEditorAssetTool"
+    }
+}
+
+/**
+ * Opens scene assets in the [SceneEditorScene].
+ */
+class SceneEditorAssetTool : AssetTool {
+    override val id = "scene-editor"
+    override val displayName = "Scene Editor"
+    override val supportedCategories = setOf(AssetCategory.Scene)
+
+    override fun open(asset: AssetDescriptor, context: EngineContext) {
+        context.logger.info(TAG) { "Opening scene asset '${asset.path}' in SceneEditorScene" }
+        context.scenes.replace(
+            SceneEditorScene(
+                scenePath = asset.path,
+                initialSceneName = asset.name,
+            ),
+        )
+    }
+
+    companion object {
+        private const val TAG = "SceneEditorAssetTool"
     }
 }

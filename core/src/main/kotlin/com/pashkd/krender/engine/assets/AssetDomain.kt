@@ -33,6 +33,7 @@ enum class AssetType {
     GdxModel,
     Texture,
     Terrain,
+    Scene,
     Material,
     Shader,
     Unknown,
@@ -53,4 +54,3 @@ data class AssetDescriptor(
     val tags: List<String> = emptyList(),
     val metadata: Map<String, String> = emptyMap(),
 )
-

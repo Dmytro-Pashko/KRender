@@ -4,6 +4,7 @@ import com.pashkd.krender.engine.backend.gdx.GdxEngineApplication
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.game.AssetBrowserScene
 import com.pashkd.krender.game.ModelViewerScene
+import com.pashkd.krender.game.SceneEditorScene
 import com.pashkd.krender.game.TerrainEditorScene
 import java.io.File
 
@@ -14,6 +15,11 @@ class Main(
     initialScene = {
         when (sceneName.lowercase()) {
             "asset-browser" -> AssetBrowserScene()
+
+            "scene-editor" -> SceneEditorScene(
+                scenePath = defaultScenePath(),
+                initialSceneName = defaultSceneName(),
+            )
 
             "model-viewer" -> ModelViewerScene(
                 model = null,
@@ -38,12 +44,14 @@ class Main(
     },
 ) {
     companion object {
-        fun defaultScene(): String = System.getProperty("krender.scene", "terrain-generator")
+        fun defaultScene(): String = System.getProperty("krender.scene", "scene-editor")
         fun defaultModelPath(): String? = System.getProperty("krender.model")?.takeIf(String::isNotBlank)
         fun defaultTerrainResolution(): Int = System.getProperty("krender.terrain.size", "128").toIntOrNull() ?: 128
         fun defaultTerrainSpacing(): Float = System.getProperty("krender.terrain.spacing", "1.0").toFloatOrNull() ?: 1f
         fun defaultTerrainFilePath(): String =
             System.getProperty("krender.terrain.path", "terrains/terrain_01.json")
+        fun defaultScenePath(): String? = System.getProperty("krender.scene.path")?.takeIf(String::isNotBlank)
+        fun defaultSceneName(): String = System.getProperty("krender.scene.name", "Untitled Scene")
 
         private fun discoverModelPaths(selectedPath: String?): List<String> {
             val supportedExtensions = setOf("glb", "gltf", "g3db", "g3dj", "obj", "fbx")

@@ -1,0 +1,207 @@
+package com.pashkd.krender.engine.sceneeditor
+
+import com.pashkd.krender.engine.api.Entity
+import com.pashkd.krender.engine.api.NameComponent
+import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.ImGuiPanelLayout
+import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
+import com.pashkd.krender.engine.ui.UiPanel
+import glm_.vec2.Vec2
+import imgui.Cond
+import imgui.ImGui
+import imgui.dsl
+
+/**
+ * Top-level scene editor action/status panel.
+ */
+class SceneEditorToolbarPanel(
+    private val state: SceneEditorState,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Toolbar)
+        applyWindowDefaults(layout)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, SceneEditorPanelIds.Toolbar))
+        eventLogger.observe(SceneEditorPanelIds.Toolbar, layout.title)
+        if (!expanded) {
+            ImGui.end()
+            return
+        }
+
+        with(dsl) {
+            button("New Scene##scene_editor_new") {
+                state.currentScenePath = null
+                state.sceneName = "Untitled Scene"
+                state.selectedEntityId = null
+                state.hasUnsavedChanges = false
+                state.statusMessage = "New empty scene initialized."
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Save##scene_editor_save") {
+                state.statusMessage = "Scene persistence is not implemented yet."
+            }
+        }
+
+        ImGui.separator()
+        ImGui.text("Scene: ${state.sceneName}")
+        ImGui.sameLine()
+        ImGui.text("Path: ${state.currentScenePath ?: "<memory>"}")
+        ImGui.sameLine()
+        ImGui.text("Dirty: ${if (state.hasUnsavedChanges) "yes" else "no"}")
+        ImGui.text("Status: ${state.statusMessage}")
+
+        ImGui.end()
+    }
+}
+
+/**
+ * Lists entities from the edited world and controls the active selection.
+ */
+class SceneHierarchyPanel(
+    private val state: SceneEditorState,
+    private val world: SceneWorld,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Hierarchy)
+        applyWindowDefaults(layout)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, SceneEditorPanelIds.Hierarchy))
+        eventLogger.observe(SceneEditorPanelIds.Hierarchy, layout.title)
+        if (!expanded) {
+            ImGui.end()
+            return
+        }
+
+        val entities = world.all()
+        if (entities.isEmpty()) {
+            ImGui.text("No entities.")
+        } else {
+            entities.forEach { entity ->
+                val marker = if (entity.active) "" else " (inactive)"
+                val label = "${entity.name}$marker##scene_entity_${entity.id}"
+                if (ImGui.selectable(label, state.selectedEntityId == entity.id)) {
+                    state.selectedEntityId = entity.id
+                    state.statusMessage = "Selected ${entity.name}."
+                }
+            }
+        }
+
+        ImGui.end()
+    }
+}
+
+/**
+ * Shows read-only details for the selected entity and its current components.
+ */
+class SceneInspectorPanel(
+    private val state: SceneEditorState,
+    private val world: SceneWorld,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Inspector)
+        applyWindowDefaults(layout)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, SceneEditorPanelIds.Inspector))
+        eventLogger.observe(SceneEditorPanelIds.Inspector, layout.title)
+        if (!expanded) {
+            ImGui.end()
+            return
+        }
+
+        val entity = state.selectedEntityId?.let(world::getEntity)
+        if (entity == null) {
+            ImGui.text("No entity selected.")
+            ImGui.end()
+            return
+        }
+
+        drawEntity(entity)
+        ImGui.end()
+    }
+
+    private fun drawEntity(entity: Entity) {
+        ImGui.text("Name: ${entity.name}")
+        ImGui.text("Id: ${entity.id}")
+        ImGui.checkbox("Active##scene_entity_active_${entity.id}", entity::active)
+
+        entity.get<TransformComponent>()?.let { transform ->
+            ImGui.separator()
+            ImGui.text("Transform")
+            drawVec3("Position", transform.position)
+            drawVec3("Rotation", transform.eulerDegrees)
+            drawVec3("Scale", transform.scale)
+        }
+
+        entity.get<PerspectiveCameraComponent>()?.let { camera ->
+            ImGui.separator()
+            ImGui.text("Camera")
+            ImGui.text("FOV: ${"%.1f".format(camera.fieldOfViewDegrees)}")
+            ImGui.text("Near/Far: ${"%.2f".format(camera.near)} / ${"%.1f".format(camera.far)}")
+        }
+
+        entity.get<LightComponent>()?.let { light ->
+            ImGui.separator()
+            ImGui.text("Light")
+            ImGui.text("Type: ${light.type}")
+            ImGui.text("Intensity: ${"%.2f".format(light.intensity)}")
+        }
+
+        ImGui.separator()
+        ImGui.text("Components")
+        entity.components.all().forEach { component ->
+            ImGui.bulletText(component::class.simpleName ?: component::class.toString())
+        }
+    }
+
+    private fun drawVec3(label: String, value: Vec3) {
+        ImGui.text("$label: ${"%.2f".format(value.x)}, ${"%.2f".format(value.y)}, ${"%.2f".format(value.z)}")
+    }
+}
+
+/**
+ * Minimal viewport status panel. Rendering still goes through the engine renderer.
+ */
+class SceneViewportPanel(
+    private val state: SceneEditorState,
+    private val world: SceneWorld,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Viewport)
+        applyWindowDefaults(layout)
+        val expanded = ImGui.begin(imguiWindowName(layout.title, SceneEditorPanelIds.Viewport))
+        eventLogger.observe(SceneEditorPanelIds.Viewport, layout.title)
+        if (!expanded) {
+            ImGui.end()
+            return
+        }
+
+        ImGui.beginChild("scene_editor_viewport_body", Vec2(0f, 0f), true)
+        ImGui.text("Scene view")
+        ImGui.separator()
+        ImGui.text("Entities: ${world.all().size}")
+        ImGui.text("Selected: ${state.selectedEntityId?.toString() ?: "none"}")
+        ImGui.text("Camera and light placeholders are present in the runtime world.")
+        ImGui.endChild()
+        ImGui.end()
+    }
+}
+
+private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
+    ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
+    ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
+}
+
+private fun imguiWindowName(title: String, id: String): String = "$title###$id"
+

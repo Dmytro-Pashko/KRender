@@ -17,6 +17,7 @@ object AssetTypeDetector {
             extension == "g3db" || extension == "g3dj" -> AssetTypeDetection(AssetType.GdxModel, AssetCategory.Model)
             extension in textureExtensions -> AssetTypeDetection(AssetType.Texture, AssetCategory.Texture)
             lowerPath.startsWith("terrains/") && extension == "json" -> AssetTypeDetection(AssetType.Terrain, AssetCategory.Terrain)
+            lowerPath.startsWith("scenes/") && extension == "json" -> AssetTypeDetection(AssetType.Scene, AssetCategory.Scene)
             lowerPath.startsWith("materials/") && extension == "json" -> AssetTypeDetection(AssetType.Material, AssetCategory.Material)
             extension in shaderExtensions -> AssetTypeDetection(AssetType.Shader, AssetCategory.Shader)
             else -> AssetTypeDetection(AssetType.Unknown, AssetCategory.Unknown)
@@ -37,4 +38,3 @@ data class AssetTypeDetection(
 
 internal fun normalizePath(path: String): String =
     path.replace('\\', '/').trim().trimStart('/')
-
