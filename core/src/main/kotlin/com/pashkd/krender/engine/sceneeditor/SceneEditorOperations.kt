@@ -3,7 +3,11 @@ package com.pashkd.krender.engine.sceneeditor
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Entity
+import com.pashkd.krender.engine.api.EntityId
+import com.pashkd.krender.engine.api.NameComponent
+import com.pashkd.krender.engine.api.ParentComponent
 import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
@@ -46,6 +50,59 @@ class SceneEditorOperations(
 
     fun saveAs(path: String) {
         saveToPath(path)
+    }
+
+    fun createEmptyEntity() {
+        val entity = document.world.createEntity("Empty Entity")
+        state.selectedEntityId = entity.id
+        markSceneChanged("Created ${entity.name}.")
+        context.logger.info(TAG) { "Created empty scene entity id=${entity.id} name='${entity.name}'" }
+    }
+
+    fun renameEntity(entityId: EntityId, newName: String) {
+        val entity = editableEntity(entityId) ?: return
+        val trimmedName = newName.trim()
+        if (trimmedName.isBlank()) {
+            state.statusMessage = "Rename failed: entity name cannot be blank."
+            context.logger.warn(TAG) { "Rejected blank rename for entity id=$entityId" }
+            return
+        }
+
+        val nameComponent = entity.get<NameComponent>()
+        if (nameComponent != null) {
+            nameComponent.name = trimmedName
+        } else {
+            entity.add(NameComponent(trimmedName))
+        }
+        state.selectedEntityId = entity.id
+        markSceneChanged("Renamed entity to $trimmedName.")
+        context.logger.info(TAG) { "Renamed entity id=$entityId name='$trimmedName'" }
+    }
+
+    fun deleteEntity(entityId: EntityId) {
+        val entity = editableEntity(entityId) ?: return
+        val detachedChildren = detachChildren(entity.id)
+        document.world.removeEntity(entity.id)
+        if (state.selectedEntityId == entity.id) {
+            state.selectedEntityId = null
+        }
+        val childMessage = if (detachedChildren == 0) "" else " Detached $detachedChildren child entity links."
+        markSceneChanged("Deleted ${entity.name}.$childMessage")
+        context.logger.info(TAG) {
+            "Deleted entity id=$entityId name='${entity.name}' detachedChildren=$detachedChildren"
+        }
+    }
+
+    fun duplicateEntity(entityId: EntityId) {
+        val source = editableEntity(entityId) ?: return
+        val duplicate = document.world.createEntity("${source.name} Copy")
+        duplicate.active = source.active
+        duplicateSupportedComponents(source, duplicate)
+        state.selectedEntityId = duplicate.id
+        markSceneChanged("Duplicated ${source.name}.")
+        context.logger.info(TAG) {
+            "Duplicated entity id=${source.id} name='${source.name}' as id=${duplicate.id} name='${duplicate.name}'"
+        }
     }
 
     fun requestOpen() {
@@ -131,6 +188,83 @@ class SceneEditorOperations(
     private fun sanitizeSceneName(name: String): String {
         val sanitized = name.trim().replace(Regex("\\s+"), "_")
         return sanitized.takeIf(String::isNotBlank) ?: "Untitled_Scene"
+    }
+
+    private fun editableEntity(entityId: EntityId): Entity? {
+        val entity = document.world.getEntity(entityId)
+        if (entity == null) {
+            state.selectedEntityId = state.selectedEntityId?.takeIf { it != entityId }
+            state.statusMessage = "Entity not found."
+            context.logger.warn(TAG) { "Scene entity operation ignored because entity id=$entityId was not found" }
+            return null
+        }
+        if (entity.get<EditorOnlyComponent>() != null) {
+            state.statusMessage = "Editor-only entities cannot be edited from the hierarchy."
+            context.logger.warn(TAG) { "Scene entity operation rejected for editor-only entity id=$entityId" }
+            return null
+        }
+        return entity
+    }
+
+    private fun detachChildren(parentId: EntityId): Int {
+        var detached = 0
+        document.world.all().forEach { child ->
+            val parent = child.get<ParentComponent>() ?: return@forEach
+            if (parent.parentId == parentId) {
+                // MVP hierarchy deletion removes only the selected entity and promotes children to roots.
+                child.remove(ParentComponent::class)
+                detached += 1
+            }
+        }
+        return detached
+    }
+
+    private fun duplicateSupportedComponents(source: Entity, duplicate: Entity) {
+        source.get<NameComponent>()?.let { component ->
+            duplicate.add(NameComponent("${component.name} Copy"))
+        }
+        source.get<TransformComponent>()?.let { component ->
+            duplicate.add(component.cloneForSceneEntity())
+        }
+        source.get<ParentComponent>()?.let { component ->
+            val parent = document.world.getEntity(component.parentId)
+            if (parent != null && parent.get<EditorOnlyComponent>() == null) {
+                duplicate.add(ParentComponent(component.parentId))
+            }
+        }
+        source.get<PerspectiveCameraComponent>()?.let { component ->
+            duplicate.add(
+                PerspectiveCameraComponent(
+                    fieldOfViewDegrees = component.fieldOfViewDegrees,
+                    near = component.near,
+                    far = component.far,
+                    lookAt = component.lookAt?.copy(),
+                ),
+            )
+        }
+        source.get<LightComponent>()?.let { component ->
+            duplicate.add(
+                LightComponent(
+                    type = component.type,
+                    color = component.color.copy(),
+                    intensity = component.intensity,
+                    direction = component.direction.copy(),
+                ),
+            )
+        }
+    }
+
+    private fun TransformComponent.cloneForSceneEntity(): TransformComponent =
+        TransformComponent(
+            position = position.copy(),
+            rotation = rotation.copy(),
+            eulerDegrees = eulerDegrees.copy(),
+            scale = scale.copy(),
+        )
+
+    private fun markSceneChanged(message: String) {
+        state.hasUnsavedChanges = true
+        state.statusMessage = message
     }
 
     companion object {

@@ -178,11 +178,14 @@ class SceneEditorToolbarPanel(
 class SceneHierarchyPanel(
     private val state: SceneEditorState,
     private val document: SceneEditorDocument,
+    private val operations: SceneEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
     private val logger: Logger,
 ) : UiPanel {
     private var lastFilteredEditorOnlyIds: Set<EntityId> = emptySet()
+    private val renameBuffer = ByteArray(RenameInputBufferSize)
+    private var renameRequested = false
 
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Hierarchy)
@@ -193,6 +196,10 @@ class SceneHierarchyPanel(
             ImGui.end()
             return
         }
+
+        clearInvalidSelection()
+        drawEntityToolbar()
+        ImGui.separator()
 
         val entities = visibleSceneEntities()
         if (entities.isEmpty()) {
@@ -209,6 +216,95 @@ class SceneHierarchyPanel(
         }
 
         ImGui.end()
+        drawRenameDialog()
+    }
+
+    private fun drawEntityToolbar() {
+        with(dsl) {
+            button("Create Empty##scene_hierarchy_create_empty") {
+                operations.createEmptyEntity()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Rename##scene_hierarchy_rename") {
+                val entity = selectedEditableEntity()
+                if (entity == null) {
+                    state.statusMessage = "Select an entity to rename."
+                } else {
+                    writeBuffer(renameBuffer, entity.name)
+                    renameRequested = true
+                }
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Delete##scene_hierarchy_delete") {
+                val entityId = state.selectedEntityId
+                if (entityId == null || selectedEditableEntity() == null) {
+                    state.statusMessage = "Select an entity to delete."
+                } else {
+                    operations.deleteEntity(entityId)
+                }
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Duplicate##scene_hierarchy_duplicate") {
+                val entityId = state.selectedEntityId
+                if (entityId == null || selectedEditableEntity() == null) {
+                    state.statusMessage = "Select an entity to duplicate."
+                } else {
+                    operations.duplicateEntity(entityId)
+                }
+            }
+        }
+    }
+
+    private fun drawRenameDialog() {
+        if (!renameRequested) return
+        ImGui.openPopup("Rename Entity##scene_hierarchy_rename_popup")
+        if (!ImGui.beginPopupModal("Rename Entity##scene_hierarchy_rename_popup")) return
+
+        ImGui.text("Name")
+        ImGui.sameLine()
+        ImGui.inputText("##scene_hierarchy_rename_name", renameBuffer)
+
+        ImGui.separator()
+        with(dsl) {
+            button("Rename##scene_hierarchy_rename_ok") {
+                val entityId = state.selectedEntityId
+                if (entityId == null || selectedEditableEntity() == null) {
+                    state.statusMessage = "Select an entity to rename."
+                } else {
+                    operations.renameEntity(entityId, readBuffer(renameBuffer))
+                    renameRequested = false
+                    ImGui.closeCurrentPopup()
+                }
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Cancel##scene_hierarchy_rename_cancel") {
+                renameRequested = false
+                ImGui.closeCurrentPopup()
+            }
+        }
+        ImGui.endPopup()
+    }
+
+    private fun clearInvalidSelection() {
+        val selectedId = state.selectedEntityId ?: return
+        val entity = document.world.getEntity(selectedId)
+        if (entity == null || entity.get<EditorOnlyComponent>() != null) {
+            state.selectedEntityId = null
+        }
+    }
+
+    private fun selectedEditableEntity(): Entity? {
+        val selectedId = state.selectedEntityId ?: return null
+        return document.world.getEntity(selectedId)
+            ?.takeUnless { entity -> entity.get<EditorOnlyComponent>() != null }
     }
 
     private fun visibleSceneEntities(): List<Entity> {
@@ -226,6 +322,7 @@ class SceneHierarchyPanel(
 
     companion object {
         private const val TAG = "SceneHierarchyPanel"
+        private const val RenameInputBufferSize = 128
     }
 }
 

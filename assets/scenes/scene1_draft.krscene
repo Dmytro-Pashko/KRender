@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "id": "scene:1f80ba29-ac1c-4c79-86cc-cce4b7652ead",
+  "name": "Untitled Scene",
+  "entities": [
+    {
+      "id": 1,
+      "name": "Main Camera",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Main Camera"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,2.0,6.0",
+            "rotation": "-10.0,180.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "PerspectiveCameraComponent",
+          "properties": {
+            "fieldOfViewDegrees": "67.0",
+            "near": "0.05",
+            "far": "250.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Directional Light",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Directional Light"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Directional",
+            "intensity": "1.2",
+            "color": "1.0,0.96,0.88,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Empty2",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Empty2"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Empty Entity",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Empty Entity"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Empty3",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Empty3"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "5",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "5"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Empty1",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Empty1"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "3333",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "3333"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "tTesst",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "tTesst"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Empty1 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Empty1 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "activeCameraEntityId": 1,
+    "ambientLightEntityId": null
+  }
+}
