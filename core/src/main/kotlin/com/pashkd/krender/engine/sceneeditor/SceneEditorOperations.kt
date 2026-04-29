@@ -11,6 +11,7 @@ import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
+import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import java.util.UUID
 
@@ -67,6 +68,7 @@ class SceneEditorOperations(
             context.logger.warn(TAG) { "Rejected blank rename for entity id=$entityId" }
             return
         }
+        if (entity.name == trimmedName) return
 
         val nameComponent = entity.get<NameComponent>()
         if (nameComponent != null) {
@@ -77,6 +79,78 @@ class SceneEditorOperations(
         state.selectedEntityId = entity.id
         markSceneChanged("Renamed entity to $trimmedName.")
         context.logger.info(TAG) { "Renamed entity id=$entityId name='$trimmedName'" }
+    }
+
+    fun setEntityName(entityId: EntityId, name: String) {
+        renameEntity(entityId, name)
+    }
+
+    fun setEntityActive(entityId: EntityId, active: Boolean) {
+        val entity = editableEntity(entityId) ?: return
+        if (entity.active == active) return
+
+        entity.active = active
+        markSceneChanged("${entity.name} is now ${if (active) "active" else "inactive"}.")
+        context.logger.info(TAG) { "Set entity active id=$entityId active=$active" }
+    }
+
+    fun setTransformPosition(entityId: EntityId, position: Vec3) {
+        val entity = editableEntity(entityId) ?: return
+        val transform = entity.get<TransformComponent>() ?: return transformMissing(entityId)
+        if (transform.position == position) return
+
+        transform.position.set(position.x, position.y, position.z)
+        markSceneChanged("Updated ${entity.name} position.")
+        context.logger.debug(TAG) { "Updated transform position entityId=$entityId value=$position" }
+    }
+
+    fun setTransformRotation(entityId: EntityId, eulerDegrees: Vec3) {
+        val entity = editableEntity(entityId) ?: return
+        val transform = entity.get<TransformComponent>() ?: return transformMissing(entityId)
+        if (transform.eulerDegrees == eulerDegrees) return
+
+        transform.eulerDegrees.set(eulerDegrees.x, eulerDegrees.y, eulerDegrees.z)
+        markSceneChanged("Updated ${entity.name} rotation.")
+        context.logger.debug(TAG) { "Updated transform rotation entityId=$entityId value=$eulerDegrees" }
+    }
+
+    fun setTransformScale(entityId: EntityId, scale: Vec3) {
+        val entity = editableEntity(entityId) ?: return
+        val transform = entity.get<TransformComponent>() ?: return transformMissing(entityId)
+        if (transform.scale == scale) return
+
+        transform.scale.set(scale.x, scale.y, scale.z)
+        markSceneChanged("Updated ${entity.name} scale.")
+        context.logger.debug(TAG) { "Updated transform scale entityId=$entityId value=$scale" }
+    }
+
+    fun addTransformComponent(entityId: EntityId) {
+        val entity = editableEntity(entityId) ?: return
+        if (entity.get<TransformComponent>() != null) {
+            state.statusMessage = "${entity.name} already has a TransformComponent."
+            return
+        }
+
+        entity.add(TransformComponent())
+        markSceneChanged("Added TransformComponent to ${entity.name}.")
+        context.logger.info(TAG) { "Added TransformComponent entityId=$entityId" }
+    }
+
+    fun removeTransformComponent(entityId: EntityId) {
+        val entity = editableEntity(entityId) ?: return
+        if (entity.get<TransformComponent>() == null) {
+            state.statusMessage = "${entity.name} does not have a TransformComponent."
+            return
+        }
+        if (requiresTransform(entity)) {
+            state.statusMessage = "TransformComponent is required by ${entity.name}."
+            context.logger.warn(TAG) { "Rejected TransformComponent removal for required entityId=$entityId" }
+            return
+        }
+
+        entity.remove(TransformComponent::class)
+        markSceneChanged("Removed TransformComponent from ${entity.name}.")
+        context.logger.info(TAG) { "Removed TransformComponent entityId=$entityId" }
     }
 
     fun deleteEntity(entityId: EntityId) {
@@ -206,6 +280,16 @@ class SceneEditorOperations(
         return entity
     }
 
+    private fun transformMissing(entityId: EntityId) {
+        state.statusMessage = "Entity has no TransformComponent."
+        context.logger.warn(TAG) { "Scene transform edit ignored because entity id=$entityId has no TransformComponent" }
+    }
+
+    private fun requiresTransform(entity: Entity): Boolean =
+        entity.get<PerspectiveCameraComponent>() != null ||
+            entity.get<LightComponent>() != null ||
+            entity.get<ModelComponent>() != null
+
     private fun detachChildren(parentId: EntityId): Int {
         var detached = 0
         document.world.all().forEach { child ->
@@ -220,9 +304,7 @@ class SceneEditorOperations(
     }
 
     private fun duplicateSupportedComponents(source: Entity, duplicate: Entity) {
-        source.get<NameComponent>()?.let { component ->
-            duplicate.add(NameComponent("${component.name} Copy"))
-        }
+        // NameComponent is not duplicated explicitly because createEntity already sets it.
         source.get<TransformComponent>()?.let { component ->
             duplicate.add(component.cloneForSceneEntity())
         }

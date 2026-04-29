@@ -71,7 +71,7 @@ class SceneEditorScene(
         UiSystem(engine.ui).also { uiSystem ->
             uiSystem.addPanel(SceneEditorToolbarPanel(editorState, operations, layoutConfig, panelEventLogger))
             uiSystem.addPanel(SceneHierarchyPanel(editorState, document, operations, layoutConfig, panelEventLogger, engine.logger))
-            uiSystem.addPanel(SceneInspectorPanel(editorState, document, layoutConfig, panelEventLogger, engine.logger))
+            uiSystem.addPanel(SceneInspectorPanel(editorState, document, operations, layoutConfig, panelEventLogger, engine.logger))
             uiSystem.addPanel(SceneViewportPanel(editorState, document, layoutConfig, panelEventLogger))
             uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
         }

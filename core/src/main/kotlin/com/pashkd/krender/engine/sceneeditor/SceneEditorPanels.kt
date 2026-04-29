@@ -6,6 +6,7 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiPanelLayout
@@ -98,7 +99,7 @@ class SceneEditorToolbarPanel(
 
         ImGui.text("Path")
         ImGui.sameLine()
-        if (ImGui.inputText("##scene_editor_open_path", openPathBuffer)) {
+        if (safeInputText("##scene_editor_open_path", openPathBuffer)) {
             state.openPath = readBuffer(openPathBuffer)
         }
         state.openErrorMessage?.let { error ->
@@ -138,7 +139,7 @@ class SceneEditorToolbarPanel(
 
         ImGui.text("Path")
         ImGui.sameLine()
-        if (ImGui.inputText("##scene_editor_save_as_path", saveAsPathBuffer)) {
+        if (safeInputText("##scene_editor_save_as_path", saveAsPathBuffer)) {
             state.saveAsPath = readBuffer(saveAsPathBuffer)
         }
         state.saveErrorMessage?.let { error ->
@@ -268,7 +269,7 @@ class SceneHierarchyPanel(
 
         ImGui.text("Name")
         ImGui.sameLine()
-        ImGui.inputText("##scene_hierarchy_rename_name", renameBuffer)
+        safeInputText("##scene_hierarchy_rename_name", renameBuffer)
 
         ImGui.separator()
         with(dsl) {
@@ -327,15 +328,20 @@ class SceneHierarchyPanel(
 }
 
 /**
- * Shows read-only details for the selected entity and its current components.
+ * Edits the selected entity's supported MVP fields and lists its current components.
  */
 class SceneInspectorPanel(
     private val state: SceneEditorState,
     private val document: SceneEditorDocument,
+    private val operations: SceneEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
     private val logger: Logger,
 ) : UiPanel {
+    private val nameBuffer = ByteArray(NameInputBufferSize)
+    private var bufferedEntityId: EntityId? = null
+    private var nameInputActive = false
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Inspector)
         applyWindowDefaults(layout)
@@ -355,27 +361,36 @@ class SceneInspectorPanel(
             return
         }
         if (entity == null) {
+            if (state.selectedEntityId != null) {
+                logger.debug(TAG) { "Clearing missing selection entityId=${state.selectedEntityId}" }
+                state.selectedEntityId = null
+            }
             ImGui.text("No entity selected.")
             ImGui.end()
             return
         }
 
+        syncNameBuffer(entity)
         drawEntity(entity)
         ImGui.end()
     }
 
     private fun drawEntity(entity: Entity) {
-        ImGui.text("Name: ${entity.name}")
-        ImGui.text("Id: ${entity.id}")
-        ImGui.text("Active: ${if (entity.active) "yes" else "no"}")
-
-        entity.get<TransformComponent>()?.let { transform ->
-            ImGui.separator()
-            ImGui.text("Transform")
-            drawVec3("Position", transform.position)
-            drawVec3("Rotation", transform.eulerDegrees)
-            drawVec3("Scale", transform.scale)
+        ImGui.text("Name")
+        ImGui.sameLine()
+        if (safeInputText("##scene_inspector_entity_name", nameBuffer)) {
+            operations.setEntityName(entity.id, readBuffer(nameBuffer))
         }
+        nameInputActive = ImGui.isItemActive
+
+        ImGui.text("Id: ${entity.id}")
+        val active = booleanArrayOf(entity.active)
+        if (ImGui.checkbox("Active##scene_inspector_entity_active", active)) {
+            operations.setEntityActive(entity.id, active[0])
+        }
+
+        ImGui.separator()
+        drawTransform(entity)
 
         entity.get<PerspectiveCameraComponent>()?.let { camera ->
             ImGui.separator()
@@ -396,14 +411,86 @@ class SceneInspectorPanel(
         entity.components.all().forEach { component ->
             ImGui.bulletText(component::class.simpleName ?: component::class.toString())
         }
+        drawComponentActions(entity)
     }
 
-    private fun drawVec3(label: String, value: Vec3) {
-        ImGui.text("$label: ${"%.2f".format(value.x)}, ${"%.2f".format(value.y)}, ${"%.2f".format(value.z)}")
+    private fun drawTransform(entity: Entity) {
+        val transform = entity.get<TransformComponent>()
+        ImGui.text("Transform")
+        if (transform == null) {
+            ImGui.text("No TransformComponent.")
+            with(dsl) {
+                button("Add Transform##scene_inspector_add_transform") {
+                    operations.addTransformComponent(entity.id)
+                }
+            }
+            return
+        }
+
+        if (drawVec3Editor("Position##scene_inspector_transform_position", transform.position)) {
+            operations.setTransformPosition(entity.id, transformBuffer.toVec3())
+        }
+        if (drawVec3Editor("Rotation##scene_inspector_transform_rotation", transform.eulerDegrees)) {
+            operations.setTransformRotation(entity.id, transformBuffer.toVec3())
+        }
+        if (drawVec3Editor("Scale##scene_inspector_transform_scale", transform.scale)) {
+            operations.setTransformScale(entity.id, transformBuffer.toVec3())
+        }
     }
+
+    private fun drawComponentActions(entity: Entity) {
+        val hasTransform = entity.get<TransformComponent>() != null
+        if (!hasTransform) {
+            with(dsl) {
+                button("Add TransformComponent##scene_inspector_components_add_transform") {
+                    operations.addTransformComponent(entity.id)
+                }
+            }
+            return
+        }
+
+        val transformRequired = entity.get<PerspectiveCameraComponent>() != null ||
+            entity.get<LightComponent>() != null ||
+            entity.get<ModelComponent>() != null
+        ImGui.beginDisabled(transformRequired)
+        with(dsl) {
+            button("Remove TransformComponent##scene_inspector_components_remove_transform") {
+                operations.removeTransformComponent(entity.id)
+            }
+        }
+        ImGui.endDisabled()
+        if (transformRequired) {
+            ImGui.text("TransformComponent is required by camera, light, or model components.")
+        }
+    }
+
+    private fun drawVec3Editor(label: String, value: Vec3): Boolean {
+        transformBuffer[0] = value.x
+        transformBuffer[1] = value.y
+        transformBuffer[2] = value.z
+        return ImGui.drag3(label, transformBuffer, DragSpeed, 0f, 0f, "%.3f")
+    }
+
+    private fun syncNameBuffer(entity: Entity) {
+        if (bufferedEntityId != entity.id) {
+            bufferedEntityId = entity.id
+            writeBuffer(nameBuffer, entity.name)
+            return
+        }
+
+        if (!nameInputActive && readBuffer(nameBuffer) != entity.name) {
+            writeBuffer(nameBuffer, entity.name)
+        }
+    }
+
+    private fun FloatArray.toVec3(): Vec3 = Vec3(this[0], this[1], this[2])
+
+    private val transformBuffer = FloatArray(3)
 
     companion object {
         private const val TAG = "SceneInspectorPanel"
+        private const val NameInputBufferSize = 128
+        private const val DragSpeed = 0.05f
     }
 }
 
@@ -455,3 +542,12 @@ private fun writeBuffer(buffer: ByteArray, value: String) {
     val length = minOf(bytes.size, buffer.size - 1)
     bytes.copyInto(buffer, endIndex = length)
 }
+
+private fun safeInputText(label: String, buffer: ByteArray): Boolean =
+    try {
+        ImGui.inputText(label, buffer)
+    } catch (_: ArrayIndexOutOfBoundsException) {
+        // imgui-core 1.89.7-1 can produce a negative copy length while committing text.
+        // Keep the editor alive and preserve the last valid buffer contents.
+        false
+    }
