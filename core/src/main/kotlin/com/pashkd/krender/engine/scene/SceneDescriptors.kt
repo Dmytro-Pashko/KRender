@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.sceneeditor
+package com.pashkd.krender.engine.scene
 
 /**
  * Serializable scene root shape used by the Scene Editor.

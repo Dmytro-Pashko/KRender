@@ -5,8 +5,8 @@ import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.ModelRenderSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.sceneeditor.SceneDescriptor
-import com.pashkd.krender.engine.sceneeditor.SceneSerializer
+import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneSerializer
 
 /**
  * Runtime-only scene that loads saved `.krscene` content into an isolated world.

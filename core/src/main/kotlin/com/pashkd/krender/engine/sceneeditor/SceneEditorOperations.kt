@@ -14,6 +14,9 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneSerializer
+import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
 import kotlin.math.cos
 import kotlin.math.sin
 import java.util.UUID
@@ -285,7 +288,12 @@ class SceneEditorOperations(
         try {
             val path = ScenePathUtils.normalizeScenePath(rawPath)
             context.logger.info(TAG) { "Saving scene path='$path'" }
-            val descriptor = SceneSerializer.toDescriptor(document, state)
+            val descriptor = SceneSerializer.toDescriptor(
+                world = document.world,
+                sceneName = state.sceneName,
+                existingDescriptor = document.descriptor,
+                includeEntity = { entity -> entity.get<EditorOnlyComponent>() == null },
+            )
             context.logger.info(TAG) {
                 "Scene descriptor prepared id='${descriptor.id}' entities=${descriptor.entities.size}"
             }

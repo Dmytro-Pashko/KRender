@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.sceneeditor
+package com.pashkd.krender.engine.scene
 
 import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.JsonValue
@@ -19,22 +19,24 @@ import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import java.util.UUID
 
 /**
- * Converts Scene Editor documents to and from the `.krscene` descriptor format.
+ * Converts runtime scene worlds to and from the `.krscene` descriptor format.
  */
 object SceneSerializer {
     fun toDescriptor(
-        document: SceneEditorDocument,
-        state: SceneEditorState,
+        world: SceneWorld,
+        sceneName: String,
+        existingDescriptor: SceneDescriptor? = null,
+        includeEntity: (Entity) -> Boolean = { true },
     ): SceneDescriptor {
-        val entities = document.world.all()
-            .filterNot(::isEditorOnly)
+        val entities = world.all()
+            .filter(includeEntity)
             .map(::toEntityDescriptor)
-        val existingSettings = document.descriptor?.settings
+        val existingSettings = existingDescriptor?.settings
         val activeCameraEntityId = existingSettings
             ?.activeCameraEntityId
             ?.takeIf { id -> entities.any { it.id == id } }
-            ?: document.world.all()
-                .firstOrNull { entity -> !isEditorOnly(entity) && entity.get<PerspectiveCameraComponent>() != null }
+            ?: world.all()
+                .firstOrNull { entity -> includeEntity(entity) && entity.get<PerspectiveCameraComponent>() != null }
                 ?.id
         val ambientLightEntityId = existingSettings
             ?.ambientLightEntityId
@@ -42,8 +44,8 @@ object SceneSerializer {
 
         return SceneDescriptor(
             schemaVersion = SceneDescriptor.CurrentSchemaVersion,
-            id = document.descriptor?.id ?: generateSceneId(),
-            name = state.sceneName,
+            id = existingDescriptor?.id ?: generateSceneId(),
+            name = sceneName,
             entities = entities,
             settings = SceneSettingsDescriptor(
                 activeCameraEntityId = activeCameraEntityId,
@@ -218,8 +220,6 @@ object SceneSerializer {
             ambientLightEntityId = settingsNode.get("ambientLightEntityId")?.takeUnless { it.isNull }?.asLong(),
         )
     }
-
-    private fun isEditorOnly(entity: Entity): Boolean = entity.get<EditorOnlyComponent>() != null
 
     private fun generateSceneId(): String = "scene:${UUID.randomUUID()}"
 
