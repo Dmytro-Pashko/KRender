@@ -2,6 +2,7 @@ package com.pashkd.krender.engine.sceneeditor
 
 import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.JsonValue
+import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Component
 import com.pashkd.krender.engine.api.Entity
@@ -13,6 +14,7 @@ import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
+import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import java.util.UUID
 
@@ -136,6 +138,11 @@ object SceneSerializer {
                     "color" to component.color.csv(),
                     "direction" to component.direction.csv(),
                 ),
+            )
+
+            is ModelComponent -> ComponentDescriptor(
+                type = "ModelComponent",
+                properties = mapOf("model" to component.model.path),
             )
 
             else -> null
@@ -287,6 +294,9 @@ object SceneDeserializer {
                 "PerspectiveCameraComponent" -> entity.add(readCamera(component, entity.id, logger))
 
                 "LightComponent" -> entity.add(readLight(component, entity.id, logger))
+
+                "ModelComponent" -> readModel(component, entity.id, logger)
+                    ?.let(entity::add)
             }
         }
     }
@@ -348,6 +358,19 @@ object SceneDeserializer {
                 logger,
             ),
         )
+
+    private fun readModel(
+        component: ComponentDescriptor,
+        entityId: Long,
+        logger: Logger?,
+    ): ModelComponent? {
+        val path = component.properties["model"]?.trim()?.replace('\\', '/') ?: ""
+        if (path.isBlank()) {
+            logger?.warn(TAG) { "Invalid ModelComponent.model for entityId=$entityId value='<missing>'; skipping component" }
+            return null
+        }
+        return ModelComponent(model = AssetRef.model(path))
+    }
 
     private fun readVec3(
         raw: String?,

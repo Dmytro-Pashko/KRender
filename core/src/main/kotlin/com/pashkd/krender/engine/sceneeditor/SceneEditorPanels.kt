@@ -404,6 +404,12 @@ class SceneInspectorPanel(
             ImGui.text("Intensity: ${"%.2f".format(light.intensity)}")
         }
 
+        entity.get<ModelComponent>()?.let { model ->
+            ImGui.separator()
+            ImGui.text("Model")
+            ImGui.text("Path: ${model.model.path}")
+        }
+
         ImGui.separator()
         ImGui.text("Components")
         entity.components.all().forEach { component ->
@@ -498,9 +504,13 @@ class SceneInspectorPanel(
 class SceneViewportPanel(
     private val state: SceneEditorState,
     private val document: SceneEditorDocument,
+    private val operations: SceneEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val modelPathBuffer = ByteArray(TextInputBufferSize)
+    private var modelPathBufferSynced = false
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Viewport)
         applyWindowDefaults(layout)
@@ -512,6 +522,7 @@ class SceneViewportPanel(
             return
         }
 
+        syncModelPathBuffer()
         ImGui.beginChild("scene_editor_viewport_body", Vec2(0f, 0f), true)
         state.viewportFocused = ImGui.isWindowHovered() || ImGui.isWindowFocused()
         ImGui.text("Scene view")
@@ -542,6 +553,30 @@ class SceneViewportPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
+        ImGui.separator()
+        ImGui.text("Place Model")
+        ImGui.text("Path")
+        ImGui.sameLine()
+        if (safeInputText("##scene_viewport_place_model_path", modelPathBuffer)) {
+            state.modelPlacementPath = readBuffer(modelPathBuffer)
+        }
+        slider(
+            "Distance##scene_viewport_place_model_distance",
+            state::placeModelDistance,
+            MinPlaceModelDistance,
+            MaxPlaceModelDistance,
+            "%.1f",
+            SliderFlag.AlwaysClamp,
+        )
+        with(dsl) {
+            button("Place Model##scene_viewport_place_model") {
+                operations.placeModel(state.modelPlacementPath)
+                modelPathBufferSynced = false
+            }
+        }
+        state.modelPlacementError?.let { error ->
+            ImGui.text("Last error: $error")
+        }
         ImGui.endChild()
         ImGui.end()
     }
@@ -551,11 +586,20 @@ class SceneViewportPanel(
         private const val MaxGridHalfExtentCells = 256
         private const val MinGridCellSize = 0.05f
         private const val MaxGridCellSize = 16f
+        private const val MinPlaceModelDistance = 0f
+        private const val MaxPlaceModelDistance = 100f
+        private const val TextInputBufferSize = 256
     }
 
     private fun selectedEntityName(): String {
         val entityId = state.selectedEntityId ?: return "none"
         return document.world.getEntity(entityId)?.name ?: "missing #$entityId"
+    }
+
+    private fun syncModelPathBuffer() {
+        if (modelPathBufferSynced) return
+        writeBuffer(modelPathBuffer, state.modelPlacementPath)
+        modelPathBufferSynced = true
     }
 }
 

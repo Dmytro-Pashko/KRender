@@ -6,13 +6,13 @@ import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
-import com.pashkd.krender.engine.render3d.ModelRenderSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.sceneeditor.EditorOnlyComponent
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocument
 import com.pashkd.krender.engine.sceneeditor.SceneEditorOperations
 import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraComponent
 import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraSystem
+import com.pashkd.krender.engine.sceneeditor.SceneEditorDocumentRenderSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorSelectionSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorState
 import com.pashkd.krender.engine.sceneeditor.SceneEditorToolbarPanel
@@ -66,7 +66,7 @@ class SceneEditorScene(
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(SceneEditorCameraSystem(engine.input, editorState))
         world.systems.add(SceneEditorSelectionSystem(engine.input, document, editorState, engine.logger))
-        world.systems.add(ModelRenderSystem())
+        world.systems.add(SceneEditorDocumentRenderSystem(document))
     }
 
     override fun hide() {
@@ -81,7 +81,7 @@ class SceneEditorScene(
             uiSystem.addPanel(SceneEditorToolbarPanel(editorState, operations, layoutConfig, panelEventLogger))
             uiSystem.addPanel(SceneHierarchyPanel(editorState, document, operations, layoutConfig, panelEventLogger, engine.logger))
             uiSystem.addPanel(SceneInspectorPanel(editorState, document, operations, layoutConfig, panelEventLogger, engine.logger))
-            uiSystem.addPanel(SceneViewportPanel(editorState, document, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(SceneViewportPanel(editorState, document, operations, layoutConfig, panelEventLogger))
             uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
         }
 

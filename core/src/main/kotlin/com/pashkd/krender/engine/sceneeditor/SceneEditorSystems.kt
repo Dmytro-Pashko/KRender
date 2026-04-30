@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.sceneeditor
 
 import com.pashkd.krender.engine.api.Color
+import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.DrawWorldGrid
@@ -15,6 +16,7 @@ import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import kotlin.math.cos
 import kotlin.math.pow
@@ -46,6 +48,29 @@ class SceneEditorViewportGuideSystem(
 
     companion object {
         private const val MinCellSize = 0.01f
+    }
+}
+
+/**
+ * Bridges renderable entities from the editable document world into the editor runtime render command buffer.
+ */
+class SceneEditorDocumentRenderSystem(
+    private val document: SceneEditorDocument,
+) : System() {
+    override fun render(world: SceneWorld, alpha: Float) {
+        document.world.all().forEach { entity ->
+            if (!entity.active || entity.get<EditorOnlyComponent>() != null) return@forEach
+            val transform = entity.get<TransformComponent>() ?: return@forEach
+            val model = entity.get<ModelComponent>() ?: return@forEach
+            world.renderCommands.submit(
+                DrawModel(
+                    entityId = entity.id,
+                    model = model.model,
+                    transform = transform.snapshot(),
+                    material = model.material,
+                ),
+            )
+        }
     }
 }
 

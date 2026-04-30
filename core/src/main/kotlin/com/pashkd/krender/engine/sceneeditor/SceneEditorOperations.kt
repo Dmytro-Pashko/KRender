@@ -4,6 +4,7 @@ import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Entity
 import com.pashkd.krender.engine.api.EntityId
+import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.NameComponent
 import com.pashkd.krender.engine.api.ParentComponent
 import com.pashkd.krender.engine.api.SceneWorld
@@ -13,6 +14,8 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import kotlin.math.cos
+import kotlin.math.sin
 import java.util.UUID
 
 /**
@@ -58,6 +61,26 @@ class SceneEditorOperations(
         state.selectedEntityId = entity.id
         markSceneChanged("Created ${entity.name}.")
         context.logger.info(TAG) { "Created empty scene entity id=${entity.id} name='${entity.name}'" }
+    }
+
+    fun placeModel(path: String) {
+        val normalizedPath = normalizeModelPath(path)
+        if (normalizedPath.isBlank()) {
+            state.modelPlacementError = "Model path cannot be blank."
+            state.statusMessage = "Place model failed: model path cannot be blank."
+            context.logger.warn(TAG) { "Rejected model placement with blank path" }
+            return
+        }
+
+        val entity = document.world.createEntity(modelEntityName(normalizedPath))
+        entity.transform.position = placementPositionInFrontOfCamera()
+        entity.add(ModelComponent(model = AssetRef.model(normalizedPath)))
+
+        state.modelPlacementPath = normalizedPath
+        state.modelPlacementError = null
+        state.selectedEntityId = entity.id
+        markSceneChanged("Placed model: $normalizedPath")
+        context.logger.info(TAG) { "Placed model entity id=${entity.id} name='${entity.name}' model='$normalizedPath'" }
     }
 
     fun renameEntity(entityId: EntityId, newName: String) {
@@ -334,6 +357,37 @@ class SceneEditorOperations(
                 ),
             )
         }
+        source.get<ModelComponent>()?.let { component ->
+            duplicate.add(ModelComponent(model = AssetRef.model(component.model.path)))
+        }
+    }
+
+    private fun normalizeModelPath(path: String): String =
+        path.trim().replace('\\', '/')
+
+    private fun modelEntityName(path: String): String {
+        val fileName = path.substringAfterLast('/').ifBlank { "Model" }
+        val baseName = fileName.substringBeforeLast('.', fileName)
+        val words = baseName
+            .replace(Regex("[_\\-]+"), " ")
+            .trim()
+            .split(Regex("\\s+"))
+            .filter(String::isNotBlank)
+        if (words.isEmpty()) return "Model"
+        return words.joinToString(" ") { word -> word.first().uppercaseChar().toString() + word.drop(1) }
+    }
+
+    private fun placementPositionInFrontOfCamera(): Vec3 {
+        val origin = state.camera.position
+        val rotation = state.camera.eulerDegrees
+        val pitch = Math.toRadians(rotation.x.toDouble())
+        val yaw = Math.toRadians(rotation.y.toDouble())
+        val forward = Vec3(
+            x = (sin(yaw) * cos(pitch)).toFloat(),
+            y = sin(pitch).toFloat(),
+            z = (cos(yaw) * cos(pitch)).toFloat(),
+        )
+        return origin + forward * state.placeModelDistance.coerceAtLeast(0f)
     }
 
     private fun TransformComponent.cloneForSceneEntity(): TransformComponent =

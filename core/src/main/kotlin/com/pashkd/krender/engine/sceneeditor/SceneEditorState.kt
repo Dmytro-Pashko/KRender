@@ -77,4 +77,13 @@ data class SceneEditorState(
 
     /** World-space size of one editor viewport grid cell. */
     var gridCellSize: Float = 1f,
+
+    /** Runtime-only model path typed into the Scene Editor placement UI. */
+    var modelPlacementPath: String = "",
+
+    /** Non-null when the last model placement request failed validation. */
+    var modelPlacementError: String? = null,
+
+    /** Distance in front of the editor camera used for newly placed model entities. */
+    var placeModelDistance: Float = 5f,
 )
