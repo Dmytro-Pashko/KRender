@@ -8,7 +8,6 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelRenderSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.render3d.WorldGridSystem
 import com.pashkd.krender.engine.sceneeditor.EditorOnlyComponent
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocument
 import com.pashkd.krender.engine.sceneeditor.SceneEditorOperations
@@ -17,6 +16,7 @@ import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorState
 import com.pashkd.krender.engine.sceneeditor.SceneEditorToolbarPanel
 import com.pashkd.krender.engine.sceneeditor.SceneEditorUiLayoutDefaults
+import com.pashkd.krender.engine.sceneeditor.SceneEditorViewportGuideSystem
 import com.pashkd.krender.engine.sceneeditor.SceneHierarchyPanel
 import com.pashkd.krender.engine.sceneeditor.SceneInspectorPanel
 import com.pashkd.krender.engine.sceneeditor.SceneViewportPanel
@@ -61,7 +61,7 @@ class SceneEditorScene(
         createEditorCamera()
         createEditorLights()
 
-        world.systems.add(WorldGridSystem(halfExtentCells = 24, cellSize = 1f))
+        world.systems.add(SceneEditorViewportGuideSystem(editorState))
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(SceneEditorCameraSystem(engine.input, editorState))
         world.systems.add(ModelRenderSystem())

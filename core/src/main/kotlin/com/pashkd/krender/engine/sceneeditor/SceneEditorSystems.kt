@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.sceneeditor
 
+import com.pashkd.krender.engine.api.DrawWorldAxes
+import com.pashkd.krender.engine.api.DrawWorldGrid
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.InputSnapshot
 import com.pashkd.krender.engine.api.Key
@@ -13,6 +15,33 @@ import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+
+/**
+ * Emits editor-only viewport guide draw commands from Scene Editor display state.
+ */
+class SceneEditorViewportGuideSystem(
+    private val state: SceneEditorState,
+) : System() {
+    override fun render(world: SceneWorld, alpha: Float) {
+        val halfExtentCells = state.gridHalfExtentCells.coerceAtLeast(1)
+        val cellSize = state.gridCellSize.coerceAtLeast(MinCellSize)
+        if (state.showGrid) {
+            world.renderCommands.submit(
+                DrawWorldGrid(
+                    halfExtentCells = halfExtentCells,
+                    cellSize = cellSize,
+                ),
+            )
+        }
+        if (state.showAxes) {
+            world.renderCommands.submit(DrawWorldAxes(length = halfExtentCells * cellSize))
+        }
+    }
+
+    companion object {
+        private const val MinCellSize = 0.01f
+    }
+}
 
 /**
  * Runtime-only free camera controller for the Scene Editor viewport.

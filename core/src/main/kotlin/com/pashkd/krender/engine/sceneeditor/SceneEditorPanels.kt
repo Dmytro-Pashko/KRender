@@ -15,6 +15,8 @@ import com.pashkd.krender.engine.ui.UiPanel
 import glm_.vec2.Vec2
 import imgui.Cond
 import imgui.ImGui
+import imgui.SliderFlag
+import imgui.api.slider
 import imgui.dsl
 import java.nio.charset.StandardCharsets
 
@@ -519,8 +521,36 @@ class SceneViewportPanel(
         ImGui.text("Camera: ${formatPosition(state.camera.position)}")
         ImGui.text("Speed: ${"%.2f".format(state.camera.speed)}${if (state.camera.navigating) " (navigating)" else ""}")
         ImGui.text("RMB look, WASD move, Q/E down/up, wheel speed, Shift faster.")
+        ImGui.separator()
+        ImGui.text("Guides")
+        ImGui.checkbox("Grid##scene_viewport_show_grid", state::showGrid)
+        ImGui.sameLine()
+        ImGui.checkbox("Axes##scene_viewport_show_axes", state::showAxes)
+        slider(
+            "Grid extent##scene_viewport_grid_extent",
+            state::gridHalfExtentCells,
+            MinGridHalfExtentCells,
+            MaxGridHalfExtentCells,
+            "%d",
+            SliderFlag.AlwaysClamp,
+        )
+        slider(
+            "Cell size##scene_viewport_grid_cell_size",
+            state::gridCellSize,
+            MinGridCellSize,
+            MaxGridCellSize,
+            "%.2f",
+            SliderFlag.AlwaysClamp,
+        )
         ImGui.endChild()
         ImGui.end()
+    }
+
+    companion object {
+        private const val MinGridHalfExtentCells = 1
+        private const val MaxGridHalfExtentCells = 256
+        private const val MinGridCellSize = 0.05f
+        private const val MaxGridCellSize = 16f
     }
 }
 

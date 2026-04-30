@@ -65,4 +65,16 @@ data class SceneEditorState(
 
     /** True when the viewport panel is hovered or focused and can claim camera input. */
     var viewportFocused: Boolean = false,
+
+    /** Runtime-only editor preference for drawing the viewport grid; never serialized into `.krscene` files. */
+    var showGrid: Boolean = true,
+
+    /** Runtime-only editor preference for drawing world axes; never serialized into `.krscene` files. */
+    var showAxes: Boolean = true,
+
+    /** Grid extent in cells from the world origin for editor viewport guides. */
+    var gridHalfExtentCells: Int = 24,
+
+    /** World-space size of one editor viewport grid cell. */
+    var gridCellSize: Float = 1f,
 )
