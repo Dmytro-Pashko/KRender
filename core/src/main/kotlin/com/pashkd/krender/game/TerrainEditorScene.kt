@@ -14,7 +14,7 @@ import com.pashkd.krender.engine.terrain.PerlinNoiseGenerator
 import com.pashkd.krender.engine.terrain.SimplexNoiseGenerator
 import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
 import com.pashkd.krender.engine.terrain.TerrainCameraControllerSystem
-import com.pashkd.krender.engine.terrain.TerrainComponent
+import com.pashkd.krender.engine.terrain.TerrainDataComponent
 import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainEditorBrushPanel
 import com.pashkd.krender.engine.terrain.TerrainEditorControlsPanel
@@ -229,7 +229,7 @@ class TerrainEditorScene(
         editorState.vertexSpacing = terrainData.vertexSpacing
 
         val terrain = world.createEntity("Terrain")
-        terrain.add(TerrainComponent(terrainData))
+        terrain.add(TerrainDataComponent(terrainData))
         terrain.add(
             TerrainRendererComponent(
                 modelId = "terrain_${terrainData.width}x${terrainData.height}",

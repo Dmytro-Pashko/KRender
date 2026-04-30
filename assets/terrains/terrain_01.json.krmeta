@@ -1,8 +1,10 @@
 {
-  "id": "asset:39565150-bc6f-4b62-a08d-54d626ce632e",
+  "schemaVersion": 1,
+  "id": "asset:0917addf-1e4c-4b19-8de7-1a570cfbeba3",
   "type": "Terrain",
   "category": "Terrain",
   "displayName": "terrain_01",
   "tags": [],
+  "importerId": null,
   "importSettings": {}
 }

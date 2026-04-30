@@ -86,4 +86,10 @@ data class SceneEditorState(
 
     /** Distance in front of the editor camera used for newly placed model entities. */
     var placeModelDistance: Float = 5f,
+
+    /** Runtime-only terrain path typed into the Scene Editor placement UI. */
+    var terrainPlacementPath: String = "",
+
+    /** Non-null when the last terrain placement request failed validation. */
+    var terrainPlacementError: String? = null,
 )

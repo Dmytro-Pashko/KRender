@@ -79,7 +79,7 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "6.030208E-16,0.132,1.0759611",
+            "position": "6.030208E-16,-0.068,1.0759611",
             "rotation": "0.0,0.0,0.0",
             "scale": "0.5,0.55,0.45"
           }
@@ -107,7 +107,7 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "6.903,0.136,2.942",
+            "position": "6.903,-0.064,2.942",
             "rotation": "0.0,0.0,1.45",
             "scale": "1.0,1.0,1.0"
           }
@@ -163,8 +163,8 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "5.0,-0.35,4.8",
-            "rotation": "0.0,-75.05,-0.45",
+            "position": "5.0,-0.1,4.8",
+            "rotation": "-3.45,-74.8,-0.45",
             "scale": "1.0,1.0,1.0"
           }
         },
@@ -275,7 +275,7 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "0.85,0.15,4.05",
+            "position": "0.85,0.0,4.05",
             "rotation": "0.0,0.0,0.0",
             "scale": "0.45,0.5,0.5"
           }
@@ -592,6 +592,35 @@
           "type": "ModelComponent",
           "properties": {
             "model": "model/m_rock_08.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Terrain 01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Terrain 01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-10.3,-0.1,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "TerrainComponent",
+          "properties": {
+            "terrain": "terrains/terrain_01.json",
+            "visible": "true"
           }
         }
       ]

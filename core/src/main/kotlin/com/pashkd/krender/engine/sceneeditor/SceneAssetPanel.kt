@@ -24,6 +24,7 @@ import imgui.dsl
 data class SceneAssetPanelState(
     var searchQuery: String = "",
     var selectedAssetPath: String? = null,
+    var selectedAssetCategory: AssetCategory? = null,
     var statusMessage: String = "",
 )
 
@@ -85,9 +86,25 @@ class SceneAssetBrowserModel(
     fun modelAssets(): List<AssetDescriptor> =
         assets.filter { asset -> asset.category == AssetCategory.Model }
 
+    fun terrainAssets(): List<AssetDescriptor> =
+        assets.filter { asset -> asset.category == AssetCategory.Terrain }
+
     fun filteredModelAssets(): List<AssetDescriptor> {
         val query = state.searchQuery.trim().lowercase()
         return modelAssets()
+            .asSequence()
+            .filter { asset ->
+                query.isBlank() ||
+                    asset.name.lowercase().contains(query) ||
+                    asset.path.lowercase().contains(query)
+            }
+            .sortedWith(compareBy<AssetDescriptor> { it.name.lowercase() }.thenBy { it.path.lowercase() })
+            .toList()
+    }
+
+    fun filteredTerrainAssets(): List<AssetDescriptor> {
+        val query = state.searchQuery.trim().lowercase()
+        return terrainAssets()
             .asSequence()
             .filter { asset ->
                 query.isBlank() ||
@@ -102,7 +119,7 @@ class SceneAssetBrowserModel(
         registry.applySnapshot(snapshot)
         assets = snapshot.assets
         errorMessage = snapshot.errors.firstOrNull()?.let { "Scan error: ${it.path} (${it.message})" }
-        state.statusMessage = "Indexed ${modelAssets().size} model assets."
+        state.statusMessage = "Indexed ${modelAssets().size} model assets and ${terrainAssets().size} terrain assets."
         isScanning = false
         scanInFlight = false
     }
@@ -124,7 +141,7 @@ class SceneAssetBrowserSystem(
 }
 
 /**
- * Embedded Scene Editor asset panel for selecting and placing model assets.
+ * Embedded Scene Editor asset panel for selecting and placing scene assets.
  */
 class SceneAssetPanel(
     private val panelState: SceneAssetPanelState,
@@ -137,12 +154,15 @@ class SceneAssetPanel(
 ) : UiPanel {
     private val searchBuffer = ByteArray(TextInputBufferSize)
     private val modelPathBuffer = ByteArray(TextInputBufferSize)
+    private val terrainPathBuffer = ByteArray(TextInputBufferSize)
     private var searchInputActive = false
     private var modelPathInputActive = false
+    private var terrainPathInputActive = false
 
     override fun draw() {
         syncSearchBuffer()
         syncModelPathBuffer()
+        syncTerrainPathBuffer()
 
         val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Assets)
         applyWindowDefaults(layout)
@@ -184,7 +204,8 @@ class SceneAssetPanel(
     }
 
     private fun drawAssetsList() {
-        ImGui.beginChild("scene_assets_model_list", Vec2(0f, ModelListHeight), true)
+        ImGui.text("Models")
+        ImGui.beginChild("scene_assets_model_list", Vec2(0f, AssetListHeight), true)
         val allModels = assetBrowser.modelAssets()
         val visibleModels = assetBrowser.filteredModelAssets()
         when {
@@ -202,10 +223,30 @@ class SceneAssetPanel(
             else -> visibleModels.forEach(::drawAssetRow)
         }
         ImGui.endChild()
+
+        ImGui.text("Terrains")
+        ImGui.beginChild("scene_assets_terrain_list", Vec2(0f, AssetListHeight), true)
+        val allTerrains = assetBrowser.terrainAssets()
+        val visibleTerrains = assetBrowser.filteredTerrainAssets()
+        when {
+            allTerrains.isEmpty() -> {
+                ImGui.text("No terrain assets found.")
+                with(dsl) {
+                    button("Refresh##scene_assets_empty_terrain_refresh") {
+                        assetBrowser.requestRefresh()
+                    }
+                }
+            }
+            visibleTerrains.isEmpty() -> {
+                ImGui.text("No terrain assets match the current search.")
+            }
+            else -> visibleTerrains.forEach(::drawAssetRow)
+        }
+        ImGui.endChild()
     }
 
     private fun drawAssetRow(asset: AssetDescriptor) {
-        val selected = panelState.selectedAssetPath == asset.path
+        val selected = panelState.selectedAssetPath == asset.path && panelState.selectedAssetCategory == asset.category
         if (ImGui.selectable("${asset.name}##scene_asset_${asset.id.value}", selected)) {
             selectAsset(asset)
         }
@@ -251,6 +292,37 @@ class SceneAssetPanel(
         editorState.modelPlacementError?.let { error ->
             ImGui.text("Last error: $error")
         }
+
+        ImGui.separator()
+        with(dsl) {
+            button("Place Terrain##scene_assets_place_selected_terrain") {
+                placeSelectedTerrain()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Open in Terrain Editor##scene_assets_open_terrain_editor") {
+                openSelectedInTerrainEditor()
+            }
+        }
+
+        ImGui.text("Terrain Path")
+        ImGui.sameLine()
+        if (safeInputText("##scene_assets_manual_terrain_path", terrainPathBuffer)) {
+            editorState.terrainPlacementPath = readBuffer(terrainPathBuffer)
+        }
+        terrainPathInputActive = ImGui.isItemActive
+
+        with(dsl) {
+            button("Place Terrain##scene_assets_place_manual_terrain") {
+                operations.placeTerrain(editorState.terrainPlacementPath)
+                panelState.statusMessage = editorState.statusMessage
+                terrainPathInputActive = false
+            }
+        }
+        editorState.terrainPlacementError?.let { error ->
+            ImGui.text("Last terrain error: $error")
+        }
     }
 
     private fun drawStatus() {
@@ -264,16 +336,30 @@ class SceneAssetPanel(
 
     private fun selectAsset(asset: AssetDescriptor) {
         panelState.selectedAssetPath = asset.path
-        editorState.modelPlacementPath = asset.path
-        editorState.modelPlacementError = null
-        panelState.statusMessage = "Selected model: ${asset.path}"
+        panelState.selectedAssetCategory = asset.category
+        when (asset.category) {
+            AssetCategory.Model -> {
+                editorState.modelPlacementPath = asset.path
+                editorState.modelPlacementError = null
+                panelState.statusMessage = "Selected model: ${asset.path}"
+                modelPathInputActive = false
+            }
+            AssetCategory.Terrain -> {
+                editorState.terrainPlacementPath = asset.path
+                editorState.terrainPlacementError = null
+                panelState.statusMessage = "Selected terrain: ${asset.path}"
+                terrainPathInputActive = false
+            }
+            else -> {
+                panelState.statusMessage = "Selected asset: ${asset.path}"
+            }
+        }
         editorState.statusMessage = panelState.statusMessage
-        modelPathInputActive = false
     }
 
     private fun placeSelectedModel() {
         val selectedPath = panelState.selectedAssetPath
-        if (selectedPath.isNullOrBlank()) {
+        if (selectedPath.isNullOrBlank() || panelState.selectedAssetCategory != AssetCategory.Model) {
             panelState.statusMessage = "Select a model first."
             editorState.statusMessage = panelState.statusMessage
             return
@@ -285,7 +371,7 @@ class SceneAssetPanel(
 
     private fun openSelectedInModelViewer() {
         val selectedPath = panelState.selectedAssetPath
-        if (selectedPath.isNullOrBlank()) {
+        if (selectedPath.isNullOrBlank() || panelState.selectedAssetCategory != AssetCategory.Model) {
             panelState.statusMessage = "Select a model first."
             editorState.statusMessage = panelState.statusMessage
             return
@@ -302,6 +388,39 @@ class SceneAssetPanel(
         }
     }
 
+    private fun placeSelectedTerrain() {
+        val selectedPath = panelState.selectedAssetPath
+        if (selectedPath.isNullOrBlank() || panelState.selectedAssetCategory != AssetCategory.Terrain) {
+            val fallbackPath = editorState.terrainPlacementPath
+            if (fallbackPath.isBlank()) {
+                panelState.statusMessage = "Select a terrain first."
+                editorState.statusMessage = panelState.statusMessage
+                return
+            }
+            operations.placeTerrain(fallbackPath)
+        } else {
+            operations.placeTerrain(selectedPath)
+        }
+        panelState.statusMessage = editorState.statusMessage
+    }
+
+    private fun openSelectedInTerrainEditor() {
+        val selectedPath = panelState.selectedAssetPath
+        val terrainPath = if (panelState.selectedAssetCategory == AssetCategory.Terrain) {
+            selectedPath
+        } else {
+            editorState.terrainPlacementPath
+        }
+        if (terrainPath.isNullOrBlank()) {
+            panelState.statusMessage = "Select a terrain first."
+            editorState.statusMessage = panelState.statusMessage
+            return
+        }
+
+        operations.openTerrainInEditor(terrainPath)
+        panelState.statusMessage = editorState.statusMessage
+    }
+
     private fun syncSearchBuffer() {
         if (!searchInputActive && readBuffer(searchBuffer) != panelState.searchQuery) {
             writeBuffer(searchBuffer, panelState.searchQuery)
@@ -314,10 +433,16 @@ class SceneAssetPanel(
         }
     }
 
+    private fun syncTerrainPathBuffer() {
+        if (!terrainPathInputActive && readBuffer(terrainPathBuffer) != editorState.terrainPlacementPath) {
+            writeBuffer(terrainPathBuffer, editorState.terrainPlacementPath)
+        }
+    }
+
     companion object {
         private const val TAG = "SceneAssetPanel"
         private const val TextInputBufferSize = 256
-        private const val ModelListHeight = 124f
+        private const val AssetListHeight = 88f
         private const val MinPlaceModelDistance = 0f
         private const val MaxPlaceModelDistance = 100f
     }

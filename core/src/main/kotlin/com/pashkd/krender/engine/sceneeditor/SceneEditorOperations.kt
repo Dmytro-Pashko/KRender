@@ -17,6 +17,7 @@ import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
+import com.pashkd.krender.engine.terrain.TerrainComponent
 import kotlin.math.cos
 import kotlin.math.sin
 import java.util.UUID
@@ -86,6 +87,26 @@ class SceneEditorOperations(
         context.logger.info(TAG) { "Placed model entity id=${entity.id} name='${entity.name}' model='$normalizedPath'" }
     }
 
+    fun placeTerrain(path: String) {
+        val normalizedPath = normalizeAssetPath(path)
+        if (normalizedPath.isBlank()) {
+            state.terrainPlacementError = "Terrain path cannot be blank."
+            state.statusMessage = "Place terrain failed: terrain path cannot be blank."
+            context.logger.warn(TAG) { "Rejected terrain placement with blank path" }
+            return
+        }
+
+        val entity = document.world.createEntity(terrainEntityName(normalizedPath))
+        entity.transform.position.set(0f, 0f, 0f)
+        entity.add(TerrainComponent(terrain = AssetRef.terrain(normalizedPath)))
+
+        state.terrainPlacementPath = normalizedPath
+        state.terrainPlacementError = null
+        state.selectedEntityId = entity.id
+        markSceneChanged("Placed terrain: $normalizedPath")
+        context.logger.info(TAG) { "Placed terrain entity id=${entity.id} name='${entity.name}' terrain='$normalizedPath'" }
+    }
+
     fun renameEntity(entityId: EntityId, newName: String) {
         val entity = editableEntity(entityId) ?: return
         val trimmedName = newName.trim()
@@ -118,6 +139,34 @@ class SceneEditorOperations(
         entity.active = active
         markSceneChanged("${entity.name} is now ${if (active) "active" else "inactive"}.")
         context.logger.info(TAG) { "Set entity active id=$entityId active=$active" }
+    }
+
+    fun setTerrainVisible(entityId: EntityId, visible: Boolean) {
+        val entity = editableEntity(entityId) ?: return
+        val terrain = entity.get<TerrainComponent>() ?: return
+        if (terrain.visible == visible) return
+
+        terrain.visible = visible
+        markSceneChanged("Updated ${entity.name} terrain visibility.")
+        context.logger.info(TAG) { "Set terrain visible entityId=$entityId visible=$visible" }
+    }
+
+    fun openTerrainInEditor(path: String) {
+        val normalizedPath = normalizeAssetPath(path)
+        if (normalizedPath.isBlank()) {
+            state.statusMessage = "Open Terrain Editor failed: terrain path cannot be blank."
+            context.logger.warn(TAG) { "Rejected Terrain Editor launch with blank path" }
+            return
+        }
+
+        try {
+            context.editorToolLauncher.launchTerrainEditor(normalizedPath)
+            state.statusMessage = "Opened in Terrain Editor: $normalizedPath"
+            context.logger.info(TAG) { "Opened terrain '$normalizedPath' in Terrain Editor" }
+        } catch (error: Exception) {
+            state.statusMessage = "Failed to open Terrain Editor: ${error.message}"
+            context.logger.error(TAG, error) { "Failed to open terrain '$normalizedPath' in Terrain Editor: ${error.message}" }
+        }
     }
 
     fun setTransformPosition(entityId: EntityId, position: Vec3) {
@@ -348,7 +397,8 @@ class SceneEditorOperations(
     private fun requiresTransform(entity: Entity): Boolean =
         entity.get<PerspectiveCameraComponent>() != null ||
             entity.get<LightComponent>() != null ||
-            entity.get<ModelComponent>() != null
+            entity.get<ModelComponent>() != null ||
+            entity.get<TerrainComponent>() != null
 
     private fun detachChildren(parentId: EntityId): Int {
         var detached = 0
@@ -397,9 +447,15 @@ class SceneEditorOperations(
         source.get<ModelComponent>()?.let { component ->
             duplicate.add(ModelComponent(model = AssetRef.model(component.model.path)))
         }
+        source.get<TerrainComponent>()?.let { component ->
+            duplicate.add(TerrainComponent(terrain = AssetRef.terrain(component.terrain.path), visible = component.visible))
+        }
     }
 
     private fun normalizeModelPath(path: String): String =
+        normalizeAssetPath(path)
+
+    private fun normalizeAssetPath(path: String): String =
         path.trim().replace('\\', '/')
 
     private fun modelEntityName(path: String): String {
@@ -412,6 +468,11 @@ class SceneEditorOperations(
             .filter(String::isNotBlank)
         if (words.isEmpty()) return "Model"
         return words.joinToString(" ") { word -> word.first().uppercaseChar().toString() + word.drop(1) }
+    }
+
+    private fun terrainEntityName(path: String): String {
+        val name = modelEntityName(path)
+        return if (name == "Model") "Terrain" else name
     }
 
     private fun placementPositionInFrontOfCamera(): Vec3 {

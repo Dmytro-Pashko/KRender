@@ -7,6 +7,8 @@ import com.pashkd.krender.engine.render3d.ModelRenderSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
+import com.pashkd.krender.engine.terrain.TerrainAssetSyncSystem
+import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 
 /**
  * Runtime-only scene that loads saved `.krscene` content into an isolated world.
@@ -15,7 +17,9 @@ class RuntimeScene(
     private val scenePath: String?,
 ) : Scene("runtime_scene") {
     override fun show() {
+        world.systems.add(TerrainAssetSyncSystem(engine.logger))
         world.systems.add(ModelRenderSystem())
+        world.systems.add(TerrainRenderSystem())
         loadScene()
     }
 

@@ -1,15 +1,25 @@
 package com.pashkd.krender.engine.terrain
 
 import com.badlogic.gdx.graphics.Texture
+import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Component
 import com.pashkd.krender.engine.api.DynamicModel
+import com.pashkd.krender.engine.api.TerrainAsset
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.Material
 
 /**
- * ECS component that owns editable terrain data.
+ * ECS component that references a file-backed terrain asset in a scene.
  */
 data class TerrainComponent(
+    val terrain: AssetRef<TerrainAsset>,
+    var visible: Boolean = true,
+) : Component
+
+/**
+ * ECS component that owns editable terrain data inside the Terrain Editor.
+ */
+data class TerrainDataComponent(
     var data: TerrainData,
 ) : Component {
     var dirty: Boolean = true
@@ -39,7 +49,7 @@ enum class TerrainDisplayMode {
 }
 
 /**
- * ECS component that stores terrain render state generated from [TerrainComponent].
+ * ECS component that stores terrain render state generated from terrain data or assets.
  */
 data class TerrainRendererComponent(
     var modelId: String,

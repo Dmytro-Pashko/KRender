@@ -16,6 +16,7 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.terrain.TerrainComponent
 import java.util.UUID
 
 /**
@@ -145,6 +146,14 @@ object SceneSerializer {
             is ModelComponent -> ComponentDescriptor(
                 type = "ModelComponent",
                 properties = mapOf("model" to component.model.path),
+            )
+
+            is TerrainComponent -> ComponentDescriptor(
+                type = "TerrainComponent",
+                properties = mapOf(
+                    "terrain" to component.terrain.path.trim().replace('\\', '/'),
+                    "visible" to component.visible.toString(),
+                ),
             )
 
             else -> null
@@ -297,6 +306,9 @@ object SceneDeserializer {
 
                 "ModelComponent" -> readModel(component, entity.id, logger)
                     ?.let(entity::add)
+
+                "TerrainComponent" -> readTerrain(component, entity.id, logger)
+                    ?.let(entity::add)
             }
         }
     }
@@ -370,6 +382,20 @@ object SceneDeserializer {
             return null
         }
         return ModelComponent(model = AssetRef.model(path))
+    }
+
+    private fun readTerrain(
+        component: ComponentDescriptor,
+        entityId: Long,
+        logger: Logger?,
+    ): TerrainComponent? {
+        val path = component.properties["terrain"]?.trim()?.replace('\\', '/') ?: ""
+        if (path.isBlank()) {
+            logger?.warn(TAG) { "Invalid TerrainComponent.terrain for entityId=$entityId value='<missing>'; skipping component" }
+            return null
+        }
+        val visible = component.properties["visible"]?.trim()?.toBooleanStrictOrNull() ?: true
+        return TerrainComponent(terrain = AssetRef.terrain(path), visible = visible)
     }
 
     private fun readVec3(

@@ -18,6 +18,8 @@ import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.terrain.TerrainAssetRuntimeSync
+import com.pashkd.krender.engine.terrain.TerrainRenderCommands
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
@@ -61,16 +63,32 @@ class SceneEditorDocumentRenderSystem(
         document.world.all().forEach { entity ->
             if (!entity.active || entity.get<EditorOnlyComponent>() != null) return@forEach
             val transform = entity.get<TransformComponent>() ?: return@forEach
-            val model = entity.get<ModelComponent>() ?: return@forEach
-            world.renderCommands.submit(
-                DrawModel(
-                    entityId = entity.id,
-                    model = model.model,
-                    transform = transform.snapshot(),
-                    material = model.material,
-                ),
-            )
+            entity.get<ModelComponent>()?.let { model ->
+                world.renderCommands.submit(
+                    DrawModel(
+                        entityId = entity.id,
+                        model = model.model,
+                        transform = transform.snapshot(),
+                        material = model.material,
+                    ),
+                )
+            }
         }
+        TerrainRenderCommands.submit(document.world, world.renderCommands::submit)
+    }
+}
+
+/**
+ * Prepares terrain asset meshes in the editable document world outside render collection.
+ */
+class SceneEditorDocumentTerrainSyncSystem(
+    private val document: SceneEditorDocument,
+    logger: Logger,
+) : System() {
+    private val terrainSync = TerrainAssetRuntimeSync(logger)
+
+    override fun update(world: SceneWorld, dt: Float) {
+        terrainSync.update(document.world)
     }
 }
 

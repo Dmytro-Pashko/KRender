@@ -8,6 +8,7 @@ import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
@@ -417,6 +418,21 @@ class SceneInspectorPanel(
             ImGui.text("Path: ${model.model.path}")
         }
 
+        entity.get<TerrainComponent>()?.let { terrain ->
+            ImGui.separator()
+            ImGui.text("Terrain")
+            ImGui.text("Path: ${terrain.terrain.path}")
+            val visible = booleanArrayOf(terrain.visible)
+            if (ImGui.checkbox("Visible##scene_inspector_terrain_visible", visible)) {
+                operations.setTerrainVisible(entity.id, visible[0])
+            }
+            with(dsl) {
+                button("Open in Terrain Editor##scene_inspector_terrain_open") {
+                    operations.openTerrainInEditor(terrain.terrain.path)
+                }
+            }
+        }
+
         ImGui.separator()
         ImGui.text("Components")
         entity.components.all().forEach { component ->
@@ -462,7 +478,8 @@ class SceneInspectorPanel(
 
         val transformRequired = entity.get<PerspectiveCameraComponent>() != null ||
             entity.get<LightComponent>() != null ||
-            entity.get<ModelComponent>() != null
+            entity.get<ModelComponent>() != null ||
+            entity.get<TerrainComponent>() != null
         ImGui.beginDisabled(transformRequired)
         with(dsl) {
             button("Remove TransformComponent##scene_inspector_components_remove_transform") {
@@ -471,7 +488,7 @@ class SceneInspectorPanel(
         }
         ImGui.endDisabled()
         if (transformRequired) {
-            ImGui.text("TransformComponent is required by camera, light, or model components.")
+            ImGui.text("TransformComponent is required by camera, light, model, or terrain components.")
         }
     }
 

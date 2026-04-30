@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawLine
+import com.pashkd.krender.engine.api.DynamicModel
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.Logger
@@ -16,6 +17,7 @@ import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.material.TerrainMaterialDescriptor
 import com.pashkd.krender.engine.material.TerrainMaterialLibrary
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.render3d.Material
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -69,12 +71,12 @@ class TerrainEditorSystem(
      * a drag gesture becomes a single history entry instead of many tiny edits.
      */
     override fun update(world: SceneWorld, dt: Float) {
-        val terrainEntity = world.query<TransformComponent, TerrainComponent, TerrainRendererComponent>().firstOrNull()
+        val terrainEntity = world.query<TransformComponent, TerrainDataComponent, TerrainRendererComponent>().firstOrNull()
             ?: run {
                 resetBrushState()
                 return
             }
-        val terrain = terrainEntity.get<TerrainComponent>()
+        val terrain = terrainEntity.get<TerrainDataComponent>()
             ?: run {
                 resetBrushState()
                 return
@@ -213,9 +215,9 @@ class TerrainEditorSystem(
      * the user can see both the current radius and exact hit point.
      */
     override fun debugRender(world: SceneWorld) {
-        val terrainEntity = world.query<TransformComponent, TerrainComponent>().firstOrNull() ?: return
+        val terrainEntity = world.query<TransformComponent, TerrainDataComponent>().firstOrNull() ?: return
         val terrainTransform = terrainEntity.get<TransformComponent>() ?: return
-        val terrain = terrainEntity.get<TerrainComponent>() ?: return
+        val terrain = terrainEntity.get<TerrainDataComponent>() ?: return
         val hit = hoveredHit ?: return
 
         val lineColor = if (brushActive) Color(1f, 0.72f, 0.28f, 1f) else Color(0.3f, 0.95f, 0.45f, 1f)
@@ -287,7 +289,7 @@ class TerrainEditorSystem(
     }
 
     private fun syncStateFromTerrain(
-        terrain: TerrainComponent,
+        terrain: TerrainDataComponent,
         renderer: TerrainRendererComponent,
     ) {
         // Rebuild the editor-facing layer list from terrain data every frame so
@@ -356,7 +358,7 @@ class TerrainEditorSystem(
      * cannot be left hanging outside the history stack.
      */
     private fun processHistoryCommands(
-        terrain: TerrainComponent,
+        terrain: TerrainDataComponent,
         snapshot: com.pashkd.krender.engine.api.InputSnapshot,
     ) {
         var changed = false
@@ -473,7 +475,7 @@ class TerrainEditorSystem(
      * refresh.
      */
     private fun processTerrainCommands(
-        terrain: TerrainComponent,
+        terrain: TerrainDataComponent,
         renderer: TerrainRendererComponent,
     ) {
         if (state.previewSettingsChanged) {
@@ -578,7 +580,7 @@ class TerrainEditorSystem(
      * state that would otherwise refer to the previous terrain instance.
      */
     private fun processPersistenceCommands(
-        terrain: TerrainComponent,
+        terrain: TerrainDataComponent,
         renderer: TerrainRendererComponent,
     ) {
         if (state.saveTerrainRequested) {
@@ -652,7 +654,7 @@ class TerrainEditorSystem(
      * a procedural terrain refresh.
      */
     private fun regenerateTerrain(
-        terrain: TerrainComponent,
+        terrain: TerrainDataComponent,
         renderer: TerrainRendererComponent,
     ) {
         val currentLayers = terrain.data.allLayers()
@@ -724,7 +726,7 @@ class TerrainEditorSystem(
      * Metadata edits are treated separately from brush painting because they act
      * on layer definitions rather than per-vertex content.
      */
-    private fun processLayerMetadataCommands(terrain: TerrainComponent) {
+    private fun processLayerMetadataCommands(terrain: TerrainDataComponent) {
         val selectedLayerId = state.selectedLayerId
         var changed = false
 
@@ -785,7 +787,7 @@ class TerrainEditorSystem(
     /**
      * Marks both geometry and material previews as stale after a terrain change.
      */
-    private fun markPreviewDirty(terrain: TerrainComponent) {
+    private fun markPreviewDirty(terrain: TerrainDataComponent) {
         terrain.markDirty()
         state.materialPreviewDirty = true
     }
@@ -796,7 +798,7 @@ class TerrainEditorSystem(
      * When the preview mode isolates a single layer mask, changing the selection
      * must trigger a rebake even if the terrain data itself did not change.
      */
-    private fun syncSelectedLayerPreviewState(terrain: TerrainComponent) {
+    private fun syncSelectedLayerPreviewState(terrain: TerrainDataComponent) {
         val selected = state.layers.firstOrNull { it.id == state.selectedLayerId }
         state.selectedLayerMaskMessage = selected?.let { "Layer #${it.index + 1}: ${it.name}" } ?: "No layer selected"
         if (lastObservedSelectedLayerId != state.selectedLayerId) {
@@ -922,8 +924,8 @@ class TerrainMeshSyncSystem(
     override fun update(world: SceneWorld, dt: Float) {
         val brushActive = brushActiveProvider()
         val now = nowNanos()
-        world.query<TerrainComponent, TerrainRendererComponent>().forEach { entity ->
-            val terrain = entity.get<TerrainComponent>() ?: return@forEach
+        world.query<TerrainDataComponent, TerrainRendererComponent>().forEach { entity ->
+            val terrain = entity.get<TerrainDataComponent>() ?: return@forEach
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
             val previewMode = previewModeProvider()
             val previewResolution = materialPreviewResolutionProvider().coerceIn(1, MAX_MATERIAL_PREVIEW_RESOLUTION)
@@ -1130,20 +1132,80 @@ class TerrainMeshSyncSystem(
 }
 
 /**
- * Submits terrain dynamic mesh draw commands to the render pipeline.
- *
- * The renderer chooses between the base terrain material, vertex colors, and an
- * editor preview texture depending on which data is currently available.
+ * Keeps file-backed terrain asset entities ready for the shared dynamic terrain renderer.
  */
-class TerrainRenderSystem : System() {
-    /**
-     * Emits one draw command per renderable terrain entity.
-     *
-     * Material selection is intentionally lightweight here: this system assumes
-     * mesh generation and preview baking have already prepared the correct data.
-     */
-    override fun render(world: SceneWorld, alpha: Float) {
+class TerrainAssetSyncSystem(
+    private val logger: Logger? = null,
+) : System() {
+    private val sync = TerrainAssetRuntimeSync(logger)
+
+    override fun update(world: SceneWorld, dt: Float) {
+        sync.update(world)
+    }
+}
+
+/**
+ * Reusable terrain asset loader used by both runtime worlds and embedded editor document worlds.
+ */
+class TerrainAssetRuntimeSync(
+    private val logger: Logger? = null,
+) {
+    private val terrainPersistence = TerrainPersistence(logger)
+    private val failedPaths = mutableSetOf<String>()
+
+    fun update(world: SceneWorld) {
+        world.query<TransformComponent, TerrainComponent>().forEach { entity ->
+            if (!entity.active) return@forEach
+            val component = entity.get<TerrainComponent>() ?: return@forEach
+            val path = component.terrain.path.trim().replace('\\', '/')
+            if (path.isBlank()) return@forEach
+            val renderer = entity.get<TerrainRendererComponent>()
+            if (renderer?.model != null && renderer.modelId == modelId(path)) return@forEach
+
+            try {
+                val data = terrainPersistence.load(path)
+                val mesh = TerrainMeshBuilder.build(data)
+                val nextRenderer = renderer ?: TerrainRendererComponent(
+                    modelId = modelId(path),
+                    material = Material(),
+                ).also(entity::add)
+                nextRenderer.modelId = modelId(path)
+                nextRenderer.meshRevision += 1L
+                nextRenderer.model = DynamicModel(
+                    id = nextRenderer.modelId,
+                    mesh = mesh.toDynamicMesh(),
+                    revision = nextRenderer.meshRevision,
+                )
+                nextRenderer.vertexCount = mesh.vertexCount
+                nextRenderer.triangleCount = mesh.triangleCount
+                nextRenderer.previewMode = TerrainPreviewMode.MaterialColor
+                failedPaths.remove(path)
+                logger?.info(TAG) { "Loaded terrain asset '$path' for entityId=${entity.id}" }
+            } catch (error: Exception) {
+                if (failedPaths.add(path)) {
+                    logger?.warn(TAG) { "Failed to load terrain asset '$path' for entityId=${entity.id}: ${error.message}" }
+                }
+            }
+        }
+    }
+
+    private fun modelId(path: String): String =
+        "terrain_asset_" + path.replace(Regex("[^A-Za-z0-9_\\-]+"), "_")
+
+    companion object {
+        private const val TAG = "TerrainAssetRuntimeSync"
+    }
+}
+
+/**
+ * Shared terrain draw-command emission for runtime worlds and editor document worlds.
+ */
+object TerrainRenderCommands {
+    fun submit(world: SceneWorld, submit: (DrawDynamicModel) -> Unit) {
         world.query<TransformComponent, TerrainRendererComponent>().forEach { entity ->
+            if (!entity.active) return@forEach
+            val terrainAsset = entity.get<TerrainComponent>()
+            if (terrainAsset != null && !terrainAsset.visible) return@forEach
             val transform = entity.get<TransformComponent>() ?: return@forEach
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
             val model = renderer.model ?: return@forEach
@@ -1160,7 +1222,7 @@ class TerrainRenderSystem : System() {
             } else {
                 renderer.material.copy(diffuseTexture = null)
             }
-            world.renderCommands.submit(
+            submit(
                 DrawDynamicModel(
                     entityId = entity.id,
                     model = model,
@@ -1169,6 +1231,24 @@ class TerrainRenderSystem : System() {
                 ),
             )
         }
+    }
+}
+
+/**
+ * Submits terrain dynamic mesh draw commands to the render pipeline.
+ *
+ * The renderer chooses between the base terrain material, vertex colors, and an
+ * editor preview texture depending on which data is currently available.
+ */
+class TerrainRenderSystem : System() {
+    /**
+     * Emits one draw command per renderable terrain entity.
+     *
+     * Material selection is intentionally lightweight here: this system assumes
+     * mesh generation and preview baking have already prepared the correct data.
+     */
+    override fun render(world: SceneWorld, alpha: Float) {
+        TerrainRenderCommands.submit(world, world.renderCommands::submit)
     }
 }
 

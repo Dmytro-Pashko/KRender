@@ -13,6 +13,11 @@ class ModelAsset private constructor()
 class TextureAsset private constructor()
 
 /**
+ * Marker type for terrain descriptor assets.
+ */
+class TerrainAsset private constructor()
+
+/**
  * Marker type for shader source assets.
  */
 class ShaderAsset private constructor()
@@ -40,6 +45,9 @@ data class AssetRef<T : Any>(
 
         /** Creates a typed texture asset reference from a path. */
         fun texture(path: String): AssetRef<TextureAsset> = AssetRef(path, TextureAsset::class)
+
+        /** Creates a typed terrain asset reference from a path. */
+        fun terrain(path: String): AssetRef<TerrainAsset> = AssetRef(path, TerrainAsset::class)
 
         /** Creates a typed shader asset reference from a path. */
         fun shader(path: String): AssetRef<ShaderAsset> = AssetRef(path, ShaderAsset::class)
