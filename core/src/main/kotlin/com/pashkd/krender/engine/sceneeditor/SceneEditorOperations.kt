@@ -246,14 +246,42 @@ class SceneEditorOperations(
         }
     }
 
-    fun requestPlayPlaceholder() {
-        state.statusMessage = "Play Mode is not implemented yet."
+    fun playInNewWindow() {
+        context.logger.info(TAG) {
+            "Play requested currentPath='${state.currentScenePath ?: "<none>"}' dirty=${state.hasUnsavedChanges}"
+        }
+        val path = state.currentScenePath
+        if (path.isNullOrBlank()) {
+            requestSaveAs()
+            state.statusMessage = "Save scene before Play."
+            context.logger.warn(TAG) { "Play blocked because the scene has not been saved." }
+            return
+        }
+
+        if (state.hasUnsavedChanges) {
+            context.logger.info(TAG) { "Auto-save before play path='$path'" }
+            if (!saveToPath(path)) {
+                context.logger.warn(TAG) { "Play blocked because auto-save failed path='$path'" }
+                return
+            }
+        }
+
+        try {
+            context.logger.info(TAG) { "Launching runtime scene path='${state.currentScenePath ?: path}'" }
+            context.runtimeLauncher.launchRuntimeScene(state.currentScenePath ?: path)
+            state.statusMessage = "Playing scene: ${state.currentScenePath ?: path}"
+        } catch (error: Exception) {
+            state.statusMessage = "Play failed: ${error.message}"
+            context.logger.error(TAG, error) {
+                "Launch failure path='${state.currentScenePath ?: path}': ${error.message}"
+            }
+        }
     }
 
     fun readSceneText(path: String): String =
         context.sceneFiles.readText(path)
 
-    private fun saveToPath(rawPath: String) {
+    private fun saveToPath(rawPath: String): Boolean =
         try {
             val path = ScenePathUtils.normalizeScenePath(rawPath)
             context.logger.info(TAG) { "Saving scene path='$path'" }
@@ -273,12 +301,13 @@ class SceneEditorOperations(
             state.hasUnsavedChanges = false
             state.statusMessage = "Scene saved: $path"
             context.logger.info(TAG) { "Scene saved path='$path' id='${descriptor.id}' entities=${descriptor.entities.size}" }
+            true
         } catch (error: Exception) {
             state.saveErrorMessage = error.message
             state.statusMessage = "Save failed: ${error.message}"
             context.logger.error(TAG, error) { "Failed to save scene path='$rawPath': ${error.message}" }
+            false
         }
-    }
 
     private fun defaultSavePath(): String = "scenes/${sanitizeSceneName(state.sceneName)}.krscene"
 

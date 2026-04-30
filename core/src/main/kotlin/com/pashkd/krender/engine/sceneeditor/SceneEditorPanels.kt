@@ -45,7 +45,7 @@ class SceneEditorToolbarPanel(
         }
 
         with(dsl) {
-            button("New Scene##scene_editor_new") {
+            button("New##scene_editor_new") {
                 operations.createNewScene()
             }
         }
@@ -66,6 +66,13 @@ class SceneEditorToolbarPanel(
         with(dsl) {
             button("Save As##scene_editor_save_as") {
                 operations.requestSaveAs()
+                saveAsBufferSynced = false
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Play##scene_editor_play") {
+                operations.playInNewWindow()
                 saveAsBufferSynced = false
             }
         }

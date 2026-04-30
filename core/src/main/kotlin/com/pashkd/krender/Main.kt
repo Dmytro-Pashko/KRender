@@ -2,8 +2,11 @@ package com.pashkd.krender
 
 import com.pashkd.krender.engine.backend.gdx.GdxEngineApplication
 import com.pashkd.krender.engine.api.AssetRef
+import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.game.AssetBrowserScene
 import com.pashkd.krender.game.ModelViewerScene
+import com.pashkd.krender.game.RuntimeScene
 import com.pashkd.krender.game.SceneEditorScene
 import com.pashkd.krender.game.TerrainEditorScene
 import java.io.File
@@ -11,6 +14,9 @@ import java.io.File
 class Main(
     sceneName: String = defaultScene(),
     modelPath: String? = defaultModelPath(),
+    runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = {
+        com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
+    },
 ) : GdxEngineApplication(
     initialScene = {
         when (sceneName.lowercase()) {
@@ -21,12 +27,14 @@ class Main(
                 initialSceneName = defaultSceneName(),
             )
 
+            "runtime-scene" -> RuntimeScene(scenePath = defaultScenePath())
+
             "model-viewer" -> ModelViewerScene(
                 model = null,
                 availableModels = discoverModelPaths(modelPath).map(AssetRef.Companion::model),
             )
 
-            "terrain-generator" -> TerrainEditorScene(
+            "terrain-editor", "terrain-generator" -> TerrainEditorScene(
                 terrainResolution = defaultTerrainResolution(),
                 vertexSpacing = defaultTerrainSpacing(),
                 terrainFilePath = defaultTerrainFilePath(),
@@ -42,6 +50,7 @@ class Main(
             }
         }
     },
+    runtimeWindowLauncherFactory = runtimeWindowLauncherFactory,
 ) {
     companion object {
         fun defaultScene(): String = System.getProperty("krender.scene", "scene-editor")

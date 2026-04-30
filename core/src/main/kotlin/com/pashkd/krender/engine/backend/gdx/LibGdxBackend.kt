@@ -72,10 +72,13 @@ import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.backend.gdx.scene.GdxSceneFileService
+import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.SceneFileService
+import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
+import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.ui.UiCaptureState
 import com.pashkd.krender.engine.ui.UiService
 import kotlinx.coroutines.CoroutineDispatcher
@@ -100,13 +103,14 @@ import kotlin.math.sin
  */
 open class GdxEngineApplication(
     private val initialScene: () -> Scene,
+    private val runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = { UnsupportedRuntimeWindowLauncher },
 ) : ApplicationAdapter() {
     private lateinit var backend: LibGdxBackend
     private lateinit var runtime: EngineRuntime
 
     /** Creates the backend and starts the initial scene. */
     override fun create() {
-        backend = LibGdxBackend()
+        backend = LibGdxBackend(runtimeWindowLauncherFactory)
         Gdx.input.isCursorCatched = false
         runtime = EngineRuntime(backend)
         runtime.start(initialScene())
@@ -131,7 +135,9 @@ open class GdxEngineApplication(
 /**
  * Concrete engine backend that wires LibGDX services into the core runtime.
  */
-class LibGdxBackend : EngineBackend {
+class LibGdxBackend(
+    private val runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = { UnsupportedRuntimeWindowLauncher },
+) : EngineBackend {
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
     override val logs: EngineLogService = EngineLogService(frameProvider = runtimeStats::frame).also { service ->
         service.addSink(GdxAppLogSink())
@@ -145,6 +151,7 @@ class LibGdxBackend : EngineBackend {
     override val ui: UiService = GdxImGuiService(input, runtimeStats)
     override val assets: GdxAssetService = GdxAssetService()
     override val sceneFiles: SceneFileService = GdxSceneFileService()
+    override val runtimeLauncher: RuntimeWindowLauncher = runtimeWindowLauncherFactory(logger)
     override val tasks: TaskService = GdxTaskService()
     override val renderer: Renderer = GdxRenderer3D(assets, ui)
 
@@ -1342,7 +1349,9 @@ class GdxRenderer3D(
 
     /** Builds a LibGDX perspective camera from the active scene camera components. */
     private fun cameraFor(context: RenderContext): PerspectiveCamera {
-        val cameraEntity = context.scene.world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull()
+        val activeCameraEntity = context.scene.world.query<TransformComponent, PerspectiveCameraComponent, ActiveCameraComponent>()
+            .firstOrNull()
+        val cameraEntity = activeCameraEntity ?: context.scene.world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull()
         val cameraTransform = cameraEntity?.get<TransformComponent>()
         val cameraComponent = cameraEntity?.get<PerspectiveCameraComponent>()
         val camera = PerspectiveCamera(

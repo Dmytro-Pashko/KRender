@@ -21,6 +21,8 @@ data class PerspectiveCameraComponent(
     var lookAt: Vec3? = null,
 ) : Component
 
+class ActiveCameraComponent : Component
+
 data class FreeCameraControllerComponent(
     var moveSpeed: Float = 4.5f,
     var sprintMultiplier: Float = 2f,
