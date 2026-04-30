@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.api
 
 import com.pashkd.krender.engine.scene.SceneFileService
+import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.ui.UiService
 import kotlin.math.min
@@ -27,6 +28,8 @@ interface EngineContext {
     val sceneFiles: SceneFileService
     /** Shared launcher for opening saved scenes in a separate runtime window. */
     val runtimeLauncher: RuntimeWindowLauncher
+    /** Shared launcher for opening editor tools in separate windows. */
+    val editorToolLauncher: EditorToolLauncher
     /** Shared normalized input service. */
     val input: InputService
     /** Shared ImGui-backed UI service. */
@@ -64,6 +67,8 @@ interface EngineBackend {
     val sceneFiles: SceneFileService
     /** Backend runtime scene window launcher. */
     val runtimeLauncher: RuntimeWindowLauncher
+    /** Backend editor tool window launcher. */
+    val editorToolLauncher: EditorToolLauncher
     /** Backend logger implementation. */
     val logger: Logger
     /** Backend log history implementation. */
@@ -207,6 +212,8 @@ class EngineRuntime(
     override val sceneFiles: SceneFileService = backend.sceneFiles
     /** Shared runtime scene window launcher exposed to scenes. */
     override val runtimeLauncher: RuntimeWindowLauncher = backend.runtimeLauncher
+    /** Shared editor tool launcher exposed to scenes. */
+    override val editorToolLauncher: EditorToolLauncher = backend.editorToolLauncher
     /** Shared input service exposed to scenes. */
     override val input: InputService = backend.input
     /** Shared UI service exposed to scenes. */

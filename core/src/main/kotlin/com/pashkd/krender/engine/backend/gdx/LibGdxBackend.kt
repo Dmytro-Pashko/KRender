@@ -77,7 +77,9 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.SceneFileService
+import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
+import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
 import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.ui.UiCaptureState
 import com.pashkd.krender.engine.ui.UiService
@@ -104,13 +106,14 @@ import kotlin.math.sin
 open class GdxEngineApplication(
     private val initialScene: () -> Scene,
     private val runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = { UnsupportedRuntimeWindowLauncher },
+    private val editorToolLauncherFactory: (Logger) -> EditorToolLauncher = { UnsupportedEditorToolLauncher },
 ) : ApplicationAdapter() {
     private lateinit var backend: LibGdxBackend
     private lateinit var runtime: EngineRuntime
 
     /** Creates the backend and starts the initial scene. */
     override fun create() {
-        backend = LibGdxBackend(runtimeWindowLauncherFactory)
+        backend = LibGdxBackend(runtimeWindowLauncherFactory, editorToolLauncherFactory)
         Gdx.input.isCursorCatched = false
         runtime = EngineRuntime(backend)
         runtime.start(initialScene())
@@ -137,6 +140,7 @@ open class GdxEngineApplication(
  */
 class LibGdxBackend(
     private val runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = { UnsupportedRuntimeWindowLauncher },
+    private val editorToolLauncherFactory: (Logger) -> EditorToolLauncher = { UnsupportedEditorToolLauncher },
 ) : EngineBackend {
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
     override val logs: EngineLogService = EngineLogService(frameProvider = runtimeStats::frame).also { service ->
@@ -152,6 +156,7 @@ class LibGdxBackend(
     override val assets: GdxAssetService = GdxAssetService()
     override val sceneFiles: SceneFileService = GdxSceneFileService()
     override val runtimeLauncher: RuntimeWindowLauncher = runtimeWindowLauncherFactory(logger)
+    override val editorToolLauncher: EditorToolLauncher = editorToolLauncherFactory(logger)
     override val tasks: TaskService = GdxTaskService()
     override val renderer: Renderer = GdxRenderer3D(assets, ui)
 

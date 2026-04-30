@@ -10,6 +10,7 @@ interface AssetTool {
     val id: String
     val displayName: String
     val supportedCategories: Set<AssetCategory>
+    val defaultAction: Boolean get() = true
 
     /** Returns whether this tool can open [asset]. */
     fun canOpen(asset: AssetDescriptor): Boolean = asset.category in supportedCategories
@@ -38,7 +39,7 @@ class AssetToolRegistry(
         tools.filter { it.canOpen(asset) }
 
     /** Returns the default tool for [asset], or null when none can open it. */
-    fun defaultToolFor(asset: AssetDescriptor): AssetTool? = toolsFor(asset).firstOrNull()
+    fun defaultToolFor(asset: AssetDescriptor): AssetTool? = toolsFor(asset).firstOrNull { it.defaultAction }
 
     /** Returns all registered tools. */
     fun all(): List<AssetTool> = tools.toList()

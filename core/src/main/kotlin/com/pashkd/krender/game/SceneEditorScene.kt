@@ -33,6 +33,7 @@ import com.pashkd.krender.engine.ui.UiSystem
 class SceneEditorScene(
     private val scenePath: String? = null,
     private val initialSceneName: String = "Untitled Scene",
+    private val initialModelPlacementPath: String? = null,
 ) : Scene("scene_editor") {
     private lateinit var editorState: SceneEditorState
     private lateinit var document: SceneEditorDocument
@@ -58,6 +59,7 @@ class SceneEditorScene(
         scenePath?.let { path ->
             operations.open(path)
         }
+        prefillModelPlacementPath()
 
         createEditorCamera()
         createEditorLights()
@@ -84,6 +86,14 @@ class SceneEditorScene(
             uiSystem.addPanel(SceneViewportPanel(editorState, document, operations, layoutConfig, panelEventLogger))
             uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
         }
+
+    private fun prefillModelPlacementPath() {
+        val path = initialModelPlacementPath?.trim()?.replace('\\', '/')?.takeIf(String::isNotBlank) ?: return
+        editorState.modelPlacementPath = path
+        editorState.modelPlacementError = null
+        editorState.statusMessage = "Model ready to place: $path"
+        engine.logger.info(TAG) { "Scene Editor model placement path prefilled: '$path'" }
+    }
 
     private fun createEditorCamera() {
         // Editor camera is not part of scene data.

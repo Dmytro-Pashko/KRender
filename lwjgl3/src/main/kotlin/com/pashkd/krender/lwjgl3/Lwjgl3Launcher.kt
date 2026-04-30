@@ -15,6 +15,7 @@ fun main(args: Array<String>) {
         Main(
             modelPath = args.firstOrNull() ?: Main.defaultModelPath(),
             runtimeWindowLauncherFactory = { logger -> Lwjgl3RuntimeWindowLauncher(logger) },
+            editorToolLauncherFactory = { logger -> Lwjgl3EditorToolLauncher(logger) },
         ),
         Lwjgl3ApplicationConfiguration().apply {
         setTitle("KRender")

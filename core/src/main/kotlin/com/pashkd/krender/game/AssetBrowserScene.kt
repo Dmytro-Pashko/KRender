@@ -1,6 +1,5 @@
 package com.pashkd.krender.game
 
-import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.Scene
@@ -52,7 +51,8 @@ class AssetBrowserScene : Scene("asset_browser") {
         registry = LocalAssetRegistryService(engine.logger, importers)
         browserState = AssetBrowserState()
         tools = AssetToolRegistry(engine.logger).apply {
-            register(ModelViewerAssetTool { registry })
+            register(ModelViewerAssetTool())
+            register(SceneEditorModelAssetTool())
             register(TerrainEditorAssetTool())
             register(SceneEditorAssetTool())
         }
@@ -79,8 +79,15 @@ class AssetBrowserScene : Scene("asset_browser") {
     private fun createUiSystem(
         layoutConfig: ImGuiLayoutConfig,
         panelEventLogger: ImGuiWindowEventLogger,
-    ): UiSystem =
-        UiSystem(engine.ui).also { uiSystem ->
+    ): UiSystem {
+        val operationsHandler = SceneOperationsHandler(
+            operations = operations,
+            toolRegistry = tools,
+            state = browserState,
+            engineProvider = { engine },
+            logger = engine.logger,
+        )
+        return UiSystem(engine.ui).also { uiSystem ->
             uiSystem.addPanel(
                 AssetBrowserPanel(
                     state = browserState,
@@ -88,29 +95,33 @@ class AssetBrowserScene : Scene("asset_browser") {
                     onAssetActivated = { asset -> browserState.activationRequestedAssetId = asset.id },
                     layoutConfig = layoutConfig,
                     eventLogger = panelEventLogger,
-                    operations = SceneOperationsHandler(
-                        operations = operations,
-                        toolRegistry = tools,
-                        engineProvider = { engine },
-                        logger = engine.logger,
-                    ),
+                    operations = operationsHandler,
                 ),
             )
-            uiSystem.addPanel(AssetDetailsPanel(browserState, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(AssetDetailsPanel(browserState, layoutConfig, panelEventLogger, operations = operationsHandler))
             uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
         }
+    }
 
     private fun openAsset(asset: AssetDescriptor) {
         val tool = tools.defaultToolFor(asset)
         if (tool == null) {
-            browserState.statusMessage = "No editor registered for ${asset.category.displayName} assets."
+            browserState.statusMessage = "No default editor registered for ${asset.category.displayName} assets."
             engine.logger.info(TAG) {
                 "No tool registered for asset '${asset.path}' category=${asset.category} type=${asset.type}"
             }
             return
         }
         engine.logger.info(TAG) { "Opening asset '${asset.path}' with tool '${tool.id}'" }
-        tool.open(asset, engine)
+        try {
+            tool.open(asset, engine)
+            browserState.statusMessage = "Opened ${tool.displayName}: ${asset.path}"
+        } catch (error: Exception) {
+            browserState.statusMessage = "Failed to open tool: ${error.message}"
+            engine.logger.error(TAG, error) {
+                "Failed to open asset '${asset.path}' with tool '${tool.id}': ${error.message}"
+            }
+        }
     }
 
     companion object {
@@ -124,6 +135,7 @@ class AssetBrowserScene : Scene("asset_browser") {
 private class SceneOperationsHandler(
     private val operations: AssetOperationsService,
     private val toolRegistry: AssetToolRegistry,
+    private val state: AssetBrowserState,
     private val engineProvider: () -> EngineContext,
     private val logger: Logger,
 ) : AssetBrowserOperationsHandler {
@@ -167,7 +179,16 @@ private class SceneOperationsHandler(
             logger.warn(TAG) { "Open with: tool '$toolId' is not registered" }
             return
         }
-        tool.open(asset, engineProvider())
+        try {
+            tool.open(asset, engineProvider())
+            state.statusMessage = "Opened ${tool.displayName}: ${asset.path}"
+            logger.info(TAG) { "Open with succeeded tool='${tool.id}' path='${asset.path}'" }
+        } catch (error: Exception) {
+            state.statusMessage = "Failed to open tool: ${error.message}"
+            logger.error(TAG, error) {
+                "Open with failed tool='${tool.id}' path='${asset.path}': ${error.message}"
+            }
+        }
     }
 
     private fun defaultDirFor(category: AssetCategory): String =
@@ -223,24 +244,17 @@ private class SceneOperationsHandler(
 }
 
 /**
- * Opens model assets in the [ModelViewerScene].
+ * Opens model assets in a separate Model Viewer window.
  */
-class ModelViewerAssetTool(
-    private val registryProvider: () -> LocalAssetRegistryService,
-) : AssetTool {
+class ModelViewerAssetTool : AssetTool {
     override val id = "model-viewer"
-    override val displayName = "Model Viewer"
+    override val displayName = "Open in Model Viewer"
     override val supportedCategories = setOf(AssetCategory.Model)
 
     override fun open(asset: AssetDescriptor, context: EngineContext) {
-        context.logger.info(TAG) { "Opening model asset '${asset.path}' in ModelViewerScene" }
-        val registry = registryProvider()
-        context.scenes.replace(
-            ModelViewerScene(
-                model = AssetRef.model(asset.path),
-                availableModels = registry.byCategory(AssetCategory.Model).map { AssetRef.model(it.path) },
-            ),
-        )
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Opening model asset '$path' in Model Viewer" }
+        context.editorToolLauncher.launchModelViewer(path)
     }
 
     companion object {
@@ -249,16 +263,37 @@ class ModelViewerAssetTool(
 }
 
 /**
- * Opens terrain assets in the [TerrainEditorScene].
+ * Sends model assets to a separate Scene Editor window with the placement path prefilled.
+ */
+class SceneEditorModelAssetTool : AssetTool {
+    override val id = "scene-editor-model"
+    override val displayName = "Send to Scene Editor"
+    override val supportedCategories = setOf(AssetCategory.Model)
+    override val defaultAction = false
+
+    override fun open(asset: AssetDescriptor, context: EngineContext) {
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Sending model asset '$path' to Scene Editor" }
+        context.editorToolLauncher.launchSceneEditorWithModel(path)
+    }
+
+    companion object {
+        private const val TAG = "SceneEditorModelAssetTool"
+    }
+}
+
+/**
+ * Opens terrain assets in a separate Terrain Editor window.
  */
 class TerrainEditorAssetTool : AssetTool {
     override val id = "terrain-editor"
-    override val displayName = "Terrain Editor"
+    override val displayName = "Open in Terrain Editor"
     override val supportedCategories = setOf(AssetCategory.Terrain)
 
     override fun open(asset: AssetDescriptor, context: EngineContext) {
-        context.logger.info(TAG) { "Opening terrain asset '${asset.path}' in TerrainEditorScene" }
-        context.scenes.replace(TerrainEditorScene(terrainFilePath = asset.path))
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Opening terrain asset '$path' in Terrain Editor" }
+        context.editorToolLauncher.launchTerrainEditor(path)
     }
 
     companion object {
@@ -267,24 +302,24 @@ class TerrainEditorAssetTool : AssetTool {
 }
 
 /**
- * Opens scene assets in the [SceneEditorScene].
+ * Opens scene assets in a separate Scene Editor window.
  */
 class SceneEditorAssetTool : AssetTool {
     override val id = "scene-editor"
-    override val displayName = "Scene Editor"
+    override val displayName = "Open in Scene Editor"
     override val supportedCategories = setOf(AssetCategory.Scene)
+    override val defaultAction = false
 
     override fun open(asset: AssetDescriptor, context: EngineContext) {
-        context.logger.info(TAG) { "Opening scene asset '${asset.path}' in SceneEditorScene" }
-        context.scenes.replace(
-            SceneEditorScene(
-                scenePath = asset.path,
-                initialSceneName = asset.name,
-            ),
-        )
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Opening scene asset '$path' in Scene Editor" }
+        context.editorToolLauncher.launchSceneEditorWithScene(path)
     }
 
     companion object {
         private const val TAG = "SceneEditorAssetTool"
     }
 }
+
+private fun normalizedAssetPath(asset: AssetDescriptor): String =
+    asset.path.trim().replace('\\', '/')

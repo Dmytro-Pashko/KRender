@@ -385,6 +385,7 @@ class AssetDetailsPanel(
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
     private val panelId: String = AssetBrowserPanelIds.Details,
+    private val operations: AssetBrowserOperationsHandler = AssetBrowserOperationsHandler.NoOp,
 ) : UiPanel {
     override fun draw() {
         val layout = layoutConfig.panels[panelId] ?: return
@@ -404,12 +405,28 @@ class AssetDetailsPanel(
         }
 
         drawBaseInfo(asset)
+        drawActions(asset)
         if (asset.category == AssetCategory.Model) {
             ImGui.separator()
             drawModelInfo(state.selectedModelInfo)
         }
 
         ImGui.end()
+    }
+
+    private fun drawActions(asset: AssetDescriptor) {
+        val tools = operations.toolsFor(asset)
+        if (tools.isEmpty()) return
+
+        ImGui.separator()
+        ImGui.text("Actions")
+        tools.forEach { tool ->
+            with(dsl) {
+                button("${tool.label}##${panelId}_tool_${tool.id}") {
+                    operations.openWith(asset, tool.id)
+                }
+            }
+        }
     }
 
     private fun drawBaseInfo(asset: AssetDescriptor) {
