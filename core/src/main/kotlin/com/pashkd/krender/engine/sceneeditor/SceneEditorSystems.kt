@@ -1,20 +1,26 @@
 package com.pashkd.krender.engine.sceneeditor
 
+import com.pashkd.krender.engine.api.Color
+import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.DrawWorldGrid
+import com.pashkd.krender.engine.api.Entity
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.InputSnapshot
 import com.pashkd.krender.engine.api.Key
+import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MouseButton
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.math.tan
 
 /**
  * Emits editor-only viewport guide draw commands from Scene Editor display state.
@@ -40,6 +46,158 @@ class SceneEditorViewportGuideSystem(
 
     companion object {
         private const val MinCellSize = 0.01f
+    }
+}
+
+/**
+ * Handles viewport click selection against the editable document and draws editor-only selection feedback.
+ */
+class SceneEditorSelectionSystem(
+    private val input: InputService,
+    private val document: SceneEditorDocument,
+    private val state: SceneEditorState,
+    private val logger: Logger,
+) : System() {
+    override fun update(world: SceneWorld, dt: Float) {
+        val snapshot = input.snapshot()
+        if (!shouldProcessSelection(snapshot)) return
+
+        val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent, SceneEditorCameraComponent>()
+            .firstOrNull() ?: return
+        val cameraTransform = cameraEntity.get<TransformComponent>() ?: return
+        val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
+        val ray = rayFromScreen(snapshot.mousePosition, snapshot.viewportSize, cameraTransform, camera) ?: return
+        val selected = pickEntity(ray)
+
+        if (selected == null) {
+            state.selectedEntityId = null
+            state.statusMessage = "Selection cleared."
+            logger.debug(TAG) { "Scene Editor viewport selection cleared" }
+            return
+        }
+
+        state.selectedEntityId = selected.id
+        state.statusMessage = "Selected ${selected.name}."
+        logger.info(TAG) { "Selected scene entity id=${selected.id} name='${selected.name}' from viewport" }
+    }
+
+    override fun render(world: SceneWorld, alpha: Float) {
+        val selected = state.selectedEntityId?.let(document.world::getEntity) ?: return
+        val transform = selected.get<TransformComponent>() ?: return
+        val position = transform.position
+        world.renderCommands.submit(
+            DrawLine(
+                from = Vec3(position.x - SelectionMarkerSize, position.y, position.z),
+                to = Vec3(position.x + SelectionMarkerSize, position.y, position.z),
+                color = SelectionColor,
+            ),
+        )
+        world.renderCommands.submit(
+            DrawLine(
+                from = Vec3(position.x, position.y, position.z - SelectionMarkerSize),
+                to = Vec3(position.x, position.y, position.z + SelectionMarkerSize),
+                color = SelectionColor,
+            ),
+        )
+        world.renderCommands.submit(
+            DrawLine(
+                from = Vec3(position.x, position.y - SelectionMarkerSize, position.z),
+                to = Vec3(position.x, position.y + SelectionMarkerSize, position.z),
+                color = SelectionColor,
+            ),
+        )
+    }
+
+    private fun shouldProcessSelection(snapshot: InputSnapshot): Boolean =
+        state.viewportFocused &&
+            !state.camera.navigating &&
+            !snapshot.isMouseDown(MouseButton.Right) &&
+            snapshot.wasMousePressed(MouseButton.Left) &&
+            (!snapshot.uiCapturesMouse || state.viewportFocused)
+
+    private fun pickEntity(ray: CameraRay): Entity? {
+        var picked: Entity? = null
+        var bestDistance = Float.MAX_VALUE
+        var bestDepth = Float.MAX_VALUE
+
+        document.world.all().forEach { entity ->
+            if (!entity.active || entity.get<EditorOnlyComponent>() != null) return@forEach
+            val transform = entity.get<TransformComponent>() ?: return@forEach
+            val toEntity = transform.position - ray.origin
+            val depth = dot(toEntity, ray.direction)
+            if (depth < 0f) return@forEach
+
+            val distance = distanceFromRay(ray, transform.position)
+            if (distance <= PickRadius && (distance < bestDistance || distance == bestDistance && depth < bestDepth)) {
+                picked = entity
+                bestDistance = distance
+                bestDepth = depth
+            }
+        }
+
+        return picked
+    }
+
+    private fun rayFromScreen(
+        screenPosition: Vec2,
+        viewportSize: Vec2,
+        cameraTransform: TransformComponent,
+        camera: PerspectiveCameraComponent,
+    ): CameraRay? {
+        if (viewportSize.x <= 0f || viewportSize.y <= 0f) return null
+
+        val aspect = viewportSize.x / viewportSize.y
+        val ndcX = (screenPosition.x / viewportSize.x) * 2f - 1f
+        val ndcY = 1f - (screenPosition.y / viewportSize.y) * 2f
+        val forward = forwardVector(cameraTransform, camera)
+        val right = normalize(cross(forward, Vec3(0f, 1f, 0f)))
+        val up = normalize(cross(right, forward))
+        val tanHalfFov = tan(Math.toRadians((camera.fieldOfViewDegrees * 0.5f).toDouble())).toFloat()
+
+        val direction = normalize(
+            forward +
+                right * (ndcX * aspect * tanHalfFov) +
+                up * (ndcY * tanHalfFov),
+        )
+        return CameraRay(cameraTransform.position.copy(), direction)
+    }
+
+    private fun forwardVector(
+        cameraTransform: TransformComponent,
+        camera: PerspectiveCameraComponent,
+    ): Vec3 {
+        camera.lookAt?.let { target ->
+            return normalize(target - cameraTransform.position)
+        }
+
+        val pitch = Math.toRadians(cameraTransform.eulerDegrees.x.toDouble())
+        val yaw = Math.toRadians(cameraTransform.eulerDegrees.y.toDouble())
+        return normalize(
+            Vec3(
+                x = (sin(yaw) * cos(pitch)).toFloat(),
+                y = sin(pitch).toFloat(),
+                z = (cos(yaw) * cos(pitch)).toFloat(),
+            ),
+        )
+    }
+
+    private fun distanceFromRay(ray: CameraRay, point: Vec3): Float {
+        val toPoint = point - ray.origin
+        val depth = dot(toPoint, ray.direction)
+        val closestPoint = ray.origin + ray.direction * depth
+        return distance(point, closestPoint)
+    }
+
+    private data class CameraRay(
+        val origin: Vec3,
+        val direction: Vec3,
+    )
+
+    companion object {
+        private const val TAG = "SceneEditorSelectionSystem"
+        private const val PickRadius = 0.75f
+        private const val SelectionMarkerSize = 0.6f
+        private val SelectionColor = Color(1f, 0.78f, 0.12f, 1f)
     }
 }
 
@@ -137,4 +295,27 @@ class SceneEditorCameraSystem(
         private const val MinCameraSpeed = 0.25f
         private const val MaxCameraSpeed = 80f
     }
+}
+
+private fun dot(a: Vec3, b: Vec3): Float =
+    a.x * b.x + a.y * b.y + a.z * b.z
+
+private fun cross(a: Vec3, b: Vec3): Vec3 =
+    Vec3(
+        x = a.y * b.z - a.z * b.y,
+        y = a.z * b.x - a.x * b.z,
+        z = a.x * b.y - a.y * b.x,
+    )
+
+private fun normalize(vector: Vec3): Vec3 {
+    val length = sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z)
+    if (length <= 1e-6f) return Vec3.zero()
+    return Vec3(vector.x / length, vector.y / length, vector.z / length)
+}
+
+private fun distance(a: Vec3, b: Vec3): Float {
+    val dx = a.x - b.x
+    val dy = a.y - b.y
+    val dz = a.z - b.z
+    return sqrt(dx * dx + dy * dy + dz * dz)
 }

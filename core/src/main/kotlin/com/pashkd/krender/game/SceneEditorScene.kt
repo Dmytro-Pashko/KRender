@@ -13,6 +13,7 @@ import com.pashkd.krender.engine.sceneeditor.SceneEditorDocument
 import com.pashkd.krender.engine.sceneeditor.SceneEditorOperations
 import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraComponent
 import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraSystem
+import com.pashkd.krender.engine.sceneeditor.SceneEditorSelectionSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorState
 import com.pashkd.krender.engine.sceneeditor.SceneEditorToolbarPanel
 import com.pashkd.krender.engine.sceneeditor.SceneEditorUiLayoutDefaults
@@ -64,6 +65,7 @@ class SceneEditorScene(
         world.systems.add(SceneEditorViewportGuideSystem(editorState))
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(SceneEditorCameraSystem(engine.input, editorState))
+        world.systems.add(SceneEditorSelectionSystem(engine.input, document, editorState, engine.logger))
         world.systems.add(ModelRenderSystem())
     }
 

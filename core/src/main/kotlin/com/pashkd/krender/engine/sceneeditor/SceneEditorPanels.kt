@@ -517,7 +517,7 @@ class SceneViewportPanel(
         ImGui.text("Scene view")
         ImGui.separator()
         ImGui.text("Entities: ${document.world.all().count { entity -> entity.get<EditorOnlyComponent>() == null }}")
-        ImGui.text("Selected: ${state.selectedEntityId?.toString() ?: "none"}")
+        ImGui.text("Selection: ${selectedEntityName()}")
         ImGui.text("Camera: ${formatPosition(state.camera.position)}")
         ImGui.text("Speed: ${"%.2f".format(state.camera.speed)}${if (state.camera.navigating) " (navigating)" else ""}")
         ImGui.text("RMB look, WASD move, Q/E down/up, wheel speed, Shift faster.")
@@ -551,6 +551,11 @@ class SceneViewportPanel(
         private const val MaxGridHalfExtentCells = 256
         private const val MinGridCellSize = 0.05f
         private const val MaxGridCellSize = 16f
+    }
+
+    private fun selectedEntityName(): String {
+        val entityId = state.selectedEntityId ?: return "none"
+        return document.world.getEntity(entityId)?.name ?: "missing #$entityId"
     }
 }
 
