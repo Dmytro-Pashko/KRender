@@ -515,9 +515,6 @@ class SceneViewportPanel(
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    private val modelPathBuffer = ByteArray(TextInputBufferSize)
-    private var modelPathBufferSynced = false
-
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Viewport)
         applyWindowDefaults(layout)
@@ -529,7 +526,6 @@ class SceneViewportPanel(
             return
         }
 
-        syncModelPathBuffer()
         ImGui.beginChild("scene_editor_viewport_body", Vec2(0f, 0f), true)
         state.viewportFocused = ImGui.isWindowHovered() || ImGui.isWindowFocused()
         ImGui.text("Scene view")
@@ -560,30 +556,6 @@ class SceneViewportPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
-        ImGui.separator()
-        ImGui.text("Place Model")
-        ImGui.text("Path")
-        ImGui.sameLine()
-        if (safeInputText("##scene_viewport_place_model_path", modelPathBuffer)) {
-            state.modelPlacementPath = readBuffer(modelPathBuffer)
-        }
-        slider(
-            "Distance##scene_viewport_place_model_distance",
-            state::placeModelDistance,
-            MinPlaceModelDistance,
-            MaxPlaceModelDistance,
-            "%.1f",
-            SliderFlag.AlwaysClamp,
-        )
-        with(dsl) {
-            button("Place Model##scene_viewport_place_model") {
-                operations.placeModel(state.modelPlacementPath)
-                modelPathBufferSynced = false
-            }
-        }
-        state.modelPlacementError?.let { error ->
-            ImGui.text("Last error: $error")
-        }
         ImGui.endChild()
         ImGui.end()
     }
@@ -593,46 +565,37 @@ class SceneViewportPanel(
         private const val MaxGridHalfExtentCells = 256
         private const val MinGridCellSize = 0.05f
         private const val MaxGridCellSize = 16f
-        private const val MinPlaceModelDistance = 0f
-        private const val MaxPlaceModelDistance = 100f
-        private const val TextInputBufferSize = 256
     }
 
     private fun selectedEntityName(): String {
         val entityId = state.selectedEntityId ?: return "none"
         return document.world.getEntity(entityId)?.name ?: "missing #$entityId"
     }
-
-    private fun syncModelPathBuffer() {
-        if (modelPathBufferSynced) return
-        writeBuffer(modelPathBuffer, state.modelPlacementPath)
-        modelPathBufferSynced = true
-    }
 }
 
 private fun formatPosition(position: Vec3): String =
     "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
-private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
+internal fun applyWindowDefaults(layout: ImGuiPanelLayout) {
     ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
     ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
 }
 
-private fun imguiWindowName(title: String, id: String): String = "$title###$id"
+internal fun imguiWindowName(title: String, id: String): String = "$title###$id"
 
-private fun readBuffer(buffer: ByteArray): String {
+internal fun readBuffer(buffer: ByteArray): String {
     val length = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size
     return String(buffer, 0, length, StandardCharsets.UTF_8)
 }
 
-private fun writeBuffer(buffer: ByteArray, value: String) {
+internal fun writeBuffer(buffer: ByteArray, value: String) {
     buffer.fill(0)
     val bytes = value.toByteArray(StandardCharsets.UTF_8)
     val length = minOf(bytes.size, buffer.size - 1)
     bytes.copyInto(buffer, endIndex = length)
 }
 
-private fun safeInputText(label: String, buffer: ByteArray): Boolean =
+internal fun safeInputText(label: String, buffer: ByteArray): Boolean =
     try {
         ImGui.inputText(label, buffer)
     } catch (_: ArrayIndexOutOfBoundsException) {

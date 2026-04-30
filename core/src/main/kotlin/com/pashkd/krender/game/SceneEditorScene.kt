@@ -4,10 +4,16 @@ import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.assets.AssetImporterRegistry
+import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.sceneeditor.EditorOnlyComponent
+import com.pashkd.krender.engine.sceneeditor.SceneAssetBrowserModel
+import com.pashkd.krender.engine.sceneeditor.SceneAssetBrowserSystem
+import com.pashkd.krender.engine.sceneeditor.SceneAssetPanel
+import com.pashkd.krender.engine.sceneeditor.SceneAssetPanelState
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocument
 import com.pashkd.krender.engine.sceneeditor.SceneEditorOperations
 import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraComponent
@@ -36,6 +42,8 @@ class SceneEditorScene(
     private val initialModelPlacementPath: String? = null,
 ) : Scene("scene_editor") {
     private lateinit var editorState: SceneEditorState
+    private lateinit var assetPanelState: SceneAssetPanelState
+    private lateinit var assetBrowser: SceneAssetBrowserModel
     private lateinit var document: SceneEditorDocument
     private lateinit var operations: SceneEditorOperations
 
@@ -52,8 +60,15 @@ class SceneEditorScene(
             currentScenePath = scenePath,
             sceneName = initialSceneName,
         )
+        assetPanelState = SceneAssetPanelState()
         document = SceneEditorDocument(world = SceneWorld())
         operations = SceneEditorOperations(document, editorState, engine)
+        assetBrowser = SceneAssetBrowserModel(
+            registry = LocalAssetRegistryService(engine.logger, AssetImporterRegistry.withDefaults(engine.logger)),
+            tasks = engine.tasks,
+            logger = engine.logger,
+            state = assetPanelState,
+        )
         engine.logger.info(TAG) { "Initializing Scene Editor document world" }
         operations.createNewScene()
         scenePath?.let { path ->
@@ -65,6 +80,7 @@ class SceneEditorScene(
         createEditorLights()
 
         world.systems.add(SceneEditorViewportGuideSystem(editorState))
+        world.systems.add(SceneAssetBrowserSystem(assetBrowser))
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(SceneEditorCameraSystem(engine.input, editorState))
         world.systems.add(SceneEditorSelectionSystem(engine.input, document, editorState, engine.logger))
@@ -82,6 +98,7 @@ class SceneEditorScene(
         UiSystem(engine.ui).also { uiSystem ->
             uiSystem.addPanel(SceneEditorToolbarPanel(editorState, operations, layoutConfig, panelEventLogger))
             uiSystem.addPanel(SceneHierarchyPanel(editorState, document, operations, layoutConfig, panelEventLogger, engine.logger))
+            uiSystem.addPanel(SceneAssetPanel(assetPanelState, editorState, assetBrowser, operations, engine, layoutConfig, panelEventLogger))
             uiSystem.addPanel(SceneInspectorPanel(editorState, document, operations, layoutConfig, panelEventLogger, engine.logger))
             uiSystem.addPanel(SceneViewportPanel(editorState, document, operations, layoutConfig, panelEventLogger))
             uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
@@ -92,6 +109,8 @@ class SceneEditorScene(
         editorState.modelPlacementPath = path
         editorState.modelPlacementError = null
         editorState.statusMessage = "Model ready to place: $path"
+        assetPanelState.selectedAssetPath = path
+        assetPanelState.statusMessage = "Selected model: $path"
         engine.logger.info(TAG) { "Scene Editor model placement path prefilled: '$path'" }
     }
 

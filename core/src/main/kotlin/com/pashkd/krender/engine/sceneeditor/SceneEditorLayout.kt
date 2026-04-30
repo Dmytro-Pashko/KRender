@@ -9,6 +9,7 @@ import com.pashkd.krender.engine.ui.ImGuiPanelLayout
 object SceneEditorPanelIds {
     const val Toolbar = "sceneToolbar"
     const val Hierarchy = "sceneHierarchy"
+    const val Assets = "sceneAssets"
     const val Inspector = "sceneInspector"
     const val Viewport = "sceneViewport"
     const val Logs = "runtimeLogs"
@@ -34,7 +35,14 @@ object SceneEditorUiLayoutDefaults {
                 x = 16f,
                 y = 128f,
                 width = 320f,
-                height = 480f,
+                height = 224f,
+            ),
+            SceneEditorPanelIds.Assets to ImGuiPanelLayout(
+                title = "Assets",
+                x = 16f,
+                y = 368f,
+                width = 320f,
+                height = 240f,
             ),
             SceneEditorPanelIds.Viewport to ImGuiPanelLayout(
                 title = "Scene Viewport",
@@ -60,4 +68,3 @@ object SceneEditorUiLayoutDefaults {
         ),
     )
 }
-

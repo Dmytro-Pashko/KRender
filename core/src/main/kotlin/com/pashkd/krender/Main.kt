@@ -60,7 +60,7 @@ class Main(
     editorToolLauncherFactory = editorToolLauncherFactory,
 ) {
     companion object {
-        fun defaultScene(): String = System.getProperty("krender.scene", "scene-editor")
+        fun defaultScene(): String = System.getProperty("krender.scene", "asset-browser")
         fun defaultModelPath(): String? =
             System.getProperty("krender.model.path")?.takeIf(String::isNotBlank)
                 ?: System.getProperty("krender.model")?.takeIf(String::isNotBlank)
