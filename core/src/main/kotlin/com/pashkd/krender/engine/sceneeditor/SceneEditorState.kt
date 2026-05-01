@@ -63,6 +63,12 @@ data class SceneEditorState(
     /** Runtime-only editor viewport camera state; never serialized into `.krscene` files. */
     var camera: SceneEditorCameraState = SceneEditorCameraState(),
 
+    /** Runtime-only request to move the editor camera entity on the next camera-system update. */
+    var pendingCameraPosition: Vec3? = null,
+
+    /** Runtime-only request to rotate the editor camera entity on the next camera-system update. */
+    var pendingCameraEulerDegrees: Vec3? = null,
+
     /** True when the viewport panel is hovered or focused and can claim camera input. */
     var viewportFocused: Boolean = false,
 

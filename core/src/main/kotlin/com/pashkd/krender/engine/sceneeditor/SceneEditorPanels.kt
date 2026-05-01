@@ -213,8 +213,13 @@ class SceneHierarchyPanel(
             ImGui.text("No entities.")
         } else {
             entities.forEach { entity ->
-                val marker = if (entity.active) "" else " (inactive)"
-                val label = "${entity.name}$marker##scene_entity_${entity.id}"
+                val activeCameraMarker = if (entity.id == document.descriptor?.settings?.activeCameraEntityId) {
+                    " [Active Camera]"
+                } else {
+                    ""
+                }
+                val activeMarker = if (entity.active) "" else " (inactive)"
+                val label = "${entity.name}$activeCameraMarker$activeMarker##scene_entity_${entity.id}"
                 if (ImGui.selectable(label, state.selectedEntityId == entity.id)) {
                     state.selectedEntityId = entity.id
                     state.statusMessage = "Selected ${entity.name}."
@@ -230,6 +235,12 @@ class SceneHierarchyPanel(
         with(dsl) {
             button("Create Empty##scene_hierarchy_create_empty") {
                 operations.createEmptyEntity()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Create Camera##scene_hierarchy_create_camera") {
+                operations.createCameraFromView()
             }
         }
         ImGui.sameLine()
@@ -400,9 +411,7 @@ class SceneInspectorPanel(
 
         entity.get<PerspectiveCameraComponent>()?.let { camera ->
             ImGui.separator()
-            ImGui.text("Camera")
-            ImGui.text("FOV: ${"%.1f".format(camera.fieldOfViewDegrees)}")
-            ImGui.text("Near/Far: ${"%.2f".format(camera.near)} / ${"%.1f".format(camera.far)}")
+            drawCamera(entity, camera)
         }
 
         entity.get<LightComponent>()?.let { light ->
@@ -465,6 +474,55 @@ class SceneInspectorPanel(
         }
     }
 
+    private fun drawCamera(entity: Entity, camera: PerspectiveCameraComponent) {
+        ImGui.text("Camera")
+        if (document.descriptor?.settings?.activeCameraEntityId == entity.id) {
+            ImGui.text("Active Camera")
+        } else {
+            with(dsl) {
+                button("Set Active Camera##scene_inspector_camera_set_active") {
+                    operations.setActiveCamera(entity.id)
+                }
+            }
+        }
+
+        cameraValueBuffer[0] = camera.fieldOfViewDegrees
+        if (ImGui.drag(
+                "Field of View##scene_inspector_camera_fov",
+                cameraValueBuffer,
+                CameraDragSpeed,
+                MinCameraFovDegrees,
+                MaxCameraFovDegrees,
+                "%.1f",
+                SliderFlag.AlwaysClamp,
+            )
+        ) {
+            operations.setCameraFov(entity.id, cameraValueBuffer[0])
+        }
+
+        cameraValueBuffer[0] = camera.near
+        if (ImGui.drag("Near##scene_inspector_camera_near", cameraValueBuffer, CameraPlaneDragSpeed, 0f, 0f, "%.4f")) {
+            operations.setCameraNear(entity.id, cameraValueBuffer[0])
+        }
+
+        cameraValueBuffer[0] = camera.far
+        if (ImGui.drag("Far##scene_inspector_camera_far", cameraValueBuffer, CameraDragSpeed, 0f, 0f, "%.2f")) {
+            operations.setCameraFar(entity.id, cameraValueBuffer[0])
+        }
+
+        with(dsl) {
+            button("Align Camera to View##scene_inspector_camera_align_to_view") {
+                operations.alignCameraToView(entity.id)
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Align View to Camera##scene_inspector_camera_align_view") {
+                operations.alignViewToCamera(entity.id)
+            }
+        }
+    }
+
     private fun drawComponentActions(entity: Entity) {
         val hasTransform = entity.get<TransformComponent>() != null
         if (!hasTransform) {
@@ -514,11 +572,16 @@ class SceneInspectorPanel(
     private fun FloatArray.toVec3(): Vec3 = Vec3(this[0], this[1], this[2])
 
     private val transformBuffer = FloatArray(3)
+    private val cameraValueBuffer = FloatArray(1)
 
     companion object {
         private const val TAG = "SceneInspectorPanel"
         private const val NameInputBufferSize = 128
         private const val DragSpeed = 0.05f
+        private const val CameraDragSpeed = 0.1f
+        private const val CameraPlaneDragSpeed = 0.01f
+        private const val MinCameraFovDegrees = 1f
+        private const val MaxCameraFovDegrees = 160f
     }
 }
 

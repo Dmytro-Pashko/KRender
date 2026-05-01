@@ -258,6 +258,7 @@ class SceneEditorCameraSystem(
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
         val snapshot = input.snapshot()
 
+        consumePendingCameraTeleport(transform)
         camera.lookAt = null
 
         val mouseAvailable = state.viewportFocused || !snapshot.uiCapturesMouse
@@ -284,6 +285,21 @@ class SceneEditorCameraSystem(
 
         state.camera.position = transform.position.copy()
         state.camera.eulerDegrees = transform.eulerDegrees.copy()
+    }
+
+    private fun consumePendingCameraTeleport(transform: TransformComponent) {
+        val pendingPosition = state.pendingCameraPosition
+        val pendingEulerDegrees = state.pendingCameraEulerDegrees
+        if (pendingPosition == null && pendingEulerDegrees == null) return
+
+        pendingPosition?.let { position ->
+            transform.position.set(position.x, position.y, position.z)
+        }
+        pendingEulerDegrees?.let { eulerDegrees ->
+            transform.eulerDegrees.set(eulerDegrees.x, eulerDegrees.y, eulerDegrees.z)
+        }
+        state.pendingCameraPosition = null
+        state.pendingCameraEulerDegrees = null
     }
 
     private fun updatePosition(

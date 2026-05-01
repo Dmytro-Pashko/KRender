@@ -107,6 +107,121 @@ class SceneEditorOperations(
         context.logger.info(TAG) { "Placed terrain entity id=${entity.id} name='${entity.name}' terrain='$normalizedPath'" }
     }
 
+    fun createCameraFromView() {
+        val entity = document.world.createEntity(uniqueCameraName())
+        entity.transform.position.set(
+            state.camera.position.x,
+            state.camera.position.y,
+            state.camera.position.z,
+        )
+        entity.transform.eulerDegrees.set(
+            state.camera.eulerDegrees.x,
+            state.camera.eulerDegrees.y,
+            state.camera.eulerDegrees.z,
+        )
+        entity.add(
+            PerspectiveCameraComponent(
+                fieldOfViewDegrees = 67f,
+                near = 0.05f,
+                far = 250f,
+            ),
+        )
+
+        state.selectedEntityId = entity.id
+        if (!activeCameraExists()) {
+            updateActiveCameraSetting(entity.id)
+        }
+        markSceneChanged("Camera created.")
+        context.logger.info(TAG) { "Created camera entity id=${entity.id} name='${entity.name}' from editor view" }
+    }
+
+    fun setActiveCamera(entityId: EntityId) {
+        val entity = cameraEntity(entityId) ?: return
+        updateActiveCameraSetting(entity.id)
+        markSceneChanged("Active camera set to ${entity.name}.")
+        context.logger.info(TAG) { "Active scene camera set entityId=${entity.id} name='${entity.name}'" }
+    }
+
+    fun alignCameraToView(entityId: EntityId) {
+        val entity = cameraEntity(entityId) ?: return
+        val transform = entity.get<TransformComponent>() ?: return transformMissing(entityId)
+
+        transform.position.set(
+            state.camera.position.x,
+            state.camera.position.y,
+            state.camera.position.z,
+        )
+        transform.eulerDegrees.set(
+            state.camera.eulerDegrees.x,
+            state.camera.eulerDegrees.y,
+            state.camera.eulerDegrees.z,
+        )
+        markSceneChanged("Aligned ${entity.name} to editor view.")
+        context.logger.info(TAG) { "Aligned camera entityId=${entity.id} name='${entity.name}' to editor view" }
+    }
+
+    fun alignViewToCamera(entityId: EntityId) {
+        val entity = cameraEntity(entityId) ?: return
+        val transform = entity.get<TransformComponent>() ?: return transformMissing(entityId)
+        val position = transform.position.copy()
+        val eulerDegrees = transform.eulerDegrees.copy()
+
+        state.camera.position = position.copy()
+        state.camera.eulerDegrees = eulerDegrees.copy()
+        state.pendingCameraPosition = position
+        state.pendingCameraEulerDegrees = eulerDegrees
+        state.statusMessage = "Aligned editor view to ${entity.name}."
+        context.logger.info(TAG) { "Aligned editor view to camera entityId=${entity.id} name='${entity.name}'" }
+    }
+
+    fun setCameraFov(entityId: EntityId, fov: Float) {
+        val entity = cameraEntity(entityId) ?: return
+        val camera = entity.get<PerspectiveCameraComponent>() ?: return
+        if (!fov.isFinite()) {
+            rejectCameraEdit(entityId, "Camera FOV must be finite.")
+            return
+        }
+
+        val clampedFov = fov.coerceIn(MinCameraFovDegrees, MaxCameraFovDegrees)
+        if (camera.fieldOfViewDegrees == clampedFov) return
+
+        camera.fieldOfViewDegrees = clampedFov
+        markSceneChanged("Updated ${entity.name} camera FOV.")
+        context.logger.debug(TAG) { "Updated camera FOV entityId=$entityId value=$clampedFov" }
+    }
+
+    fun setCameraNear(entityId: EntityId, near: Float) {
+        val entity = cameraEntity(entityId) ?: return
+        val camera = entity.get<PerspectiveCameraComponent>() ?: return
+        if (!near.isFinite() || near <= MinCameraNear) {
+            rejectCameraEdit(entityId, "Camera near must be greater than $MinCameraNear.")
+            return
+        }
+        if (camera.far <= near + CameraPlaneEpsilon) {
+            rejectCameraEdit(entityId, "Camera near must be less than far.")
+            return
+        }
+        if (camera.near == near) return
+
+        camera.near = near
+        markSceneChanged("Updated ${entity.name} camera near plane.")
+        context.logger.debug(TAG) { "Updated camera near entityId=$entityId value=$near" }
+    }
+
+    fun setCameraFar(entityId: EntityId, far: Float) {
+        val entity = cameraEntity(entityId) ?: return
+        val camera = entity.get<PerspectiveCameraComponent>() ?: return
+        if (!far.isFinite() || far <= camera.near + CameraPlaneEpsilon) {
+            rejectCameraEdit(entityId, "Camera far must be greater than near.")
+            return
+        }
+        if (camera.far == far) return
+
+        camera.far = far
+        markSceneChanged("Updated ${entity.name} camera far plane.")
+        context.logger.debug(TAG) { "Updated camera far entityId=$entityId value=$far" }
+    }
+
     fun renameEntity(entityId: EntityId, newName: String) {
         val entity = editableEntity(entityId) ?: return
         val trimmedName = newName.trim()
@@ -368,6 +483,8 @@ class SceneEditorOperations(
 
     private fun defaultSavePath(): String = "scenes/${sanitizeSceneName(state.sceneName)}.krscene"
 
+    private fun generateSceneId(): String = "scene:${UUID.randomUUID()}"
+
     private fun sanitizeSceneName(name: String): String {
         val sanitized = name.trim().replace(Regex("\\s+"), "_")
         return sanitized.takeIf(String::isNotBlank) ?: "Untitled_Scene"
@@ -392,6 +509,47 @@ class SceneEditorOperations(
     private fun transformMissing(entityId: EntityId) {
         state.statusMessage = "Entity has no TransformComponent."
         context.logger.warn(TAG) { "Scene transform edit ignored because entity id=$entityId has no TransformComponent" }
+    }
+
+    private fun cameraEntity(entityId: EntityId): Entity? {
+        val entity = editableEntity(entityId) ?: return null
+        if (entity.get<PerspectiveCameraComponent>() == null) {
+            state.statusMessage = "Entity has no PerspectiveCameraComponent."
+            context.logger.warn(TAG) { "Scene camera operation ignored because entity id=$entityId has no PerspectiveCameraComponent" }
+            return null
+        }
+        return entity
+    }
+
+    private fun rejectCameraEdit(entityId: EntityId, message: String) {
+        state.statusMessage = message
+        context.logger.warn(TAG) { "Rejected camera edit entityId=$entityId: $message" }
+    }
+
+    private fun updateActiveCameraSetting(entityId: EntityId) {
+        val descriptor = document.descriptor
+        document.descriptor = if (descriptor == null) {
+            SceneDescriptor(
+                id = generateSceneId(),
+                name = state.sceneName,
+                entities = emptyList(),
+                settings = SceneSettingsDescriptor(
+                    activeCameraEntityId = entityId,
+                    ambientLightEntityId = null,
+                ),
+            )
+        } else {
+            descriptor.copy(
+                settings = descriptor.settings.copy(activeCameraEntityId = entityId),
+            )
+        }
+    }
+
+    private fun activeCameraExists(): Boolean {
+        val activeCameraEntityId = document.descriptor?.settings?.activeCameraEntityId ?: return false
+        return document.world.getEntity(activeCameraEntityId)
+            ?.takeUnless { entity -> entity.get<EditorOnlyComponent>() != null }
+            ?.get<PerspectiveCameraComponent>() != null
     }
 
     private fun requiresTransform(entity: Entity): Boolean =
@@ -475,6 +633,19 @@ class SceneEditorOperations(
         return if (name == "Model") "Terrain" else name
     }
 
+    private fun uniqueCameraName(): String {
+        val existingNames = document.world.all()
+            .filter { entity -> entity.get<EditorOnlyComponent>() == null }
+            .map(Entity::name)
+            .toSet()
+        if ("Camera" !in existingNames) return "Camera"
+        var index = 2
+        while ("Camera $index" in existingNames) {
+            index += 1
+        }
+        return "Camera $index"
+    }
+
     private fun placementPositionInFrontOfCamera(): Vec3 {
         val origin = state.camera.position
         val rotation = state.camera.eulerDegrees
@@ -503,6 +674,10 @@ class SceneEditorOperations(
 
     companion object {
         private const val TAG = "SceneEditorOperations"
+        private const val MinCameraFovDegrees = 1f
+        private const val MaxCameraFovDegrees = 160f
+        private const val MinCameraNear = 0.001f
+        private const val CameraPlaneEpsilon = 0.001f
     }
 }
 
