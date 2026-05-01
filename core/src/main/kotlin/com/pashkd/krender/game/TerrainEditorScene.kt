@@ -45,7 +45,7 @@ import com.pashkd.krender.engine.ui.UiSystem
 class TerrainEditorScene(
     private val terrainResolution: Int = 128,
     private val vertexSpacing: Float = 1f,
-    private val terrainFilePath: String = "terrains/terrain_01.json",
+    private val terrainFilePath: String = "terrains/terrain_01.krterrain",
 ) : Scene("terrain_editor") {
     private val terrainGenerators = listOf(
         FlatTerrainGenerator(),
