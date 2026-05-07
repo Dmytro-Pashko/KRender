@@ -14,12 +14,15 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
+import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 import java.util.UUID
 
 /**
@@ -135,6 +138,42 @@ class SceneEditorOperations(
         context.logger.info(TAG) { "Created camera entity id=${entity.id} name='${entity.name}' from editor view" }
     }
 
+    fun createDirectionalLight() {
+        val entity = document.world.createEntity(uniqueLightName("Directional Light"))
+        val direction = normalizedOrFallback(DefaultLightDirection, DefaultLightDirection)
+        entity.add(
+            LightComponent(
+                type = LightType.Directional,
+                color = DefaultDirectionalLightColor.copy(),
+                intensity = DefaultDirectionalLightIntensity,
+                direction = direction,
+            ),
+        )
+        state.selectedEntityId = entity.id
+        markSceneChanged("Created ${entity.name}.")
+        context.logger.info(TAG) {
+            "Created directional light entity id=${entity.id} name='${entity.name}' direction=${direction.x},${direction.y},${direction.z}"
+        }
+    }
+
+    fun createPointLight() {
+        val entity = document.world.createEntity(uniqueLightName("Point Light"))
+        entity.transform.position = placementPositionInFrontOfCamera(DefaultPointLightPlacementDistance)
+        entity.add(
+            LightComponent(
+                type = LightType.Point,
+                color = Color.white(),
+                intensity = DefaultPointLightIntensity,
+                direction = DefaultLightDirection.copy(),
+            ),
+        )
+        state.selectedEntityId = entity.id
+        markSceneChanged("Created ${entity.name}.")
+        context.logger.info(TAG) {
+            "Created point light entity id=${entity.id} name='${entity.name}' position=${entity.transform.position.x},${entity.transform.position.y},${entity.transform.position.z}"
+        }
+    }
+
     fun setActiveCamera(entityId: EntityId) {
         val entity = cameraEntity(entityId) ?: return
         updateActiveCameraSetting(entity.id)
@@ -172,6 +211,135 @@ class SceneEditorOperations(
         state.pendingCameraEulerDegrees = eulerDegrees
         state.statusMessage = "Aligned editor view to ${entity.name}."
         context.logger.info(TAG) { "Aligned editor view to camera entityId=${entity.id} name='${entity.name}'" }
+    }
+
+    fun setLightType(entityId: EntityId, type: LightType) {
+        if (type != LightType.Directional && type != LightType.Point) {
+            rejectLightEdit(entityId, "Only Directional and Point lights are supported in the editor.")
+            return
+        }
+        val entity = lightEntity(entityId) ?: return
+        val light = entity.get<LightComponent>() ?: return
+        if (light.type == type) return
+
+        entity.add(
+            LightComponent(
+                type = type,
+                color = light.color.copy(),
+                intensity = light.intensity,
+                direction = normalizedOrFallback(light.direction, DefaultLightDirection),
+            ),
+        )
+        markSceneChanged("Updated ${entity.name} light type.")
+        context.logger.info(TAG) { "Updated light type entityId=$entityId type=${type.name}" }
+    }
+
+    fun setLightIntensity(entityId: EntityId, intensity: Float) {
+        val entity = lightEntity(entityId) ?: return
+        val light = entity.get<LightComponent>() ?: return
+        if (!intensity.isFinite() || intensity < 0f) {
+            rejectLightEdit(entityId, "Light intensity must be finite and greater than or equal to 0.")
+            return
+        }
+        if (light.intensity == intensity) return
+
+        light.intensity = intensity
+        markSceneChanged("Updated ${entity.name} light intensity.")
+        context.logger.debug(TAG) { "Updated light intensity entityId=$entityId value=$intensity" }
+    }
+
+    fun setLightColor(entityId: EntityId, color: Color) {
+        val entity = lightEntity(entityId) ?: return
+        val light = entity.get<LightComponent>() ?: return
+        if (!color.isFinite()) {
+            rejectLightEdit(entityId, "Light color channels must be finite.")
+            return
+        }
+
+        val clamped = color.clamped()
+        if (light.color == clamped) return
+
+        light.color.r = clamped.r
+        light.color.g = clamped.g
+        light.color.b = clamped.b
+        light.color.a = clamped.a
+        markSceneChanged("Updated ${entity.name} light color.")
+        context.logger.debug(TAG) {
+            "Updated light color entityId=$entityId value=${clamped.r},${clamped.g},${clamped.b},${clamped.a}"
+        }
+    }
+
+    fun setLightDirection(entityId: EntityId, direction: Vec3) {
+        val entity = lightEntity(entityId) ?: return
+        val light = entity.get<LightComponent>() ?: return
+        if (light.type != LightType.Directional) {
+            rejectLightEdit(entityId, "Only Directional lights use a direction vector.")
+            return
+        }
+
+        val normalized = normalizedOrNull(direction)
+        if (normalized == null) {
+            rejectLightEdit(entityId, "Light direction must be finite and non-zero.")
+            return
+        }
+        if (light.direction == normalized) return
+
+        light.direction.set(normalized.x, normalized.y, normalized.z)
+        markSceneChanged("Updated ${entity.name} light direction.")
+        context.logger.debug(TAG) {
+            "Updated light direction entityId=$entityId value=${normalized.x},${normalized.y},${normalized.z}"
+        }
+    }
+
+    fun alignLightDirectionToView(entityId: EntityId) {
+        val entity = lightEntity(entityId) ?: return
+        val light = entity.get<LightComponent>() ?: return
+        if (light.type != LightType.Directional) {
+            rejectLightEdit(entityId, "Only Directional lights can align direction to the view.")
+            return
+        }
+
+        val direction = normalizedOrFallback(cameraForward(), DefaultLightDirection)
+        if (light.direction == direction) return
+
+        light.direction.set(direction.x, direction.y, direction.z)
+        markSceneChanged("Aligned ${entity.name} direction to editor view.")
+        context.logger.info(TAG) { "Aligned light direction to view entityId=$entityId name='${entity.name}'" }
+    }
+
+    fun setAmbientLightColor(color: Color) {
+        if (!color.isFinite()) {
+            state.statusMessage = "Ambient light color channels must be finite."
+            context.logger.warn(TAG) { "Rejected ambient light color edit because color was not finite" }
+            return
+        }
+        val clamped = color.clamped()
+        val current = document.descriptor?.settings?.ambientLightColor ?: defaultAmbientLightColor()
+        if (current == clamped) return
+
+        updateSceneSettings { settings ->
+            settings.copy(ambientLightColor = clamped)
+        }
+        markSceneChanged("Updated ambient light color.")
+        context.logger.debug(TAG) {
+            "Updated ambient light color value=${clamped.r},${clamped.g},${clamped.b},${clamped.a}"
+        }
+    }
+
+    fun setAmbientLightIntensity(intensity: Float) {
+        if (!intensity.isFinite() || intensity < 0f) {
+            state.statusMessage = "Ambient light intensity must be finite and greater than or equal to 0."
+            context.logger.warn(TAG) { "Rejected ambient light intensity edit value=$intensity" }
+            return
+        }
+        val current = document.descriptor?.settings?.ambientLightIntensity ?: DefaultAmbientLightIntensity
+        if (current == intensity) return
+
+        updateSceneSettings { settings ->
+            settings.copy(ambientLightIntensity = intensity)
+        }
+        markSceneChanged("Updated ambient light intensity.")
+        context.logger.debug(TAG) { "Updated ambient light intensity value=$intensity" }
     }
 
     fun setCameraFov(entityId: EntityId, fov: Float) {
@@ -521,27 +689,49 @@ class SceneEditorOperations(
         return entity
     }
 
+    private fun lightEntity(entityId: EntityId): Entity? {
+        val entity = editableEntity(entityId) ?: return null
+        val light = entity.get<LightComponent>()
+        if (light == null) {
+            state.statusMessage = "Entity has no LightComponent."
+            context.logger.warn(TAG) { "Scene light operation ignored because entity id=$entityId has no LightComponent" }
+            return null
+        }
+        if (light.type != LightType.Directional && light.type != LightType.Point) {
+            state.statusMessage = "Only Directional and Point lights are supported in the editor."
+            context.logger.warn(TAG) { "Scene light operation ignored because entity id=$entityId has unsupported light type ${light.type}" }
+            return null
+        }
+        return entity
+    }
+
     private fun rejectCameraEdit(entityId: EntityId, message: String) {
         state.statusMessage = message
         context.logger.warn(TAG) { "Rejected camera edit entityId=$entityId: $message" }
     }
 
+    private fun rejectLightEdit(entityId: EntityId, message: String) {
+        state.statusMessage = message
+        context.logger.warn(TAG) { "Rejected light edit entityId=$entityId: $message" }
+    }
+
     private fun updateActiveCameraSetting(entityId: EntityId) {
+        updateSceneSettings { settings ->
+            settings.copy(activeCameraEntityId = entityId)
+        }
+    }
+
+    private fun updateSceneSettings(update: (SceneSettingsDescriptor) -> SceneSettingsDescriptor) {
         val descriptor = document.descriptor
         document.descriptor = if (descriptor == null) {
             SceneDescriptor(
                 id = generateSceneId(),
                 name = state.sceneName,
                 entities = emptyList(),
-                settings = SceneSettingsDescriptor(
-                    activeCameraEntityId = entityId,
-                    ambientLightEntityId = null,
-                ),
+                settings = update(SceneSettingsDescriptor()),
             )
         } else {
-            descriptor.copy(
-                settings = descriptor.settings.copy(activeCameraEntityId = entityId),
-            )
+            descriptor.copy(settings = update(descriptor.settings))
         }
     }
 
@@ -633,6 +823,19 @@ class SceneEditorOperations(
         return if (name == "Model") "Terrain" else name
     }
 
+    private fun uniqueLightName(baseName: String): String {
+        val existingNames = document.world.all()
+            .filter { entity -> entity.get<EditorOnlyComponent>() == null }
+            .map(Entity::name)
+            .toSet()
+        if (baseName !in existingNames) return baseName
+        var index = 2
+        while ("$baseName $index" in existingNames) {
+            index += 1
+        }
+        return "$baseName $index"
+    }
+
     private fun uniqueCameraName(): String {
         val existingNames = document.world.all()
             .filter { entity -> entity.get<EditorOnlyComponent>() == null }
@@ -646,18 +849,43 @@ class SceneEditorOperations(
         return "Camera $index"
     }
 
-    private fun placementPositionInFrontOfCamera(): Vec3 {
+    private fun placementPositionInFrontOfCamera(distance: Float = state.placeModelDistance.coerceAtLeast(0f)): Vec3 {
         val origin = state.camera.position
+        return origin + cameraForward() * distance
+    }
+
+    private fun cameraForward(): Vec3 {
         val rotation = state.camera.eulerDegrees
         val pitch = Math.toRadians(rotation.x.toDouble())
         val yaw = Math.toRadians(rotation.y.toDouble())
-        val forward = Vec3(
+        return Vec3(
             x = (sin(yaw) * cos(pitch)).toFloat(),
             y = sin(pitch).toFloat(),
             z = (cos(yaw) * cos(pitch)).toFloat(),
         )
-        return origin + forward * state.placeModelDistance.coerceAtLeast(0f)
     }
+
+    private fun normalizedOrFallback(vector: Vec3, fallback: Vec3): Vec3 =
+        normalizedOrNull(vector) ?: fallback.copy()
+
+    private fun normalizedOrNull(vector: Vec3): Vec3? {
+        if (!vector.isFinite()) return null
+        val length = sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z)
+        if (length <= 1e-6f) return null
+        return Vec3(vector.x / length, vector.y / length, vector.z / length)
+    }
+
+    private fun Color.clamped(): Color =
+        Color(
+            r = r.coerceIn(0f, 1f),
+            g = g.coerceIn(0f, 1f),
+            b = b.coerceIn(0f, 1f),
+            a = a.coerceIn(0f, 1f),
+        )
+
+    private fun Color.isFinite(): Boolean = r.isFinite() && g.isFinite() && b.isFinite() && a.isFinite()
+
+    private fun Vec3.isFinite(): Boolean = x.isFinite() && y.isFinite() && z.isFinite()
 
     private fun TransformComponent.cloneForSceneEntity(): TransformComponent =
         TransformComponent(
@@ -678,6 +906,11 @@ class SceneEditorOperations(
         private const val MaxCameraFovDegrees = 160f
         private const val MinCameraNear = 0.001f
         private const val CameraPlaneEpsilon = 0.001f
+        private val DefaultDirectionalLightColor = Color(1f, 0.96f, 0.88f, 1f)
+        private const val DefaultDirectionalLightIntensity = 1.2f
+        private const val DefaultPointLightIntensity = 10f
+        private const val DefaultPointLightPlacementDistance = 3f
+        private val DefaultLightDirection = Vec3(-0.45f, -0.8f, -0.35f)
     }
 }
 
@@ -703,6 +936,8 @@ object SceneEditorSceneFactory {
             settings = SceneSettingsDescriptor(
                 activeCameraEntityId = camera.id,
                 ambientLightEntityId = null,
+                ambientLightColor = defaultAmbientLightColor(),
+                ambientLightIntensity = DefaultAmbientLightIntensity,
             ),
         )
 

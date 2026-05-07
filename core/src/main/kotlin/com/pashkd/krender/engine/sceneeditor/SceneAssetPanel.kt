@@ -153,16 +153,10 @@ class SceneAssetPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private val searchBuffer = ByteArray(TextInputBufferSize)
-    private val modelPathBuffer = ByteArray(TextInputBufferSize)
-    private val terrainPathBuffer = ByteArray(TextInputBufferSize)
     private var searchInputActive = false
-    private var modelPathInputActive = false
-    private var terrainPathInputActive = false
 
     override fun draw() {
         syncSearchBuffer()
-        syncModelPathBuffer()
-        syncTerrainPathBuffer()
 
         val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Assets)
         applyWindowDefaults(layout)
@@ -204,7 +198,7 @@ class SceneAssetPanel(
     }
 
     private fun drawAssetsList() {
-        ImGui.text("Models")
+        ImGui.text("Models:")
         ImGui.beginChild("scene_assets_model_list", Vec2(0f, AssetListHeight), true)
         val allModels = assetBrowser.modelAssets()
         val visibleModels = assetBrowser.filteredModelAssets()
@@ -223,8 +217,11 @@ class SceneAssetPanel(
             else -> visibleModels.forEach(::drawAssetRow)
         }
         ImGui.endChild()
+        drawModelSelectionDetails()
 
-        ImGui.text("Terrains")
+        ImGui.separator()
+
+        ImGui.text("Terrains:")
         ImGui.beginChild("scene_assets_terrain_list", Vec2(0f, AssetListHeight), true)
         val allTerrains = assetBrowser.terrainAssets()
         val visibleTerrains = assetBrowser.filteredTerrainAssets()
@@ -243,6 +240,7 @@ class SceneAssetPanel(
             else -> visibleTerrains.forEach(::drawAssetRow)
         }
         ImGui.endChild()
+        drawTerrainSelectionDetails()
     }
 
     private fun drawAssetRow(asset: AssetDescriptor) {
@@ -254,7 +252,21 @@ class SceneAssetPanel(
     }
 
     private fun drawPlacementControls() {
-        ImGui.text("Selected: ${panelState.selectedAssetPath ?: "<none>"}")
+        ImGui.text("Placement Options:")
+        slider(
+            "Distance##scene_assets_place_model_distance",
+            editorState::placeModelDistance,
+            MinPlaceModelDistance,
+            MaxPlaceModelDistance,
+            "%.1f",
+            SliderFlag.AlwaysClamp,
+        )
+    }
+
+    private fun drawModelSelectionDetails() {
+        val modelPath = selectedModelPath()
+        ImGui.text("Selected model: ${selectedModelName()}")
+        ImGui.textWrapped("Model Path: ${modelPath ?: "<none>"}")
         with(dsl) {
             button("Place Selected Model##scene_assets_place_selected") {
                 placeSelectedModel()
@@ -266,34 +278,15 @@ class SceneAssetPanel(
                 openSelectedInModelViewer()
             }
         }
-
-        ImGui.text("Manual Path")
-        ImGui.sameLine()
-        if (safeInputText("##scene_assets_manual_model_path", modelPathBuffer)) {
-            editorState.modelPlacementPath = readBuffer(modelPathBuffer)
-        }
-        modelPathInputActive = ImGui.isItemActive
-
-        slider(
-            "Distance##scene_assets_place_model_distance",
-            editorState::placeModelDistance,
-            MinPlaceModelDistance,
-            MaxPlaceModelDistance,
-            "%.1f",
-            SliderFlag.AlwaysClamp,
-        )
-        with(dsl) {
-            button("Place Model##scene_assets_place_manual") {
-                operations.placeModel(editorState.modelPlacementPath)
-                panelState.statusMessage = editorState.statusMessage
-                modelPathInputActive = false
-            }
-        }
         editorState.modelPlacementError?.let { error ->
             ImGui.text("Last error: $error")
         }
+    }
 
-        ImGui.separator()
+    private fun drawTerrainSelectionDetails() {
+        val terrainPath = selectedTerrainPath()
+        ImGui.text("Selected terrain: ${selectedTerrainName()}")
+        ImGui.textWrapped("Terrain Path: ${terrainPath ?: "<none>"}")
         with(dsl) {
             button("Place Terrain##scene_assets_place_selected_terrain") {
                 placeSelectedTerrain()
@@ -303,21 +296,6 @@ class SceneAssetPanel(
         with(dsl) {
             button("Open in Terrain Editor##scene_assets_open_terrain_editor") {
                 openSelectedInTerrainEditor()
-            }
-        }
-
-        ImGui.text("Terrain Path")
-        ImGui.sameLine()
-        if (safeInputText("##scene_assets_manual_terrain_path", terrainPathBuffer)) {
-            editorState.terrainPlacementPath = readBuffer(terrainPathBuffer)
-        }
-        terrainPathInputActive = ImGui.isItemActive
-
-        with(dsl) {
-            button("Place Terrain##scene_assets_place_manual_terrain") {
-                operations.placeTerrain(editorState.terrainPlacementPath)
-                panelState.statusMessage = editorState.statusMessage
-                terrainPathInputActive = false
             }
         }
         editorState.terrainPlacementError?.let { error ->
@@ -342,13 +320,11 @@ class SceneAssetPanel(
                 editorState.modelPlacementPath = asset.path
                 editorState.modelPlacementError = null
                 panelState.statusMessage = "Selected model: ${asset.path}"
-                modelPathInputActive = false
             }
             AssetCategory.Terrain -> {
                 editorState.terrainPlacementPath = asset.path
                 editorState.terrainPlacementError = null
                 panelState.statusMessage = "Selected terrain: ${asset.path}"
-                terrainPathInputActive = false
             }
             else -> {
                 panelState.statusMessage = "Selected asset: ${asset.path}"
@@ -358,8 +334,8 @@ class SceneAssetPanel(
     }
 
     private fun placeSelectedModel() {
-        val selectedPath = panelState.selectedAssetPath
-        if (selectedPath.isNullOrBlank() || panelState.selectedAssetCategory != AssetCategory.Model) {
+        val selectedPath = selectedModelPath()
+        if (selectedPath.isNullOrBlank()) {
             panelState.statusMessage = "Select a model first."
             editorState.statusMessage = panelState.statusMessage
             return
@@ -370,8 +346,8 @@ class SceneAssetPanel(
     }
 
     private fun openSelectedInModelViewer() {
-        val selectedPath = panelState.selectedAssetPath
-        if (selectedPath.isNullOrBlank() || panelState.selectedAssetCategory != AssetCategory.Model) {
+        val selectedPath = selectedModelPath()
+        if (selectedPath.isNullOrBlank()) {
             panelState.statusMessage = "Select a model first."
             editorState.statusMessage = panelState.statusMessage
             return
@@ -389,28 +365,19 @@ class SceneAssetPanel(
     }
 
     private fun placeSelectedTerrain() {
-        val selectedPath = panelState.selectedAssetPath
-        if (selectedPath.isNullOrBlank() || panelState.selectedAssetCategory != AssetCategory.Terrain) {
-            val fallbackPath = editorState.terrainPlacementPath
-            if (fallbackPath.isBlank()) {
-                panelState.statusMessage = "Select a terrain first."
-                editorState.statusMessage = panelState.statusMessage
-                return
-            }
-            operations.placeTerrain(fallbackPath)
-        } else {
-            operations.placeTerrain(selectedPath)
+        val selectedPath = selectedTerrainPath()
+        if (selectedPath.isNullOrBlank()) {
+            panelState.statusMessage = "Select a terrain first."
+            editorState.statusMessage = panelState.statusMessage
+            return
         }
+
+        operations.placeTerrain(selectedPath)
         panelState.statusMessage = editorState.statusMessage
     }
 
     private fun openSelectedInTerrainEditor() {
-        val selectedPath = panelState.selectedAssetPath
-        val terrainPath = if (panelState.selectedAssetCategory == AssetCategory.Terrain) {
-            selectedPath
-        } else {
-            editorState.terrainPlacementPath
-        }
+        val terrainPath = selectedTerrainPath()
         if (terrainPath.isNullOrBlank()) {
             panelState.statusMessage = "Select a terrain first."
             editorState.statusMessage = panelState.statusMessage
@@ -427,16 +394,37 @@ class SceneAssetPanel(
         }
     }
 
-    private fun syncModelPathBuffer() {
-        if (!modelPathInputActive && readBuffer(modelPathBuffer) != editorState.modelPlacementPath) {
-            writeBuffer(modelPathBuffer, editorState.modelPlacementPath)
+    private fun selectedModelPath(): String? =
+        when (panelState.selectedAssetCategory) {
+            AssetCategory.Model -> panelState.selectedAssetPath
+            else -> editorState.modelPlacementPath.takeIf(String::isNotBlank)
         }
+
+    private fun selectedTerrainPath(): String? =
+        when (panelState.selectedAssetCategory) {
+            AssetCategory.Terrain -> panelState.selectedAssetPath
+            else -> editorState.terrainPlacementPath.takeIf(String::isNotBlank)
+        }
+
+    private fun selectedModelName(): String =
+        selectedAssetName(AssetCategory.Model, selectedModelPath())
+
+    private fun selectedTerrainName(): String =
+        selectedAssetName(AssetCategory.Terrain, selectedTerrainPath())
+
+    private fun selectedAssetName(category: AssetCategory, path: String?): String {
+        val assetPath = path ?: return "<none>"
+        val asset = when (category) {
+            AssetCategory.Model -> assetBrowser.modelAssets().firstOrNull { descriptor -> descriptor.path == assetPath }
+            AssetCategory.Terrain -> assetBrowser.terrainAssets().firstOrNull { descriptor -> descriptor.path == assetPath }
+            else -> null
+        }
+        return asset?.name?.takeIf(String::isNotBlank) ?: assetNameFromPath(assetPath)
     }
 
-    private fun syncTerrainPathBuffer() {
-        if (!terrainPathInputActive && readBuffer(terrainPathBuffer) != editorState.terrainPlacementPath) {
-            writeBuffer(terrainPathBuffer, editorState.terrainPlacementPath)
-        }
+    private fun assetNameFromPath(path: String): String {
+        val fileName = path.substringAfterLast('/').substringAfterLast('\\')
+        return fileName.ifBlank { path }
     }
 
     companion object {

@@ -1,13 +1,17 @@
 package com.pashkd.krender.engine.sceneeditor
 
+import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Entity
 import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
+import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiPanelLayout
@@ -18,6 +22,7 @@ import imgui.Cond
 import imgui.ImGui
 import imgui.SliderFlag
 import imgui.api.slider
+import imgui.api.colorEdit4
 import imgui.dsl
 import java.nio.charset.StandardCharsets
 
@@ -237,13 +242,21 @@ class SceneHierarchyPanel(
                 operations.createEmptyEntity()
             }
         }
-        ImGui.sameLine()
         with(dsl) {
             button("Create Camera##scene_hierarchy_create_camera") {
                 operations.createCameraFromView()
             }
         }
-        ImGui.sameLine()
+        with(dsl) {
+            button("Create Directional Light##scene_hierarchy_create_directional_light") {
+                operations.createDirectionalLight()
+            }
+        }
+        with(dsl) {
+            button("Create Point Light##scene_hierarchy_create_point_light") {
+                operations.createPointLight()
+            }
+        }
         with(dsl) {
             button("Rename##scene_hierarchy_rename") {
                 val entity = selectedEditableEntity()
@@ -255,7 +268,6 @@ class SceneHierarchyPanel(
                 }
             }
         }
-        ImGui.sameLine()
         with(dsl) {
             button("Delete##scene_hierarchy_delete") {
                 val entityId = state.selectedEntityId
@@ -266,7 +278,6 @@ class SceneHierarchyPanel(
                 }
             }
         }
-        ImGui.sameLine()
         with(dsl) {
             button("Duplicate##scene_hierarchy_duplicate") {
                 val entityId = state.selectedEntityId
@@ -369,6 +380,9 @@ class SceneInspectorPanel(
             return
         }
 
+        drawSceneSettings()
+        ImGui.separator()
+
         val entity = state.selectedEntityId?.let(document.world::getEntity)
         if (entity?.get<EditorOnlyComponent>() != null) {
             logger.debug(TAG) { "Clearing editor-only selection entityId=${entity.id}" }
@@ -416,9 +430,7 @@ class SceneInspectorPanel(
 
         entity.get<LightComponent>()?.let { light ->
             ImGui.separator()
-            ImGui.text("Light")
-            ImGui.text("Type: ${light.type}")
-            ImGui.text("Intensity: ${"%.2f".format(light.intensity)}")
+            drawLight(entity, light)
         }
 
         entity.get<ModelComponent>()?.let { model ->
@@ -448,6 +460,53 @@ class SceneInspectorPanel(
             ImGui.bulletText(component::class.simpleName ?: component::class.toString())
         }
         drawComponentActions(entity)
+    }
+
+    private fun drawSceneSettings() {
+        val settings = document.descriptor?.settings
+        val ambientColor = settings?.ambientLightColor?.copy() ?: defaultAmbientLightColor()
+        val ambientIntensity = settings?.ambientLightIntensity ?: DefaultAmbientLightIntensity
+
+        ImGui.text("Scene Settings")
+        ImGui.text("Lighting")
+        if (
+            colorEdit4(
+                "Ambient Color##scene_inspector_ambient_color",
+                ambientColor.r,
+                ambientColor.g,
+                ambientColor.b,
+                ambientColor.a,
+            ) { r, g, b, a ->
+                ambientColorBuffer[0] = r
+                ambientColorBuffer[1] = g
+                ambientColorBuffer[2] = b
+                ambientColorBuffer[3] = a
+            }
+        ) {
+            operations.setAmbientLightColor(
+                Color(
+                    ambientColorBuffer[0],
+                    ambientColorBuffer[1],
+                    ambientColorBuffer[2],
+                    ambientColorBuffer[3],
+                ),
+            )
+        }
+
+        ambientValueBuffer[0] = ambientIntensity
+        if (
+            ImGui.drag(
+                "Ambient Intensity##scene_inspector_ambient_intensity",
+                ambientValueBuffer,
+                CameraPlaneDragSpeed,
+                0f,
+                0f,
+                "%.2f",
+                SliderFlag.AlwaysClamp,
+            )
+        ) {
+            operations.setAmbientLightIntensity(ambientValueBuffer[0])
+        }
     }
 
     private fun drawTransform(entity: Entity) {
@@ -523,6 +582,77 @@ class SceneInspectorPanel(
         }
     }
 
+    private fun drawLight(entity: Entity, light: LightComponent) {
+        ImGui.text("Light")
+        drawLightTypeSelector(entity, light)
+
+        lightColorBuffer[0] = light.color.r
+        lightColorBuffer[1] = light.color.g
+        lightColorBuffer[2] = light.color.b
+        lightColorBuffer[3] = light.color.a
+        if (
+            colorEdit4(
+                "Color##scene_inspector_light_color",
+                lightColorBuffer[0],
+                lightColorBuffer[1],
+                lightColorBuffer[2],
+                lightColorBuffer[3],
+            ) { r, g, b, a ->
+                lightColorBuffer[0] = r
+                lightColorBuffer[1] = g
+                lightColorBuffer[2] = b
+                lightColorBuffer[3] = a
+            }
+        ) {
+            operations.setLightColor(
+                entity.id,
+                Color(lightColorBuffer[0], lightColorBuffer[1], lightColorBuffer[2], lightColorBuffer[3]),
+            )
+        }
+
+        lightValueBuffer[0] = light.intensity
+        if (
+            ImGui.drag(
+                "Intensity##scene_inspector_light_intensity",
+                lightValueBuffer,
+                CameraPlaneDragSpeed,
+                0f,
+                0f,
+                "%.2f",
+                SliderFlag.AlwaysClamp,
+            )
+        ) {
+            operations.setLightIntensity(entity.id, lightValueBuffer[0])
+        }
+
+        when (light.type) {
+            LightType.Directional -> {
+                if (drawLightDirectionEditor(light.direction)) {
+                    operations.setLightDirection(entity.id, lightVectorBuffer.toVec3())
+                }
+                with(dsl) {
+                    button("Align Direction to View##scene_inspector_light_align_direction") {
+                        operations.alignLightDirectionToView(entity.id)
+                    }
+                }
+            }
+
+            LightType.Point -> ImGui.text("Point Light position is controlled by Transform.")
+            else -> ImGui.text("Unsupported light type is hidden in MVP.")
+        }
+    }
+
+    private fun drawLightTypeSelector(entity: Entity, light: LightComponent) {
+        if (!ImGui.beginCombo("Type##scene_inspector_light_type", light.type.name)) return
+
+        listOf(LightType.Directional, LightType.Point).forEach { type ->
+            if (ImGui.selectable(type.name, light.type == type)) {
+                operations.setLightType(entity.id, type)
+            }
+        }
+        ImGui.endCombo()
+    }
+
     private fun drawComponentActions(entity: Entity) {
         val hasTransform = entity.get<TransformComponent>() != null
         if (!hasTransform) {
@@ -557,6 +687,13 @@ class SceneInspectorPanel(
         return ImGui.drag3(label, transformBuffer, DragSpeed, 0f, 0f, "%.3f")
     }
 
+    private fun drawLightDirectionEditor(value: Vec3): Boolean {
+        lightVectorBuffer[0] = value.x
+        lightVectorBuffer[1] = value.y
+        lightVectorBuffer[2] = value.z
+        return ImGui.drag3("Direction##scene_inspector_light_direction", lightVectorBuffer, DragSpeed, 0f, 0f, "%.3f")
+    }
+
     private fun syncNameBuffer(entity: Entity) {
         if (bufferedEntityId != entity.id) {
             bufferedEntityId = entity.id
@@ -573,6 +710,11 @@ class SceneInspectorPanel(
 
     private val transformBuffer = FloatArray(3)
     private val cameraValueBuffer = FloatArray(1)
+    private val ambientColorBuffer = FloatArray(4)
+    private val ambientValueBuffer = FloatArray(1)
+    private val lightColorBuffer = FloatArray(4)
+    private val lightValueBuffer = FloatArray(1)
+    private val lightVectorBuffer = FloatArray(3)
 
     companion object {
         private const val TAG = "SceneInspectorPanel"

@@ -2,6 +2,8 @@ package com.pashkd.krender.game
 
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.ModelRenderSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
@@ -36,6 +38,7 @@ class RuntimeScene(
             val text = engine.sceneFiles.readText(path)
             val descriptor = SceneSerializer.decode(text)
             SceneSerializer.applyToWorld(descriptor, world, engine.logger)
+            applyAmbientLight(descriptor)
             ensureRuntimeCamera(descriptor)
             engine.logger.info(TAG) {
                 "Runtime scene loaded path='$path' id='${descriptor.id}' name='${descriptor.name}' entities=${descriptor.entities.size}"
@@ -63,6 +66,17 @@ class RuntimeScene(
 
         activeCamera.add(ActiveCameraComponent())
         engine.logger.info(TAG) { "Using runtime camera entityId=${activeCamera.id} name='${activeCamera.name}'" }
+    }
+
+    private fun applyAmbientLight(descriptor: SceneDescriptor) {
+        val ambient = world.createEntity("Runtime Ambient Light")
+        ambient.add(
+            LightComponent(
+                type = LightType.Ambient,
+                color = descriptor.settings.ambientLightColor.copy(),
+                intensity = descriptor.settings.ambientLightIntensity,
+            ),
+        )
     }
 
     private fun createFallbackCamera() {

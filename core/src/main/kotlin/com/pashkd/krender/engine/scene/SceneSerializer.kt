@@ -31,8 +31,12 @@ object SceneSerializer {
     ): SceneDescriptor {
         val entities = world.all()
             .filter(includeEntity)
+            .filterNot { entity -> entity.get<LightComponent>()?.type == LightType.Ambient }
             .map(::toEntityDescriptor)
         val existingSettings = existingDescriptor?.settings
+        val ambientLight = world.all()
+            .firstOrNull { entity -> includeEntity(entity) && entity.get<LightComponent>()?.type == LightType.Ambient }
+            ?.get<LightComponent>()
         val activeCameraEntityId = existingSettings
             ?.activeCameraEntityId
             ?.takeIf { id -> entities.any { it.id == id } }
@@ -51,6 +55,8 @@ object SceneSerializer {
             settings = SceneSettingsDescriptor(
                 activeCameraEntityId = activeCameraEntityId,
                 ambientLightEntityId = ambientLightEntityId,
+                ambientLightColor = ambientLight?.color?.copy() ?: existingSettings?.ambientLightColor?.copy() ?: defaultAmbientLightColor(),
+                ambientLightIntensity = ambientLight?.intensity ?: existingSettings?.ambientLightIntensity ?: DefaultAmbientLightIntensity,
             ),
         )
     }
@@ -69,7 +75,9 @@ object SceneSerializer {
             appendLine("  ],")
             appendLine("  \"settings\": {")
             appendLine("    \"activeCameraEntityId\": ${descriptor.settings.activeCameraEntityId ?: "null"},")
-            appendLine("    \"ambientLightEntityId\": ${descriptor.settings.ambientLightEntityId ?: "null"}")
+            appendLine("    \"ambientLightEntityId\": ${descriptor.settings.ambientLightEntityId ?: "null"},")
+            appendLine("    \"ambientLightColor\": ${jsonString(descriptor.settings.ambientLightColor.csv())},")
+            appendLine("    \"ambientLightIntensity\": ${descriptor.settings.ambientLightIntensity}")
             appendLine("  }")
             appendLine("}")
         }
@@ -77,13 +85,14 @@ object SceneSerializer {
     fun decode(jsonText: String): SceneDescriptor {
         val root = JsonReader().parse(jsonText)
         require(root.isObject) { "Scene descriptor root must be a JSON object" }
-        return SceneDescriptor(
+        val decoded = SceneDescriptor(
             schemaVersion = root.getInt("schemaVersion", SceneDescriptor.CurrentSchemaVersion),
             id = root.getString("id"),
             name = root.getString("name", "Untitled Scene"),
             entities = readEntities(root.get("entities")),
             settings = readSettings(root.get("settings")),
         )
+        return migrateAmbientLightEntities(decoded)
     }
 
     fun applyToWorld(
@@ -227,6 +236,36 @@ object SceneSerializer {
         return SceneSettingsDescriptor(
             activeCameraEntityId = settingsNode.get("activeCameraEntityId")?.takeUnless { it.isNull }?.asLong(),
             ambientLightEntityId = settingsNode.get("ambientLightEntityId")?.takeUnless { it.isNull }?.asLong(),
+            ambientLightColor = parseColor(settingsNode.getString("ambientLightColor", null), defaultAmbientLightColor()),
+            ambientLightIntensity = settingsNode.getFloat("ambientLightIntensity", DefaultAmbientLightIntensity),
+        )
+    }
+
+    private fun migrateAmbientLightEntities(descriptor: SceneDescriptor): SceneDescriptor {
+        val ambientEntity = descriptor.entities.firstOrNull { entity ->
+            entity.components.any { component ->
+                component.type == "LightComponent" &&
+                    component.properties["type"]?.equals(LightType.Ambient.name, ignoreCase = true) == true
+            }
+        } ?: return descriptor
+
+        val ambientComponent = ambientEntity.components.firstOrNull { component ->
+            component.type == "LightComponent" &&
+                component.properties["type"]?.equals(LightType.Ambient.name, ignoreCase = true) == true
+        }
+
+        val migratedSettings = descriptor.settings.copy(
+            ambientLightColor = ambientComponent?.properties?.get("color")
+                ?.let { raw -> parseColor(raw, descriptor.settings.ambientLightColor.copy()) }
+                ?: descriptor.settings.ambientLightColor.copy(),
+            ambientLightIntensity = ambientComponent?.properties?.get("intensity")
+                ?.toFloatOrNull()
+                ?: descriptor.settings.ambientLightIntensity,
+        )
+
+        return descriptor.copy(
+            entities = descriptor.entities.filterNot { it.id == ambientEntity.id },
+            settings = migratedSettings,
         )
     }
 
@@ -235,6 +274,19 @@ object SceneSerializer {
     private fun Vec3.csv(): String = "$x,$y,$z"
 
     private fun Color.csv(): String = "$r,$g,$b,$a"
+
+    private fun parseColor(raw: String?, defaultValue: Color): Color {
+        val values = raw?.split(',')?.map { it.trim().toFloatOrNull() }
+        if (values != null && values.size >= 3 && values.take(3).all { it != null }) {
+            return Color(
+                r = values[0] ?: defaultValue.r,
+                g = values[1] ?: defaultValue.g,
+                b = values[2] ?: defaultValue.b,
+                a = values.getOrNull(3) ?: defaultValue.a,
+            )
+        }
+        return defaultValue
+    }
 
     private fun jsonString(value: String): String =
         buildString(value.length + 2) {

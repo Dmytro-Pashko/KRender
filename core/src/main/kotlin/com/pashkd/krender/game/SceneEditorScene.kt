@@ -1,13 +1,10 @@
 package com.pashkd.krender.game
 
-import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetImporterRegistry
 import com.pashkd.krender.engine.assets.LocalAssetRegistryService
-import com.pashkd.krender.engine.render3d.LightComponent
-import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.sceneeditor.EditorOnlyComponent
 import com.pashkd.krender.engine.sceneeditor.SceneAssetBrowserModel
@@ -19,6 +16,8 @@ import com.pashkd.krender.engine.sceneeditor.SceneEditorOperations
 import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraComponent
 import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocumentRenderSystem
+import com.pashkd.krender.engine.sceneeditor.SceneEditorLightGizmoSystem
+import com.pashkd.krender.engine.sceneeditor.SceneEditorLightSyncSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocumentTerrainSyncSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorSelectionSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorState
@@ -78,13 +77,14 @@ class SceneEditorScene(
         prefillModelPlacementPath()
 
         createEditorCamera()
-        createEditorLights()
 
         world.systems.add(SceneEditorViewportGuideSystem(editorState))
         world.systems.add(SceneAssetBrowserSystem(assetBrowser))
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(SceneEditorCameraSystem(engine.input, editorState))
         world.systems.add(SceneEditorSelectionSystem(engine.input, document, editorState, engine.logger))
+        world.systems.add(SceneEditorLightGizmoSystem(document, editorState))
+        world.systems.add(SceneEditorLightSyncSystem(document, engine.logger))
         world.systems.add(SceneEditorDocumentTerrainSyncSystem(document, engine.logger))
         world.systems.add(SceneEditorDocumentRenderSystem(document))
     }
@@ -112,6 +112,7 @@ class SceneEditorScene(
         editorState.modelPlacementError = null
         editorState.statusMessage = "Model ready to place: $path"
         assetPanelState.selectedAssetPath = path
+        assetPanelState.selectedAssetCategory = AssetCategory.Model
         assetPanelState.statusMessage = "Selected model: $path"
         engine.logger.info(TAG) { "Scene Editor model placement path prefilled: '$path'" }
     }
@@ -132,29 +133,6 @@ class SceneEditorScene(
         )
         editorState.camera.position = camera.transform.position.copy()
         editorState.camera.eulerDegrees = camera.transform.eulerDegrees.copy()
-    }
-
-    private fun createEditorLights() {
-        val keyLight = world.createEntity("Editor Key Light")
-        keyLight.add(EditorOnlyComponent())
-        keyLight.add(
-            LightComponent(
-                type = LightType.Directional,
-                color = Color(1f, 0.96f, 0.88f),
-                intensity = 1.2f,
-                direction = Vec3(-0.45f, -0.8f, -0.35f),
-            ),
-        )
-
-        val ambientLight = world.createEntity("Editor Ambient Light")
-        ambientLight.add(EditorOnlyComponent())
-        ambientLight.add(
-            LightComponent(
-                type = LightType.Ambient,
-                color = Color(0.45f, 0.5f, 0.58f),
-                intensity = 0.55f,
-            ),
-        )
     }
 
     companion object {

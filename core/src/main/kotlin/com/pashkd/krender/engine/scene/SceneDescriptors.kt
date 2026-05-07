@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.scene
 
+import com.pashkd.krender.engine.api.Color
+
 /**
  * Serializable scene root shape used by the Scene Editor.
  */
@@ -40,4 +42,10 @@ data class ComponentDescriptor(
 data class SceneSettingsDescriptor(
     val activeCameraEntityId: Long? = null,
     val ambientLightEntityId: Long? = null,
+    val ambientLightColor: Color = defaultAmbientLightColor(),
+    val ambientLightIntensity: Float = DefaultAmbientLightIntensity,
 )
+
+fun defaultAmbientLightColor(): Color = Color(0.45f, 0.5f, 0.58f, 1f)
+
+const val DefaultAmbientLightIntensity: Float = 0.55f

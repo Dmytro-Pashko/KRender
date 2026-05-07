@@ -21,6 +21,7 @@ import com.badlogic.gdx.graphics.g3d.Attribute
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
+import com.badlogic.gdx.graphics.g3d.environment.PointLight
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader
 import com.badlogic.gdx.graphics.g3d.model.MeshPart
 import com.badlogic.gdx.graphics.g3d.model.Node
@@ -76,11 +77,13 @@ import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
 import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
+import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.ui.UiCaptureState
 import com.pashkd.krender.engine.ui.UiService
 import kotlinx.coroutines.CoroutineDispatcher
@@ -1388,11 +1391,13 @@ class GdxRenderer3D(
     /** Builds a LibGDX lighting environment from scene light components. */
     private fun environmentFor(context: RenderContext): Environment {
         val environment = Environment()
-        context.scene.world.query<LightComponent>()
-            .mapNotNull { it.get<LightComponent>() }
-            .forEach { light ->
-                when (light.type) {
-                    LightType.Ambient -> environment.set(
+        var ambientApplied = false
+        context.scene.world.query<TransformComponent, LightComponent>().forEach { entity ->
+            val transform = entity.get<TransformComponent>() ?: return@forEach
+            val light = entity.get<LightComponent>() ?: return@forEach
+            when (light.type) {
+                LightType.Ambient -> {
+                    environment.set(
                         ColorAttribute(
                             ColorAttribute.AmbientLight,
                             light.color.r * light.intensity,
@@ -1401,21 +1406,53 @@ class GdxRenderer3D(
                             light.color.a,
                         ),
                     )
+                    ambientApplied = true
+                }
 
-                    LightType.Directional -> environment.add(
-                        DirectionalLight().set(
-                            light.color.r * light.intensity,
-                            light.color.g * light.intensity,
-                            light.color.b * light.intensity,
-                            light.direction.x,
-                            light.direction.y,
-                            light.direction.z,
+                LightType.Directional -> {
+                    val direction = Vector3(light.direction.x, light.direction.y, light.direction.z)
+                    if (!direction.isZero) {
+                        direction.nor()
+                        environment.add(
+                            DirectionalLight().set(
+                                light.color.r * light.intensity,
+                                light.color.g * light.intensity,
+                                light.color.b * light.intensity,
+                                direction.x,
+                                direction.y,
+                                direction.z,
+                            ),
+                        )
+                    }
+                }
+
+                LightType.Point -> {
+                    environment.add(
+                        PointLight().set(
+                            light.color.r,
+                            light.color.g,
+                            light.color.b,
+                            transform.position.x,
+                            transform.position.y,
+                            transform.position.z,
+                            light.intensity,
                         ),
                     )
-
-                    LightType.Point -> Unit
                 }
             }
+        }
+        if (!ambientApplied) {
+            val ambient = defaultAmbientLightColor()
+            environment.set(
+                ColorAttribute(
+                    ColorAttribute.AmbientLight,
+                    ambient.r * DefaultAmbientLightIntensity,
+                    ambient.g * DefaultAmbientLightIntensity,
+                    ambient.b * DefaultAmbientLightIntensity,
+                    ambient.a,
+                ),
+            )
+        }
         return environment
     }
 

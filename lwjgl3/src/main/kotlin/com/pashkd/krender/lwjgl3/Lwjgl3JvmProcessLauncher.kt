@@ -3,6 +3,7 @@ package com.pashkd.krender.lwjgl3
 import com.pashkd.krender.engine.api.Logger
 import java.io.File
 import java.lang.management.ManagementFactory
+import java.lang.ProcessBuilder.Redirect
 
 /**
  * Starts secondary desktop JVMs with the current Java executable and classpath.
@@ -17,7 +18,8 @@ internal class Lwjgl3JvmProcessLauncher(
         try {
             ProcessBuilder(command)
                 .directory(File(System.getProperty("user.dir")))
-                .inheritIO()
+                .redirectOutput(Redirect.DISCARD)
+                .redirectError(Redirect.DISCARD)
                 .start()
         } catch (error: Exception) {
             logger.error(tag, error) { "$failureMessage: ${error.message}" }

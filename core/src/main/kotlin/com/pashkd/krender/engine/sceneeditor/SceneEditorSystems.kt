@@ -16,8 +16,12 @@ import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
+import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainAssetRuntimeSync
 import com.pashkd.krender.engine.terrain.TerrainRenderCommands
 import kotlin.math.cos
@@ -92,6 +96,108 @@ class SceneEditorDocumentTerrainSyncSystem(
     }
 }
 
+class SceneEditorMirroredLightComponent(
+    val sourceEntityId: Long? = null,
+    val isAmbientLight: Boolean = false,
+) : com.pashkd.krender.engine.api.Component
+
+/**
+ * Mirrors scene-document lights into the editor runtime world so the viewport renderer uses scene lighting.
+ */
+class SceneEditorLightSyncSystem(
+    private val document: SceneEditorDocument,
+    private val logger: Logger,
+) : System() {
+    override fun update(world: SceneWorld, dt: Float) {
+        syncAmbientLight(world)
+        syncSceneLights(world)
+    }
+
+    private fun syncAmbientLight(world: SceneWorld) {
+        val settings = document.descriptor?.settings
+        val ambientEntity = world.all()
+            .firstOrNull { it.get<SceneEditorMirroredLightComponent>()?.isAmbientLight == true }
+            ?: world.createEntity("Scene Ambient Light").also { entity ->
+                entity.add(EditorOnlyComponent())
+                entity.add(SceneEditorMirroredLightComponent(isAmbientLight = true))
+            }
+
+        val ambientColor = settings?.ambientLightColor?.copy() ?: defaultAmbientLightColor()
+        val ambientIntensity = settings?.ambientLightIntensity ?: DefaultAmbientLightIntensity
+        ambientEntity.add(
+            LightComponent(
+                type = LightType.Ambient,
+                color = ambientColor,
+                intensity = ambientIntensity,
+            ),
+        )
+    }
+
+    private fun syncSceneLights(world: SceneWorld) {
+        val sourceLights = document.world.all()
+            .filter { entity -> entity.active && entity.get<EditorOnlyComponent>() == null }
+            .mapNotNull { entity ->
+                val transform = entity.get<TransformComponent>() ?: return@mapNotNull null
+                val light = entity.get<LightComponent>() ?: return@mapNotNull null
+                if (light.type != LightType.Directional && light.type != LightType.Point) {
+                    if (light.type != LightType.Ambient) {
+                        logger.debug(TAG) { "Ignoring unsupported scene light type ${light.type} entityId=${entity.id}" }
+                    }
+                    return@mapNotNull null
+                }
+                Triple(entity, transform, light)
+            }
+
+        val desiredIds = sourceLights.map { (entity, _, _) -> entity.id }.toSet()
+        world.all()
+            .filter { entity ->
+                val mirror = entity.get<SceneEditorMirroredLightComponent>() ?: return@filter false
+                !mirror.isAmbientLight && mirror.sourceEntityId !in desiredIds
+            }
+            .forEach { stale ->
+                world.removeEntity(stale.id)
+            }
+
+        sourceLights.forEach { (source, sourceTransform, sourceLight) ->
+            val mirrored = world.all().firstOrNull { entity ->
+                entity.get<SceneEditorMirroredLightComponent>()?.sourceEntityId == source.id
+            } ?: world.createEntity("${source.name} (Editor Light)").also { entity ->
+                entity.add(EditorOnlyComponent())
+                entity.add(SceneEditorMirroredLightComponent(sourceEntityId = source.id))
+            }
+
+            mirrored.active = source.active
+            mirrored.transform.position.set(
+                sourceTransform.position.x,
+                sourceTransform.position.y,
+                sourceTransform.position.z,
+            )
+            mirrored.transform.eulerDegrees.set(
+                sourceTransform.eulerDegrees.x,
+                sourceTransform.eulerDegrees.y,
+                sourceTransform.eulerDegrees.z,
+            )
+            mirrored.transform.scale.set(
+                sourceTransform.scale.x,
+                sourceTransform.scale.y,
+                sourceTransform.scale.z,
+            )
+            mirrored.add(
+                LightComponent(
+                    type = sourceLight.type,
+                    color = sourceLight.color.copy(),
+                    intensity = sourceLight.intensity,
+                    direction = sourceLight.direction.copy(),
+                ),
+            )
+        }
+    }
+
+    companion object {
+        private const val TAG = "SceneEditorLightSyncSystem"
+    }
+}
+
 /**
  * Handles viewport click selection against the editable document and draws editor-only selection feedback.
  */
@@ -126,6 +232,7 @@ class SceneEditorSelectionSystem(
 
     override fun render(world: SceneWorld, alpha: Float) {
         val selected = state.selectedEntityId?.let(document.world::getEntity) ?: return
+        if (selected.get<LightComponent>() != null) return
         val transform = selected.get<TransformComponent>() ?: return
         val position = transform.position
         world.renderCommands.submit(
@@ -241,6 +348,62 @@ class SceneEditorSelectionSystem(
         private const val PickRadius = 0.75f
         private const val SelectionMarkerSize = 0.6f
         private val SelectionColor = Color(1f, 0.78f, 0.12f, 1f)
+    }
+}
+
+class SceneEditorLightGizmoSystem(
+    private val document: SceneEditorDocument,
+    private val state: SceneEditorState,
+) : System() {
+    override fun render(world: SceneWorld, alpha: Float) {
+        val selected = state.selectedEntityId?.let(document.world::getEntity) ?: return
+        val transform = selected.get<TransformComponent>() ?: return
+        val light = selected.get<LightComponent>() ?: return
+        if (light.type != LightType.Directional && light.type != LightType.Point) return
+
+        drawCross(world, transform.position)
+        if (light.type == LightType.Directional) {
+            val direction = normalize(light.direction)
+            if (direction != Vec3.zero()) {
+                world.renderCommands.submit(
+                    DrawLine(
+                        from = transform.position.copy(),
+                        to = transform.position + direction * DirectionLineLength,
+                        color = LightGizmoColor,
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun drawCross(world: SceneWorld, position: Vec3) {
+        world.renderCommands.submit(
+            DrawLine(
+                from = Vec3(position.x - LightMarkerSize, position.y, position.z),
+                to = Vec3(position.x + LightMarkerSize, position.y, position.z),
+                color = LightGizmoColor,
+            ),
+        )
+        world.renderCommands.submit(
+            DrawLine(
+                from = Vec3(position.x, position.y - LightMarkerSize, position.z),
+                to = Vec3(position.x, position.y + LightMarkerSize, position.z),
+                color = LightGizmoColor,
+            ),
+        )
+        world.renderCommands.submit(
+            DrawLine(
+                from = Vec3(position.x, position.y, position.z - LightMarkerSize),
+                to = Vec3(position.x, position.y, position.z + LightMarkerSize),
+                color = LightGizmoColor,
+            ),
+        )
+    }
+
+    companion object {
+        private const val LightMarkerSize = 0.35f
+        private const val DirectionLineLength = 1.6f
+        private val LightGizmoColor = Color(0.98f, 0.88f, 0.36f, 1f)
     }
 }
 
