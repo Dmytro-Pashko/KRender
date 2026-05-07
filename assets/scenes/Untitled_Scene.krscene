@@ -18,8 +18,8 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "0.3,3.0,14.0",
-            "rotation": "0.0,0.0,0.0",
+            "position": "0.9855953,3.181502,18.703535",
+            "rotation": "-6.94002,183.59894,0.0",
             "scale": "1.0,1.0,1.0"
           }
         },
@@ -620,7 +620,7 @@
           "type": "TerrainComponent",
           "properties": {
             "terrain": "terrains/terrain_01.json",
-            "visible": "false"
+            "visible": "true"
           }
         }
       ]
