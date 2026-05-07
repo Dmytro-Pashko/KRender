@@ -11,6 +11,7 @@ import com.pashkd.krender.engine.sceneeditor.SceneAssetBrowserModel
 import com.pashkd.krender.engine.sceneeditor.SceneAssetBrowserSystem
 import com.pashkd.krender.engine.sceneeditor.SceneAssetPanel
 import com.pashkd.krender.engine.sceneeditor.SceneAssetPanelState
+import com.pashkd.krender.engine.sceneeditor.SceneEditorBoundingBoxSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocument
 import com.pashkd.krender.engine.sceneeditor.SceneEditorOperations
 import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraComponent
@@ -86,6 +87,7 @@ class SceneEditorScene(
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(SceneEditorCameraSystem(engine.input, editorState))
         world.systems.add(SceneEditorSelectionSystem(engine.input, document, editorState, engine.logger))
+        world.systems.add(SceneEditorBoundingBoxSystem(document, editorState))
         world.systems.add(SceneEditorLightGizmoSystem(document, editorState))
         world.systems.add(SceneEditorLightSyncSystem(document, engine.logger))
         world.systems.add(SceneEditorDocumentTerrainSyncSystem(document, engine.logger))

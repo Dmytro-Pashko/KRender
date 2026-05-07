@@ -2,6 +2,7 @@ package com.pashkd.krender.engine.sceneeditor
 
 import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.Axis
+import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.InputSnapshot
@@ -12,6 +13,7 @@ import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.render3d.ModelComponent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -33,6 +35,45 @@ class SceneEditorSelectionSystemTest {
         assertEquals(target.id, state.selectedEntityId)
         assertEquals("Selected Target.", state.statusMessage)
         assertFalse(state.hasUnsavedChanges)
+    }
+
+    @Test
+    fun `left click uses transformed entity bounds for selection`() {
+        val input = FakeInputService(centerLeftClick())
+        val document = SceneEditorDocument(SceneWorld())
+        val target = document.world.createEntity("Wide Target")
+        target.transform.position.set(1.5f, 0f, 5f)
+        target.transform.scale.set(4f, 1f, 1f)
+        target.add(ModelComponent(AssetRef.model("models/wide.glb")))
+        val state = SceneEditorState(viewportFocused = true)
+        val world = runtimeWorldWithEditorCamera()
+        world.systems.add(SceneEditorSelectionSystem(input, document, state, NoopLogger))
+
+        world.update(dt = 0f)
+
+        assertEquals(target.id, state.selectedEntityId)
+        assertEquals("Selected Wide Target.", state.statusMessage)
+        assertFalse(state.hasUnsavedChanges)
+    }
+
+    @Test
+    fun `left click picks nearest entity bounds hit`() {
+        val input = FakeInputService(centerLeftClick())
+        val document = SceneEditorDocument(SceneWorld())
+        val far = document.world.createEntity("Far")
+        far.transform.position.set(0f, 0f, 8f)
+        far.add(ModelComponent(AssetRef.model("models/far.glb")))
+        val near = document.world.createEntity("Near")
+        near.transform.position.set(0f, 0f, 4f)
+        near.add(ModelComponent(AssetRef.model("models/near.glb")))
+        val state = SceneEditorState(viewportFocused = true)
+        val world = runtimeWorldWithEditorCamera()
+        world.systems.add(SceneEditorSelectionSystem(input, document, state, NoopLogger))
+
+        world.update(dt = 0f)
+
+        assertEquals(near.id, state.selectedEntityId)
+        assertEquals("Selected Near.", state.statusMessage)
     }
 
     @Test

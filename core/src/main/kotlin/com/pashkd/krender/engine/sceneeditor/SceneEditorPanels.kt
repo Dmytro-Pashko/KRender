@@ -766,6 +766,8 @@ class SceneViewportPanel(
         ImGui.checkbox("Grid##scene_viewport_show_grid", state::showGrid)
         ImGui.sameLine()
         ImGui.checkbox("Axes##scene_viewport_show_axes", state::showAxes)
+        ImGui.sameLine()
+        ImGui.checkbox("Bounding Box##scene_viewport_show_bounding_box", state::showSelectedBoundingBox)
         slider(
             "Grid extent##scene_viewport_grid_extent",
             state::gridHalfExtentCells,

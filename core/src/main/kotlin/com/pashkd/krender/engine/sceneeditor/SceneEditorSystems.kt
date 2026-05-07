@@ -80,6 +80,51 @@ class SceneEditorDocumentRenderSystem(
     }
 }
 
+class SceneEditorBoundingBoxSystem(
+    private val document: SceneEditorDocument,
+    private val state: SceneEditorState,
+) : System() {
+    override fun render(world: SceneWorld, alpha: Float) {
+        drawSelectedBoundingBox(world)
+    }
+
+    private fun drawSelectedBoundingBox(world: SceneWorld) {
+        if (!state.showSelectedBoundingBox) return
+        val selected = state.selectedEntityId?.let(document.world::getEntity) ?: return
+        if (!selected.active || selected.get<EditorOnlyComponent>() != null) return
+        val transform = selected.get<TransformComponent>() ?: return
+        val bounds = SceneEditorBoundsProvider.boundsFor(selected) ?: return
+        val corners = transformedBoundsCorners(bounds, transform)
+        BoxEdges.forEach { (fromIndex, toIndex) ->
+            world.renderCommands.submit(
+                DrawLine(
+                    from = corners[fromIndex],
+                    to = corners[toIndex],
+                    color = BoundingBoxColor,
+                ),
+            )
+        }
+    }
+
+    companion object {
+        private val BoundingBoxColor = Color(1f, 0.85f, 0.1f, 1f)
+        private val BoxEdges = listOf(
+            0 to 1,
+            1 to 2,
+            2 to 3,
+            3 to 0,
+            4 to 5,
+            5 to 6,
+            6 to 7,
+            7 to 4,
+            0 to 4,
+            1 to 5,
+            2 to 6,
+            3 to 7,
+        )
+    }
+}
+
 /**
  * Prepares terrain asset meshes in the editable document world outside render collection.
  */
@@ -241,25 +286,74 @@ class SceneEditorSelectionSystem(
 
     private fun pickEntity(ray: CameraRay): Entity? {
         var picked: Entity? = null
-        var bestDistance = Float.MAX_VALUE
-        var bestDepth = Float.MAX_VALUE
+        var bestCandidateDistance = Float.MAX_VALUE
 
         document.world.all().forEach { entity ->
             if (!entity.active || entity.get<EditorOnlyComponent>() != null) return@forEach
             val transform = entity.get<TransformComponent>() ?: return@forEach
-            val toEntity = transform.position - ray.origin
-            val depth = dot(toEntity, ray.direction)
-            if (depth < 0f) return@forEach
+            val candidateDistance = SceneEditorBoundsProvider.boundsFor(entity)?.let { bounds ->
+                val corners = transformedBoundsCorners(bounds, transform)
+                rayWorldAabbHitDistance(ray, corners)
+            } ?: fallbackPickDistance(ray, transform)
 
-            val distance = distanceFromRay(ray, transform.position)
-            if (distance <= PickRadius && (distance < bestDistance || distance == bestDistance && depth < bestDepth)) {
+            if (candidateDistance != null && candidateDistance < bestCandidateDistance) {
                 picked = entity
-                bestDistance = distance
-                bestDepth = depth
+                bestCandidateDistance = candidateDistance
             }
         }
 
         return picked
+    }
+
+    private fun fallbackPickDistance(ray: CameraRay, transform: TransformComponent): Float? {
+        val toEntity = transform.position - ray.origin
+        val depth = dot(toEntity, ray.direction)
+        if (depth < 0f) return null
+
+        val distance = distanceFromRay(ray, transform.position)
+        return if (distance <= PickRadius) depth else null
+    }
+
+    private fun rayWorldAabbHitDistance(ray: CameraRay, corners: List<Vec3>): Float? {
+        if (corners.isEmpty()) return null
+        var minX = corners.first().x
+        var minY = corners.first().y
+        var minZ = corners.first().z
+        var maxX = minX
+        var maxY = minY
+        var maxZ = minZ
+        corners.forEach { corner ->
+            minX = minOf(minX, corner.x)
+            minY = minOf(minY, corner.y)
+            minZ = minOf(minZ, corner.z)
+            maxX = maxOf(maxX, corner.x)
+            maxY = maxOf(maxY, corner.y)
+            maxZ = maxOf(maxZ, corner.z)
+        }
+
+        var tMin = 0f
+        var tMax = Float.MAX_VALUE
+        fun intersectAxis(origin: Float, direction: Float, min: Float, max: Float): Boolean {
+            if (kotlin.math.abs(direction) <= 1e-6f) {
+                return origin in min..max
+            }
+            val inverse = 1f / direction
+            var near = (min - origin) * inverse
+            var far = (max - origin) * inverse
+            if (near > far) {
+                val swap = near
+                near = far
+                far = swap
+            }
+            tMin = maxOf(tMin, near)
+            tMax = minOf(tMax, far)
+            return tMin <= tMax
+        }
+
+        if (!intersectAxis(ray.origin.x, ray.direction.x, minX, maxX)) return null
+        if (!intersectAxis(ray.origin.y, ray.direction.y, minY, maxY)) return null
+        if (!intersectAxis(ray.origin.z, ray.direction.z, minZ, maxZ)) return null
+        return if (tMin >= 0f) tMin else tMax.takeIf { it >= 0f }
     }
 
     private fun rayFromScreen(

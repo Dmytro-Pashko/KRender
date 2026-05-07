@@ -78,6 +78,9 @@ data class SceneEditorState(
     /** Runtime-only editor preference for drawing world axes; never serialized into `.krscene` files. */
     var showAxes: Boolean = true,
 
+    /** Runtime-only editor preference for drawing the selected entity bounds; never serialized into `.krscene` files. */
+    var showSelectedBoundingBox: Boolean = true,
+
     /** Grid extent in cells from the world origin for editor viewport guides. */
     var gridHalfExtentCells: Int = 24,
 
