@@ -13,12 +13,12 @@ import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainComponent
+import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.UiPanel
+import com.pashkd.krender.engine.ui.beginImGuiPanel
 import glm_.vec2.Vec2
-import imgui.Cond
 import imgui.ImGui
 import imgui.SliderFlag
 import imgui.api.slider
@@ -33,6 +33,7 @@ class SceneEditorToolbarPanel(
     private val state: SceneEditorState,
     private val operations: SceneEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private val saveAsPathBuffer = ByteArray(TextInputBufferSize)
@@ -41,10 +42,7 @@ class SceneEditorToolbarPanel(
     private var openBufferSynced = false
 
     override fun draw() {
-        val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Toolbar)
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, SceneEditorPanelIds.Toolbar))
-        eventLogger.observe(SceneEditorPanelIds.Toolbar, layout.title)
+        val expanded = beginSceneEditorPanel(SceneEditorPanelIds.Toolbar, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -80,6 +78,18 @@ class SceneEditorToolbarPanel(
             button("Play##scene_editor_play") {
                 operations.playInNewWindow()
                 saveAsBufferSynced = false
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Save UI Position##scene_editor_save_ui_position") {
+                operations.saveUiLayout()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Restore UI##scene_editor_restore_ui") {
+                operations.restoreUiLayout()
             }
         }
 
@@ -192,6 +202,7 @@ class SceneHierarchyPanel(
     private val document: SceneEditorDocument,
     private val operations: SceneEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
     private val logger: Logger,
 ) : UiPanel {
@@ -200,10 +211,7 @@ class SceneHierarchyPanel(
     private var renameRequested = false
 
     override fun draw() {
-        val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Hierarchy)
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, SceneEditorPanelIds.Hierarchy))
-        eventLogger.observe(SceneEditorPanelIds.Hierarchy, layout.title)
+        val expanded = beginSceneEditorPanel(SceneEditorPanelIds.Hierarchy, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -363,6 +371,7 @@ class SceneInspectorPanel(
     private val document: SceneEditorDocument,
     private val operations: SceneEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
     private val logger: Logger,
 ) : UiPanel {
@@ -371,10 +380,7 @@ class SceneInspectorPanel(
     private var nameInputActive = false
 
     override fun draw() {
-        val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Inspector)
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, SceneEditorPanelIds.Inspector))
-        eventLogger.observe(SceneEditorPanelIds.Inspector, layout.title)
+        val expanded = beginSceneEditorPanel(SceneEditorPanelIds.Inspector, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -735,13 +741,11 @@ class SceneViewportPanel(
     private val document: SceneEditorDocument,
     private val operations: SceneEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Viewport)
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, SceneEditorPanelIds.Viewport))
-        eventLogger.observe(SceneEditorPanelIds.Viewport, layout.title)
+        val expanded = beginSceneEditorPanel(SceneEditorPanelIds.Viewport, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             state.viewportFocused = false
             ImGui.end()
@@ -798,12 +802,17 @@ class SceneViewportPanel(
 private fun formatPosition(position: Vec3): String =
     "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
-internal fun applyWindowDefaults(layout: ImGuiPanelLayout) {
-    ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
-    ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
+internal fun beginSceneEditorPanel(
+    panelId: String,
+    layoutConfig: ImGuiLayoutConfig,
+    layoutTracker: ImGuiLayoutRuntimeTracker,
+    eventLogger: ImGuiWindowEventLogger,
+): Boolean {
+    val layout = layoutConfig.panels.getValue(panelId)
+    val expanded = beginImGuiPanel(panelId, layout, layoutTracker)
+    eventLogger.observe(panelId, layout.title)
+    return expanded
 }
-
-internal fun imguiWindowName(title: String, id: String): String = "$title###$id"
 
 internal fun readBuffer(buffer: ByteArray): String {
     val length = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size

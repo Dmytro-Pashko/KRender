@@ -29,6 +29,7 @@ import com.pashkd.krender.engine.sceneeditor.SceneInspectorPanel
 import com.pashkd.krender.engine.sceneeditor.SceneViewportPanel
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
+import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.LogsPanel
 import com.pashkd.krender.engine.ui.UiSystem
@@ -46,6 +47,7 @@ class SceneEditorScene(
     private lateinit var assetBrowser: SceneAssetBrowserModel
     private lateinit var document: SceneEditorDocument
     private lateinit var operations: SceneEditorOperations
+    private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
 
     override fun show() {
         engine.logger.info(TAG) { "Showing Scene Editor scene path='${scenePath ?: "<memory>"}'" }
@@ -55,6 +57,7 @@ class SceneEditorScene(
             fallback = SceneEditorUiLayoutDefaults.config,
         ).load(engine.logger)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "SceneEditorUi")
+        layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
 
         editorState = SceneEditorState(
             currentScenePath = scenePath,
@@ -62,7 +65,7 @@ class SceneEditorScene(
         )
         assetPanelState = SceneAssetPanelState()
         document = SceneEditorDocument(world = SceneWorld())
-        operations = SceneEditorOperations(document, editorState, engine)
+        operations = SceneEditorOperations(document, editorState, engine, layoutTracker)
         assetBrowser = SceneAssetBrowserModel(
             registry = LocalAssetRegistryService(engine.logger, AssetImporterRegistry.withDefaults(engine.logger)),
             tasks = engine.tasks,
@@ -98,12 +101,12 @@ class SceneEditorScene(
         panelEventLogger: ImGuiWindowEventLogger,
     ): UiSystem =
         UiSystem(engine.ui).also { uiSystem ->
-            uiSystem.addPanel(SceneEditorToolbarPanel(editorState, operations, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(SceneHierarchyPanel(editorState, document, operations, layoutConfig, panelEventLogger, engine.logger))
-            uiSystem.addPanel(SceneAssetPanel(assetPanelState, editorState, assetBrowser, operations, engine, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(SceneInspectorPanel(editorState, document, operations, layoutConfig, panelEventLogger, engine.logger))
-            uiSystem.addPanel(SceneViewportPanel(editorState, document, operations, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(SceneEditorToolbarPanel(editorState, operations, layoutConfig, layoutTracker, panelEventLogger))
+            uiSystem.addPanel(SceneHierarchyPanel(editorState, document, operations, layoutConfig, layoutTracker, panelEventLogger, engine.logger))
+            uiSystem.addPanel(SceneAssetPanel(assetPanelState, editorState, assetBrowser, operations, engine, layoutConfig, layoutTracker, panelEventLogger))
+            uiSystem.addPanel(SceneInspectorPanel(editorState, document, operations, layoutConfig, layoutTracker, panelEventLogger, engine.logger))
+            uiSystem.addPanel(SceneViewportPanel(editorState, document, operations, layoutConfig, layoutTracker, panelEventLogger))
+            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger, layoutTracker = layoutTracker))
         }
 
     private fun prefillModelPlacementPath() {

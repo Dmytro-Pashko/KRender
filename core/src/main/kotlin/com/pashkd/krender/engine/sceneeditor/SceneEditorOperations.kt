@@ -20,6 +20,8 @@ import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainComponent
+import com.pashkd.krender.engine.ui.ImGuiLayoutConfigCodec
+import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -32,6 +34,7 @@ class SceneEditorOperations(
     private val document: SceneEditorDocument,
     private val state: SceneEditorState,
     private val context: EngineContext,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
 ) {
     fun createNewScene() {
         context.logger.info(TAG) { "New scene creation started" }
@@ -61,6 +64,47 @@ class SceneEditorOperations(
 
     fun saveAs(path: String) {
         saveToPath(path)
+    }
+
+    fun saveUiLayout() {
+        try {
+            val config = layoutTracker.currentConfig()
+            ImGuiLayoutConfigCodec.save(SceneEditorUiLayoutDefaults.assetPath, config, context.sceneFiles)
+            state.statusMessage = "UI layout saved."
+            context.logger.info(TAG) { "Scene Editor UI layout saved path='${SceneEditorUiLayoutDefaults.assetPath}' panels=${config.panels.size}" }
+        } catch (error: Exception) {
+            state.statusMessage = "UI layout save failed: ${error.message}"
+            context.logger.error(TAG, error) {
+                "Failed to save Scene Editor UI layout path='${SceneEditorUiLayoutDefaults.assetPath}': ${error.message}"
+            }
+        }
+    }
+
+    fun restoreUiLayout() {
+        try {
+            val text = context.sceneFiles.readText(SceneEditorUiLayoutDefaults.assetPath)
+            val result = ImGuiLayoutConfigCodec.decodeResult(
+                text = text,
+                fallback = SceneEditorUiLayoutDefaults.config,
+                logger = context.logger,
+                source = SceneEditorUiLayoutDefaults.assetPath,
+            )
+            layoutTracker.requestRestore(result.config)
+            state.statusMessage = if (result.usedFallback) {
+                "UI layout restored to default."
+            } else {
+                "UI layout restored."
+            }
+            context.logger.info(TAG) {
+                "Scene Editor UI layout restore requested path='${SceneEditorUiLayoutDefaults.assetPath}' panels=${result.config.panels.size} fallback=${result.usedFallback}"
+            }
+        } catch (error: Exception) {
+            layoutTracker.requestRestore(SceneEditorUiLayoutDefaults.config)
+            state.statusMessage = "UI layout restored to default."
+            context.logger.warn(TAG, error) {
+                "Scene Editor UI layout '${SceneEditorUiLayoutDefaults.assetPath}' missing or unreadable. Restoring defaults."
+            }
+        }
     }
 
     fun createEmptyEntity() {

@@ -4,7 +4,6 @@ import com.pashkd.krender.engine.api.LogEntry
 import com.pashkd.krender.engine.api.LogLevel
 import com.pashkd.krender.engine.api.LogService
 import glm_.vec2.Vec2
-import imgui.Cond
 import imgui.ImGui
 import java.time.Instant
 import java.time.ZoneId
@@ -25,14 +24,14 @@ class LogsPanel(
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
     private val panelId: String = LogsPanelIds.RuntimeLogs,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker? = null,
 ) : UiPanel {
     /**
      * Draws the logs window using the configured default layout.
      */
     override fun draw() {
         val layout = layoutConfig.panels[panelId] ?: return
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, panelId))
+        val expanded = beginImGuiPanel(panelId, layout, layoutTracker)
         eventLogger.observe(panelId, layout.title)
         if (!expanded) {
             ImGui.end()
@@ -76,14 +75,6 @@ class LogsPanel(
     }
 
     /**
-     * Applies the initial ImGui window position and size from layout config.
-     */
-    private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
-        ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
-        ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
-    }
-
-    /**
      * Formats one structured log entry for the scene logs panel.
      */
     private fun formatEntry(entry: LogEntry): String =
@@ -94,5 +85,3 @@ class LogsPanel(
         private val TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
     }
 }
-
-private fun imguiWindowName(title: String, id: String): String = "$title###$id"

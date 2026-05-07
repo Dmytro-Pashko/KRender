@@ -10,6 +10,7 @@ import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.AssetRegistrySnapshot
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.UiPanel
 import glm_.vec2.Vec2
@@ -150,6 +151,7 @@ class SceneAssetPanel(
     private val operations: SceneEditorOperations,
     private val engine: EngineContext,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private val searchBuffer = ByteArray(TextInputBufferSize)
@@ -158,10 +160,7 @@ class SceneAssetPanel(
     override fun draw() {
         syncSearchBuffer()
 
-        val layout = layoutConfig.panels.getValue(SceneEditorPanelIds.Assets)
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, SceneEditorPanelIds.Assets))
-        eventLogger.observe(SceneEditorPanelIds.Assets, layout.title)
+        val expanded = beginSceneEditorPanel(SceneEditorPanelIds.Assets, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
