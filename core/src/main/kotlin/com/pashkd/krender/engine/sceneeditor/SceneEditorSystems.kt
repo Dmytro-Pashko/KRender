@@ -20,8 +20,6 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
-import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainAssetRuntimeSync
 import com.pashkd.krender.engine.terrain.TerrainRenderCommands
 import kotlin.math.cos
@@ -97,8 +95,7 @@ class SceneEditorDocumentTerrainSyncSystem(
 }
 
 class SceneEditorMirroredLightComponent(
-    val sourceEntityId: Long? = null,
-    val isAmbientLight: Boolean = false,
+    val sourceEntityId: Long,
 ) : com.pashkd.krender.engine.api.Component
 
 /**
@@ -109,28 +106,7 @@ class SceneEditorLightSyncSystem(
     private val logger: Logger,
 ) : System() {
     override fun update(world: SceneWorld, dt: Float) {
-        syncAmbientLight(world)
         syncSceneLights(world)
-    }
-
-    private fun syncAmbientLight(world: SceneWorld) {
-        val settings = document.descriptor?.settings
-        val ambientEntity = world.all()
-            .firstOrNull { it.get<SceneEditorMirroredLightComponent>()?.isAmbientLight == true }
-            ?: world.createEntity("Scene Ambient Light").also { entity ->
-                entity.add(EditorOnlyComponent())
-                entity.add(SceneEditorMirroredLightComponent(isAmbientLight = true))
-            }
-
-        val ambientColor = settings?.ambientLightColor?.copy() ?: defaultAmbientLightColor()
-        val ambientIntensity = settings?.ambientLightIntensity ?: DefaultAmbientLightIntensity
-        ambientEntity.add(
-            LightComponent(
-                type = LightType.Ambient,
-                color = ambientColor,
-                intensity = ambientIntensity,
-            ),
-        )
     }
 
     private fun syncSceneLights(world: SceneWorld) {
@@ -140,9 +116,7 @@ class SceneEditorLightSyncSystem(
                 val transform = entity.get<TransformComponent>() ?: return@mapNotNull null
                 val light = entity.get<LightComponent>() ?: return@mapNotNull null
                 if (light.type != LightType.Directional && light.type != LightType.Point) {
-                    if (light.type != LightType.Ambient) {
-                        logger.debug(TAG) { "Ignoring unsupported scene light type ${light.type} entityId=${entity.id}" }
-                    }
+                    logger.debug(TAG) { "Ignoring unsupported scene light type ${light.type} entityId=${entity.id}" }
                     return@mapNotNull null
                 }
                 Triple(entity, transform, light)
@@ -152,7 +126,7 @@ class SceneEditorLightSyncSystem(
         world.all()
             .filter { entity ->
                 val mirror = entity.get<SceneEditorMirroredLightComponent>() ?: return@filter false
-                !mirror.isAmbientLight && mirror.sourceEntityId !in desiredIds
+                mirror.sourceEntityId !in desiredIds
             }
             .forEach { stale ->
                 world.removeEntity(stale.id)

@@ -34,9 +34,6 @@ object SceneSerializer {
             .filterNot { entity -> entity.get<LightComponent>()?.type == LightType.Ambient }
             .map(::toEntityDescriptor)
         val existingSettings = existingDescriptor?.settings
-        val ambientLight = world.all()
-            .firstOrNull { entity -> includeEntity(entity) && entity.get<LightComponent>()?.type == LightType.Ambient }
-            ?.get<LightComponent>()
         val activeCameraEntityId = existingSettings
             ?.activeCameraEntityId
             ?.takeIf { id -> entities.any { it.id == id } }
@@ -55,8 +52,8 @@ object SceneSerializer {
             settings = SceneSettingsDescriptor(
                 activeCameraEntityId = activeCameraEntityId,
                 ambientLightEntityId = ambientLightEntityId,
-                ambientLightColor = ambientLight?.color?.copy() ?: existingSettings?.ambientLightColor?.copy() ?: defaultAmbientLightColor(),
-                ambientLightIntensity = ambientLight?.intensity ?: existingSettings?.ambientLightIntensity ?: DefaultAmbientLightIntensity,
+                ambientLightColor = existingSettings?.ambientLightColor?.copy() ?: defaultAmbientLightColor(),
+                ambientLightIntensity = existingSettings?.ambientLightIntensity ?: DefaultAmbientLightIntensity,
             ),
         )
     }
@@ -85,14 +82,13 @@ object SceneSerializer {
     fun decode(jsonText: String): SceneDescriptor {
         val root = JsonReader().parse(jsonText)
         require(root.isObject) { "Scene descriptor root must be a JSON object" }
-        val decoded = SceneDescriptor(
+        return SceneDescriptor(
             schemaVersion = root.getInt("schemaVersion", SceneDescriptor.CurrentSchemaVersion),
             id = root.getString("id"),
             name = root.getString("name", "Untitled Scene"),
             entities = readEntities(root.get("entities")),
             settings = readSettings(root.get("settings")),
         )
-        return migrateAmbientLightEntities(decoded)
     }
 
     fun applyToWorld(
@@ -238,34 +234,6 @@ object SceneSerializer {
             ambientLightEntityId = settingsNode.get("ambientLightEntityId")?.takeUnless { it.isNull }?.asLong(),
             ambientLightColor = parseColor(settingsNode.getString("ambientLightColor", null), defaultAmbientLightColor()),
             ambientLightIntensity = settingsNode.getFloat("ambientLightIntensity", DefaultAmbientLightIntensity),
-        )
-    }
-
-    private fun migrateAmbientLightEntities(descriptor: SceneDescriptor): SceneDescriptor {
-        val ambientEntity = descriptor.entities.firstOrNull { entity ->
-            entity.components.any { component ->
-                component.type == "LightComponent" &&
-                    component.properties["type"]?.equals(LightType.Ambient.name, ignoreCase = true) == true
-            }
-        } ?: return descriptor
-
-        val ambientComponent = ambientEntity.components.firstOrNull { component ->
-            component.type == "LightComponent" &&
-                component.properties["type"]?.equals(LightType.Ambient.name, ignoreCase = true) == true
-        }
-
-        val migratedSettings = descriptor.settings.copy(
-            ambientLightColor = ambientComponent?.properties?.get("color")
-                ?.let { raw -> parseColor(raw, descriptor.settings.ambientLightColor.copy()) }
-                ?: descriptor.settings.ambientLightColor.copy(),
-            ambientLightIntensity = ambientComponent?.properties?.get("intensity")
-                ?.toFloatOrNull()
-                ?: descriptor.settings.ambientLightIntensity,
-        )
-
-        return descriptor.copy(
-            entities = descriptor.entities.filterNot { it.id == ambientEntity.id },
-            settings = migratedSettings,
         )
     }
 
