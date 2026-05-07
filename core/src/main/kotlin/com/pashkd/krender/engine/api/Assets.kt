@@ -90,9 +90,22 @@ interface AssetService {
     /** Returns a metadata snapshot for a loaded model asset when available. */
     fun modelInfo(asset: AssetRef<ModelAsset>): ModelAssetInfo? = null
 
+    /** Returns cached local-space bounds for a loaded model asset when available. */
+    fun modelBounds(asset: AssetRef<ModelAsset>): ModelAssetBounds? = null
+
     /** Releases any runtime state associated with the given asset. */
     fun unload(asset: AssetRef<*>)
 }
+
+/**
+ * Local-space model bounds extracted from a loaded backend model asset.
+ */
+data class ModelAssetBounds(
+    /** Minimum model-space corner. */
+    val min: Vec3,
+    /** Maximum model-space corner. */
+    val max: Vec3,
+)
 
 /**
  * Summarizes the essential runtime metadata extracted from a loaded model asset.

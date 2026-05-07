@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.assets.AssetImporterRegistry
 import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.sceneeditor.EditorOnlyComponent
+import com.pashkd.krender.engine.sceneeditor.AssetServiceModelBoundsService
 import com.pashkd.krender.engine.sceneeditor.SceneAssetBrowserModel
 import com.pashkd.krender.engine.sceneeditor.SceneAssetBrowserSystem
 import com.pashkd.krender.engine.sceneeditor.SceneAssetPanel
@@ -17,6 +18,7 @@ import com.pashkd.krender.engine.sceneeditor.SceneEditorOperations
 import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraComponent
 import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocumentRenderSystem
+import com.pashkd.krender.engine.sceneeditor.SceneEditorBoundsProvider
 import com.pashkd.krender.engine.sceneeditor.SceneEditorLightGizmoSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorLightSyncSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocumentTerrainSyncSystem
@@ -81,13 +83,14 @@ class SceneEditorScene(
         prefillModelPlacementPath()
 
         createEditorCamera()
+        val boundsProvider = SceneEditorBoundsProvider(AssetServiceModelBoundsService(engine.assets))
 
         world.systems.add(SceneEditorViewportGuideSystem(editorState))
         world.systems.add(SceneAssetBrowserSystem(assetBrowser))
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(SceneEditorCameraSystem(engine.input, editorState))
-        world.systems.add(SceneEditorSelectionSystem(engine.input, document, editorState, engine.logger))
-        world.systems.add(SceneEditorBoundingBoxSystem(document, editorState))
+        world.systems.add(SceneEditorSelectionSystem(engine.input, document, editorState, engine.logger, boundsProvider))
+        world.systems.add(SceneEditorBoundingBoxSystem(document, editorState, boundsProvider))
         world.systems.add(SceneEditorLightGizmoSystem(document, editorState))
         world.systems.add(SceneEditorLightSyncSystem(document, engine.logger))
         world.systems.add(SceneEditorDocumentTerrainSyncSystem(document, engine.logger))

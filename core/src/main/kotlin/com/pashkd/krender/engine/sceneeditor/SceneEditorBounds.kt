@@ -1,6 +1,9 @@
 package com.pashkd.krender.engine.sceneeditor
 
 import com.pashkd.krender.engine.api.Entity
+import com.pashkd.krender.engine.api.AssetRef
+import com.pashkd.krender.engine.api.AssetService
+import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
@@ -17,13 +20,27 @@ data class SceneEditorLocalBounds(
     val max: Vec3,
 )
 
-object SceneEditorBoundsProvider {
+/**
+ * Supplies local-space selection and overlay bounds for editable scene entities.
+ *
+ * Model asset bounds are delegated to [ModelBoundsService] so this core editor
+ * logic never loads assets directly and never depends on a rendering backend.
+ */
+class SceneEditorBoundsProvider(
+    private val modelBoundsService: ModelBoundsService? = null,
+) {
+    /**
+     * Returns local bounds for the entity, preserving stable fallbacks for assets
+     * that are not loaded yet and marker-style scene objects.
+     */
     fun boundsFor(entity: Entity): SceneEditorLocalBounds? {
         entity.get<TerrainDataComponent>()?.let { return terrainDataBounds(it) }
         entity.get<TerrainRendererComponent>()?.takeIf { it.model?.mesh != null }?.let { return terrainMeshBounds(it) }
+        entity.get<ModelComponent>()?.let { model ->
+            return modelBoundsService?.boundsFor(model.model) ?: UnitModelBounds
+        }
         return when {
             entity.get<TerrainComponent>() != null -> TerrainFallbackBounds
-            entity.get<ModelComponent>() != null -> UnitModelBounds
             entity.get<PerspectiveCameraComponent>() != null -> SmallMarkerBounds
             entity.get<LightComponent>() != null -> SmallMarkerBounds
             entity.get<TransformComponent>() != null -> SmallMarkerBounds
@@ -80,6 +97,28 @@ object SceneEditorBoundsProvider {
         min = Vec3(-0.25f, -0.25f, -0.25f),
         max = Vec3(0.25f, 0.25f, 0.25f),
     )
+}
+
+/**
+ * Resolves cached local-space bounds for model assets without performing loads.
+ */
+fun interface ModelBoundsService {
+    /**
+     * Returns cached local model bounds, or null while the asset is unavailable.
+     */
+    fun boundsFor(model: AssetRef<ModelAsset>): SceneEditorLocalBounds?
+}
+
+/**
+ * Adapts the shared engine asset service into Scene Editor local bounds.
+ */
+class AssetServiceModelBoundsService(
+    private val assets: AssetService,
+) : ModelBoundsService {
+    override fun boundsFor(model: AssetRef<ModelAsset>): SceneEditorLocalBounds? =
+        assets.modelBounds(model)?.let { bounds ->
+            SceneEditorLocalBounds(bounds.min, bounds.max)
+        }
 }
 
 fun transformedBoundsCorners(

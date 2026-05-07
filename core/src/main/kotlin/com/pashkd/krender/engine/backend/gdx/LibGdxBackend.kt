@@ -57,6 +57,7 @@ import com.pashkd.krender.engine.api.LogService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MainThreadTaskQueue
 import com.pashkd.krender.engine.api.ModelAsset
+import com.pashkd.krender.engine.api.ModelAssetBounds
 import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.MouseButton
 import com.pashkd.krender.engine.api.PointerPhase
@@ -465,6 +466,7 @@ class GdxAssetService : AssetService {
     private val missing = mutableSetOf<String>()
     private val shaderSources = mutableMapOf<String, String>()
     private val modelInfos = mutableMapOf<String, ModelAssetInfo>()
+    private val modelBoundsCache = mutableMapOf<String, ModelAssetBounds>()
     private val modelTriangleCounts = mutableMapOf<String, Int>()
 
     init {
@@ -517,6 +519,7 @@ class GdxAssetService : AssetService {
     /** Advances asynchronous loading for up to the given time budget. */
     override fun update(budgetMs: Int): Float {
         manager.update(budgetMs)
+        cacheLoadedModelBounds()
         return progress()
     }
 
@@ -585,6 +588,23 @@ class GdxAssetService : AssetService {
         }
     }
 
+    /**
+     * Returns cached local-space model bounds extracted from an already loaded backend model.
+     */
+    override fun modelBounds(asset: AssetRef<ModelAsset>): ModelAssetBounds? {
+        if (asset.isPrimitive || !isLoaded(asset)) return null
+        modelBoundsCache[asset.path]?.let { return it }
+
+        val model = when {
+            asset.isGltf() -> gltfScene(asset)?.scene?.model
+            else -> gdxModel(asset)
+        } ?: return null
+
+        val bounds = calculateModelBounds(asset.path, model) ?: return null
+        modelBoundsCache[asset.path] = bounds
+        return bounds
+    }
+
     /** Unloads a tracked asset and clears any cached metadata derived from it. */
     override fun unload(asset: AssetRef<*>) {
         if (!asset.isPrimitive && manager.isLoaded(asset.path)) {
@@ -594,6 +614,7 @@ class GdxAssetService : AssetService {
         missing -= asset.path
         shaderSources -= asset.path
         modelInfos -= asset.path
+        modelBoundsCache -= asset.path
         modelTriangleCounts -= asset.path
     }
 
@@ -619,13 +640,28 @@ class GdxAssetService : AssetService {
     }
 
     /**
+     * Precomputes bounds for newly loaded models during the asset update phase.
+     */
+    private fun cacheLoadedModelBounds() {
+        requested.forEach { path ->
+            if (path in modelBoundsCache) return@forEach
+            val asset = AssetRef.model(path)
+            if (!isLoaded(asset)) return@forEach
+            val model = when {
+                asset.isGltf() -> gltfScene(asset)?.scene?.model
+                else -> gdxModel(asset)
+            } ?: return@forEach
+            calculateModelBounds(path, model)?.let { bounds -> modelBoundsCache[path] = bounds }
+        }
+    }
+
+    /**
      * Extracts render-relevant metadata from the loaded model and optional glTF scene asset.
      */
     private fun buildModelInfo(path: String, model: Model, sceneAsset: SceneAsset?): ModelAssetInfo {
         val nodes = collectNodes(model.nodes)
         val nodeParts = nodes.flatMap(::nodePartsOf)
-        val bounds = BoundingBox()
-        val dimensions = model.calculateBoundingBox(bounds).getDimensions(Vector3())
+        val bounds = modelBoundsCache[path] ?: calculateModelBounds(path, model)?.also { modelBoundsCache[path] = it }
         val attributeSummary = collectVertexAttributeSummary(model.meshes)
         val textureChannels = linkedSetOf<String>()
         val textures = linkedSetOf<Texture>()
@@ -657,7 +693,7 @@ class GdxAssetService : AssetService {
             materialCount = model.materials.size,
             vertexCount = model.meshes.sumOf { mesh -> mesh.numVertices },
             triangleCount = triangleCount(asset = AssetRef.model(path)) ?: countTrianglesInModel(model),
-            size = Vec3(dimensions.x, dimensions.y, dimensions.z),
+            size = bounds?.size(),
             vertexChannels = attributeSummary.vertexChannels.toList(),
             uvChannels = attributeSummary.uvChannels.toList(),
             textureChannels = textureChannels.toList(),
@@ -695,6 +731,31 @@ class GdxAssetService : AssetService {
         animationCount = 0,
         animationNames = emptyList(),
     )
+
+    /**
+     * Calculates the asset-local model bounds once from LibGDX model data.
+     */
+    private fun calculateModelBounds(path: String, model: Model): ModelAssetBounds? {
+        return try {
+            val bounds = BoundingBox()
+            ModelInstance(model).calculateBoundingBox(bounds)
+            if (!bounds.isValid) {
+                null
+            } else {
+                ModelAssetBounds(
+                    min = Vec3(bounds.min.x, bounds.min.y, bounds.min.z),
+                    max = Vec3(bounds.max.x, bounds.max.y, bounds.max.z),
+                )
+            }
+        } catch (error: Throwable) {
+            Gdx.app.error("GdxAssetService", "Failed to calculate model bounds for '$path'", error)
+            null
+        }
+    }
+
+    /** Returns the dimensions of a cached model bounds box. */
+    private fun ModelAssetBounds.size(): Vec3 =
+        Vec3(max.x - min.x, max.y - min.y, max.z - min.z)
 }
 
 /**

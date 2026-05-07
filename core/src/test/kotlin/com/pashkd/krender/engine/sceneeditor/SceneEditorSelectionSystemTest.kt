@@ -8,10 +8,12 @@ import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.InputSnapshot
 import com.pashkd.krender.engine.api.LogLevel
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.MouseButton
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec2
+import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.render3d.ModelComponent
 import kotlin.test.Test
@@ -54,6 +56,31 @@ class SceneEditorSelectionSystemTest {
         assertEquals(target.id, state.selectedEntityId)
         assertEquals("Selected Wide Target.", state.statusMessage)
         assertFalse(state.hasUnsavedChanges)
+    }
+
+    @Test
+    fun `left click uses provided actual model bounds for selection`() {
+        val input = FakeInputService(centerLeftClick())
+        val document = SceneEditorDocument(SceneWorld())
+        val target = document.world.createEntity("Actual Bounds Target")
+        target.transform.position.set(1.5f, 0f, 5f)
+        target.add(ModelComponent(AssetRef.model("models/actual.glb")))
+        val boundsProvider = SceneEditorBoundsProvider(
+            FakeModelBoundsService(
+                "models/actual.glb" to SceneEditorLocalBounds(
+                    min = Vec3(-2f, -0.5f, -0.5f),
+                    max = Vec3(2f, 0.5f, 0.5f),
+                ),
+            ),
+        )
+        val state = SceneEditorState(viewportFocused = true)
+        val world = runtimeWorldWithEditorCamera()
+        world.systems.add(SceneEditorSelectionSystem(input, document, state, NoopLogger, boundsProvider))
+
+        world.update(dt = 0f)
+
+        assertEquals(target.id, state.selectedEntityId)
+        assertEquals("Selected Actual Bounds Target.", state.statusMessage)
     }
 
     @Test
@@ -181,6 +208,15 @@ class SceneEditorSelectionSystemTest {
         override fun isActionPressed(action: Action): Boolean = false
         override fun isActionJustPressed(action: Action): Boolean = false
         override fun axis(axis: Axis): Float = 0f
+    }
+
+    private class FakeModelBoundsService(
+        vararg entries: Pair<String, SceneEditorLocalBounds>,
+    ) : ModelBoundsService {
+        private val boundsByPath = entries.toMap()
+
+        override fun boundsFor(model: AssetRef<ModelAsset>): SceneEditorLocalBounds? =
+            boundsByPath[model.path]
     }
 
     private object NoopLogger : Logger {

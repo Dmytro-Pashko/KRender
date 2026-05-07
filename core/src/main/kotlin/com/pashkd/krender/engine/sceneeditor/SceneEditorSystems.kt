@@ -83,6 +83,7 @@ class SceneEditorDocumentRenderSystem(
 class SceneEditorBoundingBoxSystem(
     private val document: SceneEditorDocument,
     private val state: SceneEditorState,
+    private val boundsProvider: SceneEditorBoundsProvider = SceneEditorBoundsProvider(),
 ) : System() {
     override fun render(world: SceneWorld, alpha: Float) {
         drawSelectedBoundingBox(world)
@@ -93,7 +94,7 @@ class SceneEditorBoundingBoxSystem(
         val selected = state.selectedEntityId?.let(document.world::getEntity) ?: return
         if (!selected.active || selected.get<EditorOnlyComponent>() != null) return
         val transform = selected.get<TransformComponent>() ?: return
-        val bounds = SceneEditorBoundsProvider.boundsFor(selected) ?: return
+        val bounds = boundsProvider.boundsFor(selected) ?: return
         val corners = transformedBoundsCorners(bounds, transform)
         BoxEdges.forEach { (fromIndex, toIndex) ->
             world.renderCommands.submit(
@@ -225,6 +226,7 @@ class SceneEditorSelectionSystem(
     private val document: SceneEditorDocument,
     private val state: SceneEditorState,
     private val logger: Logger,
+    private val boundsProvider: SceneEditorBoundsProvider = SceneEditorBoundsProvider(),
 ) : System() {
     override fun update(world: SceneWorld, dt: Float) {
         val snapshot = input.snapshot()
@@ -291,7 +293,7 @@ class SceneEditorSelectionSystem(
         document.world.all().forEach { entity ->
             if (!entity.active || entity.get<EditorOnlyComponent>() != null) return@forEach
             val transform = entity.get<TransformComponent>() ?: return@forEach
-            val candidateDistance = SceneEditorBoundsProvider.boundsFor(entity)?.let { bounds ->
+            val candidateDistance = boundsProvider.boundsFor(entity)?.let { bounds ->
                 val corners = transformedBoundsCorners(bounds, transform)
                 rayWorldAabbHitDistance(ray, corners)
             } ?: fallbackPickDistance(ray, transform)
