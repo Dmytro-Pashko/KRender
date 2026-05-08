@@ -59,6 +59,61 @@ class SceneEditorSelectionSystemTest {
     }
 
     @Test
+    fun `left click uses viewport-local coordinates when viewport has a screen rect`() {
+        val input = FakeInputService(
+            InputSnapshot(
+                mouseButtonsPressedThisFrame = setOf(MouseButton.Left),
+                mousePosition = Vec2(150f, 100f),
+                viewportSize = Vec2(400f, 300f),
+                uiCapturesMouse = true,
+            ),
+        )
+        val document = SceneEditorDocument(SceneWorld())
+        val target = document.world.createEntity("Offset Viewport Target")
+        target.transform.position.set(0f, 0f, 5f)
+        val state = SceneEditorState(
+            viewportFocused = true,
+            viewportOrigin = Vec2(100f, 50f),
+            viewportSize = Vec2(100f, 100f),
+        )
+        val world = runtimeWorldWithEditorCamera()
+        world.systems.add(SceneEditorSelectionSystem(input, document, state, NoopLogger))
+
+        world.update(dt = 0f)
+
+        assertEquals(target.id, state.selectedEntityId)
+        assertEquals("Selected Offset Viewport Target.", state.statusMessage)
+    }
+
+    @Test
+    fun `left click outside viewport rect is ignored`() {
+        val input = FakeInputService(
+            InputSnapshot(
+                mouseButtonsPressedThisFrame = setOf(MouseButton.Left),
+                mousePosition = Vec2(20f, 20f),
+                viewportSize = Vec2(400f, 300f),
+                uiCapturesMouse = true,
+            ),
+        )
+        val document = SceneEditorDocument(SceneWorld())
+        val target = document.world.createEntity("Target")
+        target.transform.position.set(0f, 0f, 5f)
+        val state = SceneEditorState(
+            selectedEntityId = target.id,
+            viewportFocused = true,
+            viewportOrigin = Vec2(100f, 50f),
+            viewportSize = Vec2(100f, 100f),
+        )
+        val world = runtimeWorldWithEditorCamera()
+        world.systems.add(SceneEditorSelectionSystem(input, document, state, NoopLogger))
+
+        world.update(dt = 0f)
+
+        assertEquals(target.id, state.selectedEntityId)
+        assertEquals("Scene Editor ready.", state.statusMessage)
+    }
+
+    @Test
     fun `left click uses provided actual model bounds for selection`() {
         val input = FakeInputService(centerLeftClick())
         val document = SceneEditorDocument(SceneWorld())

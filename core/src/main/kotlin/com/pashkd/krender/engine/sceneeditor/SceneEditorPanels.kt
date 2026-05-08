@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.api.Entity
 import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
@@ -18,7 +19,7 @@ import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.UiPanel
 import com.pashkd.krender.engine.ui.beginImGuiPanel
-import glm_.vec2.Vec2
+import glm_.vec2.Vec2 as ImVec2
 import imgui.ImGui
 import imgui.SliderFlag
 import imgui.api.slider
@@ -752,7 +753,11 @@ class SceneViewportPanel(
             return
         }
 
-        ImGui.beginChild("scene_editor_viewport_body", Vec2(0f, 0f), true)
+        ImGui.beginChild("scene_editor_viewport_body", ImVec2(0f, 0f), true)
+        val viewportPosition = ImGui.windowPos
+        val viewportSize = ImGui.windowSize
+        state.viewportOrigin = Vec2(viewportPosition.x, viewportPosition.y)
+        state.viewportSize = Vec2(viewportSize.x.coerceAtLeast(0f), viewportSize.y.coerceAtLeast(0f))
         state.viewportFocused = ImGui.isWindowHovered() || ImGui.isWindowFocused()
         ImGui.text("Scene view")
         ImGui.separator()

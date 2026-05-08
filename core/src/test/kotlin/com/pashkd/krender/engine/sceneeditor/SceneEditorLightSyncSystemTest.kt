@@ -7,14 +7,24 @@ import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
+import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class SceneEditorLightSyncSystemTest {
     @Test
-    fun `mirrors only directional and point lights into the editor runtime world`() {
+    fun `mirrors scene ambient settings and only directional and point entity lights into the editor runtime world`() {
         val document = SceneEditorDocument(SceneWorld())
+        document.descriptor = SceneDescriptor(
+            id = "scene:test",
+            name = "Test Scene",
+            settings = SceneSettingsDescriptor(
+                ambientLightColor = Color(0.2f, 0.3f, 0.4f, 1f),
+                ambientLightIntensity = 0.75f,
+            ),
+        )
 
         val directional = document.world.createEntity("Sun")
         directional.get<TransformComponent>()?.position?.set(1f, 2f, 3f)
@@ -44,8 +54,13 @@ class SceneEditorLightSyncSystemTest {
         val mirroredLights = runtimeWorld.all()
             .mapNotNull { entity -> entity.get<LightComponent>() }
 
-        assertEquals(1, mirroredLights.size)
-        assertEquals(LightType.Directional, mirroredLights.single().type)
+        assertEquals(2, mirroredLights.size)
+        assertNotNull(mirroredLights.firstOrNull { it.type == LightType.Directional })
+        val mirroredAmbient = assertNotNull(mirroredLights.firstOrNull { it.type == LightType.Ambient })
+        assertEquals(0.2f, mirroredAmbient.color.r)
+        assertEquals(0.3f, mirroredAmbient.color.g)
+        assertEquals(0.4f, mirroredAmbient.color.b)
+        assertEquals(0.75f, mirroredAmbient.intensity)
         assertNotNull(
             runtimeWorld.all().firstOrNull { entity ->
                 entity.get<SceneEditorMirroredLightComponent>()?.sourceEntityId == directional.id

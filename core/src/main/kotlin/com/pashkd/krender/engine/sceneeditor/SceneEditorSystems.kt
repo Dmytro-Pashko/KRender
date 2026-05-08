@@ -20,6 +20,8 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
+import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainAssetRuntimeSync
 import com.pashkd.krender.engine.terrain.TerrainRenderCommands
 import kotlin.math.cos
@@ -144,6 +146,8 @@ class SceneEditorMirroredLightComponent(
     val sourceEntityId: Long,
 ) : com.pashkd.krender.engine.api.Component
 
+class SceneEditorAmbientLightComponent : com.pashkd.krender.engine.api.Component
+
 /**
  * Mirrors scene-document lights into the editor runtime world so the viewport renderer uses scene lighting.
  */
@@ -152,7 +156,29 @@ class SceneEditorLightSyncSystem(
     private val logger: Logger,
 ) : System() {
     override fun update(world: SceneWorld, dt: Float) {
+        syncAmbientLight(world)
         syncSceneLights(world)
+    }
+
+    private fun syncAmbientLight(world: SceneWorld) {
+        val settings = document.descriptor?.settings
+        val ambientColor = settings?.ambientLightColor?.copy() ?: defaultAmbientLightColor()
+        val ambientIntensity = settings?.ambientLightIntensity ?: DefaultAmbientLightIntensity
+        val ambient = world.all().firstOrNull { entity ->
+            entity.get<SceneEditorAmbientLightComponent>() != null
+        } ?: world.createEntity("Scene Ambient (Editor Light)").also { entity ->
+            entity.add(EditorOnlyComponent())
+            entity.add(SceneEditorAmbientLightComponent())
+        }
+
+        ambient.active = true
+        ambient.add(
+            LightComponent(
+                type = LightType.Ambient,
+                color = ambientColor,
+                intensity = ambientIntensity,
+            ),
+        )
     }
 
     private fun syncSceneLights(world: SceneWorld) {
@@ -236,7 +262,8 @@ class SceneEditorSelectionSystem(
             .firstOrNull() ?: return
         val cameraTransform = cameraEntity.get<TransformComponent>() ?: return
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
-        val ray = rayFromScreen(snapshot.mousePosition, snapshot.viewportSize, cameraTransform, camera) ?: return
+        val viewport = selectionViewport(snapshot) ?: return
+        val ray = rayFromScreen(viewport.screenPosition, viewport.size, cameraTransform, camera) ?: return
         val selected = pickEntity(ray)
 
         if (selected == null) {
@@ -285,6 +312,28 @@ class SceneEditorSelectionSystem(
             !snapshot.isMouseDown(MouseButton.Right) &&
             snapshot.wasMousePressed(MouseButton.Left) &&
             (!snapshot.uiCapturesMouse || state.viewportFocused)
+
+    private fun selectionViewport(snapshot: InputSnapshot): SelectionViewport? {
+        val viewportSize = state.viewportSize
+        if (viewportSize.x <= 0f || viewportSize.y <= 0f) {
+            return SelectionViewport(snapshot.mousePosition, snapshot.viewportSize)
+        }
+
+        val viewportOrigin = state.viewportOrigin
+        val localPosition = Vec2(
+            snapshot.mousePosition.x - viewportOrigin.x,
+            snapshot.mousePosition.y - viewportOrigin.y,
+        )
+        if (
+            localPosition.x < 0f ||
+            localPosition.y < 0f ||
+            localPosition.x > viewportSize.x ||
+            localPosition.y > viewportSize.y
+        ) {
+            return null
+        }
+        return SelectionViewport(localPosition, viewportSize.copy())
+    }
 
     private fun pickEntity(ray: CameraRay): Entity? {
         var picked: Entity? = null
@@ -411,6 +460,11 @@ class SceneEditorSelectionSystem(
     private data class CameraRay(
         val origin: Vec3,
         val direction: Vec3,
+    )
+
+    private data class SelectionViewport(
+        val screenPosition: Vec2,
+        val size: Vec2,
     )
 
     companion object {

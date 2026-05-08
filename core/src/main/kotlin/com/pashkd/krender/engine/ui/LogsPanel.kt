@@ -49,7 +49,7 @@ class LogsPanel(
             ImGui.text("No logs recorded.")
         } else {
             entries.forEach { entry ->
-                ImGui.text(formatEntry(entry))
+                ImGui.textUnformatted(formatLogEntryForPanel(entry))
             }
         }
         ImGui.endChild()
@@ -77,11 +77,21 @@ class LogsPanel(
     /**
      * Formats one structured log entry for the scene logs panel.
      */
-    private fun formatEntry(entry: LogEntry): String =
-        "${TIMESTAMP_FORMATTER.format(Instant.ofEpochMilli(entry.timestampMillis).atZone(ZoneId.systemDefault()))} " +
-            "[${entry.level}] [${entry.tag}] ${entry.message}"
-
     companion object {
-        private val TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
+        internal const val MaxDisplayedEntryLength = 2_048
     }
 }
+
+internal fun formatLogEntryForPanel(entry: LogEntry): String {
+    val line = "${TIMESTAMP_FORMATTER.format(Instant.ofEpochMilli(entry.timestampMillis).atZone(ZoneId.systemDefault()))} " +
+        "[${entry.level}] [${entry.tag}] ${entry.message}"
+    return if (line.length <= LogsPanel.MaxDisplayedEntryLength) {
+        line
+    } else {
+        line.take(LogsPanel.MaxDisplayedEntryLength - TruncationSuffix.length) + TruncationSuffix
+    }
+}
+
+private const val TruncationSuffix = "..."
+
+private val TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")

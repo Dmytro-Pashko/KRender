@@ -568,7 +568,7 @@
     {
       "id": 29,
       "name": "Terrain 01",
-      "active": true,
+      "active": false,
       "parentId": null,
       "components": [
         {
@@ -618,8 +618,8 @@
           "type": "LightComponent",
           "properties": {
             "type": "Point",
-            "intensity": "4.55",
-            "color": "1.0,1.0,1.0,1.0",
+            "intensity": "2.66",
+            "color": "0.96568626,0.8576452,0.047337588,1.0",
             "direction": "-0.45,-0.8,-0.35"
           }
         }
@@ -629,7 +629,7 @@
   "settings": {
     "activeCameraEntityId": 1,
     "ambientLightEntityId": null,
-    "ambientLightColor": "0.45,0.5,0.58,1.0",
-    "ambientLightIntensity": 0.0
+    "ambientLightColor": "0.9420175,0.95112085,0.96568626,1.0",
+    "ambientLightIntensity": 0.3
   }
 }

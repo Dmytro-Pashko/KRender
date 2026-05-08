@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.sceneeditor
 
 import com.pashkd.krender.engine.api.EntityId
+import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 
 /**
@@ -71,6 +72,12 @@ data class SceneEditorState(
 
     /** True when the viewport panel is hovered or focused and can claim camera input. */
     var viewportFocused: Boolean = false,
+
+    /** Top-left viewport panel position in screen pixels, used to convert mouse clicks into viewport-local rays. */
+    var viewportOrigin: Vec2 = Vec2.zero(),
+
+    /** Viewport panel size in screen pixels, used by viewport-local picking. */
+    var viewportSize: Vec2 = Vec2.zero(),
 
     /** Runtime-only editor preference for drawing the viewport grid; never serialized into `.krscene` files. */
     var showGrid: Boolean = true,
