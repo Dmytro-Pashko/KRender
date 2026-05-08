@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:7f7689d6-6540-49e0-9b98-e48d4ab1d316",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_concrete_block_01",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

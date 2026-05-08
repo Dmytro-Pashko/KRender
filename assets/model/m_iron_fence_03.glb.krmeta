@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:7fb2baa0-a61f-4380-9a27-4f9f5152fcee",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_iron_fence_03",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

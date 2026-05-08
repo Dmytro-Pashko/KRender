@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:bc917b12-cfc7-4955-ab60-15e0cc2d8163",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_rubbish_container_02",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

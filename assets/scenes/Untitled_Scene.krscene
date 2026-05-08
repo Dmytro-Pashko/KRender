@@ -18,8 +18,8 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "0.51057136,2.0806022,11.971003",
-            "rotation": "-9.820017,190.07872,0.0",
+            "position": "7.094762,5.52836,26.519575",
+            "rotation": "-19.53992,566.2751,0.0",
             "scale": "1.0,1.0,1.0"
           }
         },
@@ -48,9 +48,9 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "6.030208E-16,-0.068,1.0759611",
+            "position": "0.15,-0.218,-1.624",
             "rotation": "0.0,0.0,0.0",
-            "scale": "0.5,0.55,0.45"
+            "scale": "0.75,0.75,0.75"
           }
         },
         {
@@ -91,14 +91,14 @@
     },
     {
       "id": 6,
-      "name": "M Rock 08",
+      "name": "M Rock_04",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Rock 08"
+            "name": "M Rock_04"
           }
         },
         {
@@ -188,7 +188,7 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "-5.429,0.018,4.151",
+            "position": "-5.479,-0.182,4.151",
             "rotation": "0.0,0.0,0.0",
             "scale": "1.0,1.0,1.0"
           }
@@ -203,14 +203,14 @@
     },
     {
       "id": 12,
-      "name": "M Rock 08 Copy",
+      "name": "M Rock_01",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Rock 08 Copy"
+            "name": "M Rock_01"
           }
         },
         {
@@ -231,20 +231,20 @@
     },
     {
       "id": 13,
-      "name": "M Light 01 Copy",
+      "name": "M Light_01",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Light 01 Copy"
+            "name": "M Light_01"
           }
         },
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "0.85,0.0,4.05",
+            "position": "0.85,-0.1,2.25",
             "rotation": "0.0,0.0,0.0",
             "scale": "0.45,0.5,0.5"
           }
@@ -259,20 +259,20 @@
     },
     {
       "id": 14,
-      "name": "M Brick Wall 01",
+      "name": "M Brick Wall_01",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Brick Wall 01"
+            "name": "M Brick Wall_01"
           }
         },
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "-8.699,0.0,-1.853",
+            "position": "-8.699,-0.15,-1.603",
             "rotation": "0.0,90.0,0.0",
             "scale": "1.0,1.0,1.0"
           }
@@ -287,20 +287,20 @@
     },
     {
       "id": 15,
-      "name": "M Brick Wall 01 Copy",
+      "name": "M Brick Wall_02",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Brick Wall 01 Copy"
+            "name": "M Brick Wall_02"
           }
         },
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "8.951,0.0,-1.853",
+            "position": "8.951,-0.15,-1.853",
             "rotation": "0.0,90.0,0.0",
             "scale": "1.0,1.0,1.0"
           }
@@ -315,14 +315,14 @@
     },
     {
       "id": 16,
-      "name": "M Brick Wall 01 Copy Copy",
+      "name": "M Brick Wall_03",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Brick Wall 01 Copy Copy"
+            "name": "M Brick Wall_03"
           }
         },
         {
@@ -356,7 +356,7 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "-3.374,0.171,3.903",
+            "position": "-3.774,-0.129,3.703",
             "rotation": "-5.45,14.6,0.0",
             "scale": "1.25,1.0,1.0"
           }
@@ -371,20 +371,20 @@
     },
     {
       "id": 21,
-      "name": "M Grass Plant 01",
+      "name": "M Grass Plant_02",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Grass Plant 01"
+            "name": "M Grass Plant_02"
           }
         },
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "2.636,0.3757786,3.874",
+            "position": "1.386,-0.124,2.524",
             "rotation": "0.0,0.0,0.0",
             "scale": "1.0,1.0,1.0"
           }
@@ -399,20 +399,20 @@
     },
     {
       "id": 22,
-      "name": "M Grass Plant 01",
+      "name": "M Grass Plant_03",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Grass Plant 01"
+            "name": "M Grass Plant_03"
           }
         },
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "-4.879609,0.059,4.561321",
+            "position": "-4.83,-0.091,4.561321",
             "rotation": "0.0,0.0,0.0",
             "scale": "1.0,1.4,1.3"
           }
@@ -427,76 +427,20 @@
     },
     {
       "id": 23,
-      "name": "M Grass Plant 01",
+      "name": "M Grass Plant_04",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Grass Plant 01"
+            "name": "M Grass Plant_04"
           }
         },
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "-5.436,-0.01,4.551",
-            "rotation": "0.0,0.0,0.0",
-            "scale": "1.0,1.0,1.0"
-          }
-        },
-        {
-          "type": "ModelComponent",
-          "properties": {
-            "model": "model/m_grass_plant_01.glb"
-          }
-        }
-      ]
-    },
-    {
-      "id": 24,
-      "name": "M Grass Plant 01",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "M Grass Plant 01"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "-4.951,0.016,2.1417649",
-            "rotation": "0.0,0.0,0.0",
-            "scale": "1.0,1.0,1.0"
-          }
-        },
-        {
-          "type": "ModelComponent",
-          "properties": {
-            "model": "model/m_grass_plant_01.glb"
-          }
-        }
-      ]
-    },
-    {
-      "id": 25,
-      "name": "M Grass Plant 01",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "M Grass Plant 01"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "-7.010998,0.1728251,2.9991386",
+            "position": "-5.436,-0.11,4.551",
             "rotation": "0.0,0.0,0.0",
             "scale": "1.0,1.0,1.0"
           }
@@ -511,20 +455,20 @@
     },
     {
       "id": 27,
-      "name": "M Rock 02",
+      "name": "M Rock_02",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Rock 02"
+            "name": "M Rock_02"
           }
         },
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "-6.11,0.136,2.184",
+            "position": "-6.21,-0.164,2.184",
             "rotation": "0.0,0.0,0.0",
             "scale": "1.0,1.0,1.0"
           }
@@ -539,14 +483,14 @@
     },
     {
       "id": 28,
-      "name": "M Rock 08",
+      "name": "M Rock_03",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "M Rock 08"
+            "name": "M Rock_03"
           }
         },
         {
@@ -568,7 +512,7 @@
     {
       "id": 29,
       "name": "Terrain 01",
-      "active": false,
+      "active": true,
       "parentId": null,
       "components": [
         {
@@ -609,7 +553,7 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "0.854,1.32,4.072",
+            "position": "0.904,1.07,2.372",
             "rotation": "0.0,0.0,0.0",
             "scale": "1.0,1.0,1.0"
           }
@@ -624,12 +568,494 @@
           }
         }
       ]
+    },
+    {
+      "id": 31,
+      "name": "M Brick Wall_4",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Brick Wall_4"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-3.149,-0.05,-8.803",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_wall_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "M Rubbish Container 01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Rubbish Container 01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-6.267,-0.044,6.814",
+            "rotation": "0.0,-30.4,0.05",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_rubbish_container_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "M Bobcat 01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Bobcat 01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-5.652,0.171,13.354",
+            "rotation": "0.05,-115.65,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_bobcat_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "M Brick Wall_02 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Brick Wall_02 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "8.951,-0.15,10.897",
+            "rotation": "0.0,90.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_wall_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "Stone Pile 02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Stone Pile 02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-1.903,0.207,14.652",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "2.0,2.0,2.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/stone_pile_02.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "M Grass Plant_02 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Grass Plant_02 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "1.686,-0.174,2.274",
+            "rotation": "0.0,-50.9,-4.95",
+            "scale": "1.5,2.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_grass_plant_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "M Rubbish Container 02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Rubbish Container 02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-2.792,-0.099,2.624",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_rubbish_container_02.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "M Brick Wall_01 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Brick Wall_01 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-8.699,-0.15,11.097",
+            "rotation": "0.0,90.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_wall_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "Stone Pile 01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Stone Pile 01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "4.739,0.076,13.159",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/stone_pile_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "M Street Light 01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Street Light 01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "8.324,0.112,15.493",
+            "rotation": "0.0,229.3,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_street_light_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "M Street Light 01 Copy Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Street Light 01 Copy Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-7.226,0.212,16.393",
+            "rotation": "0.0,175.05,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_street_light_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "M Traffic Cone 01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Traffic Cone 01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.88302386,0.351,18.654",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_traffic_cone_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "M Traffic Cone 01 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Traffic Cone 01 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "2.033,0.351,18.654",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_traffic_cone_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "name": "M Traffic Cone 01 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Traffic Cone 01 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-0.367,0.351,18.654",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_traffic_cone_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "name": "Point Light 2",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Point Light 2"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "7.156,5.01,14.414",
+            "rotation": "0.05,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "7.67",
+            "color": "1.0,1.0,1.0,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "name": "Point Light 2 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Point Light 2 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-6.944,5.41,14.564",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "16.36",
+            "color": "1.0,1.0,1.0,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "name": "M Brick Fence 01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Brick Fence 01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.106,0.223,16.871",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.4,1.4,1.4"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_fence_01.glb"
+          }
+        }
+      ]
     }
   ],
   "settings": {
     "activeCameraEntityId": 1,
     "ambientLightEntityId": null,
     "ambientLightColor": "0.9420175,0.95112085,0.96568626,1.0",
-    "ambientLightIntensity": 0.3
+    "ambientLightIntensity": 0.43
   }
 }

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:960c728e-e92d-4c29-92e3-f4f8cdc794da",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_traffic_cone_01",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:8fb2feeb-de3a-43b8-b3c6-bea39bcbc5b9",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_street_light_02",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

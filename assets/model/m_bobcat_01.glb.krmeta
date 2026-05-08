@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:f6a03a40-6d6d-4332-95bc-1961c78afb86",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_bobcat_01",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}
