@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:e5db1626-426b-4e6d-9947-a4ee7c970573",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_concrete_brick_01",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

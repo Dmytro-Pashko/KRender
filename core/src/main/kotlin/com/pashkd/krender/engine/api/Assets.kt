@@ -108,6 +108,48 @@ data class ModelAssetBounds(
 )
 
 /**
+ * Describes one renderable mesh part in a loaded model.
+ */
+data class ModelMeshPartInfo(
+    /** Stable index within the metadata snapshot. */
+    val index: Int,
+    /** Name/id of the node that owns the mesh part, when exposed by the backend. */
+    val nodeName: String?,
+    /** Backend mesh identifier, when available. */
+    val meshId: String?,
+    /** Backend mesh-part identifier, when available. */
+    val partId: String?,
+    /** Material identifier bound to this part, when available. */
+    val materialId: String?,
+    /** Primitive topology label such as TRIANGLES or TRIANGLE_STRIP. */
+    val primitiveType: String?,
+    /** Vertex count for the referenced mesh or part, when available. */
+    val vertexCount: Int?,
+    /** Triangle count for this mesh part, when the topology is supported. */
+    val triangleCount: Int?,
+)
+
+/**
+ * Describes one material in a loaded model.
+ */
+data class ModelMaterialInfo(
+    /** Stable index within the metadata snapshot. */
+    val index: Int,
+    /** Backend material identifier, when available. */
+    val id: String?,
+    /** Diffuse/base-color texture reference, when available. */
+    val diffuseTexture: String?,
+    /** Normal texture reference, when available. */
+    val normalTexture: String?,
+    /** Emissive texture reference, when available. */
+    val emissiveTexture: String?,
+    /** Diffuse/base color, when available. */
+    val baseColor: Color?,
+    /** Material opacity, when available. */
+    val opacity: Float?,
+)
+
+/**
  * Summarizes the essential runtime metadata extracted from a loaded model asset.
  */
 data class ModelAssetInfo(
@@ -149,4 +191,8 @@ data class ModelAssetInfo(
     val animationCount: Int,
     /** Animation ids exposed by the loaded model. */
     val animationNames: List<String>,
+    /** Detailed mesh-part metadata for inspection UI. */
+    val meshParts: List<ModelMeshPartInfo> = emptyList(),
+    /** Detailed material metadata for inspection UI. */
+    val materials: List<ModelMaterialInfo> = emptyList(),
 )

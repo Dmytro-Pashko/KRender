@@ -6,7 +6,6 @@ package com.pashkd.krender.engine.scene
 interface EditorToolLauncher {
     fun launchModelViewer(modelPath: String)
     fun launchTerrainEditor(terrainPath: String)
-    fun launchSceneEditorWithModel(modelPath: String)
     fun launchSceneEditorWithScene(scenePath: String)
 }
 
@@ -19,10 +18,6 @@ object UnsupportedEditorToolLauncher : EditorToolLauncher {
     }
 
     override fun launchTerrainEditor(terrainPath: String) {
-        unsupported()
-    }
-
-    override fun launchSceneEditorWithModel(modelPath: String) {
         unsupported()
     }
 

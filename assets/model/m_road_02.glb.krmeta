@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:987f216d-55f2-4079-9b38-1ac5bc220076",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_road_02",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

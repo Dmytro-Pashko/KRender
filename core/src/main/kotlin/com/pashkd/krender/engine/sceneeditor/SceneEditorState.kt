@@ -3,26 +3,8 @@ package com.pashkd.krender.engine.sceneeditor
 import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
-
-/**
- * Runtime-only camera settings mirrored into the Scene Editor UI.
- */
-data class SceneEditorCameraState(
-    /** Current editor camera world-space position. */
-    var position: Vec3 = Vec3(0f, 2f, 6f),
-
-    /** Current editor camera euler rotation in degrees. */
-    var eulerDegrees: Vec3 = Vec3(-10f, 180f, 0f),
-
-    /** Base free-camera movement speed in world units per second. */
-    var speed: Float = 6f,
-
-    /** Mouse-look sensitivity in degrees per pixel. */
-    var sensitivity: Float = 0.18f,
-
-    /** True while right mouse is actively driving viewport camera navigation. */
-    var navigating: Boolean = false,
-)
+import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraState
+import com.pashkd.krender.engine.editor.viewport.EditorViewportState
 
 /**
  * Mutable UI state owned by one Scene Editor scene instance.
@@ -62,13 +44,7 @@ data class SceneEditorState(
     var openErrorMessage: String? = null,
 
     /** Runtime-only editor viewport camera state; never serialized into `.krscene` files. */
-    var camera: SceneEditorCameraState = SceneEditorCameraState(),
-
-    /** Runtime-only request to move the editor camera entity on the next camera-system update. */
-    var pendingCameraPosition: Vec3? = null,
-
-    /** Runtime-only request to rotate the editor camera entity on the next camera-system update. */
-    var pendingCameraEulerDegrees: Vec3? = null,
+    var camera: EditorViewportCameraState = EditorViewportCameraState(),
 
     /** True when the viewport panel is hovered or focused and can claim camera input. */
     var viewportFocused: Boolean = false,
@@ -108,4 +84,22 @@ data class SceneEditorState(
 
     /** Non-null when the last terrain placement request failed validation. */
     var terrainPlacementError: String? = null,
-)
+) {
+    /** Runtime-only editor viewport focus and size state used by shared viewport systems. */
+    var viewport: EditorViewportState = EditorViewportState(viewportFocused, viewportOrigin, viewportSize)
+
+    /** Runtime-only request to move the editor camera entity on the next camera-system update. */
+    var pendingCameraPosition: Vec3?
+        get() = camera.pendingPosition
+        set(value) {
+            camera.pendingPosition = value
+        }
+
+    /** Runtime-only request to rotate the editor camera entity on the next camera-system update. */
+    var pendingCameraEulerDegrees: Vec3?
+        get() = camera.pendingEulerDegrees
+        set(value) {
+            camera.pendingEulerDegrees = value
+        }
+
+}

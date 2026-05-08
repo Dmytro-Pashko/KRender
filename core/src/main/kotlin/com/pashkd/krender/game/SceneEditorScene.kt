@@ -2,9 +2,10 @@ package com.pashkd.krender.game
 
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetImporterRegistry
 import com.pashkd.krender.engine.assets.LocalAssetRegistryService
+import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
+import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.sceneeditor.EditorOnlyComponent
 import com.pashkd.krender.engine.sceneeditor.AssetServiceModelBoundsService
@@ -15,8 +16,6 @@ import com.pashkd.krender.engine.sceneeditor.SceneAssetPanelState
 import com.pashkd.krender.engine.sceneeditor.SceneEditorBoundingBoxSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocument
 import com.pashkd.krender.engine.sceneeditor.SceneEditorOperations
-import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraComponent
-import com.pashkd.krender.engine.sceneeditor.SceneEditorCameraSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocumentRenderSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorBoundsProvider
 import com.pashkd.krender.engine.sceneeditor.SceneEditorLightGizmoSystem
@@ -43,7 +42,6 @@ import com.pashkd.krender.engine.ui.UiSystem
 class SceneEditorScene(
     private val scenePath: String? = null,
     private val initialSceneName: String = "Untitled Scene",
-    private val initialModelPlacementPath: String? = null,
 ) : Scene("scene_editor") {
     private lateinit var editorState: SceneEditorState
     private lateinit var assetPanelState: SceneAssetPanelState
@@ -80,7 +78,6 @@ class SceneEditorScene(
         scenePath?.let { path ->
             operations.open(path)
         }
-        prefillModelPlacementPath()
 
         createEditorCamera()
         val boundsProvider = SceneEditorBoundsProvider(AssetServiceModelBoundsService(engine.assets))
@@ -88,7 +85,7 @@ class SceneEditorScene(
         world.systems.add(SceneEditorViewportGuideSystem(editorState))
         world.systems.add(SceneAssetBrowserSystem(assetBrowser))
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
-        world.systems.add(SceneEditorCameraSystem(engine.input, editorState))
+        world.systems.add(EditorViewportCameraSystem(engine.input, editorState.camera, editorState.viewport))
         world.systems.add(SceneEditorSelectionSystem(engine.input, document, editorState, engine.logger, boundsProvider))
         world.systems.add(SceneEditorBoundingBoxSystem(document, editorState, boundsProvider))
         world.systems.add(SceneEditorLightGizmoSystem(document, editorState))
@@ -111,19 +108,8 @@ class SceneEditorScene(
             uiSystem.addPanel(SceneAssetPanel(assetPanelState, editorState, assetBrowser, operations, engine, layoutConfig, layoutTracker, panelEventLogger))
             uiSystem.addPanel(SceneInspectorPanel(editorState, document, operations, layoutConfig, layoutTracker, panelEventLogger, engine.logger))
             uiSystem.addPanel(SceneViewportPanel(editorState, document, operations, layoutConfig, layoutTracker, panelEventLogger))
-            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger, layoutTracker = layoutTracker))
+            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger, layoutTracker = layoutTracker, initialAutoScrollToLatest = true))
         }
-
-    private fun prefillModelPlacementPath() {
-        val path = initialModelPlacementPath?.trim()?.replace('\\', '/')?.takeIf(String::isNotBlank) ?: return
-        editorState.modelPlacementPath = path
-        editorState.modelPlacementError = null
-        editorState.statusMessage = "Model ready to place: $path"
-        assetPanelState.selectedAssetPath = path
-        assetPanelState.selectedAssetCategory = AssetCategory.Model
-        assetPanelState.statusMessage = "Selected model: $path"
-        engine.logger.info(TAG) { "Scene Editor model placement path prefilled: '$path'" }
-    }
 
     private fun createEditorCamera() {
         // Editor camera is not part of scene data.
@@ -131,7 +117,7 @@ class SceneEditorScene(
         camera.transform.position.set(0f, 2f, 6f)
         camera.transform.eulerDegrees.set(-10f, 180f, 0f)
         camera.add(EditorOnlyComponent())
-        camera.add(SceneEditorCameraComponent())
+        camera.add(EditorViewportCameraComponent())
         camera.add(
             PerspectiveCameraComponent(
                 fieldOfViewDegrees = 67f,

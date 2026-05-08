@@ -40,6 +40,7 @@ import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Axis
+import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.DrawModel
@@ -59,6 +60,8 @@ import com.pashkd.krender.engine.api.MainThreadTaskQueue
 import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.ModelAssetBounds
 import com.pashkd.krender.engine.api.ModelAssetInfo
+import com.pashkd.krender.engine.api.ModelMaterialInfo
+import com.pashkd.krender.engine.api.ModelMeshPartInfo
 import com.pashkd.krender.engine.api.MouseButton
 import com.pashkd.krender.engine.api.PointerPhase
 import com.pashkd.krender.engine.api.PointerState
@@ -118,6 +121,7 @@ open class GdxEngineApplication(
     /** Creates the backend and starts the initial scene. */
     override fun create() {
         backend = LibGdxBackend(runtimeWindowLauncherFactory, editorToolLauncherFactory)
+        backend.logger.info(TAG) { "OpenGL context: ${Gdx.graphics.glVersion.debugVersionString}" }
         Gdx.input.isCursorCatched = false
         runtime = EngineRuntime(backend)
         runtime.start(initialScene())
@@ -136,6 +140,10 @@ open class GdxEngineApplication(
     /** Disposes the runtime and all backend resources. */
     override fun dispose() {
         runtime.dispose()
+    }
+
+    companion object {
+        private const val TAG = "GdxEngineApplication"
     }
 }
 
@@ -704,6 +712,8 @@ class GdxAssetService : AssetService {
             boneWeightChannelCount = attributeSummary.boneWeightChannelCount,
             animationCount = model.animations.size,
             animationNames = animationNames,
+            meshParts = buildMeshPartInfos(nodes),
+            materials = buildMaterialInfos(model.materials),
         )
     }
 
@@ -799,6 +809,56 @@ private fun nodePartsOf(node: Node): List<NodePart> = buildList {
 }
 
 /**
+ * Builds read-only mesh-part metadata for model inspection UI.
+ */
+private fun buildMeshPartInfos(nodes: List<Node>): List<ModelMeshPartInfo> = buildList {
+    var index = 0
+    nodes.forEach { node ->
+        for (part in node.parts) {
+            val meshPart = part.meshPart
+            add(
+                ModelMeshPartInfo(
+                    index = index,
+                    nodeName = node.id?.takeIf(String::isNotBlank),
+                    meshId = meshPart?.mesh?.toString(),
+                    partId = meshPart?.id?.takeIf(String::isNotBlank),
+                    materialId = part.material?.id?.takeIf(String::isNotBlank),
+                    primitiveType = meshPart?.primitiveType?.let(::primitiveTypeLabel),
+                    vertexCount = meshPart?.mesh?.numVertices,
+                    triangleCount = meshPart?.let(::countTrianglesInMeshPart),
+                ),
+            )
+            index += 1
+        }
+    }
+}
+
+/**
+ * Builds read-only material metadata for model inspection UI.
+ */
+private fun buildMaterialInfos(
+    materials: Array<com.badlogic.gdx.graphics.g3d.Material>,
+): List<ModelMaterialInfo> = buildList {
+    materials.forEachIndexed { index, material ->
+        val diffuseColor = (material.get(ColorAttribute.Diffuse) as? ColorAttribute)?.color
+        add(
+            ModelMaterialInfo(
+                index = index,
+                id = material.id?.takeIf(String::isNotBlank),
+                diffuseTexture = material.textureLabel(TextureAttribute.Diffuse),
+                normalTexture = material.textureLabel(TextureAttribute.Normal),
+                emissiveTexture = material.textureLabel(TextureAttribute.Emissive),
+                baseColor = diffuseColor?.let { color -> Color(color.r, color.g, color.b, color.a) },
+                opacity = diffuseColor?.a,
+            ),
+        )
+    }
+}
+
+private fun com.badlogic.gdx.graphics.g3d.Material.textureLabel(type: Long): String? =
+    ((get(type) as? TextureAttribute)?.textureDescription?.texture)?.toString()?.takeIf(String::isNotBlank)
+
+/**
  * Extracts vertex-channel, UV, and skin-weight information from every mesh.
  */
 private fun collectVertexAttributeSummary(meshes: Array<Mesh>): VertexAttributeSummary {
@@ -856,6 +916,16 @@ private fun countTrianglesInMeshPart(meshPart: MeshPart): Int = when (meshPart.p
     GL20.GL_TRIANGLES -> meshPart.size / 3
     GL20.GL_TRIANGLE_STRIP, GL20.GL_TRIANGLE_FAN -> (meshPart.size - 2).coerceAtLeast(0)
     else -> 0
+}
+
+private fun primitiveTypeLabel(primitiveType: Int): String = when (primitiveType) {
+    GL20.GL_TRIANGLES -> "TRIANGLES"
+    GL20.GL_TRIANGLE_STRIP -> "TRIANGLE_STRIP"
+    GL20.GL_TRIANGLE_FAN -> "TRIANGLE_FAN"
+    GL20.GL_LINES -> "LINES"
+    GL20.GL_LINE_STRIP -> "LINE_STRIP"
+    GL20.GL_POINTS -> "POINTS"
+    else -> "GL_$primitiveType"
 }
 
 /**
@@ -931,12 +1001,14 @@ class GdxRenderer3D(
         override fun newObject(): Renderable = Renderable()
     }
     private val wireframeTmpVertex = Vector3()
+    private val forceBackBufferAlphaOpaque = systemBoolean("krender.gl.forceOpaqueAlpha", default = false)
 
     private var width: Int = Gdx.graphics.width
     private var height: Int = Gdx.graphics.height
 
     /** Renders the full frame for the provided render context. */
     override fun render(context: RenderContext) {
+        prepareSceneFrame()
         Gdx.gl.glViewport(0, 0, width, height)
         Gdx.gl.glClearColor(0.08f, 0.09f, 0.11f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT)
@@ -973,7 +1045,59 @@ class GdxRenderer3D(
         wireframeDynamicCommands.forEach { renderWireframeDynamicModel(it, camera) }
         lineRenderer.renderOverlayLines(context.commands, camera)
 
+        prepareUiPass()
         ui.render()
+        if (forceBackBufferAlphaOpaque) {
+            forceOpaqueBackBufferAlpha()
+        }
+    }
+
+    /**
+     * Starts the 3D pass from a known GL state.
+     *
+     * ImGui uses scissor rectangles and blend state internally. If those flags
+     * leak into the following frame, the backbuffer clear or scene pass can be
+     * clipped, which shows up as intermittent full-UI blinking.
+     */
+    private fun prepareSceneFrame() {
+        Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
+        Gdx.gl.glDisable(GL20.GL_BLEND)
+        Gdx.gl.glDisable(GL20.GL_CULL_FACE)
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST)
+        Gdx.gl.glDepthMask(true)
+        Gdx.gl.glColorMask(true, true, true, true)
+    }
+
+    /**
+     * Isolates ImGui from the scene render pass.
+     *
+     * ModelBatch and debug-line rendering leave depth testing enabled. Some GL
+     * backends do not fully normalize that state before drawing ImGui, so make
+     * the overlay requirements explicit before submitting UI draw data.
+     */
+    private fun prepareUiPass() {
+        Gdx.gl.glViewport(0, 0, width, height)
+        Gdx.gl.glDisable(GL20.GL_DEPTH_TEST)
+        Gdx.gl.glDepthMask(false)
+        Gdx.gl.glDisable(GL20.GL_CULL_FACE)
+        Gdx.gl.glColorMask(true, true, true, true)
+    }
+
+    /**
+     * Keeps the presented window fully opaque even after transparent UI draws.
+     *
+     * The desktop launcher requests an RGB backbuffer, but some drivers still
+     * expose an alpha channel. Leave the rendered colors untouched and clear
+     * only alpha so DWM/capture paths cannot treat blended ImGui or grid pixels
+     * as partially transparent checkerboard tiles.
+     */
+    private fun forceOpaqueBackBufferAlpha() {
+        Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
+        Gdx.gl.glColorMask(false, false, false, true)
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+        Gdx.gl.glColorMask(true, true, true, true)
+        Gdx.gl.glDepthMask(true)
     }
 
     /** Updates the cached viewport size used for camera creation. */
@@ -1722,3 +1846,15 @@ class GdxLineShaderRenderer {
 /** Returns whether the asset reference points to a glTF or GLB model. */
 private fun AssetRef<*>.isGltf(): Boolean =
     path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true)
+
+private fun systemBoolean(name: String, default: Boolean): Boolean {
+    val envName = name.replace('.', '_').uppercase()
+    val value = System.getProperty(name)
+        ?: System.getenv(envName)
+        ?: return default
+    return when (value.trim().lowercase()) {
+        "1", "true", "yes", "on" -> true
+        "0", "false", "no", "off" -> false
+        else -> default
+    }
+}

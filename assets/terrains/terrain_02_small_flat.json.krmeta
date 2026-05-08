@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:1be1cca1-106d-4956-a1b1-4faf09f8671e",
+  "type": "Terrain",
+  "category": "Terrain",
+  "displayName": "terrain_02_small_flat",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}

@@ -57,7 +57,6 @@ internal class Lwjgl3JvmProcessLauncher(
         private val filteredSystemPropertyPrefixes = listOf(
             "-Dkrender.scene=",
             "-Dkrender.scene.path=",
-            "-Dkrender.scene.modelPath=",
             "-Dkrender.model=",
             "-Dkrender.model.path=",
             "-Dkrender.terrain.path=",

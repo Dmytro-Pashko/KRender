@@ -86,6 +86,33 @@ class SceneEditorSelectionSystemTest {
     }
 
     @Test
+    fun `left click outside viewport rect uses window coordinates when ui does not capture mouse`() {
+        val input = FakeInputService(
+            InputSnapshot(
+                mouseButtonsPressedThisFrame = setOf(MouseButton.Left),
+                mousePosition = Vec2(50f, 50f),
+                viewportSize = Vec2(100f, 100f),
+                uiCapturesMouse = false,
+            ),
+        )
+        val document = SceneEditorDocument(SceneWorld())
+        val target = document.world.createEntity("Window Target")
+        target.transform.position.set(0f, 0f, 5f)
+        val state = SceneEditorState(
+            viewportFocused = false,
+            viewportOrigin = Vec2(500f, 500f),
+            viewportSize = Vec2(100f, 100f),
+        )
+        val world = runtimeWorldWithEditorCamera()
+        world.systems.add(SceneEditorSelectionSystem(input, document, state, NoopLogger))
+
+        world.update(dt = 0f)
+
+        assertEquals(target.id, state.selectedEntityId)
+        assertEquals("Selected Window Target.", state.statusMessage)
+    }
+
+    @Test
     fun `left click outside viewport rect is ignored`() {
         val input = FakeInputService(
             InputSnapshot(

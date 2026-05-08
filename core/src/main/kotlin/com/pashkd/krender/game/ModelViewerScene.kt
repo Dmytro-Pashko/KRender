@@ -2,112 +2,235 @@ package com.pashkd.krender.game
 
 import com.pashkd.krender.engine.api.AssetPack
 import com.pashkd.krender.engine.api.AssetRef
+import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.Scene
-import com.pashkd.krender.engine.api.Vec3
-import com.pashkd.krender.engine.modelviewer.ModelViewerPanel
-import com.pashkd.krender.engine.modelviewer.ModelViewerState
-import com.pashkd.krender.engine.modelviewer.ModelViewerStatsPanel
-import com.pashkd.krender.engine.modelviewer.ModelViewerSystem
-import com.pashkd.krender.engine.modelviewer.ModelViewerCameraSystem
-import com.pashkd.krender.engine.modelviewer.ModelViewerControlsPanel
+import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
+import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
+import com.pashkd.krender.engine.modelviewer.ModelViewerAnimationsPanel
+import com.pashkd.krender.engine.modelviewer.ModelViewerBoundingBoxSystem
+import com.pashkd.krender.engine.modelviewer.ModelViewerInfoPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerLoadingPanel
+import com.pashkd.krender.engine.modelviewer.ModelViewerMaterialsPanel
+import com.pashkd.krender.engine.modelviewer.ModelViewerMeshPartsPanel
+import com.pashkd.krender.engine.modelviewer.ModelViewerOperations
+import com.pashkd.krender.engine.modelviewer.ModelViewerState
+import com.pashkd.krender.engine.modelviewer.ModelViewerSystem
+import com.pashkd.krender.engine.modelviewer.ModelViewerToolbarPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerUiLayoutDefaults
-import com.pashkd.krender.engine.render3d.FreeCameraControllerComponent
+import com.pashkd.krender.engine.modelviewer.ModelViewerViewportGuideSystem
+import com.pashkd.krender.engine.modelviewer.ModelViewerViewportPanel
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.Material
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.ModelRenderSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.render3d.WorldGridSystem
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
+import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.LogsPanel
+import com.pashkd.krender.engine.ui.UiPanel
 import com.pashkd.krender.engine.ui.UiSystem
 
 /**
- * Builds the ModelViewer scene, runtime systems, and ImGui panels.
+ * Builds the single-model inspection scene, runtime systems, and ImGui panels.
  */
 class ModelViewerScene(
-    private val model: AssetRef<ModelAsset>? = null,
-    private val availableModels: List<AssetRef<ModelAsset>> = model?.let(::listOf) ?: emptyList(),
+    private val model: AssetRef<ModelAsset>,
     private val modelScale: Float = 1f,
-    private var wireframeMode: Boolean = false,
 ) : Scene("model_viewer") {
-    private val models = availableModels.distinctBy(AssetRef<ModelAsset>::path)
+    constructor(
+        modelPath: String,
+        modelScale: Float = 1f,
+    ) : this(AssetRef.model(modelPath), modelScale)
 
     override val requiredAssets: List<AssetPack> = listOf(
         object : AssetPack {
-            override val assets = listOfNotNull(model)
+            override val assets = listOf(model)
         },
     )
 
-    private val initialSelectedModelIndex: Int = model?.let(models::indexOf)?.takeIf { it >= 0 } ?: 0
-
     private lateinit var viewerState: ModelViewerState
-    private var modelEntityId: EntityId? = null
+    private lateinit var operations: ModelViewerOperations
+    private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
+    private var updateFrameIndex = 0L
+    private var renderFrameIndex = 0L
+
+    /**
+     * Logs and schedules the single model asset required by this viewer.
+     */
+    override fun scheduleAssets(assets: AssetService) {
+        engine.logger.info(TAG) {
+            "ModelViewer scheduleAssets start model='${model.path}' primitive=${model.isPrimitive} requiredPacks=${requiredAssets.size}"
+        }
+        try {
+            super.scheduleAssets(assets)
+            engine.logger.info(TAG) { "ModelViewer scheduleAssets complete queued='${model.path}'" }
+        } catch (error: Exception) {
+            engine.logger.error(TAG, error) {
+                "ModelViewer scheduleAssets failed model='${model.path}': ${error.message}"
+            }
+            throw error
+        }
+    }
 
     /**
      * Creates viewer state, systems, and scene entities.
      */
     override fun show() {
+        engine.logger.info(TAG) { "ModelViewer show start model='${model.path}' scale=${"%.3f".format(modelScale)}" }
+        try {
+            showInternal()
+            engine.logger.info(TAG) {
+                "ModelViewer show complete model='${model.path}' entities=${world.all().size} modelEntityId=${viewerState.modelEntityId}"
+            }
+        } catch (error: Exception) {
+            engine.logger.error(TAG, error) {
+                "ModelViewer show failed model='${model.path}' entities=${world.all().size}: ${error.message}"
+            }
+            throw error
+        }
+    }
+
+    private fun showInternal() {
+        engine.logger.debug(TAG) {
+            "Loading ModelViewer UI layout path='${ModelViewerUiLayoutDefaults.assetPath}' fallbackPanels=${ModelViewerUiLayoutDefaults.config.panels.keys.joinToString()}"
+        }
         val layoutConfig = ImGuiLayoutConfigLoader(
             assetPath = ModelViewerUiLayoutDefaults.assetPath,
             fallback = ModelViewerUiLayoutDefaults.config,
         ).load(engine.logger)
+        engine.logger.info(TAG) {
+            "ModelViewer UI layout loaded panels=${layoutConfig.panels.keys.joinToString()}"
+        }
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "ModelViewerUi")
+        layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
+        engine.logger.debug(TAG) { "ModelViewer layout tracker created" }
         viewerState = ModelViewerState(
-            availableModels = models,
-            selectedModelIndex = initialSelectedModelIndex,
-            loadedModel = model,
+            model = model,
             modelScale = modelScale,
-            wireframeEnabled = wireframeMode,
         )
-        world.systems.add(WorldGridSystem(halfExtentCells = 24, cellSize = 1f))
-        world.systems.add(createModelViewerSystem())
-        world.systems.add(ModelViewerCameraSystem(engine.input))
-        world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
-        world.systems.add(ModelRenderSystem())
+        engine.logger.info(TAG) {
+            "ModelViewer state created model='${viewerState.modelPath}' displayMode=${viewerState.displayMode} " +
+                "grid=${viewerState.showGrid} axes=${viewerState.showAxes} bounds=${viewerState.showBoundingBox}"
+        }
+        operations = ModelViewerOperations(viewerState, engine, layoutTracker)
+        engine.logger.debug(TAG) { "ModelViewer operations created" }
 
         createCamera()
-        createLights()
-        model?.let(::createModelEntity)
+        createAmbientLight()
+        createModelEntity()
+
+        addSystem("ModelViewerViewportGuideSystem", ModelViewerViewportGuideSystem(viewerState))
+        addSystem("ModelViewerSystem", createModelViewerSystem())
+        addSystem("UiSystem", createUiSystem(layoutConfig, panelEventLogger))
+        addSystem("EditorViewportCameraSystem", EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport))
+        addSystem("ModelViewerBoundingBoxSystem", ModelViewerBoundingBoxSystem(viewerState, engine.assets))
+        addSystem("ModelRenderSystem", ModelRenderSystem())
     }
 
     /**
      * Releases cursor handling when the viewer scene is hidden.
      */
     override fun hide() {
+        engine.logger.info(TAG) {
+            "ModelViewer hide model='${model.path}' stateInitialized=${::viewerState.isInitialized} entities=${world.all().size}"
+        }
         engine.input.setCursorCaptured(false)
     }
 
     /**
-     * Recreates the renderable model entity for the selected asset.
+     * Logs first-frame and failure details around scene update.
      */
-    private fun createModelEntity(modelRef: AssetRef<ModelAsset>) {
-        modelEntityId?.let(world::removeEntity)
-        val modelEntity = world.createEntity("Asset Model")
-        modelEntityId = modelEntity.id
-        modelEntity.transform.scale.set(modelScale, modelScale, modelScale)
-        modelEntity.add(
-            ModelComponent(
-                model = modelRef,
-                material = Material(baseColor = Color.white(), wireframe = viewerState.wireframeEnabled),
-            ),
-        )
+    override fun update(dt: Float) {
+        updateFrameIndex += 1
+        if (updateFrameIndex == 1L) {
+            engine.logger.info(TAG) {
+                "ModelViewer scene first update dt=${"%.4f".format(dt)} entities=${world.all().size} systemsInitialized=true"
+            }
+        }
+        try {
+            super.update(dt)
+        } catch (error: Exception) {
+            engine.logger.error(TAG, error) {
+                "ModelViewer scene update failed frame=$updateFrameIndex dt=${"%.4f".format(dt)} " +
+                    "model='${model.path}' entities=${world.all().size}: ${error.message}"
+            }
+            throw error
+        }
     }
 
     /**
-     * Spawns the free camera used for model inspection.
+     * Logs first-frame and failure details around render command collection.
+     */
+    override fun render(alpha: Float) {
+        renderFrameIndex += 1
+        if (renderFrameIndex == 1L) {
+            engine.logger.info(TAG) {
+                "ModelViewer scene first render alpha=${"%.4f".format(alpha)} entities=${world.all().size}"
+            }
+        }
+        try {
+            super.render(alpha)
+        } catch (error: Exception) {
+            engine.logger.error(TAG, error) {
+                "ModelViewer scene render failed frame=$renderFrameIndex alpha=${"%.4f".format(alpha)} " +
+                    "model='${model.path}' entities=${world.all().size}: ${error.message}"
+            }
+            throw error
+        }
+    }
+
+    /**
+     * Logs final scene teardown details.
+     */
+    override fun dispose() {
+        engine.logger.info(TAG) {
+            "ModelViewer dispose model='${model.path}' entitiesBeforeFlush=${world.all().size}"
+        }
+        super.dispose()
+        engine.logger.info(TAG) {
+            "ModelViewer dispose complete model='${model.path}' entitiesAfterFlush=${world.all().size}"
+        }
+    }
+
+    /**
+     * Creates the renderable model entity for the active asset.
+     */
+    private fun createModelEntity() {
+        val modelEntity = world.createEntity("Asset Model")
+        viewerState.modelEntityId = modelEntity.id
+        modelEntity.transform.scale.set(modelScale, modelScale, modelScale)
+        modelEntity.add(
+            ModelComponent(
+                model = model,
+                material = Material(baseColor = Color.white()),
+            ),
+        )
+        engine.logger.info(TAG) {
+            "ModelViewer model entity created id=${modelEntity.id} model='${model.path}' scale=${"%.3f".format(modelScale)}"
+        }
+    }
+
+    /**
+     * Spawns the editor-style camera used for model inspection.
      */
     private fun createCamera() {
         val camera = world.createEntity("Viewer Camera")
-        camera.transform.position.set(0f, 1.6f, 5f)
-        camera.transform.eulerDegrees.set(0f, 180f, 0f)
+        camera.transform.position.set(
+            viewerState.camera.position.x,
+            viewerState.camera.position.y,
+            viewerState.camera.position.z,
+        )
+        camera.transform.eulerDegrees.set(
+            viewerState.camera.eulerDegrees.x,
+            viewerState.camera.eulerDegrees.y,
+            viewerState.camera.eulerDegrees.z,
+        )
+        camera.add(EditorViewportCameraComponent())
         camera.add(
             PerspectiveCameraComponent(
                 fieldOfViewDegrees = 67f,
@@ -115,31 +238,27 @@ class ModelViewerScene(
                 far = 250f,
             ),
         )
-        camera.add(FreeCameraControllerComponent())
+        engine.logger.info(TAG) {
+            "ModelViewer camera created id=${camera.id} position=${formatVec3(camera.transform.position)} " +
+                "euler=${formatVec3(camera.transform.eulerDegrees)}"
+        }
     }
 
     /**
-     * Adds the default directional and ambient lights for the viewer.
+     * Adds ambient-only lighting for neutral model inspection.
      */
-    private fun createLights() {
-        val light = world.createEntity("Key Light")
-        light.add(
-            LightComponent(
-                type = LightType.Directional,
-                color = Color(1f, 0.96f, 0.88f),
-                intensity = 1.25f,
-                direction = Vec3(-0.5f, -0.8f, -0.35f),
-            ),
-        )
-
+    private fun createAmbientLight() {
         val ambient = world.createEntity("Ambient Light")
         ambient.add(
             LightComponent(
                 type = LightType.Ambient,
-                color = Color(0.45f, 0.5f, 0.58f),
-                intensity = 0.55f,
+                color = Color(0.55f, 0.58f, 0.64f),
+                intensity = 0.8f,
             ),
         )
+        engine.logger.info(TAG) {
+            "ModelViewer ambient light created id=${ambient.id} color=0.55,0.58,0.64 intensity=0.80"
+        }
     }
 
     /**
@@ -151,7 +270,6 @@ class ModelViewerScene(
             assets = engine.assets,
             logger = engine.logger,
             state = viewerState,
-            onReloadSelection = ::reloadWithSelectedModel,
             onExitRequested = engine::requestExit,
         )
 
@@ -163,24 +281,81 @@ class ModelViewerScene(
         panelEventLogger: ImGuiWindowEventLogger,
     ): UiSystem =
         UiSystem(engine.ui).also { uiSystem ->
-            uiSystem.addPanel(ModelViewerPanel(viewerState, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(ModelViewerStatsPanel(viewerState, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(ModelViewerControlsPanel(viewerState, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(ModelViewerLoadingPanel(viewerState, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
+            engine.logger.debug(TAG) { "Registering ModelViewer UI panels" }
+            addPanel(
+                uiSystem,
+                "Toolbar",
+                ModelViewerToolbarPanel(viewerState, operations, layoutConfig, layoutTracker, panelEventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "Viewport",
+                ModelViewerViewportPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "ModelInfo",
+                ModelViewerInfoPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "MeshParts",
+                ModelViewerMeshPartsPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "Materials",
+                ModelViewerMaterialsPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "Animations",
+                ModelViewerAnimationsPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "Loading",
+                ModelViewerLoadingPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "Logs",
+                LogsPanel(
+                    engine.logs,
+                    layoutConfig,
+                    panelEventLogger,
+                    layoutTracker = layoutTracker,
+                    initialAutoScrollToLatest = true,
+                ),
+            )
+            engine.logger.info(TAG) { "ModelViewer UI panels registered count=8" }
         }
 
-    /**
-     * Replaces the scene so the newly selected model becomes the active asset.
-     */
-    private fun reloadWithSelectedModel(selectedModel: AssetRef<ModelAsset>) {
-        engine.scenes.replace(
-            ModelViewerScene(
-                model = selectedModel,
-                availableModels = models,
-                modelScale = modelScale,
-                wireframeMode = viewerState.wireframeEnabled,
-            ),
+    private fun addSystem(name: String, system: com.pashkd.krender.engine.api.System) {
+        world.systems.add(system)
+        engine.logger.info(TAG) { "ModelViewer system added name='$name'" }
+    }
+
+    private fun addPanel(uiSystem: UiSystem, name: String, panel: UiPanel) {
+        uiSystem.addPanel(
+            UiPanel {
+                try {
+                    panel.draw()
+                } catch (error: Exception) {
+                    engine.logger.error(TAG, error) {
+                        "ModelViewer UI panel draw failed panel='$name' model='${model.path}': ${error.message}"
+                    }
+                    throw error
+                }
+            },
         )
+        engine.logger.debug(TAG) { "ModelViewer UI panel registered name='$name'" }
+    }
+
+    private fun formatVec3(value: com.pashkd.krender.engine.api.Vec3): String =
+        "%.3f,%.3f,%.3f".format(value.x, value.y, value.z)
+
+    companion object {
+        private const val TAG = "ModelViewerScene"
     }
 }

@@ -7,9 +7,12 @@ import com.pashkd.krender.engine.ui.ImGuiPanelLayout
  * Defines the stable JSON ids used by the ModelViewer ImGui panels.
  */
 object ModelViewerPanelIds {
-    const val ModelList = "modelList"
+    const val Toolbar = "toolbar"
+    const val Viewport = "viewport"
     const val ModelInfo = "modelInfo"
-    const val Controls = "controls"
+    const val MeshParts = "meshParts"
+    const val Materials = "materials"
+    const val Animations = "animations"
     const val Loading = "loading"
     const val Logs = "runtimeLogs"
 }
@@ -22,25 +25,46 @@ object ModelViewerUiLayoutDefaults {
 
     val config = ImGuiLayoutConfig(
         panels = mapOf(
-            ModelViewerPanelIds.ModelList to ImGuiPanelLayout(
-                title = "Models",
+            ModelViewerPanelIds.Toolbar to ImGuiPanelLayout(
+                title = "Model Viewer",
                 x = 16f,
                 y = 16f,
-                width = 320f,
-                height = 480f,
+                width = 960f,
+                height = 120f,
+            ),
+            ModelViewerPanelIds.Viewport to ImGuiPanelLayout(
+                title = "Viewport",
+                x = 16f,
+                y = 152f,
+                width = 360f,
+                height = 260f,
             ),
             ModelViewerPanelIds.ModelInfo to ImGuiPanelLayout(
                 title = "Model Info",
-                x = 352f,
-                y = 16f,
-                width = 320f,
-                height = 220f,
+                x = 392f,
+                y = 152f,
+                width = 360f,
+                height = 360f,
             ),
-            ModelViewerPanelIds.Controls to ImGuiPanelLayout(
-                title = "Controls",
+            ModelViewerPanelIds.MeshParts to ImGuiPanelLayout(
+                title = "Mesh Parts",
+                x = 768f,
+                y = 152f,
+                width = 360f,
+                height = 360f,
+            ),
+            ModelViewerPanelIds.Materials to ImGuiPanelLayout(
+                title = "Materials",
+                x = 1144f,
+                y = 152f,
+                width = 360f,
+                height = 360f,
+            ),
+            ModelViewerPanelIds.Animations to ImGuiPanelLayout(
+                title = "Animations",
                 x = 16f,
-                y = 512f,
-                width = 320f,
+                y = 428f,
+                width = 360f,
                 height = 220f,
             ),
             ModelViewerPanelIds.Loading to ImGuiPanelLayout(
@@ -52,10 +76,10 @@ object ModelViewerUiLayoutDefaults {
             ),
             ModelViewerPanelIds.Logs to ImGuiPanelLayout(
                 title = "Runtime Logs",
-                x = 352f,
-                y = 252f,
-                width = 640f,
-                height = 480f,
+                x = 392f,
+                y = 528f,
+                width = 736f,
+                height = 240f,
             ),
         ),
     )

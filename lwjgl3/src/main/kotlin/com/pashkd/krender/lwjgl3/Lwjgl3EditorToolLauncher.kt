@@ -27,14 +27,6 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
-    override fun launchSceneEditorWithModel(modelPath: String) {
-        launch(
-            scene = "scene-editor",
-            pathProperty = "krender.scene.modelPath" to normalizePath(modelPath),
-            failureMessage = "Scene Editor launch failed",
-        )
-    }
-
     override fun launchSceneEditorWithScene(scenePath: String) {
         launch(
             scene = "scene-editor",

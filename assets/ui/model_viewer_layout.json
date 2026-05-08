@@ -1,24 +1,45 @@
 {
   "panels": {
-    "modelList": {
-      "title": "Models",
-      "x": 1580,
-      "y": 15,
-      "width": 320,
-      "height": 480
+    "toolbar": {
+      "title": "Model Viewer",
+      "x": 16,
+      "y": 16,
+      "width": 960,
+      "height": 120
+    },
+    "viewport": {
+      "title": "Viewport",
+      "x": 16,
+      "y": 152,
+      "width": 360,
+      "height": 260
     },
     "modelInfo": {
       "title": "Model Info",
-      "x": 1580,
-      "y": 511,
-      "width": 320,
-      "height": 220
+      "x": 392,
+      "y": 152,
+      "width": 360,
+      "height": 360
     },
-    "controls": {
-      "title": "Controls",
-      "x": 15,
-      "y": 300,
-      "width": 320,
+    "meshParts": {
+      "title": "Mesh Parts",
+      "x": 768,
+      "y": 152,
+      "width": 360,
+      "height": 360
+    },
+    "materials": {
+      "title": "Materials",
+      "x": 1144,
+      "y": 152,
+      "width": 360,
+      "height": 360
+    },
+    "animations": {
+      "title": "Animations",
+      "x": 16,
+      "y": 428,
+      "width": 360,
       "height": 220
     },
     "loading": {
@@ -30,10 +51,10 @@
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
-      "x": 350,
-      "y": 15,
-      "width": 700,
-      "height": 715
+      "x": 392,
+      "y": 528,
+      "width": 736,
+      "height": 240
     }
   }
 }

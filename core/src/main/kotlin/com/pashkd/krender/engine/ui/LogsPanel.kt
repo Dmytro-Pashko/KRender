@@ -25,7 +25,10 @@ class LogsPanel(
     private val eventLogger: ImGuiWindowEventLogger,
     private val panelId: String = LogsPanelIds.RuntimeLogs,
     private val layoutTracker: ImGuiLayoutRuntimeTracker? = null,
+    initialAutoScrollToLatest: Boolean = false,
 ) : UiPanel {
+    private var scrollToEndEnabled = initialAutoScrollToLatest
+
     /**
      * Draws the logs window using the configured default layout.
      */
@@ -51,6 +54,9 @@ class LogsPanel(
             entries.forEach { entry ->
                 ImGui.textUnformatted(formatLogEntryForPanel(entry))
             }
+            if (scrollToEndEnabled) {
+                ImGui.setScrollHereY(1f)
+            }
         }
         ImGui.endChild()
         ImGui.end()
@@ -72,6 +78,8 @@ class LogsPanel(
                 logs.minLevel = level
             }
         }
+        ImGui.sameLine()
+        ImGui.checkbox("Scroll to End##$panelId", ::scrollToEndEnabled)
     }
 
     /**

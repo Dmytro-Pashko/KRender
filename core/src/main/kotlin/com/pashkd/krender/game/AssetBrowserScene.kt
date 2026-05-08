@@ -52,7 +52,6 @@ class AssetBrowserScene : Scene("asset_browser") {
         browserState = AssetBrowserState()
         tools = AssetToolRegistry(engine.logger).apply {
             register(ModelViewerAssetTool())
-            register(SceneEditorModelAssetTool())
             register(TerrainEditorAssetTool())
             register(SceneEditorAssetTool())
         }
@@ -99,7 +98,7 @@ class AssetBrowserScene : Scene("asset_browser") {
                 ),
             )
             uiSystem.addPanel(AssetDetailsPanel(browserState, layoutConfig, panelEventLogger, operations = operationsHandler))
-            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger, initialAutoScrollToLatest = true))
         }
     }
 
@@ -259,26 +258,6 @@ class ModelViewerAssetTool : AssetTool {
 
     companion object {
         private const val TAG = "ModelViewerAssetTool"
-    }
-}
-
-/**
- * Sends model assets to a separate Scene Editor window with the placement path prefilled.
- */
-class SceneEditorModelAssetTool : AssetTool {
-    override val id = "scene-editor-model"
-    override val displayName = "Send to Scene Editor"
-    override val supportedCategories = setOf(AssetCategory.Model)
-    override val defaultAction = false
-
-    override fun open(asset: AssetDescriptor, context: EngineContext) {
-        val path = normalizedAssetPath(asset)
-        context.logger.info(TAG) { "Sending model asset '$path' to Scene Editor" }
-        context.editorToolLauncher.launchSceneEditorWithModel(path)
-    }
-
-    companion object {
-        private const val TAG = "SceneEditorModelAssetTool"
     }
 }
 

@@ -749,6 +749,7 @@ class SceneViewportPanel(
         val expanded = beginSceneEditorPanel(SceneEditorPanelIds.Viewport, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             state.viewportFocused = false
+            state.viewport.focused = false
             ImGui.end()
             return
         }
@@ -759,6 +760,9 @@ class SceneViewportPanel(
         state.viewportOrigin = Vec2(viewportPosition.x, viewportPosition.y)
         state.viewportSize = Vec2(viewportSize.x.coerceAtLeast(0f), viewportSize.y.coerceAtLeast(0f))
         state.viewportFocused = ImGui.isWindowHovered() || ImGui.isWindowFocused()
+        state.viewport.origin = state.viewportOrigin
+        state.viewport.size = state.viewportSize
+        state.viewport.focused = state.viewportFocused
         ImGui.text("Scene view")
         ImGui.separator()
         ImGui.text("Entities: ${document.world.all().count { entity -> entity.get<EditorOnlyComponent>() == null }}")

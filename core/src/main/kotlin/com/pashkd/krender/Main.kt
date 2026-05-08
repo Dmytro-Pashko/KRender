@@ -10,7 +10,6 @@ import com.pashkd.krender.game.ModelViewerScene
 import com.pashkd.krender.game.RuntimeScene
 import com.pashkd.krender.game.SceneEditorScene
 import com.pashkd.krender.game.TerrainEditorScene
-import java.io.File
 
 class Main(
     sceneName: String = defaultScene(),
@@ -30,14 +29,12 @@ class Main(
             "scene-editor" -> SceneEditorScene(
                 scenePath = defaultScenePath(),
                 initialSceneName = defaultSceneName(),
-                initialModelPlacementPath = defaultSceneModelPath(),
             )
 
             "runtime-scene" -> RuntimeScene(scenePath = defaultScenePath())
 
             "model-viewer" -> ModelViewerScene(
-                model = selectedModel,
-                availableModels = discoverModelPaths(modelPath).map(AssetRef.Companion::model),
+                model = selectedModel ?: AssetRef.primitiveModel("cube"),
             )
 
             "terrain-editor", "terrain-generator" -> TerrainEditorScene(
@@ -49,8 +46,7 @@ class Main(
             else -> {
                 System.err.println("Unknown scene '$sceneName', defaulting to model viewer.")
                 ModelViewerScene(
-                    model = selectedModel,
-                    availableModels = discoverModelPaths(modelPath).map(AssetRef.Companion::model),
+                    model = selectedModel ?: AssetRef.primitiveModel("cube"),
                 )
 
             }
@@ -69,25 +65,6 @@ class Main(
         fun defaultTerrainFilePath(): String =
             System.getProperty("krender.terrain.path", "terrains/terrain_01.json")
         fun defaultScenePath(): String? = System.getProperty("krender.scene.path")?.takeIf(String::isNotBlank)
-        fun defaultSceneModelPath(): String? = System.getProperty("krender.scene.modelPath")?.takeIf(String::isNotBlank)
         fun defaultSceneName(): String = System.getProperty("krender.scene.name", "Untitled Scene")
-
-        private fun discoverModelPaths(selectedPath: String?): List<String> {
-            val supportedExtensions = setOf("glb", "gltf", "g3db", "g3dj", "obj", "fbx")
-            val discovered = File("model")
-                .listFiles()
-                ?.asSequence()
-                ?.filter { it.isFile }
-                ?.filter { it.extension.lowercase() in supportedExtensions }
-                ?.map { "model/${it.name}" }
-                ?.sorted()
-                ?.toMutableList()
-                ?: mutableListOf()
-
-            if (!selectedPath.isNullOrBlank() && selectedPath !in discovered) {
-                discovered += selectedPath
-            }
-            return discovered
-        }
     }
 }

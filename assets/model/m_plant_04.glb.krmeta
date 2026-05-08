@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:da2c283a-c0a7-424b-b6d5-345346e3ae2b",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_plant_04",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}
