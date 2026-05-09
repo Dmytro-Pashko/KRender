@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.modelviewer
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.DrawLine
+import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.DrawWorldGrid
 import com.pashkd.krender.engine.api.InputService
@@ -250,6 +251,32 @@ class ModelViewerViewportGuideSystem(
 
     companion object {
         private const val MinCellSize = 0.01f
+    }
+}
+
+/**
+ * Emits the inspected model draw command with ModelViewer-specific mesh-part isolation.
+ */
+class ModelViewerModelRenderSystem(
+    private val state: ModelViewerState,
+) : System() {
+    override fun render(world: SceneWorld, alpha: Float) {
+        val entity = state.modelEntityId?.let(world::getEntity) ?: return
+        val model = entity.get<ModelComponent>() ?: return
+        val transform = entity.get<TransformComponent>() ?: return
+        val visibleMeshPartIndices = state.selectedMeshPartIndex
+            ?.takeIf { state.isolateSelectedMeshPart }
+            ?.let(::setOf)
+
+        world.renderCommands.submit(
+            DrawModel(
+                entityId = entity.id,
+                model = model.model,
+                transform = transform.snapshot(),
+                material = model.material,
+                visibleMeshPartIndices = visibleMeshPartIndices,
+            ),
+        )
     }
 }
 

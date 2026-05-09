@@ -36,6 +36,8 @@ data class DrawModel(
     val transform: TransformSnapshot,
     /** Material parameters applied for rendering. */
     val material: Material,
+    /** Optional backend-neutral mesh-part index filter. Null renders the full model. */
+    val visibleMeshPartIndices: Set<Int>? = null,
     /** Relative ordering priority for this command. */
     override val sortKey: Int = 0,
 ) : RenderCommand

@@ -1272,6 +1272,7 @@ class GdxRenderer3D(
         instance.transform.rotate(Vector3.Y, transform.eulerDegrees.y)
         instance.transform.rotate(Vector3.Z, transform.eulerDegrees.z)
         instance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
+        applyVisibleMeshPartFilter(instance, command.visibleMeshPartIndices)
 
         modelBatch.render(instance, environment)
     }
@@ -1332,6 +1333,7 @@ class GdxRenderer3D(
         scene.modelInstance.transform.rotate(Vector3.Y, transform.eulerDegrees.y)
         scene.modelInstance.transform.rotate(Vector3.Z, transform.eulerDegrees.z)
         scene.modelInstance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
+        applyVisibleMeshPartFilter(scene.modelInstance, command.visibleMeshPartIndices)
         scene.update(camera, Gdx.graphics.deltaTime)
         modelBatch.render(scene, environment)
     }
@@ -1359,7 +1361,10 @@ class GdxRenderer3D(
                 ModelInstance(model).also { created ->
                     instances[cacheKey] = created
                 }
-            }.also { applyTransform(it, command) }
+            }.also { instance ->
+                applyTransform(instance, command)
+                applyVisibleMeshPartFilter(instance, command.visibleMeshPartIndices)
+            }
         }
 
         val vertices = wireframeVerticesFor(instance, command.material.baseColor)
@@ -1392,6 +1397,7 @@ class GdxRenderer3D(
             GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
         }
         applyTransform(scene.modelInstance, command)
+        applyVisibleMeshPartFilter(scene.modelInstance, command.visibleMeshPartIndices)
         scene.update(camera, Gdx.graphics.deltaTime)
         return scene
     }
@@ -1412,6 +1418,22 @@ class GdxRenderer3D(
         instance.transform.rotate(Vector3.Y, transform.eulerDegrees.y)
         instance.transform.rotate(Vector3.Z, transform.eulerDegrees.z)
         instance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
+    }
+
+    /**
+     * Applies a backend-neutral node-part index filter using the same flattened node order as model metadata.
+     */
+    private fun applyVisibleMeshPartFilter(
+        instance: ModelInstance,
+        visibleMeshPartIndices: Set<Int>?,
+    ) {
+        var index = 0
+        collectNodes(instance.nodes).forEach { node ->
+            for (part in node.parts) {
+                part.enabled = visibleMeshPartIndices == null || index in visibleMeshPartIndices
+                index += 1
+            }
+        }
     }
 
     /** Returns a cached LibGDX model for the dynamic mesh revision, rebuilding when needed. */

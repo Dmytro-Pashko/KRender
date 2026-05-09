@@ -85,6 +85,9 @@ data class ModelViewerState(
     /** Limits Mesh Parts panel rows to the selected material when enabled. */
     var filterMeshPartsBySelectedMaterial: Boolean = false,
 
+    /** Limits viewport rendering to the selected mesh part when enabled. */
+    var isolateSelectedMeshPart: Boolean = false,
+
     /** Cached loaded model metadata snapshot. */
     var modelInfo: ModelAssetInfo? = null,
 

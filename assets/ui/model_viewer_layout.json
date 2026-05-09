@@ -2,45 +2,45 @@
   "panels": {
     "toolbar": {
       "title": "Model Viewer",
-      "x": 8,
-      "y": 12,
-      "width": 873,
-      "height": 138
+      "x": 6,
+      "y": 8,
+      "width": 487,
+      "height": 127
     },
     "viewport": {
       "title": "Viewport",
-      "x": 11,
-      "y": 157,
-      "width": 326,
-      "height": 295
+      "x": 5,
+      "y": 140,
+      "width": 343,
+      "height": 217
     },
     "modelInfo": {
       "title": "Model Info",
-      "x": 1503,
-      "y": 16,
-      "width": 407,
-      "height": 366
+      "x": 5,
+      "y": 361,
+      "width": 359,
+      "height": 448
     },
     "meshParts": {
       "title": "Mesh Parts",
-      "x": 1504,
-      "y": 390,
-      "width": 412,
-      "height": 362
+      "x": 9,
+      "y": 814,
+      "width": 358,
+      "height": 460
     },
     "materials": {
       "title": "Materials",
-      "x": 1504,
-      "y": 918,
-      "width": 404,
-      "height": 358
+      "x": 1600,
+      "y": 7,
+      "width": 316,
+      "height": 894
     },
     "textureChannels": {
       "title": "Texture Channels",
-      "x": 1504,
-      "y": 760,
-      "width": 404,
-      "height": 150
+      "x": 1599,
+      "y": 907,
+      "width": 316,
+      "height": 367
     },
     "loading": {
       "title": "Loading",
@@ -51,10 +51,10 @@
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
-      "x": 6,
-      "y": 985,
-      "width": 1494,
-      "height": 289
+      "x": 371,
+      "y": 1017,
+      "width": 1224,
+      "height": 258
     }
   }
 }

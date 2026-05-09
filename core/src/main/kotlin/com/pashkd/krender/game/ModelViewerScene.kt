@@ -13,6 +13,7 @@ import com.pashkd.krender.engine.modelviewer.ModelViewerInfoPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerLoadingPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerMaterialsPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerMeshPartsPanel
+import com.pashkd.krender.engine.modelviewer.ModelViewerModelRenderSystem
 import com.pashkd.krender.engine.modelviewer.ModelViewerOperations
 import com.pashkd.krender.engine.modelviewer.ModelViewerState
 import com.pashkd.krender.engine.modelviewer.ModelViewerSystem
@@ -25,7 +26,6 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.Material
 import com.pashkd.krender.engine.render3d.ModelComponent
-import com.pashkd.krender.engine.render3d.ModelRenderSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
@@ -129,7 +129,7 @@ class ModelViewerScene(
         addSystem("UiSystem", createUiSystem(layoutConfig, panelEventLogger))
         addSystem("EditorViewportCameraSystem", EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport))
         addSystem("ModelViewerBoundingBoxSystem", ModelViewerBoundingBoxSystem(viewerState, engine.assets))
-        addSystem("ModelRenderSystem", ModelRenderSystem())
+        addSystem("ModelViewerModelRenderSystem", ModelViewerModelRenderSystem(viewerState))
     }
 
     /**

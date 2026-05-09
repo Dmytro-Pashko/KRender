@@ -276,7 +276,11 @@ class ModelViewerMeshPartsPanel(
             return
         }
 
-        ImGui.checkbox("Show only selected material##model_viewer_filter_mesh_parts_material", state::filterMeshPartsBySelectedMaterial)
+        ImGui.checkbox("Isolate selected mesh part##model_viewer_isolate_mesh_part", state::isolateSelectedMeshPart)
+        if (state.isolateSelectedMeshPart && state.selectedMeshPartIndex == null) {
+            ImGui.text("Select a mesh part to isolate.")
+        }
+        ImGui.checkbox("Filter list by selected material##model_viewer_filter_mesh_parts_material", state::filterMeshPartsBySelectedMaterial)
         if (state.filterMeshPartsBySelectedMaterial && state.selectedMaterialIndex == null) {
             ImGui.text("Select a material to filter mesh parts.")
         }
