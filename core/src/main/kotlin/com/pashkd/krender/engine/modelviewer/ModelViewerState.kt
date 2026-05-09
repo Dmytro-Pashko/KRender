@@ -79,6 +79,9 @@ data class ModelViewerState(
     /** Currently selected material in the Materials panel. */
     var selectedMaterialIndex: Int? = null,
 
+    /** Currently selected texture channel in the Texture Channels panel. */
+    var selectedTextureChannel: String? = null,
+
     /** Limits Mesh Parts panel rows to the selected material when enabled. */
     var filterMeshPartsBySelectedMaterial: Boolean = false,
 

@@ -1,8 +1,8 @@
 package com.pashkd.krender.engine.modelviewer
 
-import com.pashkd.krender.engine.api.ModelMaterialInfo
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.ModelAssetInfo
+import com.pashkd.krender.engine.api.ModelMaterialInfo
 import com.pashkd.krender.engine.api.ModelMeshPartInfo
 import com.pashkd.krender.engine.api.ModelTextureSlotInfo
 import com.pashkd.krender.engine.api.Vec2
@@ -389,42 +389,119 @@ class ModelViewerMaterialsPanel(
     private fun drawTextureSlot(slot: ModelTextureSlotInfo) {
         ImGui.separator()
         ImGui.text(textureChannelLabel(slot.channel))
-        drawTexturePreview(slot)
+        drawTextureSlotPreview(assets, ui, slot)
         textLine("Texture: ${slot.texturePath ?: "unknown"}")
         textLine("UV: ${slot.uvChannel ?: "unknown"}")
+        textLine("Material: #${slot.materialIndex} ${slot.materialId ?: "unknown"}")
     }
 
-    private fun drawTexturePreview(slot: ModelTextureSlotInfo) {
-        val texturePath = slot.texturePath
-        if (texturePath.isNullOrBlank()) {
-            ImGui.text("Preview unavailable: no texture id.")
+}
+
+/**
+ * Shows model-level texture channel usage without loading or rendering previews.
+ */
+class ModelViewerTextureChannelsPanel(
+    private val state: ModelViewerState,
+    private val assets: AssetService,
+    private val ui: UiService,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    override fun draw() {
+        val expanded = beginModelViewerPanel(ModelViewerPanelIds.TextureChannels, layoutConfig, layoutTracker, eventLogger)
+        if (!expanded) {
+            ImGui.end()
             return
         }
 
-        val handle = assets.texturePreviewHandle(texturePath)
-        if (handle == null) {
-            ImGui.text("Preview unavailable.")
+        val info = state.modelInfo
+        val slots = info?.materials.orEmpty().flatMap { material -> material.textureSlots }
+        if (slots.isEmpty()) {
+            ImGui.text("No texture channel metadata available.")
+            ImGui.separator()
+            ImGui.text("Warnings")
+            if (info != null && info.materialCount <= 0) {
+                ImGui.bulletText("No materials.")
+            }
+            ImGui.bulletText("No texture slots.")
+            if (info != null && info.uvChannels.isEmpty()) {
+                ImGui.bulletText("No UV channels.")
+            }
+            ImGui.end()
             return
         }
 
-        if (!ui.drawTexturePreview(handle, PreviewSize, PreviewSize)) {
-            ImGui.text("Preview unavailable.")
+        val channels = slots
+            .map { slot -> slot.channel }
+            .distinct()
+            .sortedWith(
+                compareBy<String> { channel -> textureChannelSortKey(channel) }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { channel -> channel },
+            )
+
+        if (state.selectedTextureChannel !in channels) {
+            state.selectedTextureChannel = channels.firstOrNull()
+        }
+
+        ImGui.text("Texture Channels")
+        channels.forEach { channel ->
+            val count = slots.count { slot -> slot.channel == channel }
+            val selected = state.selectedTextureChannel == channel
+            if (ImGui.selectable("${textureChannelLabel(channel)}: $count slots##model_viewer_texture_channel_$channel", selected)) {
+                state.selectedTextureChannel = channel
+            }
+        }
+
+        ImGui.separator()
+        val selectedChannel = state.selectedTextureChannel
+        if (selectedChannel == null) {
+            ImGui.text("Select a texture channel.")
+        } else {
+            drawSelectedChannel(selectedChannel, slots)
+        }
+        drawWarnings(info, slots)
+        ImGui.end()
+    }
+
+    private fun drawSelectedChannel(
+        channel: String,
+        slots: List<ModelTextureSlotInfo>,
+    ) {
+        val selectedSlots = slots.filter { slot -> slot.channel == channel }
+        ImGui.text("Selected channel: ${textureChannelLabel(channel)}")
+        if (selectedSlots.isEmpty()) {
+            ImGui.text("No slots use this channel.")
+            return
+        }
+        selectedSlots.forEach { slot ->
+            ImGui.bulletText(
+                "Material #${slot.materialIndex} ${slot.materialId ?: "unknown"}: ${slot.texturePath ?: "unknown"}",
+            )
+            drawTextureSlotPreview(assets, ui, slot)
+            textLine("UV: ${slot.uvChannel ?: "unknown"}")
         }
     }
 
-    private fun textureChannelLabel(channel: String): String = when (channel) {
-        "baseColor", "diffuse" -> "Base Color / Diffuse"
-        "normal" -> "Normal"
-        "emissive" -> "Emissive"
-        "occlusion" -> "Occlusion"
-        "metallicRoughness" -> "Metallic / Roughness"
-        "alpha" -> "Alpha"
-        "unknown" -> "Unknown"
-        else -> channel.replaceFirstChar { char -> char.uppercaseChar() }
-    }
+    private fun drawWarnings(
+        info: ModelAssetInfo?,
+        slots: List<ModelTextureSlotInfo>,
+    ) {
+        val warnings = buildList {
+            if (info != null && info.materialCount <= 0) add("No materials.")
+            if (info != null && info.uvChannels.isEmpty()) add("No UV channels.")
+            if (info != null && slots.isNotEmpty() && info.uvChannels.isEmpty()) {
+                add("Texture slots exist but no UV channels were found.")
+            }
+            if (slots.any { slot -> slot.texturePath.isNullOrBlank() }) {
+                add("One or more texture slots have no stable texture path or id.")
+            }
+        }
+        if (warnings.isEmpty()) return
 
-    companion object {
-        private const val PreviewSize = 128f
+        ImGui.separator()
+        ImGui.text("Warnings")
+        warnings.forEach { warning -> ImGui.bulletText(warning) }
     }
 }
 
@@ -504,6 +581,64 @@ private fun formatSize(size: Vec3): String =
 private fun formatList(values: List<String>): String =
     values.ifEmpty { listOf("none") }.joinToString(", ")
 
+private fun textureChannelLabel(channel: String): String = when (channel) {
+    "baseColor", "diffuse" -> "Base Color / Diffuse"
+    "normal" -> "Normal"
+    "emissive" -> "Emissive"
+    "occlusion" -> "Occlusion"
+    "metallicRoughness" -> "Metallic / Roughness"
+    "alpha" -> "Alpha"
+    "unknown" -> "Unknown"
+    else -> channel.replaceFirstChar { char -> char.uppercaseChar() }
+}
+
+private fun textureChannelSortKey(channel: String): Int = when (channel) {
+    "baseColor", "diffuse" -> 0
+    "normal" -> 1
+    "emissive" -> 2
+    "occlusion" -> 3
+    "metallicRoughness" -> 4
+    "alpha" -> 5
+    "unknown" -> 100
+    else -> 50
+}
+
+private fun drawTextureSlotPreview(
+    assets: AssetService,
+    ui: UiService,
+    slot: ModelTextureSlotInfo,
+) {
+    val texturePath = slot.texturePath
+    if (texturePath.isNullOrBlank()) {
+        ImGui.text("Preview unavailable: no texture id.")
+        return
+    }
+
+    val handle = assets.texturePreviewHandle(texturePath)
+    if (handle == null) {
+        ImGui.text("Preview unavailable.")
+        return
+    }
+
+    val previewSize = TexturePreviewSize
+    val aspect = if (handle.height > 0) handle.width.toFloat() / handle.height.toFloat() else 1f
+    val width = when {
+        aspect >= 1f -> previewSize
+        else -> previewSize * aspect
+    }.coerceAtLeast(MinTexturePreviewSide)
+    val height = when {
+        aspect >= 1f -> previewSize / aspect
+        else -> previewSize
+    }.coerceAtLeast(MinTexturePreviewSide)
+
+    if (!ui.drawTexturePreview(handle, width, height)) {
+        ImGui.text("Preview unavailable.")
+    }
+}
+
 private fun textLine(text: String) {
     ImGui.textUnformatted(text)
 }
+
+private const val TexturePreviewSize = 96f
+private const val MinTexturePreviewSide = 16f

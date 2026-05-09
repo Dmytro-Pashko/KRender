@@ -161,6 +161,10 @@ class ModelViewerSystem(
         val info = state.modelInfo ?: return
         state.selectedMeshPartIndex = state.selectedMeshPartIndex?.takeIf { it in info.meshParts.indices }
         state.selectedMaterialIndex = state.selectedMaterialIndex?.takeIf { it in info.materials.indices }
+        val textureChannels = info.materials
+            .flatMap { material -> material.textureSlots }
+            .mapTo(linkedSetOf()) { slot -> slot.channel }
+        state.selectedTextureChannel = state.selectedTextureChannel?.takeIf { channel -> channel in textureChannels }
     }
 
     /**

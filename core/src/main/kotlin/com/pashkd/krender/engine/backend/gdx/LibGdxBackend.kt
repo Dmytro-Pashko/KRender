@@ -917,7 +917,7 @@ private fun materialTextureSlots(
                 ModelTextureSlotInfo(
                     channel = normalizeTextureChannel(attribute),
                     texturePath = texturePath,
-                    uvChannel = "UV${attribute.uvIndex}",
+                    uvChannel = attribute.uvIndex.takeIf { uvIndex -> uvIndex >= 0 }?.let { uvIndex -> "UV$uvIndex" },
                     materialIndex = materialIndex,
                     materialId = materialId,
                 ),
@@ -959,7 +959,9 @@ private fun normalizeTextureAlias(alias: String?): String = when (alias?.lowerca
 private fun textureIdentifier(texture: Texture): String? {
     val fileTextureData = texture.textureData as? FileTextureData
     val filePath = fileTextureData?.fileHandle?.path()?.takeIf(String::isNotBlank)
-    return filePath ?: texture.toString().takeIf(String::isNotBlank)
+    return filePath ?: texture.textureObjectHandle
+        .takeIf { handle -> handle > 0 }
+        ?.let { handle -> "texture:$handle" }
 }
 
 private fun materialIndexOf(

@@ -12,6 +12,7 @@ object ModelViewerPanelIds {
     const val ModelInfo = "modelInfo"
     const val MeshParts = "meshParts"
     const val Materials = "materials"
+    const val TextureChannels = "textureChannels"
     const val Loading = "loading"
     const val Logs = "runtimeLogs"
 }
@@ -58,6 +59,13 @@ object ModelViewerUiLayoutDefaults {
                 y = 152f,
                 width = 360f,
                 height = 360f,
+            ),
+            ModelViewerPanelIds.TextureChannels to ImGuiPanelLayout(
+                title = "Texture Channels",
+                x = 1144f,
+                y = 528f,
+                width = 360f,
+                height = 240f,
             ),
             ModelViewerPanelIds.Loading to ImGuiPanelLayout(
                 title = "Loading",

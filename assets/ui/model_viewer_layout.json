@@ -35,6 +35,13 @@
       "width": 404,
       "height": 358
     },
+    "textureChannels": {
+      "title": "Texture Channels",
+      "x": 1504,
+      "y": 760,
+      "width": 404,
+      "height": 150
+    },
     "loading": {
       "title": "Loading",
       "x": 720,
