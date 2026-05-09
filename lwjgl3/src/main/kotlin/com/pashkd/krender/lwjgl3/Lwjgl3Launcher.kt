@@ -13,6 +13,7 @@ fun main(args: Array<String>) {
     // This handles macOS support and helps on Windows.
     if (StartupHelper.startNewJvmIfRequired())
         return
+    logStartup(args)
     Lwjgl3Application(
         Main(
             modelPath = args.firstOrNull() ?: Main.defaultModelPath(),
@@ -51,6 +52,22 @@ fun main(args: Array<String>) {
             //// Know that it might not work well in some cases.
 //        setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.ANGLE_GLES20, 0, 0)
 
+        },
+    )
+}
+
+private fun logStartup(args: Array<String>) {
+    println(
+        buildString {
+            appendLine("KRender LWJGL3 startup")
+            appendLine("user.dir=${System.getProperty("user.dir")}")
+            appendLine("args=${args.joinToString(prefix = "[", postfix = "]")}")
+            appendLine("krender.scene=${System.getProperty("krender.scene")}")
+            appendLine("krender.model.path=${System.getProperty("krender.model.path")}")
+            appendLine("krender.model=${System.getProperty("krender.model")}")
+            appendLine("krender.scene.path=${System.getProperty("krender.scene.path")}")
+            appendLine("java.version=${System.getProperty("java.version")}")
+            appendLine("java.class.path.entries=${System.getProperty("java.class.path")?.split(System.getProperty("path.separator"))?.size ?: 0}")
         },
     )
 }

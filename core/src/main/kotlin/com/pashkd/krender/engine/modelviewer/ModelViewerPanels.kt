@@ -63,11 +63,11 @@ class ModelViewerToolbarPanel(
         }
 
         ImGui.separator()
-        ImGui.textWrapped("Model: ${state.modelPath}")
-        ImGui.text("Status: ${state.statusMessage}")
-        state.errorMessage?.let { error -> ImGui.text("Error: $error") }
-        ImGui.text("Asset: ${state.loadingStatus}")
-        ImGui.text("Camera speed: ${"%.2f".format(state.camera.speed)}")
+        textLine("Model: ${state.modelPath}")
+        textLine("Status: ${state.statusMessage}")
+        state.errorMessage?.let { error -> textLine("Error: $error") }
+        textLine("Asset: ${state.loadingStatus}")
+        textLine("Camera speed: ${"%.2f".format(state.camera.speed)}")
         ImGui.end()
     }
 }
@@ -98,8 +98,8 @@ class ModelViewerViewportPanel(
 
         ImGui.text("Model view")
         ImGui.separator()
-        ImGui.text("Camera: ${formatPosition(state.camera.position)}")
-        ImGui.text("Speed: ${"%.2f".format(state.camera.speed)}${if (state.camera.navigating) " (navigating)" else ""}")
+        textLine("Camera: ${formatPosition(state.camera.position)}")
+        textLine("Speed: ${"%.2f".format(state.camera.speed)}${if (state.camera.navigating) " (navigating)" else ""}")
         ImGui.text("RMB look, WASD move, Q/E down/up, wheel speed, Shift faster.")
         ImGui.separator()
 
@@ -166,7 +166,7 @@ class ModelViewerInfoPanel(
         val info = state.modelInfo
         if (info == null) {
             ImGui.text("Metadata is available after the model finishes loading.")
-            ImGui.textWrapped("Path: ${state.modelPath}")
+            textLine("Path: ${state.modelPath}")
             ImGui.end()
             return
         }
@@ -362,10 +362,10 @@ class ModelViewerLoadingPanel(
         }
 
         ImGui.text("Loading model asset")
-        ImGui.textWrapped(state.modelPath)
+        textLine(state.modelPath)
         ImGui.separator()
-        ImGui.text("Progress: %.0f%%", state.assetProgress * 100f)
-        ImGui.text("%s", state.loadingStatus)
+        textLine("Progress: ${"%.0f".format(state.assetProgress * 100f)}%")
+        textLine(state.loadingStatus)
         ImGui.end()
     }
 }
@@ -392,5 +392,5 @@ private fun formatList(values: List<String>): String =
     values.ifEmpty { listOf("none") }.joinToString(", ")
 
 private fun textLine(text: String) {
-    ImGui.textWrapped(text)
+    ImGui.textUnformatted(text)
 }
