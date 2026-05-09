@@ -8,6 +8,15 @@ buildscript {
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
+def androidAssetsDir = layout.buildDirectory.dir("generated/filtered-android-assets").get().asFile
+
+def prepareAndroidAssets = tasks.register('prepareAndroidAssets', Sync) {
+  from('../assets') {
+    exclude 'blender_sources/**', 'logs/**', 'imgui.log*'
+  }
+  into androidAssetsDir
+}
+
 android {
   namespace = "com.pashkd.krender"
   compileSdk = 35
@@ -18,14 +27,17 @@ android {
       aidl.setSrcDirs(['src/main/java', 'src/main/kotlin'])
       renderscript.setSrcDirs(['src/main/java', 'src/main/kotlin'])
       res.setSrcDirs(['res'])
-      assets.setSrcDirs(['../assets'])
+      assets.setSrcDirs([androidAssetsDir])
       jniLibs.setSrcDirs(['libs'])
     }
+  }
+  androidResources {
+    noCompress += ['glb', 'gltf', 'bin', 'png', 'jpg', 'jpeg', 'ktx', 'ktx2', 'json', 'krscene']
   }
   packagingOptions {
 		resources {
 			excludes += ['META-INF/robovm/ios/robovm.xml', 'META-INF/DEPENDENCIES.txt', 'META-INF/DEPENDENCIES',
-                   'META-INF/dependencies.txt', '**/*.gwt.xml']
+                     'META-INF/dependencies.txt', '**/*.gwt.xml', 'META-INF/linux/**', 'META-INF/macos/**', 'META-INF/windows/**']
 			pickFirsts += ['META-INF/LICENSE.txt', 'META-INF/LICENSE', 'META-INF/license.txt', 'META-INF/LGPL2.1',
                      'META-INF/NOTICE.txt', 'META-INF/NOTICE', 'META-INF/notice.txt']
 		}
@@ -44,13 +56,13 @@ android {
   }
   buildTypes {
     release {
-      minifyEnabled true
+      minifyEnabled false
       proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
     }
   }
 
   kotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
-  
+
 }
 
 repositories {
@@ -63,16 +75,11 @@ configurations { natives }
 dependencies {
   coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
   implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
-  implementation project(':core')
+  implementation(project(':core')) {
+    exclude group: 'com.github.kotlin-graphics.imgui'
+    exclude group: 'org.lwjgl'
+  }
 
-  natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-arm64-v8a"
-  natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-armeabi-v7a"
-  natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-x86"
-  natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-x86_64"
-  natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-arm64-v8a"
-  natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-armeabi-v7a"
-  natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86"
-  natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86_64"
   natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
   natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
   natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
@@ -109,6 +116,14 @@ tasks.register('copyAndroidNatives') {
 
 tasks.matching { it.name.contains("merge") && it.name.contains("JniLibFolders") }.configureEach { packageTask ->
   packageTask.dependsOn 'copyAndroidNatives'
+}
+
+tasks.matching { it.name.startsWith('merge') && it.name.endsWith('Assets') }.configureEach { assetTask ->
+  assetTask.dependsOn prepareAndroidAssets
+}
+
+tasks.matching { it.name.toLowerCase().contains('lint') }.configureEach { lintTask ->
+  lintTask.dependsOn prepareAndroidAssets
 }
 
 tasks.register('run', Exec) {

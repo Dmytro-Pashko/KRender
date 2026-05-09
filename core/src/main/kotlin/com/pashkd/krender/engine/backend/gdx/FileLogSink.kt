@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.backend.gdx
 
+import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
 import com.pashkd.krender.engine.api.LogEntry
 import com.pashkd.krender.engine.api.LogLevel
@@ -18,7 +19,7 @@ import java.time.format.DateTimeFormatter
  * Writes structured engine logs into one session-scoped runtime file.
  */
 class FileLogSink(
-    logsDirectory: Path = Path.of("logs"),
+    logsDirectory: Path = defaultLogsDirectory(),
 ) : LogSink {
     private val sessionTimestamp = FILE_NAME_FORMATTER.format(Instant.now().atZone(ZoneId.systemDefault()))
     private val logFile = logsDirectory.resolve("runtime-$sessionTimestamp.log")
@@ -72,6 +73,11 @@ class FileLogSink(
     companion object {
         private val FILE_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")
         private val TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
+
+        private fun defaultLogsDirectory(): Path = when (Gdx.app?.type) {
+            Application.ApplicationType.Android -> Gdx.files.local("logs").file().toPath()
+            else -> Path.of("logs")
+        }
     }
 }
 

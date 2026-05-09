@@ -47,6 +47,23 @@ interface UiContext {
 interface UiService : UiContext
 
 /**
+ * Minimal UI backend used on platforms where the desktop ImGui renderer is not available.
+ */
+class NoOpUiService : UiService {
+    override val captureState: UiCaptureState = UiCaptureState()
+
+    override fun beginFrame(deltaSeconds: Float) = Unit
+
+    override fun endFrame() = Unit
+
+    override fun render() = Unit
+
+    override fun resize(width: Int, height: Int) = Unit
+
+    override fun dispose() = Unit
+}
+
+/**
  * One drawable UI panel callback.
  */
 fun interface UiPanel {

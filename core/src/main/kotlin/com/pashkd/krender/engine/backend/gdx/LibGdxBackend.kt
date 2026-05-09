@@ -91,6 +91,7 @@ import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
 import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
+import com.pashkd.krender.engine.ui.NoOpUiService
 import com.pashkd.krender.engine.ui.UiCaptureState
 import com.pashkd.krender.engine.ui.UiService
 import kotlinx.coroutines.CoroutineDispatcher
@@ -161,14 +162,22 @@ class LibGdxBackend(
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
     override val logs: EngineLogService = EngineLogService(frameProvider = runtimeStats::frame).also { service ->
         service.addSink(GdxAppLogSink())
-        service.addSink(FileLogSink())
+        runCatching { FileLogSink() }
+            .onSuccess(service::addSink)
+            .onFailure { error ->
+                Gdx.app.error(TAG, "File logging disabled: ${error.message}", error)
+            }
     }
     override val profiler: ProfilerService = FrameProfilerService()
     override val logger: Logger = logs
     override val input: GdxInputService = GdxInputService().also {
         Gdx.input.inputProcessor = it
     }
-    override val ui: UiService = GdxImGuiService(input, runtimeStats)
+    override val ui: UiService = if (Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.Android) {
+        NoOpUiService()
+    } else {
+        GdxImGuiService(input, runtimeStats)
+    }
     override val assets: GdxAssetService = GdxAssetService()
     override val sceneFiles: SceneFileService = GdxSceneFileService()
     override val runtimeLauncher: RuntimeWindowLauncher = runtimeWindowLauncherFactory(logger)
@@ -179,6 +188,10 @@ class LibGdxBackend(
     /** Requests application shutdown through the LibGDX app instance. */
     override fun requestExit() {
         Gdx.app.exit()
+    }
+
+    companion object {
+        private const val TAG = "LibGdxBackend"
     }
 }
 

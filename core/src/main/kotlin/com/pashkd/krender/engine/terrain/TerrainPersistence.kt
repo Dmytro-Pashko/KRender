@@ -54,7 +54,7 @@ class TerrainPersistence(
      */
     fun load(filePath: String): TerrainData {
         logger?.info(TAG) { "Loading terrain data from '$filePath'" }
-        val data = decode(Gdx.files.local(filePath).readString("UTF-8"))
+        val data = decode(resolveReadableFile(filePath).readString("UTF-8"))
         logger?.info(TAG) { "Loaded terrain data from '$filePath' (${data.describeTerrain()})" }
         return data
     }
@@ -64,7 +64,7 @@ class TerrainPersistence(
      */
     fun loadDescriptor(filePath: String): TerrainFileDescriptor {
         logger?.info(TAG) { "Loading terrain descriptor from '$filePath'" }
-        val jsonText = Gdx.files.local(filePath).readString("UTF-8")
+        val jsonText = resolveReadableFile(filePath).readString("UTF-8")
         logger?.debug(TAG) { "Read terrain descriptor from '$filePath' (${jsonText.length} chars)" }
         val descriptor = decodeDescriptor(jsonText)
         logger?.info(TAG) { "Loaded terrain descriptor '${descriptor.name}' from '$filePath' (${descriptor.terrain.describeTerrain()})" }
@@ -161,6 +161,11 @@ class TerrainPersistence(
         }
         logger?.debug(TAG) { "Validated terrain descriptor '${descriptor.name}'" }
     }
+
+    private fun resolveReadableFile(filePath: String) =
+        Gdx.files.local(filePath).takeIf { it.exists() }
+            ?: Gdx.files.internal(filePath).takeIf { it.exists() }
+            ?: Gdx.files.local(filePath)
 
     companion object {
         private const val TAG = "TerrainPersistence"

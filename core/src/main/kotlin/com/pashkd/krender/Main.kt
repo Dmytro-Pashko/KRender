@@ -14,6 +14,7 @@ import com.pashkd.krender.game.TerrainEditorScene
 class Main(
     sceneName: String = defaultScene(),
     modelPath: String? = defaultModelPath(),
+    scenePath: String? = defaultScenePath(),
     runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = {
         com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
     },
@@ -27,11 +28,11 @@ class Main(
             "asset-browser" -> AssetBrowserScene()
 
             "scene-editor" -> SceneEditorScene(
-                scenePath = defaultScenePath(),
+                scenePath = scenePath,
                 initialSceneName = defaultSceneName(),
             )
 
-            "runtime-scene" -> RuntimeScene(scenePath = defaultScenePath())
+            "runtime-scene" -> RuntimeScene(scenePath = scenePath)
 
             "model-viewer" -> ModelViewerScene(
                 model = selectedModel ?: AssetRef.primitiveModel("cube"),

@@ -12,10 +12,15 @@ class GdxSceneFileService : SceneFileService {
     }
 
     override fun readText(path: String): String =
-        Gdx.files.local(path).readString("UTF-8")
+        resolveReadableFile(path).readString("UTF-8")
 
     override fun ensureDirectories(path: String) {
         Gdx.files.local(path).parent()?.mkdirs()
     }
+
+    private fun resolveReadableFile(path: String) =
+        Gdx.files.local(path).takeIf { it.exists() }
+            ?: Gdx.files.internal(path).takeIf { it.exists() }
+            ?: Gdx.files.local(path)
 }
 
