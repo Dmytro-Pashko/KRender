@@ -187,8 +187,10 @@ Features:
 - Supports create, rename, duplicate, delete, and reveal-in-files operations.
 - Keeps asset files and metadata sidecars in sync during file operations.
 
-Screenshot:
+Screenshots:
 
+![Asset Browser model list](docs/screenshot/asset-browser_model_list.png)
+![Asset Browser terrains list](docs/screenshot/asset-browser_terrains_list.png)
 
 ### Model Viewer
 
@@ -208,8 +210,12 @@ Features:
 - Shows texture previews when supported by the backend.
 - Includes loading state, logs, and viewport layout controls.
 
-Screenshot:
+Screenshots:
 
+![Model Viewer full mesh with grid, axis, and bounds](docs/screenshot/model-viewer-shader_full_mesh_grid_axis_bounds.png)
+![Model Viewer shaded wireframe](docs/screenshot/model-viewer-shader_full_mesh_shaded_wires.png)
+![Model Viewer full model without helpers](docs/screenshot/model-viewer-shader_full_model_no_grid_no_axis_no_bounds.png)
+![Model Viewer isolated wireframe](docs/screenshot/model-viewer-wireframe_isolated.png)
 
 ### Terrain Editor
 
@@ -230,6 +236,12 @@ Features:
 - Save and load terrain data.
 - View mesh statistics, hover position, selected layer, preview state, and logs.
 
+Screenshots:
+
+![Terrain Editor blending material preview](docs/screenshot/terrain-editor_blending_material_preview.png)
+![Terrain Editor material preview](docs/screenshot/terrain-editor_material_preview.png)
+![Terrain Editor multiple layers with layer color](docs/screenshot/terrain-editor_multiple_layers_layer_color.png)
+![Terrain Editor wireframe](docs/screenshot/terrain-editor_wireframe.png)
 
 ### Scene Editor
 
@@ -252,6 +264,11 @@ Features:
 - Display editor helpers such as grid, axes, selected bounds, and light gizmos.
 - Launch the saved scene in a separate runtime window for preview.
 
+Screenshots:
+
+![Scene Editor camera selected](docs/screenshot/scene-editor_camera_selected.png)
+![Scene Editor terrain inactive](docs/screenshot/scene-editor_terrain_inactive.png)
+![Scene Editor zero ambient](docs/screenshot/scene-editor_zero_ambient.png)
 
 ## Example: Creating a Scene
 
