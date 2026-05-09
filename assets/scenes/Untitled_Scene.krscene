@@ -62,34 +62,6 @@
       ]
     },
     {
-      "id": 5,
-      "name": "e_tree_01",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "e_tree_01"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "6.903,-0.064,2.942",
-            "rotation": "0.0,0.0,1.45",
-            "scale": "1.0,1.0,1.0"
-          }
-        },
-        {
-          "type": "ModelComponent",
-          "properties": {
-            "model": "model/m_tree_01.glb"
-          }
-        }
-      ]
-    },
-    {
       "id": 6,
       "name": "e_rock_01",
       "active": true,
@@ -169,34 +141,6 @@
           "type": "ModelComponent",
           "properties": {
             "model": "model/m_actor_human_0.glb"
-          }
-        }
-      ]
-    },
-    {
-      "id": 11,
-      "name": "e_tree_02",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "e_tree_02"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "-5.479,-0.082,4.151",
-            "rotation": "0.0,0.0,0.0",
-            "scale": "1.0,1.0,1.0"
-          }
-        },
-        {
-          "type": "ModelComponent",
-          "properties": {
-            "model": "model/m_tree_02.glb"
           }
         }
       ]
@@ -1164,34 +1108,6 @@
       ]
     },
     {
-      "id": 68,
-      "name": "e_tree_04",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "e_tree_04"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "6.8812475,-0.135,-6.6018515",
-            "rotation": "0.0,7.1,-0.95",
-            "scale": "0.65,0.65,0.65"
-          }
-        },
-        {
-          "type": "ModelComponent",
-          "properties": {
-            "model": "model/m_tree_01.glb"
-          }
-        }
-      ]
-    },
-    {
       "id": 71,
       "name": "e_plant_09",
       "active": true,
@@ -1499,6 +1415,90 @@
             "intensity": "9.02",
             "color": "1.0,1.0,1.0,1.0",
             "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "name": "M Tree 06",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Tree 06"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "7.051,-0.098,1.558",
+            "rotation": "4.05,-61.75,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_tree_06.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "name": "M Tree 06 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Tree 06 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "7.151,-2.348,1.408",
+            "rotation": "4.05,24.75,0.0",
+            "scale": "0.75,0.75,0.7"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_tree_06.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "name": "M Tree 06 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Tree 06 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-8.099,-0.148,15.708",
+            "rotation": "-4.95,-91.8,0.0",
+            "scale": "0.65,0.7,0.6"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_tree_06.glb"
           }
         }
       ]
