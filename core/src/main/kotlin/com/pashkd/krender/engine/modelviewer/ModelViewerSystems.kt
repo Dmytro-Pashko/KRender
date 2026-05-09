@@ -66,10 +66,9 @@ class ModelViewerSystem(
         val snapshot = input.snapshot()
 
         if (!snapshot.uiCapturesKeyboard && snapshot.wasPressed(Key.F1)) {
-            state.displayMode = when (state.displayMode) {
-                ModelViewerDisplayMode.Shaded -> ModelViewerDisplayMode.Wireframe
-                ModelViewerDisplayMode.Wireframe -> ModelViewerDisplayMode.Shaded
-            }
+            val modes = ModelViewerDisplayMode.entries
+            val nextIndex = (modes.indexOf(state.displayMode) + 1).floorMod(modes.size)
+            state.displayMode = modes[nextIndex]
             logger.info(TAG) { "ModelViewer display mode toggled by F1 mode=${state.displayMode}" }
         }
 
@@ -98,6 +97,7 @@ class ModelViewerSystem(
         logStatusChanges()
 
         val wireframe = state.displayMode == ModelViewerDisplayMode.Wireframe
+        val wireframeOverlay = state.displayMode == ModelViewerDisplayMode.ShadedWireframe
         val modelComponent = state.modelEntityId
             ?.let(world::getEntity)
             ?.get<ModelComponent>()
@@ -110,11 +110,18 @@ class ModelViewerSystem(
             }
             return
         }
-        if (modelComponent.material.wireframe != wireframe) {
-            modelComponent.material = modelComponent.material.copy(wireframe = wireframe)
+        if (
+            modelComponent.material.wireframe != wireframe ||
+            modelComponent.material.wireframeOverlay != wireframeOverlay
+        ) {
+            modelComponent.material = modelComponent.material.copy(
+                wireframe = wireframe,
+                wireframeOverlay = wireframeOverlay,
+            )
             if (lastDisplayMode != state.displayMode) {
                 logger.info(TAG) {
-                    "ModelViewer material display mode applied mode=${state.displayMode} wireframe=$wireframe entity=${state.modelEntityId}"
+                    "ModelViewer material display mode applied mode=${state.displayMode} " +
+                        "wireframe=$wireframe overlay=$wireframeOverlay entity=${state.modelEntityId}"
                 }
             }
             lastDisplayMode = state.displayMode
@@ -154,7 +161,6 @@ class ModelViewerSystem(
         val info = state.modelInfo ?: return
         state.selectedMeshPartIndex = state.selectedMeshPartIndex?.takeIf { it in info.meshParts.indices }
         state.selectedMaterialIndex = state.selectedMaterialIndex?.takeIf { it in info.materials.indices }
-        state.selectedAnimationIndex = state.selectedAnimationIndex?.takeIf { it in info.animationNames.indices }
     }
 
     /**
@@ -213,6 +219,8 @@ class ModelViewerSystem(
         private const val TAG = "ModelViewerSystem"
     }
 }
+
+private fun Int.floorMod(divisor: Int): Int = ((this % divisor) + divisor) % divisor
 
 /**
  * Emits ModelViewer viewport guide draw commands from runtime display state.

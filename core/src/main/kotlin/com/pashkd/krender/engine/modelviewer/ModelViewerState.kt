@@ -14,6 +14,7 @@ import com.pashkd.krender.engine.editor.viewport.EditorViewportState
  */
 enum class ModelViewerDisplayMode {
     Shaded,
+    ShadedWireframe,
     Wireframe,
 }
 
@@ -78,8 +79,8 @@ data class ModelViewerState(
     /** Currently selected material in the Materials panel. */
     var selectedMaterialIndex: Int? = null,
 
-    /** Currently selected animation in the Animations panel. */
-    var selectedAnimationIndex: Int? = null,
+    /** Limits Mesh Parts panel rows to the selected material when enabled. */
+    var filterMeshPartsBySelectedMaterial: Boolean = false,
 
     /** Cached loaded model metadata snapshot. */
     var modelInfo: ModelAssetInfo? = null,

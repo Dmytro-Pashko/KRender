@@ -45,6 +45,7 @@ data class Material(
     val metallic: Float = 0f,
     val shader: ShaderPipeline = ShaderPipeline(),
     val wireframe: Boolean = false,
+    val wireframeOverlay: Boolean = false,
     val diffuseTexture: Texture? = null,
 )
 

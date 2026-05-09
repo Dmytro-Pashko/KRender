@@ -93,9 +93,24 @@ interface AssetService {
     /** Returns cached local-space bounds for a loaded model asset when available. */
     fun modelBounds(asset: AssetRef<ModelAsset>): ModelAssetBounds? = null
 
+    /** Returns an opaque UI preview handle for a loaded texture path or backend texture id. */
+    fun texturePreviewHandle(texturePathOrId: String): TexturePreviewHandle? = null
+
     /** Releases any runtime state associated with the given asset. */
     fun unload(asset: AssetRef<*>)
 }
+
+/**
+ * Opaque backend texture handle that can be rendered by the active UI service.
+ */
+data class TexturePreviewHandle(
+    /** Backend-defined texture identifier. Core code must treat it as opaque. */
+    val id: Int,
+    /** Source texture width in pixels, when known. */
+    val width: Int,
+    /** Source texture height in pixels, when known. */
+    val height: Int,
+)
 
 /**
  * Local-space model bounds extracted from a loaded backend model asset.
@@ -105,6 +120,22 @@ data class ModelAssetBounds(
     val min: Vec3,
     /** Maximum model-space corner. */
     val max: Vec3,
+)
+
+/**
+ * Describes one backend-neutral texture slot assigned to a model material.
+ */
+data class ModelTextureSlotInfo(
+    /** Normalized channel label such as diffuse, baseColor, normal, or metallicRoughness. */
+    val channel: String,
+    /** Source path or stable backend identifier for the assigned texture, when available. */
+    val texturePath: String?,
+    /** UV channel label used by this texture slot, when exposed by the backend. */
+    val uvChannel: String?,
+    /** Material index that owns this texture slot. */
+    val materialIndex: Int,
+    /** Material id that owns this texture slot, when available. */
+    val materialId: String?,
 )
 
 /**
@@ -121,6 +152,8 @@ data class ModelMeshPartInfo(
     val partId: String?,
     /** Material identifier bound to this part, when available. */
     val materialId: String?,
+    /** Material index bound to this part, when available. */
+    val materialIndex: Int? = null,
     /** Primitive topology label such as TRIANGLES or TRIANGLE_STRIP. */
     val primitiveType: String?,
     /** Vertex count for the referenced mesh or part, when available. */
@@ -143,6 +176,8 @@ data class ModelMaterialInfo(
     val normalTexture: String?,
     /** Emissive texture reference, when available. */
     val emissiveTexture: String?,
+    /** Generic texture slot metadata. Prefer this over fixed legacy fields in new UI. */
+    val textureSlots: List<ModelTextureSlotInfo> = emptyList(),
     /** Diffuse/base color, when available. */
     val baseColor: Color?,
     /** Material opacity, when available. */
@@ -171,6 +206,10 @@ data class ModelAssetInfo(
     val triangleCount: Int,
     /** Model-space bounding-box size. */
     val size: Vec3?,
+    /** Model-space bounding-box minimum corner, when available. */
+    val boundsMin: Vec3? = null,
+    /** Model-space bounding-box maximum corner, when available. */
+    val boundsMax: Vec3? = null,
     /** Vertex channels present in the model meshes. */
     val vertexChannels: List<String>,
     /** UV channel labels present in the model meshes. */

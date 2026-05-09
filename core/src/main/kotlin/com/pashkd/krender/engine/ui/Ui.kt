@@ -2,6 +2,7 @@ package com.pashkd.krender.engine.ui
 
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
+import com.pashkd.krender.engine.api.TexturePreviewHandle
 
 /**
  * Describes whether the UI wants to consume mouse or keyboard input this frame.
@@ -32,6 +33,9 @@ interface UiContext {
 
     /** Informs the UI backend about viewport size changes. */
     fun resize(width: Int, height: Int)
+
+    /** Draws an opaque backend texture preview at the requested UI size. */
+    fun drawTexturePreview(handle: TexturePreviewHandle, width: Float, height: Float): Boolean = false
 
     /** Releases all resources owned by the UI backend. */
     fun dispose()

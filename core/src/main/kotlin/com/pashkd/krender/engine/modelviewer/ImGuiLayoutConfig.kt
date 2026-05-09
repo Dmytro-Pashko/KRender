@@ -12,7 +12,6 @@ object ModelViewerPanelIds {
     const val ModelInfo = "modelInfo"
     const val MeshParts = "meshParts"
     const val Materials = "materials"
-    const val Animations = "animations"
     const val Loading = "loading"
     const val Logs = "runtimeLogs"
 }
@@ -59,13 +58,6 @@ object ModelViewerUiLayoutDefaults {
                 y = 152f,
                 width = 360f,
                 height = 360f,
-            ),
-            ModelViewerPanelIds.Animations to ImGuiPanelLayout(
-                title = "Animations",
-                x = 16f,
-                y = 428f,
-                width = 360f,
-                height = 220f,
             ),
             ModelViewerPanelIds.Loading to ImGuiPanelLayout(
                 title = "Loading",

@@ -4,10 +4,13 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
 import com.pashkd.krender.engine.api.RuntimeStatsService
+import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.ui.UiCaptureState
 import com.pashkd.krender.engine.ui.UiService
+import glm_.vec2.Vec2
 import imgui.ConfigFlag
 import imgui.ImGui
+import imgui.ImGui.image
 import imgui.Key
 import imgui.MouseButton
 import imgui.MouseSource
@@ -107,6 +110,20 @@ class GdxImGuiService(
      * Accepts resize notifications for API symmetry with the engine UI contract.
      */
     override fun resize(width: Int, height: Int) = Unit
+
+    /**
+     * Draws a read-only texture preview using the backend GL texture id.
+     */
+    override fun drawTexturePreview(handle: TexturePreviewHandle, width: Float, height: Float): Boolean = withContext {
+        if (handle.id <= 0 || width <= 0f || height <= 0f) return@withContext false
+        image(
+            handle.id,
+            Vec2(width, height),
+            Vec2(0f, 1f),
+            Vec2(1f, 0f),
+        )
+        true
+    }
 
     /**
      * Tears down ImGui renderer resources and unregisters the input bridge.

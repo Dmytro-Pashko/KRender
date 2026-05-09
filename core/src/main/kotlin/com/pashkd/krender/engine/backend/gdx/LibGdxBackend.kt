@@ -28,6 +28,7 @@ import com.badlogic.gdx.graphics.g3d.model.Node
 import com.badlogic.gdx.graphics.g3d.model.NodePart
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
+import com.badlogic.gdx.graphics.glutils.FileTextureData
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector3
@@ -62,6 +63,7 @@ import com.pashkd.krender.engine.api.ModelAssetBounds
 import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.ModelMaterialInfo
 import com.pashkd.krender.engine.api.ModelMeshPartInfo
+import com.pashkd.krender.engine.api.ModelTextureSlotInfo
 import com.pashkd.krender.engine.api.MouseButton
 import com.pashkd.krender.engine.api.PointerPhase
 import com.pashkd.krender.engine.api.PointerState
@@ -71,6 +73,7 @@ import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.ShaderAsset
 import com.pashkd.krender.engine.api.TaskService
 import com.pashkd.krender.engine.api.TextureAsset
+import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.ProfilerService
 import com.pashkd.krender.engine.api.RuntimeStatsService
@@ -100,6 +103,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.mgsx.gltf.loaders.glb.GLBAssetLoader
 import net.mgsx.gltf.loaders.gltf.GLTFAssetLoader
+import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute
 import net.mgsx.gltf.scene3d.scene.Scene as GltfScene
 import net.mgsx.gltf.scene3d.scene.SceneAsset
 import net.mgsx.gltf.scene3d.utils.MaterialConverter
@@ -476,6 +480,8 @@ class GdxAssetService : AssetService {
     private val modelInfos = mutableMapOf<String, ModelAssetInfo>()
     private val modelBoundsCache = mutableMapOf<String, ModelAssetBounds>()
     private val modelTriangleCounts = mutableMapOf<String, Int>()
+    private val texturePreviewRegistry = mutableMapOf<String, Texture>()
+    private val modelTexturePreviewKeys = mutableMapOf<String, Set<String>>()
 
     init {
         manager.setLoader(Model::class.java, ".g3dj", G3dModelLoader(JsonReader()))
@@ -596,6 +602,19 @@ class GdxAssetService : AssetService {
         }
     }
 
+    /** Returns an opaque handle for a loaded model texture or standalone texture asset. */
+    override fun texturePreviewHandle(texturePathOrId: String): TexturePreviewHandle? {
+        val key = texturePathOrId.takeIf(String::isNotBlank) ?: return null
+        val texture = texturePreviewRegistry[key]
+            ?: loadedTextureAsset(key)
+            ?: return null
+        return TexturePreviewHandle(
+            id = texture.textureObjectHandle,
+            width = texture.width,
+            height = texture.height,
+        )
+    }
+
     /**
      * Returns cached local-space model bounds extracted from an already loaded backend model.
      */
@@ -624,6 +643,8 @@ class GdxAssetService : AssetService {
         modelInfos -= asset.path
         modelBoundsCache -= asset.path
         modelTriangleCounts -= asset.path
+        texturePreviewRegistry -= asset.path
+        modelTexturePreviewKeys.remove(asset.path)?.forEach { key -> texturePreviewRegistry -= key }
     }
 
     /** Returns a loaded LibGDX model for non-glTF model assets. */
@@ -641,6 +662,10 @@ class GdxAssetService : AssetService {
             null
         }
     }
+
+    /** Returns a loaded standalone LibGDX texture asset. */
+    private fun loadedTextureAsset(path: String): Texture? =
+        if (manager.isLoaded(path, Texture::class.java)) manager.get(path, Texture::class.java) else null
 
     /** Disposes the underlying LibGDX asset manager. */
     fun dispose() {
@@ -671,16 +696,21 @@ class GdxAssetService : AssetService {
         val nodeParts = nodes.flatMap(::nodePartsOf)
         val bounds = modelBoundsCache[path] ?: calculateModelBounds(path, model)?.also { modelBoundsCache[path] = it }
         val attributeSummary = collectVertexAttributeSummary(model.meshes)
-        val textureChannels = linkedSetOf<String>()
+        val registeredTexturePreviewKeys = linkedSetOf<String>()
+        val materialInfos = buildMaterialInfos(model.materials) { key, texture ->
+            texturePreviewRegistry[key] = texture
+            registeredTexturePreviewKeys += key
+        }
+        modelTexturePreviewKeys[path] = registeredTexturePreviewKeys
+        val textureSlots = materialInfos.flatMap { material -> material.textureSlots }
+        val textureChannels = textureSlots
+            .mapTo(linkedSetOf()) { slot -> slot.channel }
         val textures = linkedSetOf<Texture>()
-        var textureSlotCount = 0
         var maxBonesPerPart = 0
 
         model.materials.forEach { material ->
             for (attribute in material) {
                 if (attribute is TextureAttribute) {
-                    textureSlotCount += 1
-                    textureChannels += (Attribute.getAttributeAlias(attribute.type) ?: "texture")
                     textures += attribute.textureDescription.texture
                 }
             }
@@ -702,18 +732,20 @@ class GdxAssetService : AssetService {
             vertexCount = model.meshes.sumOf { mesh -> mesh.numVertices },
             triangleCount = triangleCount(asset = AssetRef.model(path)) ?: countTrianglesInModel(model),
             size = bounds?.size(),
+            boundsMin = bounds?.min,
+            boundsMax = bounds?.max,
             vertexChannels = attributeSummary.vertexChannels.toList(),
             uvChannels = attributeSummary.uvChannels.toList(),
             textureChannels = textureChannels.toList(),
             textureCount = textureCount,
-            textureSlotCount = textureSlotCount,
+            textureSlotCount = textureSlots.size,
             hasSkeleton = maxBonesPerPart > 0,
             boneCount = maxBonesPerPart,
             boneWeightChannelCount = attributeSummary.boneWeightChannelCount,
             animationCount = model.animations.size,
             animationNames = animationNames,
-            meshParts = buildMeshPartInfos(nodes),
-            materials = buildMaterialInfos(model.materials),
+            meshParts = buildMeshPartInfos(nodes, model.materials),
+            materials = materialInfos,
         )
     }
 
@@ -730,6 +762,8 @@ class GdxAssetService : AssetService {
         vertexCount = 0,
         triangleCount = 0,
         size = null,
+        boundsMin = null,
+        boundsMax = null,
         vertexChannels = emptyList(),
         uvChannels = emptyList(),
         textureChannels = emptyList(),
@@ -811,11 +845,15 @@ private fun nodePartsOf(node: Node): List<NodePart> = buildList {
 /**
  * Builds read-only mesh-part metadata for model inspection UI.
  */
-private fun buildMeshPartInfos(nodes: List<Node>): List<ModelMeshPartInfo> = buildList {
+private fun buildMeshPartInfos(
+    nodes: List<Node>,
+    materials: Array<com.badlogic.gdx.graphics.g3d.Material>,
+): List<ModelMeshPartInfo> = buildList {
     var index = 0
     nodes.forEach { node ->
         for (part in node.parts) {
             val meshPart = part.meshPart
+            val materialIndex = part.material?.let { material -> materialIndexOf(materials, material) }
             add(
                 ModelMeshPartInfo(
                     index = index,
@@ -823,6 +861,7 @@ private fun buildMeshPartInfos(nodes: List<Node>): List<ModelMeshPartInfo> = bui
                     meshId = meshPart?.mesh?.toString(),
                     partId = meshPart?.id?.takeIf(String::isNotBlank),
                     materialId = part.material?.id?.takeIf(String::isNotBlank),
+                    materialIndex = materialIndex,
                     primitiveType = meshPart?.primitiveType?.let(::primitiveTypeLabel),
                     vertexCount = meshPart?.mesh?.numVertices,
                     triangleCount = meshPart?.let(::countTrianglesInMeshPart),
@@ -838,16 +877,19 @@ private fun buildMeshPartInfos(nodes: List<Node>): List<ModelMeshPartInfo> = bui
  */
 private fun buildMaterialInfos(
     materials: Array<com.badlogic.gdx.graphics.g3d.Material>,
+    registerTexturePreview: (String, Texture) -> Unit = { _, _ -> },
 ): List<ModelMaterialInfo> = buildList {
     materials.forEachIndexed { index, material ->
         val diffuseColor = (material.get(ColorAttribute.Diffuse) as? ColorAttribute)?.color
+        val materialId = material.id?.takeIf(String::isNotBlank)
         add(
             ModelMaterialInfo(
                 index = index,
-                id = material.id?.takeIf(String::isNotBlank),
+                id = materialId,
                 diffuseTexture = material.textureLabel(TextureAttribute.Diffuse),
                 normalTexture = material.textureLabel(TextureAttribute.Normal),
                 emissiveTexture = material.textureLabel(TextureAttribute.Emissive),
+                textureSlots = materialTextureSlots(material, index, materialId, registerTexturePreview),
                 baseColor = diffuseColor?.let { color -> Color(color.r, color.g, color.b, color.a) },
                 opacity = diffuseColor?.a,
             ),
@@ -856,7 +898,81 @@ private fun buildMaterialInfos(
 }
 
 private fun com.badlogic.gdx.graphics.g3d.Material.textureLabel(type: Long): String? =
-    ((get(type) as? TextureAttribute)?.textureDescription?.texture)?.toString()?.takeIf(String::isNotBlank)
+    ((get(type) as? TextureAttribute)?.textureDescription?.texture)?.let(::textureIdentifier)
+
+private fun materialTextureSlots(
+    material: com.badlogic.gdx.graphics.g3d.Material,
+    materialIndex: Int,
+    materialId: String?,
+    registerTexturePreview: (String, Texture) -> Unit,
+): List<ModelTextureSlotInfo> = buildList {
+    for (attribute in material) {
+        if (attribute is TextureAttribute) {
+            val texture = attribute.textureDescription.texture
+            val texturePath = textureIdentifier(texture)
+            if (texturePath != null) {
+                registerTexturePreview(texturePath, texture)
+            }
+            add(
+                ModelTextureSlotInfo(
+                    channel = normalizeTextureChannel(attribute),
+                    texturePath = texturePath,
+                    uvChannel = "UV${attribute.uvIndex}",
+                    materialIndex = materialIndex,
+                    materialId = materialId,
+                ),
+            )
+        }
+    }
+}
+
+private fun normalizeTextureChannel(attribute: TextureAttribute): String = when (attribute.type) {
+    PBRTextureAttribute.BaseColorTexture -> "baseColor"
+    TextureAttribute.Diffuse -> "diffuse"
+    PBRTextureAttribute.NormalTexture,
+    TextureAttribute.Normal,
+    TextureAttribute.Bump,
+    -> "normal"
+    PBRTextureAttribute.EmissiveTexture,
+    TextureAttribute.Emissive,
+    -> "emissive"
+    PBRTextureAttribute.OcclusionTexture -> "occlusion"
+    PBRTextureAttribute.MetallicRoughnessTexture -> "metallicRoughness"
+    else -> {
+        val alias = Attribute.getAttributeAlias(attribute.type)?.takeIf(String::isNotBlank)
+        normalizeTextureAlias(alias)
+    }
+}
+
+private fun normalizeTextureAlias(alias: String?): String = when (alias?.lowercase()) {
+    "basecolortexture", "basecolor", "diffusetexture" -> "baseColor"
+    "diffuse" -> "diffuse"
+    "normaltexture", "normal", "bump" -> "normal"
+    "emissivetexture", "emissive" -> "emissive"
+    "occlusiontexture", "occlusion", "ambient" -> "occlusion"
+    "metallicroughnesstexture", "metallicroughness" -> "metallicRoughness"
+    "alphatexture", "alpha", "opacity" -> "alpha"
+    null -> "unknown"
+    else -> alias
+}
+
+private fun textureIdentifier(texture: Texture): String? {
+    val fileTextureData = texture.textureData as? FileTextureData
+    val filePath = fileTextureData?.fileHandle?.path()?.takeIf(String::isNotBlank)
+    return filePath ?: texture.toString().takeIf(String::isNotBlank)
+}
+
+private fun materialIndexOf(
+    materials: Array<com.badlogic.gdx.graphics.g3d.Material>,
+    material: com.badlogic.gdx.graphics.g3d.Material,
+): Int? {
+    materials.forEachIndexed { index, candidate ->
+        if (candidate === material) return index
+    }
+    val materialId = material.id?.takeIf(String::isNotBlank) ?: return null
+    return materials.indexOfFirst { candidate -> candidate.id == materialId }
+        .takeIf { index -> index >= 0 }
+}
 
 /**
  * Extracts vertex-channel, UV, and skin-weight information from every mesh.
@@ -1028,6 +1144,9 @@ class GdxRenderer3D(
                         wireframeCommands += command
                     } else {
                         renderModel(command, environment, camera)
+                        if (command.material.wireframeOverlay) {
+                            wireframeCommands += command
+                        }
                     }
                 }
                 is DrawDynamicModel -> {
@@ -1035,6 +1154,9 @@ class GdxRenderer3D(
                         wireframeDynamicCommands += command
                     } else {
                         renderDynamicModel(command, environment)
+                        if (command.material.wireframeOverlay) {
+                            wireframeDynamicCommands += command
+                        }
                     }
                 }
                 else -> Unit

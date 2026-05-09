@@ -1,13 +1,17 @@
 package com.pashkd.krender.engine.modelviewer
 
 import com.pashkd.krender.engine.api.ModelMaterialInfo
+import com.pashkd.krender.engine.api.AssetService
+import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.ModelMeshPartInfo
+import com.pashkd.krender.engine.api.ModelTextureSlotInfo
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.UiPanel
+import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.ui.beginImGuiPanel
 import glm_.vec2.Vec2 as ImVec2
 import imgui.ImGui
@@ -179,28 +183,58 @@ class ModelViewerInfoPanel(
         textLine("Materials: ${info.materialCount}")
         textLine("Vertices: ${info.vertexCount}")
         textLine("Triangles: ${info.triangleCount}")
-        textLine("Size: ${info.size?.let(::formatSize) ?: "unknown"}")
         textLine("Vertex channels: ${formatList(info.vertexChannels)}")
         textLine("UV channels: ${formatList(info.uvChannels)}")
         textLine("Texture channels: ${formatList(info.textureChannels)}")
         textLine("Textures: ${info.textureCount} unique / ${info.textureSlotCount} slots")
-        textLine("Skeleton: ${if (info.hasSkeleton) "yes" else "no"}")
-        textLine("Bones: ${info.boneCount}")
+        textLine("Rig: skeleton=${if (info.hasSkeleton) "yes" else "no"}, bones=${info.boneCount}, animations=${info.animationCount}")
         textLine("Bone weight channels: ${info.boneWeightChannelCount}")
-        textLine("Animations: ${info.animationCount}")
+        drawBounds(info)
         drawWarnings(info)
         ImGui.end()
     }
 
-    private fun drawWarnings(info: com.pashkd.krender.engine.api.ModelAssetInfo) {
+    private fun drawBounds(info: ModelAssetInfo) {
+        ImGui.separator()
+        ImGui.text("Bounds")
+        val min = info.boundsMin
+        val max = info.boundsMax
+        if (min != null && max != null) {
+            val center = Vec3(
+                (min.x + max.x) * 0.5f,
+                (min.y + max.y) * 0.5f,
+                (min.z + max.z) * 0.5f,
+            )
+            val pivotOffset = Vec3(-center.x, -center.y, -center.z)
+            textLine("Min: ${formatPosition(min)}")
+            textLine("Max: ${formatPosition(max)}")
+            textLine("Size: ${info.size?.let(::formatSize) ?: formatSize(Vec3(max.x - min.x, max.y - min.y, max.z - min.z))}")
+            textLine("Center: ${formatPosition(center)}")
+            textLine("Pivot offset from center: ${formatPosition(pivotOffset)}")
+        } else {
+            textLine("Size: ${info.size?.let(::formatSize) ?: "unknown"}")
+        }
+    }
+
+    private fun drawWarnings(info: ModelAssetInfo) {
+        val textureSlots = info.materials.flatMap { material -> material.textureSlots }
         val warnings = buildList {
             if (info.uvChannels.isEmpty()) add("No UV channels.")
             if (info.materialCount <= 0) add("No materials.")
-            if (info.textureCount <= 0) add("No textures.")
-            if (info.animationCount <= 0) add("No animations.")
-            if (info.hasSkeleton && info.animationCount <= 0) add("Skeleton has no animations.")
+            if (textureSlots.isEmpty()) add("No texture slots.")
+            if (textureSlots.isNotEmpty() && info.uvChannels.isEmpty()) add("Texture slots exist but no UV channels were found.")
+            if (
+                textureSlots.any { slot -> slot.channel == "normal" } &&
+                info.vertexChannels.none { channel -> channel.equals("Tangent", ignoreCase = true) }
+            ) {
+                add("Normal texture exists but no tangent vertex channel was found.")
+            }
             if (info.triangleCount >= HighTriangleWarningThreshold) add("High triangle count.")
-            if (info.size == null) add("Missing bounds.")
+            if (info.boundsMin == null || info.boundsMax == null || info.size == null) add("Bounds are missing.")
+            if (info.size != null && info.size.isNearZero()) add("Model has zero or near-zero size.")
+            if (info.meshParts.any { part -> part.materialId == null && part.materialIndex == null }) {
+                add("One or more mesh parts have no material assignment.")
+            }
         }
         if (warnings.isEmpty()) return
 
@@ -211,7 +245,11 @@ class ModelViewerInfoPanel(
 
     companion object {
         private const val HighTriangleWarningThreshold = 250_000
+        private const val NearZeroSize = 0.0001f
     }
+
+    private fun Vec3.isNearZero(): Boolean =
+        x <= NearZeroSize || y <= NearZeroSize || z <= NearZeroSize
 }
 
 /**
@@ -230,21 +268,43 @@ class ModelViewerMeshPartsPanel(
             return
         }
 
-        val meshParts = state.modelInfo?.meshParts.orEmpty()
+        val info = state.modelInfo
+        val meshParts = info?.meshParts.orEmpty()
         if (meshParts.isEmpty()) {
             ImGui.text("No mesh-part metadata available.")
             ImGui.end()
             return
         }
 
-        meshParts.forEach { part ->
+        ImGui.checkbox("Show only selected material##model_viewer_filter_mesh_parts_material", state::filterMeshPartsBySelectedMaterial)
+        if (state.filterMeshPartsBySelectedMaterial && state.selectedMaterialIndex == null) {
+            ImGui.text("Select a material to filter mesh parts.")
+        }
+
+        val visibleMeshParts = if (state.filterMeshPartsBySelectedMaterial && state.selectedMaterialIndex != null && info != null) {
+            val selectedMaterial = info.materials.getOrNull(state.selectedMaterialIndex ?: -1)
+            if (selectedMaterial != null) {
+                meshParts.filter { part -> meshPartUsesMaterial(part, selectedMaterial) }
+            } else {
+                meshParts
+            }
+        } else {
+            meshParts
+        }
+
+        visibleMeshParts.forEach { part ->
             val label = "#${part.index} ${part.partId ?: part.meshId ?: part.nodeName ?: "Mesh Part"}"
             if (ImGui.selectable("$label##model_viewer_mesh_part_${part.index}", state.selectedMeshPartIndex == part.index)) {
                 state.selectedMeshPartIndex = part.index
+                if (info != null) {
+                    matchingMaterialIndexForPart(part, info.materials)?.let { materialIndex ->
+                        state.selectedMaterialIndex = materialIndex
+                    }
+                }
             }
         }
         ImGui.separator()
-        meshParts.getOrNull(state.selectedMeshPartIndex ?: -1)?.let(::drawMeshPartDetails)
+        meshParts.firstOrNull { part -> part.index == state.selectedMeshPartIndex }?.let(::drawMeshPartDetails)
             ?: ImGui.text("Select a mesh part.")
         ImGui.end()
     }
@@ -256,6 +316,7 @@ class ModelViewerMeshPartsPanel(
         textLine("Mesh: ${part.meshId ?: "unknown"}")
         textLine("Part: ${part.partId ?: "unknown"}")
         textLine("Material: ${part.materialId ?: "none"}")
+        textLine("Material index: ${part.materialIndex?.toString() ?: "unknown"}")
         textLine("Primitive: ${part.primitiveType ?: "unknown"}")
         textLine("Vertices: ${part.vertexCount?.toString() ?: "unknown"}")
         textLine("Triangles: ${part.triangleCount?.toString() ?: "unknown"}")
@@ -267,6 +328,8 @@ class ModelViewerMeshPartsPanel(
  */
 class ModelViewerMaterialsPanel(
     private val state: ModelViewerState,
+    private val assets: AssetService,
+    private val ui: UiService,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
@@ -278,7 +341,8 @@ class ModelViewerMaterialsPanel(
             return
         }
 
-        val materials = state.modelInfo?.materials.orEmpty()
+        val info = state.modelInfo
+        val materials = info?.materials.orEmpty()
         if (materials.isEmpty()) {
             ImGui.text("No material metadata available.")
             ImGui.end()
@@ -292,54 +356,75 @@ class ModelViewerMaterialsPanel(
             }
         }
         ImGui.separator()
-        materials.getOrNull(state.selectedMaterialIndex ?: -1)?.let(::drawMaterialDetails)
+        materials.getOrNull(state.selectedMaterialIndex ?: -1)?.let { material ->
+            drawMaterialDetails(material, info?.meshParts.orEmpty())
+        }
             ?: ImGui.text("Select a material.")
         ImGui.end()
     }
 
-    private fun drawMaterialDetails(material: ModelMaterialInfo) {
+    private fun drawMaterialDetails(
+        material: ModelMaterialInfo,
+        meshParts: List<ModelMeshPartInfo>,
+    ) {
+        val usedBy = meshPartsUsingMaterial(material, meshParts)
         ImGui.text("Selected material")
         textLine("Index: ${material.index}")
         textLine("Id: ${material.id ?: "unknown"}")
         textLine("Base color: ${material.baseColor?.let { color -> "%.2f, %.2f, %.2f, %.2f".format(color.r, color.g, color.b, color.a) } ?: "unknown"}")
         textLine("Opacity: ${material.opacity?.let { "%.2f".format(it) } ?: "unknown"}")
+        textLine("Usage count: ${usedBy.size}")
+        textLine("Used by mesh parts: ${usedBy.ifEmpty { emptyList() }.joinToString(", ") { part -> "#${part.index}" }.ifBlank { "none" }}")
         ImGui.separator()
         ImGui.text("Texture slots")
-        textLine("Diffuse: ${material.diffuseTexture ?: "empty"}")
-        textLine("Normal: ${material.normalTexture ?: "empty"}")
-        textLine("Emissive: ${material.emissiveTexture ?: "empty"}")
+        if (material.textureSlots.isEmpty()) {
+            ImGui.text("No texture slots.")
+            return
+        }
+        material.textureSlots.forEach { slot ->
+            drawTextureSlot(slot)
+        }
     }
-}
 
-/**
- * Shows animation ids exposed by the loaded model.
- */
-class ModelViewerAnimationsPanel(
-    private val state: ModelViewerState,
-    private val layoutConfig: ImGuiLayoutConfig,
-    private val layoutTracker: ImGuiLayoutRuntimeTracker,
-    private val eventLogger: ImGuiWindowEventLogger,
-) : UiPanel {
-    override fun draw() {
-        val expanded = beginModelViewerPanel(ModelViewerPanelIds.Animations, layoutConfig, layoutTracker, eventLogger)
-        if (!expanded) {
-            ImGui.end()
+    private fun drawTextureSlot(slot: ModelTextureSlotInfo) {
+        ImGui.separator()
+        ImGui.text(textureChannelLabel(slot.channel))
+        drawTexturePreview(slot)
+        textLine("Texture: ${slot.texturePath ?: "unknown"}")
+        textLine("UV: ${slot.uvChannel ?: "unknown"}")
+    }
+
+    private fun drawTexturePreview(slot: ModelTextureSlotInfo) {
+        val texturePath = slot.texturePath
+        if (texturePath.isNullOrBlank()) {
+            ImGui.text("Preview unavailable: no texture id.")
             return
         }
 
-        val animations = state.modelInfo?.animationNames.orEmpty()
-        if (animations.isEmpty()) {
-            ImGui.text("No animations.")
-            ImGui.end()
+        val handle = assets.texturePreviewHandle(texturePath)
+        if (handle == null) {
+            ImGui.text("Preview unavailable.")
             return
         }
 
-        animations.forEachIndexed { index, animation ->
-            if (ImGui.selectable("$animation##model_viewer_animation_$index", state.selectedAnimationIndex == index)) {
-                state.selectedAnimationIndex = index
-            }
+        if (!ui.drawTexturePreview(handle, PreviewSize, PreviewSize)) {
+            ImGui.text("Preview unavailable.")
         }
-        ImGui.end()
+    }
+
+    private fun textureChannelLabel(channel: String): String = when (channel) {
+        "baseColor", "diffuse" -> "Base Color / Diffuse"
+        "normal" -> "Normal"
+        "emissive" -> "Emissive"
+        "occlusion" -> "Occlusion"
+        "metallicRoughness" -> "Metallic / Roughness"
+        "alpha" -> "Alpha"
+        "unknown" -> "Unknown"
+        else -> channel.replaceFirstChar { char -> char.uppercaseChar() }
+    }
+
+    companion object {
+        private const val PreviewSize = 128f
     }
 }
 
@@ -368,6 +453,34 @@ class ModelViewerLoadingPanel(
         textLine(state.loadingStatus)
         ImGui.end()
     }
+}
+
+private fun matchingMaterialIndexForPart(
+    part: ModelMeshPartInfo,
+    materials: List<ModelMaterialInfo>,
+): Int? {
+    val materialId = part.materialId
+    if (materialId != null) {
+        val matchedById = materials.indexOfFirst { material -> material.id == materialId }
+        if (matchedById >= 0) return matchedById
+    }
+    val materialIndex = part.materialIndex ?: return null
+    return materialIndex.takeIf { index -> index in materials.indices }
+}
+
+private fun meshPartsUsingMaterial(
+    material: ModelMaterialInfo,
+    meshParts: List<ModelMeshPartInfo>,
+): List<ModelMeshPartInfo> =
+    meshParts.filter { part -> meshPartUsesMaterial(part, material) }
+
+private fun meshPartUsesMaterial(
+    part: ModelMeshPartInfo,
+    material: ModelMaterialInfo,
+): Boolean {
+    val materialId = material.id
+    if (materialId != null && part.materialId == materialId) return true
+    return part.materialId == null && part.materialIndex == material.index
 }
 
 internal fun beginModelViewerPanel(

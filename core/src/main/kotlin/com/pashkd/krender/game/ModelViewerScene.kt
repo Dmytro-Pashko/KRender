@@ -8,7 +8,6 @@ import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
-import com.pashkd.krender.engine.modelviewer.ModelViewerAnimationsPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerBoundingBoxSystem
 import com.pashkd.krender.engine.modelviewer.ModelViewerInfoPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerLoadingPanel
@@ -305,12 +304,14 @@ class ModelViewerScene(
             addPanel(
                 uiSystem,
                 "Materials",
-                ModelViewerMaterialsPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
-            )
-            addPanel(
-                uiSystem,
-                "Animations",
-                ModelViewerAnimationsPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
+                ModelViewerMaterialsPanel(
+                    viewerState,
+                    engine.assets,
+                    engine.ui,
+                    layoutConfig,
+                    layoutTracker,
+                    panelEventLogger,
+                ),
             )
             addPanel(
                 uiSystem,
@@ -328,7 +329,7 @@ class ModelViewerScene(
                     initialAutoScrollToLatest = true,
                 ),
             )
-            engine.logger.info(TAG) { "ModelViewer UI panels registered count=8" }
+            engine.logger.info(TAG) { "ModelViewer UI panels registered count=7" }
         }
 
     private fun addSystem(name: String, system: com.pashkd.krender.engine.api.System) {
