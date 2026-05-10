@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Component
 import com.pashkd.krender.engine.api.DrawModel
+import com.pashkd.krender.engine.api.MaterialTextureRef
 import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.DrawWorldGrid
 import com.pashkd.krender.engine.api.ModelAsset
@@ -46,6 +47,8 @@ data class Material(
     val shader: ShaderPipeline = ShaderPipeline(),
     val wireframe: Boolean = false,
     val wireframeOverlay: Boolean = false,
+    val diffuseTextureRef: MaterialTextureRef? = null,
+    @Deprecated("Use backend-neutral diffuseTextureRef. This remains for legacy terrain preview rendering.")
     val diffuseTexture: Texture? = null,
 )
 

@@ -9,10 +9,13 @@ import com.pashkd.krender.engine.api.DrawWorldGrid
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.api.MaterialDebugView
+import com.pashkd.krender.engine.api.MaterialTextureRef
 import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.sceneeditor.SceneEditorLocalBounds
@@ -33,6 +36,8 @@ class ModelViewerSystem(
     private var lastAssetLoaded: Boolean? = null
     private var lastLoadingStatus: String? = null
     private var lastDisplayMode: ModelViewerDisplayMode? = null
+    private var lastDebugMode: ModelViewerDebugMode? = null
+    private var lastDebugWarning: String? = null
     private var lastMetadataAvailable: Boolean? = null
     private var missingModelEntityLogged = false
 
@@ -75,6 +80,7 @@ class ModelViewerSystem(
 
         syncStatus(world)
         syncSelectionBounds()
+        syncDebugState()
         logLoadedModelDetails()
         handleRequests()
     }
@@ -166,6 +172,60 @@ class ModelViewerSystem(
             .flatMap { material -> material.textureSlots }
             .mapTo(linkedSetOf()) { slot -> slot.channel }
         state.selectedTextureChannel = state.selectedTextureChannel?.takeIf { channel -> channel in textureChannels }
+    }
+
+    /**
+     * Keeps debug-channel selection and warnings aligned with loaded model metadata.
+     */
+    private fun syncDebugState() {
+        val effectiveDebugMode = if (state.uvCheckerEnabled) ModelViewerDebugMode.UvChecker else state.debugMode
+        if (lastDebugMode != effectiveDebugMode) {
+            logger.info(TAG) {
+                "ModelViewer debug mode changed mode=$effectiveDebugMode " +
+                    "selectedMaterial=${state.selectedMaterialIndex?.toString() ?: "all"} " +
+                    "uvChecker='${state.uvCheckerTexturePath}'"
+            }
+            lastDebugMode = effectiveDebugMode
+        }
+
+        state.debugSelectedMaterialOnly = false
+        val selectedMaterialIndex: Int? = null
+        if (isModelViewerTextureDebugMode(effectiveDebugMode)) {
+            val channels = matchingModelViewerTextureSlots(
+                state.modelInfo,
+                effectiveDebugMode,
+                selectedMaterialIndex,
+            ).map { slot -> slot.channel }.distinct()
+            if (channels.isNotEmpty() && state.selectedTextureChannel !in channels) {
+                state.selectedTextureChannel = channels.first()
+            }
+        }
+
+        state.debugWarning = debugWarningFor(effectiveDebugMode, selectedMaterialIndex)
+        val warning = state.debugWarning
+        if (warning != null && warning != lastDebugWarning) {
+            logger.warn(TAG) { warning }
+        }
+        lastDebugWarning = warning
+    }
+
+    private fun debugWarningFor(
+        mode: ModelViewerDebugMode,
+        selectedMaterialIndex: Int?,
+    ): String? {
+        val info = state.modelInfo ?: return null
+        return when {
+            mode == ModelViewerDebugMode.None -> null
+            mode == ModelViewerDebugMode.UvChecker && info.uvChannels.isEmpty() ->
+                "ModelViewer debug warning: model has no UV channels for UV checker."
+            mode == ModelViewerDebugMode.UvChecker && !assets.isLoaded(AssetRef.texture(state.uvCheckerTexturePath)) ->
+                "ModelViewer debug warning: UV checker texture '${state.uvCheckerTexturePath}' is missing or not loaded."
+            isModelViewerTextureDebugMode(mode) &&
+                !hasModelViewerTextureChannel(info, mode, selectedMaterialIndex) ->
+                "ModelViewer debug warning: texture channel $mode is unavailable" +
+                    selectedMaterialIndex?.let { " for material #$it." }.orEmpty()
+            else -> null
+        }
     }
 
     /**
@@ -275,8 +335,30 @@ class ModelViewerModelRenderSystem(
                 transform = transform.snapshot(),
                 material = model.material,
                 visibleMeshPartIndices = visibleMeshPartIndices,
+                debugView = state.materialDebugView(),
             ),
         )
+    }
+
+    private fun ModelViewerState.materialDebugView(): MaterialDebugView? {
+        val mode = if (uvCheckerEnabled) ModelViewerDebugMode.UvChecker else debugMode
+        if (mode == ModelViewerDebugMode.None) return null
+        return MaterialDebugView(
+            mode = mode.name,
+            selectedMaterialIndex = null,
+            selectedTextureChannel = selectedTextureChannel,
+            uvCheckerTexture = MaterialTextureRef(
+                id = uvCheckerTexturePath,
+                channel = "uvChecker",
+                uvChannel = uvCheckerUvChannel,
+            ),
+            uvChannel = uvCheckerUvChannel,
+            uvScale = uvCheckerScale.coerceAtLeast(MinUvCheckerScale),
+        )
+    }
+
+    companion object {
+        private const val MinUvCheckerScale = 0.01f
     }
 }
 

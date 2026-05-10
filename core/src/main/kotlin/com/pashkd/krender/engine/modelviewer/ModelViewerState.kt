@@ -19,6 +19,36 @@ enum class ModelViewerDisplayMode {
 }
 
 /**
+ * Texture/material debug modes. Kept separate from shaded/wireframe display mode.
+ */
+enum class ModelViewerDebugMode {
+    None,
+    BaseColor,
+    Normal,
+    Emission,
+    MetallicRoughness,
+    Occlusion,
+    Alpha,
+    UvChecker,
+}
+
+data class ModelViewerUvCheckerTextureOption(
+    val resolution: Int,
+    val texturePath: String,
+)
+
+const val UV_CHECKER_TEXTURE_1K = "textures/uv_checker_1k.png"
+const val UV_CHECKER_TEXTURE_2K = "textures/uv_checker_2k.png"
+const val UV_CHECKER_TEXTURE_4K = "textures/uv_checker_4k.png"
+const val DEFAULT_UV_CHECKER_TEXTURE = "textures/uv_checker_2k.png"
+
+val UV_CHECKER_TEXTURE_OPTIONS = listOf(
+    ModelViewerUvCheckerTextureOption(1024, UV_CHECKER_TEXTURE_1K),
+    ModelViewerUvCheckerTextureOption(2048, UV_CHECKER_TEXTURE_2K),
+    ModelViewerUvCheckerTextureOption(4096, UV_CHECKER_TEXTURE_4K),
+)
+
+/**
  * Holds mutable scene state shared between ModelViewer panels, systems, and operations.
  */
 data class ModelViewerState(
@@ -72,6 +102,27 @@ data class ModelViewerState(
 
     /** Current display mode for the model material. */
     var displayMode: ModelViewerDisplayMode = ModelViewerDisplayMode.Shaded,
+
+    /** Current material/texture debug mode. */
+    var debugMode: ModelViewerDebugMode = ModelViewerDebugMode.None,
+
+    /** Limits debug rendering to the selected material when enabled. */
+    var debugSelectedMaterialOnly: Boolean = false,
+
+    /** Enables UV checker override. Mirrored with [debugMode] when selected in the UI. */
+    var uvCheckerEnabled: Boolean = false,
+
+    /** Backend-neutral texture asset path used by the UV checker override. */
+    var uvCheckerTexturePath: String = DEFAULT_UV_CHECKER_TEXTURE,
+
+    /** UV channel index used by the UV checker override. */
+    var uvCheckerUvChannel: Int = 0,
+
+    /** UV scale applied by the UV checker override. */
+    var uvCheckerScale: Float = 1f,
+
+    /** Current debug-rendering warning surfaced in the UI. */
+    var debugWarning: String? = null,
 
     /** Currently selected mesh part in the Mesh Parts panel. */
     var selectedMeshPartIndex: Int? = null,

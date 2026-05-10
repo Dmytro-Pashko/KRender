@@ -421,6 +421,8 @@ class ModelViewerTextureChannelsPanel(
 
         val info = state.modelInfo
         val slots = info?.materials.orEmpty().flatMap { material -> material.textureSlots }
+        drawDebugView(info)
+        ImGui.separator()
         if (slots.isEmpty()) {
             ImGui.text("No texture channel metadata available.")
             ImGui.separator()
@@ -468,6 +470,131 @@ class ModelViewerTextureChannelsPanel(
         ImGui.end()
     }
 
+    private fun drawDebugView(info: ModelAssetInfo?) {
+        ImGui.text("Debug View")
+        state.debugSelectedMaterialOnly = false
+        drawDebugModeCombo(info)
+        drawDebugTextureChannelCombo(info)
+
+        val uvCheckerEnabled = state.uvCheckerEnabled || state.debugMode == ModelViewerDebugMode.UvChecker
+        val uvCheckerToggle = booleanArrayOf(uvCheckerEnabled)
+        if (ImGui.checkbox("UV Checker##model_viewer_uv_checker_enabled", uvCheckerToggle)) {
+            state.uvCheckerEnabled = uvCheckerToggle[0]
+            state.debugMode = if (state.uvCheckerEnabled) ModelViewerDebugMode.UvChecker else ModelViewerDebugMode.None
+        }
+        drawUvCheckerSettings(info)
+        state.debugWarning?.let { warning -> textLine("Warning: $warning") }
+    }
+
+    private fun drawDebugModeCombo(info: ModelAssetInfo?) {
+        if (!ImGui.beginCombo("Mode##model_viewer_debug_mode", debugModeLabel(state.debugMode))) return
+        ModelViewerDebugMode.entries.forEach { mode ->
+            val available = debugModeAvailable(info, mode)
+            val label = if (available) debugModeLabel(mode) else "${debugModeLabel(mode)} (unavailable)"
+            if (ImGui.selectable("$label##model_viewer_debug_${mode.name}", state.debugMode == mode)) {
+                state.debugMode = mode
+                state.uvCheckerEnabled = mode == ModelViewerDebugMode.UvChecker
+                preferredModelViewerTextureChannel(
+                    info,
+                    mode,
+                    selectedMaterialIndex = null,
+                )?.let { channel -> state.selectedTextureChannel = channel }
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    private fun drawDebugTextureChannelCombo(info: ModelAssetInfo?) {
+        val mode = state.debugMode
+        if (!isModelViewerTextureDebugMode(mode)) {
+            textLine("Texture Channel: none")
+            return
+        }
+        val channels = matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex = null)
+            .map { slot -> slot.channel }
+            .distinct()
+        if (channels.isEmpty()) {
+            textLine("Texture Channel: unavailable")
+            return
+        }
+        if (state.selectedTextureChannel !in channels) {
+            state.selectedTextureChannel = channels.first()
+        }
+        val current = state.selectedTextureChannel ?: channels.first()
+        if (!ImGui.beginCombo("Texture Channel##model_viewer_debug_texture_channel", textureChannelLabel(current))) return
+        channels.forEach { channel ->
+            if (ImGui.selectable("${textureChannelLabel(channel)}##model_viewer_debug_channel_$channel", current == channel)) {
+                state.selectedTextureChannel = channel
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    private fun drawUvCheckerSettings(info: ModelAssetInfo?) {
+        ImGui.text("UV Checker")
+        drawUvCheckerTextureCombo()
+        drawUvChannelCombo(info)
+        slider(
+            "Scale##model_viewer_uv_checker_scale",
+            state::uvCheckerScale,
+            MinUvCheckerScale,
+            MaxUvCheckerScale,
+            "%.2f",
+            SliderFlag.AlwaysClamp,
+        )
+        val uvLabel = "UV${state.uvCheckerUvChannel}"
+        if (info != null && info.uvChannels.isNotEmpty() && uvLabel !in info.uvChannels) {
+            textLine("Warning: model does not report $uvLabel.")
+        }
+        val checkerRef = com.pashkd.krender.engine.api.AssetRef.texture(state.uvCheckerTexturePath)
+        if (!assets.isLoaded(checkerRef)) {
+            textLine("Warning: checker texture is missing or not loaded.")
+        }
+    }
+
+    private fun drawUvCheckerTextureCombo() {
+        val current = UV_CHECKER_TEXTURE_OPTIONS.firstOrNull { option ->
+            option.texturePath == state.uvCheckerTexturePath
+        } ?: UV_CHECKER_TEXTURE_OPTIONS.first { option -> option.texturePath == DEFAULT_UV_CHECKER_TEXTURE }
+        if (state.uvCheckerTexturePath !in UV_CHECKER_TEXTURE_OPTIONS.map { option -> option.texturePath }) {
+            state.uvCheckerTexturePath = current.texturePath
+        }
+        if (!ImGui.beginCombo("Checker Texture##model_viewer_uv_checker_texture", current.resolution.toString())) return
+        UV_CHECKER_TEXTURE_OPTIONS.forEach { option ->
+            if (ImGui.selectable("${option.resolution}##model_viewer_uv_checker_texture_${option.resolution}", current == option)) {
+                state.uvCheckerTexturePath = option.texturePath
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    private fun drawUvChannelCombo(info: ModelAssetInfo?) {
+        val channels = info?.uvChannels.orEmpty()
+            .mapNotNull(::uvChannelIndex)
+            .distinct()
+            .sorted()
+        if (channels.isEmpty()) {
+            state.uvCheckerUvChannel = 0
+            if (ImGui.beginCombo("UV Channel##model_viewer_uv_checker_channel", "None")) {
+                ImGui.selectable("None##model_viewer_uv_checker_channel_none", true)
+                ImGui.endCombo()
+            }
+            return
+        }
+        if (state.uvCheckerUvChannel !in channels) {
+            state.uvCheckerUvChannel = channels.first()
+        }
+        val currentLabel = "UV${state.uvCheckerUvChannel}"
+        if (!ImGui.beginCombo("UV Channel##model_viewer_uv_checker_channel", currentLabel)) return
+        channels.forEach { channel ->
+            val label = "UV$channel"
+            if (ImGui.selectable("$label##model_viewer_uv_checker_channel_$channel", state.uvCheckerUvChannel == channel)) {
+                state.uvCheckerUvChannel = channel
+            }
+        }
+        ImGui.endCombo()
+    }
+
     private fun drawSelectedChannel(
         channel: String,
         slots: List<ModelTextureSlotInfo>,
@@ -506,6 +633,11 @@ class ModelViewerTextureChannelsPanel(
         ImGui.separator()
         ImGui.text("Warnings")
         warnings.forEach { warning -> ImGui.bulletText(warning) }
+    }
+
+    companion object {
+        private const val MinUvCheckerScale = 0.01f
+        private const val MaxUvCheckerScale = 64f
     }
 }
 
@@ -585,6 +717,15 @@ private fun formatSize(size: Vec3): String =
 private fun formatList(values: List<String>): String =
     values.ifEmpty { listOf("none") }.joinToString(", ")
 
+private fun uvChannelIndex(channel: String): Int? {
+    val trimmed = channel.trim()
+    return when {
+        trimmed.startsWith("UV", ignoreCase = true) -> trimmed.drop(2).toIntOrNull()
+        trimmed.startsWith("TEXCOORD_", ignoreCase = true) -> trimmed.substringAfter('_').toIntOrNull()
+        else -> trimmed.toIntOrNull()
+    }
+}
+
 private fun textureChannelLabel(channel: String): String = when (channel) {
     "baseColor", "diffuse" -> "Base Color / Diffuse"
     "normal" -> "Normal"
@@ -605,6 +746,25 @@ private fun textureChannelSortKey(channel: String): Int = when (channel) {
     "alpha" -> 5
     "unknown" -> 100
     else -> 50
+}
+
+private fun debugModeLabel(mode: ModelViewerDebugMode): String = when (mode) {
+    ModelViewerDebugMode.None -> "None"
+    ModelViewerDebugMode.BaseColor -> "Base Color / Diffuse"
+    ModelViewerDebugMode.Normal -> "Normal"
+    ModelViewerDebugMode.Emission -> "Emission"
+    ModelViewerDebugMode.MetallicRoughness -> "Metallic / Roughness"
+    ModelViewerDebugMode.Occlusion -> "Occlusion / AO"
+    ModelViewerDebugMode.Alpha -> "Alpha / Opacity"
+    ModelViewerDebugMode.UvChecker -> "UV Checker"
+}
+
+private fun debugModeAvailable(info: ModelAssetInfo?, mode: ModelViewerDebugMode): Boolean = when {
+    mode == ModelViewerDebugMode.None -> true
+    mode == ModelViewerDebugMode.UvChecker -> info?.uvChannels?.isNotEmpty() != false
+    isModelViewerTextureDebugMode(mode) ->
+        hasModelViewerTextureChannel(info, mode, selectedMaterialIndex = null)
+    else -> true
 }
 
 private fun drawTextureSlotPreview(

@@ -18,29 +18,29 @@
       "title": "Model Info",
       "x": 5,
       "y": 361,
-      "width": 359,
+      "width": 344,
       "height": 448
     },
     "meshParts": {
       "title": "Mesh Parts",
       "x": 9,
       "y": 814,
-      "width": 358,
-      "height": 460
+      "width": 341,
+      "height": 455
     },
     "materials": {
       "title": "Materials",
       "x": 1600,
       "y": 7,
-      "width": 316,
-      "height": 894
+      "width": 318,
+      "height": 655
     },
     "textureChannels": {
       "title": "Texture Channels",
-      "x": 1599,
-      "y": 907,
-      "width": 316,
-      "height": 367
+      "x": 1597,
+      "y": 666,
+      "width": 320,
+      "height": 599
     },
     "loading": {
       "title": "Loading",
@@ -51,10 +51,10 @@
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
-      "x": 371,
-      "y": 1017,
-      "width": 1224,
-      "height": 258
+      "x": 354,
+      "y": 1013,
+      "width": 1240,
+      "height": 259
     }
   }
 }

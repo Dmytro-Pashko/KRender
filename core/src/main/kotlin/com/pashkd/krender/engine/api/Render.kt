@@ -38,9 +38,32 @@ data class DrawModel(
     val material: Material,
     /** Optional backend-neutral mesh-part index filter. Null renders the full model. */
     val visibleMeshPartIndices: Set<Int>? = null,
+    /** Optional material/texture debug rendering request. Null keeps the normal material path. */
+    val debugView: MaterialDebugView? = null,
     /** Relative ordering priority for this command. */
     override val sortKey: Int = 0,
 ) : RenderCommand
+
+/**
+ * Backend-neutral request for shader-based material/texture debug rendering.
+ */
+data class MaterialDebugView(
+    /** Debug mode name. ModelViewer currently emits ModelViewerDebugMode names. */
+    val mode: String,
+    /** Optional material index to inspect. Null lets the backend resolve per material. */
+    val selectedMaterialIndex: Int? = null,
+    /** Optional exact texture channel chosen in the UI. Backends may also use mode aliases. */
+    val selectedTextureChannel: String? = null,
+    /** Texture override used by UV checker rendering. */
+    val uvCheckerTexture: MaterialTextureRef? = null,
+    /** UV channel index to sample. */
+    val uvChannel: Int = 0,
+    /** Multiplier applied to UV coordinates for checker rendering. */
+    val uvScale: Float = 1f,
+) {
+    val active: Boolean
+        get() = mode != "None"
+}
 
 /**
  * Backend-neutral mesh payload for runtime-generated geometry.

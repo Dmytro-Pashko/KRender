@@ -22,6 +22,7 @@ import com.pashkd.krender.engine.modelviewer.ModelViewerToolbarPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerUiLayoutDefaults
 import com.pashkd.krender.engine.modelviewer.ModelViewerViewportGuideSystem
 import com.pashkd.krender.engine.modelviewer.ModelViewerViewportPanel
+import com.pashkd.krender.engine.modelviewer.UV_CHECKER_TEXTURE_OPTIONS
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.Material
@@ -49,7 +50,9 @@ class ModelViewerScene(
 
     override val requiredAssets: List<AssetPack> = listOf(
         object : AssetPack {
-            override val assets = listOf(model)
+            override val assets = listOf(model) + UV_CHECKER_TEXTURE_OPTIONS.map { option ->
+                AssetRef.texture(option.texturePath)
+            }
         },
     )
 
@@ -115,7 +118,8 @@ class ModelViewerScene(
         )
         engine.logger.info(TAG) {
             "ModelViewer state created model='${viewerState.modelPath}' displayMode=${viewerState.displayMode} " +
-                "grid=${viewerState.showGrid} axes=${viewerState.showAxes} bounds=${viewerState.showBoundingBox}"
+                "debugMode=${viewerState.debugMode} grid=${viewerState.showGrid} axes=${viewerState.showAxes} " +
+                "bounds=${viewerState.showBoundingBox}"
         }
         operations = ModelViewerOperations(viewerState, engine, layoutTracker)
         engine.logger.debug(TAG) { "ModelViewer operations created" }

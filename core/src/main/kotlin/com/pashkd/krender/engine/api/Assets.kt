@@ -113,6 +113,18 @@ data class TexturePreviewHandle(
 )
 
 /**
+ * Backend-neutral reference to a texture binding used by material tooling and debug rendering.
+ */
+data class MaterialTextureRef(
+    /** Normalized asset path or stable backend texture identifier. */
+    val id: String,
+    /** Material texture channel this binding represents, when known. */
+    val channel: String? = null,
+    /** UV channel index used to sample the texture. */
+    val uvChannel: Int = 0,
+)
+
+/**
  * Local-space model bounds extracted from a loaded backend model asset.
  */
 data class ModelAssetBounds(

@@ -55,7 +55,6 @@ import com.pashkd.krender.engine.api.FrameRuntimeStatsService
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.InputSnapshot
 import com.pashkd.krender.engine.api.Key
-import com.pashkd.krender.engine.api.LogService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MainThreadTaskQueue
 import com.pashkd.krender.engine.api.ModelAsset
@@ -183,7 +182,7 @@ class LibGdxBackend(
     override val runtimeLauncher: RuntimeWindowLauncher = runtimeWindowLauncherFactory(logger)
     override val editorToolLauncher: EditorToolLauncher = editorToolLauncherFactory(logger)
     override val tasks: TaskService = GdxTaskService()
-    override val renderer: Renderer = GdxRenderer3D(assets, ui)
+    override val renderer: Renderer = GdxRenderer3D(assets, ui, logger)
 
     /** Requests application shutdown through the LibGDX app instance. */
     override fun requestExit() {
@@ -677,6 +676,14 @@ class GdxAssetService : AssetService {
     }
 
     /** Returns a loaded standalone LibGDX texture asset. */
+    fun gdxTexture(asset: AssetRef<TextureAsset>): Texture? =
+        loadedTextureAsset(asset.path)
+
+    /** Returns a loaded standalone or model-registered LibGDX texture by path or stable id. */
+    fun textureByPathOrId(pathOrId: String): Texture? =
+        texturePreviewRegistry[pathOrId] ?: loadedTextureAsset(pathOrId)
+
+    /** Returns a loaded standalone LibGDX texture asset. */
     private fun loadedTextureAsset(path: String): Texture? =
         if (manager.isLoaded(path, Texture::class.java)) manager.get(path, Texture::class.java) else null
 
@@ -1120,9 +1127,11 @@ class RenderThreadDispatcher : CoroutineDispatcher() {
 class GdxRenderer3D(
     private val assets: GdxAssetService,
     private val ui: UiService,
+    private val logger: Logger,
 ) : Renderer {
     private val modelBatch = ModelBatch()
     private val lineRenderer = GdxLineShaderRenderer()
+    private val modelViewerDebugRenderer = GdxModelViewerDebugRenderer(assets, logger)
     private val instances = mutableMapOf<ModelCacheKey, ModelInstance>()
     private val gltfScenes = mutableMapOf<ModelCacheKey, GltfScene>()
     private val primitives = mutableMapOf<String, Model>()
@@ -1148,6 +1157,7 @@ class GdxRenderer3D(
         val environment = environmentFor(context)
         val wireframeCommands = mutableListOf<DrawModel>()
         val wireframeDynamicCommands = mutableListOf<DrawDynamicModel>()
+        val debugModelCommands = mutableListOf<DrawModel>()
 
         lineRenderer.render(context.commands, camera)
 
@@ -1157,6 +1167,11 @@ class GdxRenderer3D(
                 is DrawModel -> {
                     if (command.material.wireframe) {
                         wireframeCommands += command
+                    } else if (command.debugView?.active == true) {
+                        debugModelCommands += command
+                        if (command.material.wireframeOverlay) {
+                            wireframeCommands += command
+                        }
                     } else {
                         renderModel(command, environment, camera)
                         if (command.material.wireframeOverlay) {
@@ -1178,6 +1193,7 @@ class GdxRenderer3D(
             }
         }
         modelBatch.end()
+        debugModelCommands.forEach { modelViewerDebugRenderer.render(it, camera, ::modelInstanceForDebug) }
         wireframeCommands.forEach { renderWireframeModel(it, camera) }
         wireframeDynamicCommands.forEach { renderWireframeDynamicModel(it, camera) }
         lineRenderer.renderOverlayLines(context.commands, camera)
@@ -1247,6 +1263,7 @@ class GdxRenderer3D(
     override fun dispose() {
         modelBatch.dispose()
         lineRenderer.dispose()
+        modelViewerDebugRenderer.dispose()
         primitives.values.forEach { it.dispose() }
         dynamicModels.values.forEach { it.model.dispose() }
         assets.dispose()
@@ -1290,6 +1307,44 @@ class GdxRenderer3D(
         modelBatch.render(instance, environment)
     }
 
+    /** Returns a prepared model instance for shader-based debug rendering. */
+    private fun modelInstanceForDebug(command: DrawModel, camera: Camera): ModelInstance? {
+        command.material.shader.assets().forEach(assets::queue)
+        assets.queue(command.model)
+        val instance = if (command.model.isGltf()) {
+            val sceneAsset = assets.gltfScene(command.model) ?: return null
+            val cacheKey = ModelCacheKey(command.entityId, command.model.path)
+            val scene = gltfScenes.getOrPut(cacheKey) {
+                GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
+            }
+            applyTransform(scene.modelInstance, command)
+            applyVisibleMeshPartFilter(scene.modelInstance, command.visibleMeshPartIndices)
+            scene.update(camera, Gdx.graphics.deltaTime)
+            scene.modelInstance
+        } else {
+            val model = if (command.model.isPrimitive) {
+                primitive(command.model.path)
+            } else {
+                assets.gdxModel(command.model)
+            } ?: return null
+
+            val cacheKey = ModelCacheKey(command.entityId, command.model.path)
+            val existing = instances[cacheKey]
+            if (existing?.model === model) {
+                existing
+            } else {
+                ModelInstance(model).also { created ->
+                    instances[cacheKey] = created
+                }
+            }.also { prepared ->
+                prepared.materials.forEach { applyMaterialAttributes(it, command.material) }
+                applyTransform(prepared, command)
+                applyVisibleMeshPartFilter(prepared, command.visibleMeshPartIndices)
+            }
+        }
+        return instance
+    }
+
     /** Renders one dynamic mesh-backed model command. */
     private fun renderDynamicModel(command: DrawDynamicModel, environment: Environment) {
         val model = dynamicGdxModel(command.model)
@@ -1323,8 +1378,10 @@ class GdxRenderer3D(
             ),
         )
         val diffuseTexture = material.diffuseTexture
-        if (diffuseTexture != null) {
-            gdxMaterial.set(TextureAttribute.createDiffuse(diffuseTexture))
+        val diffuseTextureRef = material.diffuseTextureRef
+        val resolvedDiffuseTexture = diffuseTextureRef?.let { ref -> assets.textureByPathOrId(ref.id) } ?: diffuseTexture
+        if (resolvedDiffuseTexture != null) {
+            gdxMaterial.set(TextureAttribute.createDiffuse(resolvedDiffuseTexture))
         } else {
             gdxMaterial.remove(TextureAttribute.Diffuse)
         }
@@ -1830,6 +1887,260 @@ private data class ModelCacheKey(
     val entityId: Long,
     val modelPath: String,
 )
+
+/**
+ * Shader-based ModelViewer material debug renderer.
+ */
+private class GdxModelViewerDebugRenderer(
+    private val assets: GdxAssetService,
+    private val logger: Logger,
+) {
+    private val uvShaders = mutableMapOf<Int, ShaderProgram?>()
+    private val fallbackShader: ShaderProgram? = compileShader(
+        name = "model-viewer-debug-fallback",
+        vertex = """
+            attribute vec3 a_position;
+            uniform mat4 u_projViewTrans;
+            uniform mat4 u_worldTrans;
+
+            void main() {
+                gl_Position = u_projViewTrans * u_worldTrans * vec4(a_position, 1.0);
+            }
+        """.trimIndent(),
+        fragment = """
+            #ifdef GL_ES
+            precision mediump float;
+            #endif
+
+            uniform vec4 u_FallbackColor;
+
+            void main() {
+                gl_FragColor = u_FallbackColor;
+            }
+        """.trimIndent(),
+    )
+    private val renderables = Array<Renderable>()
+    private val renderablePool = object : Pool<Renderable>() {
+        override fun newObject(): Renderable = Renderable()
+    }
+    private val warnedKeys = mutableSetOf<String>()
+
+    fun render(
+        command: DrawModel,
+        camera: Camera,
+        instanceProvider: (DrawModel, Camera) -> ModelInstance?,
+    ) {
+        val debugView = command.debugView ?: return
+        val instance = instanceProvider(command, camera) ?: return
+
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST)
+        Gdx.gl.glDepthMask(true)
+        Gdx.gl.glDisable(GL20.GL_BLEND)
+        Gdx.gl.glDisable(GL20.GL_CULL_FACE)
+
+        renderables.clear()
+        instance.getRenderables(renderables, renderablePool)
+        for (renderable in renderables) {
+            renderRenderable(renderable, instance, debugView, camera)
+        }
+        renderablePool.freeAll(renderables)
+        renderables.clear()
+    }
+
+    fun dispose() {
+        uvShaders.values.filterNotNull().toSet().forEach(ShaderProgram::dispose)
+        fallbackShader?.dispose()
+    }
+
+    private fun renderRenderable(
+        renderable: Renderable,
+        instance: ModelInstance,
+        debugView: com.pashkd.krender.engine.api.MaterialDebugView,
+        camera: Camera,
+    ) {
+        val materialIndex = materialIndexOf(instance.materials, renderable.material)
+        val selectedMaterialIndex = debugView.selectedMaterialIndex
+        if (selectedMaterialIndex != null && materialIndex != selectedMaterialIndex) {
+            renderFallback(renderable, camera, FallbackUnselectedMaterial)
+            return
+        }
+
+        val mode = debugView.mode
+        val uvChannel = if (mode == DEBUG_MODE_UV_CHECKER) {
+            debugView.uvChannel.coerceAtLeast(0)
+        } else {
+            textureAttributeFor(renderable.material, debugView)?.uvIndex?.coerceAtLeast(0) ?: 0
+        }
+        if (!renderable.meshPart.hasUvChannel(uvChannel)) {
+            warnOnce("missing-uv-$mode-$uvChannel") {
+                "ModelViewer debug shader fallback: mesh part '${renderable.meshPart.id}' has no UV$uvChannel for mode=$mode"
+            }
+            renderFallback(renderable, camera, FallbackMissingUv)
+            return
+        }
+
+        val texture = if (mode == DEBUG_MODE_UV_CHECKER) {
+            val checkerRef = debugView.uvCheckerTexture
+            checkerRef?.let { ref ->
+                assets.queue(AssetRef.texture(ref.id))
+                assets.gdxTexture(AssetRef.texture(ref.id))
+            }
+        } else {
+            textureAttributeFor(renderable.material, debugView)?.textureDescription?.texture
+        }
+
+        if (texture == null) {
+            warnOnce("missing-texture-$mode-${materialIndex ?: "unknown"}") {
+                "ModelViewer debug shader fallback: texture for mode=$mode is unavailable materialIndex=${materialIndex ?: "unknown"}"
+            }
+            renderFallback(renderable, camera, FallbackMissingTexture)
+            return
+        }
+
+        val shader = uvShader(uvChannel) ?: run {
+            renderFallback(renderable, camera, FallbackShaderError)
+            return
+        }
+
+        texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat)
+        texture.bind(0)
+        shader.bind()
+        shader.setUniformMatrix("u_projViewTrans", camera.combined)
+        shader.setUniformMatrix("u_worldTrans", renderable.worldTransform)
+        shader.setUniformi("u_DebugTexture", 0)
+        shader.setUniformi("u_DebugMode", debugModeCode(mode))
+        shader.setUniformf("u_UvCheckerScale", debugView.uvScale.coerceAtLeast(MIN_UV_SCALE))
+        renderable.meshPart.render(shader)
+    }
+
+    private fun renderFallback(
+        renderable: Renderable,
+        camera: Camera,
+        color: com.badlogic.gdx.graphics.Color,
+    ) {
+        val shader = fallbackShader ?: return
+        shader.bind()
+        shader.setUniformMatrix("u_projViewTrans", camera.combined)
+        shader.setUniformMatrix("u_worldTrans", renderable.worldTransform)
+        shader.setUniformf("u_FallbackColor", color)
+        renderable.meshPart.render(shader)
+    }
+
+    private fun textureAttributeFor(
+        material: com.badlogic.gdx.graphics.g3d.Material,
+        debugView: com.pashkd.krender.engine.api.MaterialDebugView,
+    ): TextureAttribute? {
+        val selectedChannel = normalizeTextureChannel(debugView.selectedTextureChannel)
+        var aliasMatch: TextureAttribute? = null
+        for (attribute in material) {
+            val textureAttribute = attribute as? TextureAttribute ?: continue
+            val channel = normalizeTextureChannel(normalizeTextureChannel(textureAttribute))
+            if (selectedChannel.isNotBlank() && channel == selectedChannel) {
+                return textureAttribute
+            }
+            if (channel in debugModeAliases(debugView.mode)) {
+                aliasMatch = textureAttribute
+            }
+        }
+        return aliasMatch
+    }
+
+    private fun uvShader(uvChannel: Int): ShaderProgram? =
+        uvShaders.getOrPut(uvChannel) {
+            compileShader(
+                name = "model-viewer-debug-uv$uvChannel",
+                vertex = """
+                    attribute vec3 a_position;
+                    attribute vec2 a_texCoord$uvChannel;
+                    uniform mat4 u_projViewTrans;
+                    uniform mat4 u_worldTrans;
+                    varying vec2 v_uv;
+
+                    void main() {
+                        v_uv = a_texCoord$uvChannel;
+                        gl_Position = u_projViewTrans * u_worldTrans * vec4(a_position, 1.0);
+                    }
+                """.trimIndent(),
+                fragment = """
+                    #ifdef GL_ES
+                    precision mediump float;
+                    #endif
+
+                    varying vec2 v_uv;
+                    uniform int u_DebugMode;
+                    uniform sampler2D u_DebugTexture;
+                    uniform float u_UvCheckerScale;
+
+                    void main() {
+                        vec2 uv = v_uv;
+                        if (u_DebugMode == ${debugModeCode(DEBUG_MODE_UV_CHECKER)}) {
+                            uv = v_uv * u_UvCheckerScale;
+                        }
+                        vec4 texel = texture2D(u_DebugTexture, uv);
+                        if (u_DebugMode == ${debugModeCode(DEBUG_MODE_ALPHA)}) {
+                            gl_FragColor = vec4(vec3(texel.a), 1.0);
+                        } else {
+                            gl_FragColor = vec4(texel.rgb, 1.0);
+                        }
+                    }
+                """.trimIndent(),
+            )
+        }
+
+    private fun compileShader(name: String, vertex: String, fragment: String): ShaderProgram? {
+        val shader = ShaderProgram(vertex, fragment)
+        if (!shader.isCompiled) {
+            logger.error(TAG) { "ModelViewer debug shader compile failed name='$name': ${shader.log}" }
+            shader.dispose()
+            return null
+        }
+        logger.info(TAG) { "ModelViewer debug shader compiled name='$name'" }
+        return shader
+    }
+
+    private fun warnOnce(key: String, message: () -> String) {
+        if (warnedKeys.add(key)) {
+            logger.warn(TAG, message = message)
+        }
+    }
+
+    private fun MeshPart.hasUvChannel(uvChannel: Int): Boolean =
+        mesh.vertexAttributes.any { attribute ->
+            attribute.usage == VertexAttributes.Usage.TextureCoordinates && attribute.unit == uvChannel
+        }
+
+    companion object {
+        private const val TAG = "GdxModelViewerDebugRenderer"
+        private const val DEBUG_MODE_UV_CHECKER = "UvChecker"
+        private const val DEBUG_MODE_ALPHA = "Alpha"
+        private const val MIN_UV_SCALE = 0.01f
+        private val FallbackMissingTexture = com.badlogic.gdx.graphics.Color(1f, 0.15f, 0.65f, 1f)
+        private val FallbackMissingUv = com.badlogic.gdx.graphics.Color(1f, 0.72f, 0.1f, 1f)
+        private val FallbackShaderError = com.badlogic.gdx.graphics.Color(1f, 0f, 0f, 1f)
+        private val FallbackUnselectedMaterial = com.badlogic.gdx.graphics.Color(0.28f, 0.28f, 0.3f, 1f)
+    }
+}
+
+private fun debugModeCode(mode: String): Int = when (mode) {
+    "Alpha" -> 6
+    "UvChecker" -> 7
+    else -> 1
+}
+
+private fun debugModeAliases(mode: String): Set<String> = when (mode) {
+    "BaseColor" -> setOf("basecolor", "basecolortexture", "diffuse", "diffusetexture")
+    "Normal" -> setOf("normal", "normaltexture", "bump")
+    "Emission" -> setOf("emission", "emissive", "emissivetexture")
+    "MetallicRoughness" -> setOf("metallicroughness", "metallic", "roughness", "orm")
+    "Occlusion" -> setOf("occlusion", "ao", "ambientocclusion")
+    "Alpha" -> setOf("alpha", "opacity", "alphatexture")
+    else -> emptySet()
+}
+
+private fun normalizeTextureChannel(channel: String?): String =
+    channel.orEmpty()
+        .lowercase()
+        .filter { char -> char.isLetterOrDigit() }
 
 /**
  * Minimal shader-based line renderer used for debug grids, axes, and wireframes.
