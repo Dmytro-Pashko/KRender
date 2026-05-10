@@ -207,6 +207,10 @@ Features:
 - Shows mesh parts, materials, texture channels, and animation metadata when available.
 - Allows selecting and isolating individual mesh parts for easier inspection.
 - Provides shaded, wireframe, and mixed shaded-wireframe display modes.
+- Provides shader-based material debug preview modes separate from viewport display modes.
+- Can preview Base Color / Diffuse, Normal, Metallic / Roughness, Occlusion, Emission, and Alpha texture channels directly on the model surface when metadata is available.
+- Includes UV checker preview using texture assets at 1024, 2048, and 4096 resolutions for validating UV layout and scale.
+- Falls back safely and reports warnings when a model has no UVs or a requested texture channel is unavailable.
 - Shows texture previews when supported by the backend.
 - Includes loading state, logs, and viewport layout controls.
 
@@ -216,6 +220,10 @@ Screenshots:
 ![Model Viewer shaded wireframe](docs/screenshot/model-viewer-shader_full_mesh_shaded_wires.png)
 ![Model Viewer full model without helpers](docs/screenshot/model-viewer-shader_full_model_no_grid_no_axis_no_bounds.png)
 ![Model Viewer isolated wireframe](docs/screenshot/model-viewer-wireframe_isolated.png)
+![Model Viewer metallic roughness preview](docs/screenshot/model-viewer_metalic_preview.png)
+![Model Viewer alpha channel preview](docs/screenshot/model-viewer_alpha_channel_preview.png)
+![Model Viewer UV checker preview](docs/screenshot/model-viewer_uv_checker.png)
+![Model Viewer normal texture preview](docs/screenshot/model-viewer_normal_view.png)
 
 ### Terrain Editor
 
