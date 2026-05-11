@@ -510,12 +510,13 @@ class TerrainEditorSystem(
             editHistory.clear()
             val nextIndex = terrain.data.allLayers().size + 1
             val material = state.terrainMaterials.firstOrNull()
+                ?: throw IllegalStateException("Cannot add terrain layer: terrain material library is empty.")
             val layer = terrain.data.addLayer(
                 name = "Layer $nextIndex",
-                materialId = material?.id ?: "terrain/layer_$nextIndex",
-                color = material?.fallbackColor ?: defaultLayerColor(nextIndex - 1),
+                materialId = material.id,
+                color = material.fallbackColor,
                 visible = true,
-                tiling = material?.defaultTiling ?: 1f,
+                tiling = material.defaultTiling,
             )
             state.selectedLayerId = layer.id
             markPreviewDirty(terrain)
@@ -688,12 +689,14 @@ class TerrainEditorSystem(
             }
         }
         if (regenerated.allLayers().isEmpty()) {
-            val material = preferredBaseMaterial() ?: state.terrainMaterials.firstOrNull()
+            val material = preferredBaseMaterial()
+                ?: state.terrainMaterials.firstOrNull()
+                ?: throw IllegalStateException("Cannot regenerate terrain: terrain material library is empty.")
             val baseLayer = regenerated.addLayer(
                 name = "Base Layer",
-                materialId = material?.id ?: "terrain/base",
-                color = material?.fallbackColor ?: TerrainLayerColorDescriptor(),
-                tiling = material?.defaultTiling ?: 1f,
+                materialId = material.id,
+                color = material.fallbackColor,
+                tiling = material.defaultTiling,
             )
             state.selectedLayerId = baseLayer.id
         }
@@ -861,23 +864,6 @@ class TerrainEditorSystem(
         } else {
             1f
         }
-    }
-
-    /**
-     * Returns a fallback debug-friendly color for newly created layers.
-     */
-    private fun defaultLayerColor(index: Int): TerrainLayerColorDescriptor {
-        val colors = listOf(
-            TerrainLayerColorDescriptor(0.25f, 0.65f, 0.2f, 1f),
-            TerrainLayerColorDescriptor(0.55f, 0.42f, 0.28f, 1f),
-            TerrainLayerColorDescriptor(0.55f, 0.55f, 0.58f, 1f),
-            TerrainLayerColorDescriptor(0.82f, 0.78f, 0.62f, 1f),
-            TerrainLayerColorDescriptor(0.35f, 0.5f, 0.75f, 1f),
-            TerrainLayerColorDescriptor(0.8f, 0.85f, 0.9f, 1f),
-            TerrainLayerColorDescriptor(0.45f, 0.32f, 0.2f, 1f),
-            TerrainLayerColorDescriptor(0.8f, 0.45f, 0.25f, 1f),
-        )
-        return colors[index % colors.size]
     }
 
     companion object {

@@ -41,7 +41,7 @@ import com.pashkd.krender.engine.ui.UiSystem
  */
 class SceneEditorScene(
     private val scenePath: String? = null,
-    private val initialSceneName: String = "Untitled Scene",
+    private val initialSceneName: String? = null,
 ) : Scene("scene_editor") {
     private lateinit var editorState: SceneEditorState
     private lateinit var assetPanelState: SceneAssetPanelState
@@ -62,7 +62,10 @@ class SceneEditorScene(
 
         editorState = SceneEditorState(
             currentScenePath = scenePath,
-            sceneName = initialSceneName,
+            sceneName = initialSceneName ?: scenePath?.substringAfterLast('/')?.substringAfterLast('\\')
+                ?.substringBeforeLast('.')
+                ?.takeIf(String::isNotBlank)
+                ?: SceneEditorState().sceneName,
         )
         assetPanelState = SceneAssetPanelState()
         document = SceneEditorDocument(world = SceneWorld())

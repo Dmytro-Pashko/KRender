@@ -16,7 +16,7 @@ fun main(args: Array<String>) {
     logStartup(args)
     Lwjgl3Application(
         Main(
-            modelPath = args.firstOrNull() ?: Main.defaultModelPath(),
+            modelPath = args.firstOrNull() ?: Main.configuredModelPath(),
             runtimeWindowLauncherFactory = { logger -> Lwjgl3RuntimeWindowLauncher(logger) },
             editorToolLauncherFactory = { logger -> Lwjgl3EditorToolLauncher(logger) },
         ),

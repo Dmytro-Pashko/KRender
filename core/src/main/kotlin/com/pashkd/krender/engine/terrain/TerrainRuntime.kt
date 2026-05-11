@@ -49,13 +49,9 @@ fun runtimeTerrainFinalSplatTextureId(
 class TerrainRuntimeFactory(
     private val logger: Logger,
     private val persistence: TerrainRuntimePersistence,
-    private val materialLibrary: TerrainMaterialLibrary,
 ) {
-    fun loadOrCreate(
+    fun load(
         terrainFilePath: String,
-        defaultResolution: Int,
-        vertexSpacing: Float,
-        generator: TerrainGenerator,
     ): TerrainData {
         val candidates = terrainPathCandidates(terrainFilePath)
         logger.info(TAG) {
@@ -76,55 +72,17 @@ class TerrainRuntimeFactory(
                     }
                 }
             } catch (error: Exception) {
-                logger.warn(TAG, error) {
-                    "Runtime terrain load failed path='$readablePath': ${error.message}. Generating fallback terrain."
-                }
-            }
-        } else {
-            logger.warn(TAG) {
-                "Runtime terrain file not found requested='$terrainFilePath' candidates=${candidates.joinToString()}. Generating default terrain."
+                throw IllegalStateException(
+                    "Runtime terrain asset '$readablePath' could not be loaded: ${error.message}",
+                    error,
+                )
             }
         }
 
-        return createDefault(defaultResolution, vertexSpacing, generator)
-    }
-
-    private fun createDefault(
-        defaultResolution: Int,
-        vertexSpacing: Float,
-        generator: TerrainGenerator,
-    ): TerrainData {
-        val resolution = defaultResolution.coerceAtLeast(2)
-        val data = TerrainData(
-            width = resolution,
-            height = resolution,
-            vertexSpacing = vertexSpacing,
+        throw IllegalArgumentException(
+            "Runtime terrain asset not found: requested='$terrainFilePath' candidates=${candidates.joinToString()}",
         )
-        val baseMaterial = preferredBaseMaterial()
-        val baseLayer = data.addLayer(
-            name = "Base Layer",
-            materialId = baseMaterial?.id ?: "terrain/base",
-            color = baseMaterial?.fallbackColor ?: TerrainLayerColorDescriptor(0.38f, 0.48f, 0.30f, 1f),
-            visible = true,
-            tiling = baseMaterial?.defaultTiling ?: 1f,
-        )
-        for (y in 0 until data.height) {
-            for (x in 0 until data.width) {
-                data.setLayerWeight(baseLayer.id, x, y, 1f)
-            }
-        }
-        generator.generate(data)
-        logger.info(TAG) {
-            "Runtime terrain generated generator='${generator.id}' resolution=${data.width} spacing=${"%.2f".format(data.vertexSpacing)} " +
-                "baseMaterial='${baseLayer.materialId}' (${data.describeRuntimeTerrain()}) ${data.describeLayerWeights()}"
-        }
-        return data
     }
-
-    private fun preferredBaseMaterial() =
-        materialLibrary.find("terrain/grass")
-            ?: materialLibrary.find("terrain/ground_grass")
-            ?: materialLibrary.firstOrNull()
 
     private companion object {
         private const val TAG = "TerrainRuntimeFactory"
@@ -318,8 +276,8 @@ private data class RuntimeTerrainLayerSample(
  * matches the generated [RuntimeTextureData], and [TerrainRenderSystem] forwards
  * both to the backend in [DrawDynamicModel].
  *
- * [finalSplatResolution] is the default runtime final material resolution.
- * Individual terrain renderers can override it with
+ * [finalSplatResolution] is the runtime final material resolution used when a
+ * terrain renderer does not provide one. Individual terrain renderers can override it with
  * [TerrainRendererComponent.finalSplatResolution]. This is separate from
  * [TerrainRendererComponent.previewResolution], which is editor-only.
  */
@@ -329,13 +287,13 @@ class RuntimeTerrainMeshSystem(
     private val finalSplatTextureIdProvider: (EntityId, TerrainRendererComponent) -> String = { entityId, renderer ->
         runtimeTerrainFinalSplatTextureId(entityId, renderer.modelId)
     },
-    private val finalSplatResolution: Int = 512,
+    private val finalSplatResolution: Int? = null,
     private val blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
 ) : System() {
     constructor(
         materialLibrary: TerrainMaterialLibrary,
         logger: Logger,
-        finalSplatResolution: Int = 512,
+        finalSplatResolution: Int? = null,
         blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
     ) : this(
         materialBakeService = TerrainMaterialBakeService(materialLibrary, logger),
@@ -361,7 +319,11 @@ class RuntimeTerrainMeshSystem(
             renderer.model = mesh.model
             renderer.vertexCount = mesh.vertexCount
             renderer.triangleCount = mesh.triangleCount
-            val requestedFinalSplatResolution = (renderer.finalSplatResolution.takeIf { it > 0 } ?: finalSplatResolution)
+            val requestedFinalSplatResolution = (renderer.finalSplatResolution.takeIf { it > 0 }
+                ?: finalSplatResolution
+                ?: throw IllegalStateException(
+                    "Runtime terrain final splat resolution is missing for modelId='${renderer.modelId}'.",
+                ))
                 .coerceIn(2, MaxRuntimeTerrainSplatResolution)
             renderer.finalSplatResolution = requestedFinalSplatResolution
 

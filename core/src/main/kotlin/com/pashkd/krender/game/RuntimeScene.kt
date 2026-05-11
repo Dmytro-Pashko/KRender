@@ -18,7 +18,6 @@ import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.render3d.RuntimeEnvironmentSystem
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
-import com.pashkd.krender.engine.terrain.FlatTerrainGenerator
 import com.pashkd.krender.engine.terrain.RuntimeTerrainMeshSystem
 import com.pashkd.krender.engine.terrain.TerrainMaterialBakeService
 import com.pashkd.krender.engine.terrain.TerrainComponent
@@ -37,10 +36,8 @@ import com.pashkd.krender.engine.terrain.runtimeTerrainFinalSplatTextureId
  */
 class RuntimeScene(
     private val scenePath: String? = null,
-    private val terrainFilePath: String = "terrains/terrain_01.krterrain",
-    private val terrainResolution: Int = 128,
-    private val finalSplatResolution: Int = 512,
-    private val vertexSpacing: Float = 1f,
+    private val terrainFilePath: String? = null,
+    private val finalSplatResolution: Int? = null,
     private val skyboxTexturePath: String = DEFAULT_RUNTIME_SKYBOX_TEXTURE,
 ) : Scene("runtime_scene") {
     override val requiredAssets: List<AssetPack> = listOf(
@@ -55,7 +52,7 @@ class RuntimeScene(
     override fun scheduleAssets(assets: com.pashkd.krender.engine.api.AssetService) {
         engine.logger.info(TAG) {
             "RuntimeScene scheduleAssets skybox='$skyboxTexturePath' terrain='$terrainFilePath' " +
-                "finalSplatResolution=${finalSplatResolution}x$finalSplatResolution materialLibrary='materials/terrain_materials.json'"
+                "finalSplatResolution=${finalSplatResolution ?: "<scene>"} materialLibrary='materials/terrain_materials.json'"
         }
         super.scheduleAssets(assets)
     }
@@ -66,8 +63,8 @@ class RuntimeScene(
             library.load("materials/terrain_materials.json")
         }
         engine.logger.info(TAG) {
-            "RuntimeScene show terrainPath='$terrainFilePath' terrainResolution=$terrainResolution " +
-                "finalSplatResolution=${finalSplatResolution}x$finalSplatResolution skybox='$skyboxTexturePath' " +
+            "RuntimeScene show terrainPath='${terrainFilePath ?: "<scene>"}' " +
+                "finalSplatResolution=${finalSplatResolution ?: "<scene>"} skybox='$skyboxTexturePath' " +
                 "materials=${terrainMaterialLibrary.all().size}"
         }
 
@@ -124,12 +121,8 @@ class RuntimeScene(
         val terrainData = TerrainRuntimeFactory(
             logger = engine.logger,
             persistence = terrainPersistence,
-            materialLibrary = terrainMaterialLibrary,
-        ).loadOrCreate(
+        ).load(
             terrainFilePath = source.path,
-            defaultResolution = terrainResolution,
-            vertexSpacing = vertexSpacing,
-            generator = FlatTerrainGenerator(),
         )
 
         engine.logger.info(TAG) {
@@ -138,7 +131,6 @@ class RuntimeScene(
         }
         val terrain = source.entity ?: world.createEntity("Runtime Terrain")
         val sceneTerrain = terrain.get<TerrainComponent>()
-        val requestedFinalSplatResolution = finalSplatResolution.coerceIn(2, 1024)
         val finalTextureId = runtimeTerrainFinalSplatTextureId(
             entityId = terrain.id,
             modelId = "runtime_terrain_${terrain.id}_${terrainData.width}x${terrainData.height}",
@@ -161,11 +153,11 @@ class RuntimeScene(
                         uvChannel = 0,
                     ),
                 ),
-                finalSplatResolution = requestedFinalSplatResolution,
+                finalSplatResolution = source.finalSplatResolution ?: 0,
             ),
         )
         engine.logger.info(TAG) {
-            "Runtime terrain final splat requested entityId=${terrain.id} resolution=${requestedFinalSplatResolution}x$requestedFinalSplatResolution"
+            "Runtime terrain final splat requested entityId=${terrain.id} resolution=${source.finalSplatResolution ?: "<system-required>"}"
         }
     }
 
@@ -188,11 +180,12 @@ class RuntimeScene(
             ?.takeIf { entity -> entity.get<TerrainComponent>() != null }
         if (activeTerrain != null) {
             val terrain = activeTerrain.get<TerrainComponent>()
-            val path = terrain?.terrain?.path?.takeIf(String::isNotBlank) ?: terrainFilePath
+            val path = terrain?.terrain?.path?.takeIf(String::isNotBlank)
+                ?: throw IllegalStateException("Active runtime terrain entityId=${activeTerrain.id} has no terrain asset path.")
             engine.logger.info(TAG) {
                 "Runtime scene active terrain resolved entityId=${activeTerrain.id} name='${activeTerrain.name}' path='$path'"
             }
-            return RuntimeTerrainSource(activeTerrain, path, "scene-active-terrain")
+            return RuntimeTerrainSource(activeTerrain, path, "scene-active-terrain", finalSplatResolution ?: terrain.bakedTextureResolution)
         }
 
         if (descriptor != null && activeTerrainEntityId != null) {
@@ -208,17 +201,31 @@ class RuntimeScene(
         val fallbackTerrain = terrainEntities.firstOrNull()
         if (fallbackTerrain != null) {
             val terrain = fallbackTerrain.get<TerrainComponent>()
-            val path = terrain?.terrain?.path?.takeIf(String::isNotBlank) ?: terrainFilePath
+            val path = terrain?.terrain?.path?.takeIf(String::isNotBlank)
+                ?: throw IllegalStateException("Runtime terrain entityId=${fallbackTerrain.id} has no terrain asset path.")
             engine.logger.warn(TAG) {
                 "Runtime scene using first terrain entity as fallback entityId=${fallbackTerrain.id} name='${fallbackTerrain.name}' path='$path'"
             }
-            return RuntimeTerrainSource(fallbackTerrain, path, "scene-first-terrain-fallback")
+            return RuntimeTerrainSource(fallbackTerrain, path, "scene-first-terrain-fallback", finalSplatResolution ?: terrain.bakedTextureResolution)
         }
 
-        engine.logger.warn(TAG) {
-            "Runtime scene has no terrain entity; using constructor terrain fallback path='$terrainFilePath'."
+        val configuredTerrainPath = terrainFilePath?.takeIf(String::isNotBlank)
+            ?: throw IllegalStateException(
+                "Runtime scene has no terrain entity and no krender.terrain.path was configured.",
+            )
+        val configuredFinalSplatResolution = finalSplatResolution
+            ?: throw IllegalStateException(
+                "Runtime scene has no terrain entity; set krender.terrain.splat.size when using krender.terrain.path.",
+            )
+        engine.logger.info(TAG) {
+            "Runtime scene has no terrain entity; using configured terrain path='$configuredTerrainPath'."
         }
-        return RuntimeTerrainSource(entity = null, path = terrainFilePath, reason = "constructor-fallback")
+        return RuntimeTerrainSource(
+            entity = null,
+            path = configuredTerrainPath,
+            reason = "configured-terrain",
+            finalSplatResolution = configuredFinalSplatResolution,
+        )
     }
 
     private fun ensureRuntimeCamera(descriptor: SceneDescriptor) {
@@ -299,4 +306,5 @@ private data class RuntimeTerrainSource(
     val entity: Entity?,
     val path: String,
     val reason: String,
+    val finalSplatResolution: Int?,
 )

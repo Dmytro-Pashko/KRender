@@ -12,9 +12,9 @@ import com.pashkd.krender.game.SceneEditorScene
 import com.pashkd.krender.game.TerrainEditorScene
 
 class Main(
-    sceneName: String = defaultScene(),
-    modelPath: String? = defaultModelPath(),
-    scenePath: String? = defaultScenePath(),
+    sceneName: String? = configuredSceneName(),
+    modelPath: String? = configuredModelPath(),
+    scenePath: String? = configuredScenePath(),
     runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = {
         com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
     },
@@ -23,57 +23,64 @@ class Main(
     },
 ) : GdxEngineApplication(
     initialScene = {
+        val requestedScene = sceneName?.trim()?.takeIf(String::isNotBlank) ?: ASSET_BROWSER_SCENE
         val selectedModel = modelPath?.let(AssetRef.Companion::model)
-        when (sceneName.lowercase()) {
+        when (requestedScene.lowercase()) {
             "asset-browser" -> AssetBrowserScene()
 
             "scene-editor" -> SceneEditorScene(
                 scenePath = scenePath,
-                initialSceneName = defaultSceneName(),
+                initialSceneName = configuredSceneNameOverride(),
             )
 
             "runtime-scene" -> RuntimeScene(
                 scenePath = scenePath,
-                terrainFilePath = defaultTerrainFilePath(),
-                terrainResolution = defaultTerrainResolution(),
-                finalSplatResolution = defaultRuntimeTerrainSplatResolution(),
-                vertexSpacing = defaultTerrainSpacing(),
+                terrainFilePath = configuredTerrainFilePath(),
+                finalSplatResolution = configuredRuntimeTerrainSplatResolution(),
             )
 
             "model-viewer" -> ModelViewerScene(
-                model = selectedModel ?: AssetRef.primitiveModel("cube"),
+                model = selectedModel ?: throw missingProperty("krender.model.path", "model-viewer"),
             )
 
             "terrain-editor", "terrain-generator" -> TerrainEditorScene(
-                terrainResolution = defaultTerrainResolution(),
-                vertexSpacing = defaultTerrainSpacing(),
-                terrainFilePath = defaultTerrainFilePath(),
+                terrainFilePath = configuredTerrainFilePath()
+                    ?: throw missingProperty("krender.terrain.path", requestedScene),
             )
 
-            else -> {
-                System.err.println("Unknown scene '$sceneName', defaulting to model viewer.")
-                ModelViewerScene(
-                    model = selectedModel ?: AssetRef.primitiveModel("cube"),
-                )
-
-            }
+            else -> throw IllegalArgumentException(
+                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, runtime-scene, model-viewer, terrain-editor.",
+            )
         }
     },
     runtimeWindowLauncherFactory = runtimeWindowLauncherFactory,
     editorToolLauncherFactory = editorToolLauncherFactory,
 ) {
     companion object {
-        fun defaultScene(): String = System.getProperty("krender.scene", "asset-browser")
-        fun defaultModelPath(): String? =
+        private const val ASSET_BROWSER_SCENE = "asset-browser"
+
+        fun configuredSceneName(): String? = System.getProperty("krender.scene")?.takeIf(String::isNotBlank)
+
+        fun configuredModelPath(): String? =
             System.getProperty("krender.model.path")?.takeIf(String::isNotBlank)
                 ?: System.getProperty("krender.model")?.takeIf(String::isNotBlank)
-        fun defaultTerrainResolution(): Int = System.getProperty("krender.terrain.size", "128").toIntOrNull() ?: 128
-        fun defaultRuntimeTerrainSplatResolution(): Int =
-            (System.getProperty("krender.terrain.splat.size", "512").toIntOrNull() ?: 512).coerceIn(2, 1024)
-        fun defaultTerrainSpacing(): Float = System.getProperty("krender.terrain.spacing", "1.0").toFloatOrNull() ?: 1f
-        fun defaultTerrainFilePath(): String =
-            System.getProperty("krender.terrain.path", "terrains/terrain_01.krterrain")
-        fun defaultScenePath(): String? = System.getProperty("krender.scene.path")?.takeIf(String::isNotBlank)
-        fun defaultSceneName(): String = System.getProperty("krender.scene.name", "Untitled Scene")
+
+        fun configuredTerrainFilePath(): String? = System.getProperty("krender.terrain.path")?.takeIf(String::isNotBlank)
+
+        fun configuredRuntimeTerrainSplatResolution(): Int? =
+            System.getProperty("krender.terrain.splat.size")
+                ?.takeIf(String::isNotBlank)
+                ?.let { value ->
+                    value.toIntOrNull()?.coerceIn(2, 8192)
+                        ?: throw IllegalArgumentException("Invalid krender.terrain.splat.size '$value'. Expected an integer.")
+                }
+
+        fun configuredScenePath(): String? = System.getProperty("krender.scene.path")?.takeIf(String::isNotBlank)
+
+        fun configuredSceneNameOverride(): String? =
+            System.getProperty("krender.scene.name")?.takeIf(String::isNotBlank)
+
+        private fun missingProperty(propertyName: String, sceneName: String): IllegalArgumentException =
+            IllegalArgumentException("Missing required system property '$propertyName' for krender.scene='$sceneName'.")
     }
 }

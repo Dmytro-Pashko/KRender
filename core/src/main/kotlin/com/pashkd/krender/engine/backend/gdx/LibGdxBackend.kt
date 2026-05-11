@@ -530,8 +530,7 @@ class GdxAssetService(
             ModelAsset::class -> {
                 if (!Gdx.files.internal(asset.path).exists()) {
                     missing += asset.path
-                    logger?.warn(GDX_ASSET_SERVICE_TAG) { "Asset missing type=model path='${asset.path}'" }
-                    return
+                    throw missingAsset("model", asset.path)
                 }
                 requested += asset.path
                 logger?.info(GDX_ASSET_SERVICE_TAG) { "Queue asset type=model path='${asset.path}' gltf=${asset.isGltf()}" }
@@ -545,8 +544,7 @@ class GdxAssetService(
             TextureAsset::class -> {
                 if (!Gdx.files.internal(asset.path).exists()) {
                     missing += asset.path
-                    logger?.warn(GDX_ASSET_SERVICE_TAG) { "Asset missing type=texture path='${asset.path}'" }
-                    return
+                    throw missingAsset("texture", asset.path)
                 }
                 requested += asset.path
                 logger?.info(GDX_ASSET_SERVICE_TAG) { "Queue asset type=texture path='${asset.path}'" }
@@ -561,10 +559,16 @@ class GdxAssetService(
                     logger?.info(GDX_ASSET_SERVICE_TAG) { "Loaded shader source path='${asset.path}'" }
                 } else {
                     missing += asset.path
-                    logger?.warn(GDX_ASSET_SERVICE_TAG) { "Asset missing type=shader path='${asset.path}'" }
+                    throw missingAsset("shader", asset.path)
                 }
             }
         }
+    }
+
+    private fun missingAsset(type: String, path: String): IllegalArgumentException {
+        val message = "Asset not found type=$type path='$path'"
+        logger?.error(GDX_ASSET_SERVICE_TAG) { message }
+        return IllegalArgumentException(message)
     }
 
     /** Advances asynchronous loading for up to the given time budget. */

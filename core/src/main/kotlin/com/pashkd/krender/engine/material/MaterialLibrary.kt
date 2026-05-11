@@ -11,13 +11,13 @@ data class TerrainMaterialDescriptor(
     val id: String,
     val name: String,
     val albedoTexture: String,
-    val fallbackColor: TerrainLayerColorDescriptor = TerrainLayerColorDescriptor(),
-    val defaultTiling: Float = 1f,
+    val fallbackColor: TerrainLayerColorDescriptor,
+    val defaultTiling: Float,
 )
 
 data class TerrainMaterialLibraryDescriptor(
-    val formatVersion: Int = 1,
-    val materials: List<TerrainMaterialDescriptor> = emptyList(),
+    val formatVersion: Int,
+    val materials: List<TerrainMaterialDescriptor>,
 )
 
 class TerrainMaterialLibrary(
@@ -29,16 +29,16 @@ class TerrainMaterialLibrary(
         setSerializer(TerrainMaterialDescriptor::class.java, TerrainMaterialDescriptorSerializer)
         setSerializer(TerrainLayerColorDescriptor::class.java, TerrainLayerColorDescriptorSerializer)
     }
-    private var materials: List<TerrainMaterialDescriptor> = fallbackMaterials()
+    private var materials: List<TerrainMaterialDescriptor> = emptyList()
 
-    fun load(assetPath: String = "materials/terrain_materials.json") {
+    fun load(assetPath: String) {
         materials = try {
             loadFromJson(Gdx.files.internal(assetPath).readString("UTF-8"), assetPath)
         } catch (error: Exception) {
-            logger?.warn(TAG, error) {
-                "Failed to load terrain material library '$assetPath': ${error.message}. Using fallback materials."
+            logger?.error(TAG, error) {
+                "Failed to load terrain material library '$assetPath': ${error.message}"
             }
-            fallbackMaterials()
+            throw IllegalStateException("Terrain material library '$assetPath' could not be loaded: ${error.message}", error)
         }
     }
 
@@ -93,51 +93,10 @@ class TerrainMaterialLibrary(
         private const val TAG = "TerrainMaterialLibrary"
         private const val FORMAT_VERSION = 1
 
-        fun fallbackMaterials(): List<TerrainMaterialDescriptor> =
-            listOf(
-                TerrainMaterialDescriptor(
-                    id = "terrain/sand",
-                    name = "Sand",
-                    albedoTexture = "textures/t_sand_01_s.png",
-                    fallbackColor = TerrainLayerColorDescriptor(0.78f, 0.63f, 0.35f, 1f),
-                    defaultTiling = 8f,
-                ),
-                TerrainMaterialDescriptor(
-                    id = "terrain/dirt",
-                    name = "Dirt",
-                    albedoTexture = "textures/t_dirt_01_s.png",
-                    fallbackColor = TerrainLayerColorDescriptor(0.38f, 0.25f, 0.15f, 1f),
-                    defaultTiling = 8f,
-                ),
-                TerrainMaterialDescriptor(
-                    id = "terrain/ground_grass",
-                    name = "Ground + Grass",
-                    albedoTexture = "textures/t_ground_01_s.png",
-                    fallbackColor = TerrainLayerColorDescriptor(0.24f, 0.42f, 0.18f, 1f),
-                    defaultTiling = 8f,
-                ),
-                TerrainMaterialDescriptor(
-                    id = "terrain/grass",
-                    name = "Grass",
-                    albedoTexture = "textures/t_grass_01_s.png",
-                    fallbackColor = TerrainLayerColorDescriptor(0.18f, 0.55f, 0.14f, 1f),
-                    defaultTiling = 8f,
-                ),
-                TerrainMaterialDescriptor(
-                    id = "terrain/gravel",
-                    name = "Gravel",
-                    albedoTexture = "textures/t_gravel_02_s.png",
-                    fallbackColor = TerrainLayerColorDescriptor(0.45f, 0.43f, 0.39f, 1f),
-                    defaultTiling = 8f,
-                ),
-                TerrainMaterialDescriptor(
-                    id = "terrain/stone",
-                    name = "Stone",
-                    albedoTexture = "textures/t_stone_01_s.png",
-                    fallbackColor = TerrainLayerColorDescriptor(0.42f, 0.42f, 0.40f, 1f),
-                    defaultTiling = 8f,
-                ),
-            )
+        fun fromMaterials(materials: List<TerrainMaterialDescriptor>): TerrainMaterialLibrary =
+            TerrainMaterialLibrary().also { library ->
+                library.materials = library.validateMaterials(materials, "<provided>")
+            }
     }
 }
 
@@ -155,10 +114,10 @@ private object TerrainMaterialLibraryDescriptorSerializer : Json.Serializer<Terr
 
     override fun read(json: Json, jsonData: JsonValue, type: Class<*>?): TerrainMaterialLibraryDescriptor =
         TerrainMaterialLibraryDescriptor(
-            formatVersion = jsonData.getInt("formatVersion", 1),
-            materials = jsonData.get("materials")?.map { materialData ->
+            formatVersion = jsonData.required("formatVersion").asInt(),
+            materials = jsonData.required("materials").map { materialData ->
                 json.readValue(TerrainMaterialDescriptor::class.java, materialData)
-            } ?: emptyList(),
+            },
         )
 }
 
@@ -175,15 +134,14 @@ private object TerrainMaterialDescriptorSerializer : Json.Serializer<TerrainMate
 
     override fun read(json: Json, jsonData: JsonValue, type: Class<*>?): TerrainMaterialDescriptor =
         TerrainMaterialDescriptor(
-            id = jsonData.getString("id", ""),
-            name = jsonData.getString("name", ""),
-            albedoTexture = jsonData.getString("albedoTexture", ""),
-            fallbackColor = (
-                jsonData.get("fallbackColor")?.let {
-                    json.readValue(TerrainLayerColorDescriptor::class.java, it)
-                } ?: TerrainLayerColorDescriptor()
-                ).clamped(),
-            defaultTiling = jsonData.getFloat("defaultTiling", 1f),
+            id = jsonData.required("id").asString(),
+            name = jsonData.required("name").asString(),
+            albedoTexture = jsonData.required("albedoTexture").asString(),
+            fallbackColor = json.readValue(
+                TerrainLayerColorDescriptor::class.java,
+                jsonData.required("fallbackColor"),
+            ).clamped(),
+            defaultTiling = jsonData.required("defaultTiling").asFloat(),
         )
 }
 
@@ -200,12 +158,15 @@ private object TerrainLayerColorDescriptorSerializer : Json.Serializer<TerrainLa
 
     override fun read(json: Json, jsonData: JsonValue, type: Class<*>?): TerrainLayerColorDescriptor =
         TerrainLayerColorDescriptor(
-            r = jsonData.getFloat("r", 1f),
-            g = jsonData.getFloat("g", 1f),
-            b = jsonData.getFloat("b", 1f),
-            a = jsonData.getFloat("a", 1f),
+            r = jsonData.required("r").asFloat(),
+            g = jsonData.required("g").asFloat(),
+            b = jsonData.required("b").asFloat(),
+            a = jsonData.required("a").asFloat(),
         ).clamped()
 }
+
+private fun JsonValue.required(name: String): JsonValue =
+    get(name) ?: throw IllegalArgumentException("Terrain material library is missing required field '$name'")
 
 private fun TerrainLayerColorDescriptor.clamped(): TerrainLayerColorDescriptor =
     TerrainLayerColorDescriptor(

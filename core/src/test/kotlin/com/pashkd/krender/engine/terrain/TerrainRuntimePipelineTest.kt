@@ -8,12 +8,14 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MaterialTextureRef
 import com.pashkd.krender.engine.api.RuntimeTextureData
 import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.material.TerrainMaterialDescriptor
 import com.pashkd.krender.engine.material.TerrainMaterialLibrary
 import com.pashkd.krender.engine.render3d.Material
 import kotlin.math.roundToInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -22,7 +24,7 @@ class TerrainRuntimePipelineTest {
     @Test
     fun `bakes final splat texture from material fallback colors`() {
         val terrain = terrainWithOneLayer(materialId = "terrain/grass")
-        val texture = TerrainMaterialBakeService(TerrainMaterialLibrary(), NoopLogger).bakeFinalSplatTexture(
+        val texture = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger).bakeFinalSplatTexture(
             terrain = terrain,
             resolution = 2,
             textureId = "runtime:test:grass",
@@ -41,7 +43,7 @@ class TerrainRuntimePipelineTest {
         val layerColor = TerrainLayerColorDescriptor(0.2f, 0.3f, 0.4f, 1f)
         val terrain = terrainWithOneLayer(materialId = "terrain/missing", color = layerColor)
 
-        val texture = TerrainMaterialBakeService(TerrainMaterialLibrary(), NoopLogger).bakeFinalSplatTexture(
+        val texture = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger).bakeFinalSplatTexture(
             terrain = terrain,
             resolution = 2,
             textureId = "runtime:test:layer-color",
@@ -52,26 +54,17 @@ class TerrainRuntimePipelineTest {
     }
 
     @Test
-    fun `runtime factory creates fallback terrain with base material when source is missing`() {
-        val generator = RecordingGenerator()
-        val terrain = TerrainRuntimeFactory(
-            logger = NoopLogger,
-            persistence = MissingTerrainPersistence,
-            materialLibrary = TerrainMaterialLibrary(),
-        ).loadOrCreate(
-            terrainFilePath = "terrains/missing.krterrain",
-            defaultResolution = 4,
-            vertexSpacing = 2f,
-            generator = generator,
-        )
+    fun `runtime factory throws when source is missing`() {
+        val error = assertFailsWith<IllegalArgumentException> {
+            TerrainRuntimeFactory(
+                logger = NoopLogger,
+                persistence = MissingTerrainPersistence,
+            ).load(
+                terrainFilePath = "terrains/missing.krterrain",
+            )
+        }
 
-        assertTrue(generator.called)
-        assertEquals(4, terrain.width)
-        assertEquals(4, terrain.height)
-        assertEquals(2f, terrain.vertexSpacing)
-        val baseLayer = terrain.allLayers().single()
-        assertEquals("terrain/grass", baseLayer.materialId)
-        assertEquals(1f, terrain.getLayerWeight(baseLayer.id, 0, 0))
+        assertTrue(error.message.orEmpty().contains("Runtime terrain asset not found"))
     }
 
     @Test
@@ -119,7 +112,7 @@ class TerrainRuntimePipelineTest {
         val secondRenderer = second.add(TerrainRendererComponent(modelId = "terrain"))
 
         RuntimeTerrainMeshSystem(
-            materialBakeService = TerrainMaterialBakeService(TerrainMaterialLibrary(), NoopLogger),
+            materialBakeService = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger),
             logger = NoopLogger,
             finalSplatResolution = 2,
         ).update(world, dt = 0f)
@@ -149,6 +142,19 @@ class TerrainRuntimePipelineTest {
         }
         return terrain
     }
+
+    private fun testMaterialLibrary(): TerrainMaterialLibrary =
+        TerrainMaterialLibrary.fromMaterials(
+            listOf(
+                TerrainMaterialDescriptor(
+                    id = "terrain/grass",
+                    name = "Grass",
+                    albedoTexture = "textures/t_grass_01_s.png",
+                    fallbackColor = TerrainLayerColorDescriptor(0.18f, 0.55f, 0.14f, 1f),
+                    defaultTiling = 8f,
+                ),
+            ),
+        )
 
     private fun dummyModel(id: String): DynamicModel =
         DynamicModel(
@@ -189,14 +195,4 @@ class TerrainRuntimePipelineTest {
             error("Missing persistence should not load descriptors")
     }
 
-    private class RecordingGenerator : TerrainGenerator {
-        override val id: String = "recording"
-        var called: Boolean = false
-            private set
-
-        override fun generate(data: TerrainData) {
-            called = true
-            data.setHeight(0, 0, 3f)
-        }
-    }
 }
