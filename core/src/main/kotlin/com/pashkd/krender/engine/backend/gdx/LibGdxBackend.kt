@@ -2046,11 +2046,12 @@ private class GdxGltfPbrPreviewRenderer(
         if (skyboxCubemap != null) {
             entry.manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(skyboxCubemap))
             entry.manager.environment.set(PBRCubemapAttribute.createSpecularEnv(skyboxCubemap))
-            entry.manager.setSkyBox(entry.skybox)
+            entry.manager.skyBox = entry.skybox
             return
+        } else {
+            entry.manager.skyBox = null
         }
 
-        entry.manager.setSkyBox(null)
         if (settings.showSkybox) {
             val iblAvailable = entry.ensureIbl(direction, intensity.coerceAtLeast(0.01f))
             if (iblAvailable) {
@@ -2066,6 +2067,14 @@ private class GdxGltfPbrPreviewRenderer(
         disposeSkyboxCubemap()
         return try {
             val cubemap = cubemapFromSingleTexture(path)
+            try {
+                SceneSkybox.enableMipmaps(cubemap)
+            } catch (error: Throwable) {
+                warnOnce("skybox-mipmaps-$path-${error::class.qualifiedName}") {
+                    "PBR preview skybox mipmaps unavailable; roughness reflections may be less accurate: " +
+                        (error.message ?: error::class.simpleName)
+                }
+            }
             skyboxTexturePath = path
             skyboxCubemap = cubemap
             skybox = SceneSkybox(cubemap)
