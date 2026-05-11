@@ -1328,7 +1328,7 @@
             "terrain": "terrains/terrain_02_small_flat.json",
             "visible": "true",
             "previewMode": "MaterialTexture",
-            "bakedTextureResolution": "4096"
+            "bakedTextureResolution": "1024"
           }
         }
       ]

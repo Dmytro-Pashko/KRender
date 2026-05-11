@@ -69,7 +69,7 @@ class Main(
                 ?: System.getProperty("krender.model")?.takeIf(String::isNotBlank)
         fun defaultTerrainResolution(): Int = System.getProperty("krender.terrain.size", "128").toIntOrNull() ?: 128
         fun defaultRuntimeTerrainSplatResolution(): Int =
-            System.getProperty("krender.terrain.splat.size", "8192").toIntOrNull() ?: 8192
+            (System.getProperty("krender.terrain.splat.size", "512").toIntOrNull() ?: 512).coerceIn(2, 1024)
         fun defaultTerrainSpacing(): Float = System.getProperty("krender.terrain.spacing", "1.0").toFloatOrNull() ?: 1f
         fun defaultTerrainFilePath(): String =
             System.getProperty("krender.terrain.path", "terrains/terrain_01.krterrain")

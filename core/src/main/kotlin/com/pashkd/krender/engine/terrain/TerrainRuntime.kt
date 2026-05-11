@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.terrain
 
 import com.pashkd.krender.engine.api.Color
+import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MaterialTextureRef
 import com.pashkd.krender.engine.api.RuntimeTextureData
@@ -15,15 +16,39 @@ import kotlin.math.roundToInt
 const val RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID = "runtime:terrain:final_splat"
 
 /**
+ * Minimal terrain persistence surface used by [TerrainRuntimeFactory].
+ */
+interface TerrainRuntimePersistence {
+    fun existsReadable(filePath: String): Boolean
+    fun readableSource(filePath: String): String
+    fun loadDescriptor(filePath: String): TerrainFileDescriptor
+}
+
+/**
+ * Builds a stable, backend-runtime texture id for one terrain entity.
+ *
+ * Runtime texture ids must be unique per terrain because [MaterialTextureRef]
+ * only stores an id and the backend uploads [RuntimeTextureData] into an id-keyed
+ * cache before drawing.
+ */
+fun runtimeTerrainFinalSplatTextureId(
+    entityId: EntityId,
+    modelId: String,
+): String =
+    "$RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID:$entityId:${modelId.replace(Regex("[^A-Za-z0-9_\\-]+"), "_")}"
+
+/**
  * Runtime terrain source factory shared by non-editor terrain scenes.
  *
  * The factory loads serialized [TerrainData] when available and creates a
  * generated fallback with a sensible base material otherwise. It does not
- * create editor state, brush state, panels, or render components.
+ * create editor state, brush state, panels, or render components. Persistence
+ * is accessed through [TerrainRuntimePersistence] so fallback behavior can be
+ * tested without a backend file service.
  */
 class TerrainRuntimeFactory(
     private val logger: Logger,
-    private val persistence: TerrainPersistence,
+    private val persistence: TerrainRuntimePersistence,
     private val materialLibrary: TerrainMaterialLibrary,
 ) {
     fun loadOrCreate(
@@ -114,6 +139,11 @@ class TerrainRuntimeFactory(
  * fallback colors or layer colors. Editor preview/export code can still use its
  * own Pixmap-based preview path, but runtime scenes depend only on
  * [RuntimeTextureData] and [MaterialTextureRef].
+ *
+ * The baked texture is the current final albedo/baseColor approximation. It is
+ * not a GPU splat/control map and does not sample actual material albedo images;
+ * future terrain shaders can replace this service output with real weight maps
+ * or layered texture sampling.
  */
 class TerrainMaterialBakeService(
     private val materialLibrary: TerrainMaterialLibrary,
@@ -287,24 +317,29 @@ private data class RuntimeTerrainLayerSample(
  * baked texture. The renderer material stores a [MaterialTextureRef] whose id
  * matches the generated [RuntimeTextureData], and [TerrainRenderSystem] forwards
  * both to the backend in [DrawDynamicModel].
+ *
+ * [finalSplatResolution] is the default runtime final material resolution.
+ * Individual terrain renderers can override it with
+ * [TerrainRendererComponent.finalSplatResolution]. This is separate from
+ * [TerrainRendererComponent.previewResolution], which is editor-only.
  */
 class RuntimeTerrainMeshSystem(
     private val materialBakeService: TerrainMaterialBakeService,
     private val logger: Logger,
-    private val finalSplatTextureId: String = RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID,
+    private val finalSplatTextureIdProvider: (EntityId, TerrainRendererComponent) -> String = { entityId, renderer ->
+        runtimeTerrainFinalSplatTextureId(entityId, renderer.modelId)
+    },
     private val finalSplatResolution: Int = 512,
     private val blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
 ) : System() {
     constructor(
         materialLibrary: TerrainMaterialLibrary,
         logger: Logger,
-        finalSplatTextureId: String = RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID,
         finalSplatResolution: Int = 512,
         blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
     ) : this(
         materialBakeService = TerrainMaterialBakeService(materialLibrary, logger),
         logger = logger,
-        finalSplatTextureId = finalSplatTextureId,
         finalSplatResolution = finalSplatResolution,
         blendMode = blendMode,
     )
@@ -326,11 +361,12 @@ class RuntimeTerrainMeshSystem(
             renderer.model = mesh.model
             renderer.vertexCount = mesh.vertexCount
             renderer.triangleCount = mesh.triangleCount
-            val requestedFinalSplatResolution = (renderer.previewResolution.takeIf { it > 0 } ?: finalSplatResolution)
+            val requestedFinalSplatResolution = (renderer.finalSplatResolution.takeIf { it > 0 } ?: finalSplatResolution)
                 .coerceIn(2, MaxRuntimeTerrainSplatResolution)
-            renderer.previewResolution = requestedFinalSplatResolution
+            renderer.finalSplatResolution = requestedFinalSplatResolution
 
-            val textureId = finalSplatTextureId
+            var bakeSucceeded = false
+            val textureId = finalSplatTextureIdProvider(entity.id, renderer)
             try {
                 val texture = materialBakeService.bakeFinalSplatTexture(
                     terrain = terrain.data,
@@ -349,6 +385,7 @@ class RuntimeTerrainMeshSystem(
                         uvChannel = 0,
                     ),
                 )
+                bakeSucceeded = true
             } catch (error: Exception) {
                 renderer.replaceFinalSplatTexture(null)
                 renderer.material = renderer.material.copy(diffuseTextureRef = null)
@@ -357,12 +394,14 @@ class RuntimeTerrainMeshSystem(
                 }
             }
 
-            terrain.clearDirty()
+            if (bakeSucceeded) {
+                terrain.clearDirty()
+            }
             logger.info(TAG) {
                 "Runtime terrain mesh synced modelId='${renderer.modelId}' revision=${renderer.meshRevision} " +
                     "vertices=${renderer.vertexCount} triangles=${renderer.triangleCount} " +
                     "blendMode=$blendMode materialRevision=${renderer.materialRevision} " +
-                    "finalSplatResolution=${renderer.previewResolution}x${renderer.previewResolution} " +
+                    "finalSplatResolution=${renderer.finalSplatResolution}x${renderer.finalSplatResolution} " +
                     "finalSplat=${renderer.finalSplatTexture?.id ?: "<none>"} materialTexture=${renderer.material.diffuseTextureRef?.id ?: "<none>"}"
             }
         }

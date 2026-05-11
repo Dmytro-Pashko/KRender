@@ -2,6 +2,8 @@ package com.pashkd.krender.engine.terrain
 
 import com.pashkd.krender.engine.api.DynamicMesh
 import com.pashkd.krender.engine.api.DynamicModel
+import com.pashkd.krender.engine.api.MaterialTextureRef
+import com.pashkd.krender.engine.api.RuntimeTextureData
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -73,7 +75,9 @@ data class TerrainMeshBuildResult(
  *
  * The builder has no editor, brush, material-preview, or backend knowledge. It
  * generates positions, normals, UVs, indices, optional preview vertex colors,
- * and wraps the mesh into [DynamicModel] when requested.
+ * and wraps the mesh into [DynamicModel] when requested. It does not create
+ * [RuntimeTextureData] or [MaterialTextureRef]; runtime texture ids and material
+ * bindings are owned by terrain synchronization/render systems.
  */
 object TerrainMeshBuilder {
     /**

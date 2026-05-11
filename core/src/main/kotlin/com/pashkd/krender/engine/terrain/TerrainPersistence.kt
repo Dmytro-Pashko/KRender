@@ -28,7 +28,7 @@ object TerrainFileFormat {
  */
 class TerrainPersistence(
     private val logger: Logger? = null,
-) {
+) : TerrainRuntimePersistence {
     private val json = Json().apply {
         setOutputType(JsonWriter.OutputType.json)
         setSerializer(TerrainFileDescriptor::class.java, TerrainFileDescriptorSerializer)
@@ -62,7 +62,7 @@ class TerrainPersistence(
     /**
      * Reads a complete terrain file descriptor, including file metadata.
      */
-    fun loadDescriptor(filePath: String): TerrainFileDescriptor {
+    override fun loadDescriptor(filePath: String): TerrainFileDescriptor {
         logger?.info(TAG) { "Loading terrain descriptor from '$filePath'" }
         val jsonText = resolveReadableFile(filePath).readString("UTF-8")
         logger?.debug(TAG) { "Read terrain descriptor from '$filePath' (${jsonText.length} chars)" }
@@ -79,13 +79,13 @@ class TerrainPersistence(
     /**
      * Returns true when the terrain file can be read from local storage or packaged assets.
      */
-    fun existsReadable(filePath: String): Boolean =
+    override fun existsReadable(filePath: String): Boolean =
         Gdx.files.local(filePath).exists() || Gdx.files.internal(filePath).exists()
 
     /**
      * Describes where a terrain path will be read from for diagnostics.
      */
-    fun readableSource(filePath: String): String =
+    override fun readableSource(filePath: String): String =
         when {
             Gdx.files.local(filePath).exists() -> "local"
             Gdx.files.internal(filePath).exists() -> "internal"

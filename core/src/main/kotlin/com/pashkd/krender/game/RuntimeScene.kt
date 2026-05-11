@@ -19,7 +19,6 @@ import com.pashkd.krender.engine.render3d.RuntimeEnvironmentSystem
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.terrain.FlatTerrainGenerator
-import com.pashkd.krender.engine.terrain.RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID
 import com.pashkd.krender.engine.terrain.RuntimeTerrainMeshSystem
 import com.pashkd.krender.engine.terrain.TerrainMaterialBakeService
 import com.pashkd.krender.engine.terrain.TerrainComponent
@@ -27,10 +26,10 @@ import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
 import com.pashkd.krender.engine.terrain.TerrainCameraControllerSystem
 import com.pashkd.krender.engine.terrain.TerrainDataComponent
 import com.pashkd.krender.engine.terrain.TerrainPersistence
-import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.terrain.TerrainRendererComponent
 import com.pashkd.krender.engine.terrain.TerrainRuntimeFactory
+import com.pashkd.krender.engine.terrain.runtimeTerrainFinalSplatTextureId
 
 /**
  * Runtime-only scene that can load saved `.krscene` content and always prepares
@@ -40,7 +39,7 @@ class RuntimeScene(
     private val scenePath: String? = null,
     private val terrainFilePath: String = "terrains/terrain_01.krterrain",
     private val terrainResolution: Int = 128,
-    private val finalSplatResolution: Int = 8192,
+    private val finalSplatResolution: Int = 512,
     private val vertexSpacing: Float = 1f,
     private val skyboxTexturePath: String = DEFAULT_RUNTIME_SKYBOX_TEXTURE,
 ) : Scene("runtime_scene") {
@@ -77,7 +76,6 @@ class RuntimeScene(
             RuntimeTerrainMeshSystem(
                 materialBakeService = TerrainMaterialBakeService(terrainMaterialLibrary, engine.logger),
                 logger = engine.logger,
-                finalSplatTextureId = RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID,
                 finalSplatResolution = finalSplatResolution,
             ),
         )
@@ -140,10 +138,11 @@ class RuntimeScene(
         }
         val terrain = source.entity ?: world.createEntity("Runtime Terrain")
         val sceneTerrain = terrain.get<TerrainComponent>()
-        val bakedTextureResolution = sceneTerrain
-            ?.bakedTextureResolution
-            ?.coerceIn(2, 8192)
-            ?: finalSplatResolution
+        val requestedFinalSplatResolution = finalSplatResolution.coerceIn(2, 1024)
+        val finalTextureId = runtimeTerrainFinalSplatTextureId(
+            entityId = terrain.id,
+            modelId = "runtime_terrain_${terrain.id}_${terrainData.width}x${terrainData.height}",
+        )
         if (sceneTerrain?.visible == false) {
             sceneTerrain.visible = true
             engine.logger.warn(TAG) {
@@ -157,17 +156,16 @@ class RuntimeScene(
                 material = Material(
                     baseColor = Color.white(),
                     diffuseTextureRef = MaterialTextureRef(
-                        id = RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID,
+                        id = finalTextureId,
                         channel = "baseColor",
                         uvChannel = 0,
                     ),
                 ),
-                previewMode = TerrainPreviewMode.MaterialTexture,
-                previewResolution = bakedTextureResolution,
+                finalSplatResolution = requestedFinalSplatResolution,
             ),
         )
         engine.logger.info(TAG) {
-            "Runtime terrain final splat requested entityId=${terrain.id} resolution=${bakedTextureResolution}x$bakedTextureResolution"
+            "Runtime terrain final splat requested entityId=${terrain.id} resolution=${requestedFinalSplatResolution}x$requestedFinalSplatResolution"
         }
     }
 

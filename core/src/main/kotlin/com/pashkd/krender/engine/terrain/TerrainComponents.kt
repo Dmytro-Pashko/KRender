@@ -56,9 +56,12 @@ enum class TerrainDisplayMode {
  * [previewDiffuseTexture] is editor-only data for debug and paint feedback
  * modes. [finalSplatTexture] is the runtime final baked terrain material
  * texture; [materialRevision] tracks changes to that final material state.
+ * [previewResolution] is reserved for editor preview bakes, while
+ * [finalSplatResolution] controls runtime final material bake resolution.
  * Render systems bind textures through [com.pashkd.krender.engine.api.MaterialTextureRef]
  * on [material], and pass the matching [RuntimeTextureData] payload with the
- * draw command so the backend can upload it.
+ * draw command so the backend can upload it. Texture ids should be unique per
+ * terrain entity because backend runtime texture caches are keyed by id.
  */
 data class TerrainRendererComponent(
     var modelId: String,
@@ -69,11 +72,18 @@ data class TerrainRendererComponent(
      */
     var previewDiffuseTexture: RuntimeTextureData? = null,
     /**
-     * Runtime final baked terrain material texture generated from terrain layers.
+     * Runtime CPU-baked final albedo/baseColor terrain material texture generated from terrain layers.
      */
     var finalSplatTexture: RuntimeTextureData? = null,
     var previewMode: TerrainPreviewMode = TerrainPreviewMode.MaterialColor,
+    /**
+     * Editor preview texture resolution. Runtime final material bake uses [finalSplatResolution].
+     */
     var previewResolution: Int = 0,
+    /**
+     * Runtime final material texture resolution for [finalSplatTexture].
+     */
+    var finalSplatResolution: Int = 0,
     var vertexCount: Int = 0,
     var triangleCount: Int = 0,
     var meshRevision: Long = 0L,
