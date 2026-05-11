@@ -6,9 +6,11 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.graphics.Camera
+import com.badlogic.gdx.graphics.Cubemap
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Mesh
 import com.badlogic.gdx.graphics.PerspectiveCamera
+import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.VertexAttribute
 import com.badlogic.gdx.graphics.VertexAttributes
@@ -29,6 +31,7 @@ import com.badlogic.gdx.graphics.g3d.model.NodePart
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.FileTextureData
+import com.badlogic.gdx.graphics.glutils.PixmapTextureData
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector3
@@ -57,6 +60,7 @@ import com.pashkd.krender.engine.api.InputSnapshot
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MainThreadTaskQueue
+import com.pashkd.krender.engine.api.MaterialDebugMode
 import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.ModelAssetBounds
 import com.pashkd.krender.engine.api.ModelAssetInfo
@@ -68,6 +72,9 @@ import com.pashkd.krender.engine.api.PointerPhase
 import com.pashkd.krender.engine.api.PointerState
 import com.pashkd.krender.engine.api.RenderContext
 import com.pashkd.krender.engine.api.Renderer
+import com.pashkd.krender.engine.api.RuntimeTextureData
+import com.pashkd.krender.engine.api.RuntimeTextureFilter
+import com.pashkd.krender.engine.api.RuntimeTextureWrap
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.ShaderAsset
 import com.pashkd.krender.engine.api.TaskService
@@ -103,10 +110,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.mgsx.gltf.loaders.glb.GLBAssetLoader
 import net.mgsx.gltf.loaders.gltf.GLTFAssetLoader
+import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
 import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute
 import net.mgsx.gltf.scene3d.scene.Scene as GltfScene
 import net.mgsx.gltf.scene3d.scene.SceneAsset
+import net.mgsx.gltf.scene3d.scene.SceneManager as GltfSceneManager
+import net.mgsx.gltf.scene3d.scene.SceneSkybox
+import net.mgsx.gltf.scene3d.shaders.PBRShaderProvider
+import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute
 import net.mgsx.gltf.scene3d.utils.MaterialConverter
+import net.mgsx.gltf.scene3d.utils.IBLBuilder
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.cos
 import kotlin.math.sin
@@ -493,6 +506,7 @@ class GdxAssetService : AssetService {
     private val modelBoundsCache = mutableMapOf<String, ModelAssetBounds>()
     private val modelTriangleCounts = mutableMapOf<String, Int>()
     private val texturePreviewRegistry = mutableMapOf<String, Texture>()
+    private val runtimeTextures = mutableMapOf<String, RuntimeTextureEntry>()
     private val modelTexturePreviewKeys = mutableMapOf<String, Set<String>>()
 
     init {
@@ -681,7 +695,32 @@ class GdxAssetService : AssetService {
 
     /** Returns a loaded standalone or model-registered LibGDX texture by path or stable id. */
     fun textureByPathOrId(pathOrId: String): Texture? =
-        texturePreviewRegistry[pathOrId] ?: loadedTextureAsset(pathOrId)
+        runtimeTextures[pathOrId]?.texture ?: texturePreviewRegistry[pathOrId] ?: loadedTextureAsset(pathOrId)
+
+    /** Uploads or refreshes a runtime-generated texture payload. */
+    fun upsertRuntimeTexture(texture: RuntimeTextureData) {
+        val existing = runtimeTextures[texture.id]
+        if (existing != null && existing.revision == texture.revision) return
+
+        val pixmap = Pixmap(texture.width, texture.height, Pixmap.Format.RGBA8888)
+        try {
+            var offset = 0
+            for (y in 0 until texture.height) {
+                for (x in 0 until texture.width) {
+                    pixmap.drawPixel(x, y, texture.rgba8888[offset++])
+                }
+            }
+            val uploaded = Texture(pixmap).also { gdxTexture ->
+                gdxTexture.setFilter(texture.minFilter.gdx(), texture.magFilter.gdx())
+                gdxTexture.setWrap(texture.uWrap.gdx(), texture.vWrap.gdx())
+            }
+            existing?.texture?.dispose()
+            runtimeTextures[texture.id] = RuntimeTextureEntry(texture.revision, uploaded)
+            texturePreviewRegistry[texture.id] = uploaded
+        } finally {
+            pixmap.dispose()
+        }
+    }
 
     /** Returns a loaded standalone LibGDX texture asset. */
     private fun loadedTextureAsset(path: String): Texture? =
@@ -689,6 +728,8 @@ class GdxAssetService : AssetService {
 
     /** Disposes the underlying LibGDX asset manager. */
     fun dispose() {
+        runtimeTextures.values.forEach { entry -> entry.texture.dispose() }
+        runtimeTextures.clear()
         manager.dispose()
     }
 
@@ -1132,6 +1173,7 @@ class GdxRenderer3D(
     private val modelBatch = ModelBatch()
     private val lineRenderer = GdxLineShaderRenderer()
     private val modelViewerDebugRenderer = GdxModelViewerDebugRenderer(assets, logger)
+    private val pbrPreviewRenderer = GdxGltfPbrPreviewRenderer(assets, logger)
     private val instances = mutableMapOf<ModelCacheKey, ModelInstance>()
     private val gltfScenes = mutableMapOf<ModelCacheKey, GltfScene>()
     private val primitives = mutableMapOf<String, Model>()
@@ -1158,6 +1200,7 @@ class GdxRenderer3D(
         val wireframeCommands = mutableListOf<DrawModel>()
         val wireframeDynamicCommands = mutableListOf<DrawDynamicModel>()
         val debugModelCommands = mutableListOf<DrawModel>()
+        val pbrModelCommands = mutableListOf<DrawModel>()
 
         lineRenderer.render(context.commands, camera)
 
@@ -1169,6 +1212,11 @@ class GdxRenderer3D(
                         wireframeCommands += command
                     } else if (command.debugView?.active == true) {
                         debugModelCommands += command
+                        if (command.material.wireframeOverlay) {
+                            wireframeCommands += command
+                        }
+                    } else if (command.pbrPreview?.enabled == true) {
+                        pbrModelCommands += command
                         if (command.material.wireframeOverlay) {
                             wireframeCommands += command
                         }
@@ -1194,6 +1242,13 @@ class GdxRenderer3D(
         }
         modelBatch.end()
         debugModelCommands.forEach { modelViewerDebugRenderer.render(it, camera, ::modelInstanceForDebug) }
+        pbrModelCommands.forEach { command ->
+            if (!pbrPreviewRenderer.render(command, camera, ::applyVisibleMeshPartFilter)) {
+                modelBatch.begin(camera)
+                renderModel(command, environment, camera)
+                modelBatch.end()
+            }
+        }
         wireframeCommands.forEach { renderWireframeModel(it, camera) }
         wireframeDynamicCommands.forEach { renderWireframeDynamicModel(it, camera) }
         lineRenderer.renderOverlayLines(context.commands, camera)
@@ -1264,6 +1319,7 @@ class GdxRenderer3D(
         modelBatch.dispose()
         lineRenderer.dispose()
         modelViewerDebugRenderer.dispose()
+        pbrPreviewRenderer.dispose()
         primitives.values.forEach { it.dispose() }
         dynamicModels.values.forEach { it.model.dispose() }
         assets.dispose()
@@ -1347,6 +1403,7 @@ class GdxRenderer3D(
 
     /** Renders one dynamic mesh-backed model command. */
     private fun renderDynamicModel(command: DrawDynamicModel, environment: Environment) {
+        command.runtimeTextures.forEach(assets::upsertRuntimeTexture)
         val model = dynamicGdxModel(command.model)
         val cacheKey = ModelCacheKey(command.entityId, command.model.id)
         val existing = instances[cacheKey]
@@ -1377,9 +1434,8 @@ class GdxRenderer3D(
                 material.baseColor.a,
             ),
         )
-        val diffuseTexture = material.diffuseTexture
-        val diffuseTextureRef = material.diffuseTextureRef
-        val resolvedDiffuseTexture = diffuseTextureRef?.let { ref -> assets.textureByPathOrId(ref.id) } ?: diffuseTexture
+        val resolvedDiffuseTexture = material.diffuseTextureRef
+            ?.let { ref -> assets.textureByPathOrId(ref.id) }
         if (resolvedDiffuseTexture != null) {
             gdxMaterial.set(TextureAttribute.createDiffuse(resolvedDiffuseTexture))
         } else {
@@ -1882,11 +1938,374 @@ private data class DynamicModelCacheEntry(
     val model: Model,
 )
 
+private data class RuntimeTextureEntry(
+    val revision: Long,
+    val texture: Texture,
+)
+
 /** Composite cache key that distinguishes model instances by entity and asset id. */
 private data class ModelCacheKey(
     val entityId: Long,
     val modelPath: String,
 )
+
+private fun RuntimeTextureFilter.gdx(): Texture.TextureFilter = when (this) {
+    RuntimeTextureFilter.Nearest -> Texture.TextureFilter.Nearest
+    RuntimeTextureFilter.Linear -> Texture.TextureFilter.Linear
+}
+
+private fun RuntimeTextureWrap.gdx(): Texture.TextureWrap = when (this) {
+    RuntimeTextureWrap.ClampToEdge -> Texture.TextureWrap.ClampToEdge
+    RuntimeTextureWrap.Repeat -> Texture.TextureWrap.Repeat
+}
+
+/**
+ * glTF PBR preview renderer backed by gdx-gltf SceneManager.
+ */
+private class GdxGltfPbrPreviewRenderer(
+    private val assets: GdxAssetService,
+    private val logger: Logger,
+) {
+    private val entries = mutableMapOf<ModelCacheKey, PbrSceneEntry>()
+    private val warnedKeys = mutableSetOf<String>()
+
+    fun render(
+        command: DrawModel,
+        camera: Camera,
+        meshPartFilter: (ModelInstance, Set<Int>?) -> Unit,
+    ): Boolean {
+        val settings = command.pbrPreview?.takeIf { it.enabled } ?: return false
+        if (!command.model.isGltf()) {
+            warnOnce("not-gltf-${command.model.path}") {
+                "PBR preview unavailable: '${command.model.path}' is not a glTF/glb model."
+            }
+            return false
+        }
+
+        assets.queue(command.model)
+        val sceneAsset = assets.gltfScene(command.model)
+        if (sceneAsset == null) {
+            warnOnce("not-loaded-${command.model.path}") {
+                "PBR preview unavailable: glTF asset '${command.model.path}' is not loaded yet."
+            }
+            return false
+        }
+
+        return try {
+            settings.skyboxTexture?.let { ref -> assets.queue(AssetRef.texture(ref.id)) }
+            val cacheKey = ModelCacheKey(command.entityId, command.model.path)
+            val entry = entries.getOrPut(cacheKey) {
+                val scene = GltfScene(sceneAsset.scene)
+                val manager = GltfSceneManager(
+                    PBRShaderProvider.createDefault(sceneAsset.maxBones.coerceAtLeast(1)),
+                    PBRShaderProvider.createDefaultDepth(sceneAsset.maxBones.coerceAtLeast(1)),
+                )
+                manager.addScene(scene, false)
+                logger.info(TAG) { "Created PBR preview scene for '${command.model.path}'." }
+                PbrSceneEntry(scene = scene, manager = manager)
+            }
+
+            applyTransform(entry.scene.modelInstance, command)
+            meshPartFilter(entry.scene.modelInstance, command.visibleMeshPartIndices)
+            configureEnvironment(entry, settings)
+            entry.manager.setCamera(camera)
+            entry.manager.update(Gdx.graphics.deltaTime)
+            entry.manager.render()
+            true
+        } catch (error: Throwable) {
+            warnOnce("error-${command.model.path}-${error::class.qualifiedName}") {
+                "PBR preview unavailable for '${command.model.path}': ${error.message ?: error::class.simpleName}"
+            }
+            false
+        }
+    }
+
+    fun dispose() {
+        entries.values.forEach(PbrSceneEntry::dispose)
+        entries.clear()
+    }
+
+    private fun configureEnvironment(entry: PbrSceneEntry, settings: com.pashkd.krender.engine.api.PbrPreviewView) {
+        val direction = pbrLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
+        val intensity = (settings.environmentIntensity * settings.exposure).coerceAtLeast(0f)
+        entry.manager.environment.clear()
+        entry.manager.environment.set(ColorAttribute(ColorAttribute.AmbientLight, 0.08f * intensity, 0.09f * intensity, 0.1f * intensity, 1f))
+        if (settings.directionalLightEnabled) {
+            entry.manager.environment.add(
+                DirectionalLightEx().set(
+                    com.badlogic.gdx.graphics.Color.WHITE,
+                    direction,
+                    intensity.coerceAtLeast(0.01f),
+                ),
+            )
+        }
+        val skyboxCubemap = settings.skyboxTexture
+            ?.id
+            ?.takeIf { path -> settings.showSkybox && path.isNotBlank() }
+            ?.let { path -> entry.ensureSkyboxCubemap(path) }
+        if (skyboxCubemap != null) {
+            entry.manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(skyboxCubemap))
+            entry.manager.environment.set(PBRCubemapAttribute.createSpecularEnv(skyboxCubemap))
+            entry.manager.setSkyBox(entry.skybox)
+            return
+        }
+
+        entry.manager.setSkyBox(null)
+        if (settings.showSkybox) {
+            val iblAvailable = entry.ensureIbl(direction, intensity.coerceAtLeast(0.01f))
+            if (iblAvailable) {
+                entry.irradianceMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(map)) }
+                entry.radianceMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createSpecularEnv(map)) }
+                entry.manager.setSkyBox(entry.skybox)
+            }
+        }
+    }
+
+    private fun PbrSceneEntry.ensureSkyboxCubemap(path: String): Cubemap? {
+        if (skyboxTexturePath == path && skyboxCubemap != null) return skyboxCubemap
+        disposeSkyboxCubemap()
+        return try {
+            val cubemap = cubemapFromSingleTexture(path)
+            skyboxTexturePath = path
+            skyboxCubemap = cubemap
+            skybox = SceneSkybox(cubemap)
+            cubemap
+        } catch (error: Throwable) {
+            disposeSkyboxCubemap()
+            warnOnce("skybox-texture-$path-${error::class.qualifiedName}") {
+                "PBR preview skybox texture '$path' unavailable; continuing without asset skybox: " +
+                    (error.message ?: error::class.simpleName)
+            }
+            null
+        }
+    }
+
+    private fun PbrSceneEntry.ensureIbl(direction: Vector3, intensity: Float): Boolean {
+        val nextKey = PbrEnvironmentKey(
+            intensity = "%.3f".format(intensity),
+            directionX = "%.3f".format(direction.x),
+            directionY = "%.3f".format(direction.y),
+            directionZ = "%.3f".format(direction.z),
+        )
+        if (environmentKey == nextKey) return iblAvailable
+        disposeEnvironment()
+        val light = DirectionalLightEx().set(com.badlogic.gdx.graphics.Color.WHITE, direction, intensity)
+        val builder = IBLBuilder.createOutdoor(light)
+        try {
+            envMap = builder.buildEnvMap(64)
+            irradianceMap = builder.buildIrradianceMap(16)
+            radianceMap = builder.buildRadianceMap(64)
+            skybox = envMap?.let(::SceneSkybox)
+            environmentKey = nextKey
+            iblAvailable = true
+            return true
+        } catch (error: Throwable) {
+            disposeEnvironment()
+            environmentKey = nextKey
+            iblAvailable = false
+            warnOnce("ibl-unavailable-${error::class.qualifiedName}") {
+                "PBR preview IBL/skybox unavailable; continuing with direct lighting only: " +
+                    (error.message ?: error::class.simpleName)
+            }
+            return false
+        } finally {
+            builder.dispose()
+        }
+    }
+
+    private fun warnOnce(key: String, message: () -> String) {
+        if (warnedKeys.add(key)) {
+            logger.warn(TAG, message = message)
+        }
+    }
+
+    companion object {
+        private const val TAG = "GdxGltfPbrPreviewRenderer"
+    }
+}
+
+private data class PbrSceneEntry(
+    val scene: GltfScene,
+    val manager: GltfSceneManager,
+    var environmentKey: PbrEnvironmentKey? = null,
+    var envMap: Cubemap? = null,
+    var irradianceMap: Cubemap? = null,
+    var radianceMap: Cubemap? = null,
+    var skyboxTexturePath: String? = null,
+    var skyboxCubemap: Cubemap? = null,
+    var skybox: SceneSkybox? = null,
+    var iblAvailable: Boolean = false,
+) {
+    fun dispose() {
+        disposeEnvironment()
+        disposeSkyboxCubemap()
+        manager.dispose()
+    }
+
+    fun disposeEnvironment() {
+        if (skyboxCubemap == null) {
+            skybox?.dispose()
+            skybox = null
+        }
+        envMap?.dispose()
+        envMap = null
+        irradianceMap?.dispose()
+        irradianceMap = null
+        radianceMap?.dispose()
+        radianceMap = null
+        iblAvailable = false
+    }
+
+    fun disposeSkyboxCubemap() {
+        skybox?.dispose()
+        skybox = null
+        skyboxCubemap?.dispose()
+        skyboxCubemap = null
+        skyboxTexturePath = null
+    }
+}
+
+private data class PbrEnvironmentKey(
+    val intensity: String,
+    val directionX: String,
+    val directionY: String,
+    val directionZ: String,
+)
+
+private fun pbrLightDirection(yawDegrees: Float, pitchDegrees: Float): Vector3 {
+    val yaw = Math.toRadians(yawDegrees.toDouble())
+    val pitch = Math.toRadians(pitchDegrees.toDouble())
+    val x = (cos(pitch) * cos(yaw)).toFloat()
+    val y = sin(pitch).toFloat()
+    val z = (cos(pitch) * sin(yaw)).toFloat()
+    return Vector3(-x, -y, -z).nor()
+}
+
+private fun cubemapFromSingleTexture(path: String): Cubemap {
+    val source = Pixmap(Gdx.files.internal(path))
+    val layout = cubemapLayoutFor(source.width, source.height)
+    val faceSize = layout.faceSize
+    val faces = ArrayList<Pixmap>(CUBEMAP_FACE_COUNT)
+    try {
+        layout.faces.forEach { faceRegion ->
+            val face = Pixmap(faceSize, faceSize, source.format)
+            face.drawPixmap(
+                source,
+                0,
+                0,
+                faceRegion.x * faceSize,
+                faceRegion.y * faceSize,
+                faceSize,
+                faceSize,
+            )
+            faces += face
+        }
+        return Cubemap(
+            faces[0].textureData(disposePixmap = true),
+            faces[1].textureData(disposePixmap = true),
+            faces[2].textureData(disposePixmap = true),
+            faces[3].textureData(disposePixmap = true),
+            faces[4].textureData(disposePixmap = true),
+            faces[5].textureData(disposePixmap = true),
+        ).also { cubemap ->
+            cubemap.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+            cubemap.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge)
+        }
+    } catch (error: Throwable) {
+        faces.forEach { face ->
+            if (!face.isDisposed) face.dispose()
+        }
+        throw error
+    } finally {
+        source.dispose()
+    }
+}
+
+private data class CubemapLayout(
+    val faceSize: Int,
+    val faces: List<CubemapFaceRegion>,
+)
+
+private data class CubemapFaceRegion(
+    val x: Int,
+    val y: Int,
+)
+
+private fun cubemapLayoutFor(width: Int, height: Int): CubemapLayout {
+    require(width > 0 && height > 0) {
+        "Cubemap source dimensions must be positive, got ${width}x$height."
+    }
+    return when {
+        width == height * CUBEMAP_FACE_COUNT -> {
+            CubemapLayout(
+                faceSize = height,
+                faces = (0 until CUBEMAP_FACE_COUNT).map { index -> CubemapFaceRegion(index, 0) },
+            )
+        }
+        height == width * CUBEMAP_FACE_COUNT -> {
+            CubemapLayout(
+                faceSize = width,
+                faces = (0 until CUBEMAP_FACE_COUNT).map { index -> CubemapFaceRegion(0, index) },
+            )
+        }
+        width % 4 == 0 && height % 3 == 0 && width / 4 == height / 3 -> {
+            // Standard horizontal cross:
+            //       +Y
+            // -X +Z +X -Z
+            //       -Y
+            val faceSize = width / 4
+            CubemapLayout(
+                faceSize = faceSize,
+                faces = listOf(
+                    CubemapFaceRegion(2, 1), // +X
+                    CubemapFaceRegion(0, 1), // -X
+                    CubemapFaceRegion(1, 0), // +Y
+                    CubemapFaceRegion(1, 2), // -Y
+                    CubemapFaceRegion(1, 1), // +Z
+                    CubemapFaceRegion(3, 1), // -Z
+                ),
+            )
+        }
+        width % 3 == 0 && height % 4 == 0 && width / 3 == height / 4 -> {
+            // Standard vertical cross:
+            //    +Y
+            // -X +Z +X
+            //    -Y
+            //    -Z
+            val faceSize = width / 3
+            CubemapLayout(
+                faceSize = faceSize,
+                faces = listOf(
+                    CubemapFaceRegion(2, 1), // +X
+                    CubemapFaceRegion(0, 1), // -X
+                    CubemapFaceRegion(1, 0), // +Y
+                    CubemapFaceRegion(1, 2), // -Y
+                    CubemapFaceRegion(1, 1), // +Z
+                    CubemapFaceRegion(1, 3), // -Z
+                ),
+            )
+        }
+        else -> error(
+            "Unsupported cubemap texture layout ${width}x$height. " +
+                "Expected 6x1 strip, 1x6 strip, 4x3 cross, or 3x4 cross.",
+        )
+    }
+}
+
+private fun Pixmap.textureData(disposePixmap: Boolean): PixmapTextureData =
+    PixmapTextureData(this, format, false, disposePixmap)
+
+private const val CUBEMAP_FACE_COUNT = 6
+
+private fun applyTransform(instance: ModelInstance, command: DrawModel) {
+    val transform = command.transform
+    instance.transform.idt()
+    instance.transform.translate(transform.position.x, transform.position.y, transform.position.z)
+    instance.transform.rotate(Vector3.X, transform.eulerDegrees.x)
+    instance.transform.rotate(Vector3.Y, transform.eulerDegrees.y)
+    instance.transform.rotate(Vector3.Z, transform.eulerDegrees.z)
+    instance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
+}
 
 /**
  * Shader-based ModelViewer material debug renderer.
@@ -1936,7 +2355,15 @@ private class GdxModelViewerDebugRenderer(
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST)
         Gdx.gl.glDepthMask(true)
         Gdx.gl.glDisable(GL20.GL_BLEND)
-        Gdx.gl.glDisable(GL20.GL_CULL_FACE)
+        when (debugView.culling) {
+            com.pashkd.krender.engine.api.DebugCullingMode.Backface -> {
+                Gdx.gl.glEnable(GL20.GL_CULL_FACE)
+                Gdx.gl.glCullFace(GL20.GL_BACK)
+            }
+            com.pashkd.krender.engine.api.DebugCullingMode.DoubleSided -> {
+                Gdx.gl.glDisable(GL20.GL_CULL_FACE)
+            }
+        }
 
         renderables.clear()
         instance.getRenderables(renderables, renderablePool)
@@ -1966,10 +2393,11 @@ private class GdxModelViewerDebugRenderer(
         }
 
         val mode = debugView.mode
-        val uvChannel = if (mode == DEBUG_MODE_UV_CHECKER) {
+        val textureRef = textureRefFor(renderable.material, materialIndex, debugView)
+        val uvChannel = if (mode == MaterialDebugMode.UvChecker) {
             debugView.uvChannel.coerceAtLeast(0)
         } else {
-            textureAttributeFor(renderable.material, debugView)?.uvIndex?.coerceAtLeast(0) ?: 0
+            textureRef?.texture?.uvChannel?.coerceAtLeast(0) ?: 0
         }
         if (!renderable.meshPart.hasUvChannel(uvChannel)) {
             warnOnce("missing-uv-$mode-$uvChannel") {
@@ -1979,14 +2407,14 @@ private class GdxModelViewerDebugRenderer(
             return
         }
 
-        val texture = if (mode == DEBUG_MODE_UV_CHECKER) {
+        val texture = if (mode == MaterialDebugMode.UvChecker) {
             val checkerRef = debugView.uvCheckerTexture
             checkerRef?.let { ref ->
                 assets.queue(AssetRef.texture(ref.id))
                 assets.gdxTexture(AssetRef.texture(ref.id))
             }
         } else {
-            textureAttributeFor(renderable.material, debugView)?.textureDescription?.texture
+            textureRef?.texture?.let { ref -> assets.textureByPathOrId(ref.id) }
         }
 
         if (texture == null) {
@@ -2026,24 +2454,16 @@ private class GdxModelViewerDebugRenderer(
         renderable.meshPart.render(shader)
     }
 
-    private fun textureAttributeFor(
+    private fun textureRefFor(
         material: com.badlogic.gdx.graphics.g3d.Material,
+        materialIndex: Int?,
         debugView: com.pashkd.krender.engine.api.MaterialDebugView,
-    ): TextureAttribute? {
-        val selectedChannel = normalizeTextureChannel(debugView.selectedTextureChannel)
-        var aliasMatch: TextureAttribute? = null
-        for (attribute in material) {
-            val textureAttribute = attribute as? TextureAttribute ?: continue
-            val channel = normalizeTextureChannel(normalizeTextureChannel(textureAttribute))
-            if (selectedChannel.isNotBlank() && channel == selectedChannel) {
-                return textureAttribute
+    ): com.pashkd.krender.engine.api.MaterialDebugTextureRef? =
+        debugView.textureRefs.firstOrNull { ref -> materialIndex != null && ref.materialIndex == materialIndex }
+            ?: debugView.textureRefs.firstOrNull { ref ->
+                ref.materialId != null && material.id != null && ref.materialId == material.id
             }
-            if (channel in debugModeAliases(debugView.mode)) {
-                aliasMatch = textureAttribute
-            }
-        }
-        return aliasMatch
-    }
+            ?: debugView.textureRefs.firstOrNull { ref -> ref.materialIndex == null && ref.materialId == null }
 
     private fun uvShader(uvChannel: Int): ShaderProgram? =
         uvShaders.getOrPut(uvChannel) {
@@ -2073,11 +2493,11 @@ private class GdxModelViewerDebugRenderer(
 
                     void main() {
                         vec2 uv = v_uv;
-                        if (u_DebugMode == ${debugModeCode(DEBUG_MODE_UV_CHECKER)}) {
+                        if (u_DebugMode == ${debugModeCode(MaterialDebugMode.UvChecker)}) {
                             uv = v_uv * u_UvCheckerScale;
                         }
                         vec4 texel = texture2D(u_DebugTexture, uv);
-                        if (u_DebugMode == ${debugModeCode(DEBUG_MODE_ALPHA)}) {
+                        if (u_DebugMode == ${debugModeCode(MaterialDebugMode.Alpha)}) {
                             gl_FragColor = vec4(vec3(texel.a), 1.0);
                         } else {
                             gl_FragColor = vec4(texel.rgb, 1.0);
@@ -2111,8 +2531,6 @@ private class GdxModelViewerDebugRenderer(
 
     companion object {
         private const val TAG = "GdxModelViewerDebugRenderer"
-        private const val DEBUG_MODE_UV_CHECKER = "UvChecker"
-        private const val DEBUG_MODE_ALPHA = "Alpha"
         private const val MIN_UV_SCALE = 0.01f
         private val FallbackMissingTexture = com.badlogic.gdx.graphics.Color(1f, 0.15f, 0.65f, 1f)
         private val FallbackMissingUv = com.badlogic.gdx.graphics.Color(1f, 0.72f, 0.1f, 1f)
@@ -2121,20 +2539,10 @@ private class GdxModelViewerDebugRenderer(
     }
 }
 
-private fun debugModeCode(mode: String): Int = when (mode) {
-    "Alpha" -> 6
-    "UvChecker" -> 7
+private fun debugModeCode(mode: MaterialDebugMode): Int = when (mode) {
+    MaterialDebugMode.Alpha -> 6
+    MaterialDebugMode.UvChecker -> 7
     else -> 1
-}
-
-private fun debugModeAliases(mode: String): Set<String> = when (mode) {
-    "BaseColor" -> setOf("basecolor", "basecolortexture", "diffuse", "diffusetexture")
-    "Normal" -> setOf("normal", "normaltexture", "bump")
-    "Emission" -> setOf("emission", "emissive", "emissivetexture")
-    "MetallicRoughness" -> setOf("metallicroughness", "metallic", "roughness", "orm")
-    "Occlusion" -> setOf("occlusion", "ao", "ambientocclusion")
-    "Alpha" -> setOf("alpha", "opacity", "alphatexture")
-    else -> emptySet()
 }
 
 private fun normalizeTextureChannel(channel: String?): String =

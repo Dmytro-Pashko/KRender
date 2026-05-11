@@ -9,9 +9,11 @@ import com.pashkd.krender.engine.api.DrawWorldGrid
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.api.MaterialDebugMode
 import com.pashkd.krender.engine.api.MaterialDebugView
 import com.pashkd.krender.engine.api.MaterialTextureRef
 import com.pashkd.krender.engine.api.ModelAssetInfo
+import com.pashkd.krender.engine.api.PbrPreviewView
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
@@ -36,7 +38,7 @@ class ModelViewerSystem(
     private var lastAssetLoaded: Boolean? = null
     private var lastLoadingStatus: String? = null
     private var lastDisplayMode: ModelViewerDisplayMode? = null
-    private var lastDebugMode: ModelViewerDebugMode? = null
+    private var lastDebugMode: MaterialDebugMode? = null
     private var lastDebugWarning: String? = null
     private var lastMetadataAvailable: Boolean? = null
     private var missingModelEntityLogged = false
@@ -178,7 +180,7 @@ class ModelViewerSystem(
      * Keeps debug-channel selection and warnings aligned with loaded model metadata.
      */
     private fun syncDebugState() {
-        val effectiveDebugMode = if (state.uvCheckerEnabled) ModelViewerDebugMode.UvChecker else state.debugMode
+        val effectiveDebugMode = if (state.uvCheckerEnabled) MaterialDebugMode.UvChecker else state.debugMode
         if (lastDebugMode != effectiveDebugMode) {
             logger.info(TAG) {
                 "ModelViewer debug mode changed mode=$effectiveDebugMode " +
@@ -188,13 +190,13 @@ class ModelViewerSystem(
             lastDebugMode = effectiveDebugMode
         }
 
-        state.debugSelectedMaterialOnly = false
-        val selectedMaterialIndex: Int? = null
+        val selectedMaterialIndex = state.selectedMaterialIndex.takeIf { state.debugSelectedMaterialOnly }
         if (isModelViewerTextureDebugMode(effectiveDebugMode)) {
             val channels = matchingModelViewerTextureSlots(
                 state.modelInfo,
                 effectiveDebugMode,
                 selectedMaterialIndex,
+                selectedTextureChannel = null,
             ).map { slot -> slot.channel }.distinct()
             if (channels.isNotEmpty() && state.selectedTextureChannel !in channels) {
                 state.selectedTextureChannel = channels.first()
@@ -202,6 +204,7 @@ class ModelViewerSystem(
         }
 
         state.debugWarning = debugWarningFor(effectiveDebugMode, selectedMaterialIndex)
+        state.pbrWarning = pbrWarningFor()
         val warning = state.debugWarning
         if (warning != null && warning != lastDebugWarning) {
             logger.warn(TAG) { warning }
@@ -210,20 +213,38 @@ class ModelViewerSystem(
     }
 
     private fun debugWarningFor(
-        mode: ModelViewerDebugMode,
+        mode: MaterialDebugMode,
         selectedMaterialIndex: Int?,
     ): String? {
         val info = state.modelInfo ?: return null
         return when {
-            mode == ModelViewerDebugMode.None -> null
-            mode == ModelViewerDebugMode.UvChecker && info.uvChannels.isEmpty() ->
+            mode == MaterialDebugMode.None -> null
+            mode == MaterialDebugMode.UvChecker && info.uvChannels.isEmpty() ->
                 "ModelViewer debug warning: model has no UV channels for UV checker."
-            mode == ModelViewerDebugMode.UvChecker && !assets.isLoaded(AssetRef.texture(state.uvCheckerTexturePath)) ->
+            mode == MaterialDebugMode.UvChecker && !assets.isLoaded(AssetRef.texture(state.uvCheckerTexturePath)) ->
                 "ModelViewer debug warning: UV checker texture '${state.uvCheckerTexturePath}' is missing or not loaded."
             isModelViewerTextureDebugMode(mode) &&
-                !hasModelViewerTextureChannel(info, mode, selectedMaterialIndex) ->
+                resolvedModelViewerDebugTextureRefs(
+                    info = info,
+                    mode = mode,
+                    selectedMaterialIndex = selectedMaterialIndex,
+                    selectedTextureChannel = state.selectedTextureChannel,
+                ).isEmpty() ->
                 "ModelViewer debug warning: texture channel $mode is unavailable" +
                     selectedMaterialIndex?.let { " for material #$it." }.orEmpty()
+            else -> null
+        }
+    }
+
+    private fun pbrWarningFor(): String? {
+        if (state.rendererMode != ModelViewerRendererMode.Pbr) return null
+        return when {
+            !state.model.path.isGltfPath() ->
+                "PBR preview is currently available only for glTF/glb models."
+            state.pbrShowSkybox && !assets.isLoaded(AssetRef.texture(state.pbrSkyboxTexturePath)) ->
+                "PBR preview skybox texture '${state.pbrSkyboxTexturePath}' is missing or not loaded."
+            state.assetLoaded && state.modelInfo == null ->
+                "PBR preview unavailable: model metadata is unavailable."
             else -> null
         }
     }
@@ -287,6 +308,9 @@ class ModelViewerSystem(
 
 private fun Int.floorMod(divisor: Int): Int = ((this % divisor) + divisor) % divisor
 
+private fun String.isGltfPath(): Boolean =
+    endsWith(".gltf", ignoreCase = true) || endsWith(".glb", ignoreCase = true)
+
 /**
  * Emits ModelViewer viewport guide draw commands from runtime display state.
  */
@@ -328,6 +352,7 @@ class ModelViewerModelRenderSystem(
             ?.takeIf { state.isolateSelectedMeshPart }
             ?.let(::setOf)
 
+        val debugView = state.materialDebugView()
         world.renderCommands.submit(
             DrawModel(
                 entityId = entity.id,
@@ -335,18 +360,26 @@ class ModelViewerModelRenderSystem(
                 transform = transform.snapshot(),
                 material = model.material,
                 visibleMeshPartIndices = visibleMeshPartIndices,
-                debugView = state.materialDebugView(),
+                debugView = debugView,
+                pbrPreview = state.pbrPreviewView(debugView),
             ),
         )
     }
 
     private fun ModelViewerState.materialDebugView(): MaterialDebugView? {
-        val mode = if (uvCheckerEnabled) ModelViewerDebugMode.UvChecker else debugMode
-        if (mode == ModelViewerDebugMode.None) return null
+        val mode = if (uvCheckerEnabled) MaterialDebugMode.UvChecker else debugMode
+        if (mode == MaterialDebugMode.None) return null
+        val selectedMaterial = selectedMaterialIndex.takeIf { debugSelectedMaterialOnly }
         return MaterialDebugView(
-            mode = mode.name,
-            selectedMaterialIndex = null,
+            mode = mode,
+            selectedMaterialIndex = selectedMaterial,
             selectedTextureChannel = selectedTextureChannel,
+            textureRefs = resolvedModelViewerDebugTextureRefs(
+                info = modelInfo,
+                mode = mode,
+                selectedMaterialIndex = selectedMaterial,
+                selectedTextureChannel = selectedTextureChannel,
+            ),
             uvCheckerTexture = MaterialTextureRef(
                 id = uvCheckerTexturePath,
                 channel = "uvChecker",
@@ -354,6 +387,25 @@ class ModelViewerModelRenderSystem(
             ),
             uvChannel = uvCheckerUvChannel,
             uvScale = uvCheckerScale.coerceAtLeast(MinUvCheckerScale),
+            culling = debugCullingMode,
+        )
+    }
+
+    private fun ModelViewerState.pbrPreviewView(debugView: MaterialDebugView?): PbrPreviewView? {
+        if (rendererMode != ModelViewerRendererMode.Pbr) return null
+        return PbrPreviewView(
+            enabled = debugView?.active != true,
+            exposure = pbrExposure.coerceAtLeast(0f),
+            showSkybox = pbrShowSkybox,
+            skyboxTexture = MaterialTextureRef(
+                id = pbrSkyboxTexturePath,
+                channel = "skybox",
+                uvChannel = 0,
+            ),
+            environmentIntensity = pbrEnvironmentIntensity.coerceAtLeast(0f),
+            directionalLightEnabled = pbrDirectionalLightEnabled,
+            directionalLightYawDegrees = pbrDirectionalLightYawDegrees,
+            directionalLightPitchDegrees = pbrDirectionalLightPitchDegrees,
         )
     }
 

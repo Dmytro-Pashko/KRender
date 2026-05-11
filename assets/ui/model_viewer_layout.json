@@ -11,22 +11,22 @@
       "title": "Viewport",
       "x": 5,
       "y": 140,
-      "width": 343,
-      "height": 217
+      "width": 345,
+      "height": 404
     },
     "modelInfo": {
       "title": "Model Info",
-      "x": 5,
-      "y": 361,
-      "width": 344,
-      "height": 448
+      "x": 6,
+      "y": 547,
+      "width": 349,
+      "height": 377
     },
     "meshParts": {
       "title": "Mesh Parts",
-      "x": 9,
-      "y": 814,
-      "width": 341,
-      "height": 455
+      "x": 5,
+      "y": 926,
+      "width": 348,
+      "height": 347
     },
     "materials": {
       "title": "Materials",

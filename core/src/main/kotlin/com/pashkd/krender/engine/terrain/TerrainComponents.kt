@@ -1,9 +1,9 @@
 package com.pashkd.krender.engine.terrain
 
-import com.badlogic.gdx.graphics.Texture
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Component
 import com.pashkd.krender.engine.api.DynamicModel
+import com.pashkd.krender.engine.api.RuntimeTextureData
 import com.pashkd.krender.engine.api.TerrainAsset
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.Material
@@ -55,7 +55,7 @@ data class TerrainRendererComponent(
     var modelId: String,
     var material: Material = Material(),
     var model: DynamicModel? = null,
-    var previewDiffuseTexture: Texture? = null,
+    var previewDiffuseTexture: RuntimeTextureData? = null,
     var previewMode: TerrainPreviewMode = TerrainPreviewMode.MaterialColor,
     var previewResolution: Int = 0,
     var vertexCount: Int = 0,
@@ -91,11 +91,10 @@ data class TerrainRendererComponent(
     }
 
     /**
-     * Replaces the editor-only material preview texture and releases the previous one.
+     * Replaces the editor-only material preview texture payload.
      */
-    fun replacePreviewDiffuseTexture(texture: Texture?) {
+    fun replacePreviewDiffuseTexture(texture: RuntimeTextureData?) {
         if (previewDiffuseTexture === texture) return
-        previewDiffuseTexture?.dispose()
         previewDiffuseTexture = texture
     }
 }

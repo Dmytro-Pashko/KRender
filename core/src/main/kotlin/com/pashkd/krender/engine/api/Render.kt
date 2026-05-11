@@ -40,30 +40,84 @@ data class DrawModel(
     val visibleMeshPartIndices: Set<Int>? = null,
     /** Optional material/texture debug rendering request. Null keeps the normal material path. */
     val debugView: MaterialDebugView? = null,
+    /** Optional glTF PBR preview request. Debug rendering has priority when both are present. */
+    val pbrPreview: PbrPreviewView? = null,
     /** Relative ordering priority for this command. */
     override val sortKey: Int = 0,
 ) : RenderCommand
 
 /**
+ * Backend-neutral material debug modes supported by shader debug renderers.
+ */
+enum class MaterialDebugMode {
+    None,
+    BaseColor,
+    Normal,
+    Emission,
+    MetallicRoughness,
+    Occlusion,
+    Alpha,
+    UvChecker,
+}
+
+/**
+ * Backend-neutral culling behavior for debug preview passes.
+ */
+enum class DebugCullingMode {
+    Backface,
+    DoubleSided,
+}
+
+/**
+ * Resolved texture slot for a material debug pass.
+ */
+data class MaterialDebugTextureRef(
+    /** Material index that owns this texture, when known. */
+    val materialIndex: Int?,
+    /** Material id that owns this texture, when known. */
+    val materialId: String?,
+    /** Backend-neutral texture reference for this debug slot. */
+    val texture: MaterialTextureRef,
+)
+
+/**
  * Backend-neutral request for shader-based material/texture debug rendering.
  */
 data class MaterialDebugView(
-    /** Debug mode name. ModelViewer currently emits ModelViewerDebugMode names. */
-    val mode: String,
+    /** Typed debug mode requested by the producer system. */
+    val mode: MaterialDebugMode,
     /** Optional material index to inspect. Null lets the backend resolve per material. */
     val selectedMaterialIndex: Int? = null,
     /** Optional exact texture channel chosen in the UI. Backends may also use mode aliases. */
     val selectedTextureChannel: String? = null,
+    /** Resolved texture slots from model metadata. */
+    val textureRefs: List<MaterialDebugTextureRef> = emptyList(),
     /** Texture override used by UV checker rendering. */
     val uvCheckerTexture: MaterialTextureRef? = null,
     /** UV channel index to sample. */
     val uvChannel: Int = 0,
     /** Multiplier applied to UV coordinates for checker rendering. */
     val uvScale: Float = 1f,
+    /** Culling behavior for the debug render pass. */
+    val culling: DebugCullingMode = DebugCullingMode.Backface,
 ) {
     val active: Boolean
-        get() = mode != "None"
+        get() = mode != MaterialDebugMode.None
 }
+
+/**
+ * Backend-neutral request for glTF PBR preview rendering.
+ */
+data class PbrPreviewView(
+    val enabled: Boolean = false,
+    val exposure: Float = 1f,
+    val showSkybox: Boolean = true,
+    val skyboxTexture: MaterialTextureRef? = null,
+    val environmentIntensity: Float = 1f,
+    val directionalLightEnabled: Boolean = true,
+    val directionalLightYawDegrees: Float = 45f,
+    val directionalLightPitchDegrees: Float = -35f,
+)
 
 /**
  * Backend-neutral mesh payload for runtime-generated geometry.
@@ -122,6 +176,8 @@ data class DrawDynamicModel(
     val transform: TransformSnapshot,
     /** Material parameters applied for rendering. */
     val material: Material,
+    /** Runtime-generated textures that should be available while this command is rendered. */
+    val runtimeTextures: List<RuntimeTextureData> = emptyList(),
     /** Relative ordering priority for this command. */
     override val sortKey: Int = 0,
 ) : RenderCommand

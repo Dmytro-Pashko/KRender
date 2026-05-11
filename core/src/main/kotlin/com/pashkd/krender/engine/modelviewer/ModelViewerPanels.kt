@@ -1,6 +1,8 @@
 package com.pashkd.krender.engine.modelviewer
 
 import com.pashkd.krender.engine.api.AssetService
+import com.pashkd.krender.engine.api.DebugCullingMode
+import com.pashkd.krender.engine.api.MaterialDebugMode
 import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.ModelMaterialInfo
 import com.pashkd.krender.engine.api.ModelMeshPartInfo
@@ -108,6 +110,7 @@ class ModelViewerViewportPanel(
         ImGui.separator()
 
         drawDisplayModeCombo()
+        drawRendererControls()
         ImGui.checkbox("Grid##model_viewer_show_grid", state::showGrid)
         ImGui.sameLine()
         ImGui.checkbox("Axes##model_viewer_show_axes", state::showAxes)
@@ -141,6 +144,49 @@ class ModelViewerViewportPanel(
             }
         }
         ImGui.endCombo()
+    }
+
+    private fun drawRendererControls() {
+        ImGui.separator()
+        ImGui.text("Renderer")
+        if (ImGui.beginCombo("Mode##model_viewer_renderer_mode", rendererModeLabel(state.rendererMode))) {
+            ModelViewerRendererMode.entries.forEach { mode ->
+                if (ImGui.selectable("${rendererModeLabel(mode)}##model_viewer_renderer_$mode", state.rendererMode == mode)) {
+                    state.rendererMode = mode
+                }
+            }
+            ImGui.endCombo()
+        }
+        if (state.rendererMode != ModelViewerRendererMode.Pbr) return
+
+        slider("Exposure##model_viewer_pbr_exposure", state::pbrExposure, 0.1f, 4f, "%.2f", SliderFlag.AlwaysClamp)
+        slider(
+            "Environment Intensity##model_viewer_pbr_environment_intensity",
+            state::pbrEnvironmentIntensity,
+            0f,
+            4f,
+            "%.2f",
+            SliderFlag.AlwaysClamp,
+        )
+        ImGui.checkbox("Show Skybox##model_viewer_pbr_show_skybox", state::pbrShowSkybox)
+        ImGui.checkbox("Directional Light##model_viewer_pbr_directional_enabled", state::pbrDirectionalLightEnabled)
+        slider(
+            "Light Yaw##model_viewer_pbr_light_yaw",
+            state::pbrDirectionalLightYawDegrees,
+            -180f,
+            180f,
+            "%.0f",
+            SliderFlag.AlwaysClamp,
+        )
+        slider(
+            "Light Pitch##model_viewer_pbr_light_pitch",
+            state::pbrDirectionalLightPitchDegrees,
+            -89f,
+            89f,
+            "%.0f",
+            SliderFlag.AlwaysClamp,
+        )
+        state.pbrWarning?.let { warning -> textLine("Warning: $warning") }
     }
 
     companion object {
@@ -472,15 +518,22 @@ class ModelViewerTextureChannelsPanel(
 
     private fun drawDebugView(info: ModelAssetInfo?) {
         ImGui.text("Debug View")
-        state.debugSelectedMaterialOnly = false
         drawDebugModeCombo(info)
+        val selectedOnly = booleanArrayOf(state.debugSelectedMaterialOnly)
+        if (ImGui.checkbox("Selected material only##model_viewer_debug_selected_material_only", selectedOnly)) {
+            state.debugSelectedMaterialOnly = selectedOnly[0]
+        }
+        if (state.debugSelectedMaterialOnly && state.selectedMaterialIndex == null) {
+            textLine("Select a material to limit debug rendering.")
+        }
+        drawDebugCullingCombo()
         drawDebugTextureChannelCombo(info)
 
-        val uvCheckerEnabled = state.uvCheckerEnabled || state.debugMode == ModelViewerDebugMode.UvChecker
+        val uvCheckerEnabled = state.uvCheckerEnabled || state.debugMode == MaterialDebugMode.UvChecker
         val uvCheckerToggle = booleanArrayOf(uvCheckerEnabled)
         if (ImGui.checkbox("UV Checker##model_viewer_uv_checker_enabled", uvCheckerToggle)) {
             state.uvCheckerEnabled = uvCheckerToggle[0]
-            state.debugMode = if (state.uvCheckerEnabled) ModelViewerDebugMode.UvChecker else ModelViewerDebugMode.None
+            state.debugMode = if (state.uvCheckerEnabled) MaterialDebugMode.UvChecker else MaterialDebugMode.None
         }
         drawUvCheckerSettings(info)
         state.debugWarning?.let { warning -> textLine("Warning: $warning") }
@@ -488,17 +541,27 @@ class ModelViewerTextureChannelsPanel(
 
     private fun drawDebugModeCombo(info: ModelAssetInfo?) {
         if (!ImGui.beginCombo("Mode##model_viewer_debug_mode", debugModeLabel(state.debugMode))) return
-        ModelViewerDebugMode.entries.forEach { mode ->
+        MaterialDebugMode.entries.forEach { mode ->
             val available = debugModeAvailable(info, mode)
             val label = if (available) debugModeLabel(mode) else "${debugModeLabel(mode)} (unavailable)"
             if (ImGui.selectable("$label##model_viewer_debug_${mode.name}", state.debugMode == mode)) {
                 state.debugMode = mode
-                state.uvCheckerEnabled = mode == ModelViewerDebugMode.UvChecker
+                state.uvCheckerEnabled = mode == MaterialDebugMode.UvChecker
                 preferredModelViewerTextureChannel(
                     info,
                     mode,
-                    selectedMaterialIndex = null,
+                    selectedMaterialIndex = state.selectedMaterialIndex.takeIf { state.debugSelectedMaterialOnly },
                 )?.let { channel -> state.selectedTextureChannel = channel }
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    private fun drawDebugCullingCombo() {
+        if (!ImGui.beginCombo("Culling##model_viewer_debug_culling", debugCullingLabel(state.debugCullingMode))) return
+        DebugCullingMode.entries.forEach { mode ->
+            if (ImGui.selectable("${debugCullingLabel(mode)}##model_viewer_debug_culling_$mode", state.debugCullingMode == mode)) {
+                state.debugCullingMode = mode
             }
         }
         ImGui.endCombo()
@@ -510,7 +573,8 @@ class ModelViewerTextureChannelsPanel(
             textLine("Texture Channel: none")
             return
         }
-        val channels = matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex = null)
+        val selectedMaterial = state.selectedMaterialIndex.takeIf { state.debugSelectedMaterialOnly }
+        val channels = matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex = selectedMaterial)
             .map { slot -> slot.channel }
             .distinct()
         if (channels.isEmpty()) {
@@ -748,23 +812,33 @@ private fun textureChannelSortKey(channel: String): Int = when (channel) {
     else -> 50
 }
 
-private fun debugModeLabel(mode: ModelViewerDebugMode): String = when (mode) {
-    ModelViewerDebugMode.None -> "None"
-    ModelViewerDebugMode.BaseColor -> "Base Color / Diffuse"
-    ModelViewerDebugMode.Normal -> "Normal"
-    ModelViewerDebugMode.Emission -> "Emission"
-    ModelViewerDebugMode.MetallicRoughness -> "Metallic / Roughness"
-    ModelViewerDebugMode.Occlusion -> "Occlusion / AO"
-    ModelViewerDebugMode.Alpha -> "Alpha / Opacity"
-    ModelViewerDebugMode.UvChecker -> "UV Checker"
+private fun debugModeLabel(mode: MaterialDebugMode): String = when (mode) {
+    MaterialDebugMode.None -> "None"
+    MaterialDebugMode.BaseColor -> "Base Color / Diffuse"
+    MaterialDebugMode.Normal -> "Normal"
+    MaterialDebugMode.Emission -> "Emission"
+    MaterialDebugMode.MetallicRoughness -> "Metallic / Roughness"
+    MaterialDebugMode.Occlusion -> "Occlusion / AO"
+    MaterialDebugMode.Alpha -> "Alpha / Opacity"
+    MaterialDebugMode.UvChecker -> "UV Checker"
 }
 
-private fun debugModeAvailable(info: ModelAssetInfo?, mode: ModelViewerDebugMode): Boolean = when {
-    mode == ModelViewerDebugMode.None -> true
-    mode == ModelViewerDebugMode.UvChecker -> info?.uvChannels?.isNotEmpty() != false
+private fun debugModeAvailable(info: ModelAssetInfo?, mode: MaterialDebugMode): Boolean = when {
+    mode == MaterialDebugMode.None -> true
+    mode == MaterialDebugMode.UvChecker -> info?.uvChannels?.isNotEmpty() != false
     isModelViewerTextureDebugMode(mode) ->
         hasModelViewerTextureChannel(info, mode, selectedMaterialIndex = null)
     else -> true
+}
+
+private fun debugCullingLabel(mode: DebugCullingMode): String = when (mode) {
+    DebugCullingMode.Backface -> "Backface"
+    DebugCullingMode.DoubleSided -> "Double-sided"
+}
+
+private fun rendererModeLabel(mode: ModelViewerRendererMode): String = when (mode) {
+    ModelViewerRendererMode.LibGdx -> "LibGDX (default)"
+    ModelViewerRendererMode.Pbr -> "PBR"
 }
 
 private fun drawTextureSlotPreview(

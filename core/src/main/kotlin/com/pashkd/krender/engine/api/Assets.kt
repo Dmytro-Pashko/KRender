@@ -125,6 +125,48 @@ data class MaterialTextureRef(
 )
 
 /**
+ * Texture filtering mode for runtime-generated backend-neutral texture data.
+ */
+enum class RuntimeTextureFilter {
+    Nearest,
+    Linear,
+}
+
+/**
+ * Texture wrap mode for runtime-generated backend-neutral texture data.
+ */
+enum class RuntimeTextureWrap {
+    ClampToEdge,
+    Repeat,
+}
+
+/**
+ * Backend-neutral RGBA8888 texture payload generated at runtime.
+ */
+data class RuntimeTextureData(
+    /** Stable id used by [MaterialTextureRef] and backend runtime texture caches. */
+    val id: String,
+    /** Monotonic revision used by backends to avoid redundant uploads. */
+    val revision: Long,
+    val width: Int,
+    val height: Int,
+    /** One RGBA8888 int per pixel, row-major, top-left origin matching the producer. */
+    val rgba8888: IntArray,
+    val minFilter: RuntimeTextureFilter = RuntimeTextureFilter.Nearest,
+    val magFilter: RuntimeTextureFilter = RuntimeTextureFilter.Nearest,
+    val uWrap: RuntimeTextureWrap = RuntimeTextureWrap.ClampToEdge,
+    val vWrap: RuntimeTextureWrap = RuntimeTextureWrap.ClampToEdge,
+) {
+    init {
+        require(width > 0) { "Runtime texture width must be positive." }
+        require(height > 0) { "Runtime texture height must be positive." }
+        require(rgba8888.size == width * height) {
+            "Runtime texture pixel count must match width * height."
+        }
+    }
+}
+
+/**
  * Local-space model bounds extracted from a loaded backend model asset.
  */
 data class ModelAssetBounds(

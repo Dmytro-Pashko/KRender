@@ -1,60 +1,92 @@
 package com.pashkd.krender.engine.modelviewer
 
+import com.pashkd.krender.engine.api.MaterialDebugMode
+import com.pashkd.krender.engine.api.MaterialDebugTextureRef
+import com.pashkd.krender.engine.api.MaterialTextureRef
 import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.ModelTextureSlotInfo
 
-internal fun isModelViewerTextureDebugMode(mode: ModelViewerDebugMode): Boolean = when (mode) {
-    ModelViewerDebugMode.BaseColor,
-    ModelViewerDebugMode.Normal,
-    ModelViewerDebugMode.Emission,
-    ModelViewerDebugMode.MetallicRoughness,
-    ModelViewerDebugMode.Occlusion,
-    ModelViewerDebugMode.Alpha,
+internal fun isModelViewerTextureDebugMode(mode: MaterialDebugMode): Boolean = when (mode) {
+    MaterialDebugMode.BaseColor,
+    MaterialDebugMode.Normal,
+    MaterialDebugMode.Emission,
+    MaterialDebugMode.MetallicRoughness,
+    MaterialDebugMode.Occlusion,
+    MaterialDebugMode.Alpha,
     -> true
 
-    ModelViewerDebugMode.None,
-    ModelViewerDebugMode.UvChecker,
+    MaterialDebugMode.None,
+    MaterialDebugMode.UvChecker,
     -> false
 }
 
 internal fun matchingModelViewerTextureSlots(
     info: ModelAssetInfo?,
-    mode: ModelViewerDebugMode,
+    mode: MaterialDebugMode,
     selectedMaterialIndex: Int?,
+    selectedTextureChannel: String? = null,
 ): List<ModelTextureSlotInfo> {
     if (!isModelViewerTextureDebugMode(mode)) return emptyList()
     val aliases = modelViewerTextureAliasesFor(mode)
+    val selectedChannel = normalizeModelViewerTextureChannel(selectedTextureChannel)
     return info?.materials
         .orEmpty()
         .asSequence()
         .filter { material -> selectedMaterialIndex == null || material.index == selectedMaterialIndex }
         .flatMap { material -> material.textureSlots.asSequence() }
-        .filter { slot -> normalizeModelViewerTextureChannel(slot.channel) in aliases }
+        .filter { slot ->
+            val channel = normalizeModelViewerTextureChannel(slot.channel)
+            if (selectedChannel.isNotBlank()) channel == selectedChannel else channel in aliases
+        }
         .toList()
 }
 
+internal fun resolvedModelViewerDebugTextureRefs(
+    info: ModelAssetInfo?,
+    mode: MaterialDebugMode,
+    selectedMaterialIndex: Int?,
+    selectedTextureChannel: String?,
+): List<MaterialDebugTextureRef> =
+    matchingModelViewerTextureSlots(
+        info = info,
+        mode = mode,
+        selectedMaterialIndex = selectedMaterialIndex,
+        selectedTextureChannel = selectedTextureChannel,
+    ).mapNotNull { slot ->
+        val texturePath = slot.texturePath?.takeIf(String::isNotBlank) ?: return@mapNotNull null
+        MaterialDebugTextureRef(
+            materialIndex = slot.materialIndex,
+            materialId = slot.materialId,
+            texture = MaterialTextureRef(
+                id = texturePath,
+                channel = slot.channel,
+                uvChannel = modelViewerUvChannelIndex(slot.uvChannel) ?: 0,
+            ),
+        )
+    }
+
 internal fun preferredModelViewerTextureChannel(
     info: ModelAssetInfo?,
-    mode: ModelViewerDebugMode,
+    mode: MaterialDebugMode,
     selectedMaterialIndex: Int?,
 ): String? = matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex).firstOrNull()?.channel
 
 internal fun hasModelViewerTextureChannel(
     info: ModelAssetInfo?,
-    mode: ModelViewerDebugMode,
+    mode: MaterialDebugMode,
     selectedMaterialIndex: Int?,
 ): Boolean = matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex)
     .any { slot -> !slot.texturePath.isNullOrBlank() }
 
-internal fun modelViewerTextureAliasesFor(mode: ModelViewerDebugMode): Set<String> = when (mode) {
-    ModelViewerDebugMode.BaseColor -> setOf("basecolor", "basecolortexture", "diffuse", "diffusetexture")
-    ModelViewerDebugMode.Normal -> setOf("normal", "normaltexture", "bump")
-    ModelViewerDebugMode.Emission -> setOf("emission", "emissive", "emissivetexture")
-    ModelViewerDebugMode.MetallicRoughness -> setOf("metallicroughness", "metallic", "roughness", "orm")
-    ModelViewerDebugMode.Occlusion -> setOf("occlusion", "ao", "ambientocclusion")
-    ModelViewerDebugMode.Alpha -> setOf("alpha", "opacity", "alphatexture")
-    ModelViewerDebugMode.None,
-    ModelViewerDebugMode.UvChecker,
+internal fun modelViewerTextureAliasesFor(mode: MaterialDebugMode): Set<String> = when (mode) {
+    MaterialDebugMode.BaseColor -> setOf("basecolor", "basecolortexture", "diffuse", "diffusetexture")
+    MaterialDebugMode.Normal -> setOf("normal", "normaltexture", "bump")
+    MaterialDebugMode.Emission -> setOf("emission", "emissive", "emissivetexture")
+    MaterialDebugMode.MetallicRoughness -> setOf("metallicroughness", "metallic", "roughness", "orm")
+    MaterialDebugMode.Occlusion -> setOf("occlusion", "ao", "ambientocclusion")
+    MaterialDebugMode.Alpha -> setOf("alpha", "opacity", "alphatexture")
+    MaterialDebugMode.None,
+    MaterialDebugMode.UvChecker,
     -> emptySet()
 }
 
@@ -62,3 +94,12 @@ private fun normalizeModelViewerTextureChannel(channel: String?): String =
     channel.orEmpty()
         .lowercase()
         .filter { char -> char.isLetterOrDigit() }
+
+private fun modelViewerUvChannelIndex(channel: String?): Int? {
+    val trimmed = channel?.trim().orEmpty()
+    return when {
+        trimmed.startsWith("UV", ignoreCase = true) -> trimmed.drop(2).toIntOrNull()
+        trimmed.startsWith("TEXCOORD_", ignoreCase = true) -> trimmed.substringAfter('_').toIntOrNull()
+        else -> trimmed.toIntOrNull()
+    }
+}

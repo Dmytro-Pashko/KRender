@@ -1,7 +1,9 @@
 package com.pashkd.krender.engine.modelviewer
 
 import com.pashkd.krender.engine.api.AssetRef
+import com.pashkd.krender.engine.api.DebugCullingMode
 import com.pashkd.krender.engine.api.EntityId
+import com.pashkd.krender.engine.api.MaterialDebugMode
 import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.Vec2
@@ -18,18 +20,9 @@ enum class ModelViewerDisplayMode {
     Wireframe,
 }
 
-/**
- * Texture/material debug modes. Kept separate from shaded/wireframe display mode.
- */
-enum class ModelViewerDebugMode {
-    None,
-    BaseColor,
-    Normal,
-    Emission,
-    MetallicRoughness,
-    Occlusion,
-    Alpha,
-    UvChecker,
+enum class ModelViewerRendererMode {
+    LibGdx,
+    Pbr,
 }
 
 data class ModelViewerUvCheckerTextureOption(
@@ -41,6 +34,7 @@ const val UV_CHECKER_TEXTURE_1K = "textures/uv_checker_1k.png"
 const val UV_CHECKER_TEXTURE_2K = "textures/uv_checker_2k.png"
 const val UV_CHECKER_TEXTURE_4K = "textures/uv_checker_4k.png"
 const val DEFAULT_UV_CHECKER_TEXTURE = "textures/uv_checker_2k.png"
+const val DEFAULT_PBR_SKYBOX_TEXTURE = "textures/default_skybox_studio.png"
 
 val UV_CHECKER_TEXTURE_OPTIONS = listOf(
     ModelViewerUvCheckerTextureOption(1024, UV_CHECKER_TEXTURE_1K),
@@ -104,13 +98,16 @@ data class ModelViewerState(
     var displayMode: ModelViewerDisplayMode = ModelViewerDisplayMode.Shaded,
 
     /** Current material/texture debug mode. */
-    var debugMode: ModelViewerDebugMode = ModelViewerDebugMode.None,
+    var debugMode: MaterialDebugMode = MaterialDebugMode.None,
 
     /** Limits debug rendering to the selected material when enabled. */
     var debugSelectedMaterialOnly: Boolean = false,
 
     /** Enables UV checker override. Mirrored with [debugMode] when selected in the UI. */
     var uvCheckerEnabled: Boolean = false,
+
+    /** Culling behavior used by shader debug rendering. */
+    var debugCullingMode: DebugCullingMode = DebugCullingMode.Backface,
 
     /** Backend-neutral texture asset path used by the UV checker override. */
     var uvCheckerTexturePath: String = DEFAULT_UV_CHECKER_TEXTURE,
@@ -123,6 +120,26 @@ data class ModelViewerState(
 
     /** Current debug-rendering warning surfaced in the UI. */
     var debugWarning: String? = null,
+
+    /** Current renderer warning surfaced in the UI. */
+    var pbrWarning: String? = null,
+
+    /** Current renderer path for shaded model preview. */
+    var rendererMode: ModelViewerRendererMode = ModelViewerRendererMode.LibGdx,
+
+    var pbrExposure: Float = 1f,
+
+    var pbrShowSkybox: Boolean = true,
+
+    var pbrSkyboxTexturePath: String = DEFAULT_PBR_SKYBOX_TEXTURE,
+
+    var pbrEnvironmentIntensity: Float = 1f,
+
+    var pbrDirectionalLightEnabled: Boolean = true,
+
+    var pbrDirectionalLightYawDegrees: Float = 45f,
+
+    var pbrDirectionalLightPitchDegrees: Float = -35f,
 
     /** Currently selected mesh part in the Mesh Parts panel. */
     var selectedMeshPartIndex: Int? = null,

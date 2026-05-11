@@ -9,6 +9,7 @@ import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
 import com.pashkd.krender.engine.modelviewer.ModelViewerBoundingBoxSystem
+import com.pashkd.krender.engine.modelviewer.DEFAULT_PBR_SKYBOX_TEXTURE
 import com.pashkd.krender.engine.modelviewer.ModelViewerInfoPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerLoadingPanel
 import com.pashkd.krender.engine.modelviewer.ModelViewerMaterialsPanel
@@ -50,7 +51,7 @@ class ModelViewerScene(
 
     override val requiredAssets: List<AssetPack> = listOf(
         object : AssetPack {
-            override val assets = listOf(model) + UV_CHECKER_TEXTURE_OPTIONS.map { option ->
+            override val assets = listOf(model, AssetRef.texture(DEFAULT_PBR_SKYBOX_TEXTURE)) + UV_CHECKER_TEXTURE_OPTIONS.map { option ->
                 AssetRef.texture(option.texturePath)
             }
         },

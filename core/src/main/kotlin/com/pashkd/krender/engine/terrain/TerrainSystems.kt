@@ -1,6 +1,5 @@
 package com.pashkd.krender.engine.terrain
 
-import com.badlogic.gdx.graphics.Texture
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawLine
@@ -8,7 +7,11 @@ import com.pashkd.krender.engine.api.DynamicModel
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.api.MaterialTextureRef
 import com.pashkd.krender.engine.api.PointerPhase
+import com.pashkd.krender.engine.api.RuntimeTextureData
+import com.pashkd.krender.engine.api.RuntimeTextureFilter
+import com.pashkd.krender.engine.api.RuntimeTextureWrap
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
@@ -1051,13 +1054,13 @@ class TerrainMeshSyncSystem(
             }
             val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
             previewBakeStatsSink(elapsedMs, baker.cacheStats())
-            // Upload the baked pixmap immediately, then dispose CPU-side pixels to
-            // avoid leaking temporary preview image memory.
             val texture = try {
-                Texture(pixmap).also {
-                    it.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
-                    it.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge)
-                }
+                runtimeTerrainPreviewTexture(
+                    renderer = renderer,
+                    pixmap = pixmap,
+                    previewMode = previewMode,
+                    resolution = resolution,
+                )
             } finally {
                 pixmap.dispose()
             }
@@ -1209,18 +1212,23 @@ object TerrainRenderCommands {
             val transform = entity.get<TransformComponent>() ?: return@forEach
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
             val model = renderer.model ?: return@forEach
-            val material = if (renderer.previewDiffuseTexture != null) {
+            val previewTexture = renderer.previewDiffuseTexture
+            val material = if (previewTexture != null) {
                 renderer.material.copy(
                     baseColor = Color.white(),
-                    diffuseTexture = renderer.previewDiffuseTexture,
+                    diffuseTextureRef = MaterialTextureRef(
+                        id = previewTexture.id,
+                        channel = "diffuse",
+                        uvChannel = 0,
+                    ),
                 )
             } else if (model.mesh.colors != null) {
                 renderer.material.copy(
                     baseColor = Color.white(),
-                    diffuseTexture = null,
+                    diffuseTextureRef = null,
                 )
             } else {
-                renderer.material.copy(diffuseTexture = null)
+                renderer.material.copy(diffuseTextureRef = null)
             }
             submit(
                 DrawDynamicModel(
@@ -1228,10 +1236,37 @@ object TerrainRenderCommands {
                     model = model,
                     transform = transform.snapshot(),
                     material = material,
+                    runtimeTextures = listOfNotNull(previewTexture),
                 ),
             )
         }
     }
+}
+
+private fun runtimeTerrainPreviewTexture(
+    renderer: TerrainRendererComponent,
+    pixmap: com.badlogic.gdx.graphics.Pixmap,
+    previewMode: TerrainPreviewMode,
+    resolution: Int,
+): RuntimeTextureData {
+    val pixels = IntArray(pixmap.width * pixmap.height)
+    var offset = 0
+    for (y in 0 until pixmap.height) {
+        for (x in 0 until pixmap.width) {
+            pixels[offset++] = pixmap.getPixel(x, y)
+        }
+    }
+    return RuntimeTextureData(
+        id = "runtime:terrain-preview:${renderer.modelId}",
+        revision = renderer.meshRevision * 31L + previewMode.ordinal * 17L + resolution,
+        width = pixmap.width,
+        height = pixmap.height,
+        rgba8888 = pixels,
+        minFilter = RuntimeTextureFilter.Nearest,
+        magFilter = RuntimeTextureFilter.Nearest,
+        uWrap = RuntimeTextureWrap.ClampToEdge,
+        vWrap = RuntimeTextureWrap.ClampToEdge,
+    )
 }
 
 /**
