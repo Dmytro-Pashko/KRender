@@ -33,7 +33,8 @@ with assets, models, terrains, and scenes.
 - **Rendering pipeline**, including models, terrain meshes, debug grids, axes, bounding boxes, wireframes, lights, and
   UI overlays.
 - **Asset Browser** for browsing, managing, and opening project assets with registered tools.
-- **Model Viewer** for inspecting model assets, mesh parts, materials, textures, animations, bounds, and display modes.
+- **Model Viewer** for inspecting model assets, mesh parts, materials, textures, animations, bounds, display modes,
+  texture debug views, and glTF PBR preview rendering.
 - **Terrain Editor** for creating, editing, previewing, saving, and loading terrain data.
 - **Scene Editor** for building scenes with models, terrains, transforms, cameras, lights, selection, gizmos, and
   runtime preview.
@@ -207,10 +208,20 @@ Features:
 - Shows mesh parts, materials, texture channels, and animation metadata when available.
 - Allows selecting and isolating individual mesh parts for easier inspection.
 - Provides shaded, wireframe, and mixed shaded-wireframe display modes.
+- Provides a renderer selector with `LibGDX (default)` and `PBR` modes for comparing the default backend path with a
+  glTF-focused PBR preview.
+- Uses the `gdx-gltf` PBR rendering path for `.gltf` and `.glb` models in PBR mode.
+- Includes PBR preview controls for exposure, environment intensity, skybox visibility, directional light enablement,
+  light yaw, and light pitch.
+- Uses a default cubemap skybox texture asset for PBR previews, stored as a single cubemap cross/strip texture file.
 - Provides shader-based material debug preview modes separate from viewport display modes.
 - Can preview Base Color / Diffuse, Normal, Metallic / Roughness, Occlusion, Emission, and Alpha texture channels directly on the model surface when metadata is available.
 - Includes UV checker preview using texture assets at 1024, 2048, and 4096 resolutions for validating UV layout and scale.
+- Gives texture debug modes priority over PBR rendering, so material inspection stays stable when both features are
+  available.
 - Falls back safely and reports warnings when a model has no UVs or a requested texture channel is unavailable.
+- Falls back safely and reports warnings when PBR preview is unavailable for a model or when optional skybox/IBL
+  resources cannot be created on the active graphics backend.
 - Shows texture previews when supported by the backend.
 - Includes loading state, logs, and viewport layout controls.
 
@@ -220,6 +231,7 @@ Screenshots:
 ![Model Viewer shaded wireframe](docs/screenshot/model-viewer-shader_full_mesh_shaded_wires.png)
 ![Model Viewer full model without helpers](docs/screenshot/model-viewer-shader_full_model_no_grid_no_axis_no_bounds.png)
 ![Model Viewer isolated wireframe](docs/screenshot/model-viewer-wireframe_isolated.png)
+![Model Viewer PBR preview](docs/screenshot/model-viewer-pbr_preview.png)
 ![Model Viewer metallic roughness preview](docs/screenshot/model-viewer_metalic_preview.png)
 ![Model Viewer alpha channel preview](docs/screenshot/model-viewer_alpha_channel_preview.png)
 ![Model Viewer UV checker preview](docs/screenshot/model-viewer_uv_checker.png)
