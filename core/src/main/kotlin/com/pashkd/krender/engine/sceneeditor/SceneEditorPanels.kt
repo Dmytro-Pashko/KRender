@@ -14,6 +14,7 @@ import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainComponent
+import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
@@ -232,8 +233,13 @@ class SceneHierarchyPanel(
                 } else {
                     ""
                 }
+                val activeTerrainMarker = if (entity.id == document.descriptor?.settings?.activeTerrainEntityId) {
+                    " [Active Terrain]"
+                } else {
+                    ""
+                }
                 val activeMarker = if (entity.active) "" else " (inactive)"
-                val label = "${entity.name}$activeCameraMarker$activeMarker##scene_entity_${entity.id}"
+                val label = "${entity.name}$activeCameraMarker$activeTerrainMarker$activeMarker##scene_entity_${entity.id}"
                 if (ImGui.selectable(label, state.selectedEntityId == entity.id)) {
                     state.selectedEntityId = entity.id
                     state.statusMessage = "Selected ${entity.name}."
@@ -450,10 +456,30 @@ class SceneInspectorPanel(
             ImGui.separator()
             ImGui.text("Terrain")
             ImGui.text("Path: ${terrain.terrain.path}")
+            val activeTerrain = booleanArrayOf(document.descriptor?.settings?.activeTerrainEntityId == entity.id)
+            if (ImGui.checkbox("Active Terrain##scene_inspector_terrain_active", activeTerrain)) {
+                if (activeTerrain[0]) {
+                    operations.setActiveTerrain(entity.id)
+                } else {
+                    operations.clearActiveTerrain(entity.id)
+                }
+            }
             val visible = booleanArrayOf(terrain.visible)
             if (ImGui.checkbox("Visible##scene_inspector_terrain_visible", visible)) {
                 operations.setTerrainVisible(entity.id, visible[0])
             }
+            ImGui.text("Preview")
+            terrainPreviewModeButton(entity, terrain, "Layer Color", TerrainPreviewMode.LayerColor)
+            ImGui.sameLine()
+            terrainPreviewModeButton(entity, terrain, "Texture Preview", TerrainPreviewMode.MaterialTexture)
+            ImGui.text("Baked Texture Resolution")
+            TerrainTextureResolutionOptions.forEachIndexed { index, resolution ->
+                if (index > 0) {
+                    ImGui.sameLine()
+                }
+                terrainResolutionButton(entity, terrain, resolution)
+            }
+            ImGui.text("Current: ${formatTextureResolution(terrain.bakedTextureResolution)}")
             with(dsl) {
                 button("Open in Terrain Editor##scene_inspector_terrain_open") {
                     operations.openTerrainInEditor(terrain.terrain.path)
@@ -469,12 +495,45 @@ class SceneInspectorPanel(
         drawComponentActions(entity)
     }
 
+    private fun terrainPreviewModeButton(
+        entity: Entity,
+        terrain: TerrainComponent,
+        label: String,
+        mode: TerrainPreviewMode,
+    ) {
+        val selected = terrain.previewMode == mode
+        ImGui.beginDisabled(selected)
+        with(dsl) {
+            button("$label##scene_inspector_terrain_preview_${mode.name}") {
+                operations.setTerrainPreviewMode(entity.id, mode)
+            }
+        }
+        ImGui.endDisabled()
+    }
+
+    private fun terrainResolutionButton(
+        entity: Entity,
+        terrain: TerrainComponent,
+        resolution: Int,
+    ) {
+        val selected = terrain.bakedTextureResolution == resolution
+        ImGui.beginDisabled(selected)
+        with(dsl) {
+            button("${formatTextureResolution(resolution)}##scene_inspector_terrain_baked_resolution_$resolution") {
+                operations.setTerrainBakedTextureResolution(entity.id, resolution)
+            }
+        }
+        ImGui.endDisabled()
+    }
+
     private fun drawSceneSettings() {
         val settings = document.descriptor?.settings
         val ambientColor = settings?.ambientLightColor?.copy() ?: defaultAmbientLightColor()
         val ambientIntensity = settings?.ambientLightIntensity ?: DefaultAmbientLightIntensity
 
         ImGui.text("Scene Settings")
+        val activeTerrain = settings?.activeTerrainEntityId?.let(document.world::getEntity)
+        ImGui.text("Active Terrain: ${activeTerrain?.name ?: "<none>"}")
         ImGui.text("Lighting")
         if (
             colorEdit4(
@@ -731,6 +790,7 @@ class SceneInspectorPanel(
         private const val CameraPlaneDragSpeed = 0.01f
         private const val MinCameraFovDegrees = 1f
         private const val MaxCameraFovDegrees = 160f
+        private val TerrainTextureResolutionOptions = intArrayOf(512, 1024, 2048, 4096, 8192)
     }
 }
 
@@ -829,6 +889,13 @@ internal fun readBuffer(buffer: ByteArray): String {
     val length = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size
     return String(buffer, 0, length, StandardCharsets.UTF_8)
 }
+
+private fun formatTextureResolution(resolution: Int): String =
+    if (resolution >= 1024 && resolution % 1024 == 0) {
+        "${resolution / 1024}k"
+    } else {
+        resolution.toString()
+    }
 
 internal fun writeBuffer(buffer: ByteArray, value: String) {
     buffer.fill(0)

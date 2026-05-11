@@ -32,7 +32,13 @@ class Main(
                 initialSceneName = defaultSceneName(),
             )
 
-            "runtime-scene" -> RuntimeScene(scenePath = scenePath)
+            "runtime-scene" -> RuntimeScene(
+                scenePath = scenePath,
+                terrainFilePath = defaultTerrainFilePath(),
+                terrainResolution = defaultTerrainResolution(),
+                finalSplatResolution = defaultRuntimeTerrainSplatResolution(),
+                vertexSpacing = defaultTerrainSpacing(),
+            )
 
             "model-viewer" -> ModelViewerScene(
                 model = selectedModel ?: AssetRef.primitiveModel("cube"),
@@ -62,9 +68,11 @@ class Main(
             System.getProperty("krender.model.path")?.takeIf(String::isNotBlank)
                 ?: System.getProperty("krender.model")?.takeIf(String::isNotBlank)
         fun defaultTerrainResolution(): Int = System.getProperty("krender.terrain.size", "128").toIntOrNull() ?: 128
+        fun defaultRuntimeTerrainSplatResolution(): Int =
+            System.getProperty("krender.terrain.splat.size", "8192").toIntOrNull() ?: 8192
         fun defaultTerrainSpacing(): Float = System.getProperty("krender.terrain.spacing", "1.0").toFloatOrNull() ?: 1f
         fun defaultTerrainFilePath(): String =
-            System.getProperty("krender.terrain.path", "terrains/terrain_01.json")
+            System.getProperty("krender.terrain.path", "terrains/terrain_01.krterrain")
         fun defaultScenePath(): String? = System.getProperty("krender.scene.path")?.takeIf(String::isNotBlank)
         fun defaultSceneName(): String = System.getProperty("krender.scene.name", "Untitled Scene")
     }

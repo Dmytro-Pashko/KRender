@@ -120,6 +120,21 @@ data class PbrPreviewView(
 )
 
 /**
+ * Backend-neutral scene environment request.
+ *
+ * Runtime scenes use this to ask the active backend to render a skybox and apply
+ * environment defaults without leaking backend-specific cubemap types into core.
+ */
+data class ApplyEnvironment(
+    val skyboxTexture: MaterialTextureRef? = null,
+    val showSkybox: Boolean = true,
+    val ambientColor: Color = Color(0.55f, 0.58f, 0.64f, 1f),
+    val ambientIntensity: Float = 1f,
+    val environmentIntensity: Float = 1f,
+    override val sortKey: Int = -100,
+) : RenderCommand
+
+/**
  * Backend-neutral mesh payload for runtime-generated geometry.
  *
  * Terrain uses this to render generated heightfield meshes without going through

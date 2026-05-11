@@ -17,6 +17,7 @@ import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.terrain.TerrainComponent
+import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 import java.util.UUID
 
 /**
@@ -40,6 +41,16 @@ object SceneSerializer {
             ?: world.all()
                 .firstOrNull { entity -> includeEntity(entity) && entity.get<PerspectiveCameraComponent>() != null }
                 ?.id
+        val activeTerrainEntityId = existingSettings
+            ?.activeTerrainEntityId
+            ?.takeIf { id -> entities.any { it.id == id && it.hasComponent("TerrainComponent") } }
+            ?: if (existingSettings == null) {
+                world.all()
+                    .firstOrNull { entity -> includeEntity(entity) && entity.get<TerrainComponent>() != null }
+                    ?.id
+            } else {
+                null
+            }
         val ambientLightEntityId = existingSettings
             ?.ambientLightEntityId
             ?.takeIf { id -> entities.any { it.id == id } }
@@ -51,6 +62,7 @@ object SceneSerializer {
             entities = entities,
             settings = SceneSettingsDescriptor(
                 activeCameraEntityId = activeCameraEntityId,
+                activeTerrainEntityId = activeTerrainEntityId,
                 ambientLightEntityId = ambientLightEntityId,
                 ambientLightColor = existingSettings?.ambientLightColor?.copy() ?: defaultAmbientLightColor(),
                 ambientLightIntensity = existingSettings?.ambientLightIntensity ?: DefaultAmbientLightIntensity,
@@ -72,6 +84,7 @@ object SceneSerializer {
             appendLine("  ],")
             appendLine("  \"settings\": {")
             appendLine("    \"activeCameraEntityId\": ${descriptor.settings.activeCameraEntityId ?: "null"},")
+            appendLine("    \"activeTerrainEntityId\": ${descriptor.settings.activeTerrainEntityId ?: "null"},")
             appendLine("    \"ambientLightEntityId\": ${descriptor.settings.ambientLightEntityId ?: "null"},")
             appendLine("    \"ambientLightColor\": ${jsonString(descriptor.settings.ambientLightColor.csv())},")
             appendLine("    \"ambientLightIntensity\": ${descriptor.settings.ambientLightIntensity}")
@@ -158,6 +171,8 @@ object SceneSerializer {
                 properties = mapOf(
                     "terrain" to component.terrain.path.trim().replace('\\', '/'),
                     "visible" to component.visible.toString(),
+                    "previewMode" to component.previewMode.name,
+                    "bakedTextureResolution" to component.bakedTextureResolution.toString(),
                 ),
             )
 
@@ -231,6 +246,7 @@ object SceneSerializer {
         if (settingsNode == null || !settingsNode.isObject) return SceneSettingsDescriptor()
         return SceneSettingsDescriptor(
             activeCameraEntityId = settingsNode.get("activeCameraEntityId")?.takeUnless { it.isNull }?.asLong(),
+            activeTerrainEntityId = settingsNode.get("activeTerrainEntityId")?.takeUnless { it.isNull }?.asLong(),
             ambientLightEntityId = settingsNode.get("ambientLightEntityId")?.takeUnless { it.isNull }?.asLong(),
             ambientLightColor = parseColor(settingsNode.getString("ambientLightColor", null), defaultAmbientLightColor()),
             ambientLightIntensity = settingsNode.getFloat("ambientLightIntensity", DefaultAmbientLightIntensity),
@@ -242,6 +258,9 @@ object SceneSerializer {
     private fun Vec3.csv(): String = "$x,$y,$z"
 
     private fun Color.csv(): String = "$r,$g,$b,$a"
+
+    private fun EntityDescriptor.hasComponent(type: String): Boolean =
+        components.any { component -> component.type == type }
 
     private fun parseColor(raw: String?, defaultValue: Color): Color {
         val values = raw?.split(',')?.map { it.trim().toFloatOrNull() }
@@ -415,7 +434,20 @@ object SceneDeserializer {
             return null
         }
         val visible = component.properties["visible"]?.trim()?.toBooleanStrictOrNull() ?: true
-        return TerrainComponent(terrain = AssetRef.terrain(path), visible = visible)
+        val previewMode = readTerrainPreviewMode(component.properties["previewMode"], entityId, logger)
+        val bakedTextureResolution = readInt(
+            component.properties["bakedTextureResolution"],
+            defaultValue = 8192,
+            context = "TerrainComponent.bakedTextureResolution",
+            entityId = entityId,
+            logger = logger,
+        ).coerceIn(2, 8192)
+        return TerrainComponent(
+            terrain = AssetRef.terrain(path),
+            visible = visible,
+            previewMode = previewMode,
+            bakedTextureResolution = bakedTextureResolution,
+        )
     }
 
     private fun readVec3(
@@ -479,6 +511,19 @@ object SceneDeserializer {
         return defaultValue
     }
 
+    private fun readInt(
+        raw: String?,
+        defaultValue: Int,
+        context: String,
+        entityId: Long,
+        logger: Logger?,
+    ): Int {
+        val value = raw?.trim()?.toIntOrNull()
+        if (value != null) return value
+        warnParse(raw, context, entityId, logger)
+        return defaultValue
+    }
+
     private fun readLightType(
         raw: String?,
         defaultValue: LightType,
@@ -489,6 +534,30 @@ object SceneDeserializer {
         if (value != null) return value
         warnParse(raw, "LightComponent.type", entityId, logger)
         return defaultValue
+    }
+
+    private fun readTerrainPreviewMode(
+        raw: String?,
+        entityId: Long,
+        logger: Logger?,
+    ): TerrainPreviewMode {
+        val value = TerrainPreviewMode.entries.firstOrNull { mode ->
+            mode.name.equals(raw, ignoreCase = true) ||
+                (mode == TerrainPreviewMode.MaterialTexture && raw.equals("TexturePreview", ignoreCase = true))
+        }
+        return when (value) {
+            TerrainPreviewMode.MaterialTexture -> TerrainPreviewMode.MaterialTexture
+            TerrainPreviewMode.LayerColor -> TerrainPreviewMode.LayerColor
+            TerrainPreviewMode.MaterialColor,
+            TerrainPreviewMode.SelectedLayerMask,
+            null,
+            -> {
+                if (raw != null) {
+                    warnParse(raw, "TerrainComponent.previewMode", entityId, logger)
+                }
+                TerrainPreviewMode.LayerColor
+            }
+        }
     }
 
     private fun warnParse(

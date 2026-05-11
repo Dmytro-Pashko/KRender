@@ -5,14 +5,14 @@
   "entities": [
     {
       "id": 1,
-      "name": "Main Camera",
+      "name": "і",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "Main Camera"
+            "name": "і"
           }
         },
         {
@@ -449,35 +449,6 @@
           "type": "ModelComponent",
           "properties": {
             "model": "model/m_rock_08.glb"
-          }
-        }
-      ]
-    },
-    {
-      "id": 29,
-      "name": "terrain_main",
-      "active": false,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "terrain_main"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "-10.3,-0.1,0.0",
-            "rotation": "0.0,0.0,0.0",
-            "scale": "1.0,1.0,1.0"
-          }
-        },
-        {
-          "type": "TerrainComponent",
-          "properties": {
-            "terrain": "terrains/terrain_01.json",
-            "visible": "true"
           }
         }
       ]
@@ -1355,7 +1326,9 @@
           "type": "TerrainComponent",
           "properties": {
             "terrain": "terrains/terrain_02_small_flat.json",
-            "visible": "true"
+            "visible": "true",
+            "previewMode": "MaterialTexture",
+            "bakedTextureResolution": "4096"
           }
         }
       ]
@@ -1506,8 +1479,9 @@
   ],
   "settings": {
     "activeCameraEntityId": 1,
+    "activeTerrainEntityId": 79,
     "ambientLightEntityId": null,
     "ambientLightColor": "0.9420175,0.95112085,0.96568626,1.0",
-    "ambientLightIntensity": 0.16
+    "ambientLightIntensity": 1.0
   }
 }

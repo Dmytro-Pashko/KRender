@@ -20,6 +20,7 @@ import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainComponent
+import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import kotlin.math.cos
@@ -150,6 +151,9 @@ class SceneEditorOperations(
         state.terrainPlacementPath = normalizedPath
         state.terrainPlacementError = null
         state.selectedEntityId = entity.id
+        if (!activeTerrainExists()) {
+            updateActiveTerrainSetting(entity.id)
+        }
         markSceneChanged("Placed terrain: $normalizedPath")
         context.logger.info(TAG) { "Placed terrain entity id=${entity.id} name='${entity.name}' terrain='$normalizedPath'" }
     }
@@ -223,6 +227,23 @@ class SceneEditorOperations(
         updateActiveCameraSetting(entity.id)
         markSceneChanged("Active camera set to ${entity.name}.")
         context.logger.info(TAG) { "Active scene camera set entityId=${entity.id} name='${entity.name}'" }
+    }
+
+    fun setActiveTerrain(entityId: EntityId) {
+        val entity = terrainEntity(entityId) ?: return
+        updateActiveTerrainSetting(entity.id)
+        markSceneChanged("Active terrain set to ${entity.name}.")
+        context.logger.info(TAG) {
+            "Active scene terrain set entityId=${entity.id} name='${entity.name}' path='${entity.get<TerrainComponent>()?.terrain?.path ?: "<missing>"}'"
+        }
+    }
+
+    fun clearActiveTerrain(entityId: EntityId) {
+        val activeTerrainEntityId = document.descriptor?.settings?.activeTerrainEntityId
+        if (activeTerrainEntityId != entityId) return
+        updateActiveTerrainSetting(null)
+        markSceneChanged("Active terrain cleared.")
+        context.logger.info(TAG) { "Active scene terrain cleared entityId=$entityId" }
     }
 
     fun alignCameraToView(entityId: EntityId) {
@@ -478,6 +499,31 @@ class SceneEditorOperations(
         context.logger.info(TAG) { "Set terrain visible entityId=$entityId visible=$visible" }
     }
 
+    fun setTerrainPreviewMode(entityId: EntityId, mode: TerrainPreviewMode) {
+        val entity = terrainEntity(entityId) ?: return
+        val terrain = entity.get<TerrainComponent>() ?: return
+        val supportedMode = when (mode) {
+            TerrainPreviewMode.MaterialTexture -> TerrainPreviewMode.MaterialTexture
+            else -> TerrainPreviewMode.LayerColor
+        }
+        if (terrain.previewMode == supportedMode) return
+
+        terrain.previewMode = supportedMode
+        markSceneChanged("Updated ${entity.name} terrain preview mode.")
+        context.logger.info(TAG) { "Set terrain preview mode entityId=$entityId mode=$supportedMode" }
+    }
+
+    fun setTerrainBakedTextureResolution(entityId: EntityId, resolution: Int) {
+        val entity = terrainEntity(entityId) ?: return
+        val terrain = entity.get<TerrainComponent>() ?: return
+        val clamped = resolution.coerceIn(2, MaxTerrainBakedTextureResolution)
+        if (terrain.bakedTextureResolution == clamped) return
+
+        terrain.bakedTextureResolution = clamped
+        markSceneChanged("Updated ${entity.name} baked texture resolution.")
+        context.logger.info(TAG) { "Set terrain baked texture resolution entityId=$entityId resolution=$clamped" }
+    }
+
     fun openTerrainInEditor(path: String) {
         val normalizedPath = normalizeAssetPath(path)
         if (normalizedPath.isBlank()) {
@@ -558,14 +604,18 @@ class SceneEditorOperations(
     fun deleteEntity(entityId: EntityId) {
         val entity = editableEntity(entityId) ?: return
         val detachedChildren = detachChildren(entity.id)
+        val wasActiveTerrain = document.descriptor?.settings?.activeTerrainEntityId == entity.id
         document.world.removeEntity(entity.id)
         if (state.selectedEntityId == entity.id) {
             state.selectedEntityId = null
         }
+        if (wasActiveTerrain) {
+            updateActiveTerrainSetting(null)
+        }
         val childMessage = if (detachedChildren == 0) "" else " Detached $detachedChildren child entity links."
         markSceneChanged("Deleted ${entity.name}.$childMessage")
         context.logger.info(TAG) {
-            "Deleted entity id=$entityId name='${entity.name}' detachedChildren=$detachedChildren"
+            "Deleted entity id=$entityId name='${entity.name}' detachedChildren=$detachedChildren wasActiveTerrain=$wasActiveTerrain"
         }
     }
 
@@ -765,6 +815,12 @@ class SceneEditorOperations(
         }
     }
 
+    private fun updateActiveTerrainSetting(entityId: EntityId?) {
+        updateSceneSettings { settings ->
+            settings.copy(activeTerrainEntityId = entityId)
+        }
+    }
+
     private fun updateSceneSettings(update: (SceneSettingsDescriptor) -> SceneSettingsDescriptor) {
         val descriptor = document.descriptor
         document.descriptor = if (descriptor == null) {
@@ -784,6 +840,23 @@ class SceneEditorOperations(
         return document.world.getEntity(activeCameraEntityId)
             ?.takeUnless { entity -> entity.get<EditorOnlyComponent>() != null }
             ?.get<PerspectiveCameraComponent>() != null
+    }
+
+    private fun activeTerrainExists(): Boolean {
+        val activeTerrainEntityId = document.descriptor?.settings?.activeTerrainEntityId ?: return false
+        return document.world.getEntity(activeTerrainEntityId)
+            ?.takeUnless { entity -> entity.get<EditorOnlyComponent>() != null }
+            ?.get<TerrainComponent>() != null
+    }
+
+    private fun terrainEntity(entityId: EntityId): Entity? {
+        val entity = editableEntity(entityId) ?: return null
+        if (entity.get<TerrainComponent>() == null) {
+            state.statusMessage = "Entity has no TerrainComponent."
+            context.logger.warn(TAG) { "Scene terrain operation ignored because entity id=$entityId has no TerrainComponent" }
+            return null
+        }
+        return entity
     }
 
     private fun requiresTransform(entity: Entity): Boolean =
@@ -840,7 +913,14 @@ class SceneEditorOperations(
             duplicate.add(ModelComponent(model = AssetRef.model(component.model.path)))
         }
         source.get<TerrainComponent>()?.let { component ->
-            duplicate.add(TerrainComponent(terrain = AssetRef.terrain(component.terrain.path), visible = component.visible))
+            duplicate.add(
+                TerrainComponent(
+                    terrain = AssetRef.terrain(component.terrain.path),
+                    visible = component.visible,
+                    previewMode = component.previewMode,
+                    bakedTextureResolution = component.bakedTextureResolution,
+                ),
+            )
         }
     }
 
@@ -949,6 +1029,7 @@ class SceneEditorOperations(
         private const val MinCameraFovDegrees = 1f
         private const val MaxCameraFovDegrees = 160f
         private const val MinCameraNear = 0.001f
+        private const val MaxTerrainBakedTextureResolution = 8192
         private const val CameraPlaneEpsilon = 0.001f
         private val DefaultDirectionalLightColor = Color(1f, 0.96f, 0.88f, 1f)
         private const val DefaultDirectionalLightIntensity = 1.2f
@@ -979,6 +1060,7 @@ object SceneEditorSceneFactory {
             entities = emptyList(),
             settings = SceneSettingsDescriptor(
                 activeCameraEntityId = camera.id,
+                activeTerrainEntityId = null,
                 ambientLightEntityId = null,
                 ambientLightColor = defaultAmbientLightColor(),
                 ambientLightIntensity = DefaultAmbientLightIntensity,

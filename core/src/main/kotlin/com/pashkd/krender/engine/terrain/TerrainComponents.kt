@@ -14,6 +14,8 @@ import com.pashkd.krender.engine.render3d.Material
 data class TerrainComponent(
     val terrain: AssetRef<TerrainAsset>,
     var visible: Boolean = true,
+    var previewMode: TerrainPreviewMode = TerrainPreviewMode.LayerColor,
+    var bakedTextureResolution: Int = 8192,
 ) : Component
 
 /**
@@ -56,6 +58,7 @@ data class TerrainRendererComponent(
     var material: Material = Material(),
     var model: DynamicModel? = null,
     var previewDiffuseTexture: RuntimeTextureData? = null,
+    var finalSplatTexture: RuntimeTextureData? = null,
     var previewMode: TerrainPreviewMode = TerrainPreviewMode.MaterialColor,
     var previewResolution: Int = 0,
     var vertexCount: Int = 0,
@@ -96,6 +99,14 @@ data class TerrainRendererComponent(
     fun replacePreviewDiffuseTexture(texture: RuntimeTextureData?) {
         if (previewDiffuseTexture === texture) return
         previewDiffuseTexture = texture
+    }
+
+    /**
+     * Replaces the runtime final terrain material texture payload.
+     */
+    fun replaceFinalSplatTexture(texture: RuntimeTextureData?) {
+        if (finalSplatTexture === texture) return
+        finalSplatTexture = texture
     }
 }
 

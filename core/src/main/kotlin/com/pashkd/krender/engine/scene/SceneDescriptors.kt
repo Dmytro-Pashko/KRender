@@ -41,6 +41,7 @@ data class ComponentDescriptor(
  */
 data class SceneSettingsDescriptor(
     val activeCameraEntityId: Long? = null,
+    val activeTerrainEntityId: Long? = null,
     val ambientLightEntityId: Long? = null,
     val ambientLightColor: Color = defaultAmbientLightColor(),
     val ambientLightIntensity: Float = DefaultAmbientLightIntensity,

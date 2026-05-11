@@ -1154,6 +1154,10 @@ class TerrainAssetRuntimeSync(
     private val logger: Logger? = null,
 ) {
     private val terrainPersistence = TerrainPersistence(logger)
+    private val materialLibrary = TerrainMaterialLibrary(logger).also { library ->
+        library.load("materials/terrain_materials.json")
+    }
+    private val bakeService = TerrainMaterialBakeService(materialLibrary, logger)
     private val failedPaths = mutableSetOf<String>()
 
     fun update(world: SceneWorld) {
@@ -1163,11 +1167,21 @@ class TerrainAssetRuntimeSync(
             val path = component.terrain.path.trim().replace('\\', '/')
             if (path.isBlank()) return@forEach
             val renderer = entity.get<TerrainRendererComponent>()
-            if (renderer?.model != null && renderer.modelId == modelId(path)) return@forEach
+            val previewMode = sceneTerrainPreviewMode(component.previewMode)
+            val bakedTextureResolution = component.bakedTextureResolution.coerceIn(2, MAX_MATERIAL_PREVIEW_RESOLUTION)
+            if (renderer?.isSyncedForSceneTerrain(path, previewMode, bakedTextureResolution) == true) {
+                return@forEach
+            }
 
             try {
                 val data = terrainPersistence.load(path)
-                val mesh = TerrainMeshBuilder.build(data)
+                val usesTexturePreview = previewMode == TerrainPreviewMode.MaterialTexture
+                val mesh = TerrainMeshBuilder.build(
+                    data = data,
+                    materialColorResolver = { null },
+                    blendMode = TerrainLayerBlendMode.OrderedAlpha,
+                    enableLayerColorPreview = !usesTexturePreview,
+                )
                 val nextRenderer = renderer ?: TerrainRendererComponent(
                     modelId = modelId(path),
                     material = Material(),
@@ -1181,9 +1195,35 @@ class TerrainAssetRuntimeSync(
                 )
                 nextRenderer.vertexCount = mesh.vertexCount
                 nextRenderer.triangleCount = mesh.triangleCount
-                nextRenderer.previewMode = TerrainPreviewMode.MaterialColor
+                nextRenderer.previewMode = previewMode
+                nextRenderer.previewResolution = if (usesTexturePreview) bakedTextureResolution else 0
+                if (usesTexturePreview) {
+                    val texture = bakeService.bakeFinalSplatMap(
+                        terrain = data,
+                        resolution = bakedTextureResolution,
+                        textureId = "runtime:scene-terrain-preview:${nextRenderer.modelId}",
+                        revision = nextRenderer.meshRevision * 31L + bakedTextureResolution,
+                        previewMode = TerrainPreviewMode.MaterialTexture,
+                        blendMode = TerrainLayerBlendMode.OrderedAlpha,
+                    )
+                    nextRenderer.replacePreviewDiffuseTexture(texture)
+                    nextRenderer.material = Material(
+                        baseColor = Color.white(),
+                        diffuseTextureRef = MaterialTextureRef(
+                            id = texture.id,
+                            channel = "diffuse",
+                            uvChannel = 0,
+                        ),
+                    )
+                } else {
+                    nextRenderer.replacePreviewDiffuseTexture(null)
+                    nextRenderer.material = Material()
+                }
                 failedPaths.remove(path)
-                logger?.info(TAG) { "Loaded terrain asset '$path' for entityId=${entity.id}" }
+                logger?.info(TAG) {
+                    "Loaded terrain asset '$path' for entityId=${entity.id} previewMode=$previewMode " +
+                        "bakedTextureResolution=${if (usesTexturePreview) bakedTextureResolution else "<none>"}"
+                }
             } catch (error: Exception) {
                 if (failedPaths.add(path)) {
                     logger?.warn(TAG) { "Failed to load terrain asset '$path' for entityId=${entity.id}: ${error.message}" }
@@ -1191,6 +1231,28 @@ class TerrainAssetRuntimeSync(
             }
         }
     }
+
+    private fun TerrainRendererComponent.isSyncedForSceneTerrain(
+        path: String,
+        previewMode: TerrainPreviewMode,
+        bakedTextureResolution: Int,
+    ): Boolean {
+        if (model == null || modelId != this@TerrainAssetRuntimeSync.modelId(path) || this.previewMode != previewMode) {
+            return false
+        }
+        return if (previewMode == TerrainPreviewMode.MaterialTexture) {
+            previewDiffuseTexture != null && previewResolution == bakedTextureResolution
+        } else {
+            previewDiffuseTexture == null
+        }
+    }
+
+    private fun sceneTerrainPreviewMode(mode: TerrainPreviewMode): TerrainPreviewMode =
+        if (mode == TerrainPreviewMode.MaterialTexture) {
+            TerrainPreviewMode.MaterialTexture
+        } else {
+            TerrainPreviewMode.LayerColor
+        }
 
     private fun modelId(path: String): String =
         "terrain_asset_" + path.replace(Regex("[^A-Za-z0-9_\\-]+"), "_")
@@ -1212,8 +1274,18 @@ object TerrainRenderCommands {
             val transform = entity.get<TransformComponent>() ?: return@forEach
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
             val model = renderer.model ?: return@forEach
+            val finalSplatTexture = renderer.finalSplatTexture
             val previewTexture = renderer.previewDiffuseTexture
-            val material = if (previewTexture != null) {
+            val material = if (finalSplatTexture != null) {
+                renderer.material.copy(
+                    baseColor = Color.white(),
+                    diffuseTextureRef = MaterialTextureRef(
+                        id = finalSplatTexture.id,
+                        channel = "baseColor",
+                        uvChannel = 0,
+                    ),
+                )
+            } else if (previewTexture != null) {
                 renderer.material.copy(
                     baseColor = Color.white(),
                     diffuseTextureRef = MaterialTextureRef(
@@ -1236,7 +1308,7 @@ object TerrainRenderCommands {
                     model = model,
                     transform = transform.snapshot(),
                     material = material,
-                    runtimeTextures = listOfNotNull(previewTexture),
+                    runtimeTextures = listOfNotNull(finalSplatTexture ?: previewTexture),
                 ),
             )
         }

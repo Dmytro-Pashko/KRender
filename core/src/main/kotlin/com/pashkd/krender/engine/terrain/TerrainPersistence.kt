@@ -77,6 +77,22 @@ class TerrainPersistence(
     fun exists(filePath: String): Boolean = Gdx.files.local(filePath).exists()
 
     /**
+     * Returns true when the terrain file can be read from local storage or packaged assets.
+     */
+    fun existsReadable(filePath: String): Boolean =
+        Gdx.files.local(filePath).exists() || Gdx.files.internal(filePath).exists()
+
+    /**
+     * Describes where a terrain path will be read from for diagnostics.
+     */
+    fun readableSource(filePath: String): String =
+        when {
+            Gdx.files.local(filePath).exists() -> "local"
+            Gdx.files.internal(filePath).exists() -> "internal"
+            else -> "missing"
+        }
+
+    /**
      * Encodes terrain data to JSON. Exposed for serializer-level tests.
      */
     fun encode(data: TerrainData, name: String = "terrain"): String =
