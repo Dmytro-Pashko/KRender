@@ -28,7 +28,7 @@ import com.pashkd.krender.engine.terrain.TerrainLayerColorDescriptor
 import com.pashkd.krender.engine.terrain.TerrainMaterialOption
 import com.pashkd.krender.engine.terrain.TerrainEditorState
 import com.pashkd.krender.engine.terrain.TerrainEditorSystem
-import com.pashkd.krender.engine.terrain.TerrainMeshSyncSystem
+import com.pashkd.krender.engine.terrain.TerrainEditorMeshSyncSystem
 import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.terrain.TerrainRendererComponent
@@ -57,7 +57,7 @@ class TerrainEditorScene(
     private lateinit var terrainMaterialLibrary: TerrainMaterialLibrary
     private lateinit var editorState: TerrainEditorState
     private lateinit var editorSystem: TerrainEditorSystem
-    private lateinit var meshSyncSystem: TerrainMeshSyncSystem
+    private lateinit var meshSyncSystem: TerrainEditorMeshSyncSystem
 
     /**
      * Creates the terrain editor camera, lights, terrain entity, and terrain systems.
@@ -104,7 +104,7 @@ class TerrainEditorScene(
 
         world.systems.add(TerrainCameraControllerSystem(engine.input, editorState))
         world.systems.add(editorSystem)
-        meshSyncSystem = TerrainMeshSyncSystem(
+        meshSyncSystem = TerrainEditorMeshSyncSystem(
             materialColorResolver = { materialId ->
                 terrainMaterialLibrary.find(materialId)?.fallbackColor
             },

@@ -886,14 +886,15 @@ class TerrainEditorSystem(
 }
 
 /**
- * Rebuilds renderable terrain resources from editable terrain data.
+ * Editor adapter around shared terrain mesh and preview bake services.
  *
- * This system converts dirty [TerrainData] into runtime mesh/model objects and,
- * when requested, also bakes texture-based preview images used by the editor.
- * It is intentionally conservative: any relevant change triggers a full rebuild
- * of the current terrain representation.
+ * This system converts dirty [TerrainData] into backend-neutral dynamic models
+ * through [TerrainMeshBuilder], and handles editor-only preview modes, selected
+ * layer masks, preview export, and UI bake statistics. Runtime scenes should use
+ * [RuntimeTerrainMeshSystem] instead so they do not depend on Terrain Editor UI
+ * state or brush workflow callbacks.
  */
-class TerrainMeshSyncSystem(
+class TerrainEditorMeshSyncSystem(
     private val materialColorResolver: (String?) -> TerrainLayerColorDescriptor? = { null },
     private val blendModeProvider: () -> TerrainLayerBlendMode = { TerrainLayerBlendMode.WeightedAverage },
     private val layerColorPreviewProvider: () -> Boolean = { true },
@@ -979,7 +980,7 @@ class TerrainMeshSyncSystem(
                 enableLayerColorPreview = !previewMode.usesTexturePreview() && layerColorPreviewProvider(),
             )
             renderer.meshRevision += 1L
-            renderer.model = com.pashkd.krender.engine.api.DynamicModel(
+            renderer.model = DynamicModel(
                 id = renderer.modelId,
                 mesh = mesh.toDynamicMesh(),
                 revision = renderer.meshRevision,
@@ -1198,12 +1199,11 @@ class TerrainAssetRuntimeSync(
                 nextRenderer.previewMode = previewMode
                 nextRenderer.previewResolution = if (usesTexturePreview) bakedTextureResolution else 0
                 if (usesTexturePreview) {
-                    val texture = bakeService.bakeFinalSplatMap(
+                    val texture = bakeService.bakeFinalSplatTexture(
                         terrain = data,
                         resolution = bakedTextureResolution,
                         textureId = "runtime:scene-terrain-preview:${nextRenderer.modelId}",
                         revision = nextRenderer.meshRevision * 31L + bakedTextureResolution,
-                        previewMode = TerrainPreviewMode.MaterialTexture,
                         blendMode = TerrainLayerBlendMode.OrderedAlpha,
                     )
                     nextRenderer.replacePreviewDiffuseTexture(texture)
@@ -1264,6 +1264,11 @@ class TerrainAssetRuntimeSync(
 
 /**
  * Shared terrain draw-command emission for runtime worlds and editor document worlds.
+ *
+ * Final runtime material takes priority over editor preview texture. When a
+ * texture is selected, the material receives a [MaterialTextureRef] whose id
+ * matches the submitted [RuntimeTextureData], allowing backend upload and bind
+ * to happen without exposing backend texture types to terrain code.
  */
 object TerrainRenderCommands {
     fun submit(world: SceneWorld, submit: (DrawDynamicModel) -> Unit) {
@@ -1274,23 +1279,13 @@ object TerrainRenderCommands {
             val transform = entity.get<TransformComponent>() ?: return@forEach
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
             val model = renderer.model ?: return@forEach
-            val finalSplatTexture = renderer.finalSplatTexture
-            val previewTexture = renderer.previewDiffuseTexture
-            val material = if (finalSplatTexture != null) {
+            val textureForMaterial = renderer.finalSplatTexture ?: renderer.previewDiffuseTexture
+            val material = if (textureForMaterial != null) {
                 renderer.material.copy(
                     baseColor = Color.white(),
                     diffuseTextureRef = MaterialTextureRef(
-                        id = finalSplatTexture.id,
+                        id = textureForMaterial.id,
                         channel = "baseColor",
-                        uvChannel = 0,
-                    ),
-                )
-            } else if (previewTexture != null) {
-                renderer.material.copy(
-                    baseColor = Color.white(),
-                    diffuseTextureRef = MaterialTextureRef(
-                        id = previewTexture.id,
-                        channel = "diffuse",
                         uvChannel = 0,
                     ),
                 )
@@ -1308,7 +1303,7 @@ object TerrainRenderCommands {
                     model = model,
                     transform = transform.snapshot(),
                     material = material,
-                    runtimeTextures = listOfNotNull(finalSplatTexture ?: previewTexture),
+                    runtimeTextures = listOfNotNull(textureForMaterial),
                 ),
             )
         }
@@ -1344,8 +1339,10 @@ private fun runtimeTerrainPreviewTexture(
 /**
  * Submits terrain dynamic mesh draw commands to the render pipeline.
  *
- * The renderer chooses between the base terrain material, vertex colors, and an
- * editor preview texture depending on which data is currently available.
+ * The renderer is shared by editor and runtime terrain flows. Runtime final
+ * splat textures are preferred; editor preview textures are used only when no
+ * final material texture exists; otherwise vertex colors or the base material
+ * color render the terrain without crashing.
  */
 class TerrainRenderSystem : System() {
     /**

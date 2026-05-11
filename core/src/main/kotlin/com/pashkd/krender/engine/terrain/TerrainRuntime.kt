@@ -1,7 +1,6 @@
 package com.pashkd.krender.engine.terrain
 
 import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.DynamicModel
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MaterialTextureRef
 import com.pashkd.krender.engine.api.RuntimeTextureData
@@ -16,9 +15,13 @@ import kotlin.math.roundToInt
 const val RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID = "runtime:terrain:final_splat"
 
 /**
- * Runtime terrain source loader shared by non-editor terrain scenes.
+ * Runtime terrain source factory shared by non-editor terrain scenes.
+ *
+ * The factory loads serialized [TerrainData] when available and creates a
+ * generated fallback with a sensible base material otherwise. It does not
+ * create editor state, brush state, panels, or render components.
  */
-class RuntimeTerrainLoader(
+class TerrainRuntimeFactory(
     private val logger: Logger,
     private val persistence: TerrainPersistence,
     private val materialLibrary: TerrainMaterialLibrary,
@@ -99,40 +102,31 @@ class RuntimeTerrainLoader(
             ?: materialLibrary.firstOrNull()
 
     private companion object {
-        private const val TAG = "RuntimeTerrainLoader"
+        private const val TAG = "TerrainRuntimeFactory"
     }
 }
 
 /**
- * Core-only runtime terrain material baker.
+ * Shared terrain material bake service.
  *
- * This produces the first runtime approximation of a final terrain material by
- * blending visible layer weights into one diffuse RGBA8888 texture. Actual
- * material albedo sampling can be added behind this service later.
+ * Runtime final material baking is deliberately backend-neutral: it blends
+ * visible terrain layer weights into one RGBA8888 texture using material
+ * fallback colors or layer colors. Editor preview/export code can still use its
+ * own Pixmap-based preview path, but runtime scenes depend only on
+ * [RuntimeTextureData] and [MaterialTextureRef].
  */
 class TerrainMaterialBakeService(
     private val materialLibrary: TerrainMaterialLibrary,
     private val logger: Logger?,
 ) {
-    fun bakeFinalSplatMap(
+    fun bakeFinalSplatTexture(
         terrain: TerrainData,
         resolution: Int,
         textureId: String,
         revision: Long,
-        previewMode: TerrainPreviewMode = TerrainPreviewMode.MaterialTexture,
-        blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.OrderedAlpha,
+        blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
     ): RuntimeTextureData {
         val outputResolution = resolution.coerceIn(2, MaxRuntimeSplatResolution)
-        if (previewMode == TerrainPreviewMode.MaterialTexture) {
-            return bakeMaterialTextureSplatMap(
-                terrain = terrain,
-                resolution = outputResolution,
-                textureId = textureId,
-                revision = revision,
-                blendMode = blendMode,
-            )
-        }
-
         val pixels = IntArray(outputResolution * outputResolution)
         val distinctSampledColors = linkedSetOf<Int>()
         val denominator = (outputResolution - 1).coerceAtLeast(1).toFloat()
@@ -153,7 +147,7 @@ class TerrainMaterialBakeService(
 
         val message = {
             "Baked runtime terrain final splat texture id='$textureId' revision=$revision " +
-                "resolution=${outputResolution}x$outputResolution previewMode=$previewMode blendMode=$blendMode " +
+                "resolution=${outputResolution}x$outputResolution blendMode=$blendMode " +
                 "sampledDistinctColors=${distinctSampledColors.size.coerceAtMost(MaxLoggedDistinctColors)} " +
                 "layers=${terrain.allLayers().joinToString { layer -> "${layer.id}:${layer.materialId ?: "<none>"}:visible=${layer.visible}:tiling=${"%.2f".format(layer.tiling)}" }}"
         }
@@ -175,51 +169,6 @@ class TerrainMaterialBakeService(
             uWrap = RuntimeTextureWrap.Repeat,
             vWrap = RuntimeTextureWrap.Repeat,
         )
-    }
-
-    private fun bakeMaterialTextureSplatMap(
-        terrain: TerrainData,
-        resolution: Int,
-        textureId: String,
-        revision: Long,
-        blendMode: TerrainLayerBlendMode,
-    ): RuntimeTextureData {
-        val baker = TerrainMaterialPreviewBaker(materialLibrary, logger)
-        try {
-            val pixmap = baker.bakePixmap(terrain, resolution, blendMode)
-            val pixels = try {
-                IntArray(pixmap.width * pixmap.height).also { output ->
-                    var offset = 0
-                    for (y in 0 until pixmap.height) {
-                        for (x in 0 until pixmap.width) {
-                            output[offset++] = pixmap.getPixel(x, y)
-                        }
-                    }
-                }
-            } finally {
-                pixmap.dispose()
-            }
-            val stats = baker.cacheStats()
-            logger?.info(TAG) {
-                "Baked runtime terrain final splat texture id='$textureId' revision=$revision " +
-                    "resolution=${resolution}x$resolution previewMode=${TerrainPreviewMode.MaterialTexture} blendMode=$blendMode " +
-                    "sourceTextures=${stats.textureCount} approxTextureCacheBytes=${stats.approximateMemoryBytes} " +
-                    "layers=${terrain.allLayers().joinToString { layer -> "${layer.id}:${layer.materialId ?: "<none>"}:visible=${layer.visible}:tiling=${"%.2f".format(layer.tiling)}" }}"
-            }
-            return RuntimeTextureData(
-                id = textureId,
-                revision = revision,
-                width = resolution,
-                height = resolution,
-                rgba8888 = pixels,
-                minFilter = RuntimeTextureFilter.Linear,
-                magFilter = RuntimeTextureFilter.Linear,
-                uWrap = RuntimeTextureWrap.Repeat,
-                vWrap = RuntimeTextureWrap.Repeat,
-            )
-        } finally {
-            baker.dispose()
-        }
     }
 
     private fun blendFinalColor(
@@ -330,20 +279,35 @@ private data class RuntimeTerrainLayerSample(
 )
 
 /**
- * Runtime-focused terrain mesh and material texture synchronization.
+ * Runtime-only terrain mesh and material synchronization.
+ *
+ * This system consumes [TerrainDataComponent] and [TerrainRendererComponent]
+ * without touching [TerrainEditorState]. Dirty terrain data is converted through
+ * [TerrainMeshBuilder], then [TerrainMaterialBakeService] creates the final
+ * baked texture. The renderer material stores a [MaterialTextureRef] whose id
+ * matches the generated [RuntimeTextureData], and [TerrainRenderSystem] forwards
+ * both to the backend in [DrawDynamicModel].
  */
 class RuntimeTerrainMeshSystem(
-    materialLibrary: TerrainMaterialLibrary,
+    private val materialBakeService: TerrainMaterialBakeService,
     private val logger: Logger,
     private val finalSplatTextureId: String = RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID,
-    private val finalSplatResolution: Int = 8192,
-    private val previewMode: TerrainPreviewMode = TerrainPreviewMode.MaterialTexture,
-    private val blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.OrderedAlpha,
+    private val finalSplatResolution: Int = 512,
+    private val blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
 ) : System() {
-    private val bakeService = TerrainMaterialBakeService(materialLibrary, logger)
-    private val materialColorResolver: (String?) -> TerrainLayerColorDescriptor? = { materialId ->
-        materialLibrary.find(materialId)?.fallbackColor
-    }
+    constructor(
+        materialLibrary: TerrainMaterialLibrary,
+        logger: Logger,
+        finalSplatTextureId: String = RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID,
+        finalSplatResolution: Int = 512,
+        blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
+    ) : this(
+        materialBakeService = TerrainMaterialBakeService(materialLibrary, logger),
+        logger = logger,
+        finalSplatTextureId = finalSplatTextureId,
+        finalSplatResolution = finalSplatResolution,
+        blendMode = blendMode,
+    )
 
     override fun update(world: SceneWorld, dt: Float) {
         world.query<TransformComponent, TerrainDataComponent, TerrainRendererComponent>().forEach { entity ->
@@ -353,36 +317,30 @@ class RuntimeTerrainMeshSystem(
                 return@forEach
             }
 
-            val mesh = TerrainMeshBuilder.build(
-                data = terrain.data,
-                materialColorResolver = materialColorResolver,
-                blendMode = blendMode,
-                enableLayerColorPreview = false,
-            )
             renderer.meshRevision += 1L
-            renderer.model = DynamicModel(
-                id = renderer.modelId,
-                mesh = mesh.toDynamicMesh(),
+            val mesh = TerrainMeshBuilder.build(
+                terrain = terrain.data,
+                modelId = renderer.modelId,
                 revision = renderer.meshRevision,
             )
+            renderer.model = mesh.model
             renderer.vertexCount = mesh.vertexCount
             renderer.triangleCount = mesh.triangleCount
             val requestedFinalSplatResolution = (renderer.previewResolution.takeIf { it > 0 } ?: finalSplatResolution)
                 .coerceIn(2, MaxRuntimeTerrainSplatResolution)
-            renderer.previewMode = previewMode
             renderer.previewResolution = requestedFinalSplatResolution
 
             val textureId = finalSplatTextureId
             try {
-                val texture = bakeService.bakeFinalSplatMap(
+                val texture = materialBakeService.bakeFinalSplatTexture(
                     terrain = terrain.data,
                     resolution = requestedFinalSplatResolution,
                     textureId = textureId,
                     revision = renderer.meshRevision,
-                    previewMode = previewMode,
                     blendMode = blendMode,
                 )
                 renderer.replaceFinalSplatTexture(texture)
+                renderer.materialRevision += 1L
                 renderer.material = renderer.material.copy(
                     baseColor = Color.white(),
                     diffuseTextureRef = MaterialTextureRef(
@@ -403,7 +361,7 @@ class RuntimeTerrainMeshSystem(
             logger.info(TAG) {
                 "Runtime terrain mesh synced modelId='${renderer.modelId}' revision=${renderer.meshRevision} " +
                     "vertices=${renderer.vertexCount} triangles=${renderer.triangleCount} " +
-                    "previewMode=${renderer.previewMode} blendMode=$blendMode " +
+                    "blendMode=$blendMode materialRevision=${renderer.materialRevision} " +
                     "finalSplatResolution=${renderer.previewResolution}x${renderer.previewResolution} " +
                     "finalSplat=${renderer.finalSplatTexture?.id ?: "<none>"} materialTexture=${renderer.material.diffuseTextureRef?.id ?: "<none>"}"
             }

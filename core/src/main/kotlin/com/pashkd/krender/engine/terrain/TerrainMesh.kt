@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.terrain
 
 import com.pashkd.krender.engine.api.DynamicMesh
+import com.pashkd.krender.engine.api.DynamicModel
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -55,9 +56,46 @@ data class TerrainMeshData(
 }
 
 /**
- * Builds renderable terrain meshes from terrain data.
+ * Render-ready result produced by [TerrainMeshBuilder].
+ *
+ * This is the shared terrain core handoff used by editor and runtime systems:
+ * the builder owns only backend-neutral geometry generation, while callers own
+ * editor preview state, material baking, and ECS synchronization.
+ */
+data class TerrainMeshBuildResult(
+    val model: DynamicModel,
+    val vertexCount: Int,
+    val triangleCount: Int,
+)
+
+/**
+ * Builds backend-neutral terrain meshes from [TerrainData].
+ *
+ * The builder has no editor, brush, material-preview, or backend knowledge. It
+ * generates positions, normals, UVs, indices, optional preview vertex colors,
+ * and wraps the mesh into [DynamicModel] when requested.
  */
 object TerrainMeshBuilder {
+    /**
+     * Builds a renderable dynamic model for shared editor/runtime terrain use.
+     */
+    fun build(
+        terrain: TerrainData,
+        modelId: String,
+        revision: Long,
+    ): TerrainMeshBuildResult {
+        val mesh = build(data = terrain, enableLayerColorPreview = false)
+        return TerrainMeshBuildResult(
+            model = DynamicModel(
+                id = modelId,
+                mesh = mesh.toDynamicMesh(),
+                revision = revision,
+            ),
+            vertexCount = mesh.vertexCount,
+            triangleCount = mesh.triangleCount,
+        )
+    }
+
     /**
      * Generates positions, UVs, triangle indices, normals, and tangents for [data].
      */

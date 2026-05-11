@@ -51,19 +51,33 @@ enum class TerrainDisplayMode {
 }
 
 /**
- * ECS component that stores terrain render state generated from terrain data or assets.
+ * ECS component that stores backend-neutral terrain render state.
+ *
+ * [previewDiffuseTexture] is editor-only data for debug and paint feedback
+ * modes. [finalSplatTexture] is the runtime final baked terrain material
+ * texture; [materialRevision] tracks changes to that final material state.
+ * Render systems bind textures through [com.pashkd.krender.engine.api.MaterialTextureRef]
+ * on [material], and pass the matching [RuntimeTextureData] payload with the
+ * draw command so the backend can upload it.
  */
 data class TerrainRendererComponent(
     var modelId: String,
     var material: Material = Material(),
     var model: DynamicModel? = null,
+    /**
+     * Editor-only preview texture used by Terrain Editor debug/preview modes.
+     */
     var previewDiffuseTexture: RuntimeTextureData? = null,
+    /**
+     * Runtime final baked terrain material texture generated from terrain layers.
+     */
     var finalSplatTexture: RuntimeTextureData? = null,
     var previewMode: TerrainPreviewMode = TerrainPreviewMode.MaterialColor,
     var previewResolution: Int = 0,
     var vertexCount: Int = 0,
     var triangleCount: Int = 0,
     var meshRevision: Long = 0L,
+    var materialRevision: Long = 0L,
 ) : Component {
     var displayMode: TerrainDisplayMode = if (material.wireframe) {
         TerrainDisplayMode.Wireframe

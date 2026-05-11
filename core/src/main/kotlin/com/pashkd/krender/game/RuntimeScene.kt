@@ -20,8 +20,8 @@ import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.terrain.FlatTerrainGenerator
 import com.pashkd.krender.engine.terrain.RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID
-import com.pashkd.krender.engine.terrain.RuntimeTerrainLoader
 import com.pashkd.krender.engine.terrain.RuntimeTerrainMeshSystem
+import com.pashkd.krender.engine.terrain.TerrainMaterialBakeService
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
 import com.pashkd.krender.engine.terrain.TerrainCameraControllerSystem
@@ -30,6 +30,7 @@ import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.terrain.TerrainRendererComponent
+import com.pashkd.krender.engine.terrain.TerrainRuntimeFactory
 
 /**
  * Runtime-only scene that can load saved `.krscene` content and always prepares
@@ -74,7 +75,7 @@ class RuntimeScene(
         world.systems.add(TerrainCameraControllerSystem(engine.input))
         world.systems.add(
             RuntimeTerrainMeshSystem(
-                materialLibrary = terrainMaterialLibrary,
+                materialBakeService = TerrainMaterialBakeService(terrainMaterialLibrary, engine.logger),
                 logger = engine.logger,
                 finalSplatTextureId = RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID,
                 finalSplatResolution = finalSplatResolution,
@@ -122,7 +123,7 @@ class RuntimeScene(
 
     private fun createRuntimeTerrain(descriptor: SceneDescriptor?) {
         val source = resolveRuntimeTerrainSource(descriptor)
-        val terrainData = RuntimeTerrainLoader(
+        val terrainData = TerrainRuntimeFactory(
             logger = engine.logger,
             persistence = terrainPersistence,
             materialLibrary = terrainMaterialLibrary,
