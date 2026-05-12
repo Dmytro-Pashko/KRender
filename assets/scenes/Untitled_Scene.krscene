@@ -18,8 +18,8 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "-7.4142427,6.885879,26.433151",
-            "rotation": "-19.89998,159.65997,0.0",
+            "position": "-5.5197225,5.986636,24.40191",
+            "rotation": "-16.65998,161.27965,0.0",
             "scale": "1.0,1.0,1.0"
           }
         },
@@ -1328,7 +1328,7 @@
             "terrain": "terrains/terrain_02_small_flat.json",
             "visible": "true",
             "previewMode": "MaterialTexture",
-            "bakedTextureResolution": "1024"
+            "bakedTextureResolution": "2048"
           }
         }
       ]

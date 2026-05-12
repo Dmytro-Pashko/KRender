@@ -144,6 +144,7 @@ class LocalAssetRegistryService(
             putAll(importer?.readMetadata(file) ?: emptyMap())
             putAll(textureMetadata(file, category))
             putAll(terrainMetadata(file, category))
+            putAll(sceneMetadata(file, category))
         }
         return AssetDescriptor(
             id = AssetId(document.id),
@@ -185,6 +186,18 @@ class LocalAssetRegistryService(
             "terrainHeight" to terrain.height.toString(),
             "terrainLayerCount" to terrain.layerCount.toString(),
         )
+    }
+
+    private fun sceneMetadata(file: File, category: AssetCategory): Map<String, String> {
+        if (category != AssetCategory.Scene) return emptyMap()
+        return try {
+            SceneAssetMetadataReader.read(file, baseDirectory).toMetadataMap()
+        } catch (error: Exception) {
+            logger.warn(TAG, error) {
+                "Failed to read scene metadata '${relativeAssetPath(file)}': ${error.message}"
+            }
+            emptyMap()
+        }
     }
 
     private fun readOrCreateMetadata(

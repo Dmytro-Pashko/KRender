@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.terrain
 
+import com.badlogic.gdx.Files
+import com.badlogic.gdx.Gdx
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DynamicMesh
 import com.pashkd.krender.engine.api.DynamicModel
@@ -22,7 +24,7 @@ import kotlin.test.assertTrue
 
 class TerrainRuntimePipelineTest {
     @Test
-    fun `bakes final splat texture from material fallback colors`() {
+    fun `bakes final splat texture from material fallback colors when texture files are unavailable`() = withGdxFiles(null) {
         val terrain = terrainWithOneLayer(materialId = "terrain/grass")
         val texture = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger).bakeFinalSplatTexture(
             terrain = terrain,
@@ -39,7 +41,35 @@ class TerrainRuntimePipelineTest {
     }
 
     @Test
-    fun `bakes final splat texture from layer color when material id is invalid`() {
+    fun `bakes final splat texture from sampled material texture colors when available`() = withGdxFiles(null) {
+        val terrain = terrainWithOneLayer(materialId = "terrain/grass", tiling = 1.3f)
+
+        val texture = TerrainMaterialBakeService(
+            materialLibrary = testMaterialLibrary(),
+            logger = NoopLogger,
+            sampledMaterialColor = TerrainMaterialColorSampler { _, _, u, v ->
+                TerrainLayerColorDescriptor(
+                    r = u.coerceIn(0f, 1f),
+                    g = v.coerceIn(0f, 1f),
+                    b = 0.25f,
+                    a = 1f,
+                )
+            },
+        ).bakeFinalSplatTexture(
+            terrain = terrain,
+            resolution = 4,
+            textureId = "runtime:test:textured-grass",
+            revision = 2L,
+        )
+
+        assertEquals(4, texture.width)
+        assertEquals(4, texture.height)
+        assertTrue(texture.rgba8888.distinct().size > 1)
+        assertFalse(texture.rgba8888.all { it == rgba8888(0.18f, 0.55f, 0.14f, 1f) })
+    }
+
+    @Test
+    fun `bakes final splat texture from layer color when material id is invalid`() = withGdxFiles(null) {
         val layerColor = TerrainLayerColorDescriptor(0.2f, 0.3f, 0.4f, 1f)
         val terrain = terrainWithOneLayer(materialId = "terrain/missing", color = layerColor)
 
@@ -127,6 +157,7 @@ class TerrainRuntimePipelineTest {
     private fun terrainWithOneLayer(
         materialId: String = "terrain/grass",
         color: TerrainLayerColorDescriptor = TerrainLayerColorDescriptor(0.9f, 0.1f, 0.2f, 1f),
+        tiling: Float = 8f,
     ): TerrainData {
         val terrain = TerrainData(width = 2, height = 2, vertexSpacing = 1f)
         val layer = terrain.addLayer(
@@ -135,6 +166,7 @@ class TerrainRuntimePipelineTest {
             color = color,
             visible = true,
         )
+        layer.tiling = tiling
         for (y in 0 until terrain.height) {
             for (x in 0 until terrain.width) {
                 terrain.setLayerWeight(layer.id, x, y, 1f)
@@ -182,6 +214,16 @@ class TerrainRuntimePipelineTest {
         val blue = (b.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
         val alpha = (a.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
         return (red shl 24) or (green shl 16) or (blue shl 8) or alpha
+    }
+
+    private inline fun <T> withGdxFiles(files: Files?, block: () -> T): T {
+        val previous = Gdx.files
+        Gdx.files = files
+        return try {
+            block()
+        } finally {
+            Gdx.files = previous
+        }
     }
 
     private object NoopLogger : Logger {

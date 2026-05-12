@@ -57,6 +57,7 @@ with a matching `MaterialTextureRef`.
 - `RuntimeTextureData` is the backend-neutral RGBA8888 texture payload generated at runtime.
 - `MaterialTextureRef` is the material-side texture binding. Its `id` must match the `RuntimeTextureData.id`.
 - `DrawDynamicModel.runtimeTextures` carries runtime texture payloads to the backend so they can be uploaded before draw.
+- Runtime bake samples terrain material albedo textures when LibGDX asset files are available, and falls back to material or layer colors only when a texture cannot be resolved.
 
 Runtime texture ids must be unique per terrain entity because backend runtime
 texture caches are keyed by id. `runtimeTerrainFinalSplatTextureId` generates
@@ -79,8 +80,6 @@ ids from the terrain entity id and renderer model id.
 - There is no LOD.
 - There is no per-chunk frustum culling.
 - Final material is CPU-baked.
-- Bake currently uses fallback material colors or layer colors.
-- There is no actual albedo texture sampling in runtime bake.
 - There is no terrain-specific shader.
 - There is no normal, roughness, or metallic terrain blending.
 - There are no texture arrays.
@@ -92,7 +91,6 @@ ids from the terrain entity id and renderer model id.
 - Chunked terrain.
 - LOD.
 - GPU splat shader.
-- Material texture sampling.
 - Albedo, normal, and roughness layers.
 - Terrain collision.
 - Vegetation.

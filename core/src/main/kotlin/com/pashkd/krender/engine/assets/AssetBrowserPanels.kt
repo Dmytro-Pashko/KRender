@@ -415,6 +415,7 @@ class AssetDetailsPanel(
     }
 
     private fun drawActions(asset: AssetDescriptor) {
+        if (asset.category == AssetCategory.Scene) return
         val tools = operations.toolsFor(asset)
         if (tools.isEmpty()) return
 
@@ -448,6 +449,10 @@ class AssetDetailsPanel(
         }
         if (asset.category == AssetCategory.Terrain) {
             drawTerrainMetadata(asset)
+            return
+        }
+        if (asset.category == AssetCategory.Scene) {
+            drawSceneMetadata(asset)
             return
         }
 
@@ -497,6 +502,75 @@ class AssetDetailsPanel(
         ImGui.text("Settings:")
         textLine("Size: ${asset.metadata["terrainSize"] ?: "unknown"}")
         textLine("Layers: ${asset.metadata["terrainLayerCount"] ?: "unknown"}")
+    }
+
+    private fun drawSceneMetadata(asset: AssetDescriptor) {
+        textLine("Display Name: ${asset.metadata["displayName"] ?: asset.name}")
+        textLine("Scene Name: ${asset.metadata["sceneName"] ?: asset.name}")
+        textLine("Schema: ${asset.metadata["sceneSchemaVersion"] ?: "unknown"}")
+
+        val sceneTools = operations.toolsFor(asset)
+        if (sceneTools.isNotEmpty()) {
+            ImGui.separator()
+            ImGui.text("Scene actions")
+            sceneTools.forEachIndexed { index, tool ->
+                with(dsl) {
+                    button("${tool.label}##${panelId}_scene_tool_${tool.id}") {
+                        operations.openWith(asset, tool.id)
+                    }
+                }
+                if (index < sceneTools.lastIndex) {
+                    ImGui.sameLine()
+                }
+            }
+        }
+
+        ImGui.separator()
+        ImGui.text("Contents")
+        textLine(
+            "Entities: ${asset.metadata["sceneEntityCount"] ?: "0"} " +
+                "(${asset.metadata["sceneActiveEntityCount"] ?: "0"} active, " +
+                "${asset.metadata["sceneInactiveEntityCount"] ?: "0"} inactive)",
+        )
+        textLine("Root entities: ${asset.metadata["sceneRootEntityCount"] ?: "0"}")
+        textLine("Cameras: ${asset.metadata["sceneCameraCount"] ?: "0"}")
+        textLine(
+            "Lights: ${asset.metadata["sceneLightCount"] ?: "0"} " +
+                "(${asset.metadata["sceneDirectionalLightCount"] ?: "0"} directional, " +
+                "${asset.metadata["scenePointLightCount"] ?: "0"} point)",
+        )
+        textLine("Models: ${asset.metadata["sceneModelCount"] ?: "0"}")
+        textLine("Terrains: ${asset.metadata["sceneTerrainCount"] ?: "0"}")
+        asset.metadata["sceneBounds"]?.let { bounds ->
+            textLine("Scene bounds: $bounds")
+        }
+
+        ImGui.separator()
+        ImGui.text("Environment")
+        textLine("Skybox: ${asset.metadata["sceneSkyboxPath"] ?: "none"}")
+        textLine("Skybox visible: ${asset.metadata["sceneSkyboxVisible"] ?: "true"}")
+        textLine("Environment intensity: ${asset.metadata["sceneEnvironmentIntensity"] ?: "1.00"}")
+        textLine("Ambient intensity: ${asset.metadata["sceneAmbientIntensity"] ?: "0.00"}")
+
+        ImGui.separator()
+        ImGui.text("Scene bindings")
+        textLine("Active camera: ${asset.metadata["sceneActiveCameraName"] ?: "none"}")
+        textLine("Active terrain: ${asset.metadata["sceneActiveTerrainName"] ?: "none"}")
+        asset.metadata["sceneActiveTerrainPath"]?.let { path ->
+            textLine("Terrain asset: $path")
+        }
+        asset.metadata["sceneTerrainSize"]?.let { size ->
+            textLine("Terrain size: $size")
+        }
+        asset.metadata["sceneTerrainLayerCount"]?.let { layers ->
+            textLine("Terrain layers: $layers")
+        }
+        asset.metadata["sceneTerrainBakedResolution"]?.let { resolution ->
+            textLine("Terrain baked resolution: ${resolution}px")
+        }
+        textLine(
+            "Terrain material library: ${asset.metadata["sceneTerrainMaterialLibraryPath"] ?: "unknown"}",
+        )
     }
 }
 

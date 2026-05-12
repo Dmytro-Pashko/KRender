@@ -54,6 +54,7 @@ class AssetBrowserScene : Scene("asset_browser") {
             register(ModelViewerAssetTool())
             register(TerrainEditorAssetTool())
             register(SceneEditorAssetTool())
+            register(SceneRuntimeAssetTool())
         }
         operations = LocalAssetOperationsService(
             registry = registry,
@@ -312,6 +313,26 @@ class SceneEditorAssetTool : AssetTool {
 
     companion object {
         private const val TAG = "SceneEditorAssetTool"
+    }
+}
+
+/**
+ * Launches scene assets in the runtime player.
+ */
+class SceneRuntimeAssetTool : AssetTool {
+    override val id = "scene-runtime"
+    override val displayName = "Run in Runtime"
+    override val supportedCategories = setOf(AssetCategory.Scene)
+    override val defaultAction = false
+
+    override fun open(asset: AssetDescriptor, context: EngineContext) {
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Launching scene asset '$path' in Runtime" }
+        context.runtimeLauncher.launchRuntimeScene(path)
+    }
+
+    companion object {
+        private const val TAG = "SceneRuntimeAssetTool"
     }
 }
 
