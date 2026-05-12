@@ -30,15 +30,15 @@
     },
     "sceneInspector": {
       "title": "Scene Inspector",
-      "x": 1534,
-      "y": 483,
-      "width": 379,
-      "height": 546
+      "x": 1568,
+      "y": 264,
+      "width": 345,
+      "height": 770
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
       "x": 416,
-      "y": 1036,
+      "y": 1039,
       "width": 1497,
       "height": 237
     }

@@ -398,6 +398,8 @@ class SceneInspectorPanel(
 
         drawSceneSettings()
         ImGui.separator()
+        drawDiagnostics()
+        ImGui.separator()
 
         val entity = state.selectedEntityId?.let(document.world::getEntity)
         if (entity?.get<EditorOnlyComponent>() != null) {
@@ -611,6 +613,32 @@ class SceneInspectorPanel(
             button("Clear Skybox##scene_inspector_clear_skybox") {
                 operations.setSkyboxAsset(null)
             }
+        }
+    }
+
+    private fun drawDiagnostics() {
+        val report = state.validationReport
+        ImGui.text("Diagnostics")
+        if (state.validationDirty) {
+            ImGui.textWrapped("Diagnostics are out of date. Run validation to refresh issues for the current scene snapshot.")
+        }
+        with(dsl) {
+            button("Validate Scene##scene_inspector_validate_scene") {
+                operations.validateScene()
+            }
+        }
+        ImGui.text("Errors: ${report.errors.size}")
+        ImGui.sameLine()
+        ImGui.text("Warnings: ${report.warnings.size}")
+        if (report.issues.isEmpty()) {
+            ImGui.text("No validation issues.")
+            return
+        }
+        report.issues.take(6).forEachIndexed { index, issue ->
+            ImGui.bulletText("[${issue.severity.name}] ${issue.message}##scene_inspector_issue_$index")
+        }
+        if (report.issues.size > 6) {
+            ImGui.text("... and ${report.issues.size - 6} more issues")
         }
     }
 

@@ -100,6 +100,7 @@ import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
 import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
+import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.NoOpUiService
 import com.pashkd.krender.engine.ui.UiCaptureState
 import com.pashkd.krender.engine.ui.UiService
@@ -198,6 +199,8 @@ class LibGdxBackend(
     override val runtimeLauncher: RuntimeWindowLauncher = runtimeWindowLauncherFactory(logger)
     override val editorToolLauncher: EditorToolLauncher = editorToolLauncherFactory(logger)
     override val tasks: TaskService = GdxTaskService()
+    override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory =
+        TerrainMaterialTextureSamplerFactory { GdxTerrainMaterialTextureSampler(logger) }
     override val renderer: Renderer = GdxRenderer3D(assets, ui, logger)
 
     /** Requests application shutdown through the LibGDX app instance. */

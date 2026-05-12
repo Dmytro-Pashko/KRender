@@ -143,6 +143,9 @@ class SceneAssetMetadataReaderTest {
         assertEquals(0.35f, metadata.ambientIntensity)
         assertEquals("materials/terrain_materials.json", metadata.terrainMaterialLibraryPath)
         assertEquals("9.00 x 4.00 x 9.00", metadata.sceneBounds?.formatted())
+        assertEquals(4, metadata.dependencyCount)
+        assertEquals(3, metadata.missingDependencyCount)
+        assertEquals(1, metadata.validationWarningCount)
     }
 
     @Test
@@ -178,6 +181,7 @@ class SceneAssetMetadataReaderTest {
         assertEquals(1024, metadata.activeTerrainBakedResolution)
         assertNull(metadata.activeTerrainSize)
         assertNull(metadata.activeTerrainLayerCount)
+        assertEquals(3, metadata.validationErrorCount)
     }
 
     private fun transform(position: String): ComponentDescriptor =

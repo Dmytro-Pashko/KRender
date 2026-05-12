@@ -39,4 +39,26 @@ class RuntimeEnvironmentFactoryTest {
         assertEquals(0.6f, environment.ambientIntensity)
         assertEquals(1f, environment.environmentIntensity)
     }
+
+    @Test
+    fun `creates runtime environment without skybox texture when skybox is unresolved`() {
+        val environment = RuntimeEnvironmentFactory.fromSceneSettings(
+            settings = SceneSettingsDescriptor(
+                lighting = SceneLightingDescriptor(
+                    ambientColor = Color(0.1f, 0.2f, 0.3f, 1f),
+                    ambientIntensity = 0.4f,
+                ),
+                environment = SceneEnvironmentDescriptor(
+                    skyboxAssetPath = null,
+                    showSkybox = true,
+                    environmentIntensity = 2f,
+                ),
+            ),
+            skybox = null,
+        )
+
+        assertEquals(null, environment.skyboxTexturePath)
+        assertEquals(false, environment.showSkybox)
+        assertEquals(2f, environment.environmentIntensity)
+    }
 }

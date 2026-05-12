@@ -2,26 +2,12 @@ package com.pashkd.krender.game
 
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Scene
-import com.pashkd.krender.engine.api.TerrainAsset
-import com.pashkd.krender.engine.render3d.ActiveCameraComponent
-import com.pashkd.krender.engine.render3d.ModelRenderSystem
-import com.pashkd.krender.engine.render3d.RuntimeEnvironmentFactory
-import com.pashkd.krender.engine.render3d.RuntimeEnvironmentSystem
 import com.pashkd.krender.engine.scene.RuntimeSceneValidator
-import com.pashkd.krender.engine.scene.RuntimeTerrainMaterialLibraryService
-import com.pashkd.krender.engine.scene.SceneAssetCollector
+import com.pashkd.krender.engine.scene.SceneDependencyCollector
 import com.pashkd.krender.engine.scene.SceneDescriptor
-import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
 import com.pashkd.krender.engine.scene.SkyboxAssetService
-import com.pashkd.krender.engine.terrain.RuntimeTerrainMeshSystem
-import com.pashkd.krender.engine.terrain.RuntimeTerrainService
-import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
-import com.pashkd.krender.engine.terrain.TerrainCameraControllerSystem
-import com.pashkd.krender.engine.terrain.TerrainMaterialBakeService
-import com.pashkd.krender.engine.terrain.TerrainPersistence
-import com.pashkd.krender.engine.terrain.TerrainRenderSystem
-import com.pashkd.krender.engine.terrain.TerrainRuntimeLoader
+import com.pashkd.krender.engine.scene.SceneSerializer
 
 /**
  * Runtime-only scene loaded from a `.krscene` descriptor.
@@ -34,23 +20,20 @@ class RuntimeScene(
 
     override fun scheduleAssets(assets: AssetService) {
         val descriptor = loadSceneDescriptor()
-        val skyboxPath = RuntimeSceneValidator.requireSkyboxPath(descriptor)
-        val skybox = SkyboxAssetService(engine.sceneFiles, engine.logger).loadRequired(skyboxPath)
+        val skybox = resolveSkybox(descriptor)
         descriptorCache = descriptor
         skyboxCache = skybox
 
-        val collectedAssets = SceneAssetCollector.collect(descriptor, skybox)
+        val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(descriptor, skybox)
         engine.logger.info(TAG) {
-            "RuntimeScene scheduleAssets scene='$scenePath' descriptors=${collectedAssets.descriptorPaths.joinToString()} " +
-                "assets=${collectedAssets.assetRefs.joinToString { "${it.type.simpleName}:${it.path}" }}"
+            "RuntimeScene scheduleAssets scene='$scenePath' dependencies=${dependencyGraph.dependencies.joinToString { dependency -> "${dependency.kind}:${dependency.path}:${dependency.requirement}" }}"
         }
-        collectedAssets.assetRefs
-            .filterNot { asset -> asset.type == TerrainAsset::class }
-            .forEach(assets::queue)
+        dependencyGraph.schedulableAssets.forEach(assets::queue)
     }
 
     override fun show() {
         val descriptor = descriptorCache ?: loadSceneDescriptor().also { descriptorCache = it }
+        val skybox = skyboxCache ?: resolveSkybox(descriptor).also { skyboxCache = it }
 
         engine.logger.info(TAG) {
             "RuntimeScene show scene='$scenePath' id='${descriptor.id}' name='${descriptor.name}' entities=${descriptor.entities.size} " +
@@ -59,45 +42,18 @@ class RuntimeScene(
                 "skybox='${descriptor.settings.environment.skyboxAssetPath ?: "<none>"}'"
         }
 
-        SceneSerializer.applyToWorld(descriptor, world, engine.logger)
-
-        val skybox = skyboxCache ?: SkyboxAssetService(engine.sceneFiles, engine.logger).loadRequired(
-            RuntimeSceneValidator.requireSkyboxPath(descriptor),
-        ).also { skyboxCache = it }
-        val environment = RuntimeEnvironmentFactory.fromSceneSettings(
-            settings = descriptor.settings,
-            skybox = skybox,
+        val result = RuntimeSceneBuilder(engine).build(
+            world = world,
+            request = RuntimeSceneBuildRequest(
+                scenePath = scenePath,
+                descriptor = descriptor,
+                skybox = skybox,
+            ),
         )
-
-        val activeCamera = RuntimeSceneValidator.requireActiveCamera(world, descriptor)
-        activeCamera.add(ActiveCameraComponent())
-        if (activeCamera.get<TerrainCameraControllerComponent>() == null) {
-            activeCamera.add(TerrainCameraControllerComponent())
+        engine.logger.info(TAG) {
+            "RuntimeScene built scene='$scenePath' activeCameraEntityId=${result.activeCameraEntityId} terrainPrepared=${result.terrainPrepared} " +
+                "skyboxEnabled=${result.skyboxEnabled} validationErrors=${result.validationReport.errors.size} validationWarnings=${result.validationReport.warnings.size}"
         }
-
-        val terrainMaterialLibrary = RuntimeTerrainMaterialLibraryService(engine.sceneFiles, engine.logger).loadRequired(
-            descriptor.settings.terrain.materialLibraryPath,
-        )
-        val materialBakeService = TerrainMaterialBakeService(terrainMaterialLibrary, engine.logger)
-        RuntimeTerrainService(
-            logger = engine.logger,
-            terrainLoader = TerrainRuntimeLoader(
-                logger = engine.logger,
-                persistence = TerrainPersistence(logger = engine.logger, files = engine.sceneFiles),
-            ),
-            materialBakeService = materialBakeService,
-        ).prepareActiveTerrain(world, descriptor)
-
-        world.systems.add(TerrainCameraControllerSystem(engine.input))
-        world.systems.add(ModelRenderSystem())
-        world.systems.add(TerrainRenderSystem())
-        world.systems.add(RuntimeEnvironmentSystem(environment))
-        world.systems.add(
-            RuntimeTerrainMeshSystem(
-                materialBakeService = materialBakeService,
-                logger = engine.logger,
-            ),
-        )
     }
 
     private fun loadSceneDescriptor(): SceneDescriptor {
@@ -106,6 +62,18 @@ class RuntimeScene(
         engine.logger.info(TAG) { "Loading runtime scene path='$normalizedPath'" }
         val text = engine.sceneFiles.readText(normalizedPath)
         return SceneSerializer.decode(text)
+    }
+
+    private fun resolveSkybox(descriptor: SceneDescriptor): SkyboxAssetDescriptor? {
+        val skyboxPath = RuntimeSceneValidator.skyboxPath(descriptor) ?: return null
+        return runCatching {
+            SkyboxAssetService(engine.sceneFiles, engine.logger).loadRequired(skyboxPath)
+        }.getOrElse { error ->
+            engine.logger.warn(TAG, error) {
+                "Runtime scene optional skybox '$skyboxPath' could not be loaded: ${error.message}"
+            }
+            null
+        }
     }
 
     companion object {

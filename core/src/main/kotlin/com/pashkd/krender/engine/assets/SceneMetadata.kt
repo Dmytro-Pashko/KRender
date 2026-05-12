@@ -1,9 +1,15 @@
 package com.pashkd.krender.engine.assets
 
+import com.pashkd.krender.engine.api.LogLevel
+import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.scene.EntityDescriptor
+import com.pashkd.krender.engine.scene.RuntimeSceneValidator
+import com.pashkd.krender.engine.scene.SceneDependencyCollector
 import com.pashkd.krender.engine.scene.SceneComponentTypes
 import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.SceneSerializer
+import com.pashkd.krender.engine.scene.SkyboxAssetService
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.Locale
@@ -36,6 +42,11 @@ data class SceneAssetMetadata(
     val environmentIntensity: Float,
     val ambientIntensity: Float,
     val terrainMaterialLibraryPath: String,
+    val dependencyCount: Int,
+    val missingDependencyCount: Int,
+    val validationErrorCount: Int,
+    val validationWarningCount: Int,
+    val validationIssuePreview: List<String>,
 ) {
     fun toMetadataMap(): Map<String, String> = buildMap {
         put("sceneName", sceneName)
@@ -62,6 +73,13 @@ data class SceneAssetMetadata(
         put("sceneEnvironmentIntensity", formatSceneDecimal(environmentIntensity))
         put("sceneAmbientIntensity", formatSceneDecimal(ambientIntensity))
         put("sceneTerrainMaterialLibraryPath", terrainMaterialLibraryPath)
+        put("sceneDependencyCount", dependencyCount.toString())
+        put("sceneMissingDependencyCount", missingDependencyCount.toString())
+        put("sceneValidationErrorCount", validationErrorCount.toString())
+        put("sceneValidationWarningCount", validationWarningCount.toString())
+        if (validationIssuePreview.isNotEmpty()) {
+            put("sceneValidationIssuePreview", validationIssuePreview.joinToString(" | "))
+        }
     }
 }
 
@@ -87,6 +105,11 @@ object SceneAssetMetadataReader {
     }
 
     internal fun fromDescriptor(descriptor: SceneDescriptor, baseDirectory: File): SceneAssetMetadata {
+        val sceneFiles = DirectorySceneFileService(baseDirectory)
+        val resolvedSkybox = RuntimeSceneValidator.skyboxPath(descriptor)
+            ?.let { path -> runCatching { SkyboxAssetService(sceneFiles, MetadataLogger).loadRequired(path) }.getOrNull() }
+        val dependencyGraph = SceneDependencyCollector(sceneFiles).collect(descriptor, resolvedSkybox)
+        val validationReport = RuntimeSceneValidator.validate(descriptor, dependencyGraph)
         val entities = descriptor.entities
         val lightEntities = entities.filter { entity -> entity.hasComponent(SceneComponentTypes.Light) }
         val activeTerrainEntity = descriptor.settings.activeTerrainEntityId?.let { id ->
@@ -98,7 +121,7 @@ object SceneAssetMetadataReader {
             ?.get("terrain")
             ?.normalizeAssetPath()
         val activeTerrainMetadata = activeTerrainPath
-            ?.let { path -> File(baseDirectory, path) }
+            ?.let { path -> resolveSceneFile(baseDirectory, path) }
             ?.takeIf(File::isFile)
             ?.let(TerrainMetadataReader::read)
         val sceneBounds = calculateBounds(entities)
@@ -139,7 +162,17 @@ object SceneAssetMetadataReader {
             environmentIntensity = descriptor.settings.environment.environmentIntensity,
             ambientIntensity = descriptor.settings.lighting.ambientIntensity,
             terrainMaterialLibraryPath = descriptor.settings.terrain.materialLibraryPath.normalizeAssetPath().orEmpty(),
+            dependencyCount = dependencyGraph.dependencies.size,
+            missingDependencyCount = dependencyGraph.missing.size,
+            validationErrorCount = validationReport.errors.size,
+            validationWarningCount = validationReport.warnings.size,
+            validationIssuePreview = validationReport.issues.take(3).map { issue -> issue.message },
         )
+    }
+
+    private fun resolveSceneFile(baseDirectory: File, path: String): File {
+        val direct = File(path)
+        return if (direct.isAbsolute) direct else File(baseDirectory, path)
     }
 
     private fun calculateBounds(entities: List<EntityDescriptor>): SceneAssetBounds? {
@@ -195,3 +228,35 @@ object SceneAssetMetadataReader {
             ?.takeUnless { value -> value.equals("null", ignoreCase = true) }
 
 }
+
+private class DirectorySceneFileService(
+    private val baseDirectory: File,
+) : SceneFileService {
+    override fun writeText(path: String, text: String) {
+        val file = resolve(path)
+        file.parentFile?.mkdirs()
+        file.writeText(text, StandardCharsets.UTF_8)
+    }
+
+    override fun readText(path: String): String =
+        resolve(path).readText(StandardCharsets.UTF_8)
+
+    override fun ensureDirectories(path: String) {
+        resolve(path).parentFile?.mkdirs()
+    }
+
+    override fun exists(path: String): Boolean = resolve(path).isFile
+
+    override fun describeReadableSource(path: String): String = if (exists(path)) "file" else "missing"
+
+    private fun resolve(path: String): File {
+        val normalized = path.trim().replace('\\', '/')
+        val file = File(normalized)
+        return if (file.isAbsolute) file else File(baseDirectory, normalized)
+    }
+}
+
+private object MetadataLogger : Logger {
+    override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) = Unit
+}
+

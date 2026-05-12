@@ -17,7 +17,6 @@ import com.pashkd.krender.engine.api.ProfilerService
 import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.SceneManager
 import com.pashkd.krender.engine.api.TaskService
-import com.pashkd.krender.engine.api.TerrainAsset
 import com.pashkd.krender.engine.api.TextureAsset
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.scene.ComponentDescriptor
@@ -37,6 +36,7 @@ import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
 import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainLayerColorDescriptor
+import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.ui.NoOpUiService
 import com.pashkd.krender.engine.ui.UiService
@@ -48,23 +48,64 @@ import kotlin.test.assertTrue
 
 class RuntimeSceneTest {
     @Test
-    fun `runtime scene does not create runtime sun or ambient light`() {
+    fun `runtime scene with terrain and skybox does not create runtime sun or ambient light`() {
         val assets = TestAssetService()
         val scene = RuntimeScene("scenes/runtime.krscene")
         val context = TestEngineContext(
             assets = assets,
-            files = runtimeFiles(),
+            files = runtimeFiles(sceneDescriptor()),
         )
 
         context.scenes.replace(scene)
         context.scenes.applyPendingTransitions(context)
 
         assertTrue(scene.world.all().none { entity -> entity.get<LightComponent>() != null })
-        assertTrue(assets.queued.none { asset -> asset.type == TerrainAsset::class })
         assertTrue(assets.queued.any { asset -> asset.type == TextureAsset::class && asset.path == "textures/runtime_skybox.png" })
     }
 
-    private fun runtimeFiles(): Map<String, String> {
+    @Test
+    fun `runtime scene starts without terrain when active terrain is missing`() {
+        val assets = TestAssetService()
+        val scene = RuntimeScene("scenes/runtime_no_terrain.krscene")
+        val context = TestEngineContext(
+            assets = assets,
+            files = runtimeFiles(
+                sceneDescriptor(
+                    scenePath = "scenes/runtime_no_terrain.krscene",
+                    activeTerrainEntityId = null,
+                ),
+            ),
+        )
+
+        context.scenes.replace(scene)
+        context.scenes.applyPendingTransitions(context)
+
+        assertTrue(assets.queued.none { asset -> asset.path.startsWith("terrains/") })
+        assertTrue(scene.world.all().none { entity -> entity.get<LightComponent>() != null })
+    }
+
+    @Test
+    fun `runtime scene starts without skybox when skybox is disabled`() {
+        val assets = TestAssetService()
+        val scene = RuntimeScene("scenes/runtime_no_skybox.krscene")
+        val context = TestEngineContext(
+            assets = assets,
+            files = runtimeFiles(
+                sceneDescriptor(
+                    scenePath = "scenes/runtime_no_skybox.krscene",
+                    showSkybox = false,
+                    skyboxAssetPath = null,
+                ),
+            ),
+        )
+
+        context.scenes.replace(scene)
+        context.scenes.applyPendingTransitions(context)
+
+        assertTrue(assets.queued.none { asset -> asset.type == TextureAsset::class && asset.path == "textures/runtime_skybox.png" })
+    }
+
+    private fun runtimeFiles(descriptor: SceneDescriptor): Map<String, String> {
         val terrain = TerrainData(width = 2, height = 2, vertexSpacing = 1f).also { data ->
             val layer = data.addLayer(
                 name = "Base",
@@ -78,36 +119,78 @@ class RuntimeSceneTest {
                 }
             }
         }
-        return mapOf(
-            "scenes/runtime.krscene" to SceneSerializer.encode(
-                SceneDescriptor(
-                    id = "scene:runtime",
-                    name = "Runtime",
-                    entities = listOf(
-                        EntityDescriptor(
-                            id = 1L,
-                            name = "Camera",
-                            components = listOf(
-                                ComponentDescriptor(
-                                    type = SceneComponentTypes.Transform,
-                                    properties = mapOf(
-                                        "position" to "0,1,6",
-                                        "rotation" to "0,180,0",
-                                        "scale" to "1,1,1",
-                                    ),
+        return buildMap {
+            put(descriptorPath(descriptor), SceneSerializer.encode(descriptor))
+            put(
+                "skyboxes/runtime.krskybox",
+                SkyboxAssetSerializer.encode(
+                    SkyboxAssetDescriptor(
+                        id = "skybox:runtime",
+                        name = "Runtime Skybox",
+                        texturePath = "textures/runtime_skybox.png",
+                        intensity = 1f,
+                    ),
+                ),
+            )
+            put("terrains/runtime_terrain.json", TerrainPersistence().encode(terrain, "Runtime Terrain"))
+            put(
+                DefaultTerrainMaterialLibraryPath,
+                """
+                    {
+                      "formatVersion": 1,
+                      "materials": [
+                        {
+                          "id": "terrain/grass",
+                          "name": "Grass",
+                          "albedoTexture": "textures/grass.png",
+                          "fallbackColor": { "r": 0.2, "g": 0.6, "b": 0.3, "a": 1.0 },
+                          "defaultTiling": 8.0
+                        }
+                      ]
+                    }
+                """.trimIndent(),
+            )
+        }
+    }
+
+    private fun sceneDescriptor(
+        scenePath: String = "scenes/runtime.krscene",
+        activeTerrainEntityId: Long? = 2L,
+        showSkybox: Boolean = true,
+        skyboxAssetPath: String? = "skyboxes/runtime.krskybox",
+    ): SceneDescriptor =
+        SceneDescriptor(
+            id = "scene:${scenePath.substringAfterLast('/').substringBeforeLast('.')}",
+            name = "Runtime",
+            entities = buildList {
+                add(
+                    EntityDescriptor(
+                        id = 1L,
+                        name = "Camera",
+                        components = listOf(
+                            ComponentDescriptor(
+                                type = SceneComponentTypes.Transform,
+                                properties = mapOf(
+                                    "position" to "0,1,6",
+                                    "rotation" to "0,180,0",
+                                    "scale" to "1,1,1",
                                 ),
-                                ComponentDescriptor(
-                                    type = SceneComponentTypes.Camera,
-                                    properties = mapOf(
-                                        "fieldOfViewDegrees" to "60",
-                                        "near" to "0.1",
-                                        "far" to "500",
-                                    ),
+                            ),
+                            ComponentDescriptor(
+                                type = SceneComponentTypes.Camera,
+                                properties = mapOf(
+                                    "fieldOfViewDegrees" to "60",
+                                    "near" to "0.1",
+                                    "far" to "500",
                                 ),
                             ),
                         ),
+                    ),
+                )
+                if (activeTerrainEntityId != null) {
+                    add(
                         EntityDescriptor(
-                            id = 2L,
+                            id = activeTerrainEntityId,
                             name = "Terrain",
                             components = listOf(
                                 ComponentDescriptor(
@@ -121,43 +204,22 @@ class RuntimeSceneTest {
                                 ),
                             ),
                         ),
-                    ),
-                    settings = SceneSettingsDescriptor(
-                        activeCameraEntityId = 1L,
-                        activeTerrainEntityId = 2L,
-                        environment = SceneEnvironmentDescriptor(
-                            skyboxAssetPath = "skyboxes/runtime.krskybox",
-                            showSkybox = true,
-                            environmentIntensity = 1f,
-                        ),
-                    ),
-                ),
-            ),
-            "skyboxes/runtime.krskybox" to SkyboxAssetSerializer.encode(
-                SkyboxAssetDescriptor(
-                    id = "skybox:runtime",
-                    name = "Runtime Skybox",
-                    texturePath = "textures/runtime_skybox.png",
-                    intensity = 1f,
-                ),
-            ),
-            "terrains/runtime_terrain.json" to TerrainPersistence().encode(terrain, "Runtime Terrain"),
-            DefaultTerrainMaterialLibraryPath to """
-                {
-                  "formatVersion": 1,
-                  "materials": [
-                    {
-                      "id": "terrain/grass",
-                      "name": "Grass",
-                      "albedoTexture": "textures/grass.png",
-                      "fallbackColor": { "r": 0.2, "g": 0.6, "b": 0.3, "a": 1.0 },
-                      "defaultTiling": 8.0
-                    }
-                  ]
+                    )
                 }
-            """.trimIndent(),
+            },
+            settings = SceneSettingsDescriptor(
+                activeCameraEntityId = 1L,
+                activeTerrainEntityId = activeTerrainEntityId,
+                environment = SceneEnvironmentDescriptor(
+                    skyboxAssetPath = skyboxAssetPath,
+                    showSkybox = showSkybox,
+                    environmentIntensity = 1f,
+                ),
+            ),
         )
-    }
+
+    private fun descriptorPath(descriptor: SceneDescriptor): String =
+        "scenes/${descriptor.id.substringAfter(':')}.krscene"
 }
 
 private class TestEngineContext(
@@ -177,6 +239,7 @@ private class TestEngineContext(
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
     override val profiler: ProfilerService = FrameProfilerService()
     override val tasks: TaskService = TestTaskService
+    override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory? = null
 
     override fun requestExit() = Unit
 }

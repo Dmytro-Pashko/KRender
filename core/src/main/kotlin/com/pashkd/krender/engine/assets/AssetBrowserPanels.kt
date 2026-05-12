@@ -553,6 +553,20 @@ class AssetDetailsPanel(
         textLine("Ambient intensity: ${asset.metadata["sceneAmbientIntensity"] ?: "0.00"}")
 
         ImGui.separator()
+        ImGui.text("Diagnostics")
+        textLine(
+            "Validation: ${asset.metadata["sceneValidationErrorCount"] ?: "0"} errors, " +
+                "${asset.metadata["sceneValidationWarningCount"] ?: "0"} warnings",
+        )
+        textLine(
+            "Dependencies: ${asset.metadata["sceneDependencyCount"] ?: "0"} total, " +
+                "${asset.metadata["sceneMissingDependencyCount"] ?: "0"} missing",
+        )
+        asset.metadata["sceneValidationIssuePreview"]?.let { preview ->
+            textLine("Issues: $preview")
+        }
+
+        ImGui.separator()
         ImGui.text("Scene bindings")
         textLine("Active camera: ${asset.metadata["sceneActiveCameraName"] ?: "none"}")
         textLine("Active terrain: ${asset.metadata["sceneActiveTerrainName"] ?: "none"}")

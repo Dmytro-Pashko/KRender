@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraState
 import com.pashkd.krender.engine.editor.viewport.EditorViewportState
+import com.pashkd.krender.engine.scene.SceneValidationReport
 
 /**
  * Mutable UI state owned by one Scene Editor scene instance.
@@ -84,6 +85,12 @@ data class SceneEditorState(
 
     /** Non-null when the last terrain placement request failed validation. */
     var terrainPlacementError: String? = null,
+
+    /** Cached validation result for the current scene snapshot. */
+    var validationReport: SceneValidationReport = SceneValidationReport(emptyList()),
+
+    /** True when the cached validation report no longer matches the current scene state. */
+    var validationDirty: Boolean = true,
 ) {
     /** Runtime-only editor viewport focus and size state used by shared viewport systems. */
     var viewport: EditorViewportState = EditorViewportState(viewportFocused, viewportOrigin, viewportSize)

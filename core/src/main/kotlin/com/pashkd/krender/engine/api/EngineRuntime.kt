@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.api
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
+import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.UiService
 import kotlin.math.min
 
@@ -47,6 +48,9 @@ interface EngineContext {
     /** Shared async task service. */
     val tasks: TaskService
 
+    /** Optional backend-provided terrain material texture sampling factory used by runtime terrain baking. */
+    val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory?
+
     /** Requests application shutdown at the next safe point. */
     fun requestExit()
 }
@@ -79,6 +83,8 @@ interface EngineBackend {
     val profiler: ProfilerService
     /** Backend task implementation. */
     val tasks: TaskService
+    /** Optional backend terrain material texture sampling factory. */
+    val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory?
     /** Backend renderer implementation. */
     val renderer: Renderer
 
@@ -230,6 +236,8 @@ class EngineRuntime(
     override val profiler: ProfilerService = backend.profiler
     /** Shared task service exposed to scenes. */
     override val tasks: TaskService = backend.tasks
+    /** Optional backend terrain texture sampler factory exposed to scenes. */
+    override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory? = backend.terrainTextureSamplerFactory
 
     private val gameLoop = GameLoop(this, backend, config)
     private var running = false

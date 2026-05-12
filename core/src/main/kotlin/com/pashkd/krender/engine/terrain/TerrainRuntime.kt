@@ -1,7 +1,5 @@
 package com.pashkd.krender.engine.terrain
 
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Pixmap
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.Logger
@@ -39,7 +37,31 @@ fun runtimeTerrainFinalSplatTextureId(
     entityId: EntityId,
     modelId: String,
 ): String =
-    "$RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID:$entityId:${modelId.replace(Regex("[^A-Za-z0-9_\\-]+"), "_")}"
+    RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID +
+        ":" + entityId +
+        ":" + modelId.replace(Regex("[^A-Za-z0-9_\\-]+"), "_")
+
+/**
+ * Platform-neutral terrain material texture sampler used by runtime terrain baking.
+ *
+ * Implementations may sample backend texture assets, procedural sources, or test
+ * doubles. Returning `null` signals that the caller should fall back to the
+ * material fallback color.
+ */
+interface TerrainMaterialTextureSampler : AutoCloseable {
+    fun sample(
+        layer: TerrainLayer,
+        material: TerrainMaterialDescriptor,
+        u: Float,
+        v: Float,
+    ): TerrainLayerColorDescriptor?
+
+    override fun close() = Unit
+}
+
+fun interface TerrainMaterialTextureSamplerFactory {
+    fun create(): TerrainMaterialTextureSampler?
+}
 
 /**
  * Runtime terrain source factory shared by non-editor terrain scenes.
@@ -106,10 +128,8 @@ class TerrainRuntimeFactory(
 class TerrainMaterialBakeService(
     private val materialLibrary: TerrainMaterialLibrary,
     private val logger: Logger?,
-    private val sampledMaterialColor: TerrainMaterialColorSampler? = null,
+    private val textureSamplerFactory: TerrainMaterialTextureSamplerFactory? = null,
 ) {
-    private var textureFileAccessUnavailableLogged = false
-
     /**
      * Bakes the runtime terrain's final diffuse texture into CPU-side RGBA8888 data.
      *
@@ -118,9 +138,8 @@ class TerrainMaterialBakeService(
      * to resolve the visible layer stack at that location. The resulting color is
      * packed into an integer array that becomes [RuntimeTextureData].
      *
-     * Resolution is clamped to a safe runtime range, and material texture pixmaps are
-     * cached for the duration of the bake so repeated samples do not reload files.
-     * The temporary cache is always disposed before returning, even if sampling fails.
+     * Resolution is clamped to a safe runtime range, and any backend-provided
+     * texture sampler is created once per bake and disposed before returning.
      */
     fun bakeFinalSplatTexture(
         terrain: TerrainData,
@@ -137,9 +156,7 @@ class TerrainMaterialBakeService(
         // Use resolution - 1 so the outermost pixels land on the terrain bounds
         // instead of stopping one texel short of the far edge.
         val denominator = (outputResolution - 1).coerceAtLeast(1).toFloat()
-        // Cache source material textures for this bake only; they are disposed in
-        // finally so the bake does not leak Pixmap instances.
-        val textureCache = linkedMapOf<String, Pixmap>()
+        val textureSampler = createTextureSampler()
         try {
             var offset = 0
             for (y in 0 until outputResolution) {
@@ -160,7 +177,7 @@ class TerrainMaterialBakeService(
                             localX = localX,
                             localZ = localZ,
                             blendMode = blendMode,
-                            textureCache = textureCache,
+                            textureSampler = textureSampler,
                         ),
                     )
                     // Write the packed pixel into the linear output buffer.
@@ -173,9 +190,7 @@ class TerrainMaterialBakeService(
                 }
             }
         } finally {
-            // Material textures are only needed while baking, so release them even
-            // if a texture load or sample step throws.
-            textureCache.values.forEach(Pixmap::dispose)
+            textureSampler?.closeSafely()
         }
 
         val message = {
@@ -219,7 +234,7 @@ class TerrainMaterialBakeService(
         localX: Float,
         localZ: Float,
         blendMode: TerrainLayerBlendMode,
-        textureCache: MutableMap<String, Pixmap>,
+        textureSampler: TerrainMaterialTextureSampler?,
     ): TerrainLayerColorDescriptor {
         // Build color/weight pairs first so the selected blend mode can operate on
         // a complete snapshot of all visible layers at this terrain location.
@@ -228,7 +243,7 @@ class TerrainMaterialBakeService(
             .map { layer ->
                 RuntimeTerrainLayerSample(
                     // Resolve the layer's material color in texture UV space.
-                    color = sampleLayerTextureColor(layer, u, v, textureCache),
+                    color = sampleLayerTextureColor(layer, u, v, textureSampler),
                     // Resolve how strongly this layer contributes at the same point
                     // in terrain-local space.
                     weight = terrain.sampleLayerWeight(layer.id, localX, localZ),
@@ -318,71 +333,53 @@ class TerrainMaterialBakeService(
         layer: TerrainLayer,
         u: Float,
         v: Float,
-        textureCache: MutableMap<String, Pixmap>,
+        textureSampler: TerrainMaterialTextureSampler?,
     ): TerrainLayerColorDescriptor {
         // If the layer does not resolve to a runtime material, keep the serialized
         // layer color so the bake can continue without external assets.
         val material = materialLibrary.find(layer.materialId) ?: return layer.color
-        // Tests or alternate runtimes can override material sampling directly.
-        sampledMaterialColor?.sample(layer, material, u, v)?.let { return it }
-        // If the material texture is unavailable, use the material's fallback color
-        // instead of failing the entire bake.
-        val source = loadMaterialPixmap(material, textureCache) ?: return material.fallbackColor
-        // Apply per-layer tiling in UV space and wrap with fract() so the material
-        // repeats across the terrain instead of clamping at 0..1.
-        val tiledU = fract(u * layer.tiling)
-        val tiledV = fract(v * layer.tiling)
-        // Sample the wrapped texture coordinates from the source pixmap.
-        return samplePixmapNearest(source, tiledU, tiledV)
+        val sampled = trySampleMaterialTexture(layer, material, u, v, textureSampler)
+        return sampled ?: material.fallbackColor
     }
 
-    private fun loadMaterialPixmap(
+    private fun trySampleMaterialTexture(
+        layer: TerrainLayer,
         material: TerrainMaterialDescriptor,
-        textureCache: MutableMap<String, Pixmap>,
-    ): Pixmap? {
-        val path = material.albedoTexture.trim()
-        if (path.isBlank()) return null
-        textureCache[path]?.let { return it }
-
-        val files = Gdx.files
-        if (files == null) {
-            if (!textureFileAccessUnavailableLogged) {
-                textureFileAccessUnavailableLogged = true
-                logger?.warn(TAG) {
-                    "Terrain material texture sampling is unavailable because Gdx.files is not initialized; falling back to material colors."
-                }
-            }
-            return null
-        }
-
-        val pixmap = try {
-            Pixmap(files.internal(path))
-        } catch (error: Exception) {
-            logger?.warn(TAG, error) { "Failed to load terrain runtime texture '$path': ${error.message}" }
-            null
-        }
-        if (pixmap != null) {
-            textureCache[path] = pixmap
-        }
-        return pixmap
-    }
-
-    private fun samplePixmapNearest(
-        pixmap: Pixmap,
         u: Float,
         v: Float,
-    ): TerrainLayerColorDescriptor {
-        val x = (u.coerceIn(0f, 1f) * (pixmap.width - 1).coerceAtLeast(0)).roundToInt()
-            .coerceIn(0, pixmap.width - 1)
-        val y = (v.coerceIn(0f, 1f) * (pixmap.height - 1).coerceAtLeast(0)).roundToInt()
-            .coerceIn(0, pixmap.height - 1)
-        val rgba = pixmap.getPixel(x, y)
-        return TerrainLayerColorDescriptor(
-            r = ((rgba ushr 24) and 0xff) / 255f,
-            g = ((rgba ushr 16) and 0xff) / 255f,
-            b = ((rgba ushr 8) and 0xff) / 255f,
-            a = (rgba and 0xff) / 255f,
-        )
+        textureSampler: TerrainMaterialTextureSampler?,
+    ): TerrainLayerColorDescriptor? {
+        val sampler = textureSampler ?: return null
+        val tiledU = fract(u * layer.tiling)
+        val tiledV = fract(v * layer.tiling)
+        return try {
+            sampler.sample(layer, material, tiledU, tiledV)
+        } catch (error: Exception) {
+            logger?.warn(TAG, error) {
+                "Terrain material sampling failed material='${material.id}' texture='${material.albedoTexture}': ${error.message}"
+            }
+            null
+        }
+    }
+
+    private fun createTextureSampler(): TerrainMaterialTextureSampler? =
+        try {
+            textureSamplerFactory?.create()
+        } catch (error: Exception) {
+            logger?.warn(TAG, error) {
+                "Terrain material texture sampler creation failed; falling back to material colors: ${error.message}"
+            }
+            null
+        }
+
+    private fun TerrainMaterialTextureSampler.closeSafely() {
+        try {
+            close()
+        } catch (error: Exception) {
+            logger?.warn(TAG, error) {
+                "Terrain material texture sampler cleanup failed: ${error.message}"
+            }
+        }
     }
 
     private fun fract(value: Float): Float = value - floor(value)
@@ -409,14 +406,6 @@ private data class RuntimeTerrainLayerSample(
     val visible: Boolean,
 )
 
-fun interface TerrainMaterialColorSampler {
-    fun sample(
-        layer: TerrainLayer,
-        material: TerrainMaterialDescriptor,
-        u: Float,
-        v: Float,
-    ): TerrainLayerColorDescriptor?
-}
 
 /**
  * Runtime-only terrain mesh and material synchronization.
@@ -426,7 +415,7 @@ fun interface TerrainMaterialColorSampler {
  * [TerrainMeshBuilder], then [TerrainMaterialBakeService] creates the final
  * baked texture. The renderer material stores a [MaterialTextureRef] whose id
  * matches the generated [RuntimeTextureData], and [TerrainRenderSystem] forwards
- * both to the backend in [DrawDynamicModel].
+ * both to the backend as the runtime dynamic-model draw command.
  *
  * [finalSplatResolution] is the runtime final material resolution used when a
  * terrain renderer does not provide one. Individual terrain renderers can override it with

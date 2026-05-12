@@ -15,11 +15,15 @@ import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
+import com.pashkd.krender.engine.scene.RuntimeSceneValidator
+import com.pashkd.krender.engine.scene.SceneDependencyCollector
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneEnvironmentDescriptor
 import com.pashkd.krender.engine.scene.SceneLightingDescriptor
+import com.pashkd.krender.engine.scene.SceneValidationReport
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
+import com.pashkd.krender.engine.scene.SkyboxAssetService
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
@@ -42,6 +46,7 @@ class SceneEditorOperations(
     fun createNewScene() {
         context.logger.info(TAG) { "New scene creation started" }
         SceneEditorSceneFactory.createNewScene(document, state)
+        refreshValidation(updateStatusMessage = false)
         context.logger.info(TAG) {
             "New scene created id='${document.descriptor?.id ?: "<missing>"}' entities=${document.world.all().size}"
         }
@@ -713,6 +718,7 @@ class SceneEditorOperations(
 
             document.world = loadedWorld
             document.descriptor = descriptor
+            applyValidation(descriptor, updateStatusMessage = false)
             state.currentScenePath = normalizedPath
             state.sceneName = descriptor.name
             state.selectedEntityId = descriptor.settings.activeCameraEntityId
@@ -767,6 +773,8 @@ class SceneEditorOperations(
     fun readSceneText(path: String): String =
         context.sceneFiles.readText(path)
 
+    fun validateScene(): SceneValidationReport = refreshValidation(updateStatusMessage = true)
+
     private fun saveToPath(rawPath: String): Boolean =
         try {
             val path = ScenePathUtils.normalizeScenePath(rawPath)
@@ -785,6 +793,7 @@ class SceneEditorOperations(
             context.sceneFiles.writeText(path, encoded)
 
             document.descriptor = descriptor
+            applyValidation(descriptor, updateStatusMessage = false)
             state.currentScenePath = path
             state.saveAsPath = path
             state.saveAsRequested = false
@@ -801,6 +810,39 @@ class SceneEditorOperations(
         }
 
     private fun defaultSavePath(): String = "scenes/${sanitizeSceneName(state.sceneName)}.krscene"
+
+    private fun currentSerializableDescriptor(): SceneDescriptor =
+        SceneSerializer.toDescriptor(
+            world = document.world,
+            sceneName = state.sceneName,
+            existingDescriptor = document.descriptor,
+            includeEntity = { entity -> entity.get<EditorOnlyComponent>() == null },
+        )
+
+    private fun refreshValidation(updateStatusMessage: Boolean): SceneValidationReport {
+        val descriptor = currentSerializableDescriptor()
+        document.descriptor = descriptor
+        return applyValidation(descriptor, updateStatusMessage)
+    }
+
+    private fun applyValidation(
+        descriptor: SceneDescriptor,
+        updateStatusMessage: Boolean,
+    ): SceneValidationReport {
+        val resolvedSkybox = RuntimeSceneValidator.skyboxPath(descriptor)
+            ?.let { path -> runCatching { SkyboxAssetService(context.sceneFiles, context.logger).loadRequired(path) }.getOrNull() }
+        val dependencyGraph = SceneDependencyCollector(context.sceneFiles).collect(descriptor, resolvedSkybox)
+        val report = RuntimeSceneValidator.validate(descriptor, dependencyGraph)
+        state.validationReport = report
+        state.validationDirty = false
+        if (updateStatusMessage) {
+            state.statusMessage = "Scene validation completed: ${report.errors.size} errors, ${report.warnings.size} warnings."
+        }
+        context.logger.info(TAG) {
+            "Scene validation completed scene='${descriptor.name}' errors=${report.errors.size} warnings=${report.warnings.size} dependencies=${dependencyGraph.dependencies.size} missing=${dependencyGraph.missing.size}"
+        }
+        return report
+    }
 
     private fun generateSceneId(): String = "scene:${UUID.randomUUID()}"
 
@@ -1085,6 +1127,7 @@ class SceneEditorOperations(
 
     private fun markSceneChanged(message: String) {
         state.hasUnsavedChanges = true
+        state.validationDirty = true
         state.statusMessage = message
     }
 

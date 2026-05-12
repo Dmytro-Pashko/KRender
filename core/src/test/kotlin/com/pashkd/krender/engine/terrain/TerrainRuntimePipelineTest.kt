@@ -24,7 +24,7 @@ import kotlin.test.assertTrue
 
 class TerrainRuntimePipelineTest {
     @Test
-    fun `bakes final splat texture from material fallback colors when texture files are unavailable`() = withGdxFiles(null) {
+    fun `bakes final splat texture from material fallback colors when texture files are unavailable`() {
         val terrain = terrainWithOneLayer(materialId = "terrain/grass")
         val texture = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger).bakeFinalSplatTexture(
             terrain = terrain,
@@ -41,19 +41,26 @@ class TerrainRuntimePipelineTest {
     }
 
     @Test
-    fun `bakes final splat texture from sampled material texture colors when available`() = withGdxFiles(null) {
+    fun `bakes final splat texture from sampled material texture colors when available`() {
         val terrain = terrainWithOneLayer(materialId = "terrain/grass", tiling = 1.3f)
 
         val texture = TerrainMaterialBakeService(
             materialLibrary = testMaterialLibrary(),
             logger = NoopLogger,
-            sampledMaterialColor = TerrainMaterialColorSampler { _, _, u, v ->
-                TerrainLayerColorDescriptor(
-                    r = u.coerceIn(0f, 1f),
-                    g = v.coerceIn(0f, 1f),
-                    b = 0.25f,
-                    a = 1f,
-                )
+            textureSamplerFactory = TerrainMaterialTextureSamplerFactory {
+                object : TerrainMaterialTextureSampler {
+                    override fun sample(
+                        layer: TerrainLayer,
+                        material: TerrainMaterialDescriptor,
+                        u: Float,
+                        v: Float,
+                    ): TerrainLayerColorDescriptor = TerrainLayerColorDescriptor(
+                        r = u.coerceIn(0f, 1f),
+                        g = v.coerceIn(0f, 1f),
+                        b = 0.25f,
+                        a = 1f,
+                    )
+                }
             },
         ).bakeFinalSplatTexture(
             terrain = terrain,
@@ -69,7 +76,7 @@ class TerrainRuntimePipelineTest {
     }
 
     @Test
-    fun `bakes final splat texture from layer color when material id is invalid`() = withGdxFiles(null) {
+    fun `bakes final splat texture from layer color when material id is invalid`() {
         val layerColor = TerrainLayerColorDescriptor(0.2f, 0.3f, 0.4f, 1f)
         val terrain = terrainWithOneLayer(materialId = "terrain/missing", color = layerColor)
 
