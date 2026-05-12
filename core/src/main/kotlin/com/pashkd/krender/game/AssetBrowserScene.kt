@@ -194,6 +194,7 @@ private class SceneOperationsHandler(
         when (category) {
             AssetCategory.Model -> "model"
             AssetCategory.Texture -> "textures"
+            AssetCategory.Skybox -> "skyboxes"
             AssetCategory.Material -> "materials"
             AssetCategory.Terrain -> "terrains"
             AssetCategory.Scene -> "scenes"
@@ -207,12 +208,14 @@ private class SceneOperationsHandler(
             AssetType.ObjModel -> "obj"
             AssetType.GdxModel -> "g3dj"
             AssetType.Texture -> "png"
+            AssetType.Skybox -> "krskybox"
             AssetType.Terrain -> "json"
             AssetType.Scene -> "krscene"
             AssetType.Material -> "json"
             AssetType.Shader -> "glsl"
             AssetType.Unknown -> when (category) {
                 AssetCategory.Scene -> "krscene"
+                AssetCategory.Skybox -> "krskybox"
                 AssetCategory.Material, AssetCategory.Terrain -> "json"
                 AssetCategory.Shader -> "glsl"
                 else -> "bin"
@@ -222,9 +225,21 @@ private class SceneOperationsHandler(
     private fun defaultContent(category: AssetCategory): ByteArray? =
         when (category) {
             AssetCategory.Material, AssetCategory.Terrain -> "{}\n".toByteArray()
+            AssetCategory.Skybox -> defaultSkyboxContent().toByteArray()
             AssetCategory.Scene -> defaultSceneContent().toByteArray()
             else -> null
         }
+
+    private fun defaultSkyboxContent(): String =
+        """
+        {
+          "schemaVersion": 1,
+          "id": "skybox:new",
+          "name": "New Skybox",
+          "texturePath": "textures/default_skybox_studio.png",
+          "intensity": 1.0
+        }
+        """.trimIndent()
 
     private fun defaultSceneContent(): String =
         """

@@ -7,6 +7,8 @@ import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class SceneSerializerTest {
     @Test
@@ -27,10 +29,10 @@ class SceneSerializerTest {
         val decodedTerrain = decoded.entities.single()
 
         assertEquals(terrain.id, decoded.settings.activeTerrainEntityId)
-        assertEquals("TerrainComponent", decodedTerrain.components.single { it.type == "TerrainComponent" }.type)
+        assertEquals(SceneComponentTypes.Terrain, decodedTerrain.components.single { it.type == SceneComponentTypes.Terrain }.type)
         assertEquals(
             "1024",
-            decodedTerrain.components.single { it.type == "TerrainComponent" }.properties["bakedTextureResolution"],
+            decodedTerrain.components.single { it.type == SceneComponentTypes.Terrain }.properties["bakedTextureResolution"],
         )
     }
 
@@ -51,6 +53,9 @@ class SceneSerializerTest {
                     showSkybox = false,
                     environmentIntensity = 1.25f,
                 ),
+                terrain = SceneTerrainSettingsDescriptor(
+                    materialLibraryPath = "materials/runtime_terrain_materials.json",
+                ),
             ),
         )
 
@@ -65,6 +70,7 @@ class SceneSerializerTest {
         assertEquals("skyboxes/studio.krskybox", decoded.settings.environment.skyboxAssetPath)
         assertEquals(false, decoded.settings.environment.showSkybox)
         assertEquals(1.25f, decoded.settings.environment.environmentIntensity)
+        assertEquals("materials/runtime_terrain_materials.json", decoded.settings.terrain.materialLibraryPath)
     }
 
     @Test
@@ -94,25 +100,53 @@ class SceneSerializerTest {
     }
 
     @Test
-    fun `serializes and deserializes environment skybox ref`() {
+    fun `decodes literal string null skybox path as missing skybox`() {
         val decoded = SceneSerializer.decode(
-            SceneSerializer.encode(
-                SceneDescriptor(
-                    id = "scene:env",
-                    name = "Environment",
-                    settings = SceneSettingsDescriptor(
-                        environment = SceneEnvironmentDescriptor(
-                            skyboxAssetPath = "skyboxes/studio.krskybox",
-                            showSkybox = true,
-                            environmentIntensity = 2f,
-                        ),
+            """
+            {
+              "schemaVersion": 1,
+              "id": "scene:legacy-null-skybox",
+              "name": "Legacy Null Skybox",
+              "entities": [],
+              "settings": {
+                "environment": {
+                  "skyboxAssetPath": "null",
+                  "showSkybox": true,
+                  "environmentIntensity": 1.0
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(null, decoded.settings.environment.skyboxAssetPath)
+        assertEquals(true, decoded.settings.environment.showSkybox)
+        assertEquals(1f, decoded.settings.environment.environmentIntensity)
+    }
+
+    @Test
+    fun `serializer writes only new settings format`() {
+        val encoded = SceneSerializer.encode(
+            SceneDescriptor(
+                id = "scene:new-format",
+                name = "New Format",
+                settings = SceneSettingsDescriptor(
+                    lighting = SceneLightingDescriptor(
+                        ambientColor = Color(0.25f, 0.35f, 0.45f, 1f),
+                        ambientIntensity = 0.9f,
+                    ),
+                    terrain = SceneTerrainSettingsDescriptor(
+                        materialLibraryPath = "materials/terrain_runtime.json",
                     ),
                 ),
             ),
         )
 
-        assertEquals("skyboxes/studio.krskybox", decoded.settings.environment.skyboxAssetPath)
-        assertEquals(true, decoded.settings.environment.showSkybox)
-        assertEquals(2f, decoded.settings.environment.environmentIntensity)
+        assertTrue(encoded.contains("\"lighting\""))
+        assertTrue(encoded.contains("\"environment\""))
+        assertTrue(encoded.contains("\"terrain\""))
+        assertFalse(encoded.contains("\"ambientLightColor\""))
+        assertFalse(encoded.contains("\"ambientLightIntensity\""))
+        assertFalse(encoded.contains("\"ambientLightEntityId\""))
     }
 }

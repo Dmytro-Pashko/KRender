@@ -554,8 +554,9 @@ class GdxAssetService(
             }
 
             TerrainAsset::class -> {
-                requested += asset.path
-                logger?.info(GDX_ASSET_SERVICE_TAG) { "Queue asset type=terrain path='${asset.path}'" }
+                logger?.info(GDX_ASSET_SERVICE_TAG) {
+                    "Ignoring queued terrain asset path='${asset.path}'. Runtime terrain loading is handled outside AssetService."
+                }
             }
 
             ShaderAsset::class -> {
@@ -606,7 +607,7 @@ class GdxAssetService(
             }
 
             TextureAsset::class -> manager.isLoaded(asset.path)
-            TerrainAsset::class -> asset.path in requested
+            TerrainAsset::class -> false
             ShaderAsset::class -> asset.path in shaderSources
             else -> false
         }

@@ -549,6 +549,7 @@ private fun assetIcon(asset: AssetDescriptor): String =
     when (asset.category) {
         AssetCategory.Model -> "[M]"
         AssetCategory.Texture -> "[T]"
+        AssetCategory.Skybox -> "[Sky]"
         AssetCategory.Material -> "[Mat]"
         AssetCategory.Terrain -> "[Ter]"
         AssetCategory.Shader -> "[S]"

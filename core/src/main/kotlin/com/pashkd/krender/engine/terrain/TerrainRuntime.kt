@@ -40,11 +40,11 @@ fun runtimeTerrainFinalSplatTextureId(
 /**
  * Runtime terrain source factory shared by non-editor terrain scenes.
  *
- * The factory loads serialized [TerrainData] when available and creates a
- * generated fallback with a sensible base material otherwise. It does not
- * create editor state, brush state, panels, or render components. Persistence
- * is accessed through [TerrainRuntimePersistence] so fallback behavior can be
- * tested without a backend file service.
+ * The factory loads serialized [TerrainData] from a readable terrain asset and
+ * fails fast when the referenced file is missing or invalid. It does not create
+ * editor state, brush state, panels, or render components. Persistence is
+ * accessed through [TerrainRuntimePersistence] so runtime loading can be tested
+ * without a backend file service.
  */
 class TerrainRuntimeFactory(
     private val logger: Logger,
@@ -381,7 +381,7 @@ private fun TerrainData.describeRuntimeTerrain(): String =
 
 private fun terrainPathCandidates(path: String): List<String> {
     val normalized = path.trim().replace('\\', '/')
-    if (normalized.isBlank()) return listOf("terrains/terrain_01.json")
+    if (normalized.isBlank()) return emptyList()
     val candidates = linkedSetOf(normalized)
     if (normalized.endsWith(".krterrain", ignoreCase = true)) {
         candidates += normalized.dropLast(".krterrain".length) + ".json"

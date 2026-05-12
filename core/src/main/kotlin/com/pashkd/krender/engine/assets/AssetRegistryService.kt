@@ -253,7 +253,7 @@ class LocalAssetRegistryService(
 
     companion object {
         private const val TAG = "LocalAssetRegistryService"
-        val DefaultRootPaths = listOf("model", "textures", "materials", "terrains", "scenes", "shaders", "assets")
+        val DefaultRootPaths = listOf("model", "textures", "skyboxes", "materials", "terrains", "scenes", "shaders", "assets")
 
         private fun defaultBaseDirectory(): File {
             val current = File(".")

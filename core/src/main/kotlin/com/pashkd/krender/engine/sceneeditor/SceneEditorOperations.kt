@@ -16,6 +16,7 @@ import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
 import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneEnvironmentDescriptor
 import com.pashkd.krender.engine.scene.SceneLightingDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
@@ -410,6 +411,57 @@ class SceneEditorOperations(
         }
         markSceneChanged("Updated ambient light intensity.")
         context.logger.debug(TAG) { "Updated ambient light intensity value=$intensity" }
+    }
+
+    fun setSkyboxAsset(path: String?) {
+        val normalizedPath = normalizeOptionalAssetPath(path)
+        val currentPath = document.descriptor?.settings?.environment?.skyboxAssetPath
+        if (currentPath == normalizedPath) return
+
+        updateSceneSettings { settings ->
+            settings.copy(
+                environment = settings.environment.copy(skyboxAssetPath = normalizedPath),
+            )
+        }
+        markSceneChanged(
+            if (normalizedPath == null) {
+                "Cleared scene skybox."
+            } else {
+                "Scene skybox set to $normalizedPath"
+            },
+        )
+        context.logger.info(TAG) { "Updated scene skybox asset path='${normalizedPath ?: "<none>"}'" }
+    }
+
+    fun setSkyboxVisible(visible: Boolean) {
+        val current = document.descriptor?.settings?.environment?.showSkybox ?: SceneEnvironmentDescriptor().showSkybox
+        if (current == visible) return
+
+        updateSceneSettings { settings ->
+            settings.copy(
+                environment = settings.environment.copy(showSkybox = visible),
+            )
+        }
+        markSceneChanged(if (visible) "Scene skybox enabled." else "Scene skybox hidden.")
+        context.logger.info(TAG) { "Updated scene skybox visibility visible=$visible" }
+    }
+
+    fun setEnvironmentIntensity(intensity: Float) {
+        if (!intensity.isFinite() || intensity < 0f) {
+            state.statusMessage = "Environment intensity must be finite and greater than or equal to 0."
+            context.logger.warn(TAG) { "Rejected environment intensity edit value=$intensity" }
+            return
+        }
+        val current = document.descriptor?.settings?.environment?.environmentIntensity ?: SceneEnvironmentDescriptor().environmentIntensity
+        if (current == intensity) return
+
+        updateSceneSettings { settings ->
+            settings.copy(
+                environment = settings.environment.copy(environmentIntensity = intensity),
+            )
+        }
+        markSceneChanged("Updated environment intensity.")
+        context.logger.debug(TAG) { "Updated environment intensity value=$intensity" }
     }
 
     fun setCameraFov(entityId: EntityId, fov: Float) {
@@ -935,6 +987,13 @@ class SceneEditorOperations(
     private fun normalizeAssetPath(path: String): String =
         path.trim().replace('\\', '/')
 
+    private fun normalizeOptionalAssetPath(path: String?): String? =
+        path
+            ?.trim()
+            ?.replace('\\', '/')
+            ?.takeIf(String::isNotBlank)
+            ?.takeUnless { value -> value.equals("null", ignoreCase = true) }
+
     private fun modelEntityName(path: String): String {
         val fileName = path.substringAfterLast('/').ifBlank { "Model" }
         val baseName = fileName.substringBeforeLast('.', fileName)
@@ -1070,6 +1129,11 @@ object SceneEditorSceneFactory {
                     ambientColor = defaultAmbientLightColor(),
                     ambientIntensity = DefaultAmbientLightIntensity,
                 ),
+                environment = SceneEnvironmentDescriptor(
+                    skyboxAssetPath = DefaultSceneSkyboxAssetPath,
+                    showSkybox = true,
+                    environmentIntensity = 1f,
+                ),
             ),
         )
 
@@ -1109,4 +1173,6 @@ object SceneEditorSceneFactory {
     }
 
     private fun generateSceneId(): String = "scene:${UUID.randomUUID()}"
+
+    private const val DefaultSceneSkyboxAssetPath = "skyboxes/default_skybox_studio.krskybox"
 }

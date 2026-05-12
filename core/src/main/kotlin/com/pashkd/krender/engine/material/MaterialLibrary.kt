@@ -1,11 +1,14 @@
 package com.pashkd.krender.engine.material
 
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.utils.Json
-import com.badlogic.gdx.utils.JsonValue
-import com.badlogic.gdx.utils.JsonWriter
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.scene.DefaultSceneFileService
+import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.terrain.TerrainLayerColorDescriptor
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.floatOrNull
 
 data class TerrainMaterialDescriptor(
     val id: String,
@@ -22,23 +25,20 @@ data class TerrainMaterialLibraryDescriptor(
 
 class TerrainMaterialLibrary(
     private val logger: Logger? = null,
+    private val files: SceneFileService = DefaultSceneFileService,
 ) {
-    private val json = Json().apply {
-        setOutputType(JsonWriter.OutputType.json)
-        setSerializer(TerrainMaterialLibraryDescriptor::class.java, TerrainMaterialLibraryDescriptorSerializer)
-        setSerializer(TerrainMaterialDescriptor::class.java, TerrainMaterialDescriptorSerializer)
-        setSerializer(TerrainLayerColorDescriptor::class.java, TerrainLayerColorDescriptorSerializer)
-    }
     private var materials: List<TerrainMaterialDescriptor> = emptyList()
 
     fun load(assetPath: String) {
+        val normalizedPath = assetPath.trim().replace('\\', '/')
+        require(normalizedPath.isNotBlank()) { "Terrain material library path must not be blank." }
         materials = try {
-            loadFromJson(Gdx.files.internal(assetPath).readString("UTF-8"), assetPath)
+            loadFromJson(files.readText(normalizedPath), normalizedPath)
         } catch (error: Exception) {
             logger?.error(TAG, error) {
-                "Failed to load terrain material library '$assetPath': ${error.message}"
+                "Failed to load terrain material library '$normalizedPath': ${error.message}"
             }
-            throw IllegalStateException("Terrain material library '$assetPath' could not be loaded: ${error.message}", error)
+            throw IllegalStateException("Terrain material library '$normalizedPath' could not be loaded: ${error.message}", error)
         }
     }
 
@@ -52,7 +52,12 @@ class TerrainMaterialLibrary(
     fun firstOrNull(): TerrainMaterialDescriptor? = materials.firstOrNull()
 
     internal fun loadFromJson(jsonText: String, source: String = "<memory>"): List<TerrainMaterialDescriptor> {
-        val descriptor = json.fromJson(TerrainMaterialLibraryDescriptor::class.java, jsonText)
+        val root = Json.parseToJsonElement(jsonText) as? JsonObject
+            ?: throw IllegalArgumentException("Terrain material library root must be a JSON object")
+        val descriptor = TerrainMaterialLibraryDescriptor(
+            formatVersion = root.intOrDefault("formatVersion", -1),
+            materials = readMaterials(root["materials"]),
+        )
         require(descriptor.formatVersion == FORMAT_VERSION) {
             "Unsupported terrain material format version: ${descriptor.formatVersion}"
         }
@@ -60,6 +65,22 @@ class TerrainMaterialLibrary(
         require(loaded.isNotEmpty()) { "Terrain material library '$source' does not contain valid materials" }
         materials = loaded
         return loaded
+    }
+
+    private fun readMaterials(node: kotlinx.serialization.json.JsonElement?): List<TerrainMaterialDescriptor> {
+        val materials = node as? JsonArray
+            ?: throw IllegalArgumentException("Terrain material library is missing required field 'materials'")
+        return materials.mapIndexed { index, materialNode ->
+            val material = materialNode as? JsonObject
+                ?: throw IllegalArgumentException("Terrain material at index $index must be a JSON object")
+            TerrainMaterialDescriptor(
+                id = material.requiredString("id"),
+                name = material.requiredString("name"),
+                albedoTexture = material.requiredString("albedoTexture"),
+                fallbackColor = material.requiredColor("fallbackColor"),
+                defaultTiling = material.requiredFloat("defaultTiling"),
+            )
+        }
     }
 
     private fun validateMaterials(
@@ -71,7 +92,7 @@ class TerrainMaterialLibrary(
         descriptors.forEach { descriptor ->
             val id = descriptor.id.trim()
             val name = descriptor.name.trim()
-            val albedoTexture = descriptor.albedoTexture.trim()
+            val albedoTexture = descriptor.albedoTexture.trim().replace('\\', '/')
             when {
                 id.isBlank() -> logger?.warn(TAG) { "Ignoring terrain material with blank id in '$source'" }
                 name.isBlank() -> logger?.warn(TAG) { "Ignoring terrain material '$id' with blank name in '$source'" }
@@ -98,75 +119,32 @@ class TerrainMaterialLibrary(
                 library.materials = library.validateMaterials(materials, "<provided>")
             }
     }
-}
 
-private object TerrainMaterialLibraryDescriptorSerializer : Json.Serializer<TerrainMaterialLibraryDescriptor> {
-    override fun write(json: Json, descriptor: TerrainMaterialLibraryDescriptor, knownType: Class<*>?) {
-        json.writeObjectStart()
-        json.writeValue("formatVersion", descriptor.formatVersion)
-        json.writeArrayStart("materials")
-        descriptor.materials.forEach { material ->
-            json.writeValue(material, TerrainMaterialDescriptor::class.java)
-        }
-        json.writeArrayEnd()
-        json.writeObjectEnd()
-    }
+    private fun JsonObject.requiredString(name: String): String =
+        (this[name] as? JsonPrimitive)?.content
+            ?: throw IllegalArgumentException("Terrain material library is missing required field '$name'")
 
-    override fun read(json: Json, jsonData: JsonValue, type: Class<*>?): TerrainMaterialLibraryDescriptor =
-        TerrainMaterialLibraryDescriptor(
-            formatVersion = jsonData.required("formatVersion").asInt(),
-            materials = jsonData.required("materials").map { materialData ->
-                json.readValue(TerrainMaterialDescriptor::class.java, materialData)
-            },
-        )
-}
+    private fun JsonObject.requiredFloat(name: String): Float =
+        (this[name] as? JsonPrimitive)?.floatOrNull
+            ?: throw IllegalArgumentException("Terrain material library field '$name' must be a number")
 
-private object TerrainMaterialDescriptorSerializer : Json.Serializer<TerrainMaterialDescriptor> {
-    override fun write(json: Json, descriptor: TerrainMaterialDescriptor, knownType: Class<*>?) {
-        json.writeObjectStart()
-        json.writeValue("id", descriptor.id)
-        json.writeValue("name", descriptor.name)
-        json.writeValue("albedoTexture", descriptor.albedoTexture)
-        json.writeValue("fallbackColor", descriptor.fallbackColor.clamped(), TerrainLayerColorDescriptor::class.java)
-        json.writeValue("defaultTiling", descriptor.defaultTiling)
-        json.writeObjectEnd()
-    }
-
-    override fun read(json: Json, jsonData: JsonValue, type: Class<*>?): TerrainMaterialDescriptor =
-        TerrainMaterialDescriptor(
-            id = jsonData.required("id").asString(),
-            name = jsonData.required("name").asString(),
-            albedoTexture = jsonData.required("albedoTexture").asString(),
-            fallbackColor = json.readValue(
-                TerrainLayerColorDescriptor::class.java,
-                jsonData.required("fallbackColor"),
-            ).clamped(),
-            defaultTiling = jsonData.required("defaultTiling").asFloat(),
-        )
-}
-
-private object TerrainLayerColorDescriptorSerializer : Json.Serializer<TerrainLayerColorDescriptor> {
-    override fun write(json: Json, descriptor: TerrainLayerColorDescriptor, knownType: Class<*>?) {
-        val color = descriptor.clamped()
-        json.writeObjectStart()
-        json.writeValue("r", color.r)
-        json.writeValue("g", color.g)
-        json.writeValue("b", color.b)
-        json.writeValue("a", color.a)
-        json.writeObjectEnd()
-    }
-
-    override fun read(json: Json, jsonData: JsonValue, type: Class<*>?): TerrainLayerColorDescriptor =
-        TerrainLayerColorDescriptor(
-            r = jsonData.required("r").asFloat(),
-            g = jsonData.required("g").asFloat(),
-            b = jsonData.required("b").asFloat(),
-            a = jsonData.required("a").asFloat(),
+    private fun JsonObject.requiredColor(name: String): TerrainLayerColorDescriptor {
+        val color = this[name] as? JsonObject
+            ?: throw IllegalArgumentException("Terrain material library is missing required field '$name'")
+        return TerrainLayerColorDescriptor(
+            r = color.floatOrDefault("r", 1f),
+            g = color.floatOrDefault("g", 1f),
+            b = color.floatOrDefault("b", 1f),
+            a = color.floatOrDefault("a", 1f),
         ).clamped()
-}
+    }
 
-private fun JsonValue.required(name: String): JsonValue =
-    get(name) ?: throw IllegalArgumentException("Terrain material library is missing required field '$name'")
+    private fun JsonObject.floatOrDefault(name: String, defaultValue: Float): Float =
+        (this[name] as? JsonPrimitive)?.floatOrNull ?: defaultValue
+
+    private fun JsonObject.intOrDefault(name: String, defaultValue: Int): Int =
+        (this[name] as? JsonPrimitive)?.content?.toIntOrNull() ?: defaultValue
+}
 
 private fun TerrainLayerColorDescriptor.clamped(): TerrainLayerColorDescriptor =
     TerrainLayerColorDescriptor(

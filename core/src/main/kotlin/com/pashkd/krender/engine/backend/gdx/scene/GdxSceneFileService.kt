@@ -18,9 +18,18 @@ class GdxSceneFileService : SceneFileService {
         Gdx.files.local(path).parent()?.mkdirs()
     }
 
+    override fun exists(path: String): Boolean =
+        Gdx.files.local(path).exists() || Gdx.files.internal(path).exists()
+
+    override fun describeReadableSource(path: String): String =
+        when {
+            Gdx.files.local(path).exists() -> "local"
+            Gdx.files.internal(path).exists() -> "internal"
+            else -> "missing"
+        }
+
     private fun resolveReadableFile(path: String) =
         Gdx.files.local(path).takeIf { it.exists() }
             ?: Gdx.files.internal(path).takeIf { it.exists() }
             ?: Gdx.files.local(path)
 }
-

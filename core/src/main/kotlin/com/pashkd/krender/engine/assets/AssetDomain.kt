@@ -15,13 +15,14 @@ enum class AssetCategory(
 ) {
     Model("Model", 0),
     Texture("Texture", 1),
-    Material("Material", 2),
-    Terrain("Terrain", 3),
-    Shader("Shader", 4),
-    Scene("Scene", 5),
-    Audio("Audio", 6),
-    Script("Script", 7),
-    Unknown("Unknown", 8),
+    Skybox("Skybox", 2),
+    Material("Material", 3),
+    Terrain("Terrain", 4),
+    Shader("Shader", 5),
+    Scene("Scene", 6),
+    Audio("Audio", 7),
+    Script("Script", 8),
+    Unknown("Unknown", 9),
 }
 
 /**
@@ -32,6 +33,7 @@ enum class AssetType {
     ObjModel,
     GdxModel,
     Texture,
+    Skybox,
     Terrain,
     Scene,
     Material,

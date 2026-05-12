@@ -90,6 +90,9 @@ class SceneAssetBrowserModel(
     fun terrainAssets(): List<AssetDescriptor> =
         assets.filter { asset -> asset.category == AssetCategory.Terrain }
 
+    fun skyboxAssets(): List<AssetDescriptor> =
+        assets.filter { asset -> asset.category == AssetCategory.Skybox }
+
     fun filteredModelAssets(): List<AssetDescriptor> {
         val query = state.searchQuery.trim().lowercase()
         return modelAssets()
@@ -116,11 +119,25 @@ class SceneAssetBrowserModel(
             .toList()
     }
 
+    fun filteredSkyboxAssets(): List<AssetDescriptor> {
+        val query = state.searchQuery.trim().lowercase()
+        return skyboxAssets()
+            .asSequence()
+            .filter { asset ->
+                query.isBlank() ||
+                    asset.name.lowercase().contains(query) ||
+                    asset.path.lowercase().contains(query)
+            }
+            .sortedWith(compareBy<AssetDescriptor> { it.name.lowercase() }.thenBy { it.path.lowercase() })
+            .toList()
+    }
+
     private fun applyScanResult(snapshot: AssetRegistrySnapshot) {
         registry.applySnapshot(snapshot)
         assets = snapshot.assets
         errorMessage = snapshot.errors.firstOrNull()?.let { "Scan error: ${it.path} (${it.message})" }
-        state.statusMessage = "Indexed ${modelAssets().size} model assets and ${terrainAssets().size} terrain assets."
+        state.statusMessage =
+            "Indexed ${modelAssets().size} model assets, ${terrainAssets().size} terrain assets, and ${skyboxAssets().size} skyboxes."
         isScanning = false
         scanInFlight = false
     }
@@ -240,6 +257,29 @@ class SceneAssetPanel(
         }
         ImGui.endChild()
         drawTerrainSelectionDetails()
+
+        ImGui.separator()
+
+        ImGui.text("Skyboxes:")
+        ImGui.beginChild("scene_assets_skybox_list", Vec2(0f, AssetListHeight), true)
+        val allSkyboxes = assetBrowser.skyboxAssets()
+        val visibleSkyboxes = assetBrowser.filteredSkyboxAssets()
+        when {
+            allSkyboxes.isEmpty() -> {
+                ImGui.text("No skybox assets found.")
+                with(dsl) {
+                    button("Refresh##scene_assets_empty_skybox_refresh") {
+                        assetBrowser.requestRefresh()
+                    }
+                }
+            }
+            visibleSkyboxes.isEmpty() -> {
+                ImGui.text("No skybox assets match the current search.")
+            }
+            else -> visibleSkyboxes.forEach(::drawAssetRow)
+        }
+        ImGui.endChild()
+        drawSkyboxSelectionDetails()
     }
 
     private fun drawAssetRow(asset: AssetDescriptor) {
@@ -302,6 +342,23 @@ class SceneAssetPanel(
         }
     }
 
+    private fun drawSkyboxSelectionDetails() {
+        val skyboxPath = selectedSkyboxPath()
+        ImGui.text("Selected skybox: ${selectedSkyboxName()}")
+        ImGui.textWrapped("Skybox Path: ${skyboxPath ?: "<none>"}")
+        with(dsl) {
+            button("Use Scene Skybox##scene_assets_use_selected_skybox") {
+                useSelectedSkybox()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Clear Scene Skybox##scene_assets_clear_scene_skybox") {
+                clearSceneSkybox()
+            }
+        }
+    }
+
     private fun drawStatus() {
         if (panelState.statusMessage.isNotBlank()) {
             ImGui.text("Status: ${panelState.statusMessage}")
@@ -324,6 +381,9 @@ class SceneAssetPanel(
                 editorState.terrainPlacementPath = asset.path
                 editorState.terrainPlacementError = null
                 panelState.statusMessage = "Selected terrain: ${asset.path}"
+            }
+            AssetCategory.Skybox -> {
+                panelState.statusMessage = "Selected skybox: ${asset.path}"
             }
             else -> {
                 panelState.statusMessage = "Selected asset: ${asset.path}"
@@ -387,6 +447,23 @@ class SceneAssetPanel(
         panelState.statusMessage = editorState.statusMessage
     }
 
+    private fun useSelectedSkybox() {
+        val selectedPath = selectedSkyboxPath()
+        if (selectedPath.isNullOrBlank()) {
+            panelState.statusMessage = "Select a skybox first."
+            editorState.statusMessage = panelState.statusMessage
+            return
+        }
+
+        operations.setSkyboxAsset(selectedPath)
+        panelState.statusMessage = editorState.statusMessage
+    }
+
+    private fun clearSceneSkybox() {
+        operations.setSkyboxAsset(null)
+        panelState.statusMessage = editorState.statusMessage
+    }
+
     private fun syncSearchBuffer() {
         if (!searchInputActive && readBuffer(searchBuffer) != panelState.searchQuery) {
             writeBuffer(searchBuffer, panelState.searchQuery)
@@ -405,17 +482,27 @@ class SceneAssetPanel(
             else -> editorState.terrainPlacementPath.takeIf(String::isNotBlank)
         }
 
+    private fun selectedSkyboxPath(): String? =
+        when (panelState.selectedAssetCategory) {
+            AssetCategory.Skybox -> panelState.selectedAssetPath
+            else -> null
+        }
+
     private fun selectedModelName(): String =
         selectedAssetName(AssetCategory.Model, selectedModelPath())
 
     private fun selectedTerrainName(): String =
         selectedAssetName(AssetCategory.Terrain, selectedTerrainPath())
 
+    private fun selectedSkyboxName(): String =
+        selectedAssetName(AssetCategory.Skybox, selectedSkyboxPath())
+
     private fun selectedAssetName(category: AssetCategory, path: String?): String {
         val assetPath = path ?: return "<none>"
         val asset = when (category) {
             AssetCategory.Model -> assetBrowser.modelAssets().firstOrNull { descriptor -> descriptor.path == assetPath }
             AssetCategory.Terrain -> assetBrowser.terrainAssets().firstOrNull { descriptor -> descriptor.path == assetPath }
+            AssetCategory.Skybox -> assetBrowser.skyboxAssets().firstOrNull { descriptor -> descriptor.path == assetPath }
             else -> null
         }
         return asset?.name?.takeIf(String::isNotBlank) ?: assetNameFromPath(assetPath)

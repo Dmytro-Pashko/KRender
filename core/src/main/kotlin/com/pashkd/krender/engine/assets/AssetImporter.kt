@@ -60,6 +60,7 @@ class AssetImporterRegistry(
                 register(ObjModelImporter())
                 register(GdxModelImporter())
                 register(TextureImporter())
+                register(SkyboxImporter())
                 register(TerrainImporter())
                 register(MaterialImporter())
                 register(ShaderImporter())
@@ -121,6 +122,19 @@ class TextureImporter : AssetImporter {
     override val supportedExtensions = setOf("png", "jpg", "jpeg", "webp")
     override val outputType = AssetType.Texture
     override val outputCategory = AssetCategory.Texture
+
+    override fun canImport(path: String): Boolean = normalizedExtension(path) in supportedExtensions
+}
+
+/**
+ * Scene skybox descriptors.
+ */
+class SkyboxImporter : AssetImporter {
+    override val id = "skybox"
+    override val displayName = "Skybox"
+    override val supportedExtensions = setOf("krskybox")
+    override val outputType = AssetType.Skybox
+    override val outputCategory = AssetCategory.Skybox
 
     override fun canImport(path: String): Boolean = normalizedExtension(path) in supportedExtensions
 }

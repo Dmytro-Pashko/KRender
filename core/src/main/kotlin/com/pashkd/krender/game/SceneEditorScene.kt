@@ -18,6 +18,7 @@ import com.pashkd.krender.engine.sceneeditor.SceneEditorDocument
 import com.pashkd.krender.engine.sceneeditor.SceneEditorOperations
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocumentRenderSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorBoundsProvider
+import com.pashkd.krender.engine.sceneeditor.SceneEditorEnvironmentRenderSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorLightGizmoSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorLightSyncSystem
 import com.pashkd.krender.engine.sceneeditor.SceneEditorDocumentTerrainSyncSystem
@@ -94,6 +95,7 @@ class SceneEditorScene(
         world.systems.add(SceneEditorLightGizmoSystem(document, editorState))
         world.systems.add(SceneEditorLightSyncSystem(document, engine.logger))
         world.systems.add(SceneEditorDocumentTerrainSyncSystem(document, engine.logger))
+        world.systems.add(SceneEditorEnvironmentRenderSystem(document, engine.sceneFiles, engine.logger))
         world.systems.add(SceneEditorDocumentRenderSystem(document))
     }
 
@@ -109,7 +111,7 @@ class SceneEditorScene(
             uiSystem.addPanel(SceneEditorToolbarPanel(editorState, operations, layoutConfig, layoutTracker, panelEventLogger))
             uiSystem.addPanel(SceneHierarchyPanel(editorState, document, operations, layoutConfig, layoutTracker, panelEventLogger, engine.logger))
             uiSystem.addPanel(SceneAssetPanel(assetPanelState, editorState, assetBrowser, operations, engine, layoutConfig, layoutTracker, panelEventLogger))
-            uiSystem.addPanel(SceneInspectorPanel(editorState, document, operations, layoutConfig, layoutTracker, panelEventLogger, engine.logger))
+            uiSystem.addPanel(SceneInspectorPanel(editorState, document, assetBrowser, operations, layoutConfig, layoutTracker, panelEventLogger, engine.logger))
             uiSystem.addPanel(SceneViewportPanel(editorState, document, operations, layoutConfig, layoutTracker, panelEventLogger))
             uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger, layoutTracker = layoutTracker, initialAutoScrollToLatest = true))
         }

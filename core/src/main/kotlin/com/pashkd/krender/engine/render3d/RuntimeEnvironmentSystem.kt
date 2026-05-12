@@ -9,7 +9,7 @@ import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
 import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
 
 data class RuntimeEnvironment(
-    val skyboxTexturePath: String?,
+    val skyboxTexturePath: String,
     val showSkybox: Boolean,
     val ambientColor: Color,
     val ambientIntensity: Float,
@@ -19,14 +19,14 @@ data class RuntimeEnvironment(
 object RuntimeEnvironmentFactory {
     fun fromSceneSettings(
         settings: SceneSettingsDescriptor,
-        skybox: SkyboxAssetDescriptor?,
+        skybox: SkyboxAssetDescriptor,
     ): RuntimeEnvironment =
         RuntimeEnvironment(
-            skyboxTexturePath = skybox?.texturePath?.takeIf(String::isNotBlank),
+            skyboxTexturePath = skybox.texturePath,
             showSkybox = settings.environment.showSkybox,
             ambientColor = settings.lighting.ambientColor.copy(),
             ambientIntensity = settings.lighting.ambientIntensity,
-            environmentIntensity = settings.environment.environmentIntensity * (skybox?.intensity ?: 1f),
+            environmentIntensity = settings.environment.environmentIntensity * skybox.intensity,
         )
 }
 
@@ -39,13 +39,11 @@ class RuntimeEnvironmentSystem(
     override fun render(world: SceneWorld, alpha: Float) {
         world.renderCommands.submit(
             ApplyEnvironment(
-                skyboxTexture = environment.skyboxTexturePath?.let { texturePath ->
-                    MaterialTextureRef(
-                        id = texturePath,
-                        channel = "skybox",
-                        uvChannel = 0,
-                    )
-                },
+                skyboxTexture = MaterialTextureRef(
+                    id = environment.skyboxTexturePath,
+                    channel = "skybox",
+                    uvChannel = 0,
+                ),
                 showSkybox = environment.showSkybox,
                 ambientColor = environment.ambientColor.copy(),
                 ambientIntensity = environment.ambientIntensity,

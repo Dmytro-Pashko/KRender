@@ -18,8 +18,8 @@
         {
           "type": "TransformComponent",
           "properties": {
-            "position": "10.052103,5.087406,21.587494",
-            "rotation": "-16.47992,582.11456,0.0",
+            "position": "-7.4142427,6.885879,26.433151",
+            "rotation": "-19.89998,159.65997,0.0",
             "scale": "1.0,1.0,1.0"
           }
         },
@@ -28,7 +28,7 @@
           "properties": {
             "fieldOfViewDegrees": "67.0",
             "near": "0.05",
-            "far": "250.0"
+            "far": "128.0"
           }
         }
       ]
@@ -1485,9 +1485,12 @@
       "ambientIntensity": 0.3
     },
     "environment": {
-      "skyboxAssetPath": null,
+      "skyboxAssetPath": "skyboxes/default_skybox_studio.krskybox",
       "showSkybox": true,
       "environmentIntensity": 1.0
+    },
+    "terrain": {
+      "materialLibraryPath": "materials/terrain_materials.json"
     }
   }
 }

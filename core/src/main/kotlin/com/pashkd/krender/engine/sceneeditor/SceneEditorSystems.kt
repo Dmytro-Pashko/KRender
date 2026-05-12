@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.sceneeditor
 
+import com.pashkd.krender.engine.api.ApplyEnvironment
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.DrawLine
@@ -10,6 +11,7 @@ import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.InputSnapshot
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MouseButton
+import com.pashkd.krender.engine.api.MaterialTextureRef
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
@@ -21,6 +23,9 @@ import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
+import com.pashkd.krender.engine.scene.SceneFileService
+import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
+import com.pashkd.krender.engine.scene.SkyboxAssetService
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainAssetRuntimeSync
 import com.pashkd.krender.engine.terrain.TerrainRenderCommands
@@ -78,6 +83,78 @@ class SceneEditorDocumentRenderSystem(
             }
         }
         TerrainRenderCommands.submit(document.world, world.renderCommands::submit)
+    }
+}
+
+/**
+ * Submits scene environment commands so the editor viewport can display the selected skybox.
+ */
+class SceneEditorEnvironmentRenderSystem(
+    private val document: SceneEditorDocument,
+    private val sceneFiles: SceneFileService,
+    private val logger: Logger,
+) : System() {
+    private val skyboxAssets = SkyboxAssetService(sceneFiles, logger)
+    private var cachedSkyboxPath: String? = null
+    private var cachedSkybox: SkyboxAssetDescriptor? = null
+    private var failedSkyboxPath: String? = null
+
+    override fun render(world: SceneWorld, alpha: Float) {
+        val settings = document.descriptor?.settings ?: return
+        val skybox = resolveSkybox(settings.environment.skyboxAssetPath)
+        world.renderCommands.submit(
+            ApplyEnvironment(
+                skyboxTexture = skybox?.texturePath?.let { texturePath ->
+                    MaterialTextureRef(
+                        id = texturePath,
+                        channel = "skybox",
+                        uvChannel = 0,
+                    )
+                },
+                showSkybox = settings.environment.showSkybox,
+                ambientColor = settings.lighting.ambientColor.copy(),
+                ambientIntensity = settings.lighting.ambientIntensity,
+                environmentIntensity = settings.environment.environmentIntensity * (skybox?.intensity ?: 1f),
+            ),
+        )
+    }
+
+    private fun resolveSkybox(path: String?): SkyboxAssetDescriptor? {
+        val normalizedPath = path
+            ?.trim()
+            ?.replace('\\', '/')
+            ?.takeIf(String::isNotBlank)
+            ?.takeUnless { value -> value.equals("null", ignoreCase = true) }
+        if (normalizedPath == null) {
+            cachedSkyboxPath = null
+            cachedSkybox = null
+            failedSkyboxPath = null
+            return null
+        }
+        if (cachedSkyboxPath == normalizedPath) {
+            return cachedSkybox
+        }
+        if (failedSkyboxPath == normalizedPath) {
+            return null
+        }
+
+        return try {
+            skyboxAssets.loadRequired(normalizedPath).also { descriptor ->
+                cachedSkyboxPath = normalizedPath
+                cachedSkybox = descriptor
+                failedSkyboxPath = null
+            }
+        } catch (error: Exception) {
+            logger.warn(TAG, error) { "Scene Editor skybox '$normalizedPath' could not be loaded: ${error.message}" }
+            cachedSkyboxPath = null
+            cachedSkybox = null
+            failedSkyboxPath = normalizedPath
+            null
+        }
+    }
+
+    companion object {
+        private const val TAG = "SceneEditorEnvironment"
     }
 }
 

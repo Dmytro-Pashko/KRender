@@ -1,12 +1,15 @@
 package com.pashkd.krender.engine.scene
 
-import com.badlogic.gdx.utils.JsonReader
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.floatOrNull
 
 data class SkyboxAssetDescriptor(
     val schemaVersion: Int = CurrentSchemaVersion,
     val id: String,
     val name: String,
-    val modelPath: String? = null,
     val texturePath: String,
     val intensity: Float = 1f,
 ) {
@@ -16,54 +19,58 @@ data class SkyboxAssetDescriptor(
 }
 
 object SkyboxAssetSerializer {
-    fun encode(descriptor: SkyboxAssetDescriptor): String =
-        buildString {
-            appendLine("{")
-            appendLine("  \"schemaVersion\": ${descriptor.schemaVersion},")
-            appendLine("  \"id\": ${jsonString(descriptor.id)},")
-            appendLine("  \"name\": ${jsonString(descriptor.name)},")
-            descriptor.modelPath?.let { modelPath ->
-                appendLine("  \"modelPath\": ${jsonString(modelPath)},")
-            }
-            appendLine("  \"texturePath\": ${jsonString(descriptor.texturePath)},")
-            appendLine("  \"intensity\": ${descriptor.intensity}")
-            appendLine("}")
-        }
+    private val json = Json {
+        prettyPrint = true
+        prettyPrintIndent = "  "
+        ignoreUnknownKeys = true
+        explicitNulls = true
+    }
 
-    fun decode(jsonText: String): SkyboxAssetDescriptor {
-        val root = JsonReader().parse(jsonText)
-        require(root.isObject) { "Skybox asset descriptor root must be a JSON object" }
-        val texturePath = root.getString("texturePath", "").trim().replace('\\', '/')
-        require(texturePath.isNotBlank()) { "Skybox asset texturePath must not be blank" }
-        return SkyboxAssetDescriptor(
-            schemaVersion = root.getInt("schemaVersion", SkyboxAssetDescriptor.CurrentSchemaVersion),
-            id = root.getString("id"),
-            name = root.getString("name", "Skybox"),
-            modelPath = root.getString("modelPath", null)?.trim()?.replace('\\', '/')?.takeIf(String::isNotBlank),
-            texturePath = texturePath,
-            intensity = root.getFloat("intensity", 1f).coerceAtLeast(0f),
+    fun encode(descriptor: SkyboxAssetDescriptor): String {
+        validate(descriptor)
+        return json.encodeToString(
+            JsonObject.serializer(),
+            buildJsonObject {
+                put("schemaVersion", JsonPrimitive(descriptor.schemaVersion))
+                put("id", JsonPrimitive(descriptor.id))
+                put("name", JsonPrimitive(descriptor.name))
+                put("texturePath", JsonPrimitive(descriptor.texturePath.trim().replace('\\', '/')))
+                put("intensity", JsonPrimitive(descriptor.intensity))
+            },
         )
     }
 
-    private fun jsonString(value: String): String =
-        buildString(value.length + 2) {
-            append('"')
-            for (ch in value) {
-                when (ch) {
-                    '\\' -> append("\\\\")
-                    '"' -> append("\\\"")
-                    '\n' -> append("\\n")
-                    '\r' -> append("\\r")
-                    '\t' -> append("\\t")
-                    '\b' -> append("\\b")
-                    '\u000C' -> append("\\f")
-                    else -> if (ch.code < 0x20) {
-                        append("\\u%04x".format(ch.code))
-                    } else {
-                        append(ch)
-                    }
-                }
-            }
-            append('"')
-        }
+    fun decode(jsonText: String): SkyboxAssetDescriptor {
+        val root = json.parseToJsonElement(jsonText) as? JsonObject
+            ?: throw IllegalArgumentException("Skybox asset descriptor root must be a JSON object")
+        val descriptor = SkyboxAssetDescriptor(
+            schemaVersion = root.intOrDefault("schemaVersion", SkyboxAssetDescriptor.CurrentSchemaVersion),
+            id = root.requiredString("id"),
+            name = root.stringOrDefault("name", "Skybox"),
+            texturePath = root.requiredString("texturePath").trim().replace('\\', '/'),
+            intensity = root.floatOrDefault("intensity", 1f),
+        )
+        validate(descriptor)
+        return descriptor
+    }
+
+    private fun validate(descriptor: SkyboxAssetDescriptor) {
+        require(descriptor.texturePath.trim().isNotBlank()) { "Skybox asset texturePath must not be blank" }
+        require(descriptor.intensity >= 0f) { "Skybox asset intensity must be greater than or equal to 0" }
+    }
+
+    private fun JsonObject.requiredString(name: String): String =
+        stringOrNull(name) ?: throw IllegalArgumentException("Skybox asset descriptor is missing required field '$name'")
+
+    private fun JsonObject.stringOrNull(name: String): String? =
+        (this[name] as? JsonPrimitive)?.content
+
+    private fun JsonObject.stringOrDefault(name: String, defaultValue: String): String =
+        stringOrNull(name) ?: defaultValue
+
+    private fun JsonObject.floatOrDefault(name: String, defaultValue: Float): Float =
+        (this[name] as? JsonPrimitive)?.floatOrNull ?: defaultValue
+
+    private fun JsonObject.intOrDefault(name: String, defaultValue: Int): Int =
+        (this[name] as? JsonPrimitive)?.content?.toIntOrNull() ?: defaultValue
 }
