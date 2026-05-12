@@ -39,12 +39,24 @@ data class ComponentDescriptor(
 /**
  * Serializable scene-level settings kept separate from entity data.
  */
+data class SceneLightingDescriptor(
+    val ambientColor: Color = defaultAmbientLightColor(),
+    val ambientIntensity: Float = DefaultAmbientLightIntensity,
+)
+
+data class SceneEnvironmentDescriptor(
+    val skyboxAssetPath: String? = null,
+    val showSkybox: Boolean = true,
+    val environmentIntensity: Float = 1f,
+)
+
 data class SceneSettingsDescriptor(
     val activeCameraEntityId: Long? = null,
     val activeTerrainEntityId: Long? = null,
+    val lighting: SceneLightingDescriptor = SceneLightingDescriptor(),
+    val environment: SceneEnvironmentDescriptor = SceneEnvironmentDescriptor(),
+    @Deprecated("Ambient light is stored in lighting. This field is kept only for legacy scene descriptors.")
     val ambientLightEntityId: Long? = null,
-    val ambientLightColor: Color = defaultAmbientLightColor(),
-    val ambientLightIntensity: Float = DefaultAmbientLightIntensity,
 )
 
 fun defaultAmbientLightColor(): Color = Color(0.45f, 0.5f, 0.58f, 1f)

@@ -16,6 +16,7 @@ import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
 import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneLightingDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
@@ -379,11 +380,13 @@ class SceneEditorOperations(
             return
         }
         val clamped = color.clamped()
-        val current = document.descriptor?.settings?.ambientLightColor ?: defaultAmbientLightColor()
+        val current = document.descriptor?.settings?.lighting?.ambientColor ?: defaultAmbientLightColor()
         if (current == clamped) return
 
         updateSceneSettings { settings ->
-            settings.copy(ambientLightColor = clamped)
+            settings.copy(
+                lighting = settings.lighting.copy(ambientColor = clamped),
+            )
         }
         markSceneChanged("Updated ambient light color.")
         context.logger.debug(TAG) {
@@ -397,11 +400,13 @@ class SceneEditorOperations(
             context.logger.warn(TAG) { "Rejected ambient light intensity edit value=$intensity" }
             return
         }
-        val current = document.descriptor?.settings?.ambientLightIntensity ?: DefaultAmbientLightIntensity
+        val current = document.descriptor?.settings?.lighting?.ambientIntensity ?: DefaultAmbientLightIntensity
         if (current == intensity) return
 
         updateSceneSettings { settings ->
-            settings.copy(ambientLightIntensity = intensity)
+            settings.copy(
+                lighting = settings.lighting.copy(ambientIntensity = intensity),
+            )
         }
         markSceneChanged("Updated ambient light intensity.")
         context.logger.debug(TAG) { "Updated ambient light intensity value=$intensity" }
@@ -1061,9 +1066,10 @@ object SceneEditorSceneFactory {
             settings = SceneSettingsDescriptor(
                 activeCameraEntityId = camera.id,
                 activeTerrainEntityId = null,
-                ambientLightEntityId = null,
-                ambientLightColor = defaultAmbientLightColor(),
-                ambientLightIntensity = DefaultAmbientLightIntensity,
+                lighting = SceneLightingDescriptor(
+                    ambientColor = defaultAmbientLightColor(),
+                    ambientIntensity = DefaultAmbientLightIntensity,
+                ),
             ),
         )
 

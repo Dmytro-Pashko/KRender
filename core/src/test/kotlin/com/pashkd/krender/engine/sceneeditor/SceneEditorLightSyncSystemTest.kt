@@ -8,6 +8,7 @@ import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneLightingDescriptor
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,8 +22,10 @@ class SceneEditorLightSyncSystemTest {
             id = "scene:test",
             name = "Test Scene",
             settings = SceneSettingsDescriptor(
-                ambientLightColor = Color(0.2f, 0.3f, 0.4f, 1f),
-                ambientLightIntensity = 0.75f,
+                lighting = SceneLightingDescriptor(
+                    ambientColor = Color(0.2f, 0.3f, 0.4f, 1f),
+                    ambientIntensity = 0.75f,
+                ),
             ),
         )
 

@@ -161,8 +161,8 @@ class SceneEditorLightSyncSystem(
 
     private fun syncAmbientLight(world: SceneWorld) {
         val settings = document.descriptor?.settings
-        val ambientColor = settings?.ambientLightColor?.copy() ?: defaultAmbientLightColor()
-        val ambientIntensity = settings?.ambientLightIntensity ?: DefaultAmbientLightIntensity
+        val ambientColor = settings?.lighting?.ambientColor?.copy() ?: defaultAmbientLightColor()
+        val ambientIntensity = settings?.lighting?.ambientIntensity ?: DefaultAmbientLightIntensity
         val ambient = world.all().firstOrNull { entity ->
             entity.get<SceneEditorAmbientLightComponent>() != null
         } ?: world.createEntity("Scene Ambient (Editor Light)").also { entity ->

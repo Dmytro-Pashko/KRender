@@ -51,9 +51,6 @@ object SceneSerializer {
             } else {
                 null
             }
-        val ambientLightEntityId = existingSettings
-            ?.ambientLightEntityId
-            ?.takeIf { id -> entities.any { it.id == id } }
 
         return SceneDescriptor(
             schemaVersion = SceneDescriptor.CurrentSchemaVersion,
@@ -63,9 +60,13 @@ object SceneSerializer {
             settings = SceneSettingsDescriptor(
                 activeCameraEntityId = activeCameraEntityId,
                 activeTerrainEntityId = activeTerrainEntityId,
-                ambientLightEntityId = ambientLightEntityId,
-                ambientLightColor = existingSettings?.ambientLightColor?.copy() ?: defaultAmbientLightColor(),
-                ambientLightIntensity = existingSettings?.ambientLightIntensity ?: DefaultAmbientLightIntensity,
+                lighting = existingSettings?.lighting?.copy(
+                    ambientColor = existingSettings.lighting.ambientColor.copy(),
+                ) ?: SceneLightingDescriptor(),
+                environment = existingSettings?.environment ?: SceneEnvironmentDescriptor(),
+                ambientLightEntityId = existingSettings
+                    ?.ambientLightEntityId
+                    ?.takeIf { id -> entities.any { it.id == id } },
             ),
         )
     }
@@ -85,9 +86,15 @@ object SceneSerializer {
             appendLine("  \"settings\": {")
             appendLine("    \"activeCameraEntityId\": ${descriptor.settings.activeCameraEntityId ?: "null"},")
             appendLine("    \"activeTerrainEntityId\": ${descriptor.settings.activeTerrainEntityId ?: "null"},")
-            appendLine("    \"ambientLightEntityId\": ${descriptor.settings.ambientLightEntityId ?: "null"},")
-            appendLine("    \"ambientLightColor\": ${jsonString(descriptor.settings.ambientLightColor.csv())},")
-            appendLine("    \"ambientLightIntensity\": ${descriptor.settings.ambientLightIntensity}")
+            appendLine("    \"lighting\": {")
+            appendLine("      \"ambientColor\": ${jsonString(descriptor.settings.lighting.ambientColor.csv())},")
+            appendLine("      \"ambientIntensity\": ${descriptor.settings.lighting.ambientIntensity}")
+            appendLine("    },")
+            appendLine("    \"environment\": {")
+            appendLine("      \"skyboxAssetPath\": ${descriptor.settings.environment.skyboxAssetPath?.let(::jsonString) ?: "null"},")
+            appendLine("      \"showSkybox\": ${descriptor.settings.environment.showSkybox},")
+            appendLine("      \"environmentIntensity\": ${descriptor.settings.environment.environmentIntensity}")
+            appendLine("    }")
             appendLine("  }")
             appendLine("}")
         }
@@ -244,12 +251,37 @@ object SceneSerializer {
 
     private fun readSettings(settingsNode: JsonValue?): SceneSettingsDescriptor {
         if (settingsNode == null || !settingsNode.isObject) return SceneSettingsDescriptor()
+        val lightingNode = settingsNode.get("lighting")
+        val lighting = if (lightingNode != null && lightingNode.isObject) {
+            SceneLightingDescriptor(
+                ambientColor = parseColor(lightingNode.getString("ambientColor", null), defaultAmbientLightColor()),
+                ambientIntensity = lightingNode.getFloat("ambientIntensity", DefaultAmbientLightIntensity),
+            )
+        } else {
+            SceneLightingDescriptor(
+                ambientColor = parseColor(settingsNode.getString("ambientLightColor", null), defaultAmbientLightColor()),
+                ambientIntensity = settingsNode.getFloat("ambientLightIntensity", DefaultAmbientLightIntensity),
+            )
+        }
+        val environmentNode = settingsNode.get("environment")
+        val environment = if (environmentNode != null && environmentNode.isObject) {
+            SceneEnvironmentDescriptor(
+                skyboxAssetPath = environmentNode.getString("skyboxAssetPath", null)
+                    ?.trim()
+                    ?.replace('\\', '/')
+                    ?.takeIf(String::isNotBlank),
+                showSkybox = environmentNode.getBoolean("showSkybox", true),
+                environmentIntensity = environmentNode.getFloat("environmentIntensity", 1f).coerceAtLeast(0f),
+            )
+        } else {
+            SceneEnvironmentDescriptor()
+        }
         return SceneSettingsDescriptor(
             activeCameraEntityId = settingsNode.get("activeCameraEntityId")?.takeUnless { it.isNull }?.asLong(),
             activeTerrainEntityId = settingsNode.get("activeTerrainEntityId")?.takeUnless { it.isNull }?.asLong(),
+            lighting = lighting,
+            environment = environment,
             ambientLightEntityId = settingsNode.get("ambientLightEntityId")?.takeUnless { it.isNull }?.asLong(),
-            ambientLightColor = parseColor(settingsNode.getString("ambientLightColor", null), defaultAmbientLightColor()),
-            ambientLightIntensity = settingsNode.getFloat("ambientLightIntensity", DefaultAmbientLightIntensity),
         )
     }
 

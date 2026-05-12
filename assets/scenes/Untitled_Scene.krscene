@@ -5,14 +5,14 @@
   "entities": [
     {
       "id": 1,
-      "name": "і",
+      "name": "Active Camera",
       "active": true,
       "parentId": null,
       "components": [
         {
           "type": "NameComponent",
           "properties": {
-            "name": "і"
+            "name": "Active Camera"
           }
         },
         {
@@ -1480,8 +1480,14 @@
   "settings": {
     "activeCameraEntityId": 1,
     "activeTerrainEntityId": 79,
-    "ambientLightEntityId": null,
-    "ambientLightColor": "0.9420175,0.95112085,0.96568626,1.0",
-    "ambientLightIntensity": 1.0
+    "lighting": {
+      "ambientColor": "0.9420175,0.95112085,0.96568626,1.0",
+      "ambientIntensity": 0.3
+    },
+    "environment": {
+      "skyboxAssetPath": null,
+      "showSkybox": true,
+      "environmentIntensity": 1.0
+    }
   }
 }

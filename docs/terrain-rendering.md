@@ -42,9 +42,10 @@ rendering does not depend on that preview baker.
 
 `TerrainRuntimeFactory -> RuntimeTerrainMeshSystem -> TerrainRenderSystem`
 
-`TerrainRuntimeFactory` loads a saved terrain descriptor when available. If no
-readable terrain file exists or loading fails, it creates generated fallback
-`TerrainData` with a base layer using the preferred terrain material.
+`TerrainRuntimeFactory` loads the terrain descriptor referenced by a scene
+`TerrainComponent`. Runtime scenes do not use constructor terrain fallbacks; a
+missing or unreadable terrain asset is logged and that terrain entity is not
+prepared for rendering.
 
 `RuntimeTerrainMeshSystem` builds the dynamic model with `TerrainMeshBuilder`,
 bakes the final runtime material with `TerrainMaterialBakeService`, stores the
@@ -52,7 +53,7 @@ result on `TerrainRendererComponent.finalSplatTexture`, and updates the material
 with a matching `MaterialTextureRef`.
 
 - `finalSplatTexture` stores the runtime CPU-baked final baseColor/albedo texture.
-- `finalSplatResolution` controls runtime final material resolution. The RuntimeScene default is intentionally small enough for prototype runtime use.
+- `finalSplatResolution` controls runtime final material resolution and is populated from `TerrainComponent.bakedTextureResolution` for runtime scenes.
 - `RuntimeTextureData` is the backend-neutral RGBA8888 texture payload generated at runtime.
 - `MaterialTextureRef` is the material-side texture binding. Its `id` must match the `RuntimeTextureData.id`.
 - `DrawDynamicModel.runtimeTextures` carries runtime texture payloads to the backend so they can be uploaded before draw.

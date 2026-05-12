@@ -34,9 +34,7 @@ class Main(
             )
 
             "runtime-scene" -> RuntimeScene(
-                scenePath = scenePath,
-                terrainFilePath = configuredTerrainFilePath(),
-                finalSplatResolution = configuredRuntimeTerrainSplatResolution(),
+                scenePath = scenePath ?: throw missingProperty("krender.scene.path", "runtime-scene"),
             )
 
             "model-viewer" -> ModelViewerScene(
@@ -66,14 +64,6 @@ class Main(
                 ?: System.getProperty("krender.model")?.takeIf(String::isNotBlank)
 
         fun configuredTerrainFilePath(): String? = System.getProperty("krender.terrain.path")?.takeIf(String::isNotBlank)
-
-        fun configuredRuntimeTerrainSplatResolution(): Int? =
-            System.getProperty("krender.terrain.splat.size")
-                ?.takeIf(String::isNotBlank)
-                ?.let { value ->
-                    value.toIntOrNull()?.coerceIn(2, 8192)
-                        ?: throw IllegalArgumentException("Invalid krender.terrain.splat.size '$value'. Expected an integer.")
-                }
 
         fun configuredScenePath(): String? = System.getProperty("krender.scene.path")?.takeIf(String::isNotBlank)
 

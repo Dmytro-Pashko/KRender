@@ -79,6 +79,7 @@ import com.pashkd.krender.engine.api.RuntimeTextureWrap
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.ShaderAsset
 import com.pashkd.krender.engine.api.TaskService
+import com.pashkd.krender.engine.api.TerrainAsset
 import com.pashkd.krender.engine.api.TextureAsset
 import com.pashkd.krender.engine.api.TextureDebugComponent
 import com.pashkd.krender.engine.api.TexturePreviewHandle
@@ -552,6 +553,11 @@ class GdxAssetService(
                 manager.load(asset.path, Texture::class.java)
             }
 
+            TerrainAsset::class -> {
+                requested += asset.path
+                logger?.info(GDX_ASSET_SERVICE_TAG) { "Queue asset type=terrain path='${asset.path}'" }
+            }
+
             ShaderAsset::class -> {
                 val file = Gdx.files.internal(asset.path)
                 if (file.exists()) {
@@ -600,6 +606,7 @@ class GdxAssetService(
             }
 
             TextureAsset::class -> manager.isLoaded(asset.path)
+            TerrainAsset::class -> asset.path in requested
             ShaderAsset::class -> asset.path in shaderSources
             else -> false
         }

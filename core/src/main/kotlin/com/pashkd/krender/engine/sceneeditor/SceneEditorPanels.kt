@@ -528,8 +528,8 @@ class SceneInspectorPanel(
 
     private fun drawSceneSettings() {
         val settings = document.descriptor?.settings
-        val ambientColor = settings?.ambientLightColor?.copy() ?: defaultAmbientLightColor()
-        val ambientIntensity = settings?.ambientLightIntensity ?: DefaultAmbientLightIntensity
+        val ambientColor = settings?.lighting?.ambientColor?.copy() ?: defaultAmbientLightColor()
+        val ambientIntensity = settings?.lighting?.ambientIntensity ?: DefaultAmbientLightIntensity
 
         ImGui.text("Scene Settings")
         val activeTerrain = settings?.activeTerrainEntityId?.let(document.world::getEntity)
