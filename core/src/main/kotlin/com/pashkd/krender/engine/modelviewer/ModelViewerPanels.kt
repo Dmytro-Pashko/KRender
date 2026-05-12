@@ -795,7 +795,7 @@ private fun textureChannelLabel(channel: String): String = when (channel) {
     "normal" -> "Normal"
     "emissive" -> "Emissive"
     "occlusion" -> "Occlusion"
-    "metallicRoughness" -> "Metallic / Roughness"
+    "metallicRoughness" -> "Metallic/Roughness Packed"
     "alpha" -> "Alpha"
     "unknown" -> "Unknown"
     else -> channel.replaceFirstChar { char -> char.uppercaseChar() }
@@ -814,12 +814,14 @@ private fun textureChannelSortKey(channel: String): Int = when (channel) {
 
 private fun debugModeLabel(mode: MaterialDebugMode): String = when (mode) {
     MaterialDebugMode.None -> "None"
-    MaterialDebugMode.BaseColor -> "Base Color / Diffuse"
+    MaterialDebugMode.BaseColor -> "Base Color"
     MaterialDebugMode.Normal -> "Normal"
     MaterialDebugMode.Emission -> "Emission"
-    MaterialDebugMode.MetallicRoughness -> "Metallic / Roughness"
-    MaterialDebugMode.Occlusion -> "Occlusion / AO"
-    MaterialDebugMode.Alpha -> "Alpha / Opacity"
+    MaterialDebugMode.Roughness -> "Roughness"
+    MaterialDebugMode.Metallic -> "Metallic"
+    MaterialDebugMode.MetallicRoughnessPacked -> "Metallic/Roughness Packed"
+    MaterialDebugMode.Occlusion -> "Occlusion"
+    MaterialDebugMode.Alpha -> "Alpha"
     MaterialDebugMode.UvChecker -> "UV Checker"
 }
 

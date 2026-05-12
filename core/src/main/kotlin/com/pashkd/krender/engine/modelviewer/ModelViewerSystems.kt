@@ -230,9 +230,36 @@ class ModelViewerSystem(
                     selectedMaterialIndex = selectedMaterialIndex,
                     selectedTextureChannel = state.selectedTextureChannel,
                 ).isEmpty() ->
-                "ModelViewer debug warning: texture channel $mode is unavailable" +
-                    selectedMaterialIndex?.let { " for material #$it." }.orEmpty()
+                missingTextureWarning(mode, selectedMaterialIndex)
             else -> null
+        }
+    }
+
+    private fun missingTextureWarning(
+        mode: MaterialDebugMode,
+        selectedMaterialIndex: Int?,
+    ): String {
+        val material = selectedMaterialIndex?.let { "Material #$it" } ?: "Selected material"
+        return when (mode) {
+            MaterialDebugMode.Roughness,
+            MaterialDebugMode.Metallic,
+            -> "$material has no metallicRoughnessTexture. " +
+                "Roughness and metallic are usually stored in the same metallicRoughnessTexture."
+            MaterialDebugMode.MetallicRoughnessPacked ->
+                "$material has no metallicRoughnessTexture."
+            MaterialDebugMode.BaseColor ->
+                "$material has no baseColorTexture."
+            MaterialDebugMode.Normal ->
+                "$material has no normalTexture."
+            MaterialDebugMode.Emission ->
+                "$material has no emissiveTexture."
+            MaterialDebugMode.Occlusion ->
+                "$material has no occlusionTexture."
+            MaterialDebugMode.Alpha ->
+                "$material has no alpha-capable texture."
+            MaterialDebugMode.None,
+            MaterialDebugMode.UvChecker,
+            -> "Texture channel $mode is unavailable for $material."
         }
     }
 
