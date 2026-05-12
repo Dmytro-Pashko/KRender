@@ -80,6 +80,7 @@ import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.ShaderAsset
 import com.pashkd.krender.engine.api.TaskService
 import com.pashkd.krender.engine.api.TextureAsset
+import com.pashkd.krender.engine.api.TextureDebugComponent
 import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.ProfilerService
@@ -2558,15 +2559,16 @@ private class GdxModelViewerDebugRenderer(
         debugView: com.pashkd.krender.engine.api.MaterialDebugView,
         camera: Camera,
     ) {
-        val materialIndex = materialIndexOf(instance.materials, renderable.material)
+        val instanceMaterialIndex = materialIndexOf(instance.materials, renderable.material)
         val selectedMaterialIndex = debugView.selectedMaterialIndex
-        if (selectedMaterialIndex != null && materialIndex != selectedMaterialIndex) {
+        val mode = debugView.mode
+        val textureRef = textureRefFor(renderable.material, instanceMaterialIndex, debugView)
+        val materialIndex = textureRef?.materialIndex ?: instanceMaterialIndex
+        if (selectedMaterialIndex != null && !matchesSelectedMaterial(renderable.material, materialIndex, debugView)) {
             renderFallback(renderable, camera, FallbackUnselectedMaterial)
             return
         }
 
-        val mode = debugView.mode
-        val textureRef = textureRefFor(renderable.material, materialIndex, debugView)
         val uvChannel = if (mode == MaterialDebugMode.UvChecker) {
             debugView.uvChannel.coerceAtLeast(0)
         } else {
@@ -2606,10 +2608,18 @@ private class GdxModelViewerDebugRenderer(
         texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat)
         texture.bind(0)
         shader.bind()
+        // TODO: carry semantic texture color space through asset loading; scalar debug channels are sampled raw here.
         shader.setUniformMatrix("u_projViewTrans", camera.combined)
         shader.setUniformMatrix("u_worldTrans", renderable.worldTransform)
         shader.setUniformi("u_DebugTexture", 0)
         shader.setUniformi("u_DebugMode", debugModeCode(mode))
+        shader.setUniformi(
+            "u_DebugComponent",
+            textureDebugComponentCode(
+                if (mode == MaterialDebugMode.UvChecker) TextureDebugComponent.RGB
+                else textureRef?.component ?: TextureDebugComponent.RGB,
+            ),
+        )
         shader.setUniformf("u_UvCheckerScale", debugView.uvScale.coerceAtLeast(MIN_UV_SCALE))
         renderable.meshPart.render(shader)
     }
@@ -2632,11 +2642,24 @@ private class GdxModelViewerDebugRenderer(
         materialIndex: Int?,
         debugView: com.pashkd.krender.engine.api.MaterialDebugView,
     ): com.pashkd.krender.engine.api.MaterialDebugTextureRef? =
-        debugView.textureRefs.firstOrNull { ref -> materialIndex != null && ref.materialIndex == materialIndex }
-            ?: debugView.textureRefs.firstOrNull { ref ->
-                ref.materialId != null && material.id != null && ref.materialId == material.id
-            }
+        debugView.textureRefs.firstOrNull { ref ->
+            ref.materialId != null && material.id != null && ref.materialId == material.id
+        }
+            ?: debugView.textureRefs.firstOrNull { ref -> materialIndex != null && ref.materialIndex == materialIndex }
             ?: debugView.textureRefs.firstOrNull { ref -> ref.materialIndex == null && ref.materialId == null }
+
+    private fun matchesSelectedMaterial(
+        material: com.badlogic.gdx.graphics.g3d.Material,
+        materialIndex: Int?,
+        debugView: com.pashkd.krender.engine.api.MaterialDebugView,
+    ): Boolean {
+        val selectedMaterialId = debugView.selectedMaterialId
+        if (selectedMaterialId != null && material.id != null) {
+            return material.id == selectedMaterialId
+        }
+        val selectedMaterialIndex = debugView.selectedMaterialIndex ?: return true
+        return materialIndex == selectedMaterialIndex
+    }
 
     private fun uvShader(uvChannel: Int): ShaderProgram? =
         uvShaders.getOrPut(uvChannel) {
@@ -2661,6 +2684,7 @@ private class GdxModelViewerDebugRenderer(
 
                     varying vec2 v_uv;
                     uniform int u_DebugMode;
+                    uniform int u_DebugComponent;
                     uniform sampler2D u_DebugTexture;
                     uniform float u_UvCheckerScale;
 
@@ -2670,8 +2694,16 @@ private class GdxModelViewerDebugRenderer(
                             uv = v_uv * u_UvCheckerScale;
                         }
                         vec4 texel = texture2D(u_DebugTexture, uv);
-                        if (u_DebugMode == ${debugModeCode(MaterialDebugMode.Alpha)}) {
+                        if (u_DebugComponent == ${textureDebugComponentCode(TextureDebugComponent.R)}) {
+                            gl_FragColor = vec4(vec3(texel.r), 1.0);
+                        } else if (u_DebugComponent == ${textureDebugComponentCode(TextureDebugComponent.G)}) {
+                            gl_FragColor = vec4(vec3(texel.g), 1.0);
+                        } else if (u_DebugComponent == ${textureDebugComponentCode(TextureDebugComponent.B)}) {
+                            gl_FragColor = vec4(vec3(texel.b), 1.0);
+                        } else if (u_DebugComponent == ${textureDebugComponentCode(TextureDebugComponent.A)}) {
                             gl_FragColor = vec4(vec3(texel.a), 1.0);
+                        } else if (u_DebugComponent == ${textureDebugComponentCode(TextureDebugComponent.RGBA)}) {
+                            gl_FragColor = texel;
                         } else {
                             gl_FragColor = vec4(texel.rgb, 1.0);
                         }
@@ -2716,6 +2748,15 @@ private fun debugModeCode(mode: MaterialDebugMode): Int = when (mode) {
     MaterialDebugMode.Alpha -> 6
     MaterialDebugMode.UvChecker -> 7
     else -> 1
+}
+
+private fun textureDebugComponentCode(component: TextureDebugComponent): Int = when (component) {
+    TextureDebugComponent.RGB -> 0
+    TextureDebugComponent.R -> 1
+    TextureDebugComponent.G -> 2
+    TextureDebugComponent.B -> 3
+    TextureDebugComponent.A -> 4
+    TextureDebugComponent.RGBA -> 5
 }
 
 private fun normalizeTextureChannel(channel: String?): String =

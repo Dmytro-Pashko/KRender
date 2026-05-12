@@ -54,10 +54,24 @@ enum class MaterialDebugMode {
     BaseColor,
     Normal,
     Emission,
-    MetallicRoughness,
+    Roughness,
+    Metallic,
+    MetallicRoughnessPacked,
     Occlusion,
     Alpha,
     UvChecker,
+}
+
+/**
+ * Backend-neutral texture component selected for scalar or packed texture debug views.
+ */
+enum class TextureDebugComponent {
+    R,
+    G,
+    B,
+    A,
+    RGB,
+    RGBA,
 }
 
 /**
@@ -78,6 +92,8 @@ data class MaterialDebugTextureRef(
     val materialId: String?,
     /** Backend-neutral texture reference for this debug slot. */
     val texture: MaterialTextureRef,
+    /** Texture component that should be visualized by the backend debug shader. */
+    val component: TextureDebugComponent = TextureDebugComponent.RGB,
 )
 
 /**
@@ -88,6 +104,8 @@ data class MaterialDebugView(
     val mode: MaterialDebugMode,
     /** Optional material index to inspect. Null lets the backend resolve per material. */
     val selectedMaterialIndex: Int? = null,
+    /** Optional material id to inspect. Used when backend instance material order differs from metadata order. */
+    val selectedMaterialId: String? = null,
     /** Optional exact texture channel chosen in the UI. Backends may also use mode aliases. */
     val selectedTextureChannel: String? = null,
     /** Resolved texture slots from model metadata. */
