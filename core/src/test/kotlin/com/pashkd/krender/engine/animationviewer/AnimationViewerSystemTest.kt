@@ -5,8 +5,6 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Axis
 import com.pashkd.krender.engine.api.DrawLine
-import com.pashkd.krender.engine.api.InputService
-import com.pashkd.krender.engine.api.InputSnapshot
 import com.pashkd.krender.engine.api.LogLevel
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.ModelAnimationInfo
@@ -22,9 +20,24 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AnimationViewerSystemTest {
+    @Test
+    fun `clampAnimationTime keeps time inside known duration`() {
+        assertEquals(0f, clampAnimationTime(-0.5f, 2f))
+        assertEquals(1.25f, clampAnimationTime(1.25f, 2f))
+        assertEquals(2f, clampAnimationTime(3f, 2f))
+    }
+
+    @Test
+    fun `clampAnimationTime only enforces non-negative time when duration is unknown`() {
+        assertEquals(0f, clampAnimationTime(-0.5f, null))
+        assertEquals(4.5f, clampAnimationTime(4.5f, null))
+        assertEquals(4.5f, clampAnimationTime(4.5f, 0f))
+    }
+
     @Test
     fun `playback clamps and pauses at clip end when loop is disabled`() {
         val model = AssetRef.model("models/animated.glb")
@@ -52,7 +65,6 @@ class AnimationViewerSystemTest {
         state.modelEntityId = entity.id
         world.systems.add(
             AnimationViewerSystem(
-                input = FakeInputService(),
                 assets = assets,
                 logger = NoopLogger,
                 state = state,
@@ -69,7 +81,50 @@ class AnimationViewerSystemTest {
     }
 
     @Test
-    fun `skeleton render emits parent child bone lines`() {
+    fun `skeleton pose is sampled during update and cached in state`() {
+        val model = AssetRef.model("models/animated.glb")
+        val assets = FakeAssetService(
+            loaded = true,
+            modelInfo = modelInfo(hasSkeleton = true, boneCount = 2),
+            skeletonInfo = ModelSkeletonInfo(
+                bones = listOf(
+                    ModelBoneInfo(0, "Root", null),
+                    ModelBoneInfo(1, "Child", 0),
+                ),
+            ),
+            skeletonPose = listOf(
+                ModelBonePose(0, "Root", null, Vec3(0f, 0f, 0f)),
+                ModelBonePose(1, "Child", 0, Vec3(0f, 1f, 0f)),
+            ),
+        )
+        val state = AnimationViewerState(model = model).apply {
+            viewMode = AnimationViewerViewMode.Skeleton
+        }
+        val world = SceneWorld()
+        val entity = world.createEntity("Model")
+        entity.add(ModelComponent(model))
+        state.modelEntityId = entity.id
+        world.systems.add(
+            AnimationViewerSystem(
+                assets = assets,
+                logger = NoopLogger,
+                state = state,
+                onExitRequested = {},
+            ),
+        )
+
+        world.update(0.016f)
+
+        assertEquals(1, assets.modelSkeletonPoseCallCount)
+        assertEquals(2, state.sampledSkeletonPose.size)
+        assertTrue(state.skeletonPreviewSupported)
+        assertEquals(AnimationViewerViewMode.Skeleton, state.viewMode)
+        assertNull(state.sampledSkeletonPoseAnimationName)
+        assertEquals(0f, state.sampledSkeletonPoseTimeSeconds)
+    }
+
+    @Test
+    fun `skeleton render emits parent child bone lines from cached pose without re-sampling`() {
         val model = AssetRef.model("models/animated.glb")
         val state = AnimationViewerState(model = model).apply {
             assetLoaded = true
@@ -80,20 +135,17 @@ class AnimationViewerSystemTest {
                     ModelBoneInfo(1, "Child", 0),
                 ),
             )
+            sampledSkeletonPose = listOf(
+                ModelBonePose(0, "Root", null, Vec3(0f, 0f, 0f)),
+                ModelBonePose(1, "Child", 0, Vec3(0f, 1f, 0f)),
+            )
         }
         val world = SceneWorld()
         val entity = world.createEntity("Model")
         entity.add(ModelComponent(model))
         state.modelEntityId = entity.id
-        val assets = FakeAssetService(
-            loaded = true,
-            skeletonInfo = state.skeletonInfo,
-            skeletonPose = listOf(
-                ModelBonePose(0, "Root", null, Vec3(0f, 0f, 0f)),
-                ModelBonePose(1, "Child", 0, Vec3(0f, 1f, 0f)),
-            ),
-        )
-        world.systems.add(AnimationViewerSkeletonRenderSystem(state, assets))
+        val assets = FakeAssetService(loaded = true)
+        world.systems.add(AnimationViewerSkeletonRenderSystem(state))
 
         world.render(alpha = 0f)
 
@@ -102,6 +154,7 @@ class AnimationViewerSystemTest {
         val line = assertIs<DrawLine>(commands.single())
         assertEquals(Vec3(0f, 0f, 0f), line.from)
         assertEquals(Vec3(0f, 1f, 0f), line.to)
+        assertEquals(0, assets.modelSkeletonPoseCallCount)
     }
 
     private fun modelInfo(
@@ -138,6 +191,7 @@ class AnimationViewerSystemTest {
         private val skeletonInfo: ModelSkeletonInfo? = null,
         private val skeletonPose: List<ModelBonePose> = emptyList(),
     ) : AssetService {
+        var modelSkeletonPoseCallCount: Int = 0
         override fun queue(asset: AssetRef<*>) = Unit
         override fun update(budgetMs: Int): Float = if (loaded) 1f else 0f
         override fun progress(): Float = if (loaded) 1f else 0f
@@ -149,19 +203,13 @@ class AnimationViewerSystemTest {
             asset: AssetRef<ModelAsset>,
             animationName: String?,
             timeSeconds: Float,
-        ): List<ModelBonePose> = skeletonPose
+        ): List<ModelBonePose> {
+            modelSkeletonPoseCallCount += 1
+            return skeletonPose
+        }
         override fun unload(asset: AssetRef<*>) = Unit
     }
 
-    private class FakeInputService : InputService {
-        override fun beginFrame() = Unit
-        override fun snapshot(): InputSnapshot = InputSnapshot()
-        override fun endFrame() = Unit
-        override fun setCursorCaptured(captured: Boolean) = Unit
-        override fun isActionPressed(action: Action): Boolean = false
-        override fun isActionJustPressed(action: Action): Boolean = false
-        override fun axis(axis: Axis): Float = 0f
-    }
 
     private object NoopLogger : Logger {
         override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) = Unit

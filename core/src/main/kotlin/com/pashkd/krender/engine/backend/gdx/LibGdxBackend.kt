@@ -528,6 +528,9 @@ class GdxAssetService(
     private val texturePreviewRegistry = mutableMapOf<String, Texture>()
     private val runtimeTextures = mutableMapOf<String, RuntimeTextureEntry>()
     private val modelTexturePreviewKeys = mutableMapOf<String, Set<String>>()
+    // Dedicated asset-scoped pose-sampling caches. These are intentionally separate from
+    // GdxRenderer3D render-instance caches so viewer/debug skeleton sampling never mutates
+    // the visible per-entity render instances used by DrawModel commands.
     private val poseSampledInstances = mutableMapOf<String, ModelInstance>()
     private val poseSampledAnimationControllers = mutableMapOf<String, AnimationController>()
     private val poseSampledGltfScenes = mutableMapOf<String, GltfScene>()
@@ -1403,6 +1406,9 @@ class GdxRenderer3D(
     private val modelViewerDebugRenderer = GdxModelViewerDebugRenderer(assets, logger)
     private val pbrPreviewRenderer = GdxGltfPbrPreviewRenderer(assets, logger)
     private val skyboxRenderer = GdxSkyboxRenderer(assets, logger)
+    // Per-entity render caches used only by the renderer. These stay separate from
+    // GdxAssetService pose-sampling caches so animation preview and skeleton sampling do
+    // not leak state across different entities or into asset-level debug sampling.
     private val instances = mutableMapOf<ModelCacheKey, ModelInstance>()
     private val animationControllers = mutableMapOf<ModelCacheKey, AnimationController>()
     private val gltfScenes = mutableMapOf<ModelCacheKey, GltfScene>()
@@ -1559,7 +1565,10 @@ class GdxRenderer3D(
         modelViewerDebugRenderer.dispose()
         pbrPreviewRenderer.dispose()
         skyboxRenderer.dispose()
+        instances.clear()
         animationControllers.clear()
+        gltfScenes.clear()
+        warnedGltfRenderKeys.clear()
         primitives.values.forEach { it.dispose() }
         dynamicModels.values.forEach { it.model.dispose() }
         assets.dispose()

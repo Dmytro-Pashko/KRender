@@ -4,6 +4,7 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.ModelAssetInfo
+import com.pashkd.krender.engine.api.ModelBonePose
 import com.pashkd.krender.engine.api.ModelSkeletonInfo
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
@@ -28,6 +29,9 @@ data class AnimationViewerState(
 
     /** Runtime entity id of the visible model instance. */
     var modelEntityId: EntityId? = null,
+
+    /** Runtime entity id of the ambient light that lights the preview. */
+    var ambientLightEntityId: EntityId? = null,
 
     /** Uniform scale applied to the inspected model entity. */
     val modelScale: Float = 1f,
@@ -74,6 +78,9 @@ data class AnimationViewerState(
     /** World-space size of one grid cell. */
     var gridCellSize: Float = 1f,
 
+    /** Ambient light intensity used by the viewer light entity. */
+    var ambientLightIntensity: Float = 0.8f,
+
     /** Cached loaded model metadata snapshot. */
     var modelInfo: ModelAssetInfo? = null,
 
@@ -106,6 +113,21 @@ data class AnimationViewerState(
 
     /** Current viewport visualization mode. */
     var viewMode: AnimationViewerViewMode = AnimationViewerViewMode.Model,
+
+    /** Whether the current selected clip can be previewed by the backend renderer. */
+    var animationPreviewSupported: Boolean = false,
+
+    /** Whether the backend returned a sampled skeleton pose for the current preview state. */
+    var skeletonPreviewSupported: Boolean = false,
+
+    /** Skeleton pose sampled during update and reused during render. */
+    var sampledSkeletonPose: List<ModelBonePose> = emptyList(),
+
+    /** Animation name used to produce [sampledSkeletonPose]. */
+    var sampledSkeletonPoseAnimationName: String? = null,
+
+    /** Preview time used to produce [sampledSkeletonPose]. */
+    var sampledSkeletonPoseTimeSeconds: Float = 0f,
 
     /** Warning surfaced when animation preview cannot be applied cleanly. */
     var animationWarning: String? = null,

@@ -35,6 +35,8 @@ with assets, models, terrains, and scenes.
 - **Asset Browser** for browsing, managing, and opening project assets with registered tools.
 - **Model Viewer** for inspecting model assets, mesh parts, materials, textures, animations, bounds, display modes,
   texture debug views, and glTF PBR preview rendering.
+- **Animation Viewer** for inspecting animation clips, skeleton pose previews, playback controls, and animation-focused
+  debug views for model assets.
 - **Terrain Editor** for creating, editing, previewing, saving, and loading terrain data.
 - **Scene Editor** for building scenes with models, terrains, transforms, cameras, lights, selection, gizmos, and
   runtime preview.
@@ -174,7 +176,7 @@ Asset Browser provides a file-explorer-like interface for browsing project asset
 
 It is the main entry point for working with local project assets. The browser scans configured asset roots, detects supported asset types, creates metadata sidecars when needed, and allows assets to be opened in the appropriate editor or viewer.
 
-Model assets can be opened in Model Viewer, terrain assets in Terrain Editor, and scene assets in Scene Editor.
+Model assets can be opened in Model Viewer or Animation Viewer, terrain assets in Terrain Editor, and scene assets in Scene Editor.
 
 Features:
 
@@ -236,6 +238,41 @@ Screenshots:
 ![Model Viewer alpha channel preview](docs/screenshot/model-viewer_alpha_channel_preview.png)
 ![Model Viewer UV checker preview](docs/screenshot/model-viewer_uv_checker.png)
 ![Model Viewer normal texture preview](docs/screenshot/model-viewer_normal_view.png)
+
+### Animation Viewer
+
+Animation Viewer is a focused tool for opening a single model asset and inspecting its animation-related data.
+
+It is intended as an animation inspection and debug viewer rather than a full gameplay animation runtime. The tool is
+useful for checking imported clip metadata, previewing playback time, inspecting skeleton pose overlays, and verifying
+that a model can be viewed in model-only, skeleton-only, or combined modes.
+
+Features:
+
+- Opens model assets directly from Asset Browser or from a provided model path.
+- Loads and displays a single model using the same editor-style viewport/camera workflow as the existing viewer tools.
+- Supports common viewport helpers such as grid, axes, bounding boxes, and wireframe rendering.
+- Shows available animation clip names from model metadata when the backend exposes them.
+- Allows selecting one animation clip for preview.
+- Provides Play, Pause, Stop, loop toggle, time scrub, and step controls for clip preview.
+- Supports `Model`, `Skeleton`, and `Model + Skeleton` view modes.
+- Draws a backend-neutral skeleton overlay using sampled parent-child pose lines when skeleton pose data is available.
+- Shows preview capability status such as `Animation preview: supported`, `metadata only`, or `unsupported`, and also
+  reports skeleton preview support.
+- Surfaces clear warnings when animation duration is unknown, when skeleton pose data is unavailable for the current
+  model/backend, or when preview support is limited.
+- Includes ambient light intensity controls to make motion and poses easier to inspect without introducing a more
+  complex lighting rig.
+- Falls back safely for static models, models without animation clips, and models where only partial animation metadata
+  is available.
+
+Current scope / limitations:
+
+- The tool is currently an MVP viewer for clip and pose inspection.
+- It does not implement a full animation graph, blending system, or gameplay animation state machine.
+- Animation preview depends on the active backend exposing runtime metadata and preview support for the loaded model
+  format.
+- Some models may provide skeleton pose previews even when animation clip metadata is missing or incomplete.
 
 ### Terrain Editor
 

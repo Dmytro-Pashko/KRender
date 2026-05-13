@@ -114,7 +114,7 @@ class AnimationViewerScene(
         addSystem("EditorViewportCameraSystem", EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport))
         addSystem("AnimationViewerBoundingBoxSystem", AnimationViewerBoundingBoxSystem(viewerState, engine.assets))
         addSystem("AnimationViewerModelRenderSystem", AnimationViewerModelRenderSystem(viewerState))
-        addSystem("AnimationViewerSkeletonRenderSystem", AnimationViewerSkeletonRenderSystem(viewerState, engine.assets))
+        addSystem("AnimationViewerSkeletonRenderSystem", AnimationViewerSkeletonRenderSystem(viewerState))
     }
 
     override fun hide() {
@@ -210,21 +210,21 @@ class AnimationViewerScene(
 
     private fun createAmbientLight() {
         val ambient = world.createEntity("Ambient Light")
+        viewerState.ambientLightEntityId = ambient.id
         ambient.add(
             LightComponent(
                 type = LightType.Ambient,
                 color = Color(0.55f, 0.58f, 0.64f),
-                intensity = 0.8f,
+                intensity = viewerState.ambientLightIntensity,
             ),
         )
         engine.logger.info(TAG) {
-            "AnimationViewer ambient light created id=${ambient.id} color=0.55,0.58,0.64 intensity=0.80"
+            "AnimationViewer ambient light created id=${ambient.id} color=0.55,0.58,0.64 intensity=${"%.2f".format(viewerState.ambientLightIntensity)}"
         }
     }
 
     private fun createAnimationViewerSystem(): AnimationViewerSystem =
         AnimationViewerSystem(
-            input = engine.input,
             assets = engine.assets,
             logger = engine.logger,
             state = viewerState,
@@ -245,7 +245,7 @@ class AnimationViewerScene(
             addPanel(
                 uiSystem,
                 "Viewport",
-                AnimationViewerViewportPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
+                AnimationViewerViewportPanel(viewerState, operations, layoutConfig, layoutTracker, panelEventLogger),
             )
             addPanel(
                 uiSystem,

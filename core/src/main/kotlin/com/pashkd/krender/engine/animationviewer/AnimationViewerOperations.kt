@@ -143,7 +143,7 @@ class AnimationViewerOperations(
     }
 
     fun scrubTo(timeSeconds: Float) {
-        state.currentTimeSeconds = timeSeconds.coerceAtLeast(0f)
+        state.currentTimeSeconds = clampAnimationTime(timeSeconds, state.durationSeconds)
         state.statusMessage = "Scrubbed animation time."
         context.logger.debug(TAG) {
             "AnimationViewer scrub time=${"%.3f".format(state.currentTimeSeconds)} animation='${state.selectedAnimationName}'"
@@ -154,6 +154,16 @@ class AnimationViewerOperations(
         scrubTo(state.currentTimeSeconds + deltaSeconds)
     }
 
+    fun setAmbientLightIntensity(intensity: Float) {
+        state.ambientLightIntensity = intensity.coerceIn(MinAmbientLightIntensity, MaxAmbientLightIntensity)
+    }
+
+    fun resetAmbientLight() {
+        state.ambientLightIntensity = DefaultAmbientLightIntensity
+        state.statusMessage = "Ambient light reset."
+        context.logger.info(TAG) { "AnimationViewer ambient light reset intensity=${state.ambientLightIntensity}" }
+    }
+
     companion object {
         private const val TAG = "AnimationViewerOperations"
         private const val MinScale = 0.0001f
@@ -161,8 +171,20 @@ class AnimationViewerOperations(
         private const val MinFrameDistance = 2f
         private const val FrameHeightOffsetRatio = 0.15f
         private const val MinFrameHeightOffset = 0.25f
+        private const val MinAmbientLightIntensity = 0f
+        private const val MaxAmbientLightIntensity = 3f
+        private const val DefaultAmbientLightIntensity = 0.8f
         private val DefaultCameraPosition = Vec3(0f, 2f, 6f)
         private val DefaultCameraEulerDegrees = Vec3(-10f, 180f, 0f)
+    }
+}
+
+internal fun clampAnimationTime(timeSeconds: Float, durationSeconds: Float?): Float {
+    val duration = durationSeconds
+    return if (duration != null && duration > 0f) {
+        timeSeconds.coerceIn(0f, duration)
+    } else {
+        timeSeconds.coerceAtLeast(0f)
     }
 }
 

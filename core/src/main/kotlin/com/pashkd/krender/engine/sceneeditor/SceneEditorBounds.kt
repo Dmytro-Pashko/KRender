@@ -137,11 +137,11 @@ fun transformedBoundsCorners(
         Vec3(max.x, max.y, max.z),
         Vec3(min.x, max.y, max.z),
     ).map { corner ->
-        transformPoint(corner, transform)
+        transformLocalPoint(corner, transform)
     }
 }
 
-private fun transformPoint(point: Vec3, transform: TransformComponent): Vec3 {
+fun transformLocalPoint(point: Vec3, transform: TransformComponent): Vec3 {
     val scaled = Vec3(
         point.x * transform.scale.x,
         point.y * transform.scale.y,

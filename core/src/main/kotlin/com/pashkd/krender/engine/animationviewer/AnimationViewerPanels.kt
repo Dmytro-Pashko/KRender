@@ -68,6 +68,7 @@ class AnimationViewerToolbarPanel(
  */
 class AnimationViewerViewportPanel(
     private val state: AnimationViewerState,
+    private val operations: AnimationViewerOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
@@ -117,6 +118,23 @@ class AnimationViewerViewportPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
+        val ambientIntensity = FloatHolder(state.ambientLightIntensity)
+        if (
+            slider(
+                "Ambient Intensity##animation_viewer_ambient_intensity",
+                ambientIntensity::value,
+                MinAmbientLightIntensity,
+                MaxAmbientLightIntensity,
+                "%.2f",
+                SliderFlag.AlwaysClamp,
+            )
+        ) {
+            operations.setAmbientLightIntensity(ambientIntensity.value)
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Reset Ambient##animation_viewer_reset_ambient") { operations.resetAmbientLight() }
+        }
         state.skeletonWarning?.let { warning -> textLine("Warning: $warning") }
         ImGui.endChild()
         ImGui.end()
@@ -137,6 +155,8 @@ class AnimationViewerViewportPanel(
         private const val MaxGridHalfExtentCells = 256
         private const val MinGridCellSize = 0.05f
         private const val MaxGridCellSize = 16f
+        private const val MinAmbientLightIntensity = 0f
+        private const val MaxAmbientLightIntensity = 3f
     }
 }
 
@@ -184,10 +204,15 @@ class AnimationViewerAnimationsPanel(
 
     private fun drawRigSummary(info: ModelAssetInfo?) {
         textLine("Skeleton: ${if (info?.hasSkeleton == true) "yes" else "no"}")
-        textLine("Bones: ${info?.boneCount ?: 0}")
+        textLine("Skinned bones: ${info?.boneCount ?: 0}")
         textLine("Bone weight channels: ${info?.boneWeightChannelCount ?: 0}")
-        textLine("Skeleton pose data: ${if (state.hasSkeletonData) "available" else "unavailable"}")
-        textLine("Pose nodes: ${state.skeletonInfo?.boneCount ?: 0}")
+        textLine("Animation preview: ${animationPreviewStatusLabel(state)}")
+        textLine("Skeleton preview: ${skeletonPreviewStatusLabel(state)}")
+        textLine("Skeleton metadata: ${if (state.hasSkeletonData) "available" else "unavailable"}")
+        textLine("Skeleton nodes: ${state.skeletonInfo?.boneCount ?: 0}")
+        if (state.viewMode == AnimationViewerViewMode.Model && state.hasSkeletonData && !state.skeletonPreviewSupported) {
+            textLine("Switch to Skeleton view to validate live pose sampling.")
+        }
     }
 }
 
@@ -227,9 +252,13 @@ class AnimationViewerPlaybackPanel(
             button("Step +##animation_viewer_step_forward") { operations.stepBy(FrameStepSeconds) }
         }
 
-        val loopValue = booleanArrayOf(state.loop)
-        if (ImGui.checkbox("Loop##animation_viewer_loop", loopValue)) {
-            operations.toggleLoop()
+        if (state.durationSeconds != null && state.durationSeconds!! > 0f) {
+            val loopValue = booleanArrayOf(state.loop)
+            if (ImGui.checkbox("Loop##animation_viewer_loop", loopValue)) {
+                operations.toggleLoop()
+            }
+        } else {
+            textLine("Loop: unavailable while clip duration is unknown.")
         }
 
         slider(
@@ -242,6 +271,8 @@ class AnimationViewerPlaybackPanel(
         )
 
         textLine("Animation: ${state.selectedAnimationName ?: "None"}")
+        textLine("Animation preview: ${animationPreviewStatusLabel(state)}")
+        textLine("Skeleton preview: ${skeletonPreviewStatusLabel(state)}")
         textLine("Time: ${formatSeconds(state.currentTimeSeconds)} / ${state.durationSeconds?.let(::formatSeconds) ?: "unknown"}")
 
         if (!hasSelection) {
@@ -268,6 +299,7 @@ class AnimationViewerPlaybackPanel(
             }
         } else {
             ImGui.text("Scrubbing is unavailable because clip duration is unknown.")
+            ImGui.text("Playback can still advance, but looping is limited until duration metadata is available.")
         }
         ImGui.end()
     }
@@ -328,6 +360,15 @@ private fun formatPosition(position: Vec3): String =
     "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
 private fun formatSeconds(value: Float): String = "%.3f s".format(value)
+
+private fun animationPreviewStatusLabel(state: AnimationViewerState): String = when {
+    !state.assetLoaded || !state.hasAnimations -> "unsupported"
+    state.animationPreviewSupported -> "supported"
+    else -> "metadata only"
+}
+
+private fun skeletonPreviewStatusLabel(state: AnimationViewerState): String =
+    if (state.skeletonPreviewSupported) "supported" else "unsupported"
 
 private fun textLine(text: String) {
     ImGui.textUnformatted(text)

@@ -7,23 +7,21 @@ import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.DrawWorldGrid
-import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.ModelComponent
+import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.sceneeditor.SceneEditorLocalBounds
+import com.pashkd.krender.engine.sceneeditor.transformLocalPoint
 import com.pashkd.krender.engine.sceneeditor.transformedBoundsCorners
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
  * Syncs Animation Viewer UI state with assets, playback, render settings, and scene actions.
  */
 class AnimationViewerSystem(
-    private val input: InputService,
     private val assets: AssetService,
     private val logger: Logger,
     private val state: AnimationViewerState,
@@ -36,6 +34,8 @@ class AnimationViewerSystem(
     private var lastPlaying: Boolean? = null
     private var lastLoop: Boolean? = null
     private var lastViewMode: AnimationViewerViewMode? = null
+    private var lastAnimationWarning: String? = null
+    private var lastSkeletonWarning: String? = null
     private var missingModelEntityLogged = false
 
     override fun onAdded(world: SceneWorld) {
@@ -63,11 +63,13 @@ class AnimationViewerSystem(
                 "AnimationViewer first update dt=${"%.4f".format(dt)} model='${state.model.path}' entities=${world.all().size}"
             }
         }
-        input.snapshot()
         syncStatus(world)
         syncAnimationSelection()
         updatePlayback(dt)
+        syncPreviewSupport()
+        syncSampledSkeletonPose()
         syncWarnings()
+        syncAmbientLight(world)
         logLoadedModelDetails()
         handleRequests()
         logStateChanges()
@@ -87,6 +89,11 @@ class AnimationViewerSystem(
             "Model metadata is unavailable for this asset."
         } else {
             null
+        }
+        if (!state.assetLoaded) {
+            state.animationPreviewSupported = false
+            state.skeletonPreviewSupported = false
+            clearSampledSkeletonPose()
         }
         applyWireframeMaterial(world)
         if (lastAssetLoaded != state.assetLoaded) {
@@ -137,6 +144,7 @@ class AnimationViewerSystem(
         state.durationSeconds = state.selectedAnimationName?.let { selected ->
             info?.animations?.firstOrNull { animation -> animation.name == selected }?.durationSeconds
         }
+        state.currentTimeSeconds = clampAnimationTime(state.currentTimeSeconds, state.durationSeconds)
 
         if (previousSelection != null && state.selectedAnimationName == null) {
             state.currentTimeSeconds = 0f
@@ -164,10 +172,41 @@ class AnimationViewerSystem(
         }
     }
 
+    private fun syncPreviewSupport() {
+        state.animationPreviewSupported = state.assetLoaded &&
+            !state.selectedAnimationName.isNullOrBlank() &&
+            state.selectedAnimationName in state.animationNames
+    }
+
+    private fun syncSampledSkeletonPose() {
+        if (!state.assetLoaded || !state.hasSkeletonData) {
+            state.skeletonPreviewSupported = false
+            clearSampledSkeletonPose()
+            return
+        }
+        if (state.viewMode == AnimationViewerViewMode.Model) return
+
+        val poses = assets.modelSkeletonPose(
+            asset = state.model,
+            animationName = state.selectedAnimationName,
+            timeSeconds = state.currentTimeSeconds,
+        )
+        state.sampledSkeletonPose = poses
+        state.sampledSkeletonPoseAnimationName = state.selectedAnimationName
+        state.sampledSkeletonPoseTimeSeconds = state.currentTimeSeconds
+        state.skeletonPreviewSupported = poses.isNotEmpty()
+    }
+
+    private fun clearSampledSkeletonPose() {
+        state.sampledSkeletonPose = emptyList()
+        state.sampledSkeletonPoseAnimationName = null
+        state.sampledSkeletonPoseTimeSeconds = 0f
+    }
+
     private fun syncWarnings() {
         state.animationWarning = when {
             state.selectedAnimationName != null && state.durationSeconds == null ->
-                "Animation duration is unavailable for the selected clip."
+                "Animation duration is unknown. Looping and scrubbing are limited."
             else -> null
         }
         state.skeletonWarning = when {
@@ -175,6 +214,18 @@ class AnimationViewerSystem(
             !state.assetLoaded -> null
             !state.hasSkeletonData -> "Skeleton pose data is unavailable for this model/backend."
             else -> null
+        }
+    }
+
+    private fun syncAmbientLight(world: SceneWorld) {
+        val ambientLight = state.ambientLightEntityId
+            ?.let(world::getEntity)
+            ?.get<LightComponent>()
+            ?: return
+        if (ambientLight.type != LightType.Ambient) return
+        val intensity = state.ambientLightIntensity.coerceAtLeast(0f)
+        if (ambientLight.intensity != intensity) {
+            ambientLight.intensity = intensity
         }
     }
 
@@ -230,7 +281,14 @@ class AnimationViewerSystem(
             logger.info(TAG) { "AnimationViewer viewMode=${state.viewMode}" }
             lastViewMode = state.viewMode
         }
-        state.skeletonWarning?.let { warning -> logger.warn(TAG) { warning } }
+        if (lastAnimationWarning != state.animationWarning) {
+            state.animationWarning?.let { warning -> logger.warn(TAG) { warning } }
+            lastAnimationWarning = state.animationWarning
+        }
+        if (lastSkeletonWarning != state.skeletonWarning) {
+            state.skeletonWarning?.let { warning -> logger.warn(TAG) { warning } }
+            lastSkeletonWarning = state.skeletonWarning
+        }
     }
 
     companion object {
@@ -349,71 +407,26 @@ class AnimationViewerModelRenderSystem(
  */
 class AnimationViewerSkeletonRenderSystem(
     private val state: AnimationViewerState,
-    private val assets: AssetService,
 ) : System() {
     override fun render(world: SceneWorld, alpha: Float) {
         if (state.viewMode == AnimationViewerViewMode.Model || !state.assetLoaded) return
-        if (!state.hasSkeletonData) return
+        if (!state.hasSkeletonData || state.sampledSkeletonPose.isEmpty()) return
         val entity = state.modelEntityId?.let(world::getEntity) ?: return
         val transform = entity.get<TransformComponent>() ?: return
-        val poses = assets.modelSkeletonPose(
-            asset = state.model,
-            animationName = state.selectedAnimationName,
-            timeSeconds = state.currentTimeSeconds,
-        )
-        if (poses.isEmpty()) return
+        val poses = state.sampledSkeletonPose
         val poseByIndex = poses.associateBy { pose -> pose.boneIndex }
         poses.forEach { pose ->
             val parent = pose.parentIndex?.let(poseByIndex::get) ?: return@forEach
             world.renderCommands.submit(
                 DrawLine(
-                    from = transformPoint(parent.worldPosition, transform),
-                    to = transformPoint(pose.worldPosition, transform),
+                    from = transformLocalPoint(parent.worldPosition, transform),
+                    to = transformLocalPoint(pose.worldPosition, transform),
                     color = SkeletonColor,
                 ),
             )
         }
     }
 
-    private fun transformPoint(point: Vec3, transform: TransformComponent): Vec3 {
-        val scaled = Vec3(
-            point.x * transform.scale.x,
-            point.y * transform.scale.y,
-            point.z * transform.scale.z,
-        )
-        val rotated = rotateEulerDegrees(scaled, transform.eulerDegrees)
-        return transform.position + rotated
-    }
-
-    private fun rotateEulerDegrees(point: Vec3, eulerDegrees: Vec3): Vec3 {
-        val pitch = Math.toRadians(eulerDegrees.x.toDouble()).toFloat()
-        val yaw = Math.toRadians(eulerDegrees.y.toDouble()).toFloat()
-        val roll = Math.toRadians(eulerDegrees.z.toDouble()).toFloat()
-
-        val cosX = cos(pitch)
-        val sinX = sin(pitch)
-        val afterX = Vec3(
-            point.x,
-            point.y * cosX - point.z * sinX,
-            point.y * sinX + point.z * cosX,
-        )
-
-        val cosY = cos(yaw)
-        val sinY = sin(yaw)
-        val afterY = Vec3(
-            afterX.x * cosY + afterX.z * sinY,
-            afterX.y,
-            -afterX.x * sinY + afterX.z * cosY,
-        )
-
-        val cosZ = cos(roll)
-        val sinZ = sin(roll)
-        return Vec3(
-            afterY.x * cosZ - afterY.y * sinZ,
-            afterY.x * sinZ + afterY.y * cosZ,
-            afterY.z,
-        )
-    }
 
     companion object {
         private val SkeletonColor = Color(0.35f, 0.95f, 1f, 1f)
