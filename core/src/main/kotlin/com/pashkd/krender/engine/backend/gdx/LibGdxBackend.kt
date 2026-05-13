@@ -30,7 +30,9 @@ import com.badlogic.gdx.graphics.g3d.model.MeshPart
 import com.badlogic.gdx.graphics.g3d.model.Node
 import com.badlogic.gdx.graphics.g3d.model.NodePart
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader
+import com.badlogic.gdx.graphics.g3d.shaders.DefaultShader
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController
+import com.badlogic.gdx.graphics.g3d.utils.DefaultShaderProvider
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.FileTextureData
 import com.badlogic.gdx.graphics.glutils.PixmapTextureData
@@ -1389,7 +1391,14 @@ class GdxRenderer3D(
     private val ui: UiService,
     private val logger: Logger,
 ) : Renderer {
-    private val modelBatch = ModelBatch()
+    private val maxShaderBones = systemInt("krender.gl.maxBones", default = DefaultMaxShaderBones).coerceAtLeast(MinShaderBones)
+    private val modelBatch = ModelBatch(
+        DefaultShaderProvider(
+            DefaultShader.Config().apply {
+                numBones = maxShaderBones
+            },
+        ),
+    )
     private val lineRenderer = GdxLineShaderRenderer()
     private val modelViewerDebugRenderer = GdxModelViewerDebugRenderer(assets, logger)
     private val pbrPreviewRenderer = GdxGltfPbrPreviewRenderer(assets, logger)
@@ -1405,9 +1414,14 @@ class GdxRenderer3D(
     }
     private val wireframeTmpVertex = Vector3()
     private val forceBackBufferAlphaOpaque = systemBoolean("krender.gl.forceOpaqueAlpha", default = false)
+    private val warnedGltfRenderKeys = mutableSetOf<String>()
 
     private var width: Int = Gdx.graphics.width
     private var height: Int = Gdx.graphics.height
+
+    init {
+        logger.info(TAG) { "Configured LibGDX default shader maxBones=$maxShaderBones" }
+    }
 
     /** Renders the full frame for the provided render context. */
     override fun render(context: RenderContext) {
@@ -1676,6 +1690,15 @@ class GdxRenderer3D(
     private fun renderGltfScene(command: DrawModel, environment: Environment, camera: Camera) {
         assets.queue(command.model)
         val sceneAsset = assets.gltfScene(command.model) ?: return
+        val requiredBones = maxOf(sceneAsset.maxBones, assets.modelInfo(command.model)?.boneCount ?: 0)
+        if (requiredBones > maxShaderBones) {
+            warnGltfRenderOnce("bones-${command.model.path}-$requiredBones") {
+                "Skipping glTF model '${command.model.path}' because it requires $requiredBones bones, " +
+                    "but the current renderer is configured for maxBones=$maxShaderBones. " +
+                    "Increase -Dkrender.gl.maxBones or use skeleton-only view."
+            }
+            return
+        }
         val cacheKey = ModelCacheKey(command.entityId, command.model.path)
         val scene = gltfScenes.getOrPut(cacheKey) {
             GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
@@ -1691,7 +1714,19 @@ class GdxRenderer3D(
         scene.modelInstance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
         applyVisibleMeshPartFilter(scene.modelInstance, command.visibleMeshPartIndices)
         scene.update(camera, if (command.animation != null) 0f else Gdx.graphics.deltaTime)
-        modelBatch.render(scene, environment)
+        try {
+            modelBatch.render(scene, environment)
+        } catch (error: Throwable) {
+            warnGltfRenderOnce("render-${command.model.path}-${error::class.qualifiedName}") {
+                "glTF model render failed for '${command.model.path}': ${error.message ?: error::class.simpleName}"
+            }
+        }
+    }
+
+    private fun warnGltfRenderOnce(key: String, message: () -> String) {
+        if (warnedGltfRenderKeys.add(key)) {
+            logger.warn(TAG, message = message)
+        }
     }
 
     /** Converts a static model command into line vertices and draws it as wireframe. */
@@ -2197,6 +2232,9 @@ class GdxRenderer3D(
     }
 
     companion object {
+        private const val TAG = "GdxRenderer3D"
+        private const val DefaultMaxShaderBones = 96
+        private const val MinShaderBones = 12
         private const val FLOATS_PER_DYNAMIC_VERTEX = 8
         private const val FLOATS_PER_COLORED_DYNAMIC_VERTEX = 12
         private const val FLOAT_BYTES = 4
@@ -3158,3 +3196,12 @@ private fun systemBoolean(name: String, default: Boolean): Boolean {
         else -> default
     }
 }
+
+private fun systemInt(name: String, default: Int): Int {
+    val envName = name.replace('.', '_').uppercase()
+    val value = System.getProperty(name)
+        ?: System.getenv(envName)
+        ?: return default
+    return value.trim().toIntOrNull() ?: default
+}
+
