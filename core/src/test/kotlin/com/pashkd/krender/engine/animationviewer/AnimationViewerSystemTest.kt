@@ -131,6 +131,14 @@ class AnimationViewerSystemTest {
     }
 
     @Test
+    fun `animation viewer state hides joints and bounding box by default`() {
+        val state = AnimationViewerState(model = AssetRef.model("models/animated.glb"))
+
+        assertFalse(state.showSkeletonJoints)
+        assertFalse(state.showBoundingBox)
+    }
+
+    @Test
     fun `playback clamps and pauses at clip end when loop is disabled`() {
         val model = AssetRef.model("models/animated.glb")
         val assets = FakeAssetService(
@@ -406,6 +414,81 @@ class AnimationViewerSystemTest {
     }
 
     @Test
+    fun `skeleton render highlights hovered bone line with hover color`() {
+        val model = AssetRef.model("models/animated.glb")
+        val state = AnimationViewerState(model = model).apply {
+            assetLoaded = true
+            viewMode = AnimationViewerViewMode.Skeleton
+            showSkeletonJoints = false
+            hoveredBoneIndex = 1
+            skeletonInfo = ModelSkeletonInfo(
+                bones = listOf(
+                    ModelBoneInfo(0, "Root", null),
+                    ModelBoneInfo(1, "Child", 0),
+                ),
+            )
+            sampledSkeletonPose = listOf(
+                ModelBonePose(0, "Root", null, Vec3(0f, 0f, 0f)),
+                ModelBonePose(1, "Child", 0, Vec3(0f, 1f, 0f)),
+            )
+        }
+        val world = SceneWorld()
+        val entity = world.createEntity("Model")
+        entity.add(ModelComponent(model))
+        state.modelEntityId = entity.id
+        world.systems.add(AnimationViewerSkeletonRenderSystem(state))
+
+        world.render(alpha = 0f)
+
+        val commands = world.renderCommands.snapshot().filterIsInstance<DrawLine>()
+        assertTrue(
+            commands.any { command ->
+                command.from == Vec3(0f, 0f, 0f) &&
+                    command.to == Vec3(0f, 1f, 0f) &&
+                    command.color == HoveredBoneColor
+            },
+        )
+    }
+
+    @Test
+    fun `skeleton render highlights hovered joint with hover color when enabled`() {
+        val model = AssetRef.model("models/animated.glb")
+        val state = AnimationViewerState(model = model).apply {
+            assetLoaded = true
+            viewMode = AnimationViewerViewMode.Skeleton
+            showSkeletonJoints = true
+            hoveredBoneIndex = 1
+            skeletonInfo = ModelSkeletonInfo(
+                bones = listOf(
+                    ModelBoneInfo(0, "Root", null),
+                    ModelBoneInfo(1, "Child", 0),
+                ),
+            )
+            sampledSkeletonPose = listOf(
+                ModelBonePose(0, "Root", null, Vec3(0f, 0f, 0f)),
+                ModelBonePose(1, "Child", 0, Vec3(0f, 1f, 0f)),
+            )
+        }
+        val world = SceneWorld()
+        val entity = world.createEntity("Model")
+        entity.add(ModelComponent(model))
+        state.modelEntityId = entity.id
+        world.systems.add(AnimationViewerSkeletonRenderSystem(state))
+
+        world.render(alpha = 0f)
+
+        val commands = world.renderCommands.snapshot().filterIsInstance<DrawLine>()
+        assertTrue(
+            commands.any { command ->
+                command.color == HoveredJointColor &&
+                    (command.from == Vec3(-0.06f, 1f, 0f) && command.to == Vec3(0.06f, 1f, 0f) ||
+                        command.from == Vec3(0f, 0.94f, 0f) && command.to == Vec3(0f, 1.06f, 0f) ||
+                        command.from == Vec3(0f, 1f, -0.06f) && command.to == Vec3(0f, 1f, 0.06f))
+            },
+        )
+    }
+
+    @Test
     fun `skeleton render emits joint cross lines when enabled`() {
         val model = AssetRef.model("models/animated.glb")
         val state = AnimationViewerState(model = model).apply {
@@ -656,7 +739,9 @@ class AnimationViewerSystemTest {
     companion object {
         private const val UnknownDurationPreviewWindowSeconds = AnimationViewerState.UnknownDurationPreviewWindowSeconds
         private val SkeletonColor = Color(0.35f, 0.95f, 1f, 1f)
+        private val HoveredBoneColor = Color(0.55f, 1f, 0.45f, 1f)
         private val SelectedBoneColor = Color(1f, 0.35f, 0.15f, 1f)
         private val ConnectedBoneColor = Color(1f, 0.85f, 0.2f, 1f)
+        private val HoveredJointColor = Color(0.55f, 1f, 0.45f, 1f)
     }
 }

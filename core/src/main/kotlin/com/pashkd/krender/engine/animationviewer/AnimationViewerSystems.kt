@@ -467,6 +467,7 @@ class AnimationViewerSkeletonRenderSystem(
         val transform = entity.get<TransformComponent>() ?: return
         val poses = state.sampledSkeletonPose
         val poseByIndex = poses.associateBy { pose -> pose.boneIndex }
+        val hoveredBoneIndex = state.hoveredBoneIndex
         val selectedBoneIndex = state.selectedBoneIndex
         val connectedBoneIndices = if (state.highlightConnectedBones) state.connectedBoneIndices() else emptySet()
         val jointHalfSize = state.skeletonJointSize.coerceAtLeast(MinJointHalfSize)
@@ -478,7 +479,7 @@ class AnimationViewerSkeletonRenderSystem(
                     transform = transform,
                     position = pose.worldPosition,
                     size = if (pose.boneIndex == selectedBoneIndex) jointHalfSize * SelectedJointSizeMultiplier else jointHalfSize,
-                    color = jointColor(pose.boneIndex, selectedBoneIndex, connectedBoneIndices),
+                    color = jointColor(pose.boneIndex, hoveredBoneIndex, selectedBoneIndex, connectedBoneIndices),
                 )
             }
 
@@ -487,7 +488,7 @@ class AnimationViewerSkeletonRenderSystem(
                 DrawLine(
                     from = transformLocalPoint(parent.worldPosition, transform),
                     to = transformLocalPoint(pose.worldPosition, transform),
-                    color = lineColor(parent.boneIndex, pose.boneIndex, selectedBoneIndex, connectedBoneIndices),
+                    color = lineColor(parent.boneIndex, pose.boneIndex, hoveredBoneIndex, selectedBoneIndex, connectedBoneIndices),
                 ),
             )
         }
@@ -496,9 +497,11 @@ class AnimationViewerSkeletonRenderSystem(
     private fun lineColor(
         parentBoneIndex: Int,
         boneIndex: Int,
+        hoveredBoneIndex: Int?,
         selectedBoneIndex: Int?,
         connectedBoneIndices: Set<Int>,
     ): Color = when {
+        boneIndex == hoveredBoneIndex -> HoveredBoneColor
         boneIndex == selectedBoneIndex -> SelectedBoneColor
         state.highlightConnectedBones && (
             parentBoneIndex == selectedBoneIndex ||
@@ -510,9 +513,11 @@ class AnimationViewerSkeletonRenderSystem(
 
     private fun jointColor(
         boneIndex: Int,
+        hoveredBoneIndex: Int?,
         selectedBoneIndex: Int?,
         connectedBoneIndices: Set<Int>,
     ): Color = when {
+        boneIndex == hoveredBoneIndex -> HoveredJointColor
         boneIndex == selectedBoneIndex -> SelectedJointColor
         state.highlightConnectedBones && boneIndex in connectedBoneIndices -> ConnectedJointColor
         else -> JointColor
@@ -548,9 +553,11 @@ class AnimationViewerSkeletonRenderSystem(
 
     companion object {
         private val SkeletonColor = Color(0.35f, 0.95f, 1f, 1f)
+        private val HoveredBoneColor = Color(0.55f, 1f, 0.45f, 1f)
         private val SelectedBoneColor = Color(1f, 0.35f, 0.15f, 1f)
         private val ConnectedBoneColor = Color(1f, 0.85f, 0.2f, 1f)
         private val JointColor = Color(0.7f, 0.95f, 1f, 1f)
+        private val HoveredJointColor = Color(0.55f, 1f, 0.45f, 1f)
         private val ConnectedJointColor = Color(1f, 0.85f, 0.2f, 1f)
         private val SelectedJointColor = Color(1f, 0.45f, 0.2f, 1f)
         private const val MinJointHalfSize = 0.001f

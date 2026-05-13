@@ -82,7 +82,7 @@ data class AnimationViewerState(
     var showAxes: Boolean = true,
 
     /** Runtime-only preference for drawing the model bounds. */
-    var showBoundingBox: Boolean = true,
+    var showBoundingBox: Boolean = false,
 
     /** Runtime-only preference for wireframe-only rendering. */
     var wireframe: Boolean = false,
@@ -148,7 +148,7 @@ data class AnimationViewerState(
     var hoveredBoneIndex: Int? = null,
 
     /** Whether sampled joint markers should be rendered with the skeleton overlay. */
-    var showSkeletonJoints: Boolean = true,
+    var showSkeletonJoints: Boolean = false,
 
     /** Whether the selected bone parent/children should be highlighted. */
     var highlightConnectedBones: Boolean = true,
