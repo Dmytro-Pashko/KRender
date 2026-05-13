@@ -184,7 +184,7 @@ internal fun clampAnimationTime(timeSeconds: Float, durationSeconds: Float?): Fl
     return if (duration != null && duration > 0f) {
         timeSeconds.coerceIn(0f, duration)
     } else {
-        timeSeconds.coerceAtLeast(0f)
+        timeSeconds.coerceIn(0f, AnimationViewerState.UnknownDurationPreviewWindowSeconds)
     }
 }
 

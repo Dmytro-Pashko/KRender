@@ -98,6 +98,7 @@ interface AssetService {
         asset: AssetRef<ModelAsset>,
         animationName: String? = null,
         timeSeconds: Float = 0f,
+        loop: Boolean = false,
     ): List<ModelBonePose> = emptyList()
 
     /** Returns cached local-space bounds for a loaded model asset when available. */

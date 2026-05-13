@@ -206,11 +206,15 @@ class AnimationViewerAnimationsPanel(
         textLine("Skeleton: ${if (info?.hasSkeleton == true) "yes" else "no"}")
         textLine("Skinned bones: ${info?.boneCount ?: 0}")
         textLine("Bone weight channels: ${info?.boneWeightChannelCount ?: 0}")
+        textLine("Animation metadata: ${availabilityLabel(state.animationMetadataAvailable)}")
         textLine("Animation preview: ${animationPreviewStatusLabel(state)}")
+        if (state.animationPreviewStatus == AnimationPreviewStatus.PreviewRequested) {
+            textLine("Animation preview confirmation: backend confirmation unavailable")
+        }
+        textLine("Skeleton metadata: ${availabilityLabel(state.hasSkeletonData)}")
         textLine("Skeleton preview: ${skeletonPreviewStatusLabel(state)}")
-        textLine("Skeleton metadata: ${if (state.hasSkeletonData) "available" else "unavailable"}")
         textLine("Skeleton nodes: ${state.skeletonInfo?.boneCount ?: 0}")
-        if (state.viewMode == AnimationViewerViewMode.Model && state.hasSkeletonData && !state.skeletonPreviewSupported) {
+        if (state.skeletonPreviewStatus == SkeletonPreviewStatus.Inactive && state.hasSkeletonData) {
             textLine("Switch to Skeleton view to validate live pose sampling.")
         }
     }
@@ -252,7 +256,8 @@ class AnimationViewerPlaybackPanel(
             button("Step +##animation_viewer_step_forward") { operations.stepBy(FrameStepSeconds) }
         }
 
-        if (state.durationSeconds != null && state.durationSeconds!! > 0f) {
+        val duration = state.durationSeconds
+        if (duration != null && duration > 0f) {
             val loopValue = booleanArrayOf(state.loop)
             if (ImGui.checkbox("Loop##animation_viewer_loop", loopValue)) {
                 operations.toggleLoop()
@@ -273,7 +278,7 @@ class AnimationViewerPlaybackPanel(
         textLine("Animation: ${state.selectedAnimationName ?: "None"}")
         textLine("Animation preview: ${animationPreviewStatusLabel(state)}")
         textLine("Skeleton preview: ${skeletonPreviewStatusLabel(state)}")
-        textLine("Time: ${formatSeconds(state.currentTimeSeconds)} / ${state.durationSeconds?.let(::formatSeconds) ?: "unknown"}")
+        textLine("Time: ${formatSeconds(state.currentTimeSeconds)} / ${duration?.let(::formatSeconds) ?: "unknown"}")
 
         if (!hasSelection) {
             ImGui.text("Select an animation to control playback.")
@@ -281,7 +286,6 @@ class AnimationViewerPlaybackPanel(
             return
         }
 
-        val duration = state.durationSeconds
         if (duration != null && duration > 0f) {
             val scrub = max(0f, state.currentTimeSeconds.coerceIn(0f, duration))
             val holder = FloatHolder(scrub)
@@ -299,6 +303,7 @@ class AnimationViewerPlaybackPanel(
             }
         } else {
             ImGui.text("Scrubbing is unavailable because clip duration is unknown.")
+            ImGui.text("Unknown duration preview window: ${formatSeconds(state.unknownDurationPreviewWindowSeconds)}")
             ImGui.text("Playback can still advance, but looping is limited until duration metadata is available.")
         }
         ImGui.end()
@@ -361,14 +366,21 @@ private fun formatPosition(position: Vec3): String =
 
 private fun formatSeconds(value: Float): String = "%.3f s".format(value)
 
-private fun animationPreviewStatusLabel(state: AnimationViewerState): String = when {
-    !state.assetLoaded || !state.hasAnimations -> "unsupported"
-    state.animationPreviewSupported -> "supported"
-    else -> "metadata only"
+private fun availabilityLabel(available: Boolean): String = if (available) "available" else "unavailable"
+
+private fun animationPreviewStatusLabel(state: AnimationViewerState): String = when (state.animationPreviewStatus) {
+    AnimationPreviewStatus.Unsupported -> "unsupported"
+    AnimationPreviewStatus.MetadataOnly -> "metadata only"
+    AnimationPreviewStatus.PreviewRequested -> "requested"
+    AnimationPreviewStatus.PreviewAvailable -> "available"
 }
 
-private fun skeletonPreviewStatusLabel(state: AnimationViewerState): String =
-    if (state.skeletonPreviewSupported) "supported" else "unsupported"
+private fun skeletonPreviewStatusLabel(state: AnimationViewerState): String = when (state.skeletonPreviewStatus) {
+    SkeletonPreviewStatus.Inactive -> "inactive"
+    SkeletonPreviewStatus.Unsupported -> "unsupported"
+    SkeletonPreviewStatus.MetadataOnly -> "metadata only"
+    SkeletonPreviewStatus.PreviewAvailable -> "available"
+}
 
 private fun textLine(text: String) {
     ImGui.textUnformatted(text)

@@ -11,11 +11,11 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.math.transformLocalPoint
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.sceneeditor.SceneEditorLocalBounds
-import com.pashkd.krender.engine.sceneeditor.transformLocalPoint
 import com.pashkd.krender.engine.sceneeditor.transformedBoundsCorners
 
 /**
@@ -91,8 +91,8 @@ class AnimationViewerSystem(
             null
         }
         if (!state.assetLoaded) {
-            state.animationPreviewSupported = false
-            state.skeletonPreviewSupported = false
+            state.animationPreviewStatus = AnimationPreviewStatus.Unsupported
+            state.skeletonPreviewStatus = SkeletonPreviewStatus.Unsupported
             clearSampledSkeletonPose()
         }
         applyWireframeMaterial(world)
@@ -157,9 +157,18 @@ class AnimationViewerSystem(
         val animationName = state.selectedAnimationName
         if (!state.isPlaying || animationName.isNullOrBlank()) return
         val speed = state.playbackSpeed.coerceIn(MinPlaybackSpeed, MaxPlaybackSpeed)
-        state.currentTimeSeconds = (state.currentTimeSeconds + dt * speed).coerceAtLeast(0f)
+        state.currentTimeSeconds = clampAnimationTime(state.currentTimeSeconds + dt * speed, state.durationSeconds)
         val duration = state.durationSeconds
-        if (duration == null || duration <= 0f) return
+        if (duration == null || duration <= 0f) {
+            if (state.currentTimeSeconds < state.unknownDurationPreviewWindowSeconds) return
+            state.currentTimeSeconds = state.unknownDurationPreviewWindowSeconds
+            state.isPlaying = false
+            state.statusMessage = "Playback reached the unknown-duration preview limit."
+            logger.info(TAG) {
+                "AnimationViewer playback reached unknown-duration preview limit animation='${animationName}'"
+            }
+            return
+        }
         if (state.currentTimeSeconds < duration) return
 
         if (state.loop) {
@@ -173,28 +182,46 @@ class AnimationViewerSystem(
     }
 
     private fun syncPreviewSupport() {
-        state.animationPreviewSupported = state.assetLoaded &&
-            !state.selectedAnimationName.isNullOrBlank() &&
-            state.selectedAnimationName in state.animationNames
+        state.animationPreviewStatus = when {
+            !state.assetLoaded || !state.animationMetadataAvailable -> AnimationPreviewStatus.Unsupported
+            state.selectedAnimationName.isNullOrBlank() -> AnimationPreviewStatus.MetadataOnly
+            state.selectedAnimationName !in state.animationNames -> AnimationPreviewStatus.MetadataOnly
+            state.viewMode == AnimationViewerViewMode.Skeleton -> AnimationPreviewStatus.MetadataOnly
+            else -> AnimationPreviewStatus.PreviewRequested
+        }
     }
 
     private fun syncSampledSkeletonPose() {
-        if (!state.assetLoaded || !state.hasSkeletonData) {
-            state.skeletonPreviewSupported = false
+        if (!state.assetLoaded) {
+            state.skeletonPreviewStatus = SkeletonPreviewStatus.Unsupported
             clearSampledSkeletonPose()
             return
         }
-        if (state.viewMode == AnimationViewerViewMode.Model) return
+        if (!state.hasSkeletonData) {
+            state.skeletonPreviewStatus = SkeletonPreviewStatus.Unsupported
+            clearSampledSkeletonPose()
+            return
+        }
+        if (state.viewMode == AnimationViewerViewMode.Model) {
+            state.skeletonPreviewStatus = SkeletonPreviewStatus.Inactive
+            clearSampledSkeletonPose()
+            return
+        }
 
         val poses = assets.modelSkeletonPose(
             asset = state.model,
             animationName = state.selectedAnimationName,
             timeSeconds = state.currentTimeSeconds,
+            loop = state.canLoopSelectedAnimation && state.loop,
         )
         state.sampledSkeletonPose = poses
         state.sampledSkeletonPoseAnimationName = state.selectedAnimationName
         state.sampledSkeletonPoseTimeSeconds = state.currentTimeSeconds
-        state.skeletonPreviewSupported = poses.isNotEmpty()
+        state.skeletonPreviewStatus = if (poses.isNotEmpty()) {
+            SkeletonPreviewStatus.PreviewAvailable
+        } else {
+            SkeletonPreviewStatus.MetadataOnly
+        }
     }
 
     private fun clearSampledSkeletonPose() {
@@ -205,15 +232,17 @@ class AnimationViewerSystem(
 
     private fun syncWarnings() {
         state.animationWarning = when {
-            state.selectedAnimationName != null && state.durationSeconds == null ->
-                "Animation duration is unknown. Looping and scrubbing are limited."
+            state.selectedAnimationName != null && !state.hasKnownSelectedAnimationDuration ->
+                "Unknown animation duration. Preview is limited to 10.000 s."
             else -> null
         }
-        state.skeletonWarning = when {
-            state.viewMode == AnimationViewerViewMode.Model -> null
-            !state.assetLoaded -> null
-            !state.hasSkeletonData -> "Skeleton pose data is unavailable for this model/backend."
-            else -> null
+        state.skeletonWarning = when (state.skeletonPreviewStatus) {
+            SkeletonPreviewStatus.Inactive,
+            SkeletonPreviewStatus.PreviewAvailable,
+            -> null
+
+            SkeletonPreviewStatus.Unsupported -> "Skeleton metadata is unavailable for this model/backend."
+            SkeletonPreviewStatus.MetadataOnly -> "Skeleton pose preview is unavailable for this model/backend."
         }
     }
 
@@ -224,6 +253,7 @@ class AnimationViewerSystem(
             ?: return
         if (ambientLight.type != LightType.Ambient) return
         val intensity = state.ambientLightIntensity.coerceAtLeast(0f)
+        state.ambientLightIntensity = intensity
         if (ambientLight.intensity != intensity) {
             ambientLight.intensity = intensity
         }
@@ -391,11 +421,11 @@ class AnimationViewerModelRenderSystem(
     }
 
     private fun AnimationViewerState.animationPreview(): AnimationPlaybackView? {
-        if (selectedAnimationName == null && currentTimeSeconds <= 0f) return null
+        val animationName = selectedAnimationName?.takeIf(String::isNotBlank) ?: return null
         return AnimationPlaybackView(
-            animationName = selectedAnimationName,
+            animationName = animationName,
             timeSeconds = currentTimeSeconds,
-            loop = loop,
+            loop = loop && canLoopSelectedAnimation,
             playing = isPlaying,
             playbackSpeed = playbackSpeed,
         )
@@ -432,4 +462,3 @@ class AnimationViewerSkeletonRenderSystem(
         private val SkeletonColor = Color(0.35f, 0.95f, 1f, 1f)
     }
 }
-

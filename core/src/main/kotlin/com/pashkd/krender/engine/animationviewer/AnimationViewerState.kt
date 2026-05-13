@@ -20,6 +20,20 @@ enum class AnimationViewerViewMode {
     ModelAndSkeleton,
 }
 
+enum class AnimationPreviewStatus {
+    Unsupported,
+    MetadataOnly,
+    PreviewRequested,
+    PreviewAvailable,
+}
+
+enum class SkeletonPreviewStatus {
+    Inactive,
+    Unsupported,
+    MetadataOnly,
+    PreviewAvailable,
+}
+
 /**
  * Shared mutable state for the Animation Viewer scene, UI panels, and runtime systems.
  */
@@ -114,11 +128,11 @@ data class AnimationViewerState(
     /** Current viewport visualization mode. */
     var viewMode: AnimationViewerViewMode = AnimationViewerViewMode.Model,
 
-    /** Whether the current selected clip can be previewed by the backend renderer. */
-    var animationPreviewSupported: Boolean = false,
+    /** Honest status of the current animation preview request path. */
+    var animationPreviewStatus: AnimationPreviewStatus = AnimationPreviewStatus.Unsupported,
 
-    /** Whether the backend returned a sampled skeleton pose for the current preview state. */
-    var skeletonPreviewSupported: Boolean = false,
+    /** Honest status of the current skeleton preview path. */
+    var skeletonPreviewStatus: SkeletonPreviewStatus = SkeletonPreviewStatus.Inactive,
 
     /** Skeleton pose sampled during update and reused during render. */
     var sampledSkeletonPose: List<ModelBonePose> = emptyList(),
@@ -150,9 +164,25 @@ data class AnimationViewerState(
     val hasAnimations: Boolean
         get() = animationNames.isNotEmpty()
 
+    /** Returns whether animation metadata is available for the loaded model. */
+    val animationMetadataAvailable: Boolean
+        get() = hasAnimations
+
     /** Returns whether backend-neutral skeleton data is available. */
     val hasSkeletonData: Boolean
         get() = skeletonInfo?.bones?.isNotEmpty() == true
+
+    /** Returns whether the selected animation has a known duration. */
+    val hasKnownSelectedAnimationDuration: Boolean
+        get() = durationSeconds?.let { duration -> duration > 0f } == true
+
+    /** Returns whether looping is safe for the current selected animation. */
+    val canLoopSelectedAnimation: Boolean
+        get() = hasKnownSelectedAnimationDuration
+
+    /** Conservative preview window used when clip duration metadata is unavailable. */
+    val unknownDurationPreviewWindowSeconds: Float
+        get() = UnknownDurationPreviewWindowSeconds
 
     /** Compatibility shortcut for panels that work directly with viewport focus. */
     var viewportFocused: Boolean
@@ -174,5 +204,9 @@ data class AnimationViewerState(
         set(value) {
             viewport.size = value
         }
+
+    companion object {
+        const val UnknownDurationPreviewWindowSeconds: Float = 10f
+    }
 }
 

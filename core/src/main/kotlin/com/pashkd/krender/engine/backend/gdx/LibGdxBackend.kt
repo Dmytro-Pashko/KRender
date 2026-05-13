@@ -688,11 +688,12 @@ class GdxAssetService(
         asset: AssetRef<ModelAsset>,
         animationName: String?,
         timeSeconds: Float,
+        loop: Boolean,
     ): List<ModelBonePose> {
         if (asset.isPrimitive || !isLoaded(asset)) return emptyList()
         return when {
-            asset.isGltf() -> sampleGltfSkeletonPose(asset, animationName, timeSeconds)
-            else -> sampleStaticModelSkeletonPose(asset, animationName, timeSeconds)
+            asset.isGltf() -> sampleGltfSkeletonPose(asset, animationName, timeSeconds, loop)
+            else -> sampleStaticModelSkeletonPose(asset, animationName, timeSeconds, loop)
         }
     }
 
@@ -993,12 +994,13 @@ class GdxAssetService(
         asset: AssetRef<ModelAsset>,
         animationName: String?,
         timeSeconds: Float,
+        loop: Boolean,
     ): List<ModelBonePose> {
         val model = gdxModel(asset) ?: return emptyList()
         if (!supportsSkeletonSampling(model)) return emptyList()
         val instance = poseSampledInstances.getOrPut(asset.path) { ModelInstance(model) }
         val controller = poseSampledAnimationControllers.getOrPut(asset.path) { AnimationController(instance) }
-        sampleAnimationPose(instance, controller, animationName, timeSeconds)
+        sampleAnimationPose(instance, controller, animationName, timeSeconds, loop)
         return extractBonePoses(instance.nodes)
     }
 
@@ -1006,6 +1008,7 @@ class GdxAssetService(
         asset: AssetRef<ModelAsset>,
         animationName: String?,
         timeSeconds: Float,
+        loop: Boolean,
     ): List<ModelBonePose> {
         val sceneAsset = gltfScene(asset) ?: return emptyList()
         val model = sceneAsset.scene.model
@@ -1013,7 +1016,7 @@ class GdxAssetService(
         val scene = poseSampledGltfScenes.getOrPut(asset.path) {
             GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
         }
-        sampleAnimationPose(scene.modelInstance, scene.animationController, animationName, timeSeconds)
+        sampleAnimationPose(scene.modelInstance, scene.animationController, animationName, timeSeconds, loop)
         return extractBonePoses(scene.modelInstance.nodes)
     }
 
@@ -1022,6 +1025,7 @@ class GdxAssetService(
         controller: AnimationController?,
         animationName: String?,
         timeSeconds: Float,
+        loop: Boolean,
     ) {
         if (controller == null || instance.animations.isEmpty()) {
             instance.calculateTransforms()
@@ -1038,8 +1042,8 @@ class GdxAssetService(
             controller.update(0f)
             return
         }
-        controller.setAnimation(animationName, -1, 1f, null)
-        controller.current?.time = normalizedAnimationTime(animation, timeSeconds, loop = true)
+        controller.setAnimation(animationName, if (loop) -1 else 1, 1f, null)
+        controller.current?.time = normalizedAnimationTime(animation, timeSeconds, loop)
         controller.update(0f)
     }
 
