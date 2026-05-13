@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
+import com.pashkd.krender.game.AnimationViewerScene
 import com.pashkd.krender.game.AssetBrowserScene
 import com.pashkd.krender.game.ModelViewerScene
 import com.pashkd.krender.game.RuntimeScene
@@ -41,13 +42,17 @@ class Main(
                 model = selectedModel ?: throw missingProperty("krender.model.path", "model-viewer"),
             )
 
+            "animation-viewer" -> AnimationViewerScene(
+                model = selectedModel ?: throw missingProperty("krender.model.path", "animation-viewer"),
+            )
+
             "terrain-editor", "terrain-generator" -> TerrainEditorScene(
                 terrainFilePath = configuredTerrainFilePath()
                     ?: throw missingProperty("krender.terrain.path", requestedScene),
             )
 
             else -> throw IllegalArgumentException(
-                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, runtime-scene, model-viewer, terrain-editor.",
+                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, runtime-scene, model-viewer, animation-viewer, terrain-editor.",
             )
         }
     },

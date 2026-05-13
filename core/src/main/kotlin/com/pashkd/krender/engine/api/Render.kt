@@ -42,9 +42,27 @@ data class DrawModel(
     val debugView: MaterialDebugView? = null,
     /** Optional glTF PBR preview request. Debug rendering has priority when both are present. */
     val pbrPreview: PbrPreviewView? = null,
+    /** Optional animation preview pose sampled by the backend renderer. */
+    val animation: AnimationPlaybackView? = null,
     /** Relative ordering priority for this command. */
     override val sortKey: Int = 0,
 ) : RenderCommand
+
+/**
+ * Backend-neutral request for previewing a single model animation clip.
+ */
+data class AnimationPlaybackView(
+    /** Selected animation clip name/id. Null keeps the model in its rest pose. */
+    val animationName: String? = null,
+    /** Preview time within the selected clip in seconds. */
+    val timeSeconds: Float = 0f,
+    /** Whether playback should loop at the end of the clip. */
+    val loop: Boolean = true,
+    /** Whether the viewer considers playback active. */
+    val playing: Boolean = false,
+    /** Speed multiplier requested by the viewer. */
+    val playbackSpeed: Float = 1f,
+)
 
 /**
  * Backend-neutral material debug modes supported by shader debug renderers.

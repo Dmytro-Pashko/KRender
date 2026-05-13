@@ -19,6 +19,14 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
+    override fun launchAnimationViewer(modelPath: String) {
+        launch(
+            scene = "animation-viewer",
+            pathProperty = "krender.model.path" to normalizePath(modelPath),
+            failureMessage = "Animation Viewer launch failed",
+        )
+    }
+
     override fun launchTerrainEditor(terrainPath: String) {
         launch(
             scene = "terrain-editor",

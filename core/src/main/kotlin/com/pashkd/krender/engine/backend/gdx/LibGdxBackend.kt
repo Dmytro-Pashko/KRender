@@ -19,6 +19,7 @@ import com.badlogic.gdx.graphics.g3d.Model
 import com.badlogic.gdx.graphics.g3d.ModelBatch
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.Renderable
+import com.badlogic.gdx.graphics.g3d.model.Animation
 import com.badlogic.gdx.graphics.g3d.Attribute
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
@@ -29,6 +30,7 @@ import com.badlogic.gdx.graphics.g3d.model.MeshPart
 import com.badlogic.gdx.graphics.g3d.model.Node
 import com.badlogic.gdx.graphics.g3d.model.NodePart
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader
+import com.badlogic.gdx.graphics.g3d.utils.AnimationController
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.FileTextureData
 import com.badlogic.gdx.graphics.glutils.PixmapTextureData
@@ -41,6 +43,7 @@ import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.utils.UBJsonReader
 import com.pashkd.krender.engine.api.Action
+import com.pashkd.krender.engine.api.AnimationPlaybackView
 import com.pashkd.krender.engine.api.ApplyEnvironment
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
@@ -63,10 +66,14 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.MainThreadTaskQueue
 import com.pashkd.krender.engine.api.MaterialDebugMode
 import com.pashkd.krender.engine.api.ModelAsset
+import com.pashkd.krender.engine.api.ModelAnimationInfo
 import com.pashkd.krender.engine.api.ModelAssetBounds
 import com.pashkd.krender.engine.api.ModelAssetInfo
+import com.pashkd.krender.engine.api.ModelBoneInfo
+import com.pashkd.krender.engine.api.ModelBonePose
 import com.pashkd.krender.engine.api.ModelMaterialInfo
 import com.pashkd.krender.engine.api.ModelMeshPartInfo
+import com.pashkd.krender.engine.api.ModelSkeletonInfo
 import com.pashkd.krender.engine.api.ModelTextureSlotInfo
 import com.pashkd.krender.engine.api.MouseButton
 import com.pashkd.krender.engine.api.PointerPhase
@@ -513,11 +520,15 @@ class GdxAssetService(
     private val warnedTextureBindings = mutableSetOf<String>()
     private val shaderSources = mutableMapOf<String, String>()
     private val modelInfos = mutableMapOf<String, ModelAssetInfo>()
+    private val modelSkeletons = mutableMapOf<String, ModelSkeletonInfo>()
     private val modelBoundsCache = mutableMapOf<String, ModelAssetBounds>()
     private val modelTriangleCounts = mutableMapOf<String, Int>()
     private val texturePreviewRegistry = mutableMapOf<String, Texture>()
     private val runtimeTextures = mutableMapOf<String, RuntimeTextureEntry>()
     private val modelTexturePreviewKeys = mutableMapOf<String, Set<String>>()
+    private val poseSampledInstances = mutableMapOf<String, ModelInstance>()
+    private val poseSampledAnimationControllers = mutableMapOf<String, AnimationController>()
+    private val poseSampledGltfScenes = mutableMapOf<String, GltfScene>()
 
     init {
         manager.setLoader(Model::class.java, ".g3dj", G3dModelLoader(JsonReader()))
@@ -656,6 +667,30 @@ class GdxAssetService(
         }
     }
 
+    override fun modelSkeleton(asset: AssetRef<ModelAsset>): ModelSkeletonInfo? {
+        if (asset.isPrimitive || !isLoaded(asset)) return null
+        modelSkeletons[asset.path]?.let { return it }
+        val model = when {
+            asset.isGltf() -> gltfScene(asset)?.scene?.model
+            else -> gdxModel(asset)
+        } ?: return null
+        val skeleton = buildModelSkeletonInfo(model) ?: return null
+        modelSkeletons[asset.path] = skeleton
+        return skeleton
+    }
+
+    override fun modelSkeletonPose(
+        asset: AssetRef<ModelAsset>,
+        animationName: String?,
+        timeSeconds: Float,
+    ): List<ModelBonePose> {
+        if (asset.isPrimitive || !isLoaded(asset)) return emptyList()
+        return when {
+            asset.isGltf() -> sampleGltfSkeletonPose(asset, animationName, timeSeconds)
+            else -> sampleStaticModelSkeletonPose(asset, animationName, timeSeconds)
+        }
+    }
+
     /** Returns an opaque handle for a loaded model texture or standalone texture asset. */
     override fun texturePreviewHandle(texturePathOrId: String): TexturePreviewHandle? {
         val key = texturePathOrId.takeIf(String::isNotBlank) ?: return null
@@ -695,10 +730,14 @@ class GdxAssetService(
         missing -= asset.path
         shaderSources -= asset.path
         modelInfos -= asset.path
+        modelSkeletons -= asset.path
         modelBoundsCache -= asset.path
         modelTriangleCounts -= asset.path
         texturePreviewRegistry -= asset.path
         modelTexturePreviewKeys.remove(asset.path)?.forEach { key -> texturePreviewRegistry -= key }
+        poseSampledInstances -= asset.path
+        poseSampledAnimationControllers -= asset.path
+        poseSampledGltfScenes -= asset.path
     }
 
     /** Returns a loaded LibGDX model for non-glTF model assets. */
@@ -803,6 +842,9 @@ class GdxAssetService(
         runtimeTextures.clear()
         loggedLoaded.clear()
         warnedTextureBindings.clear()
+        poseSampledInstances.clear()
+        poseSampledAnimationControllers.clear()
+        poseSampledGltfScenes.clear()
         manager.dispose()
     }
 
@@ -854,7 +896,14 @@ class GdxAssetService(
             maxBonesPerPart = maxOf(maxBonesPerPart, part.bones?.size ?: 0)
         }
 
-        val animationNames = model.animations.mapNotNull { animation -> animation.id?.takeIf(String::isNotBlank) }
+        val animations = model.animations.mapNotNull { animation ->
+            animation.id?.takeIf(String::isNotBlank)?.let { id ->
+                ModelAnimationInfo(
+                    name = id,
+                    durationSeconds = animation.duration.takeIf { duration -> duration > 0f },
+                )
+            }
+        }
         val textureCount = sceneAsset?.textures?.size ?: textures.size
         return ModelAssetInfo(
             path = path,
@@ -876,8 +925,9 @@ class GdxAssetService(
             hasSkeleton = maxBonesPerPart > 0,
             boneCount = maxBonesPerPart,
             boneWeightChannelCount = attributeSummary.boneWeightChannelCount,
+            animations = animations,
             animationCount = model.animations.size,
-            animationNames = animationNames,
+            animationNames = animations.map(ModelAnimationInfo::name),
             meshParts = buildMeshPartInfos(nodes, model.materials),
             materials = materialInfos,
         )
@@ -906,9 +956,103 @@ class GdxAssetService(
         hasSkeleton = false,
         boneCount = 0,
         boneWeightChannelCount = 0,
+        animations = emptyList(),
         animationCount = 0,
         animationNames = emptyList(),
     )
+
+    private fun buildModelSkeletonInfo(model: Model): ModelSkeletonInfo? {
+        if (!supportsSkeletonSampling(model)) return null
+        val nodes = collectNodes(model.nodes)
+        if (nodes.isEmpty()) return null
+        val indexByNode = mutableMapOf<Node, Int>()
+        nodes.forEachIndexed { index, node -> indexByNode[node] = index }
+        return ModelSkeletonInfo(
+            bones = nodes.mapIndexed { index, node ->
+                ModelBoneInfo(
+                    index = index,
+                    name = node.id?.takeIf(String::isNotBlank),
+                    parentIndex = node.parent?.let(indexByNode::get),
+                )
+            },
+        )
+    }
+
+    private fun supportsSkeletonSampling(model: Model): Boolean {
+        val nodes = collectNodes(model.nodes)
+        val maxBonesPerPart = nodes.flatMap(::nodePartsOf).maxOfOrNull { part -> part.bones?.size ?: 0 } ?: 0
+        return maxBonesPerPart > 0 || model.animations.size > 0
+    }
+
+    private fun sampleStaticModelSkeletonPose(
+        asset: AssetRef<ModelAsset>,
+        animationName: String?,
+        timeSeconds: Float,
+    ): List<ModelBonePose> {
+        val model = gdxModel(asset) ?: return emptyList()
+        if (!supportsSkeletonSampling(model)) return emptyList()
+        val instance = poseSampledInstances.getOrPut(asset.path) { ModelInstance(model) }
+        val controller = poseSampledAnimationControllers.getOrPut(asset.path) { AnimationController(instance) }
+        sampleAnimationPose(instance, controller, animationName, timeSeconds)
+        return extractBonePoses(instance.nodes)
+    }
+
+    private fun sampleGltfSkeletonPose(
+        asset: AssetRef<ModelAsset>,
+        animationName: String?,
+        timeSeconds: Float,
+    ): List<ModelBonePose> {
+        val sceneAsset = gltfScene(asset) ?: return emptyList()
+        val model = sceneAsset.scene.model
+        if (!supportsSkeletonSampling(model)) return emptyList()
+        val scene = poseSampledGltfScenes.getOrPut(asset.path) {
+            GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
+        }
+        sampleAnimationPose(scene.modelInstance, scene.animationController, animationName, timeSeconds)
+        return extractBonePoses(scene.modelInstance.nodes)
+    }
+
+    private fun sampleAnimationPose(
+        instance: ModelInstance,
+        controller: AnimationController?,
+        animationName: String?,
+        timeSeconds: Float,
+    ) {
+        if (controller == null || instance.animations.isEmpty()) {
+            instance.calculateTransforms()
+            return
+        }
+        controller.paused = false
+        if (animationName.isNullOrBlank()) {
+            controller.setAnimation(null as String?)
+            controller.update(0f)
+            return
+        }
+        val animation = instance.getAnimation(animationName) ?: run {
+            controller.setAnimation(null as String?)
+            controller.update(0f)
+            return
+        }
+        controller.setAnimation(animationName, -1, 1f, null)
+        controller.current?.time = normalizedAnimationTime(animation, timeSeconds, loop = true)
+        controller.update(0f)
+    }
+
+    private fun extractBonePoses(nodes: Array<Node>): List<ModelBonePose> {
+        val collected = collectNodes(nodes)
+        val indexByNode = mutableMapOf<Node, Int>()
+        collected.forEachIndexed { index, node -> indexByNode[node] = index }
+        val translation = Vector3()
+        return collected.mapIndexed { index, node ->
+            node.globalTransform.getTranslation(translation)
+            ModelBonePose(
+                boneIndex = index,
+                name = node.id?.takeIf(String::isNotBlank),
+                parentIndex = node.parent?.let(indexByNode::get),
+                worldPosition = Vec3(translation.x, translation.y, translation.z),
+            )
+        }
+    }
 
     /**
      * Calculates the asset-local model bounds once from LibGDX model data.
@@ -1251,6 +1395,7 @@ class GdxRenderer3D(
     private val pbrPreviewRenderer = GdxGltfPbrPreviewRenderer(assets, logger)
     private val skyboxRenderer = GdxSkyboxRenderer(assets, logger)
     private val instances = mutableMapOf<ModelCacheKey, ModelInstance>()
+    private val animationControllers = mutableMapOf<ModelCacheKey, AnimationController>()
     private val gltfScenes = mutableMapOf<ModelCacheKey, GltfScene>()
     private val primitives = mutableMapOf<String, Model>()
     private val dynamicModels = mutableMapOf<String, DynamicModelCacheEntry>()
@@ -1400,6 +1545,7 @@ class GdxRenderer3D(
         modelViewerDebugRenderer.dispose()
         pbrPreviewRenderer.dispose()
         skyboxRenderer.dispose()
+        animationControllers.clear()
         primitives.values.forEach { it.dispose() }
         dynamicModels.values.forEach { it.model.dispose() }
         assets.dispose()
@@ -1430,6 +1576,7 @@ class GdxRenderer3D(
         }
 
         instance.materials.forEach { applyMaterialAttributes(it, command.material) }
+        applyAnimationPreview(instance, cacheKey, command.animation)
 
         val transform = command.transform
         instance.transform.idt()
@@ -1453,9 +1600,10 @@ class GdxRenderer3D(
             val scene = gltfScenes.getOrPut(cacheKey) {
                 GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
             }
+            applyAnimationPreview(scene, command.animation)
             applyTransform(scene.modelInstance, command)
             applyVisibleMeshPartFilter(scene.modelInstance, command.visibleMeshPartIndices)
-            scene.update(camera, Gdx.graphics.deltaTime)
+            scene.update(camera, if (command.animation != null) 0f else Gdx.graphics.deltaTime)
             scene.modelInstance
         } else {
             val model = if (command.model.isPrimitive) {
@@ -1474,6 +1622,7 @@ class GdxRenderer3D(
                 }
             }.also { prepared ->
                 prepared.materials.forEach { applyMaterialAttributes(it, command.material) }
+                applyAnimationPreview(prepared, cacheKey, command.animation)
                 applyTransform(prepared, command)
                 applyVisibleMeshPartFilter(prepared, command.visibleMeshPartIndices)
             }
@@ -1531,6 +1680,7 @@ class GdxRenderer3D(
         val scene = gltfScenes.getOrPut(cacheKey) {
             GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
         }
+        applyAnimationPreview(scene, command.animation)
 
         val transform = command.transform
         scene.modelInstance.transform.idt()
@@ -1540,7 +1690,7 @@ class GdxRenderer3D(
         scene.modelInstance.transform.rotate(Vector3.Z, transform.eulerDegrees.z)
         scene.modelInstance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
         applyVisibleMeshPartFilter(scene.modelInstance, command.visibleMeshPartIndices)
-        scene.update(camera, Gdx.graphics.deltaTime)
+        scene.update(camera, if (command.animation != null) 0f else Gdx.graphics.deltaTime)
         modelBatch.render(scene, environment)
     }
 
@@ -1568,6 +1718,7 @@ class GdxRenderer3D(
                     instances[cacheKey] = created
                 }
             }.also { instance ->
+                applyAnimationPreview(instance, cacheKey, command.animation)
                 applyTransform(instance, command)
                 applyVisibleMeshPartFilter(instance, command.visibleMeshPartIndices)
             }
@@ -1602,11 +1753,50 @@ class GdxRenderer3D(
         val scene = gltfScenes.getOrPut(cacheKey) {
             GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
         }
+        applyAnimationPreview(scene, command.animation)
         applyTransform(scene.modelInstance, command)
         applyVisibleMeshPartFilter(scene.modelInstance, command.visibleMeshPartIndices)
-        scene.update(camera, Gdx.graphics.deltaTime)
+        scene.update(camera, if (command.animation != null) 0f else Gdx.graphics.deltaTime)
         return scene
     }
+
+    private fun applyAnimationPreview(
+        instance: ModelInstance,
+        cacheKey: ModelCacheKey,
+        preview: AnimationPlaybackView?,
+    ) {
+        if (instance.animations.isEmpty()) return
+        val controller = animationControllers.getOrPut(cacheKey) { AnimationController(instance) }
+        applyAnimationPreview(instance, controller, preview)
+    }
+
+    private fun applyAnimationPreview(scene: GltfScene, preview: AnimationPlaybackView?) {
+        applyAnimationPreview(scene.modelInstance, scene.animationController, preview)
+    }
+
+    private fun applyAnimationPreview(
+        instance: ModelInstance,
+        controller: AnimationController?,
+        preview: AnimationPlaybackView?,
+    ) {
+        if (controller == null || instance.animations.isEmpty()) return
+        val animationName = preview?.animationName
+        if (animationName.isNullOrBlank()) {
+            controller.setAnimation(null as String?)
+            controller.update(0f)
+            return
+        }
+        val animation = instance.getAnimation(animationName) ?: run {
+            controller.setAnimation(null as String?)
+            controller.update(0f)
+            return
+        }
+        controller.paused = false
+        controller.setAnimation(animationName, if (preview.loop) -1 else 1, 1f, null)
+        controller.current?.time = normalizedAnimationTime(animation, preview.timeSeconds, preview.loop)
+        controller.update(0f)
+    }
+
 
     /** Applies a draw command's transform to the instance. */
     private fun applyTransform(instance: ModelInstance, command: DrawModel) {
@@ -2949,6 +3139,13 @@ class GdxLineShaderRenderer {
 /** Returns whether the asset reference points to a glTF or GLB model. */
 private fun AssetRef<*>.isGltf(): Boolean =
     path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true)
+
+private fun normalizedAnimationTime(animation: Animation, timeSeconds: Float, loop: Boolean): Float {
+    val duration = animation.duration.takeIf { it > 0f } ?: return 0f
+    if (!loop) return timeSeconds.coerceIn(0f, duration)
+    val wrapped = timeSeconds % duration
+    return if (wrapped < 0f) wrapped + duration else wrapped
+}
 
 private fun systemBoolean(name: String, default: Boolean): Boolean {
     val envName = name.replace('.', '_').uppercase()

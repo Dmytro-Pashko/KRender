@@ -52,6 +52,7 @@ class AssetBrowserScene : Scene("asset_browser") {
         browserState = AssetBrowserState()
         tools = AssetToolRegistry(engine.logger).apply {
             register(ModelViewerAssetTool())
+            register(AnimationViewerAssetTool())
             register(TerrainEditorAssetTool())
             register(SceneEditorAssetTool())
             register(SceneRuntimeAssetTool())
@@ -274,6 +275,26 @@ class ModelViewerAssetTool : AssetTool {
 
     companion object {
         private const val TAG = "ModelViewerAssetTool"
+    }
+}
+
+/**
+ * Opens model assets in a separate Animation Viewer window.
+ */
+class AnimationViewerAssetTool : AssetTool {
+    override val id = "animation-viewer"
+    override val displayName = "Open in Animation Viewer"
+    override val supportedCategories = setOf(AssetCategory.Model)
+    override val defaultAction = false
+
+    override fun open(asset: AssetDescriptor, context: EngineContext) {
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Opening model asset '$path' in Animation Viewer" }
+        context.editorToolLauncher.launchAnimationViewer(path)
+    }
+
+    companion object {
+        private const val TAG = "AnimationViewerAssetTool"
     }
 }
 

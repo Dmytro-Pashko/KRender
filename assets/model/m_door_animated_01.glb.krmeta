@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:007d28f3-a26b-409a-88b4-bb8d80d65af4",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_door_animated_01",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

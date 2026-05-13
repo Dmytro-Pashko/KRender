@@ -90,6 +90,16 @@ interface AssetService {
     /** Returns a metadata snapshot for a loaded model asset when available. */
     fun modelInfo(asset: AssetRef<ModelAsset>): ModelAssetInfo? = null
 
+    /** Returns backend-neutral skeleton metadata for a loaded model asset when available. */
+    fun modelSkeleton(asset: AssetRef<ModelAsset>): ModelSkeletonInfo? = null
+
+    /** Returns backend-neutral skeleton pose data sampled from the loaded model asset when available. */
+    fun modelSkeletonPose(
+        asset: AssetRef<ModelAsset>,
+        animationName: String? = null,
+        timeSeconds: Float = 0f,
+    ): List<ModelBonePose> = emptyList()
+
     /** Returns cached local-space bounds for a loaded model asset when available. */
     fun modelBounds(asset: AssetRef<ModelAsset>): ModelAssetBounds? = null
 
@@ -174,6 +184,54 @@ data class ModelAssetBounds(
     val min: Vec3,
     /** Maximum model-space corner. */
     val max: Vec3,
+)
+
+/**
+ * Describes one named animation clip exposed by a loaded model asset.
+ */
+data class ModelAnimationInfo(
+    /** Stable animation name/id, when exposed by the backend. */
+    val name: String,
+    /** Animation duration in seconds, when known. */
+    val durationSeconds: Float? = null,
+)
+
+/**
+ * Describes one backend-neutral skeleton node or bone.
+ */
+data class ModelBoneInfo(
+    /** Stable index within the skeleton hierarchy. */
+    val index: Int,
+    /** Bone or node name, when available. */
+    val name: String?,
+    /** Parent bone index, null for a root node. */
+    val parentIndex: Int?,
+)
+
+/**
+ * Backend-neutral skeleton hierarchy metadata.
+ */
+data class ModelSkeletonInfo(
+    /** Flat bone list in parent-before-child order. */
+    val bones: List<ModelBoneInfo> = emptyList(),
+) {
+    /** Returns the number of bones/nodes included in this skeleton snapshot. */
+    val boneCount: Int
+        get() = bones.size
+}
+
+/**
+ * One sampled backend-neutral skeleton pose point.
+ */
+data class ModelBonePose(
+    /** Bone index matching [ModelSkeletonInfo.bones]. */
+    val boneIndex: Int,
+    /** Bone or node name, when available. */
+    val name: String?,
+    /** Parent bone index, null for a root node. */
+    val parentIndex: Int?,
+    /** Model-space position of the sampled bone. */
+    val worldPosition: Vec3,
 )
 
 /**
@@ -280,10 +338,12 @@ data class ModelAssetInfo(
     val boneCount: Int,
     /** Maximum number of bone-weight channels present per vertex. */
     val boneWeightChannelCount: Int,
+    /** Detailed animation metadata extracted from the backend model. */
+    val animations: List<ModelAnimationInfo> = emptyList(),
     /** Total number of animations available on the model. */
-    val animationCount: Int,
+    val animationCount: Int = animations.size,
     /** Animation ids exposed by the loaded model. */
-    val animationNames: List<String>,
+    val animationNames: List<String> = animations.map(ModelAnimationInfo::name),
     /** Detailed mesh-part metadata for inspection UI. */
     val meshParts: List<ModelMeshPartInfo> = emptyList(),
     /** Detailed material metadata for inspection UI. */
