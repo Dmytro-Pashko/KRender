@@ -6,6 +6,7 @@ import com.pashkd.krender.engine.animationviewer.AnimationViewerLoadingPanel
 import com.pashkd.krender.engine.animationviewer.AnimationViewerModelRenderSystem
 import com.pashkd.krender.engine.animationviewer.AnimationViewerOperations
 import com.pashkd.krender.engine.animationviewer.AnimationViewerPlaybackPanel
+import com.pashkd.krender.engine.animationviewer.AnimationViewerSkeletonPanel
 import com.pashkd.krender.engine.animationviewer.AnimationViewerSkeletonRenderSystem
 import com.pashkd.krender.engine.animationviewer.AnimationViewerState
 import com.pashkd.krender.engine.animationviewer.AnimationViewerSystem
@@ -259,6 +260,11 @@ class AnimationViewerScene(
             )
             addPanel(
                 uiSystem,
+                "Skeleton",
+                AnimationViewerSkeletonPanel(viewerState, operations, layoutConfig, layoutTracker, panelEventLogger),
+            )
+            addPanel(
+                uiSystem,
                 "Loading",
                 AnimationViewerLoadingPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
             )
@@ -273,7 +279,7 @@ class AnimationViewerScene(
                     initialAutoScrollToLatest = true,
                 ),
             )
-            engine.logger.info(TAG) { "AnimationViewer UI panels registered count=6" }
+            engine.logger.info(TAG) { "AnimationViewer UI panels registered count=7" }
         }
 
     private fun addSystem(name: String, system: com.pashkd.krender.engine.api.System) {

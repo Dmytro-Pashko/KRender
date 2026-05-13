@@ -118,34 +118,6 @@
       ]
     },
     {
-      "id": 10,
-      "name": "e_actor",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "e_actor"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "-0.9,0.05,3.843",
-            "rotation": "0.0,180.0,0.0",
-            "scale": "1.0,1.0,1.0"
-          }
-        },
-        {
-          "type": "ModelComponent",
-          "properties": {
-            "model": "model/m_actor_human_0.glb"
-          }
-        }
-      ]
-    },
-    {
       "id": 12,
       "name": "e_rock_02",
       "active": true,
@@ -1219,90 +1191,6 @@
       ]
     },
     {
-      "id": 76,
-      "name": "e_concrete_brick_01",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "e_concrete_brick_01"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "8.419,0.0,8.476",
-            "rotation": "0.0,89.2,0.0",
-            "scale": "5.0,5.0,5.1"
-          }
-        },
-        {
-          "type": "ModelComponent",
-          "properties": {
-            "model": "model/m_concrete_brick_01.glb"
-          }
-        }
-      ]
-    },
-    {
-      "id": 77,
-      "name": "e_concrete_brick_02",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "e_concrete_brick_02"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "8.369,0.0,10.276",
-            "rotation": "0.0,278.8,0.0",
-            "scale": "5.0,5.0,5.1"
-          }
-        },
-        {
-          "type": "ModelComponent",
-          "properties": {
-            "model": "model/m_concrete_brick_01.glb"
-          }
-        }
-      ]
-    },
-    {
-      "id": 78,
-      "name": "e_concrete_brick_03",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "e_concrete_brick_03"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "8.369,0.583,9.726",
-            "rotation": "0.65,267.45,0.0",
-            "scale": "5.0,5.0,5.1"
-          }
-        },
-        {
-          "type": "ModelComponent",
-          "properties": {
-            "model": "model/m_concrete_brick_01.glb"
-          }
-        }
-      ]
-    },
-    {
       "id": 79,
       "name": "Terrain 02 Small Flat",
       "active": true,
@@ -1472,6 +1360,34 @@
           "type": "ModelComponent",
           "properties": {
             "model": "model/m_tree_06.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "name": "M Actor Human 1",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Actor Human 1"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-0.903,0.0,7.261",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_actor_human_1.glb"
           }
         }
       ]

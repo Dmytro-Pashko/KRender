@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.animationviewer
 
 import com.pashkd.krender.engine.api.ModelAssetInfo
+import com.pashkd.krender.engine.api.ModelBoneInfo
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
@@ -221,6 +222,122 @@ class AnimationViewerAnimationsPanel(
 }
 
 /**
+ * Shows read-only skeleton hierarchy, inspection details, and debug rendering toggles.
+ */
+class AnimationViewerSkeletonPanel(
+    private val state: AnimationViewerState,
+    private val operations: AnimationViewerOperations,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    override fun draw() {
+        val expanded = beginAnimationViewerPanel(AnimationViewerPanelIds.Skeleton, layoutConfig, layoutTracker, eventLogger)
+        if (!expanded) {
+            state.hoveredBoneIndex = null
+            ImGui.end()
+            return
+        }
+
+        val bones = state.skeletonInfo?.bones.orEmpty()
+        state.hoveredBoneIndex = null
+
+        textLine("Skeleton metadata: ${availabilityLabel(state.hasSkeletonData)}")
+        textLine("Skeleton preview: ${skeletonPreviewStatusLabel(state)}")
+        textLine("Skeleton nodes: ${bones.size}")
+        textLine("Selected bone: ${state.selectedBoneName ?: state.selectedBone?.let(::boneDisplayName) ?: "None"}")
+        state.skeletonWarning?.let { warning -> textLine("Warning: $warning") }
+
+        ImGui.separator()
+        ImGui.checkbox("Show joints##animation_viewer_show_skeleton_joints", state::showSkeletonJoints)
+        ImGui.checkbox("Highlight connected bones##animation_viewer_highlight_connected_bones", state::highlightConnectedBones)
+        slider(
+            "Joint size##animation_viewer_skeleton_joint_size",
+            state::skeletonJointSize,
+            MinJointSize,
+            MaxJointSize,
+            "%.3f",
+            SliderFlag.AlwaysClamp,
+        )
+        with(dsl) {
+            button("Clear Selection##animation_viewer_clear_bone_selection") { operations.clearBoneSelection() }
+        }
+
+        ImGui.separator()
+        drawSelectedBoneDetails(bones)
+        ImGui.separator()
+        ImGui.text("Bones")
+        if (bones.isEmpty()) {
+            ImGui.text("No skeleton nodes found.")
+            ImGui.end()
+            return
+        }
+
+        ImGui.beginChild("animation_viewer_skeleton_bone_list", ImVec2(0f, 0f), true)
+        drawBoneList(bones)
+        ImGui.endChild()
+        ImGui.end()
+    }
+
+    private fun drawSelectedBoneDetails(bones: List<ModelBoneInfo>) {
+        ImGui.text("Selected Bone")
+        val selectedBone = state.selectedBone
+        if (selectedBone == null) {
+            textLine("None")
+            return
+        }
+
+        val parent = bones.firstOrNull { bone -> bone.index == selectedBone.parentIndex }
+        val children = bones.filter { bone -> bone.parentIndex == selectedBone.index }
+        val pose = state.selectedBonePose
+        textLine("Index: ${selectedBone.index}")
+        textLine("Name: ${boneDisplayName(selectedBone)}")
+        textLine("Parent: ${parent?.let(::boneDebugSummary) ?: "none"}")
+        textLine(
+            "Children: ${children.takeIf(List<ModelBoneInfo>::isNotEmpty)?.joinToString { child -> boneDebugSummary(child) } ?: "none"}",
+        )
+        textLine("Pose: ${pose?.worldPosition?.let(::formatPosition) ?: "unavailable"}")
+    }
+
+    private fun drawBoneList(bones: List<ModelBoneInfo>) {
+        val childrenByParent = bones.groupBy(ModelBoneInfo::parentIndex)
+        val visited = linkedSetOf<Int>()
+        childrenByParent[null].orEmpty().forEach { root ->
+            drawBoneNode(root, childrenByParent, visited, depth = 0)
+        }
+        bones.filterNot { bone -> bone.index in visited }.forEach { bone ->
+            drawBoneNode(bone, childrenByParent, visited, depth = 0)
+        }
+    }
+
+    private fun drawBoneNode(
+        bone: ModelBoneInfo,
+        childrenByParent: Map<Int?, List<ModelBoneInfo>>,
+        visited: MutableSet<Int>,
+        depth: Int,
+    ) {
+        if (!visited.add(bone.index)) return
+
+        val label = "${"  ".repeat(depth.coerceAtLeast(0))}${boneDisplayName(bone)}"
+        if (ImGui.selectable("$label##animation_viewer_bone_${bone.index}", state.selectedBoneIndex == bone.index)) {
+            operations.selectBone(bone.index)
+        }
+        if (ImGui.isItemHovered()) {
+            state.hoveredBoneIndex = bone.index
+        }
+
+        childrenByParent[bone.index].orEmpty().forEach { child ->
+            drawBoneNode(child, childrenByParent, visited, depth + 1)
+        }
+    }
+
+    companion object {
+        private const val MinJointSize = 0.01f
+        private const val MaxJointSize = 0.5f
+    }
+}
+
+/**
  * Shows playback state and controls for the selected animation.
  */
 class AnimationViewerPlaybackPanel(
@@ -367,6 +484,10 @@ private fun formatPosition(position: Vec3): String =
 private fun formatSeconds(value: Float): String = "%.3f s".format(value)
 
 private fun availabilityLabel(available: Boolean): String = if (available) "available" else "unavailable"
+
+private fun boneDisplayName(bone: ModelBoneInfo): String = bone.name?.takeIf(String::isNotBlank) ?: "Bone #${bone.index}"
+
+private fun boneDebugSummary(bone: ModelBoneInfo): String = "${boneDisplayName(bone)} / index ${bone.index}"
 
 private fun animationPreviewStatusLabel(state: AnimationViewerState): String = when (state.animationPreviewStatus) {
     AnimationPreviewStatus.Unsupported -> "unsupported"

@@ -1,9 +1,18 @@
 package com.pashkd.krender.engine.animationviewer
+import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
+import com.pashkd.krender.engine.api.Axis
 import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.DrawModel
+import com.pashkd.krender.engine.api.EngineContext
+import com.pashkd.krender.engine.api.EventBus
+import com.pashkd.krender.engine.api.FrameProfilerService
+import com.pashkd.krender.engine.api.FrameRuntimeStatsService
+import com.pashkd.krender.engine.api.InputService
+import com.pashkd.krender.engine.api.InputSnapshot
 import com.pashkd.krender.engine.api.LogLevel
+import com.pashkd.krender.engine.api.LogService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.ModelAnimationInfo
 import com.pashkd.krender.engine.api.ModelAsset
@@ -11,11 +20,28 @@ import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.ModelBoneInfo
 import com.pashkd.krender.engine.api.ModelBonePose
 import com.pashkd.krender.engine.api.ModelSkeletonInfo
+import com.pashkd.krender.engine.api.ProfilerService
+import com.pashkd.krender.engine.api.RuntimeStatsService
+import com.pashkd.krender.engine.api.SceneManager
 import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.TaskService
+import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
+import com.pashkd.krender.engine.scene.EditorToolLauncher
+import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
+import com.pashkd.krender.engine.scene.SceneFileService
+import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
+import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
+import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
+import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.NoOpUiService
+import com.pashkd.krender.engine.ui.UiService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -36,6 +62,74 @@ class AnimationViewerSystemTest {
         assertEquals(AnimationViewerState.UnknownDurationPreviewWindowSeconds, clampAnimationTime(12f, null))
         assertEquals(4.5f, clampAnimationTime(4.5f, 0f))
     }
+
+    @Test
+    fun `selecting a valid bone updates state`() {
+        val state = AnimationViewerState(model = AssetRef.model("models/animated.glb")).apply {
+            skeletonInfo = ModelSkeletonInfo(
+                bones = listOf(
+                    ModelBoneInfo(0, "Root", null),
+                    ModelBoneInfo(1, "Hips", 0),
+                ),
+            )
+        }
+        val logger = CollectingLogger()
+        val operations = AnimationViewerOperations(
+            state = state,
+            context = TestEngineContext(logger = logger),
+            layoutTracker = ImGuiLayoutRuntimeTracker(ImGuiLayoutConfig(emptyMap())),
+        )
+
+        operations.selectBone(1)
+
+        assertEquals(1, state.selectedBoneIndex)
+        assertEquals("Hips", state.selectedBoneName)
+        assertEquals("Selected bone: Hips", state.statusMessage)
+        assertTrue(
+            logger.entries.any { entry ->
+                entry.level == LogLevel.Info && entry.message == "AnimationViewer bone selected index=1 name='Hips'"
+            },
+        )
+    }
+
+    @Test
+    fun `selecting an invalid bone clears selection without crashing`() {
+        val state = AnimationViewerState(model = AssetRef.model("models/animated.glb")).apply {
+            skeletonInfo = ModelSkeletonInfo(bones = listOf(ModelBoneInfo(0, "Root", null)))
+            selectedBoneIndex = 0
+            selectedBoneName = "Root"
+        }
+        val operations = AnimationViewerOperations(
+            state = state,
+            context = TestEngineContext(),
+            layoutTracker = ImGuiLayoutRuntimeTracker(ImGuiLayoutConfig(emptyMap())),
+        )
+
+        operations.selectBone(99)
+
+        assertNull(state.selectedBoneIndex)
+        assertNull(state.selectedBoneName)
+        assertEquals("Selected bone is unavailable.", state.statusMessage)
+    }
+
+    @Test
+    fun `connected bone indices include direct parent and children only`() {
+        val state = AnimationViewerState(model = AssetRef.model("models/animated.glb")).apply {
+            skeletonInfo = ModelSkeletonInfo(
+                bones = listOf(
+                    ModelBoneInfo(0, "Root", null),
+                    ModelBoneInfo(1, "Hips", 0),
+                    ModelBoneInfo(2, "Spine", 1),
+                    ModelBoneInfo(3, "LeftLeg", 1),
+                    ModelBoneInfo(4, "Chest", 2),
+                ),
+            )
+            selectedBoneIndex = 1
+        }
+
+        assertEquals(setOf(0, 2, 3), state.connectedBoneIndices())
+    }
+
     @Test
     fun `playback clamps and pauses at clip end when loop is disabled`() {
         val model = AssetRef.model("models/animated.glb")
@@ -191,12 +285,45 @@ class AnimationViewerSystemTest {
         assertEquals(SkeletonPreviewStatus.Inactive, state.skeletonPreviewStatus)
         assertEquals(0, assets.modelSkeletonPoseCallCount)
     }
+
+    @Test
+    fun `switching to a model without skeleton clears selected bone`() {
+        val model = AssetRef.model("models/animated.glb")
+        val state = AnimationViewerState(model = model).apply {
+            selectedBoneIndex = 1
+            selectedBoneName = "Hips"
+        }
+        val world = SceneWorld()
+        val entity = world.createEntity("Model")
+        entity.add(ModelComponent(model))
+        state.modelEntityId = entity.id
+        world.systems.add(
+            AnimationViewerSystem(
+                assets = FakeAssetService(
+                    loaded = true,
+                    modelInfo = modelInfo(hasSkeleton = false, boneCount = 0),
+                    skeletonInfo = null,
+                ),
+                logger = NoopLogger,
+                state = state,
+                onExitRequested = {},
+            ),
+        )
+
+        world.update(0.016f)
+
+        assertNull(state.selectedBoneIndex)
+        assertNull(state.selectedBoneName)
+        assertEquals("Selected bone cleared because skeleton changed.", state.statusMessage)
+    }
+
     @Test
     fun `skeleton render emits parent child bone lines from cached pose`() {
         val model = AssetRef.model("models/animated.glb")
         val state = AnimationViewerState(model = model).apply {
             assetLoaded = true
             viewMode = AnimationViewerViewMode.Skeleton
+            showSkeletonJoints = false
             skeletonInfo = ModelSkeletonInfo(
                 bones = listOf(
                     ModelBoneInfo(0, "Root", null),
@@ -220,6 +347,122 @@ class AnimationViewerSystemTest {
         assertEquals(Vec3(0f, 0f, 0f), line.from)
         assertEquals(Vec3(0f, 1f, 0f), line.to)
     }
+
+    @Test
+    fun `skeleton render highlights selected bone and connected child with different colors`() {
+        val model = AssetRef.model("models/animated.glb")
+        val state = AnimationViewerState(model = model).apply {
+            assetLoaded = true
+            viewMode = AnimationViewerViewMode.Skeleton
+            showSkeletonJoints = false
+            highlightConnectedBones = true
+            selectedBoneIndex = 1
+            skeletonInfo = ModelSkeletonInfo(
+                bones = listOf(
+                    ModelBoneInfo(0, "Root", null),
+                    ModelBoneInfo(1, "Child", 0),
+                    ModelBoneInfo(2, "GrandChild", 1),
+                    ModelBoneInfo(3, "Sibling", 0),
+                ),
+            )
+            sampledSkeletonPose = listOf(
+                ModelBonePose(0, "Root", null, Vec3(0f, 0f, 0f)),
+                ModelBonePose(1, "Child", 0, Vec3(0f, 1f, 0f)),
+                ModelBonePose(2, "GrandChild", 1, Vec3(0f, 2f, 0f)),
+                ModelBonePose(3, "Sibling", 0, Vec3(1f, 1f, 0f)),
+            )
+        }
+        val world = SceneWorld()
+        val entity = world.createEntity("Model")
+        entity.add(ModelComponent(model))
+        state.modelEntityId = entity.id
+        world.systems.add(AnimationViewerSkeletonRenderSystem(state))
+
+        world.render(alpha = 0f)
+
+        val commands = world.renderCommands.snapshot().filterIsInstance<DrawLine>()
+        assertEquals(3, commands.size)
+        assertTrue(
+            commands.any { command ->
+                command.from == Vec3(0f, 0f, 0f) &&
+                    command.to == Vec3(0f, 1f, 0f) &&
+                    command.color == SelectedBoneColor
+            },
+        )
+        assertTrue(
+            commands.any { command ->
+                command.from == Vec3(0f, 1f, 0f) &&
+                    command.to == Vec3(0f, 2f, 0f) &&
+                    command.color == ConnectedBoneColor
+            },
+        )
+        assertTrue(
+            commands.any { command ->
+                command.from == Vec3(0f, 0f, 0f) &&
+                    command.to == Vec3(1f, 1f, 0f) &&
+                    command.color == SkeletonColor
+            },
+        )
+    }
+
+    @Test
+    fun `skeleton render emits joint cross lines when enabled`() {
+        val model = AssetRef.model("models/animated.glb")
+        val state = AnimationViewerState(model = model).apply {
+            assetLoaded = true
+            viewMode = AnimationViewerViewMode.Skeleton
+            showSkeletonJoints = true
+            skeletonInfo = ModelSkeletonInfo(
+                bones = listOf(
+                    ModelBoneInfo(0, "Root", null),
+                    ModelBoneInfo(1, "Child", 0),
+                ),
+            )
+            sampledSkeletonPose = listOf(
+                ModelBonePose(0, "Root", null, Vec3(0f, 0f, 0f)),
+                ModelBonePose(1, "Child", 0, Vec3(0f, 1f, 0f)),
+            )
+        }
+        val world = SceneWorld()
+        val entity = world.createEntity("Model")
+        entity.add(ModelComponent(model))
+        state.modelEntityId = entity.id
+        world.systems.add(AnimationViewerSkeletonRenderSystem(state))
+
+        world.render(alpha = 0f)
+
+        assertEquals(7, world.renderCommands.snapshot().filterIsInstance<DrawLine>().size)
+    }
+
+    @Test
+    fun `skeleton render does not emit joint cross lines when disabled`() {
+        val model = AssetRef.model("models/animated.glb")
+        val state = AnimationViewerState(model = model).apply {
+            assetLoaded = true
+            viewMode = AnimationViewerViewMode.Skeleton
+            showSkeletonJoints = false
+            skeletonInfo = ModelSkeletonInfo(
+                bones = listOf(
+                    ModelBoneInfo(0, "Root", null),
+                    ModelBoneInfo(1, "Child", 0),
+                ),
+            )
+            sampledSkeletonPose = listOf(
+                ModelBonePose(0, "Root", null, Vec3(0f, 0f, 0f)),
+                ModelBonePose(1, "Child", 0, Vec3(0f, 1f, 0f)),
+            )
+        }
+        val world = SceneWorld()
+        val entity = world.createEntity("Model")
+        entity.add(ModelComponent(model))
+        state.modelEntityId = entity.id
+        world.systems.add(AnimationViewerSkeletonRenderSystem(state))
+
+        world.render(alpha = 0f)
+
+        assertEquals(1, world.renderCommands.snapshot().filterIsInstance<DrawLine>().size)
+    }
+
     @Test
     fun `unknown-duration animation preview command disables loop`() {
         val model = AssetRef.model("models/animated.glb")
@@ -355,6 +598,56 @@ class AnimationViewerSystemTest {
             entries += LoggedEntry(level, tag, message())
         }
     }
+
+    private class TestEngineContext(
+        override val logger: Logger = NoopLogger,
+        override val assets: AssetService = FakeAssetService(),
+    ) : EngineContext {
+        override val scenes: SceneManager = SceneManager()
+        override val sceneFiles: SceneFileService = object : SceneFileService {
+            override fun writeText(path: String, text: String) = Unit
+            override fun readText(path: String): String = error("unused")
+            override fun ensureDirectories(path: String) = Unit
+            override fun exists(path: String): Boolean = false
+            override fun describeReadableSource(path: String): String = "test"
+        }
+        override val runtimeLauncher: RuntimeWindowLauncher = UnsupportedRuntimeWindowLauncher
+        override val editorToolLauncher: EditorToolLauncher = UnsupportedEditorToolLauncher
+        override val input: InputService = object : InputService {
+            override fun beginFrame() = Unit
+            override fun snapshot(): InputSnapshot = InputSnapshot()
+            override fun endFrame() = Unit
+            override fun setCursorCaptured(captured: Boolean) = Unit
+            override fun isActionPressed(action: Action): Boolean = false
+            override fun isActionJustPressed(action: Action): Boolean = false
+            override fun axis(axis: Axis): Float = 0f
+        }
+        override val ui: UiService = NoOpUiService()
+        override val events: EventBus = EventBus()
+        override val logs: LogService = object : LogService {
+            override val recentEntries: List<com.pashkd.krender.engine.api.LogEntry> = emptyList()
+            override var minLevel: LogLevel = LogLevel.Trace
+            override fun record(entry: com.pashkd.krender.engine.api.LogEntry) = Unit
+            override fun clear() = Unit
+            override fun addSink(sink: com.pashkd.krender.engine.api.LogSink) = Unit
+            override fun removeSink(sink: com.pashkd.krender.engine.api.LogSink) = Unit
+        }
+        override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
+        override val profiler: ProfilerService = FrameProfilerService()
+        override val tasks: TaskService = object : TaskService {
+            override val inFlightJobs: Int = 0
+            override fun launchBackground(name: String, block: suspend CoroutineScope.() -> Unit): Job = Job()
+            override suspend fun <T> onBackground(block: suspend () -> T): T = block()
+            override suspend fun <T> onIo(block: suspend () -> T): T = block()
+            override suspend fun <T> onMain(block: suspend () -> T): T = block()
+            override fun postToMain(block: () -> Unit) = block()
+            override fun flushMainThreadQueue() = Unit
+            override fun dispose() = Unit
+        }
+        override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory? = null
+        override fun requestExit() = Unit
+    }
+
     private data class LoggedEntry(
         val level: LogLevel,
         val tag: String,
@@ -362,5 +655,8 @@ class AnimationViewerSystemTest {
     )
     companion object {
         private const val UnknownDurationPreviewWindowSeconds = AnimationViewerState.UnknownDurationPreviewWindowSeconds
+        private val SkeletonColor = Color(0.35f, 0.95f, 1f, 1f)
+        private val SelectedBoneColor = Color(1f, 0.35f, 0.15f, 1f)
+        private val ConnectedBoneColor = Color(1f, 0.85f, 0.2f, 1f)
     }
 }

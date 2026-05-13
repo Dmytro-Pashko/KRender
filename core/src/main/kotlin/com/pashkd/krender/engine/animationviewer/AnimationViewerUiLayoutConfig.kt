@@ -10,6 +10,7 @@ object AnimationViewerPanelIds {
     const val Toolbar = "toolbar"
     const val Viewport = "viewport"
     const val Animations = "animations"
+    const val Skeleton = "skeleton"
     const val Playback = "playback"
     const val Loading = "loading"
     const val Logs = "runtimeLogs"
@@ -51,6 +52,13 @@ object AnimationViewerUiLayoutDefaults {
                 width = 360f,
                 height = 320f,
             ),
+            AnimationViewerPanelIds.Skeleton to ImGuiPanelLayout(
+                title = "Skeleton",
+                x = 452f,
+                y = 488f,
+                width = 360f,
+                height = 360f,
+            ),
             AnimationViewerPanelIds.Loading to ImGuiPanelLayout(
                 title = "Loading",
                 x = 720f,
@@ -60,10 +68,10 @@ object AnimationViewerUiLayoutDefaults {
             ),
             AnimationViewerPanelIds.Logs to ImGuiPanelLayout(
                 title = "Runtime Logs",
-                x = 452f,
+                x = 828f,
                 y = 488f,
-                width = 736f,
-                height = 260f,
+                width = 360f,
+                height = 360f,
             ),
         ),
     )

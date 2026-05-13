@@ -4,6 +4,7 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.ModelAssetInfo
+import com.pashkd.krender.engine.api.ModelBoneInfo
 import com.pashkd.krender.engine.api.ModelBonePose
 import com.pashkd.krender.engine.api.ModelSkeletonInfo
 import com.pashkd.krender.engine.api.Vec2
@@ -137,6 +138,24 @@ data class AnimationViewerState(
     /** Skeleton pose sampled during update and reused during render. */
     var sampledSkeletonPose: List<ModelBonePose> = emptyList(),
 
+    /** Currently selected skeleton bone index. */
+    var selectedBoneIndex: Int? = null,
+
+    /** Currently selected skeleton bone name. */
+    var selectedBoneName: String? = null,
+
+    /** Skeleton bone index currently hovered in the UI, if any. */
+    var hoveredBoneIndex: Int? = null,
+
+    /** Whether sampled joint markers should be rendered with the skeleton overlay. */
+    var showSkeletonJoints: Boolean = true,
+
+    /** Whether the selected bone parent/children should be highlighted. */
+    var highlightConnectedBones: Boolean = true,
+
+    /** Half-size of the debug joint cross in model space. */
+    var skeletonJointSize: Float = 0.06f,
+
     /** Animation name used to produce [sampledSkeletonPose]. */
     var sampledSkeletonPoseAnimationName: String? = null,
 
@@ -172,6 +191,18 @@ data class AnimationViewerState(
     val hasSkeletonData: Boolean
         get() = skeletonInfo?.bones?.isNotEmpty() == true
 
+    /** Resolves the selected bone metadata from the current skeleton snapshot. */
+    val selectedBone: ModelBoneInfo?
+        get() = selectedBoneIndex?.let { selected ->
+            skeletonInfo?.bones?.firstOrNull { bone -> bone.index == selected }
+        }
+
+    /** Resolves the selected sampled bone pose from the current cached pose snapshot. */
+    val selectedBonePose: ModelBonePose?
+        get() = selectedBoneIndex?.let { selected ->
+            sampledSkeletonPose.firstOrNull { pose -> pose.boneIndex == selected }
+        }
+
     /** Returns whether the selected animation has a known duration. */
     val hasKnownSelectedAnimationDuration: Boolean
         get() = durationSeconds?.let { duration -> duration > 0f } == true
@@ -179,6 +210,21 @@ data class AnimationViewerState(
     /** Returns whether looping is safe for the current selected animation. */
     val canLoopSelectedAnimation: Boolean
         get() = hasKnownSelectedAnimationDuration
+
+    /** Returns the currently selected bone parent and direct children, if any. */
+    fun connectedBoneIndices(): Set<Int> {
+        val selected = selectedBoneIndex ?: return emptySet()
+        val bones = skeletonInfo?.bones.orEmpty()
+        if (bones.isEmpty()) return emptySet()
+        val connected = linkedSetOf<Int>()
+        bones.firstOrNull { bone -> bone.index == selected }
+            ?.parentIndex
+            ?.let(connected::add)
+        bones.asSequence()
+            .filter { bone -> bone.parentIndex == selected }
+            .mapTo(connected) { bone -> bone.index }
+        return connected
+    }
 
     /** Conservative preview window used when clip duration metadata is unavailable. */
     val unknownDurationPreviewWindowSeconds: Float

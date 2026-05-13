@@ -64,6 +64,7 @@ class AnimationViewerSystem(
             }
         }
         syncStatus(world)
+        syncSelectedBone()
         syncAnimationSelection()
         updatePlayback(dt)
         syncPreviewSupport()
@@ -124,6 +125,27 @@ class AnimationViewerSystem(
                 wireframeOverlay = false,
             )
         }
+    }
+
+    private fun syncSelectedBone() {
+        val bones = state.skeletonInfo?.bones.orEmpty()
+        if (state.hoveredBoneIndex != null && bones.none { bone -> bone.index == state.hoveredBoneIndex }) {
+            state.hoveredBoneIndex = null
+        }
+
+        val selected = state.selectedBoneIndex ?: return
+        val selectedBone = bones.firstOrNull { bone -> bone.index == selected }
+        if (selectedBone == null) {
+            state.selectedBoneIndex = null
+            state.selectedBoneName = null
+            state.hoveredBoneIndex = null
+            state.statusMessage = "Selected bone cleared because skeleton changed."
+            logger.info(TAG) {
+                "AnimationViewer bone selection cleared because index=$selected is unavailable for model='${state.model.path}'"
+            }
+            return
+        }
+        state.selectedBoneName = selectedBone.name?.takeIf(String::isNotBlank) ?: "Bone #${selectedBone.index}"
     }
 
     private fun syncAnimationSelection() {
@@ -445,20 +467,93 @@ class AnimationViewerSkeletonRenderSystem(
         val transform = entity.get<TransformComponent>() ?: return
         val poses = state.sampledSkeletonPose
         val poseByIndex = poses.associateBy { pose -> pose.boneIndex }
+        val selectedBoneIndex = state.selectedBoneIndex
+        val connectedBoneIndices = if (state.highlightConnectedBones) state.connectedBoneIndices() else emptySet()
+        val jointHalfSize = state.skeletonJointSize.coerceAtLeast(MinJointHalfSize)
+
         poses.forEach { pose ->
+            if (state.showSkeletonJoints) {
+                submitJoint(
+                    world = world,
+                    transform = transform,
+                    position = pose.worldPosition,
+                    size = if (pose.boneIndex == selectedBoneIndex) jointHalfSize * SelectedJointSizeMultiplier else jointHalfSize,
+                    color = jointColor(pose.boneIndex, selectedBoneIndex, connectedBoneIndices),
+                )
+            }
+
             val parent = pose.parentIndex?.let(poseByIndex::get) ?: return@forEach
             world.renderCommands.submit(
                 DrawLine(
                     from = transformLocalPoint(parent.worldPosition, transform),
                     to = transformLocalPoint(pose.worldPosition, transform),
-                    color = SkeletonColor,
+                    color = lineColor(parent.boneIndex, pose.boneIndex, selectedBoneIndex, connectedBoneIndices),
                 ),
             )
         }
     }
 
+    private fun lineColor(
+        parentBoneIndex: Int,
+        boneIndex: Int,
+        selectedBoneIndex: Int?,
+        connectedBoneIndices: Set<Int>,
+    ): Color = when {
+        boneIndex == selectedBoneIndex -> SelectedBoneColor
+        state.highlightConnectedBones && (
+            parentBoneIndex == selectedBoneIndex ||
+                boneIndex in connectedBoneIndices
+            ) -> ConnectedBoneColor
+
+        else -> SkeletonColor
+    }
+
+    private fun jointColor(
+        boneIndex: Int,
+        selectedBoneIndex: Int?,
+        connectedBoneIndices: Set<Int>,
+    ): Color = when {
+        boneIndex == selectedBoneIndex -> SelectedJointColor
+        state.highlightConnectedBones && boneIndex in connectedBoneIndices -> ConnectedJointColor
+        else -> JointColor
+    }
+
+    private fun submitJoint(
+        world: SceneWorld,
+        transform: TransformComponent,
+        position: com.pashkd.krender.engine.api.Vec3,
+        size: Float,
+        color: Color,
+    ) {
+        submitJointAxis(world, transform, position, com.pashkd.krender.engine.api.Vec3(size, 0f, 0f), color)
+        submitJointAxis(world, transform, position, com.pashkd.krender.engine.api.Vec3(0f, size, 0f), color)
+        submitJointAxis(world, transform, position, com.pashkd.krender.engine.api.Vec3(0f, 0f, size), color)
+    }
+
+    private fun submitJointAxis(
+        world: SceneWorld,
+        transform: TransformComponent,
+        position: com.pashkd.krender.engine.api.Vec3,
+        axisOffset: com.pashkd.krender.engine.api.Vec3,
+        color: Color,
+    ) {
+        world.renderCommands.submit(
+            DrawLine(
+                from = transformLocalPoint(position - axisOffset, transform),
+                to = transformLocalPoint(position + axisOffset, transform),
+                color = color,
+            ),
+        )
+    }
 
     companion object {
         private val SkeletonColor = Color(0.35f, 0.95f, 1f, 1f)
+        private val SelectedBoneColor = Color(1f, 0.35f, 0.15f, 1f)
+        private val ConnectedBoneColor = Color(1f, 0.85f, 0.2f, 1f)
+        private val JointColor = Color(0.7f, 0.95f, 1f, 1f)
+        private val ConnectedJointColor = Color(1f, 0.85f, 0.2f, 1f)
+        private val SelectedJointColor = Color(1f, 0.45f, 0.2f, 1f)
+        private const val MinJointHalfSize = 0.001f
+        private const val SelectedJointSizeMultiplier = 1.35f
     }
 }

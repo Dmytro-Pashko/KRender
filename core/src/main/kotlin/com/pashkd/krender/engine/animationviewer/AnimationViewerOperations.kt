@@ -99,6 +99,32 @@ class AnimationViewerOperations(
         }
     }
 
+    fun selectBone(index: Int?) {
+        if (index == null) {
+            clearBoneSelection()
+            return
+        }
+        val bone = state.skeletonInfo?.bones?.firstOrNull { candidate -> candidate.index == index }
+        if (bone == null) {
+            clearBoneSelection(status = "Selected bone is unavailable.")
+            context.logger.warn(TAG) {
+                "AnimationViewer bone selection ignored index=$index because it is unavailable for model='${state.model.path}'"
+            }
+            return
+        }
+        val name = bone.name?.takeIf(String::isNotBlank) ?: "Bone #${bone.index}"
+        state.selectedBoneIndex = bone.index
+        state.selectedBoneName = name
+        state.statusMessage = "Selected bone: $name"
+        context.logger.info(TAG) {
+            "AnimationViewer bone selected index=${bone.index} name='$name'"
+        }
+    }
+
+    fun clearBoneSelection() {
+        clearBoneSelection(status = "Selected bone cleared.")
+    }
+
     fun play() {
         if (!state.hasAnimations) {
             state.statusMessage = "No animations found for this model."
@@ -162,6 +188,13 @@ class AnimationViewerOperations(
         state.ambientLightIntensity = DefaultAmbientLightIntensity
         state.statusMessage = "Ambient light reset."
         context.logger.info(TAG) { "AnimationViewer ambient light reset intensity=${state.ambientLightIntensity}" }
+    }
+
+    private fun clearBoneSelection(status: String) {
+        state.selectedBoneIndex = null
+        state.selectedBoneName = null
+        state.hoveredBoneIndex = null
+        state.statusMessage = status
     }
 
     companion object {
