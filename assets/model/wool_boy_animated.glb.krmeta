@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:6c1dac94-5e62-4eab-b8ba-62f9e7d97eb2",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "wool_boy_animated",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

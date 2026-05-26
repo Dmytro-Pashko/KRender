@@ -244,23 +244,25 @@ Screenshots:
 Animation Viewer is a focused tool for opening a single model asset and inspecting its animation-related data.
 
 It is intended as an animation inspection and debug viewer rather than a full gameplay animation runtime. The tool is
-useful for checking imported clip metadata, previewing playback time, inspecting skeleton pose overlays, and verifying
-that a model can be viewed in model-only, skeleton-only, or combined modes.
+useful for checking imported clip metadata, previewing playback time, inspecting skeleton pose overlays and hierarchy,
+and verifying that a model can be viewed in model-only, skeleton-only, or combined modes.
 
 Features:
 
 - Opens model assets directly from Asset Browser or from a provided model path.
 - Loads and displays a single model using the same editor-style viewport/camera workflow as the existing viewer tools.
-- Supports common viewport helpers such as grid, axes, bounding boxes, and wireframe rendering.
-- Shows available animation clip names from model metadata when the backend exposes them.
+- Provides viewer toolbar actions for saving and resetting the UI layout, resetting the camera, framing the model, and exiting the tool.
+- Supports common viewport helpers such as grid, axes, bounding boxes, wireframe rendering, configurable grid size, and ambient light intensity control.
+- Shows available animation clip names, clip durations, and rig metadata such as skeleton presence, bone count, and bone-weight channel count.
 - Allows selecting one animation clip for preview.
-- Provides Play, Pause, Stop, loop toggle, time scrub, and step controls for clip preview.
+- Provides Play, Pause, Stop, playback speed, loop toggle, time scrub, and step controls for clip preview.
 - Supports `Model`, `Skeleton`, and `Model + Skeleton` view modes.
 - Draws a backend-neutral skeleton overlay using sampled parent-child pose lines when skeleton pose data is available.
-- Shows preview capability status such as `Animation preview: supported`, `metadata only`, or `unsupported`, and also
-  reports skeleton preview support.
+- Includes a dedicated skeleton panel with hierarchy browsing, bone selection, connected-bone highlighting, optional joint markers, and current sampled bone pose details.
+- Shows preview capability status such as `Animation preview: requested`, `available`, `metadata only`, or `unsupported`, and also reports skeleton preview support.
 - Surfaces clear warnings when animation duration is unknown, when skeleton pose data is unavailable for the current
   model/backend, or when preview support is limited.
+- Includes loading and runtime log panels for inspection and debugging while the asset is being prepared.
 - Includes ambient light intensity controls to make motion and poses easier to inspect without introducing a more
   complex lighting rig.
 - Falls back safely for static models, models without animation clips, and models where only partial animation metadata
