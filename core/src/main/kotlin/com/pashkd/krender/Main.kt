@@ -11,6 +11,7 @@ import com.pashkd.krender.game.ModelViewerScene
 import com.pashkd.krender.game.RuntimeScene
 import com.pashkd.krender.game.SceneEditorScene
 import com.pashkd.krender.game.TerrainEditorScene
+import com.pashkd.krender.game.WoolboySandboxScene
 
 class Main(
     sceneName: String? = configuredSceneName(),
@@ -51,8 +52,10 @@ class Main(
                     ?: throw missingProperty("krender.terrain.path", requestedScene),
             )
 
+            "woolboy_sandbox_scene" -> WoolboySandboxScene()
+
             else -> throw IllegalArgumentException(
-                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, runtime-scene, model-viewer, animation-viewer, terrain-editor.",
+                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, runtime-scene, model-viewer, animation-viewer, terrain-editor, woolboy_sandbox_scene.",
             )
         }
     },
@@ -60,7 +63,7 @@ class Main(
     editorToolLauncherFactory = editorToolLauncherFactory,
 ) {
     companion object {
-        private const val ASSET_BROWSER_SCENE = "asset-browser"
+        private const val ASSET_BROWSER_SCENE = "woolboy_sandbox_scene"
 
         fun configuredSceneName(): String? = System.getProperty("krender.scene")?.takeIf(String::isNotBlank)
 
