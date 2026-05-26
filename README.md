@@ -275,6 +275,12 @@ Current scope / limitations:
 - Animation preview depends on the active backend exposing runtime metadata and preview support for the loaded model
   format.
 - Some models may provide skeleton pose previews even when animation clip metadata is missing or incomplete.
+  
+Screenshots:
+
+![Scene animation skeleton preview](docs/screenshot/animation_viewer_general.png)
+![Door Animation](docs/screenshot/animation_viewer_preview_door.gif)
+![WoolBoy animation](docs/screenshot/animation_viewer_preview_woolboy.gif)
 
 ### Terrain Editor
 
