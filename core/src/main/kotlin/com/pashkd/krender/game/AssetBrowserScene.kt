@@ -20,6 +20,8 @@ import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.assets.CreateAssetRequest
 import com.pashkd.krender.engine.assets.LocalAssetOperationsService
 import com.pashkd.krender.engine.assets.LocalAssetRegistryService
+import com.pashkd.krender.engine.terrain.TerrainData
+import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
@@ -150,7 +152,7 @@ private class SceneOperationsHandler(
                 category = category,
                 targetDirectory = targetDir,
                 extension = ext,
-                initialContent = defaultContent(category),
+                initialContent = defaultContent(name, category),
             ),
         )
     }
@@ -224,9 +226,10 @@ private class SceneOperationsHandler(
             }
         }
 
-    private fun defaultContent(category: AssetCategory): ByteArray? =
+    private fun defaultContent(name: String, category: AssetCategory): ByteArray? =
         when (category) {
-            AssetCategory.Material, AssetCategory.Terrain -> "{}\n".toByteArray()
+            AssetCategory.Material -> "{}\n".toByteArray()
+            AssetCategory.Terrain -> defaultTerrainContent(name).toByteArray()
             AssetCategory.Skybox -> defaultSkyboxContent().toByteArray()
             AssetCategory.Scene -> defaultSceneContent().toByteArray()
             else -> null
@@ -257,6 +260,19 @@ private class SceneOperationsHandler(
     companion object {
         private const val TAG = "AssetBrowserSceneOps"
     }
+}
+
+internal fun defaultTerrainContent(name: String): String {
+    val terrainName = name.trim().ifBlank { "terrain" }
+    val encoded = TerrainPersistence().encode(
+        data = TerrainData(
+            width = 64,
+            height = 64,
+            vertexSpacing = 1f,
+        ),
+        name = terrainName,
+    )
+    return "$encoded\n"
 }
 
 /**
