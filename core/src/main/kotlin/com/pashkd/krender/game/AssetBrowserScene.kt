@@ -20,6 +20,7 @@ import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.assets.CreateAssetRequest
 import com.pashkd.krender.engine.assets.LocalAssetOperationsService
 import com.pashkd.krender.engine.assets.LocalAssetRegistryService
+import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
@@ -27,6 +28,10 @@ import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.LogsPanel
 import com.pashkd.krender.engine.ui.UiSystem
+import com.pashkd.krender.engine.viewport.RuntimeViewportConfig
+import com.pashkd.krender.engine.viewport.UiScalePolicy
+import com.pashkd.krender.engine.window.RuntimeWindowConfig
+import com.pashkd.krender.engine.window.WindowResolution
 
 /**
  * Main editor tool scene for browsing, inspecting, and opening engine assets.
@@ -40,6 +45,17 @@ class AssetBrowserScene : Scene("asset_browser") {
     private lateinit var importers: AssetImporterRegistry
     private lateinit var tools: AssetToolRegistry
     private lateinit var operations: AssetOperationsService
+
+    override val config: SceneConfig = SceneConfig(
+        viewport = RuntimeViewportConfig(
+            designWidth = 1220f,
+            designHeight = 870f,
+            scalePolicy = UiScalePolicy.PixelPerfect,
+        ),
+        window = RuntimeWindowConfig(
+            resolution = WindowResolution(width = 1220, height = 870),
+        ),
+    )
 
     override fun show() {
         engine.logger.info(TAG) { "Showing Asset Browser scene" }

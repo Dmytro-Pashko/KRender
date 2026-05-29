@@ -40,6 +40,9 @@ import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.NoOpUiService
 import com.pashkd.krender.engine.ui.UiService
+import com.pashkd.krender.engine.viewport.RuntimeViewportService
+import com.pashkd.krender.engine.window.InMemoryWindowService
+import com.pashkd.krender.engine.window.WindowService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlin.test.Test
@@ -727,6 +730,8 @@ class AnimationViewerSystemTest {
             override fun flushMainThreadQueue() = Unit
             override fun dispose() = Unit
         }
+        override val viewport: RuntimeViewportService = RuntimeViewportService()
+        override val window: WindowService = InMemoryWindowService()
         override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory? = null
         override fun requestExit() = Unit
     }

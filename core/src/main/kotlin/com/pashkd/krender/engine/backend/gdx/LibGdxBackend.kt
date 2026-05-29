@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.backend.gdx
 
 import com.badlogic.gdx.ApplicationAdapter
+import com.badlogic.gdx.Application.ApplicationType
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
@@ -113,6 +114,10 @@ import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.NoOpUiService
 import com.pashkd.krender.engine.ui.UiCaptureState
 import com.pashkd.krender.engine.ui.UiService
+import com.pashkd.krender.engine.window.RuntimeWindowConfig
+import com.pashkd.krender.engine.window.WindowMode
+import com.pashkd.krender.engine.window.WindowService
+import com.pashkd.krender.engine.window.WindowState
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -210,6 +215,7 @@ class LibGdxBackend(
     override val tasks: TaskService = GdxTaskService()
     override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory =
         TerrainMaterialTextureSamplerFactory { GdxTerrainMaterialTextureSampler(logger) }
+    override val window: WindowService = GdxWindowService()
     override val renderer: Renderer = GdxRenderer3D(assets, ui, logger)
 
     /** Requests application shutdown through the LibGDX app instance. */
@@ -220,6 +226,38 @@ class LibGdxBackend(
     companion object {
         private const val TAG = "LibGdxBackend"
     }
+}
+
+/**
+ * LibGDX-backed [WindowService] for desktop window management.
+ *
+ * On non-desktop platforms this service reports the current surface size but does
+ * not attempt to change the application presentation mode.
+ */
+class GdxWindowService : WindowService {
+    override val current: WindowState
+        get() = readCurrentState()
+
+    override fun apply(config: RuntimeWindowConfig): WindowState {
+        val resolution = config.resolution.coerceAtLeast()
+        if (Gdx.app.type == ApplicationType.Desktop) {
+            when (config.mode) {
+                WindowMode.Windowed -> Gdx.graphics.setWindowedMode(resolution.width, resolution.height)
+                WindowMode.Fullscreen -> Gdx.graphics.setFullscreenMode(Gdx.graphics.displayMode)
+            }
+        }
+        return readCurrentState(fallbackMode = config.mode)
+    }
+
+    private fun readCurrentState(fallbackMode: WindowMode? = null): WindowState =
+        WindowState(
+            pixelWidth = Gdx.graphics.width.coerceAtLeast(1),
+            pixelHeight = Gdx.graphics.height.coerceAtLeast(1),
+            mode = fallbackMode ?: inferMode(),
+        )
+
+    private fun inferMode(): WindowMode =
+        if (Gdx.graphics.isFullscreen) WindowMode.Fullscreen else WindowMode.Windowed
 }
 
 /**
@@ -3217,4 +3255,3 @@ private fun systemInt(name: String, default: Int): Int {
         ?: return default
     return value.trim().toIntOrNull() ?: default
 }
-

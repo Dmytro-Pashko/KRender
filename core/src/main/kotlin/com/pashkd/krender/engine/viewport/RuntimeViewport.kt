@@ -5,7 +5,7 @@ import com.pashkd.krender.engine.api.Vec2
 /**
  * Defines how runtime UI logical coordinates are scaled into the physical render target.
  *
- * Policies are selected per scene through [SceneViewportConfig] and are intended for
+ * Policies are selected per scene through `Scene.config.viewport` and are intended for
  * runtime UI layout math, hit testing, and screen-space render preparation. They do
  * not request or force a physical window size.
  */

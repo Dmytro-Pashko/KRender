@@ -1,13 +1,13 @@
 package com.pashkd.krender.engine.api
 
-import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
+import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportConfig
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
-import com.pashkd.krender.engine.viewport.SceneViewportConfig
+import com.pashkd.krender.engine.window.WindowService
 import kotlin.math.min
 
 /**
@@ -26,30 +26,48 @@ data class EngineConfig(
 interface EngineContext {
     /** Scene stack manager used for transitions. */
     val scenes: SceneManager
+
     /** Shared asset service. */
     val assets: AssetService
+
     /** Shared scene file service. */
     val sceneFiles: SceneFileService
+
     /** Shared launcher for opening saved scenes in a separate runtime window. */
     val runtimeLauncher: RuntimeWindowLauncher
+
     /** Shared launcher for opening editor tools in separate windows. */
     val editorToolLauncher: EditorToolLauncher
+
     /** Shared normalized input service. */
     val input: InputService
+
     /** Shared ImGui-backed UI service. */
     val ui: UiService
+
     /** Shared event bus. */
     val events: EventBus
+
     /** Shared structured logger. */
     val logger: Logger
+
     /** Shared structured log history and sinks. */
     val logs: LogService
+
     /** Shared runtime statistics. */
     val runtimeStats: RuntimeStatsService
+
     /** Shared frame profiler snapshots. */
     val profiler: ProfilerService
+
     /** Shared async task service. */
     val tasks: TaskService
+
+    /** Shared runtime UI viewport state. */
+    val viewport: RuntimeViewportService
+
+    /** Shared physical window state and configuration service. */
+    val window: WindowService
 
     /** Optional backend-provided terrain material texture sampling factory used by runtime terrain baking. */
     val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory?
@@ -66,28 +84,43 @@ interface EngineContext {
 interface EngineBackend {
     /** Backend input implementation. */
     val input: InputService
+
     /** Backend UI implementation. */
     val ui: UiService
+
     /** Backend asset implementation. */
     val assets: AssetService
+
     /** Backend scene file implementation. */
     val sceneFiles: SceneFileService
+
     /** Backend runtime scene window launcher. */
     val runtimeLauncher: RuntimeWindowLauncher
+
     /** Backend editor tool window launcher. */
     val editorToolLauncher: EditorToolLauncher
+
     /** Backend logger implementation. */
     val logger: Logger
+
     /** Backend log history implementation. */
     val logs: LogService
+
     /** Backend runtime telemetry implementation. */
     val runtimeStats: RuntimeStatsService
+
     /** Backend profiler implementation. */
     val profiler: ProfilerService
+
     /** Backend task implementation. */
     val tasks: TaskService
+
     /** Optional backend terrain material texture sampling factory. */
     val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory?
+
+    /** Backend physical window implementation. */
+    val window: WindowService
+
     /** Backend renderer implementation. */
     val renderer: Renderer
 
@@ -211,38 +244,56 @@ class GameLoop(
  */
 class EngineRuntime(
     private val backend: EngineBackend,
-    private val config: EngineConfig = EngineConfig(),
+    config: EngineConfig = EngineConfig(),
 ) : EngineContext {
     /** Scene stack manager used by scenes and the game loop. */
     override val scenes: SceneManager = SceneManager()
+
     /** Shared asset service exposed to scenes. */
     override val assets: AssetService = backend.assets
+
     /** Shared scene file service exposed to scenes. */
     override val sceneFiles: SceneFileService = backend.sceneFiles
+
     /** Shared runtime scene window launcher exposed to scenes. */
     override val runtimeLauncher: RuntimeWindowLauncher = backend.runtimeLauncher
+
     /** Shared editor tool launcher exposed to scenes. */
     override val editorToolLauncher: EditorToolLauncher = backend.editorToolLauncher
+
     /** Shared input service exposed to scenes. */
     override val input: InputService = backend.input
+
     /** Shared UI service exposed to scenes. */
     override val ui: UiService = backend.ui
+
     /** Shared event bus exposed to scenes. */
     override val events: EventBus = EventBus()
+
     /** Shared logger exposed to scenes. */
     override val logger: Logger = backend.logger
+
     /** Shared log service exposed to scenes. */
     override val logs: LogService = backend.logs
+
     /** Shared runtime statistics exposed to scenes. */
     override val runtimeStats: RuntimeStatsService = backend.runtimeStats
+
     /** Shared profiler snapshots exposed to scenes. */
     override val profiler: ProfilerService = backend.profiler
+
     /** Shared task service exposed to scenes. */
     override val tasks: TaskService = backend.tasks
-    /** Optional backend terrain texture sampler factory exposed to scenes. */
-    override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory? = backend.terrainTextureSamplerFactory
+
     /** Runtime UI viewport state derived from surface size and active scene policy. */
-    val viewportService: RuntimeViewportService = RuntimeViewportService()
+    override val viewport: RuntimeViewportService = RuntimeViewportService()
+
+    /** Physical window state and configuration exposed to scenes and scene manager. */
+    override val window: WindowService = backend.window
+
+    /** Optional backend terrain texture sampler factory exposed to scenes. */
+    override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory? =
+        backend.terrainTextureSamplerFactory
 
     private val gameLoop = GameLoop(this, backend, config)
     private var running = false
@@ -252,6 +303,7 @@ class EngineRuntime(
     fun start(scene: Scene) {
         running = true
         scenes.replace(scene)
+        scenes.applyPendingTransitions(this)
         logger.info(TAG) { "Runtime started" }
     }
 
@@ -277,8 +329,8 @@ class EngineRuntime(
 
     /** Propagates a resize event to scenes, UI, and renderer. */
     fun resize(width: Int, height: Int) {
-        val viewportConfig = (scenes.currentScene as? SceneViewportConfig)?.viewportConfig ?: RuntimeViewportConfig()
-        viewportService.resize(width, height, viewportConfig)
+        val viewportConfig = scenes.currentScene?.config?.viewport ?: RuntimeViewportConfig()
+        viewport.resize(width, height, viewportConfig)
         scenes.resize(width, height)
         backend.ui.resize(width, height)
         backend.renderer.resize(width, height)
@@ -297,6 +349,3 @@ class EngineRuntime(
         private const val TAG = "EngineRuntime"
     }
 }
-
-/** Convenience alias for the main runtime type. */
-typealias Engine = EngineRuntime

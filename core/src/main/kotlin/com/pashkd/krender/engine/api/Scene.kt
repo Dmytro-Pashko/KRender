@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.api
 
+import com.pashkd.krender.engine.scene.SceneConfig
 import java.util.ArrayDeque
 
 /**
@@ -48,6 +49,8 @@ abstract class Scene(
     val world: SceneWorld = SceneWorld()
     /** Asset packs that should be queued before the scene is shown. */
     open val requiredAssets: List<AssetPack> = emptyList()
+    /** Scene-level viewport and physical window preferences. */
+    open val config: SceneConfig = SceneConfig()
 
     /** Current lifecycle state assigned by the scene manager. */
     var state: SceneState = SceneState.New
@@ -166,7 +169,11 @@ class SceneManager {
                     if (stack.isNotEmpty()) {
                         disposeScene(stack.pop())
                     }
-                    stack.peek()?.setState(SceneState.Active)
+                    stack.peek()?.let { scene ->
+                        scene.setState(SceneState.Active)
+                        applySceneConfig(scene, context)
+                        scene.resize(context.window.current.pixelWidth, context.window.current.pixelHeight)
+                    }
                 }
             }
         }
@@ -191,9 +198,17 @@ class SceneManager {
         scene.scheduleAssets(context.assets)
         scene.setState(SceneState.Ready)
         stack.push(scene)
+        applySceneConfig(scene, context)
         scene.show()
+        scene.resize(context.window.current.pixelWidth, context.window.current.pixelHeight)
         scene.setState(SceneState.Active)
         context.logger.info(TAG) { "Switched to '${scene.id}'" }
+    }
+
+    /** Applies scene window and viewport preferences through the engine context. */
+    private fun applySceneConfig(scene: Scene, context: EngineContext) {
+        val windowState = context.window.apply(scene.config.window).coerceAtLeast()
+        context.viewport.resize(windowState.pixelWidth, windowState.pixelHeight, scene.config.viewport)
     }
 
     /** Hides, disposes, and marks a scene as removed. */

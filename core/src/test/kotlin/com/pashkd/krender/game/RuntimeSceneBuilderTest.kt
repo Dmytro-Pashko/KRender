@@ -1,36 +1,14 @@
 package com.pashkd.krender.game
 
-import com.pashkd.krender.engine.api.Action
-import com.pashkd.krender.engine.api.AssetService
-import com.pashkd.krender.engine.api.Axis
-import com.pashkd.krender.engine.api.EngineContext
-import com.pashkd.krender.engine.api.EngineLogService
-import com.pashkd.krender.engine.api.EventBus
-import com.pashkd.krender.engine.api.FrameProfilerService
-import com.pashkd.krender.engine.api.FrameRuntimeStatsService
-import com.pashkd.krender.engine.api.InputService
-import com.pashkd.krender.engine.api.InputSnapshot
-import com.pashkd.krender.engine.api.LogService
-import com.pashkd.krender.engine.api.ProfilerService
-import com.pashkd.krender.engine.api.RuntimeStatsService
-import com.pashkd.krender.engine.api.SceneManager
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.TaskService
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
-import com.pashkd.krender.engine.scene.ComponentDescriptor
-import com.pashkd.krender.engine.scene.EditorToolLauncher
-import com.pashkd.krender.engine.scene.EntityDescriptor
-import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
-import com.pashkd.krender.engine.scene.SceneComponentTypes
-import com.pashkd.krender.engine.scene.SceneDescriptor
-import com.pashkd.krender.engine.scene.SceneEnvironmentDescriptor
-import com.pashkd.krender.engine.scene.SceneFileService
-import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
-import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
-import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
+import com.pashkd.krender.engine.scene.*
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.NoOpUiService
 import com.pashkd.krender.engine.ui.UiService
+import com.pashkd.krender.engine.viewport.RuntimeViewportService
+import com.pashkd.krender.engine.window.InMemoryWindowService
+import com.pashkd.krender.engine.window.WindowService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlin.test.Test
@@ -124,8 +102,9 @@ private class BuilderTestEngineContext : EngineContext {
         override fun flushMainThreadQueue() = Unit
         override fun dispose() = Unit
     }
+    override val viewport: RuntimeViewportService = RuntimeViewportService()
+    override val window: WindowService = InMemoryWindowService()
     override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory? = null
 
     override fun requestExit() = Unit
 }
-

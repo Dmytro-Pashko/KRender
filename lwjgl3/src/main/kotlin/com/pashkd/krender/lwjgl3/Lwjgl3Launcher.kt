@@ -37,7 +37,7 @@ fun main(args: Array<String>) {
             setBackBufferConfig(8, 8, 8, 0, 24, 0, 0)
             configureOpenGlTarget()
 
-            setWindowedMode(1920, 1280)
+            setWindowedMode(DefaultWindowWidth, DefaultWindowHeight)
             //// You can change these files; they are in lwjgl3/src/main/resources/ .
             //// They can also be loaded from the root of assets/ .
             setWindowIcon(*(arrayOf(128, 64, 32, 16).map { "libgdx$it.png" }.toTypedArray()))
@@ -106,3 +106,5 @@ private fun desktopProperty(name: String): String? =
 private const val DefaultOpenGlTarget = "gl30"
 private const val DefaultVSyncEnabled = false
 private const val DefaultForegroundFps = 60
+private const val DefaultWindowWidth = 1920
+private const val DefaultWindowHeight = 1080
