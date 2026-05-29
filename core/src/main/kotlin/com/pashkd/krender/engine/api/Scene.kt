@@ -150,8 +150,10 @@ class SceneManager {
     }
 
     /** Applies all queued scene stack transitions. */
-    fun applyPendingTransitions(context: EngineContext) {
+    fun applyPendingTransitions(context: EngineContext): Boolean {
+        var appliedAny = false
         while (pendingOps.isNotEmpty()) {
+            appliedAny = true
             when (val op = pendingOps.removeFirst()) {
                 is SceneOp.Replace -> {
                     while (stack.isNotEmpty()) {
@@ -172,11 +174,11 @@ class SceneManager {
                     stack.peek()?.let { scene ->
                         scene.setState(SceneState.Active)
                         applySceneConfig(scene, context)
-                        scene.resize(context.window.current.pixelWidth, context.window.current.pixelHeight)
                     }
                 }
             }
         }
+        return appliedAny
     }
 
     /** Propagates resize events to all scenes on the stack. */
@@ -200,12 +202,22 @@ class SceneManager {
         stack.push(scene)
         applySceneConfig(scene, context)
         scene.show()
-        scene.resize(context.window.current.pixelWidth, context.window.current.pixelHeight)
         scene.setState(SceneState.Active)
         context.logger.info(TAG) { "Switched to '${scene.id}'" }
     }
 
-    /** Applies scene window and viewport preferences through the engine context. */
+    /**
+     * Applies scene window and viewport preferences through the engine context.
+     *
+     * Scene activation updates the physical window preference first, then
+     * recalculates the logical viewport from the resulting surface size. The
+     * platform may still emit its own resize callback afterward, so this path
+     * intentionally remains idempotent.
+     *
+     * TODO: renderer and ImGui resize currently follow the main runtime resize
+     * path. Backends that do not emit a platform resize callback rely on the
+     * runtime to call [EngineRuntime.resize] after transitions.
+     */
     private fun applySceneConfig(scene: Scene, context: EngineContext) {
         val windowState = context.window.apply(scene.config.window).coerceAtLeast()
         context.viewport.resize(windowState.pixelWidth, windowState.pixelHeight, scene.config.viewport)

@@ -7,6 +7,8 @@ import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.scene.SceneConfig
+import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.sceneeditor.EditorOnlyComponent
 import com.pashkd.krender.engine.sceneeditor.AssetServiceModelBoundsService
 import com.pashkd.krender.engine.sceneeditor.SceneAssetBrowserModel
@@ -44,6 +46,8 @@ class SceneEditorScene(
     private val scenePath: String? = null,
     private val initialSceneName: String? = null,
 ) : Scene("scene_editor") {
+    override val config: SceneConfig = SceneConfigPresets.EditorTool
+
     private lateinit var editorState: SceneEditorState
     private lateinit var assetPanelState: SceneAssetPanelState
     private lateinit var assetBrowser: SceneAssetBrowserModel

@@ -32,6 +32,8 @@ import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.terrain.TerrainRendererComponent
 import com.pashkd.krender.engine.terrain.terrainMaterialPreviewExportPath
+import com.pashkd.krender.engine.scene.SceneConfig
+import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
@@ -44,6 +46,8 @@ import com.pashkd.krender.engine.ui.UiSystem
 class TerrainEditorScene(
     private val terrainFilePath: String,
 ) : Scene("terrain_editor") {
+    override val config: SceneConfig = SceneConfigPresets.EditorTool
+
     private val terrainGenerators = listOf(
         FlatTerrainGenerator(),
         PerlinNoiseGenerator(),

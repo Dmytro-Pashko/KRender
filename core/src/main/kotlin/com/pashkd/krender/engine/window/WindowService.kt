@@ -19,10 +19,18 @@ enum class WindowMode {
  * Physical window size preference in pixels.
  *
  * Values are coerced to at least one pixel when applied.
+ *
+ * Runtime and gameplay scenes should normally inherit their resolution from
+ * [com.pashkd.krender.engine.scene.SceneConfig] or
+ * [com.pashkd.krender.engine.scene.SceneConfigPresets.RuntimeGame16By9].
+ *
+ * Editor and tool scenes should explicitly use
+ * [com.pashkd.krender.engine.scene.SceneConfigPresets.EditorTool] when they
+ * need the taller `1920x1280` presentation.
  */
 data class WindowResolution(
     val width: Int = 1920,
-    val height: Int = 1280,
+    val height: Int = 1080,
 ) {
     /** Returns the same resolution with both dimensions clamped to positive values. */
     fun coerceAtLeast(minSize: Int = 1): WindowResolution =
@@ -37,6 +45,8 @@ data class WindowResolution(
  *
  * The engine owns application and backend lifecycles. Scenes only declare the
  * desired presentation mode here; they do not call window APIs directly.
+ * Backends may clamp, ignore, or adapt these preferences on platforms where
+ * exact desktop window management is unavailable.
  */
 data class RuntimeWindowConfig(
     val resolution: WindowResolution = WindowResolution(),

@@ -161,7 +161,9 @@ class GameLoop(
                 backend.assets.update()
             }
 
-            runtime.scenes.applyPendingTransitions(runtime)
+            if (runtime.scenes.applyPendingTransitions(runtime)) {
+                runtime.resize(runtime.window.current.pixelWidth, runtime.window.current.pixelHeight)
+            }
             val scene = runtime.scenes.currentScene ?: return
 
             backend.runtimeStats.put("Scene", scene.id)
@@ -303,7 +305,9 @@ class EngineRuntime(
     fun start(scene: Scene) {
         running = true
         scenes.replace(scene)
-        scenes.applyPendingTransitions(this)
+        if (scenes.applyPendingTransitions(this)) {
+            resize(window.current.pixelWidth, window.current.pixelHeight)
+        }
         logger.info(TAG) { "Runtime started" }
     }
 
@@ -327,7 +331,12 @@ class EngineRuntime(
         return true
     }
 
-    /** Propagates a resize event to scenes, UI, and renderer. */
+    /**
+     * Propagates a resize event to scenes, UI, and renderer.
+     *
+     * The active scene's viewport policy is reapplied on every resize so that
+     * platform callbacks and scene-driven window changes remain idempotent.
+     */
     fun resize(width: Int, height: Int) {
         val viewportConfig = scenes.currentScene?.config?.viewport ?: RuntimeViewportConfig()
         viewport.resize(width, height, viewportConfig)
@@ -349,3 +358,6 @@ class EngineRuntime(
         private const val TAG = "EngineRuntime"
     }
 }
+
+/** Convenience alias for the main runtime type. */
+typealias Engine = EngineRuntime

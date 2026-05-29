@@ -27,6 +27,8 @@ import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.Material
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.scene.SceneConfig
+import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
@@ -52,6 +54,8 @@ class AnimationViewerScene(
             override val assets = listOf(model)
         },
     )
+
+    override val config: SceneConfig = SceneConfigPresets.EditorTool
 
     private lateinit var viewerState: AnimationViewerState
     private lateinit var operations: AnimationViewerOperations
@@ -310,4 +314,3 @@ class AnimationViewerScene(
         private const val TAG = "AnimationViewerScene"
     }
 }
-

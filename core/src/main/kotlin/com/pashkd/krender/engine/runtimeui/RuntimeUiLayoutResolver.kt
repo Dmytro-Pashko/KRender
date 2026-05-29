@@ -7,6 +7,15 @@ import com.pashkd.krender.engine.viewport.RuntimeViewport
  *
  * The resolver is backend-neutral and works only with runtime UI data and
  * [RuntimeViewport] logical coordinates. It does not render nodes or handle input.
+ *
+ * MVP limitations:
+ * - This is not a flexbox implementation.
+ * - Fill inside rows and columns uses the full parent content axis and does not
+ *   distribute remaining sibling space.
+ * - Wrap uses approximate placeholder text sizing only.
+ * - There is no real font measurement yet.
+ * - There is no style, skin, or rendering backend yet.
+ * - There is no input or hit testing yet.
  */
 class RuntimeUiLayoutResolver {
     /**
@@ -301,6 +310,9 @@ class RuntimeUiLayoutResolver {
         parentSize: Float,
         fallbackWrapSize: Float = 0f,
     ): Float =
+        // MVP note:
+        // Fill in Row/Column currently means "use the full parent content axis",
+        // not "take remaining flex space". Flex distribution can be added later.
         when (size.mode) {
             UiSizeMode.Fixed -> size.value.coerceAtLeast(0f)
             UiSizeMode.Percent -> parentSize * size.value.coerceIn(0f, 1f)
@@ -309,6 +321,8 @@ class RuntimeUiLayoutResolver {
         }
 
     private fun wrapWidth(node: RuntimeUiNode): Float =
+        // MVP note: wrap uses a simple text-length heuristic and does not measure
+        // actual fonts, glyphs, or image dimensions yet.
         if (node.type == RuntimeUiNodeType.Text) (node.text?.length ?: 0) * TextWrapCharWidth else 0f
 
     private fun wrapHeight(node: RuntimeUiNode): Float =

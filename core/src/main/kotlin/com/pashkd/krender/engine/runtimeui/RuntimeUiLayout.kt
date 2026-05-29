@@ -153,3 +153,16 @@ data class RuntimeUiResolvedNode(
     /** Resolved visible children. */
     val children: List<RuntimeUiResolvedNode>,
 )
+
+/** Returns the first resolved node with the given [id], or null when it is absent. */
+fun RuntimeUiResolvedNode.findById(id: String): RuntimeUiResolvedNode? {
+    if (this.id == id) return this
+    return children.firstNotNullOfOrNull { child -> child.findById(id) }
+}
+
+/** Returns this resolved node and all descendants in depth-first order. */
+fun RuntimeUiResolvedNode.flatten(): List<RuntimeUiResolvedNode> =
+    buildList {
+        add(this@flatten)
+        children.forEach { child -> addAll(child.flatten()) }
+    }

@@ -3,17 +3,14 @@ package com.pashkd.krender.engine.api
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.SceneConfig
+import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
 import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.NoOpUiService
 import com.pashkd.krender.engine.ui.UiService
-import com.pashkd.krender.engine.viewport.RuntimeViewportConfig
-import com.pashkd.krender.engine.viewport.UiScalePolicy
 import com.pashkd.krender.engine.window.InMemoryWindowService
-import com.pashkd.krender.engine.window.RuntimeWindowConfig
-import com.pashkd.krender.engine.window.WindowResolution
 import com.pashkd.krender.engine.window.WindowService
 import com.pashkd.krender.engine.window.WindowState
 import kotlinx.coroutines.CoroutineScope
@@ -28,57 +25,43 @@ class EngineRuntimeWindowConfigTest {
         val runtime = EngineRuntime(backend)
         val scene = TestScene(
             id = "asset_browser",
-            config = SceneConfig(
-                viewport = RuntimeViewportConfig(
-                    designWidth = 1220f,
-                    designHeight = 900f,
-                    scalePolicy = UiScalePolicy.PixelPerfect,
-                ),
-                window = RuntimeWindowConfig(
-                    resolution = WindowResolution(width = 1220, height = 900),
-                ),
-            ),
+            config = SceneConfigPresets.EditorTool,
         )
 
         runtime.start(scene)
 
         assertEquals(1, scene.showCallCount)
-        assertEquals(listOf(1220 to 900), scene.resizeCalls)
-        assertEquals(1220, runtime.window.current.pixelWidth)
-        assertEquals(900, runtime.window.current.pixelHeight)
-        assertEquals(1220, runtime.viewport.current.pixelWidth)
-        assertEquals(900, runtime.viewport.current.pixelHeight)
-        assertEquals(1220f, runtime.viewport.current.logicalWidth)
-        assertEquals(900f, runtime.viewport.current.logicalHeight)
+        assertEquals(listOf(1920 to 1280), scene.resizeCalls)
+        assertEquals(1920, runtime.window.current.pixelWidth)
+        assertEquals(1280, runtime.window.current.pixelHeight)
+        assertEquals(1920, runtime.viewport.current.pixelWidth)
+        assertEquals(1280, runtime.viewport.current.pixelHeight)
+        assertEquals(1920f, runtime.viewport.current.designWidth)
+        assertEquals(1080f, runtime.viewport.current.logicalHeight)
     }
 
     @Test
     fun `pop restores previous scene window config`() {
         val backend = FakeEngineBackend(initialWindowState = WindowState(pixelWidth = 800, pixelHeight = 600))
         val runtime = EngineRuntime(backend)
-        val runtimeScene = TestScene(id = "runtime_scene")
+        val runtimeScene = TestScene(id = "runtime_scene", config = SceneConfigPresets.RuntimeGame16By9)
         val assetBrowserScene = TestScene(
             id = "asset_browser",
-            config = SceneConfig(
-                viewport = RuntimeViewportConfig(
-                    designWidth = 1220f,
-                    designHeight = 900f,
-                    scalePolicy = UiScalePolicy.PixelPerfect,
-                ),
-                window = RuntimeWindowConfig(
-                    resolution = WindowResolution(width = 1220, height = 900),
-                ),
-            ),
+            config = SceneConfigPresets.EditorTool,
         )
 
         runtime.start(runtimeScene)
         runtime.scenes.push(assetBrowserScene)
-        runtime.scenes.applyPendingTransitions(runtime)
-        assertEquals(1220, runtime.window.current.pixelWidth)
-        assertEquals(900, runtime.window.current.pixelHeight)
+        if (runtime.scenes.applyPendingTransitions(runtime)) {
+            runtime.resize(runtime.window.current.pixelWidth, runtime.window.current.pixelHeight)
+        }
+        assertEquals(1920, runtime.window.current.pixelWidth)
+        assertEquals(1280, runtime.window.current.pixelHeight)
 
         runtime.scenes.pop()
-        runtime.scenes.applyPendingTransitions(runtime)
+        if (runtime.scenes.applyPendingTransitions(runtime)) {
+            runtime.resize(runtime.window.current.pixelWidth, runtime.window.current.pixelHeight)
+        }
 
         assertEquals(1920, runtime.window.current.pixelWidth)
         assertEquals(1080, runtime.window.current.pixelHeight)

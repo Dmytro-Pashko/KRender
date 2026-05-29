@@ -4,13 +4,12 @@ import com.pashkd.krender.engine.animation.AnimationComponent
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.*
 import com.pashkd.krender.engine.scene.SceneConfig
+import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.scene.SceneDependencyCollector
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.terrain.TerrainAssetSyncSystem
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
-import com.pashkd.krender.engine.viewport.RuntimeViewportConfig
-import com.pashkd.krender.engine.viewport.UiScalePolicy
 import com.pashkd.krender.engine.woolboy.*
 
 /**
@@ -32,13 +31,7 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
     private val woolboyModel = AssetRef.model(WoolboyModelPath)
     private var descriptorCache: SceneDescriptor? = null
 
-    override val config: SceneConfig = SceneConfig(
-        viewport = RuntimeViewportConfig(
-            designWidth = 1920f,
-            designHeight = 1080f,
-            scalePolicy = UiScalePolicy.ScaleByHeight,
-        ),
-    )
+    override val config: SceneConfig = SceneConfigPresets.RuntimeGame16By9
 
     override val requiredAssets: List<AssetPack> = listOf(
         object : AssetPack {

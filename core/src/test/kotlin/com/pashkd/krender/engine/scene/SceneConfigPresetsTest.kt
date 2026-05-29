@@ -1,0 +1,56 @@
+package com.pashkd.krender.engine.scene
+
+import com.pashkd.krender.game.AnimationViewerScene
+import com.pashkd.krender.game.AssetBrowserScene
+import com.pashkd.krender.game.ModelViewerScene
+import com.pashkd.krender.game.SceneEditorScene
+import com.pashkd.krender.game.TerrainEditorScene
+import com.pashkd.krender.game.WoolboySandboxScene
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class SceneConfigPresetsTest {
+    @Test
+    fun `default scene config uses runtime 1920x1080`() {
+        val config = SceneConfig()
+
+        assertEquals(1920f, config.viewport.designWidth)
+        assertEquals(1080f, config.viewport.designHeight)
+        assertEquals(1920, config.window.resolution.width)
+        assertEquals(1080, config.window.resolution.height)
+    }
+
+    @Test
+    fun `runtime preset uses runtime 1920x1080`() {
+        val config = SceneConfigPresets.RuntimeGame16By9
+
+        assertEquals(1920f, config.viewport.designWidth)
+        assertEquals(1080f, config.viewport.designHeight)
+        assertEquals(1920, config.window.resolution.width)
+        assertEquals(1080, config.window.resolution.height)
+    }
+
+    @Test
+    fun `editor preset uses 1920x1280`() {
+        val config = SceneConfigPresets.EditorTool
+
+        assertEquals(1920f, config.viewport.designWidth)
+        assertEquals(1080f, config.viewport.designHeight)
+        assertEquals(1920, config.window.resolution.width)
+        assertEquals(1280, config.window.resolution.height)
+    }
+
+    @Test
+    fun `woolboy sandbox uses runtime preset`() {
+        assertEquals(SceneConfigPresets.RuntimeGame16By9, WoolboySandboxScene().config)
+    }
+
+    @Test
+    fun `editor tool scenes use editor preset`() {
+        assertEquals(SceneConfigPresets.AssetBrowser, AssetBrowserScene().config)
+        assertEquals(SceneConfigPresets.EditorTool, ModelViewerScene("model/test.glb").config)
+        assertEquals(SceneConfigPresets.EditorTool, AnimationViewerScene("model/test.glb").config)
+        assertEquals(SceneConfigPresets.EditorTool, SceneEditorScene().config)
+        assertEquals(SceneConfigPresets.EditorTool, TerrainEditorScene("terrains/test.json").config)
+    }
+}
