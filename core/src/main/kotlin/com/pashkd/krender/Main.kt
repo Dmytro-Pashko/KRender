@@ -63,7 +63,7 @@ class Main(
     editorToolLauncherFactory = editorToolLauncherFactory,
 ) {
     companion object {
-        private const val ASSET_BROWSER_SCENE = "woolboy_sandbox_scene"
+        private const val ASSET_BROWSER_SCENE = "asset-browser"
 
         fun configuredSceneName(): String? = System.getProperty("krender.scene")?.takeIf(String::isNotBlank)
 

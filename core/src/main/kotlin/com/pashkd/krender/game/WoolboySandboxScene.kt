@@ -8,6 +8,9 @@ import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.terrain.TerrainAssetSyncSystem
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
+import com.pashkd.krender.engine.viewport.RuntimeViewportConfig
+import com.pashkd.krender.engine.viewport.SceneViewportConfig
+import com.pashkd.krender.engine.viewport.UiScalePolicy
 import com.pashkd.krender.engine.woolboy.*
 
 /**
@@ -17,7 +20,7 @@ import com.pashkd.krender.engine.woolboy.*
  * settings. This runtime scene only adds the controllable Woolboy player and
  * gameplay prototype systems.
  */
-class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
+class WoolboySandboxScene : Scene("woolboy_sandbox_scene"), SceneViewportConfig {
     companion object {
         private const val TAG = "WoolboySandboxScene"
         private const val SceneAssetPath = "scenes/woolboy_sandbox_scene.krscene"
@@ -28,6 +31,12 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
 
     private val woolboyModel = AssetRef.model(WoolboyModelPath)
     private var descriptorCache: SceneDescriptor? = null
+
+    override val viewportConfig: RuntimeViewportConfig = RuntimeViewportConfig(
+        designWidth = 1920f,
+        designHeight = 1080f,
+        scalePolicy = UiScalePolicy.ScaleByHeight,
+    )
 
     override val requiredAssets: List<AssetPack> = listOf(
         object : AssetPack {

@@ -5,6 +5,9 @@ import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.UiService
+import com.pashkd.krender.engine.viewport.RuntimeViewportConfig
+import com.pashkd.krender.engine.viewport.RuntimeViewportService
+import com.pashkd.krender.engine.viewport.SceneViewportConfig
 import kotlin.math.min
 
 /**
@@ -238,6 +241,8 @@ class EngineRuntime(
     override val tasks: TaskService = backend.tasks
     /** Optional backend terrain texture sampler factory exposed to scenes. */
     override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory? = backend.terrainTextureSamplerFactory
+    /** Runtime UI viewport state derived from surface size and active scene policy. */
+    val viewportService: RuntimeViewportService = RuntimeViewportService()
 
     private val gameLoop = GameLoop(this, backend, config)
     private var running = false
@@ -272,6 +277,8 @@ class EngineRuntime(
 
     /** Propagates a resize event to scenes, UI, and renderer. */
     fun resize(width: Int, height: Int) {
+        val viewportConfig = (scenes.currentScene as? SceneViewportConfig)?.viewportConfig ?: RuntimeViewportConfig()
+        viewportService.resize(width, height, viewportConfig)
         scenes.resize(width, height)
         backend.ui.resize(width, height)
         backend.renderer.resize(width, height)
