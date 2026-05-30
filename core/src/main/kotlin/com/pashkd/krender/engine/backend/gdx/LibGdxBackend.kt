@@ -99,10 +99,12 @@ import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.backend.gdx.scene.GdxSceneFileService
+import com.pashkd.krender.engine.backend.gdx.runtimeui.GdxScene2DRuntimeUiBackend
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.runtimeui.RuntimeUiBackend
 import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.EditorToolLauncher
@@ -203,6 +205,7 @@ class LibGdxBackend(
     override val input: GdxInputService = GdxInputService().also {
         Gdx.input.inputProcessor = it
     }
+    override val runtimeUi: RuntimeUiBackend = GdxScene2DRuntimeUiBackend(logger, input)
     override val ui: UiService = if (Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.Android) {
         NoOpUiService()
     } else {
@@ -215,8 +218,8 @@ class LibGdxBackend(
     override val tasks: TaskService = GdxTaskService()
     override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory =
         TerrainMaterialTextureSamplerFactory { GdxTerrainMaterialTextureSampler(logger) }
-    override val window: WindowService = GdxWindowService()
-    override val renderer: Renderer = GdxRenderer3D(assets, ui, logger)
+    override val window: WindowService = GdxWindowService(logger)
+    override val renderer: Renderer = GdxRenderer3D(assets, logger)
 
     /** Requests application shutdown through the LibGDX app instance. */
     override fun requestExit() {
@@ -234,11 +237,14 @@ class LibGdxBackend(
  * On non-desktop platforms this service reports the current surface size but does
  * not attempt to change the application presentation mode.
  */
-class GdxWindowService : WindowService {
+class GdxWindowService(
+    private val logger: Logger,
+) : WindowService {
     override val current: WindowState
         get() = readCurrentState()
 
     override fun apply(config: RuntimeWindowConfig): WindowState {
+        val before = readCurrentState()
         val resolution = config.resolution.coerceAtLeast()
         if (Gdx.app.type == ApplicationType.Desktop) {
             when (config.mode) {
@@ -246,7 +252,13 @@ class GdxWindowService : WindowService {
                 WindowMode.Fullscreen -> Gdx.graphics.setFullscreenMode(Gdx.graphics.displayMode)
             }
         }
-        return readCurrentState(fallbackMode = config.mode)
+        val after = readCurrentState(fallbackMode = config.mode)
+        logger.info(TAG) {
+            "Window apply requested=${config.mode} ${resolution.width}x${resolution.height} " +
+                "before=${before.mode} ${before.pixelWidth}x${before.pixelHeight} " +
+                "after=${after.mode} ${after.pixelWidth}x${after.pixelHeight}"
+        }
+        return after
     }
 
     private fun readCurrentState(fallbackMode: WindowMode? = null): WindowState =
@@ -258,6 +270,10 @@ class GdxWindowService : WindowService {
 
     private fun inferMode(): WindowMode =
         if (Gdx.graphics.isFullscreen) WindowMode.Fullscreen else WindowMode.Windowed
+
+    companion object {
+        private const val TAG = "GdxWindowService"
+    }
 }
 
 /**
@@ -1429,11 +1445,10 @@ class RenderThreadDispatcher : CoroutineDispatcher() {
 }
 
 /**
- * LibGDX renderer that draws static models, dynamic meshes, wireframes, lines, and UI.
+ * LibGDX renderer that draws static models, dynamic meshes, wireframes, and lines.
  */
 class GdxRenderer3D(
     private val assets: GdxAssetService,
-    private val ui: UiService,
     private val logger: Logger,
 ) : Renderer {
     private val maxShaderBones = systemInt("krender.gl.maxBones", default = DefaultMaxShaderBones).coerceAtLeast(MinShaderBones)
@@ -1538,9 +1553,6 @@ class GdxRenderer3D(
         wireframeCommands.forEach { renderWireframeModel(it, camera) }
         wireframeDynamicCommands.forEach { renderWireframeDynamicModel(it, camera) }
         lineRenderer.renderOverlayLines(context.commands, camera)
-
-        prepareUiPass()
-        ui.render()
         if (forceBackBufferAlphaOpaque) {
             forceOpaqueBackBufferAlpha()
         }
@@ -1563,27 +1575,10 @@ class GdxRenderer3D(
     }
 
     /**
-     * Isolates ImGui from the scene render pass.
+     * Keeps the presented window fully opaque after the scene pass.
      *
-     * ModelBatch and debug-line rendering leave depth testing enabled. Some GL
-     * backends do not fully normalize that state before drawing ImGui, so make
-     * the overlay requirements explicit before submitting UI draw data.
-     */
-    private fun prepareUiPass() {
-        Gdx.gl.glViewport(0, 0, width, height)
-        Gdx.gl.glDisable(GL20.GL_DEPTH_TEST)
-        Gdx.gl.glDepthMask(false)
-        Gdx.gl.glDisable(GL20.GL_CULL_FACE)
-        Gdx.gl.glColorMask(true, true, true, true)
-    }
-
-    /**
-     * Keeps the presented window fully opaque even after transparent UI draws.
-     *
-     * The desktop launcher requests an RGB backbuffer, but some drivers still
-     * expose an alpha channel. Leave the rendered colors untouched and clear
-     * only alpha so DWM/capture paths cannot treat blended ImGui or grid pixels
-     * as partially transparent checkerboard tiles.
+     * Overlay backends repeat the same alpha-only clear after their own draws so
+     * DWM/capture paths never see partially transparent content in the final frame.
      */
     private fun forceOpaqueBackBufferAlpha() {
         Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)

@@ -3,6 +3,8 @@ package com.pashkd.krender.engine.api
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.SceneFileService
+import com.pashkd.krender.engine.runtimeui.RuntimeUiBackend
+import com.pashkd.krender.engine.runtimeui.RuntimeUiService
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportConfig
@@ -44,6 +46,9 @@ interface EngineContext {
 
     /** Shared ImGui-backed UI service. */
     val ui: UiService
+
+    /** Shared runtime game UI service. */
+    val runtimeUi: RuntimeUiService
 
     /** Shared event bus. */
     val events: EventBus
@@ -87,6 +92,9 @@ interface EngineBackend {
 
     /** Backend UI implementation. */
     val ui: UiService
+
+    /** Backend runtime UI implementation. */
+    val runtimeUi: RuntimeUiBackend
 
     /** Backend asset implementation. */
     val assets: AssetService
@@ -194,8 +202,12 @@ class GameLoop(
             }
             if (runtime.completeExitIfRequested()) return
 
-            // Close the UI frame after panels have drawn but before the renderer
-            // submits, so [Renderer.render] can call [UiService.render] last.
+            backend.profiler.measure("runtimeUi.update") {
+                runtime.runtimeUi.update(delta)
+            }
+
+            // Close the editor UI frame after panels have drawn but before the
+            // final overlay passes are submitted.
             backend.ui.endFrame()
             uiFrameEnded = true
 
@@ -213,6 +225,12 @@ class GameLoop(
                         commands = scene.world.renderCommands.snapshot(),
                     ),
                 )
+            }
+            backend.profiler.measure("runtimeUi.render") {
+                runtime.runtimeUi.render()
+            }
+            backend.profiler.measure("ui.render") {
+                backend.ui.render()
             }
         } finally {
             if (!uiFrameEnded) {
@@ -268,6 +286,9 @@ class EngineRuntime(
 
     /** Shared UI service exposed to scenes. */
     override val ui: UiService = backend.ui
+
+    /** Shared runtime UI service exposed to scenes. */
+    override val runtimeUi: RuntimeUiService = RuntimeUiService(backend.runtimeUi, backend.logger)
 
     /** Shared event bus exposed to scenes. */
     override val events: EventBus = EventBus()
@@ -340,7 +361,16 @@ class EngineRuntime(
     fun resize(width: Int, height: Int) {
         val viewportConfig = scenes.currentScene?.config?.viewport ?: RuntimeViewportConfig()
         viewport.resize(width, height, viewportConfig)
+        val currentSceneId = scenes.currentScene?.id ?: "<none>"
+        logger.info(TAG) {
+            "Resize scene='$currentSceneId' " +
+                "window=${width.coerceAtLeast(1)}x${height.coerceAtLeast(1)} " +
+                "viewportLogical=${"%.2f".format(viewport.current.logicalWidth)}x${"%.2f".format(viewport.current.logicalHeight)} " +
+                "scale=${"%.4f".format(viewport.current.scale)} " +
+                "offset=${"%.2f".format(viewport.current.offsetX)},${"%.2f".format(viewport.current.offsetY)}"
+        }
         scenes.resize(width, height)
+        runtimeUi.resize(width, height)
         backend.ui.resize(width, height)
         backend.renderer.resize(width, height)
     }
@@ -350,6 +380,7 @@ class EngineRuntime(
         running = false
         scenes.disposeAll()
         backend.renderer.dispose()
+        runtimeUi.dispose()
         backend.ui.dispose()
         tasks.dispose()
     }

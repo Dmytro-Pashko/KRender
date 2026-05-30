@@ -219,7 +219,17 @@ class SceneManager {
      * runtime to call [EngineRuntime.resize] after transitions.
      */
     private fun applySceneConfig(scene: Scene, context: EngineContext) {
+        context.logger.info(TAG) {
+            "Applying scene config id='${scene.id}' " +
+                "window=${scene.config.window.mode} ${scene.config.window.resolution.width}x${scene.config.window.resolution.height} " +
+                "viewport=${scene.config.viewport.designWidth.toInt()}x${scene.config.viewport.designHeight.toInt()} " +
+                "policy=${scene.config.viewport.scalePolicy}"
+        }
         val windowState = context.window.apply(scene.config.window).coerceAtLeast()
+        context.logger.info(TAG) {
+            "Scene config applied id='${scene.id}' " +
+                "actualWindow=${windowState.mode} ${windowState.pixelWidth}x${windowState.pixelHeight}"
+        }
         context.viewport.resize(windowState.pixelWidth, windowState.pixelHeight, scene.config.viewport)
     }
 

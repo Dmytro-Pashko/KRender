@@ -12,6 +12,7 @@ import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
+import com.pashkd.krender.test.newTestRuntimeUiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlin.test.Test
@@ -202,11 +203,12 @@ private class TestEngineContext(
     override val sceneFiles: SceneFileService = TestSceneFileService(files)
     override val runtimeLauncher: RuntimeWindowLauncher = UnsupportedRuntimeWindowLauncher
     override val editorToolLauncher: EditorToolLauncher = UnsupportedEditorToolLauncher
-    override val input: InputService = TestInputService
-    override val ui: UiService = NoOpUiService()
-    override val events: EventBus = EventBus()
     override val logger: Logger = EngineLogService()
     override val logs: LogService = logger as LogService
+    override val input: InputService = TestInputService
+    override val ui: UiService = NoOpUiService()
+    override val runtimeUi = newTestRuntimeUiService(logger)
+    override val events: EventBus = EventBus()
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
     override val profiler: ProfilerService = FrameProfilerService()
     override val tasks: TaskService = TestTaskService

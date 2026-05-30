@@ -9,6 +9,7 @@ import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
+import com.pashkd.krender.test.newTestRuntimeUiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlin.test.Test
@@ -77,6 +78,8 @@ private class BuilderTestEngineContext : EngineContext {
     }
     override val runtimeLauncher: RuntimeWindowLauncher = UnsupportedRuntimeWindowLauncher
     override val editorToolLauncher: EditorToolLauncher = UnsupportedEditorToolLauncher
+    override val logger = EngineLogService()
+    override val logs: LogService = logger
     override val input: InputService = object : InputService {
         override fun beginFrame() = Unit
         override fun snapshot(): InputSnapshot = InputSnapshot()
@@ -87,9 +90,8 @@ private class BuilderTestEngineContext : EngineContext {
         override fun axis(axis: Axis): Float = 0f
     }
     override val ui: UiService = NoOpUiService()
+    override val runtimeUi = newTestRuntimeUiService(logger)
     override val events: EventBus = EventBus()
-    override val logger = EngineLogService()
-    override val logs: LogService = logger
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
     override val profiler: ProfilerService = FrameProfilerService()
     override val tasks: TaskService = object : TaskService {

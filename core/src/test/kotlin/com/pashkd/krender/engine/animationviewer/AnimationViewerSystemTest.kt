@@ -43,6 +43,7 @@ import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
+import com.pashkd.krender.test.newTestRuntimeUiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlin.test.Test
@@ -709,6 +710,7 @@ class AnimationViewerSystemTest {
             override fun axis(axis: Axis): Float = 0f
         }
         override val ui: UiService = NoOpUiService()
+        override val runtimeUi = newTestRuntimeUiService(logger)
         override val events: EventBus = EventBus()
         override val logs: LogService = object : LogService {
             override val recentEntries: List<com.pashkd.krender.engine.api.LogEntry> = emptyList()

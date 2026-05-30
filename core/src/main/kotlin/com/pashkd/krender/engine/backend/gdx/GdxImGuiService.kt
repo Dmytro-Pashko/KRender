@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.backend.gdx
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
+import com.badlogic.gdx.graphics.GL20
 import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.ui.UiCaptureState
@@ -101,7 +102,13 @@ class GdxImGuiService(
         if (!frameReady) return
 
         withCurrentContext {
+            Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+            Gdx.gl.glDisable(GL20.GL_DEPTH_TEST)
+            Gdx.gl.glDepthMask(false)
+            Gdx.gl.glDisable(GL20.GL_CULL_FACE)
+            Gdx.gl.glColorMask(true, true, true, true)
             ImGui.drawData?.let(renderer::renderDrawData)
+            forceOpaqueBackBufferAlpha()
         }
         frameReady = false
     }
@@ -161,6 +168,15 @@ class GdxImGuiService(
         } finally {
             previous?.setCurrent()
         }
+    }
+
+    private fun forceOpaqueBackBufferAlpha() {
+        Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
+        Gdx.gl.glColorMask(false, false, false, true)
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+        Gdx.gl.glColorMask(true, true, true, true)
+        Gdx.gl.glDepthMask(true)
     }
 
 }

@@ -13,6 +13,7 @@ import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
 import com.pashkd.krender.engine.window.WindowState
+import com.pashkd.krender.test.NoOpRuntimeUiBackend
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlin.test.Test
@@ -65,7 +66,7 @@ class EngineRuntimeWindowConfigTest {
 
         assertEquals(1920, runtime.window.current.pixelWidth)
         assertEquals(1080, runtime.window.current.pixelHeight)
-        assertEquals(listOf(1920 to 1080, 1920 to 1080), runtimeScene.resizeCalls)
+        assertEquals(listOf(1920 to 1080, 1920 to 1280, 1920 to 1080), runtimeScene.resizeCalls)
     }
 }
 
@@ -98,6 +99,7 @@ private class FakeEngineBackend(
         override fun axis(axis: Axis): Float = 0f
     }
     override val ui: UiService = NoOpUiService()
+    override val runtimeUi = NoOpRuntimeUiBackend()
     override val assets: AssetService = object : AssetService {
         override fun queue(asset: AssetRef<*>) = Unit
         override fun update(budgetMs: Int): Float = 1f
