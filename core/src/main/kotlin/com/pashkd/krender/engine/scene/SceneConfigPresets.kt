@@ -41,5 +41,15 @@ object SceneConfigPresets {
     )
 
     /** Current Asset Browser preset. Kept separate for future divergence. */
-    val AssetBrowser = EditorTool
+    val AssetBrowser = SceneConfig(
+        viewport = RuntimeViewportConfig(
+            designWidth = 1920f,
+            designHeight = 1080f,
+            scalePolicy = UiScalePolicy.ScaleByHeight,
+        ),
+        window = RuntimeWindowConfig(
+            resolution = WindowResolution(width = 1250, height = 900),
+            mode = WindowMode.Windowed,
+        ),
+    )
 }
