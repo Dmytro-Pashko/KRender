@@ -1,5 +1,12 @@
 {
   "panels": {
+    "assetBrowserControls": {
+      "title": "Asset Browser Controls",
+      "x": 792,
+      "y": 16,
+      "width": 420,
+      "height": 152
+    },
     "assetBrowser": {
       "title": "Asset Browser",
       "x": 16,
@@ -10,9 +17,9 @@
     "assetDetails": {
       "title": "Asset Details",
       "x": 792,
-      "y": 16,
+      "y": 184,
       "width": 420,
-      "height": 560
+      "height": 392
     },
     "runtimeLogs": {
       "title": "Runtime Logs",

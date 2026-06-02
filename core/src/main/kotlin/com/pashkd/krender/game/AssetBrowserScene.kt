@@ -7,8 +7,10 @@ import com.pashkd.krender.engine.assets.AssetBrowserOperationsHandler
 import com.pashkd.krender.engine.assets.AssetBrowserPanel
 import com.pashkd.krender.engine.assets.AssetBrowserState
 import com.pashkd.krender.engine.assets.AssetBrowserSystem
+import com.pashkd.krender.engine.assets.AssetBrowserUiOperations
 import com.pashkd.krender.engine.assets.AssetBrowserUiLayoutDefaults
 import com.pashkd.krender.engine.assets.AssetCategory
+import com.pashkd.krender.engine.assets.AssetControlsPanel
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetDetailsPanel
 import com.pashkd.krender.engine.assets.AssetImporterRegistry
@@ -26,6 +28,7 @@ import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
+import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.LogsPanel
 import com.pashkd.krender.engine.ui.UiSystem
@@ -42,6 +45,7 @@ class AssetBrowserScene : Scene("asset_browser") {
     private lateinit var importers: AssetImporterRegistry
     private lateinit var tools: AssetToolRegistry
     private lateinit var operations: AssetOperationsService
+    private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
 
     override val config: SceneConfig = SceneConfigPresets.AssetBrowser
 
@@ -51,6 +55,7 @@ class AssetBrowserScene : Scene("asset_browser") {
             assetPath = AssetBrowserUiLayoutDefaults.assetPath,
             fallback = AssetBrowserUiLayoutDefaults.config,
         ).load(engine.logger)
+        layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "AssetBrowserUi")
 
         importers = AssetImporterRegistry.withDefaults(engine.logger)
@@ -94,19 +99,38 @@ class AssetBrowserScene : Scene("asset_browser") {
             engineProvider = { engine },
             logger = engine.logger,
         )
+        val uiOperations = AssetBrowserUiOperations(browserState, engine, layoutTracker)
         return UiSystem(engine.ui).also { uiSystem ->
+            uiSystem.addPanel(AssetControlsPanel(browserState, uiOperations, layoutConfig, layoutTracker, panelEventLogger))
             uiSystem.addPanel(
                 AssetBrowserPanel(
                     state = browserState,
                     onAssetSelected = { asset -> browserState.selectedAssetId = asset.id },
                     onAssetActivated = { asset -> browserState.activationRequestedAssetId = asset.id },
                     layoutConfig = layoutConfig,
+                    layoutTracker = layoutTracker,
                     eventLogger = panelEventLogger,
                     operations = operationsHandler,
                 ),
             )
-            uiSystem.addPanel(AssetDetailsPanel(browserState, layoutConfig, panelEventLogger, operations = operationsHandler))
-            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger, initialAutoScrollToLatest = true))
+            uiSystem.addPanel(
+                AssetDetailsPanel(
+                    browserState,
+                    layoutConfig,
+                    panelEventLogger,
+                    layoutTracker = layoutTracker,
+                    operations = operationsHandler,
+                ),
+            )
+            uiSystem.addPanel(
+                LogsPanel(
+                    engine.logs,
+                    layoutConfig,
+                    panelEventLogger,
+                    layoutTracker = layoutTracker,
+                    initialAutoScrollToLatest = true,
+                ),
+            )
         }
     }
 

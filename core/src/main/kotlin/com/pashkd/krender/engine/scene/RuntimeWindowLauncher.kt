@@ -5,6 +5,10 @@ package com.pashkd.krender.engine.scene
  */
 interface RuntimeWindowLauncher {
     fun launchRuntimeScene(scenePath: String)
+
+    fun launchScene(sceneName: String) {
+        error("Named runtime scene launching is not supported by this backend.")
+    }
 }
 
 /**
@@ -13,5 +17,9 @@ interface RuntimeWindowLauncher {
 object UnsupportedRuntimeWindowLauncher : RuntimeWindowLauncher {
     override fun launchRuntimeScene(scenePath: String) {
         error("Runtime window launching is not supported by this backend.")
+    }
+
+    override fun launchScene(sceneName: String) {
+        error("Named runtime scene launching is not supported by this backend.")
     }
 }

@@ -21,6 +21,17 @@ class Lwjgl3RuntimeWindowLauncher(
         )
     }
 
+    override fun launchScene(sceneName: String) {
+        val normalizedSceneName = sceneName.trim()
+        require(normalizedSceneName.isNotBlank()) { "Runtime scene name must not be blank." }
+        processLauncher.launch(
+            properties = linkedMapOf(
+                "krender.scene" to normalizedSceneName,
+            ),
+            failureMessage = "Named runtime scene launch failed",
+        )
+    }
+
     companion object {
         private const val TAG = "RuntimeWindowLauncher"
     }

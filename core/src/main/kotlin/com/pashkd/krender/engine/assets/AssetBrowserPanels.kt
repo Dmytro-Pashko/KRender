@@ -2,11 +2,11 @@ package com.pashkd.krender.engine.assets
 
 import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.ImGuiPanelLayout
+import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.UiPanel
+import com.pashkd.krender.engine.ui.beginImGuiPanel
 import glm_.vec2.Vec2
-import imgui.Cond
 import imgui.ImGui
 import imgui.MouseButton
 import imgui.dsl
@@ -25,6 +25,7 @@ class AssetBrowserPanel(
     private val acceptedCategories: Set<AssetCategory>? = null,
     private val mode: AssetBrowserMode = AssetBrowserMode.Full,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker? = null,
     private val eventLogger: ImGuiWindowEventLogger,
     private val panelId: String = AssetBrowserPanelIds.Browser,
     private val operations: AssetBrowserOperationsHandler = AssetBrowserOperationsHandler.NoOp,
@@ -39,8 +40,7 @@ class AssetBrowserPanel(
     override fun draw() {
         syncSearchBuffer()
         val layout = layoutConfig.panels[panelId] ?: return
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, panelId))
+        val expanded = beginImGuiPanel(panelId, layout, layoutTracker)
         eventLogger.observe(panelId, layout.title)
         if (!expanded) {
             ImGui.end()
@@ -378,6 +378,57 @@ class AssetBrowserPanel(
 }
 
 /**
+ * Top-level control panel for layout persistence and sandbox launch shortcuts.
+ */
+class AssetControlsPanel(
+    private val state: AssetBrowserState,
+    private val operations: AssetBrowserUiOperations,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
+    private val panelId: String = AssetBrowserPanelIds.Controls,
+) : UiPanel {
+    override fun draw() {
+        val layout = layoutConfig.panels[panelId] ?: return
+        val expanded = beginImGuiPanel(panelId, layout, layoutTracker)
+        eventLogger.observe(panelId, layout.title)
+        if (!expanded) {
+            ImGui.end()
+            return
+        }
+
+        with(dsl) {
+            button("Play Woolboy Scene##${panelId}_play_woolboy") {
+                operations.playWoolboyScene()
+            }
+        }
+        with(dsl) {
+            button("Persist UI##${panelId}_persist_ui") {
+                operations.saveUiLayout()
+            }
+        }
+        with(dsl) {
+            button("Reset UI to Default##${panelId}_reset_ui") {
+                operations.restoreUiLayout()
+            }
+        }
+
+        ImGui.separator()
+        textLine("Status: ${state.statusMessage}")
+        state.errorMessage?.let { error -> textLine("Error: $error") }
+        textLine("Selected Asset: ${selectedAssetName()}")
+        textLine("Assets: ${state.filteredAssets.size} / ${state.assets.size}")
+        ImGui.end()
+    }
+
+    private fun selectedAssetName(): String =
+        state.selectedAssetId
+            ?.let { selectedId -> state.assets.firstOrNull { asset -> asset.id == selectedId } }
+            ?.name
+            ?: "None"
+}
+
+/**
  * Shows details for the currently selected asset.
  */
 class AssetDetailsPanel(
@@ -385,12 +436,12 @@ class AssetDetailsPanel(
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
     private val panelId: String = AssetBrowserPanelIds.Details,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker? = null,
     private val operations: AssetBrowserOperationsHandler = AssetBrowserOperationsHandler.NoOp,
 ) : UiPanel {
     override fun draw() {
         val layout = layoutConfig.panels[panelId] ?: return
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, panelId))
+        val expanded = beginImGuiPanel(panelId, layout, layoutTracker)
         eventLogger.observe(panelId, layout.title)
         if (!expanded) {
             ImGui.end()
@@ -621,13 +672,6 @@ interface AssetBrowserOperationsHandler {
         }
     }
 }
-
-private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
-    ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
-    ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
-}
-
-private fun imguiWindowName(title: String, id: String): String = "$title###$id"
 
 private fun textLine(value: String) {
     ImGui.textUnformatted(value)

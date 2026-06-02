@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.ui.ImGuiPanelLayout
  * Stable panel ids used by the Asset Browser scene.
  */
 object AssetBrowserPanelIds {
+    const val Controls = "assetBrowserControls"
     const val Browser = "assetBrowser"
     const val Details = "assetDetails"
     const val Logs = "runtimeLogs"
@@ -20,6 +21,13 @@ object AssetBrowserUiLayoutDefaults {
 
     val config = ImGuiLayoutConfig(
         panels = mapOf(
+            AssetBrowserPanelIds.Controls to ImGuiPanelLayout(
+                title = "Asset Browser Controls",
+                x = 792f,
+                y = 16f,
+                width = 420f,
+                height = 152f,
+            ),
             AssetBrowserPanelIds.Browser to ImGuiPanelLayout(
                 title = "Asset Browser",
                 x = 16f,
@@ -30,9 +38,9 @@ object AssetBrowserUiLayoutDefaults {
             AssetBrowserPanelIds.Details to ImGuiPanelLayout(
                 title = "Asset Details",
                 x = 792f,
-                y = 16f,
+                y = 184f,
                 width = 420f,
-                height = 560f,
+                height = 392f,
             ),
             AssetBrowserPanelIds.Logs to ImGuiPanelLayout(
                 title = "Runtime Logs",
@@ -44,4 +52,3 @@ object AssetBrowserUiLayoutDefaults {
         ),
     )
 }
-
