@@ -99,7 +99,8 @@ import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.backend.gdx.scene.GdxSceneFileService
-import com.pashkd.krender.engine.backend.gdx.runtimeui.GdxScene2DRuntimeUiBackend
+import com.pashkd.krender.engine.backend.gdx.runtimeui.GdxRuntimeUiBackend
+import com.pashkd.krender.engine.backend.gdx.runtimeui.WoolboyRuntimeUiFactory
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
@@ -205,7 +206,13 @@ class LibGdxBackend(
     override val input: GdxInputService = GdxInputService().also {
         Gdx.input.inputProcessor = it
     }
-    override val runtimeUi: RuntimeUiBackend = GdxScene2DRuntimeUiBackend(logger, input)
+    override val runtimeUi: RuntimeUiBackend = GdxRuntimeUiBackend(
+        logger = logger,
+        input = input,
+        screenFactoryProvider = { skin, actionHandlerProvider ->
+            listOf(WoolboyRuntimeUiFactory(skin, actionHandlerProvider))
+        },
+    )
     override val ui: UiService = if (Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.Android) {
         NoOpUiService()
     } else {

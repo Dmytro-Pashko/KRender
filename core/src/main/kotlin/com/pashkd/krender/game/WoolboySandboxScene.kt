@@ -30,6 +30,7 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
 
     private val woolboyModel = AssetRef.model(WoolboyModelPath)
     private var descriptorCache: SceneDescriptor? = null
+    private val gameState = WoolboyGameState()
 
     override val config: SceneConfig = SceneConfigPresets.RuntimeGame16By9
 
@@ -72,6 +73,8 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
 
     override fun hide() {
         engine.input.setCursorCaptured(false)
+        engine.runtimeUi.setActionHandler(null)
+        engine.runtimeUi.clear()
     }
 
     /**
@@ -102,7 +105,24 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
      */
     private fun createSystems(descriptor: SceneDescriptor) {
         addSystem("TerrainAssetSyncSystem", TerrainAssetSyncSystem(engine.logger))
-        addSystem("PlayerControllerSystem", PlayerControllerSystem(engine.input, engine.logger))
+        addSystem(
+            "WoolboyUiControllerSystem",
+            WoolboyUiControllerSystem(
+                runtimeUi = engine.runtimeUi,
+                gameState = gameState,
+                input = engine.input,
+                logger = engine.logger,
+                requestExit = engine::requestExit,
+            ),
+        )
+        addSystem(
+            "PlayerControllerSystem",
+            PlayerControllerSystem(
+                input = engine.input,
+                logger = engine.logger,
+                inputEnabled = { gameState.playerInputEnabled },
+            ),
+        )
         addSystem("CharacterAnimationSystem", CharacterAnimationSystem(engine.assets, engine.logger))
         addSystem("ThirdPersonCameraFollowSystem", ThirdPersonCameraFollowSystem(engine.input, engine.logger))
         addSystem("TerrainRenderSystem", TerrainRenderSystem())

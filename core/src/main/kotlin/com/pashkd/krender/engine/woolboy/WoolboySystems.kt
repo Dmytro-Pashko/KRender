@@ -18,6 +18,7 @@ import kotlin.math.*
 class PlayerControllerSystem(
     private val input: InputService,
     private val logger: Logger,
+    private val inputEnabled: () -> Boolean = { true },
 ) : System() {
     companion object {
         private const val TAG = "PlayerControllerSystem"
@@ -46,6 +47,12 @@ class PlayerControllerSystem(
         val transform = player.get<TransformComponent>() ?: return
         val controller = player.get<PlayerControllerComponent>() ?: return
         val velocity = player.get<VelocityComponent>() ?: return
+
+        if (!inputEnabled()) {
+            velocity.value = Vec3.zero()
+            return
+        }
+
         val snapshot = input.snapshot()
 
         if (!hasLoggedFirstUpdate) {

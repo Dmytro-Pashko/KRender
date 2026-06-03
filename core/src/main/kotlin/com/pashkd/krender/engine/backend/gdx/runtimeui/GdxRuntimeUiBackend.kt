@@ -9,16 +9,12 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.NinePatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.Actor
-import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.ui.Container
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.badlogic.gdx.scenes.scene2d.ui.Stack
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
@@ -32,14 +28,24 @@ import com.pashkd.krender.engine.runtimeui.RuntimeUiLayerState
 import com.pashkd.krender.engine.runtimeui.RuntimeUiScreen
 
 /**
- * Scene2D-backed runtime UI backend used by the LibGDX runtime.
+ * LibGDX runtime UI backend that renders backend-neutral runtime UI screens.
  */
-class GdxScene2DRuntimeUiBackend(
+class GdxRuntimeUiBackend(
     private val logger: Logger,
     private val input: GdxInputService,
+    screenFactoryProvider: (Skin, () -> RuntimeUiActionHandler?) -> List<RuntimeUiActorFactory> = { _, _ ->
+        emptyList()
+    },
 ) : RuntimeUiBackend {
+    companion object {
+        private const val TAG = "GdxRuntimeUiBackend"
+    }
+
     private val skin = GdxRuntimeUiSkinFactory().create()
-    private val screenFactory = GdxRuntimeUiScreenFactory(skin) { actionHandler }
+    private val screenFactory = CompositeRuntimeUiActorFactory(
+        factories = screenFactoryProvider(skin) { actionHandler },
+        fallbackFactory = FallbackRuntimeUiActorFactory(skin),
+    )
     private val stage = Stage(ScreenViewport())
     private var actionHandler: RuntimeUiActionHandler? = null
 
@@ -91,10 +97,6 @@ class GdxScene2DRuntimeUiBackend(
         skin.dispose()
     }
 
-    companion object {
-        private const val TAG = "GdxScene2DRuntimeUiBackend"
-    }
-
     private fun forceOpaqueBackBufferAlpha() {
         Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
         Gdx.gl.glColorMask(false, false, false, true)
@@ -105,96 +107,36 @@ class GdxScene2DRuntimeUiBackend(
     }
 }
 
-private class GdxRuntimeUiScreenFactory(
-    private val skin: Skin,
-    private val actionHandlerProvider: () -> RuntimeUiActionHandler?,
+/**
+ * Creates a LibGDX actor for a backend-neutral runtime UI screen.
+ *
+ * Implementations return null when they do not own the supplied screen id, which
+ * lets the generic backend compose scene-specific factories without embedding
+ * scene-specific layout code.
+ */
+fun interface RuntimeUiActorFactory {
+    fun create(
+        screen: RuntimeUiScreen,
+        layer: String,
+    ): Actor?
+}
+
+private class CompositeRuntimeUiActorFactory(
+    private val factories: List<RuntimeUiActorFactory>,
+    private val fallbackFactory: RuntimeUiActorFactory,
 ) {
     fun create(
         screen: RuntimeUiScreen,
         layer: String,
-    ): Actor = when (screen.id) {
-        "woolboy.loading" -> loadingScreen(screen)
-        "woolboy.main_menu" -> mainMenuScreen(screen)
-        "woolboy.hud" -> hudScreen(screen)
-        "woolboy.final_results" -> finalResultsScreen(screen)
-        else -> fallbackScreen(screen, layer)
-    }
+    ): Actor = factories.firstNotNullOfOrNull { factory -> factory.create(screen, layer) }
+        ?: fallbackFactory.create(screen, layer)
+        ?: error("Fallback runtime UI factory did not create a screen for '${screen.id}'.")
+}
 
-    private fun loadingScreen(screen: RuntimeUiScreen): Actor {
-        val root = fullScreenTable()
-        val content = dialogTable().apply {
-            add(label(screen.payload["title"] ?: "Loading", "title")).padBottom(20f).row()
-            add(bodyLabel(screen.payload["message"] ?: "Preparing scene...")).width(520f)
-        }
-        root.add(content).width(640f).pad(40f)
-        return root
-    }
-
-    private fun mainMenuScreen(screen: RuntimeUiScreen): Actor {
-        val stack = Stack().apply { setFillParent(true) }
-        stack.add(
-            Table().apply {
-                setFillParent(true)
-                setBackground(skin.getDrawable("overlay"))
-            },
-        )
-        stack.add(
-            Table().apply {
-                setFillParent(true)
-                add(
-                    dialogTable().apply {
-                        add(label(screen.payload["title"] ?: "Woolboy", "title")).padBottom(28f).row()
-                        add(bodyLabel(screen.payload["subtitle"] ?: "Runtime UI MVP")).padBottom(28f).row()
-                        add(actionButton("Start", "woolboy.start")).width(420f).height(72f).padBottom(16f).row()
-                        if (screen.payload["showContinue"] == "true") {
-                            add(actionButton("Continue", "woolboy.continue")).width(420f).height(72f).padBottom(16f).row()
-                        }
-                        add(actionButton("Settings", "woolboy.settings")).width(420f).height(72f).padBottom(16f).row()
-                        add(actionButton("Exit", "woolboy.exit")).width(420f).height(72f)
-                    },
-                ).width(720f).pad(40f)
-            },
-        )
-        return stack
-    }
-
-    private fun hudScreen(screen: RuntimeUiScreen): Actor {
-        val stack = Stack().apply { setFillParent(true) }
-        stack.add(
-            Table().apply {
-                setFillParent(true)
-                add(label(screen.payload["title"] ?: "Woolboy HUD")).expand().top().left().pad(24f)
-            },
-        )
-        stack.add(
-            Table().apply {
-                setFillParent(true)
-                val healthPercent = screen.payload["healthPercent"]?.toFloatOrNull()?.coerceIn(0f, 1f) ?: 1f
-                val healthText = screen.payload["healthLabel"] ?: "Health"
-                val content = Table().apply {
-                    add(label(healthText)).left().padBottom(8f).row()
-                    add(progressBar(healthPercent)).width(360f).height(28f)
-                }
-                add(content).expand().bottom().left().pad(24f)
-            },
-        )
-        return stack
-    }
-
-    private fun finalResultsScreen(screen: RuntimeUiScreen): Actor {
-        val root = fullScreenTable()
-        root.setBackground(skin.getDrawable("overlay"))
-        val content = dialogTable().apply {
-            add(label(screen.payload["title"] ?: "Run Complete", "title")).padBottom(24f).row()
-            add(bodyLabel(screen.payload["summary"] ?: "Results are not implemented yet.")).width(520f).padBottom(24f).row()
-            add(actionButton("Restart", "woolboy.restart")).width(360f).height(72f).padBottom(16f).row()
-            add(actionButton("Exit", "woolboy.exit")).width(360f).height(72f)
-        }
-        root.add(content).width(640f).pad(40f)
-        return root
-    }
-
-    private fun fallbackScreen(
+private class FallbackRuntimeUiActorFactory(
+    private val uiSkin: Skin,
+) : RuntimeUiActorFactory {
+    override fun create(
         screen: RuntimeUiScreen,
         layer: String,
     ): Actor {
@@ -204,7 +146,7 @@ private class GdxRuntimeUiScreenFactory(
             add(
                 bodyLabel(
                     screen.payload["message"]
-                        ?: "No Scene2D runtime UI builder is registered for layer '$layer'.",
+                        ?: "No runtime UI builder is registered for layer '$layer'.",
                 ),
             ).width(540f)
         }
@@ -219,7 +161,7 @@ private class GdxRuntimeUiScreenFactory(
 
     private fun dialogTable(): Table =
         Table().apply {
-            setBackground(skin.getDrawable("panel"))
+            setBackground(uiSkin.getDrawable("panel"))
             pad(32f)
             defaults().center()
         }
@@ -228,39 +170,13 @@ private class GdxRuntimeUiScreenFactory(
         text: String,
         styleName: String = "default",
     ): Label =
-        Label(text, skin.get(styleName, Label.LabelStyle::class.java)).apply {
+        Label(text, uiSkin.get(styleName, Label.LabelStyle::class.java)).apply {
             setAlignment(Align.center)
         }
 
     private fun bodyLabel(text: String): Label =
         label(text).apply {
             wrap = true
-        }
-
-    private fun progressBar(value: Float): Container<ProgressBar> {
-        val progressBar = ProgressBar(0f, 1f, 0.01f, false, skin.get("runtime", ProgressBar.ProgressBarStyle::class.java))
-        progressBar.value = value
-        return Container(progressBar).apply {
-            fill()
-        }
-    }
-
-    private fun actionButton(
-        text: String,
-        action: String,
-    ): TextButton =
-        TextButton(text, skin).apply {
-            addListener(
-                object : ClickListener() {
-                    override fun clicked(
-                        event: InputEvent?,
-                        x: Float,
-                        y: Float,
-                    ) {
-                        actionHandlerProvider()?.onRuntimeUiAction(action)
-                    }
-                },
-            )
         }
 }
 
