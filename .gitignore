@@ -165,3 +165,5 @@ Thumbs.db
 **/resource-config.json
 /assets/logs/**
 /assets/imgui.**
+
+tools/ui/*.jar
