@@ -2,9 +2,11 @@ package com.pashkd.krender.engine.backend.gdx.runtimeui
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Container
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
@@ -13,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
+import com.badlogic.gdx.utils.Scaling
 import com.pashkd.krender.engine.runtimeui.RuntimeUiActionHandler
 import com.pashkd.krender.engine.runtimeui.RuntimeUiScreen
 
@@ -29,13 +32,19 @@ internal class WoolboyRuntimeUiFactory(
 ) : RuntimeUiActorFactory {
     companion object {
         private const val SkinPath = "ui/skins/craftacular-ui.json"
+        private const val FullHeartTexturePath = "textures/woolboy/hud_heart_full.png"
+        private const val EmptyHeartTexturePath = "textures/woolboy/hud_heart_empty.png"
         private const val LoadingScreenId = "woolboy.loading"
         private const val MainMenuScreenId = "woolboy.main_menu"
         private const val HudScreenId = "woolboy.hud"
         private const val FinalResultsScreenId = "woolboy.final_results"
+        private const val HeartSlots = 3
+        private const val HeartSize = 48f
     }
 
     private val uiSkin = Skin(Gdx.files.internal(SkinPath))
+    private val fullHeartTexture = Texture(Gdx.files.internal(FullHeartTexturePath))
+    private val emptyHeartTexture = Texture(Gdx.files.internal(EmptyHeartTexturePath))
 
     override fun create(
         screen: RuntimeUiScreen,
@@ -49,6 +58,8 @@ internal class WoolboyRuntimeUiFactory(
     }
 
     override fun dispose() {
+        fullHeartTexture.dispose()
+        emptyHeartTexture.dispose()
         uiSkin.dispose()
     }
 
@@ -95,14 +106,12 @@ internal class WoolboyRuntimeUiFactory(
     private fun hudScreen(screen: RuntimeUiScreen): Actor {
         val stack = Stack().apply { setFillParent(true) }
 
-        val healthPercent = screen.payload["healthPercent"]?.toFloatOrNull()?.coerceIn(0f, 1f) ?: 1f
         val healthLabel = screen.payload["healthLabel"] ?: "100/100"
         val scores = screen.payload["scores"] ?: "0"
-        val lives = screen.payload["lives"] ?: "3"
+        val lives = screen.payload["lives"]?.toIntOrNull()?.coerceIn(0, HeartSlots) ?: HeartSlots
 
         val healthTable = Table().apply {
-            add(leftLabel("Health: $healthLabel")).left().padBottom(8f).row()
-            add(progressBar(healthPercent, "health")).width(360f).height(28f).left()
+            add(leftLabel("Health: $healthLabel")).left()
         }
 
         stack.add(
@@ -123,7 +132,7 @@ internal class WoolboyRuntimeUiFactory(
         )
 
         stack.add(
-            Container(label("Lives: $lives")).apply {
+            Container(livesTable(lives)).apply {
                 setFillParent(true)
                 align(Align.topRight)
                 padTop(32f)
@@ -135,12 +144,12 @@ internal class WoolboyRuntimeUiFactory(
             setBackground(uiSkin.getDrawable("window"))
             pad(20f)
             defaults().left()
-            add(leftLabel("Controls")).left().padBottom(12f).row()
-            add(leftLabel("W/A/S/D - Move")).left().row()
-            add(leftLabel("RMB - Camera")).left().row()
-            add(leftLabel("Space - Jump")).left().row()
-            add(leftLabel("F - Greeting")).left().row()
-            add(leftLabel("Esc - Menu")).left().row()
+            add(leftLabel("Controls", "hud-controls")).left().padBottom(12f).row()
+            add(leftLabel("W/A/S/D - Move", "hud-controls")).left().row()
+            add(leftLabel("RMB - Camera", "hud-controls")).left().row()
+            add(leftLabel("Space - Jump", "hud-controls")).left().row()
+            add(leftLabel("F - Greeting", "hud-controls")).left().row()
+            add(leftLabel("Esc - Menu", "hud-controls")).left().row()
         }
 
         stack.add(
@@ -153,6 +162,18 @@ internal class WoolboyRuntimeUiFactory(
 
         return stack
     }
+
+    private fun livesTable(lives: Int): Table =
+        Table().apply {
+            repeat(HeartSlots) { index ->
+                val texture = if (index < lives) fullHeartTexture else emptyHeartTexture
+                add(
+                    Image(texture).apply {
+                        setScaling(Scaling.fit)
+                    },
+                ).width(HeartSize).height(HeartSize)
+            }
+        }
 
     private fun finalResultsScreen(screen: RuntimeUiScreen): Actor {
         val scores = screen.payload["scores"] ?: "0"
@@ -195,8 +216,11 @@ internal class WoolboyRuntimeUiFactory(
             wrap = true
         }
 
-    private fun leftLabel(text: String): Label =
-        label(text).apply {
+    private fun leftLabel(
+        text: String,
+        styleName: String = "default",
+    ): Label =
+        label(text, styleName).apply {
             setAlignment(Align.left)
         }
 

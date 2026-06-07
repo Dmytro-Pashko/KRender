@@ -124,16 +124,9 @@ class WoolboyUiControllerSystem(
         )
 
     private fun hudScreen(): RuntimeUiScreen {
-        val healthPercent = if (gameState.maxHealth <= 0) {
-            0f
-        } else {
-            gameState.health.toFloat() / gameState.maxHealth.toFloat()
-        }.coerceIn(0f, 1f)
-
         return RuntimeUiScreen(
             id = "woolboy.hud",
             payload = mapOf(
-                "healthPercent" to healthPercent.toString(),
                 "healthLabel" to "${gameState.health}/${gameState.maxHealth}",
                 "scores" to gameState.scores.toString(),
                 "lives" to gameState.lives.toString(),
