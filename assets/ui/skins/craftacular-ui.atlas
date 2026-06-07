@@ -1,0 +1,243 @@
+
+craftacular-ui.png
+size: 1024, 1024
+format: RGBA8888
+filter: Linear, Linear
+repeat: none
+armor
+  rotate: false
+  xy: 977, 891
+  size: 18, 18
+  orig: 18, 18
+  offset: 0, 0
+  index: -1
+armor-bg
+  rotate: false
+  xy: 857, 542
+  size: 18, 18
+  orig: 18, 18
+  offset: 0, 0
+  index: -1
+button
+  rotate: false
+  xy: 1, 307
+  size: 372, 65
+  split: 7, 7, 7, 11
+  pad: 8, 8, 8, 12
+  orig: 372, 65
+  offset: 0, 0
+  index: -1
+button-disabled
+  rotate: false
+  xy: 650, 956
+  size: 372, 65
+  split: 7, 7, 7, 11
+  pad: 8, 8, 8, 12
+  orig: 372, 65
+  offset: 0, 0
+  index: -1
+slider
+  rotate: false
+  xy: 650, 956
+  size: 372, 65
+  split: 7, 7, 7, 11
+  pad: 0, 0, 3, 3
+  orig: 372, 65
+  offset: 0, 0
+  index: -1
+button-hover
+  rotate: false
+  xy: 1, 240
+  size: 372, 65
+  split: 7, 7, 7, 11
+  pad: 8, 8, 8, 12
+  orig: 372, 65
+  offset: 0, 0
+  index: -1
+cell
+  rotate: false
+  xy: 523, 293
+  size: 11, 11
+  split: 4, 4, 4, 4
+  orig: 11, 11
+  offset: 0, 0
+  index: -1
+craftacular-mockup
+  rotate: false
+  xy: 650, 629
+  size: 325, 325
+  orig: 325, 325
+  offset: 0, 0
+  index: -1
+cursor
+  rotate: false
+  xy: 886, 621
+  size: 18, 6
+  split: 0, 17, 0, 5
+  orig: 18, 6
+  offset: 0, 0
+  index: -1
+dirt
+  rotate: false
+  xy: 227, 92
+  size: 146, 146
+  orig: 146, 146
+  offset: 0, 0
+  index: -1
+font-bold-export
+  rotate: false
+  xy: 1, 11
+  size: 224, 227
+  orig: 224, 227
+  offset: 0, 0
+  index: -1
+font-export
+  rotate: false
+  xy: 650, 422
+  size: 205, 205
+  orig: 205, 205
+  offset: 0, 0
+  index: -1
+font-title-export
+  rotate: false
+  xy: 1, 374
+  size: 647, 647
+  orig: 647, 647
+  offset: 0, 0
+  index: -1
+heart
+  rotate: false
+  xy: 650, 377
+  size: 18, 18
+  orig: 18, 18
+  offset: 0, 0
+  index: -1
+heart-bg
+  rotate: false
+  xy: 675, 402
+  size: 18, 18
+  orig: 18, 18
+  offset: 0, 0
+  index: -1
+meat
+  rotate: false
+  xy: 227, 69
+  size: 18, 18
+  orig: 18, 18
+  offset: 0, 0
+  index: -1
+meat-bg
+  rotate: false
+  xy: 375, 138
+  size: 18, 18
+  orig: 18, 18
+  offset: 0, 0
+  index: -1
+scroll-bg
+  rotate: false
+  xy: 375, 169
+  size: 146, 146
+  split: 0, 0, 14, 14
+  pad: 0, 0, 0, 1
+  orig: 146, 146
+  offset: 0, 0
+  index: -1
+scroll-horizontal
+  rotate: false
+  xy: 1022, 932
+  size: 1, 22
+  split: 0, 0, 0, 0
+  orig: 1, 22
+  offset: 0, 0
+  index: -1
+scroll-knob-horizontal
+  rotate: false
+  xy: 977, 867
+  size: 5, 22
+  split: 0, 4, 0, 4
+  pad: 1, 0, 0, 0
+  orig: 5, 22
+  offset: 0, 0
+  index: -1
+scroll-knob-vertical
+  rotate: false
+  xy: 1, 4
+  size: 22, 5
+  split: 0, 4, 0, 4
+  pad: 0, 0, 0, 0
+  orig: 22, 5
+  offset: 0, 0
+  index: -1
+scroll-vertical
+  rotate: false
+  xy: 227, 89
+  size: 22, 1
+  split: 0, 0, 0, 0
+  orig: 22, 1
+  offset: 0, 0
+  index: -1
+slider-knob
+  rotate: false
+  xy: 857, 562
+  size: 27, 65
+  split: 7, 7, 7, 11
+  orig: 27, 65
+  offset: 0, 0
+  index: -1
+text-field
+  rotate: false
+  xy: 375, 317
+  size: 268, 55
+  split: 3, 3, 3, 3
+  pad: 4, 4, 4, 4
+  orig: 268, 55
+  offset: 0, 0
+  index: -1
+tooltip
+  rotate: false
+  xy: 650, 397
+  size: 23, 23
+  split: 8, 8, 9, 8
+  pad: 7, 7, 8, 7
+  orig: 23, 23
+  offset: 0, 0
+  index: -1
+underline
+  rotate: false
+  xy: 398, 160
+  size: 5, 7
+  split: 2, 2, 0, 6
+  pad: 0, 0, 0, 6
+  orig: 5, 7
+  offset: 0, 0
+  index: -1
+white
+  rotate: false
+  xy: 1022, 929
+  size: 1, 1
+  orig: 1, 1
+  offset: 0, 0
+  index: -1
+window
+  rotate: false
+  xy: 977, 911
+  size: 43, 43
+  split: 16, 16, 16, 16
+  pad: 13, 13, 13, 13
+  orig: 43, 43
+  offset: 0, 0
+  index: -1
+xp
+  rotate: false
+  xy: 375, 158
+  size: 21, 9
+  orig: 21, 9
+  offset: 0, 0
+  index: -1
+xp-bg
+  rotate: false
+  xy: 523, 306
+  size: 21, 9
+  orig: 21, 9
+  offset: 0, 0
+  index: -1

@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.backend.gdx.runtimeui
 
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Container
@@ -18,19 +20,22 @@ import com.pashkd.krender.engine.runtimeui.RuntimeUiScreen
  * Runtime UI actor factory for the Woolboy sandbox.
  *
  * This class owns Woolboy-specific screen ids, payload interpretation, layout,
- * and button-to-action dispatch. The generic backend only asks this factory
- * whether it can build a given [RuntimeUiScreen].
+ * button-to-action dispatch, and the Woolboy skin loaded from assets. The
+ * generic backend only asks this factory whether it can build a given
+ * [RuntimeUiScreen].
  */
 internal class WoolboyRuntimeUiFactory(
-    private val uiSkin: Skin,
     private val actionHandlerProvider: () -> RuntimeUiActionHandler?,
 ) : RuntimeUiActorFactory {
     companion object {
+        private const val SkinPath = "ui/skins/craftacular-ui.json"
         private const val LoadingScreenId = "woolboy.loading"
         private const val MainMenuScreenId = "woolboy.main_menu"
         private const val HudScreenId = "woolboy.hud"
         private const val FinalResultsScreenId = "woolboy.final_results"
     }
+
+    private val uiSkin = Skin(Gdx.files.internal(SkinPath))
 
     override fun create(
         screen: RuntimeUiScreen,
@@ -41,6 +46,10 @@ internal class WoolboyRuntimeUiFactory(
         HudScreenId -> hudScreen(screen)
         FinalResultsScreenId -> finalResultsScreen(screen)
         else -> null
+    }
+
+    override fun dispose() {
+        uiSkin.dispose()
     }
 
     private fun loadingScreen(screen: RuntimeUiScreen): Actor {
@@ -63,7 +72,7 @@ internal class WoolboyRuntimeUiFactory(
         stack.add(
             Table().apply {
                 setFillParent(true)
-                setBackground(uiSkin.getDrawable("overlay"))
+                setBackground(uiSkin.newDrawable("white", Color(0f, 0f, 0f, 0.72f)))
             },
         )
         stack.add(
@@ -93,7 +102,7 @@ internal class WoolboyRuntimeUiFactory(
 
         val healthTable = Table().apply {
             add(leftLabel("Health: $healthLabel")).left().padBottom(8f).row()
-            add(progressBar(healthPercent)).width(360f).height(28f).left()
+            add(progressBar(healthPercent, "health")).width(360f).height(28f).left()
         }
 
         stack.add(
@@ -106,7 +115,7 @@ internal class WoolboyRuntimeUiFactory(
         )
 
         stack.add(
-            Container(label("Score: $scores", "title")).apply {
+            Container(label("Score: $scores", "hud-score-title")).apply {
                 setFillParent(true)
                 align(Align.top)
                 padTop(32f)
@@ -123,7 +132,7 @@ internal class WoolboyRuntimeUiFactory(
         )
 
         val controls = Table().apply {
-            setBackground(uiSkin.getDrawable("panel"))
+            setBackground(uiSkin.getDrawable("window"))
             pad(20f)
             defaults().left()
             add(leftLabel("Controls")).left().padBottom(12f).row()
@@ -149,7 +158,7 @@ internal class WoolboyRuntimeUiFactory(
         val scores = screen.payload["scores"] ?: "0"
 
         val root = fullScreenTable()
-        root.setBackground(uiSkin.getDrawable("overlay"))
+        root.setBackground(uiSkin.newDrawable("white", Color(0f, 0f, 0f, 0.72f)))
         val content = dialogTable().apply {
             add(label("Final Result", "title")).padBottom(24f).row()
             add(bodyLabel("Score: $scores")).padBottom(32f).row()
@@ -168,7 +177,7 @@ internal class WoolboyRuntimeUiFactory(
 
     private fun dialogTable(): Table =
         Table().apply {
-            setBackground(uiSkin.getDrawable("panel"))
+            setBackground(uiSkin.getDrawable("window"))
             pad(32f)
             defaults().center()
         }
@@ -191,8 +200,11 @@ internal class WoolboyRuntimeUiFactory(
             setAlignment(Align.left)
         }
 
-    private fun progressBar(value: Float): Container<ProgressBar> {
-        val progressBar = ProgressBar(0f, 1f, 0.01f, false, uiSkin.get("runtime", ProgressBar.ProgressBarStyle::class.java))
+    private fun progressBar(
+        value: Float,
+        styleName: String = "default-horizontal",
+    ): Container<ProgressBar> {
+        val progressBar = ProgressBar(0f, 1f, 0.01f, false, uiSkin.get(styleName, ProgressBar.ProgressBarStyle::class.java))
         progressBar.value = value
         return Container(progressBar).apply {
             fill()

@@ -209,8 +209,8 @@ class LibGdxBackend(
     override val runtimeUi: RuntimeUiBackend = GdxRuntimeUiBackend(
         logger = logger,
         input = input,
-        screenFactoryProvider = { skin, actionHandlerProvider ->
-            listOf(WoolboyRuntimeUiFactory(skin, actionHandlerProvider))
+        screenFactoryProvider = { _, actionHandlerProvider ->
+            listOf(WoolboyRuntimeUiFactory(actionHandlerProvider))
         },
     )
     override val ui: UiService = if (Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.Android) {
