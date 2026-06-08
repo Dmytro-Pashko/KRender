@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.backend.gdx.runtimeui.uiscene
+package com.pashkd.krender.engine.backend.gdx.ui.runtime.scene
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
@@ -18,14 +18,14 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.Scaling
 import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.runtimeui.RuntimeUiActionHandler
-import com.pashkd.krender.engine.uiscene.UiSceneAlign
-import com.pashkd.krender.engine.uiscene.UiSceneBindings
-import com.pashkd.krender.engine.uiscene.UiSceneDocument
-import com.pashkd.krender.engine.uiscene.UiSceneNode
-import com.pashkd.krender.engine.uiscene.UiSceneNodeType
-import com.pashkd.krender.engine.uiscene.UiSceneScaling
-import com.pashkd.krender.engine.uiscene.UiSceneSpacing
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiActionHandler
+import com.pashkd.krender.engine.ui.scene.UiSceneAlign
+import com.pashkd.krender.engine.ui.scene.UiSceneBindings
+import com.pashkd.krender.engine.ui.scene.UiSceneDocument
+import com.pashkd.krender.engine.ui.scene.UiSceneNode
+import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
+import com.pashkd.krender.engine.ui.scene.UiSceneScaling
+import com.pashkd.krender.engine.ui.scene.UiSceneSpacing
 
 /**
  * Builds LibGDX Scene2D actors from shared `.krui` documents.

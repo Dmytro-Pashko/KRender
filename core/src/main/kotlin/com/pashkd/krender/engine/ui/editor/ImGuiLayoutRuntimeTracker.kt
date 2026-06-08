@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.ui
+package com.pashkd.krender.engine.ui.editor
 
 import glm_.vec2.Vec2
 import imgui.Cond

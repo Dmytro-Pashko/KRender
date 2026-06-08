@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.backend.gdx.runtimeui
+package com.pashkd.krender.engine.backend.gdx.ui.runtime
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL20
@@ -11,10 +11,10 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.backend.gdx.GdxInputService
-import com.pashkd.krender.engine.runtimeui.RuntimeUiActionHandler
-import com.pashkd.krender.engine.runtimeui.RuntimeUiBackend
-import com.pashkd.krender.engine.runtimeui.RuntimeUiLayerState
-import com.pashkd.krender.engine.runtimeui.RuntimeUiScreen
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiActionHandler
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiBackend
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiLayerState
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiScreen
 
 /**
  * LibGDX runtime UI backend that renders backend-neutral runtime UI screens.

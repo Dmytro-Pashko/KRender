@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.uiscene
+package com.pashkd.krender.engine.ui.scene
 
 /**
  * Shared `.krui` binding helpers used by runtime builders and future editor preview.

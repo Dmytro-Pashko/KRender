@@ -27,8 +27,8 @@ import com.pashkd.krender.engine.scene.SkyboxAssetService
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfigCodec
-import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt

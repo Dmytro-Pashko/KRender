@@ -14,34 +14,37 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.serialization.KRenderJson
+import com.pashkd.krender.engine.serialization.KRenderSerializer
+import com.pashkd.krender.engine.serialization.booleanOrDefault
+import com.pashkd.krender.engine.serialization.floatOrDefault
+import com.pashkd.krender.engine.serialization.intOrDefault
+import com.pashkd.krender.engine.serialization.longOrNull
+import com.pashkd.krender.engine.serialization.normalizedOptionalProjectPath
+import com.pashkd.krender.engine.serialization.requiredLong
+import com.pashkd.krender.engine.serialization.requiredString
+import com.pashkd.krender.engine.serialization.stringOrDefault
+import com.pashkd.krender.engine.serialization.stringOrNull
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 import java.util.UUID
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.longOrNull
 
 /**
  * Converts runtime scene worlds to and from the `.krscene` descriptor format.
  */
-object SceneSerializer {
-    private val json = Json {
-        prettyPrint = true
-        prettyPrintIndent = "  "
-        ignoreUnknownKeys = true
-        explicitNulls = true
-    }
+object SceneSerializer : KRenderSerializer<SceneDescriptor> {
+    private const val DocumentName = "Scene descriptor"
+    private val json = KRenderJson.Pretty
 
     fun toDescriptor(
         world: SceneWorld,
@@ -88,15 +91,15 @@ object SceneSerializer {
         )
     }
 
-    fun encode(descriptor: SceneDescriptor): String =
-        json.encodeToString(JsonObject.serializer(), descriptor.toJsonObject())
+    override fun encode(value: SceneDescriptor): String =
+        json.encodeToString(JsonObject.serializer(), value.toJsonObject())
 
-    fun decode(jsonText: String): SceneDescriptor {
-        val root = json.parseToJsonElement(jsonText) as? JsonObject
+    override fun decode(json: String): SceneDescriptor {
+        val root = this.json.parseToJsonElement(json) as? JsonObject
             ?: throw IllegalArgumentException("Scene descriptor root must be a JSON object")
         return SceneDescriptor(
             schemaVersion = root.intOrDefault("schemaVersion", SceneDescriptor.CurrentSchemaVersion),
-            id = root.requiredString("id"),
+            id = root.requiredString("id", DocumentName),
             name = root.stringOrDefault("name", "Untitled Scene"),
             entities = readEntities(root["entities"]),
             settings = readSettings(root["settings"]),
@@ -183,9 +186,10 @@ object SceneSerializer {
         return entities.mapIndexed { index, entityNode ->
             val entityObject = entityNode as? JsonObject
                 ?: throw IllegalArgumentException("Scene entity at index $index must be a JSON object")
+            val entityId = entityObject.requiredLong("id", DocumentName)
             EntityDescriptor(
-                id = entityObject.requiredLong("id"),
-                name = entityObject.stringOrDefault("name", "Entity ${entityObject.requiredLong("id")}"),
+                id = entityId,
+                name = entityObject.stringOrDefault("name", "Entity $entityId"),
                 active = entityObject.booleanOrDefault("active", true),
                 parentId = entityObject.longOrNull("parentId"),
                 components = readComponents(entityObject["components"]),
@@ -230,7 +234,7 @@ object SceneSerializer {
         val environmentNode = settings["environment"] as? JsonObject
         val environment = if (environmentNode != null) {
             SceneEnvironmentDescriptor(
-                skyboxAssetPath = normalizedOptionalPath(environmentNode.stringOrNull("skyboxAssetPath")),
+                skyboxAssetPath = normalizedOptionalProjectPath(environmentNode.stringOrNull("skyboxAssetPath")),
                 showSkybox = environmentNode.booleanOrDefault("showSkybox", true),
                 environmentIntensity = environmentNode.floatOrDefault("environmentIntensity", 1f).coerceAtLeast(0f),
             )
@@ -346,39 +350,6 @@ object SceneSerializer {
         return defaultValue
     }
 
-    private fun JsonObject.requiredString(name: String): String =
-        stringOrNull(name) ?: throw IllegalArgumentException("Scene descriptor is missing required field '$name'")
-
-    private fun JsonObject.requiredLong(name: String): Long =
-        longOrNull(name) ?: throw IllegalArgumentException("Scene descriptor field '$name' must be a number")
-
-    private fun JsonObject.stringOrNull(name: String): String? =
-        (this[name] as? JsonPrimitive)?.content
-
-    private fun JsonObject.stringOrDefault(name: String, defaultValue: String): String =
-        stringOrNull(name) ?: defaultValue
-
-    private fun JsonObject.longOrNull(name: String): Long? {
-        val primitive = this[name] as? JsonPrimitive ?: return null
-        if (primitive is JsonNull) return null
-        return primitive.longOrNull
-    }
-
-    private fun JsonObject.intOrDefault(name: String, defaultValue: Int): Int =
-        (this[name] as? JsonPrimitive)?.content?.toIntOrNull() ?: defaultValue
-
-    private fun JsonObject.floatOrDefault(name: String, defaultValue: Float): Float =
-        (this[name] as? JsonPrimitive)?.floatOrNull ?: defaultValue
-
-    private fun JsonObject.booleanOrDefault(name: String, defaultValue: Boolean): Boolean =
-        (this[name] as? JsonPrimitive)?.booleanOrNull ?: defaultValue
-
-    private fun normalizedOptionalPath(raw: String?): String? =
-        raw
-            ?.trim()
-            ?.replace('\\', '/')
-            ?.takeIf(String::isNotBlank)
-            ?.takeUnless { value -> value.equals("null", ignoreCase = true) }
 }
 
 /**

@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.uiscene
+package com.pashkd.krender.engine.ui.scene
 
 /**
  * Serialized UI scene document used by KRender runtime UI and the future UI Composer.

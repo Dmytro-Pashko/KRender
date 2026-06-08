@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.ui
+package com.pashkd.krender.engine.ui.editor
 
 import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.JsonValue

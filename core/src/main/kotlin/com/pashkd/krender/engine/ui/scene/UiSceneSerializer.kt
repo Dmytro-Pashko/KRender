@@ -1,16 +1,27 @@
-package com.pashkd.krender.engine.uiscene
+package com.pashkd.krender.engine.ui.scene
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
+import com.pashkd.krender.engine.serialization.KRenderJson
+import com.pashkd.krender.engine.serialization.KRenderSerializer
+import com.pashkd.krender.engine.serialization.booleanOrDefault
+import com.pashkd.krender.engine.serialization.enumOrDefault
+import com.pashkd.krender.engine.serialization.enumOrNull
+import com.pashkd.krender.engine.serialization.floatOrDefault
+import com.pashkd.krender.engine.serialization.floatOrNull
+import com.pashkd.krender.engine.serialization.intOrDefault
+import com.pashkd.krender.engine.serialization.normalizedProjectPath
+import com.pashkd.krender.engine.serialization.putIfNonDefault
+import com.pashkd.krender.engine.serialization.putIfNotNull
+import com.pashkd.krender.engine.serialization.requiredEnum
+import com.pashkd.krender.engine.serialization.requiredString
+import com.pashkd.krender.engine.serialization.stringOrDefault
+import com.pashkd.krender.engine.serialization.stringOrNull
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.floatOrNull
 
 /**
  * JSON codec for the shared `.krui` document format.
@@ -20,15 +31,11 @@ import kotlinx.serialization.json.floatOrNull
  * shape when editing documents. The format remains an explicit MVP subset of
  * Scene2D widgets and does not serialize arbitrary Actor state or Skin styles.
  */
-class UiSceneSerializer {
+class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
+    private val json = KRenderJson.Pretty
 
-
-    @OptIn(ExperimentalSerializationApi::class)
-    private val json = Json {
-        prettyPrint = true
-        prettyPrintIndent = "  "
-        ignoreUnknownKeys = true
-        explicitNulls = false
+    private companion object {
+        const val DocumentName = "UI scene document"
     }
 
     /**
@@ -37,13 +44,13 @@ class UiSceneSerializer {
      * Missing optional fields use [UiSceneNode] defaults so early editor/runtime
      * documents can stay compact.
      */
-    fun decode(json: String): UiSceneDocument {
+    override fun decode(json: String): UiSceneDocument {
         val root = this.json.parseToJsonElement(json) as? JsonObject
             ?: throw IllegalArgumentException("UI scene document root must be a JSON object")
         return UiSceneDocument(
             schemaVersion = root.intOrDefault("schemaVersion", UiSceneDocument.CurrentSchemaVersion),
-            id = root.requiredString("id"),
-            skin = root.requiredString("skin").trim().replace('\\', '/'),
+            id = root.requiredString("id", DocumentName),
+            skin = normalizedProjectPath(root.requiredString("skin", DocumentName)),
             root = readNode(root["root"], "root"),
         )
     }
@@ -54,7 +61,7 @@ class UiSceneSerializer {
      * The output uses enum names as strings and keeps path values normalized to
      * project-relative forward-slash form.
      */
-    fun encode(document: UiSceneDocument): String =
+    override fun encode(document: UiSceneDocument): String =
         json.encodeToString(JsonObject.serializer(), document.toJsonObject())
 
     private fun readNode(
@@ -64,14 +71,14 @@ class UiSceneSerializer {
         val node = element as? JsonObject
             ?: throw IllegalArgumentException("UI scene node '$context' must be a JSON object")
         return UiSceneNode(
-            id = node.requiredString("id"),
-            type = node.requiredEnum("type", UiSceneNodeType::valueOf),
+            id = node.requiredString("id", DocumentName),
+            type = node.requiredEnum("type", DocumentName, UiSceneNodeType::valueOf),
             visible = node.booleanOrDefault("visible", true),
             style = node.stringOrNull("style"),
             text = node.stringOrNull("text"),
             action = node.stringOrNull("action"),
-            texture = node.stringOrNull("texture")?.trim()?.replace('\\', '/'),
-            scaling = node.enumOrDefault("scaling", UiSceneScaling.Fit, UiSceneScaling::valueOf),
+            texture = node.stringOrNull("texture")?.let(::normalizedProjectPath),
+            scaling = node.enumOrDefault("scaling", DocumentName, UiSceneScaling.Fit, UiSceneScaling::valueOf),
             value = node.floatOrNull("value"),
             valueBinding = node.stringOrNull("valueBinding"),
             min = node.floatOrDefault("min", 0f),
@@ -79,7 +86,7 @@ class UiSceneSerializer {
             step = node.floatOrDefault("step", 0.01f),
             width = node.floatOrNull("width"),
             height = node.floatOrNull("height"),
-            align = node.enumOrNull("align", UiSceneAlign::valueOf),
+            align = node.enumOrNull("align", DocumentName, UiSceneAlign::valueOf),
             padding = readSpacing(node["padding"]),
             spacing = node.floatOrDefault("spacing", 0f),
             children = readChildren(node["children"], node.stringOrDefault("id", context)),
@@ -108,7 +115,7 @@ class UiSceneSerializer {
         buildJsonObject {
             put("schemaVersion", JsonPrimitive(schemaVersion))
             put("id", JsonPrimitive(id))
-            put("skin", JsonPrimitive(skin.trim().replace('\\', '/')))
+            put("skin", JsonPrimitive(normalizedProjectPath(skin)))
             put("root", root.toJsonObject())
         }
 
@@ -120,7 +127,7 @@ class UiSceneSerializer {
             putIfNotNull("style", style)
             putIfNotNull("text", text)
             putIfNotNull("action", action)
-            putIfNotNull("texture", texture?.trim()?.replace('\\', '/'))
+            putIfNotNull("texture", texture?.let(::normalizedProjectPath))
             putIfNonDefault("scaling", scaling.name, UiSceneScaling.Fit.name)
             putIfNotNull("value", value)
             putIfNotNull("valueBinding", valueBinding)
@@ -141,74 +148,6 @@ class UiSceneSerializer {
                 )
             }
         }
-
-    private fun JsonObject.requiredString(name: String): String =
-        stringOrNull(name) ?: throw IllegalArgumentException("UI scene document is missing required field '$name'")
-
-    private fun <T : Enum<T>> JsonObject.requiredEnum(
-        name: String,
-        parser: (String) -> T,
-    ): T {
-        val raw = requiredString(name)
-        return runCatching { parser(raw) }
-            .getOrElse { throw IllegalArgumentException("UI scene field '$name' has unsupported enum value '$raw'") }
-    }
-
-    private fun <T : Enum<T>> JsonObject.enumOrDefault(
-        name: String,
-        defaultValue: T,
-        parser: (String) -> T,
-    ): T =
-        enumOrNull(name, parser) ?: defaultValue
-
-    private fun <T : Enum<T>> JsonObject.enumOrNull(
-        name: String,
-        parser: (String) -> T,
-    ): T? {
-        val raw = stringOrNull(name) ?: return null
-        return runCatching { parser(raw) }
-            .getOrElse { throw IllegalArgumentException("UI scene field '$name' has unsupported enum value '$raw'") }
-    }
-
-    private fun JsonObject.stringOrNull(name: String): String? {
-        val primitive = this[name] as? JsonPrimitive ?: return null
-        return primitive.content.takeUnless { it.equals("null", ignoreCase = true) }
-    }
-
-    private fun JsonObject.stringOrDefault(name: String, defaultValue: String): String =
-        stringOrNull(name) ?: defaultValue
-
-    private fun JsonObject.floatOrNull(name: String): Float? =
-        (this[name] as? JsonPrimitive)?.floatOrNull
-
-    private fun JsonObject.floatOrDefault(name: String, defaultValue: Float): Float =
-        floatOrNull(name) ?: defaultValue
-
-    private fun JsonObject.intOrDefault(name: String, defaultValue: Int): Int =
-        (this[name] as? JsonPrimitive)?.content?.toIntOrNull() ?: defaultValue
-
-    private fun JsonObject.booleanOrDefault(name: String, defaultValue: Boolean): Boolean =
-        (this[name] as? JsonPrimitive)?.booleanOrNull ?: defaultValue
-
-    private fun JsonObjectBuilder.putIfNotNull(name: String, value: String?) {
-        if (value != null) put(name, JsonPrimitive(value))
-    }
-
-    private fun JsonObjectBuilder.putIfNotNull(name: String, value: Float?) {
-        if (value != null) put(name, JsonPrimitive(value))
-    }
-
-    private fun JsonObjectBuilder.putIfNonDefault(name: String, value: Boolean, defaultValue: Boolean) {
-        if (value != defaultValue) put(name, JsonPrimitive(value))
-    }
-
-    private fun JsonObjectBuilder.putIfNonDefault(name: String, value: String, defaultValue: String) {
-        if (value != defaultValue) put(name, JsonPrimitive(value))
-    }
-
-    private fun JsonObjectBuilder.putIfNonDefault(name: String, value: Float, defaultValue: Float) {
-        if (value != defaultValue) put(name, JsonPrimitive(value))
-    }
 
     private fun JsonObjectBuilder.putIfNonZero(name: String, spacing: UiSceneSpacing) {
         if (spacing != UiSceneSpacing.zero()) put(name, spacing.toJsonObject())

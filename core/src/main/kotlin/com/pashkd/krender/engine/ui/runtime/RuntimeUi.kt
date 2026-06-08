@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.runtimeui
+package com.pashkd.krender.engine.ui.runtime
 
 /**
  * Minimal backend-neutral runtime UI screen request.

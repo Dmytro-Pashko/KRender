@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.uiscene
+package com.pashkd.krender.engine.ui.scene
 
 import java.io.File
 import kotlin.test.Test

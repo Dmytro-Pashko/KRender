@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.uiscene
+package com.pashkd.krender.engine.ui.scene
 
 /**
  * One validation warning or structural issue found in a `.krui` document.

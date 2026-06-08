@@ -36,10 +36,10 @@ import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
 import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.NoOpUiService
-import com.pashkd.krender.engine.ui.UiService
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.NoOpUiService
+import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService

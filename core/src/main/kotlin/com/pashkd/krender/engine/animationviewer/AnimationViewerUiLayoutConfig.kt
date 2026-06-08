@@ -1,7 +1,7 @@
 package com.pashkd.krender.engine.animationviewer
 
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.ImGuiPanelLayout
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 
 /**
  * Defines the stable JSON ids used by the Animation Viewer ImGui panels.

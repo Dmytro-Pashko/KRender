@@ -1,8 +1,8 @@
 package com.pashkd.krender.engine.assets
 
 import com.pashkd.krender.engine.api.EngineContext
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfigCodec
-import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 
 /**
  * UI-level actions for the Asset Browser scene.

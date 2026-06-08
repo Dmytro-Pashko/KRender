@@ -2,10 +2,10 @@ package com.pashkd.krender.test
 
 import com.pashkd.krender.engine.api.LogLevel
 import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.runtimeui.RuntimeUiActionHandler
-import com.pashkd.krender.engine.runtimeui.RuntimeUiBackend
-import com.pashkd.krender.engine.runtimeui.RuntimeUiLayerState
-import com.pashkd.krender.engine.runtimeui.RuntimeUiService
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiActionHandler
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiBackend
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiLayerState
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
 
 object NoOpTestLogger : Logger {
     override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) = Unit

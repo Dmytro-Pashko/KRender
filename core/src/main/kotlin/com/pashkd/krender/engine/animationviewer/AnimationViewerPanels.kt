@@ -4,11 +4,11 @@ import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.ModelBoneInfo
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.UiPanel
-import com.pashkd.krender.engine.ui.beginImGuiPanel
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
+import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import glm_.vec2.Vec2 as ImVec2
 import imgui.ImGui
 import imgui.SliderFlag

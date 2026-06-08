@@ -3,10 +3,10 @@ package com.pashkd.krender.engine.api
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.SceneFileService
-import com.pashkd.krender.engine.runtimeui.RuntimeUiBackend
-import com.pashkd.krender.engine.runtimeui.RuntimeUiService
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiBackend
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
-import com.pashkd.krender.engine.ui.UiService
+import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportConfig
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.WindowService

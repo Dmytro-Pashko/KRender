@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.ui
+package com.pashkd.krender.engine.ui.editor
 
 /**
  * Stores default ImGui window layouts keyed by stable panel id.

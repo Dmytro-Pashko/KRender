@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.ui
+package com.pashkd.krender.engine.ui.editor
 
 import com.pashkd.krender.engine.api.LogEntry
 import com.pashkd.krender.engine.api.LogLevel

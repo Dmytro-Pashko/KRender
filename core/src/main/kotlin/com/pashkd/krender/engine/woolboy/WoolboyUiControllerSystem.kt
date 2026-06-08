@@ -5,10 +5,10 @@ import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.runtimeui.RuntimeUiActionHandler
-import com.pashkd.krender.engine.runtimeui.RuntimeUiLayers
-import com.pashkd.krender.engine.runtimeui.RuntimeUiScreen
-import com.pashkd.krender.engine.runtimeui.RuntimeUiService
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiActionHandler
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiLayers
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiScreen
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
 
 /**
  * Bridges Woolboy sandbox state to the backend-neutral Runtime UI service.

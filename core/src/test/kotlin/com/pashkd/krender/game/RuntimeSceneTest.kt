@@ -7,8 +7,8 @@ import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainLayerColorDescriptor
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.terrain.TerrainPersistence
-import com.pashkd.krender.engine.ui.NoOpUiService
-import com.pashkd.krender.engine.ui.UiService
+import com.pashkd.krender.engine.ui.editor.NoOpUiService
+import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService

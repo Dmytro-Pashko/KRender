@@ -2,10 +2,10 @@ package com.pashkd.krender.engine.terrain
 
 import com.pashkd.krender.engine.api.ProfilerService
 import com.pashkd.krender.engine.api.RuntimeStatsService
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.ImGuiPanelLayout
-import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.UiPanel
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
+import com.pashkd.krender.engine.ui.editor.UiPanel
 import glm_.vec2.Vec2
 import imgui.Cond
 import imgui.ImGui

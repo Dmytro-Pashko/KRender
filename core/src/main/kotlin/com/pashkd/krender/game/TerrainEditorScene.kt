@@ -34,11 +34,11 @@ import com.pashkd.krender.engine.terrain.TerrainRendererComponent
 import com.pashkd.krender.engine.terrain.terrainMaterialPreviewExportPath
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
-import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.LogsPanel
-import com.pashkd.krender.engine.ui.UiSystem
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
+import com.pashkd.krender.engine.ui.editor.LogsPanel
+import com.pashkd.krender.engine.ui.editor.UiSystem
 
 /**
  * Scene that hosts the terrain editor viewport, terrain entity, and editing systems.

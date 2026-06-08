@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.ui
+package com.pashkd.krender.engine.ui.editor
 
 import com.badlogic.gdx.Gdx
 import com.pashkd.krender.engine.api.Logger

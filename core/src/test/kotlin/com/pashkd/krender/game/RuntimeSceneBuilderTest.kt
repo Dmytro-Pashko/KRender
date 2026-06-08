@@ -4,8 +4,8 @@ import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.scene.*
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
-import com.pashkd.krender.engine.ui.NoOpUiService
-import com.pashkd.krender.engine.ui.UiService
+import com.pashkd.krender.engine.ui.editor.NoOpUiService
+import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService

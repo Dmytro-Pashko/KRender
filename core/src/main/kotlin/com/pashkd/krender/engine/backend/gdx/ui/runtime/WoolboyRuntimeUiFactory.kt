@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.backend.gdx.runtimeui
+package com.pashkd.krender.engine.backend.gdx.ui.runtime
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
@@ -16,8 +16,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
-import com.pashkd.krender.engine.runtimeui.RuntimeUiActionHandler
-import com.pashkd.krender.engine.runtimeui.RuntimeUiScreen
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiActionHandler
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiScreen
 
 /**
  * Runtime UI actor factory for the Woolboy sandbox.

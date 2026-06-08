@@ -31,13 +31,13 @@ import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.ImGuiLayoutConfigLoader
-import com.pashkd.krender.engine.ui.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.LogsPanel
-import com.pashkd.krender.engine.ui.UiPanel
-import com.pashkd.krender.engine.ui.UiSystem
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
+import com.pashkd.krender.engine.ui.editor.LogsPanel
+import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.UiSystem
 
 /**
  * Builds the single-model inspection scene, runtime systems, and ImGui panels.
