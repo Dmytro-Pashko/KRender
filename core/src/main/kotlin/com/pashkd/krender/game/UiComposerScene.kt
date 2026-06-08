@@ -24,13 +24,14 @@ import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.UiSystem
 
 /**
- * Read-only editor scene opened for `.krui` UiScene assets from Asset Browser.
+ * Editor scene opened for `.krui` UiScene assets from Asset Browser.
  *
  * This scene belongs to editor/tool UI and backend preview plumbing, not RuntimeUiService or
- * gameplay UI. Phase 4 decodes, validates, previews, inspects, and diagnoses the loaded `.krui`
- * document while intentionally omitting saving, node/property editing, add/delete/reorder,
- * drag/drop canvas editing, Skin editing, Asset Browser pickers, asset-id references, JSON text
- * editing, and full Scene2D actor serialization. The selected-node highlight is best-effort.
+ * gameplay UI. Phase 5 decodes, validates, previews, inspects, edits supported scalar fields on
+ * the selected `.krui` node, and can save the document. It intentionally omits add/delete/reorder,
+ * drag/drop canvas editing, canvas selection, Skin editing, Asset Browser pickers, asset-id
+ * references, child structure editing, JSON text editing, and full Scene2D actor serialization.
+ * The selected-node highlight is best-effort.
  */
 class UiComposerScene(
     private val uiScenePath: String,
@@ -44,7 +45,7 @@ class UiComposerScene(
     private lateinit var operations: UiComposerOperations
 
     /**
-     * Creates the read-only document state, Scene2D preview, and ImGui panels.
+     * Creates the document state, Scene2D preview, editor operations, and ImGui panels.
      */
     override fun show() {
         engine.logger.info(TAG) { "Showing UI Composer preview path='$uiScenePath'" }
@@ -65,9 +66,12 @@ class UiComposerScene(
     }
 
     /**
-     * Handles deferred reload requests and then lets the registered systems update.
+     * Handles deferred save/reload/rebuild requests and then lets the registered systems update.
      */
     override fun update(dt: Float) {
+        if (composerState.saveRequested) {
+            operations.saveDocument()
+        }
         if (composerState.reloadRequested) {
             reloadDocumentAndPreview()
         } else if (composerState.previewRebuildRequested) {
@@ -105,16 +109,24 @@ class UiComposerScene(
     }
 
     private fun reloadDocumentAndPreview() {
+        val discardedUnsavedChanges = composerState.dirty
         engine.logger.info(TAG) { "Reloading UI Composer document path='${composerState.uiScenePath}'" }
         loader.reload(composerState)
+        composerState.dirty = false
+        composerState.saveStatusMessage = null
         if (composerState.document == null) {
             composerState.statusMessage = "Failed to load document."
             composerState.selectedActorInfo = null
             preview.rebuild(null)
             return
         }
-        composerState.statusMessage = "Document reloaded."
-        rebuildPreviewOnly(statusOnSuccess = "Document reloaded.")
+        val status = if (discardedUnsavedChanges) {
+            "Reloaded document; unsaved changes were discarded."
+        } else {
+            "Document reloaded."
+        }
+        composerState.statusMessage = status
+        rebuildPreviewOnly(statusOnSuccess = status)
     }
 
     private fun rebuildPreviewOnly(statusOnSuccess: String = "Preview rebuilt.") {
@@ -146,7 +158,7 @@ class UiComposerScene(
         return UiSystem(engine.ui).also { uiSystem ->
             addPanel(uiSystem, "Toolbar", UiComposerToolbarPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Hierarchy", UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
-            addPanel(uiSystem, "Inspector", UiComposerInspectorPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
+            addPanel(uiSystem, "Inspector", UiComposerInspectorPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "PreviewPayload", UiComposerPreviewPayloadPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Diagnostics", UiComposerDiagnosticsPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(

@@ -141,4 +141,59 @@ internal class UiComposerModelTest {
 
         assertEquals(DefaultPreviewPayload, state.previewPayload)
     }
+
+    @Test
+    internal fun `updateNode replaces selected node by id`() {
+        val document = editableDocument()
+
+        val updated = document.updateNode("label") { node ->
+            node.copy(text = "Edited")
+        }
+
+        assertEquals("Edited", findUiSceneNodeById(updated.root, "label")?.text)
+        assertEquals("Original", findUiSceneNodeById(document.root, "label")?.text)
+    }
+
+    @Test
+    internal fun `updateNode leaves document unchanged when node id is missing`() {
+        val document = editableDocument()
+
+        val updated = document.updateNode("missing") { node ->
+            node.copy(text = "Edited")
+        }
+
+        assertEquals(document, updated)
+    }
+
+    @Test
+    internal fun `updateNode can rename selected node id`() {
+        val document = editableDocument()
+
+        val updated = document.updateNode("label") { node ->
+            node.copy(id = "renamed_label")
+        }
+
+        assertNull(findUiSceneNodeById(updated.root, "label"))
+        assertEquals("Original", findUiSceneNodeById(updated.root, "renamed_label")?.text)
+        assertTrue(updated.containsNodeId("renamed_label"))
+    }
+
+    private fun editableDocument(): UiSceneDocument =
+        UiSceneDocument(
+            id = "editable",
+            skin = "ui/skins/craftacular-ui.json",
+            root = UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Stack,
+                children = listOf(
+                    UiSceneNode(
+                        id = "panel",
+                        type = UiSceneNodeType.Table,
+                        children = listOf(
+                            UiSceneNode(id = "label", type = UiSceneNodeType.Label, text = "Original"),
+                        ),
+                    ),
+                ),
+            ),
+        )
 }

@@ -5,21 +5,23 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
+import com.pashkd.krender.engine.ui.scene.UiSceneScaling
 import imgui.ImGui
 import imgui.dsl
 import java.nio.charset.StandardCharsets
 
 /**
- * Toolbar panel for the Phase 4 read-only UiComposer preview.
+ * Toolbar panel for the UiComposer preview and basic `.krui` save workflow.
  *
  * This panel belongs to editor preview UX. It exposes document reload, panel
- * layout persistence, bounds toggling, and selected-node highlighting only; it
- * intentionally does not save `.krui`, edit node properties, create/delete
- * nodes, reorder nodes, implement drag/drop canvas editing, edit Skins, add
- * Asset Browser picking, introduce asset-id references, edit JSON, or serialize
- * full Scene2D actors.
+ * layout persistence, `.krui` saving, bounds toggling, and selected-node
+ * highlighting only; it intentionally does not create/delete nodes, reorder
+ * nodes, implement drag/drop canvas editing, edit Skins, add Asset Browser
+ * picking, introduce asset-id references, edit JSON, or serialize full Scene2D
+ * actors.
  */
 class UiComposerToolbarPanel(
     private val state: UiComposerState,
@@ -38,6 +40,14 @@ class UiComposerToolbarPanel(
             return
         }
 
+        ImGui.beginDisabled(state.document == null)
+        with(dsl) {
+            button("Save .krui##ui_composer_save_document") {
+                state.saveRequested = true
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.sameLine()
         with(dsl) {
             button("Save Panel Layout##ui_composer_save_panel_layout") {
                 operations.saveUiLayout()
@@ -62,7 +72,11 @@ class UiComposerToolbarPanel(
         ImGui.separator()
         ImGui.textUnformatted("Path: ${state.uiScenePath}")
         ImGui.textUnformatted("Status: ${state.statusMessage}")
-        ImGui.textUnformatted("Mode: read-only preview; no save/editing controls are available.")
+        ImGui.textUnformatted("Dirty: ${if (state.dirty) "yes" else "no"}")
+        state.saveStatusMessage?.let { message -> ImGui.textUnformatted("Save: $message") }
+        if (state.dirty) {
+            ImGui.textUnformatted("Reload discards unsaved .krui changes.")
+        }
         ImGui.end()
     }
 }
@@ -119,21 +133,25 @@ class UiComposerHierarchyPanel(
 }
 
 /**
- * Read-only inspector panel for the Phase 4 UiComposer preview.
+ * Inspector panel for Phase 5 selected-node scalar property editing.
  *
- * This panel belongs to editor UI. It reports document and selected-node fields
- * without inputs or mutating actions, and intentionally omits saving, editing,
- * node creation/deletion/reorder, drag/drop canvas editing, Skin editing, Asset
- * Browser picking, asset-id references, JSON editing, and full Scene2D actor
- * serialization.
+ * This panel belongs to editor selected-node property editing. It edits scalar
+ * fields on the selected `.krui` node and leaves document-level metadata and node
+ * type read-only. It intentionally omits add/delete/duplicate/reorder, child
+ * structure editing, drag/drop canvas editing, canvas selection, Skin editing,
+ * Asset Browser picking, asset-id references, JSON text editing, preview payload
+ * persistence, and full Scene2D actor serialization.
  */
 class UiComposerInspectorPanel(
     private val state: UiComposerState,
+    private val operations: UiComposerOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    /** Draws document details or selected-node details as read-only text. */
+    private val editBuffers = mutableMapOf<String, ByteArray>()
+
+    /** Draws document details or selected-node scalar editing controls. */
     override fun draw() {
         val layout = layoutConfig.panels.getValue(UiComposerPanelIds.Inspector)
         val expanded = beginImGuiPanel(UiComposerPanelIds.Inspector, layout, layoutTracker)
@@ -173,28 +191,175 @@ class UiComposerInspectorPanel(
     private fun drawNodeInfo(node: UiSceneNode) {
         ImGui.textUnformatted("Selected Node")
         ImGui.separator()
-        property("id", node.id)
+        editableString(node, "id", node.id, emptyAsNull = false) { value ->
+            val nextId = value.orEmpty()
+            if (nextId.isBlank()) {
+                state.statusMessage = "Node id cannot be blank."
+            } else {
+                operations.updateSelectedNode { it.copy(id = nextId) }
+            }
+        }
         property("type", node.type.name)
-        property("visible", node.visible.toString())
-        property("style", node.style)
-        property("background", node.background)
-        property("text", node.text)
-        property("action", node.action)
-        property("texture", node.texture)
-        property("scaling", node.scaling.name)
-        property("value", node.value?.toString())
-        property("valueBinding", node.valueBinding)
-        property("min", node.min.toString())
-        property("max", node.max.toString())
-        property("step", node.step.toString())
-        property("width", node.width?.toString())
-        property("height", node.height?.toString())
-        property("align", node.align?.name)
-        property("padding", "l=${node.padding.left}, t=${node.padding.top}, r=${node.padding.right}, b=${node.padding.bottom}")
-        property("spacing", node.spacing.toString())
+        editableBoolean(node, "visible", node.visible) { visible ->
+            operations.updateSelectedNode { it.copy(visible = visible) }
+        }
+        editableString(node, "style", node.style, emptyAsNull = true) { value ->
+            operations.updateSelectedNode { it.copy(style = value) }
+        }
+        editableString(node, "background", node.background, emptyAsNull = true) { value ->
+            operations.updateSelectedNode { it.copy(background = value) }
+        }
+        editableString(node, "text", node.text, emptyAsNull = false) { value ->
+            operations.updateSelectedNode { it.copy(text = value ?: "") }
+        }
+        editableString(node, "action", node.action, emptyAsNull = true) { value ->
+            operations.updateSelectedNode { it.copy(action = value) }
+        }
+        editableString(node, "texture", node.texture, emptyAsNull = true) { value ->
+            operations.updateSelectedNode { it.copy(texture = value) }
+        }
+        editableEnum(node, "scaling", node.scaling, UiSceneScaling.entries.toList()) { scaling ->
+            operations.updateSelectedNode { it.copy(scaling = scaling) }
+        }
+        editableFloat(node, "value", node.value, allowNull = true) { value ->
+            operations.updateSelectedNode { it.copy(value = value) }
+        }
+        editableString(node, "valueBinding", node.valueBinding, emptyAsNull = true) { value ->
+            operations.updateSelectedNode { it.copy(valueBinding = value) }
+        }
+        editableFloat(node, "min", node.min, allowNull = false) { value ->
+            operations.updateSelectedNode { it.copy(min = value ?: it.min) }
+        }
+        editableFloat(node, "max", node.max, allowNull = false) { value ->
+            operations.updateSelectedNode { it.copy(max = value ?: it.max) }
+        }
+        editableFloat(node, "step", node.step, allowNull = false) { value ->
+            operations.updateSelectedNode { it.copy(step = value ?: it.step) }
+        }
+        editableFloat(node, "width", node.width, allowNull = true) { value ->
+            operations.updateSelectedNode { it.copy(width = value) }
+        }
+        editableFloat(node, "height", node.height, allowNull = true) { value ->
+            operations.updateSelectedNode { it.copy(height = value) }
+        }
+        editableOptionalEnum(node, "align", node.align, UiSceneAlign.entries.toList()) { align ->
+            operations.updateSelectedNode { it.copy(align = align) }
+        }
+        editableFloat(node, "padding.left", node.padding.left, allowNull = false) { value ->
+            operations.updateSelectedNode { it.copy(padding = it.padding.copy(left = value ?: it.padding.left)) }
+        }
+        editableFloat(node, "padding.top", node.padding.top, allowNull = false) { value ->
+            operations.updateSelectedNode { it.copy(padding = it.padding.copy(top = value ?: it.padding.top)) }
+        }
+        editableFloat(node, "padding.right", node.padding.right, allowNull = false) { value ->
+            operations.updateSelectedNode { it.copy(padding = it.padding.copy(right = value ?: it.padding.right)) }
+        }
+        editableFloat(node, "padding.bottom", node.padding.bottom, allowNull = false) { value ->
+            operations.updateSelectedNode { it.copy(padding = it.padding.copy(bottom = value ?: it.padding.bottom)) }
+        }
+        editableFloat(node, "spacing", node.spacing, allowNull = false) { value ->
+            operations.updateSelectedNode { it.copy(spacing = value ?: it.spacing) }
+        }
         property("child count", node.children.size.toString())
         ImGui.separator()
         drawActorInfo(node)
+    }
+
+    private fun editableString(
+        node: UiSceneNode,
+        fieldName: String,
+        current: String?,
+        emptyAsNull: Boolean,
+        onChanged: (String?) -> Unit,
+    ) {
+        val buffer = bufferFor(node.id, fieldName, current.orEmpty())
+        if (ImGui.inputText("$fieldName##ui_composer_inspector_${node.id}_$fieldName", buffer)) {
+            val rawValue = readBuffer(buffer)
+            onChanged(rawValue.takeUnless { emptyAsNull && it.isBlank() })
+        }
+    }
+
+    private fun editableFloat(
+        node: UiSceneNode,
+        fieldName: String,
+        current: Float?,
+        allowNull: Boolean,
+        onChanged: (Float?) -> Unit,
+    ) {
+        val buffer = bufferFor(node.id, fieldName, current?.let(::formatFloat).orEmpty())
+        if (ImGui.inputText("$fieldName##ui_composer_inspector_${node.id}_$fieldName", buffer)) {
+            val rawValue = readBuffer(buffer).trim()
+            if (rawValue.isBlank() && allowNull) {
+                onChanged(null)
+                return
+            }
+            val parsed = rawValue.toFloatOrNull()
+            if (parsed == null) {
+                state.statusMessage = "Invalid float for $fieldName."
+            } else {
+                onChanged(parsed)
+            }
+        }
+    }
+
+    private fun editableBoolean(
+        node: UiSceneNode,
+        fieldName: String,
+        current: Boolean,
+        onChanged: (Boolean) -> Unit,
+    ) {
+        val value = booleanArrayOf(current)
+        if (ImGui.checkbox("$fieldName##ui_composer_inspector_${node.id}_$fieldName", value)) {
+            onChanged(value[0])
+        }
+    }
+
+    private fun <T : Enum<T>> editableEnum(
+        node: UiSceneNode,
+        fieldName: String,
+        current: T,
+        values: List<T>,
+        onChanged: (T) -> Unit,
+    ) {
+        if (!ImGui.beginCombo("$fieldName##ui_composer_inspector_${node.id}_$fieldName", current.name)) return
+        values.forEach { value ->
+            if (ImGui.selectable("${value.name}##ui_composer_${node.id}_${fieldName}_${value.name}", value == current)) {
+                onChanged(value)
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    private fun <T : Enum<T>> editableOptionalEnum(
+        node: UiSceneNode,
+        fieldName: String,
+        current: T?,
+        values: List<T>,
+        onChanged: (T?) -> Unit,
+    ) {
+        val preview = current?.name ?: "<none>"
+        if (!ImGui.beginCombo("$fieldName##ui_composer_inspector_${node.id}_$fieldName", preview)) return
+        if (ImGui.selectable("<none>##ui_composer_${node.id}_${fieldName}_none", current == null)) {
+            onChanged(null)
+        }
+        values.forEach { value ->
+            if (ImGui.selectable("${value.name}##ui_composer_${node.id}_${fieldName}_${value.name}", value == current)) {
+                onChanged(value)
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    private fun bufferFor(
+        nodeId: String,
+        fieldName: String,
+        current: String,
+    ): ByteArray {
+        val key = "$nodeId:$fieldName"
+        val buffer = editBuffers.getOrPut(key) {
+            ByteArray(TextInputBufferSize).also { created -> writeBuffer(created, current) }
+        }
+        return buffer
     }
 
     private fun drawActorInfo(node: UiSceneNode) {
@@ -320,6 +485,9 @@ class UiComposerDiagnosticsPanel(
         if (parseError != null) {
             ImGui.textWrapped("Parse/preview error: $parseError")
         }
+        state.saveStatusMessage?.let { message ->
+            ImGui.textWrapped("Save status: $message")
+        }
 
         val issues = state.validationIssues
         ImGui.textUnformatted("Validation issues: ${issues.size}")
@@ -343,6 +511,9 @@ class UiComposerDiagnosticsPanel(
 }
 
 private const val TextInputBufferSize = 256
+
+private fun formatFloat(value: Float): String =
+    if (value % 1f == 0f) value.toInt().toString() else "%.3f".format(value).trimEnd('0').trimEnd('.')
 
 private fun readBuffer(buffer: ByteArray): String {
     val end = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size

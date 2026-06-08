@@ -7,14 +7,16 @@ import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
 import com.pashkd.krender.engine.ui.scene.UiSceneValidator
 
 /**
- * Editor-only state for the Phase 4 read-only UiComposer preview.
+ * Editor-only state for the UiComposer preview and selected-node property editor.
  *
- * This state belongs to editor UI, not the runtime UI service, shared `.krui`
- * model, or a completed editing pipeline. It keeps document loading,
- * validation diagnostics, hierarchy selection, bounds toggling, and reload
- * requests in one simple place while intentionally omitting save/editing,
- * property mutation, Skin editing, drag/drop canvas editing, Asset Browser
- * picking, asset-id references, and full Scene2D actor serialization.
+ * This state belongs to editor preview UX and basic editor editing, not the
+ * runtime UI service, shared `.krui` model definition, or a completed canvas
+ * editing pipeline. It keeps document loading, validation diagnostics,
+ * hierarchy selection, inspector edit state, bounds toggling, reload/save
+ * requests, and preview-only payload data in one simple place while
+ * intentionally omitting add/delete/reorder, drag/drop canvas editing, Skin
+ * editing, Asset Browser picking, asset-id references, child-structure editing,
+ * canvas selection, and full Scene2D actor serialization.
  */
 data class UiComposerState(
     /** Project-relative `.krui` path opened by this editor preview tool. */
@@ -33,10 +35,16 @@ data class UiComposerState(
     var highlightSelected: Boolean = true,
     /** Requests the document file to be reloaded and the backend preview rebuilt. */
     var reloadRequested: Boolean = false,
+    /** Requests the current in-memory `.krui` document to be saved to [uiScenePath]. */
+    var saveRequested: Boolean = false,
     /** Requests the backend preview to rebuild from the current document and preview-only payload. */
     var previewRebuildRequested: Boolean = false,
+    /** True when selected-node property edits changed the in-memory `.krui` document. */
+    var dirty: Boolean = false,
     /** Toolbar status for editor preview operations such as reload, rebuild, and panel layout persistence. */
     var statusMessage: String = "Read-only preview.",
+    /** Last `.krui` document save result shown in toolbar and diagnostics. */
+    var saveStatusMessage: String? = null,
     /** Last Scene2D actor metadata for the selected node, reported by the backend preview. */
     var selectedActorInfo: UiComposerActorPreviewInfo? = null,
     /** Mutable editor-only binding payload used to test `.krui` placeholders; it is never saved or runtime state. */
