@@ -97,6 +97,16 @@ abstract class Scene(
     open fun render(alpha: Float) = world.render(alpha)
     /** Collects debug render commands for the scene. */
     open fun debugRender() = world.debugRender()
+    /**
+     * Renders backend-owned scene overlays after the main renderer has submitted the frame.
+     *
+     * This hook exists for editor UI/tool previews that need to draw directly through a backend
+     * renderer, such as the Phase 4 UiComposer Scene2D preview. It belongs to editor and backend
+     * presentation plumbing, not the shared `.krui` model or future editing pipeline. It
+     * intentionally does not add saving, editing, drag/drop, Skin editing, asset-id references, or
+     * full Scene2D actor serialization.
+     */
+    open fun overlayRender() = Unit
     /** Handles surface resize events. */
     open fun resize(width: Int, height: Int) = Unit
     /** Runs when the scene leaves the top of the stack. */

@@ -11,6 +11,7 @@ import com.pashkd.krender.game.ModelViewerScene
 import com.pashkd.krender.game.RuntimeScene
 import com.pashkd.krender.game.SceneEditorScene
 import com.pashkd.krender.game.TerrainEditorScene
+import com.pashkd.krender.game.UiComposerScene
 import com.pashkd.krender.game.WoolboySandboxScene
 
 class Main(
@@ -52,10 +53,15 @@ class Main(
                     ?: throw missingProperty("krender.terrain.path", requestedScene),
             )
 
+            "ui-composer" -> UiComposerScene(
+                uiScenePath = configuredUiScenePath()
+                    ?: throw missingProperty("krender.ui.scene.path", requestedScene),
+            )
+
             "woolboy_sandbox_scene" -> WoolboySandboxScene()
 
             else -> throw IllegalArgumentException(
-                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, runtime-scene, model-viewer, animation-viewer, terrain-editor, woolboy_sandbox_scene.",
+                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, runtime-scene, model-viewer, animation-viewer, terrain-editor, ui-composer, woolboy_sandbox_scene.",
             )
         }
     },
@@ -72,6 +78,15 @@ class Main(
                 ?: System.getProperty("krender.model")?.takeIf(String::isNotBlank)
 
         fun configuredTerrainFilePath(): String? = System.getProperty("krender.terrain.path")?.takeIf(String::isNotBlank)
+
+        /**
+         * Reads the `.krui` UiScene path passed to the temporary UI Composer route.
+         *
+         * This property belongs to editor/tool routing. It lets Asset Browser open UiScene assets
+         * in the placeholder composer without adding preview rendering, editing, Skin authoring,
+         * drag/drop support, save workflows, or asset-id based references.
+         */
+        fun configuredUiScenePath(): String? = System.getProperty("krender.ui.scene.path")?.takeIf(String::isNotBlank)
 
         fun configuredScenePath(): String? = System.getProperty("krender.scene.path")?.takeIf(String::isNotBlank)
 

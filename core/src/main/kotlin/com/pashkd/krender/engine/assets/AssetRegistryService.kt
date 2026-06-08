@@ -139,6 +139,7 @@ class LocalAssetRegistryService(
         val category = enumValueOrNull<AssetCategory>(document.category)?.takeUnless { it == AssetCategory.Unknown } ?: detection.category
         val descriptorMetadata = buildMap<String, String> {
             put("displayName", displayName)
+            put("sourcePath", path)
             put("importSettings", encodeImportSettings(document.importSettings))
             document.importerId?.let { put("importerId", it) }
             putAll(importer?.readMetadata(file) ?: emptyMap())
@@ -266,7 +267,15 @@ class LocalAssetRegistryService(
 
     companion object {
         private const val TAG = "LocalAssetRegistryService"
-        val DefaultRootPaths = listOf("model", "textures", "skyboxes", "materials", "terrains", "scenes", "shaders", "assets")
+
+        /**
+         * Asset root folders scanned by the local registry.
+         *
+         * The `ui/scenes` entry exists so `.krui` UiScene documents under `assets/ui/scenes` are indexed by
+         * Asset Browser. It is an asset-indexing route only; it does not enable UI Composer editing,
+         * preview rendering, Skin editing, drag/drop editing, or asset-id based references.
+         */
+        val DefaultRootPaths = listOf("model", "textures", "skyboxes", "materials", "terrains", "ui/scenes", "scenes", "shaders", "assets")
 
         private fun defaultBaseDirectory(): File {
             val current = File(".")

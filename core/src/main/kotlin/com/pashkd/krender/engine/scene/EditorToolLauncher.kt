@@ -8,6 +8,16 @@ interface EditorToolLauncher {
     fun launchAnimationViewer(modelPath: String)
     fun launchTerrainEditor(terrainPath: String)
     fun launchSceneEditorWithScene(scenePath: String)
+
+    /**
+     * Opens a `.krui` UiScene in the temporary UI Composer route.
+     *
+     * This is editor/tool routing only: it gives Asset Browser a stable launch target for UiScene
+     * assets before the real composer editor exists. The launched placeholder does not render previews,
+     * edit hierarchy/inspector data, show bounds overlays, edit Skins, support drag/drop, save files,
+     * or introduce asset-id references.
+     */
+    fun launchUiComposer(uiScenePath: String)
 }
 
 /**
@@ -27,6 +37,10 @@ object UnsupportedEditorToolLauncher : EditorToolLauncher {
     }
 
     override fun launchSceneEditorWithScene(scenePath: String) {
+        unsupported()
+    }
+
+    override fun launchUiComposer(uiScenePath: String) {
         unsupported()
     }
 

@@ -18,11 +18,19 @@ enum class AssetCategory(
     Skybox("Skybox", 2),
     Material("Material", 3),
     Terrain("Terrain", 4),
-    Shader("Shader", 5),
-    Scene("Scene", 6),
-    Audio("Audio", 7),
-    Script("Script", 8),
-    Unknown("Unknown", 9),
+    /**
+     * UI document category used by asset indexing and browser filters for KRender-native `.krui` UiScene files.
+     *
+     * This category is metadata-only for now: it makes runtime UI documents visible to tools and prepares
+     * routing to UiComposerScene, but it does not provide preview rendering, hierarchy editing, Skin editing,
+     * drag/drop authoring, or asset-id references.
+     */
+    UI("UI", 5),
+    Shader("Shader", 6),
+    Scene("Scene", 7),
+    Audio("Audio", 8),
+    Script("Script", 9),
+    Unknown("Unknown", 10),
 }
 
 /**
@@ -35,6 +43,15 @@ enum class AssetType {
     Texture,
     Skybox,
     Terrain,
+    /**
+     * KRender-native Scene2D UI scene document stored as `.krui`.
+     *
+     * This type belongs to asset metadata and tool routing: runtime UI already consumes the shared
+     * `engine.ui.scene` model, while Asset Browser now indexes these files and can open a temporary
+     * UiComposerScene placeholder. Full UI Composer editing, preview rendering, Skin editing, drag/drop,
+     * and asset-id references are intentionally deferred.
+     */
+    UiScene,
     Scene,
     Material,
     Shader,

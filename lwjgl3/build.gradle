@@ -60,6 +60,19 @@ run {
 // You can uncomment the next line if your IDE claims a build failure even when the app closed properly.
   //setIgnoreExitValue(true)
   jvmArgs += "--enable-native-access=ALL-UNNAMED"
+  [
+    "krender.scene",
+    "krender.model.path",
+    "krender.model",
+    "krender.scene.path",
+    "krender.scene.name",
+    "krender.terrain.path",
+    "krender.ui.scene.path",
+  ].each { propertyName ->
+    if (project.hasProperty(propertyName)) {
+      jvmArgs += "-D${propertyName}=${project.property(propertyName)}"
+    }
+  }
   if (os.contains('mac')) jvmArgs += "-XstartOnFirstThread"
 }
 

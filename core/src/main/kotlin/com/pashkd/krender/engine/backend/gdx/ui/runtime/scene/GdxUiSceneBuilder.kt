@@ -54,12 +54,18 @@ class GdxUiSceneBuilder(
      * The [payload] provides simple string bindings for text placeholders, button
      * action placeholders, and progress values. For the MVP, the builder caches
      * Skin and Image textures by project-relative path; asset-service-backed
-     * loading and disposal ownership should replace this later.
+     * loading and disposal ownership should replace this later. [onActorBuilt] is
+     * an editor/diagnostic-friendly callback used by UiComposer preview tooling
+     * to map document nodes to actors for best-effort selection highlighting and
+     * bounds diagnostics; it is optional and does not affect runtime UI behavior.
+     * The callback intentionally does not serialize actors, enable editing, save
+     * properties, edit Skins, or introduce asset-id references.
      */
     fun build(
         document: UiSceneDocument,
         payload: Map<String, String>,
         actionHandler: RuntimeUiActionHandler?,
+        onActorBuilt: ((UiSceneNode, Actor) -> Unit)? = null,
     ): Actor {
         // TODO: Replace this path cache with AssetService-backed loading and explicit lifetime tracking.
         val skin = skin(document.skin)
@@ -69,6 +75,7 @@ class GdxUiSceneBuilder(
             payload = payload,
             actionHandler = actionHandler,
             isRoot = true,
+            onActorBuilt = onActorBuilt,
         )
     }
 
@@ -88,11 +95,12 @@ class GdxUiSceneBuilder(
         payload: Map<String, String>,
         actionHandler: RuntimeUiActionHandler?,
         isRoot: Boolean,
+        onActorBuilt: ((UiSceneNode, Actor) -> Unit)?,
     ): Actor {
         val actor = when (node.type) {
-            UiSceneNodeType.Stack -> buildStack(node, skin, payload, actionHandler, isRoot)
-            UiSceneNodeType.Table -> buildTable(node, skin, payload, actionHandler, isRoot)
-            UiSceneNodeType.Container -> buildContainer(node, skin, payload, actionHandler, isRoot)
+            UiSceneNodeType.Stack -> buildStack(node, skin, payload, actionHandler, isRoot, onActorBuilt)
+            UiSceneNodeType.Table -> buildTable(node, skin, payload, actionHandler, isRoot, onActorBuilt)
+            UiSceneNodeType.Container -> buildContainer(node, skin, payload, actionHandler, isRoot, onActorBuilt)
             UiSceneNodeType.Label -> buildLabel(node, skin, payload)
             UiSceneNodeType.TextButton -> buildTextButton(node, skin, payload, actionHandler)
             UiSceneNodeType.ProgressBar -> buildProgressBar(node, skin, payload)
@@ -101,6 +109,7 @@ class GdxUiSceneBuilder(
         }
         actor.isVisible = node.visible
         applyActorSize(actor, node)
+        onActorBuilt?.invoke(node, actor)
         return actor
     }
 
@@ -110,11 +119,12 @@ class GdxUiSceneBuilder(
         payload: Map<String, String>,
         actionHandler: RuntimeUiActionHandler?,
         isRoot: Boolean,
+        onActorBuilt: ((UiSceneNode, Actor) -> Unit)?,
     ): Stack =
         Stack().apply {
             setFillParent(isRoot)
             node.children.forEach { child ->
-                add(buildNode(child, skin, payload, actionHandler, isRoot = false))
+                add(buildNode(child, skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt))
             }
         }
 
@@ -124,13 +134,14 @@ class GdxUiSceneBuilder(
         payload: Map<String, String>,
         actionHandler: RuntimeUiActionHandler?,
         isRoot: Boolean,
+        onActorBuilt: ((UiSceneNode, Actor) -> Unit)?,
     ): Table =
         Table().apply {
             setFillParent(isRoot)
             applyPadding(node.padding)
             applyBackground(node, skin)
             node.children.forEachIndexed { index, child ->
-                val childActor = buildNode(child, skin, payload, actionHandler, isRoot = false)
+                val childActor = buildNode(child, skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
                 // MVP layout rule:
                 // `.krui` Table currently adds every child as a new row. This intentionally
                 // keeps the runtime builder simple while UI Composer is not implemented yet.
@@ -148,10 +159,11 @@ class GdxUiSceneBuilder(
         payload: Map<String, String>,
         actionHandler: RuntimeUiActionHandler?,
         isRoot: Boolean,
+        onActorBuilt: ((UiSceneNode, Actor) -> Unit)?,
     ): Container<Actor> {
         val content = when {
             node.children.isEmpty() -> Table()
-            node.children.size == 1 -> buildNode(node.children.first(), skin, payload, actionHandler, isRoot = false)
+            node.children.size == 1 -> buildNode(node.children.first(), skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
             else -> {
                 // MVP fallback:
                 // Scene2D Container is a single-child widget. `.krui` is editor-authored,
@@ -162,7 +174,7 @@ class GdxUiSceneBuilder(
                 logger.warn(TAG) {
                     "Container '${node.id}' has ${node.children.size} children; wrapping them in a Stack for `.krui` MVP."
                 }
-                buildStack(node.copy(type = UiSceneNodeType.Stack), skin, payload, actionHandler, isRoot = false)
+                buildStack(node.copy(type = UiSceneNodeType.Stack), skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
             }
         }
 

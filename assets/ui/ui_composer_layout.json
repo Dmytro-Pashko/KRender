@@ -1,0 +1,39 @@
+{
+  "panels": {
+    "uiComposerToolbar": {
+      "title": "UI Composer Toolbar",
+      "x": 4,
+      "y": 6,
+      "width": 763,
+      "height": 127
+    },
+    "uiComposerHierarchy": {
+      "title": "UI Scene Hierarchy",
+      "x": 5,
+      "y": 138,
+      "width": 320,
+      "height": 472
+    },
+    "uiComposerInspector": {
+      "title": "UI Scene Inspector",
+      "x": 1567,
+      "y": 180,
+      "width": 340,
+      "height": 528
+    },
+    "uiComposerDiagnostics": {
+      "title": "UI Scene Diagnostics",
+      "x": 1569,
+      "y": 10,
+      "width": 339,
+      "height": 162
+    },
+    "runtimeLogs": {
+      "title": "Runtime Logs",
+      "x": 237,
+      "y": 1053,
+      "width": 1393,
+      "height": 224
+    }
+  }
+}

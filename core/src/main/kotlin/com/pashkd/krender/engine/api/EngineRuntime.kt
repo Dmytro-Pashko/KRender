@@ -226,6 +226,9 @@ class GameLoop(
                     ),
                 )
             }
+            backend.profiler.measure("scene.overlayRender") {
+                scene.overlayRender()
+            }
             backend.profiler.measure("runtimeUi.render") {
                 runtime.runtimeUi.render()
             }

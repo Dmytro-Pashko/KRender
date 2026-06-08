@@ -18,6 +18,7 @@ object AssetTypeDetector {
             extension in textureExtensions -> AssetTypeDetection(AssetType.Texture, AssetCategory.Texture)
             extension == "krskybox" -> AssetTypeDetection(AssetType.Skybox, AssetCategory.Skybox)
             lowerPath.startsWith("terrains/") && extension == "json" -> AssetTypeDetection(AssetType.Terrain, AssetCategory.Terrain)
+            extension == "krui" -> AssetTypeDetection(AssetType.UiScene, AssetCategory.UI)
             extension == "krscene" -> AssetTypeDetection(AssetType.Scene, AssetCategory.Scene)
             lowerPath.startsWith("scenes/") && extension == "json" -> AssetTypeDetection(AssetType.Scene, AssetCategory.Scene)
             lowerPath.startsWith("materials/") && extension == "json" -> AssetTypeDetection(AssetType.Material, AssetCategory.Material)

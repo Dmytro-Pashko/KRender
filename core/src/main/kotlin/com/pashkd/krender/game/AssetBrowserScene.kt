@@ -65,6 +65,7 @@ class AssetBrowserScene : Scene("asset_browser") {
             register(ModelViewerAssetTool())
             register(AnimationViewerAssetTool())
             register(TerrainEditorAssetTool())
+            register(UiComposerAssetTool())
             register(SceneEditorAssetTool())
             register(SceneRuntimeAssetTool())
         }
@@ -229,6 +230,7 @@ private class SceneOperationsHandler(
             AssetCategory.Skybox -> "skyboxes"
             AssetCategory.Material -> "materials"
             AssetCategory.Terrain -> "terrains"
+            AssetCategory.UI -> "ui/scenes"
             AssetCategory.Scene -> "scenes"
             AssetCategory.Shader -> "shaders"
             else -> "assets"
@@ -242,10 +244,12 @@ private class SceneOperationsHandler(
             AssetType.Texture -> "png"
             AssetType.Skybox -> "krskybox"
             AssetType.Terrain -> "json"
+            AssetType.UiScene -> "krui"
             AssetType.Scene -> "krscene"
             AssetType.Material -> "json"
             AssetType.Shader -> "glsl"
             AssetType.Unknown -> when (category) {
+                AssetCategory.UI -> "krui"
                 AssetCategory.Scene -> "krscene"
                 AssetCategory.Skybox -> "krskybox"
                 AssetCategory.Material, AssetCategory.Terrain -> "json"
@@ -259,6 +263,7 @@ private class SceneOperationsHandler(
             AssetCategory.Material -> "{}\n".toByteArray()
             AssetCategory.Terrain -> defaultTerrainContent(name).toByteArray()
             AssetCategory.Skybox -> defaultSkyboxContent().toByteArray()
+            AssetCategory.UI -> defaultUiSceneContent(name).toByteArray()
             AssetCategory.Scene -> defaultSceneContent().toByteArray()
             else -> null
         }
@@ -284,6 +289,25 @@ private class SceneOperationsHandler(
           "settings": {}
         }
         """.trimIndent() + "\n"
+
+    /**
+     * Creates the minimal `.krui` document used by the existing generic Create Asset action.
+     */
+    private fun defaultUiSceneContent(name: String): String {
+        val id = name.trim().replace(Regex("[^A-Za-z0-9_\\-:.]"), "_").ifBlank { "new_ui_scene" }
+        return """
+        {
+          "schemaVersion": 1,
+          "id": "$id",
+          "skin": "ui/skins/craftacular-ui.json",
+          "root": {
+            "id": "root",
+            "type": "Stack",
+            "children": []
+          }
+        }
+        """.trimIndent() + "\n"
+    }
 
     companion object {
         private const val TAG = "AssetBrowserSceneOps"
@@ -358,6 +382,36 @@ class TerrainEditorAssetTool : AssetTool {
 
     companion object {
         private const val TAG = "TerrainEditorAssetTool"
+    }
+}
+
+/**
+ * Opens `.krui` UiScene assets through the temporary UI Composer route.
+ *
+ * This tool belongs to editor/tool routing: it connects Asset Browser's UiScene metadata to
+ * UiComposerScene so future composer work has a stable launch path. It intentionally does not
+ * implement preview rendering, hierarchy/inspector editing, bounds overlays, Skin editing,
+ * drag/drop editing, save/open workflows, or asset-id based references.
+ */
+class UiComposerAssetTool : AssetTool {
+    override val id = "ui-composer"
+    override val displayName = "Open with UI Composer"
+    override val supportedCategories = setOf(AssetCategory.UI)
+
+    override fun canOpen(asset: AssetDescriptor): Boolean =
+        asset.category == AssetCategory.UI && asset.type == AssetType.UiScene
+
+    /**
+     * Launches the placeholder composer window for the selected UiScene path.
+     */
+    override fun open(asset: AssetDescriptor, context: EngineContext) {
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Opening UiScene asset '$path' in UI Composer placeholder" }
+        context.editorToolLauncher.launchUiComposer(path)
+    }
+
+    companion object {
+        private const val TAG = "UiComposerAssetTool"
     }
 }
 

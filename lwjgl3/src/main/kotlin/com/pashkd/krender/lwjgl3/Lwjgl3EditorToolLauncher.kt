@@ -43,6 +43,17 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
+    /**
+     * Launches the temporary UiComposerScene placeholder for a `.krui` UiScene asset.
+     */
+    override fun launchUiComposer(uiScenePath: String) {
+        launch(
+            scene = "ui-composer",
+            pathProperty = "krender.ui.scene.path" to normalizePath(uiScenePath),
+            failureMessage = "UI Composer launch failed",
+        )
+    }
+
     private fun launch(scene: String, pathProperty: Pair<String, String>, failureMessage: String) {
         processLauncher.launch(
             properties = linkedMapOf(

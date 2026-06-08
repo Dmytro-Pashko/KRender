@@ -62,6 +62,7 @@ class AssetImporterRegistry(
                 register(TextureImporter())
                 register(SkyboxImporter())
                 register(TerrainImporter())
+                register(UiSceneImporter(logger))
                 register(MaterialImporter())
                 register(ShaderImporter())
             }
@@ -152,6 +153,45 @@ class TerrainImporter : AssetImporter {
     override fun canImport(path: String): Boolean {
         if (normalizedExtension(path) !in supportedExtensions) return false
         return normalizedLower(path).contains("terrains/")
+    }
+}
+
+/**
+ * KRender-native `.krui` UiScene document importer.
+ *
+ * This importer belongs to asset indexing and asset metadata. It recognizes the shared UiScene
+ * document format used by runtime UI and the future UiComposerScene, extracts lightweight metadata,
+ * and reports non-fatal validation warnings. It does not build Scene2D actors, render previews,
+ * edit hierarchy/bounds, edit Skins, handle drag/drop authoring, or convert paths to asset ids.
+ */
+class UiSceneImporter(
+    private val logger: Logger? = null,
+) : AssetImporter {
+    override val id = "ui-scene"
+    override val displayName = "UI Scene"
+    override val supportedExtensions = setOf("krui")
+    override val outputType = AssetType.UiScene
+    override val outputCategory = AssetCategory.UI
+
+    override fun canImport(path: String): Boolean = normalizedExtension(path) in supportedExtensions
+
+    /**
+     * Reads document id, Skin path, schema version, and validator warnings without loading runtime UI.
+     */
+    override fun readMetadata(file: File): Map<String, String> {
+        val metadata = UiSceneAssetMetadataReader.read(file)
+        if (metadata.parseError != null) {
+            logger?.warn(TAG) { "Invalid UiScene asset '${file.path}': ${metadata.parseError}" }
+        } else if (metadata.validationIssues.isNotEmpty()) {
+            logger?.warn(TAG) {
+                "UiScene asset '${file.path}' has ${metadata.validationIssues.size} validation warning(s)."
+            }
+        }
+        return metadata.toMetadataMap()
+    }
+
+    companion object {
+        private const val TAG = "UiSceneImporter"
     }
 }
 

@@ -502,6 +502,10 @@ class AssetDetailsPanel(
             drawTerrainMetadata(asset)
             return
         }
+        if (asset.category == AssetCategory.UI) {
+            drawUiSceneMetadata(asset)
+            return
+        }
         if (asset.category == AssetCategory.Scene) {
             drawSceneMetadata(asset)
             return
@@ -553,6 +557,40 @@ class AssetDetailsPanel(
         ImGui.text("Settings:")
         textLine("Size: ${asset.metadata["terrainSize"] ?: "unknown"}")
         textLine("Layers: ${asset.metadata["terrainLayerCount"] ?: "unknown"}")
+    }
+
+    /**
+     * Shows lightweight `.krui` indexing data without attempting UI Composer preview or editing.
+     */
+    private fun drawUiSceneMetadata(asset: AssetDescriptor) {
+        textLine("Display Name: ${asset.metadata["displayName"] ?: asset.name}")
+        textLine("Source: ${asset.metadata["sourcePath"] ?: asset.path}")
+        textLine("Document ID: ${asset.metadata["uiSceneDocumentId"] ?: "unknown"}")
+        textLine("Skin: ${asset.metadata["uiSceneSkinPath"] ?: "unknown"}")
+        textLine("Schema: ${asset.metadata["uiSceneSchemaVersion"] ?: "unknown"}")
+        textLine("Status: ${asset.metadata["uiSceneStatus"] ?: "unknown"}")
+        asset.metadata["uiSceneParseError"]?.let { error -> textLine("Parse error: $error") }
+
+        val tools = operations.toolsFor(asset)
+        if (tools.isNotEmpty()) {
+            ImGui.separator()
+            ImGui.text("UI scene actions")
+            tools.forEachIndexed { index, tool ->
+                with(dsl) {
+                    button("${tool.label}##${panelId}_ui_scene_tool_${tool.id}") {
+                        operations.openWith(asset, tool.id)
+                    }
+                }
+                if (index < tools.lastIndex) {
+                    ImGui.sameLine()
+                }
+            }
+        }
+
+        ImGui.separator()
+        ImGui.text("Diagnostics")
+        textLine("Validation warnings: ${asset.metadata["uiSceneValidationWarningCount"] ?: "0"}")
+        asset.metadata["uiSceneValidationIssuePreview"]?.let { preview -> textLine("Issues: $preview") }
     }
 
     private fun drawSceneMetadata(asset: AssetDescriptor) {
@@ -684,6 +722,7 @@ private fun assetIcon(asset: AssetDescriptor): String =
         AssetCategory.Skybox -> "[Sky]"
         AssetCategory.Material -> "[Mat]"
         AssetCategory.Terrain -> "[Ter]"
+        AssetCategory.UI -> "[UI]"
         AssetCategory.Shader -> "[S]"
         AssetCategory.Scene -> "[Sc]"
         AssetCategory.Audio -> "[A]"
