@@ -14,9 +14,9 @@ import com.pashkd.krender.engine.ui.scene.UiSceneValidator
  * editing pipeline. It keeps document loading, validation diagnostics,
  * hierarchy selection, inspector edit state, bounds toggling, reload/save
  * requests, and preview-only payload data in one simple place while
- * intentionally omitting add/delete/reorder, drag/drop canvas editing, Skin
- * editing, Asset Browser picking, asset-id references, child-structure editing,
- * canvas selection, and full Scene2D actor serialization.
+ * intentionally omitting canvas drag/drop, canvas selection, resizing actors on
+ * canvas, Skin editing, Asset Browser picking, asset-id references, full actor
+ * serialization, and any generic visual layout solver.
  */
 data class UiComposerState(
     /** Project-relative `.krui` path opened by this editor preview tool. */
@@ -41,8 +41,17 @@ data class UiComposerState(
     var previewRebuildRequested: Boolean = false,
     /** True when selected-node property edits changed the in-memory `.krui` document. */
     var dirty: Boolean = false,
+    /**
+     * True when Reload was requested while the document had unsaved `.krui` edits.
+     *
+     * This belongs to editor preview UX and provides the MVP toolbar-level reload
+     * confirmation. It intentionally does not introduce a modal framework,
+     * autosave, affect preview payload edits, affect panel layout saving, change
+     * runtime behavior, or serialize Scene2D actors.
+     */
+    var pendingReloadConfirmation: Boolean = false,
     /** Toolbar status for editor preview operations such as reload, rebuild, and panel layout persistence. */
-    var statusMessage: String = "Read-only preview.",
+    var statusMessage: String = "Editor ready.",
     /** Last `.krui` document save result shown in toolbar and diagnostics. */
     var saveStatusMessage: String? = null,
     /** Last Scene2D actor metadata for the selected node, reported by the backend preview. */
@@ -72,7 +81,7 @@ data class UiComposerActorPreviewInfo(
 )
 
 /**
- * Sample payload values used by the read-only UiComposer preview.
+ * Sample payload values used by the UiComposer preview.
  *
  * This belongs to editor preview data only: it lets bound Woolboy `.krui` labels,
  * progress bars, actions, and images render with useful placeholder values. It
@@ -94,7 +103,7 @@ val DefaultPreviewPayload: Map<String, String> = mapOf(
 )
 
 /**
- * Backend-neutral loader for read-only UiComposer `.krui` documents.
+ * Backend-neutral loader for UiComposer `.krui` documents.
  *
  * This belongs to editor preview backend-neutral plumbing: it decodes the file
  * and runs shared validation so the UI can show diagnostics without crashing.
@@ -134,7 +143,7 @@ class UiComposerDocumentLoader(
 }
 
 /**
- * Finds a node by id in a `.krui` tree for read-only hierarchy and inspector UI.
+ * Finds a node by id in a `.krui` tree for hierarchy and inspector UI.
  *
  * This helper belongs to backend-neutral editor UI state. It is deliberately a
  * simple traversal and does not support mutation, reordering, drag/drop, saving,

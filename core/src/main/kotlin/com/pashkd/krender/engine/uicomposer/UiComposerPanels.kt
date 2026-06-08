@@ -8,20 +8,21 @@ import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
+import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
 import com.pashkd.krender.engine.ui.scene.UiSceneScaling
 import imgui.ImGui
 import imgui.dsl
 import java.nio.charset.StandardCharsets
 
 /**
- * Toolbar panel for the UiComposer preview and basic `.krui` save workflow.
+ * Toolbar panel for the UiComposer preview and `.krui` save/reload workflow.
  *
  * This panel belongs to editor preview UX. It exposes document reload, panel
- * layout persistence, `.krui` saving, bounds toggling, and selected-node
- * highlighting only; it intentionally does not create/delete nodes, reorder
- * nodes, implement drag/drop canvas editing, edit Skins, add Asset Browser
- * picking, introduce asset-id references, edit JSON, or serialize full Scene2D
- * actors.
+ * layout persistence, `.krui` saving, toolbar-level reload confirmation, bounds
+ * toggling, and selected-node highlighting only; it intentionally does not
+ * implement a modal framework, create/delete nodes, reorder nodes, implement
+ * drag/drop canvas editing, edit Skins, add Asset Browser picking, introduce
+ * asset-id references, edit JSON, or serialize full Scene2D actors.
  */
 class UiComposerToolbarPanel(
     private val state: UiComposerState,
@@ -30,7 +31,7 @@ class UiComposerToolbarPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    /** Draws the read-only toolbar controls. */
+    /** Draws save, reload confirmation, preview, and panel-layout toolbar controls. */
     override fun draw() {
         val layout = layoutConfig.panels.getValue(UiComposerPanelIds.Toolbar)
         val expanded = beginImGuiPanel(UiComposerPanelIds.Toolbar, layout, layoutTracker)
@@ -60,9 +61,29 @@ class UiComposerToolbarPanel(
             }
         }
         ImGui.sameLine()
-        with(dsl) {
-            button("Reload##ui_composer_reload") {
-                state.reloadRequested = true
+        if (state.pendingReloadConfirmation) {
+            with(dsl) {
+                button("Confirm Reload##ui_composer_confirm_reload") {
+                    state.reloadRequested = true
+                }
+            }
+            ImGui.sameLine()
+            with(dsl) {
+                button("Cancel Reload##ui_composer_cancel_reload") {
+                    state.pendingReloadConfirmation = false
+                    state.statusMessage = "Reload canceled; unsaved changes kept."
+                }
+            }
+        } else {
+            with(dsl) {
+                button("Reload##ui_composer_reload") {
+                    if (state.dirty) {
+                        state.pendingReloadConfirmation = true
+                        state.statusMessage = "Unsaved changes. Click Confirm Reload to discard them."
+                    } else {
+                        state.reloadRequested = true
+                    }
+                }
             }
         }
         ImGui.sameLine()
@@ -74,20 +95,23 @@ class UiComposerToolbarPanel(
         ImGui.textUnformatted("Status: ${state.statusMessage}")
         ImGui.textUnformatted("Dirty: ${if (state.dirty) "yes" else "no"}")
         state.saveStatusMessage?.let { message -> ImGui.textUnformatted("Save: $message") }
-        if (state.dirty) {
-            ImGui.textUnformatted("Reload discards unsaved .krui changes.")
+        if (state.pendingReloadConfirmation) {
+            ImGui.textUnformatted("Reload confirmation is toolbar-level MVP; no modal is shown.")
+        } else if (state.dirty) {
+            ImGui.textUnformatted("Reload requires confirmation before discarding unsaved .krui changes.")
         }
         ImGui.end()
     }
 }
 
 /**
- * Recursive hierarchy panel for the Phase 4 read-only UiComposer preview.
+ * Recursive hierarchy panel for UiComposer node selection.
  *
  * This panel belongs to editor UI. It selects existing `.krui` nodes by id for
  * inspection and best-effort preview highlighting, but intentionally omits
- * add/delete/reorder operations, drag/drop canvas editing, saving, Skin editing,
- * Asset Browser picking, asset-id references, and actor serialization.
+ * inline add/delete/reorder operations, drag/drop canvas editing, saving, Skin
+ * editing, Asset Browser picking, asset-id references, layout solving, and actor
+ * serialization.
  */
 class UiComposerHierarchyPanel(
     private val state: UiComposerState,
@@ -133,14 +157,145 @@ class UiComposerHierarchyPanel(
 }
 
 /**
- * Inspector panel for Phase 5 selected-node scalar property editing.
+ * Panel for hierarchy-driven `.krui` structure editing.
+ *
+ * This panel belongs to editor structure editing. It exposes add child, delete,
+ * duplicate, sibling move, and simple wrapper commands for the selected hierarchy
+ * node while keeping hierarchy display and scalar Inspector editing separate. It
+ * intentionally does not implement canvas drag/drop, canvas selection, canvas
+ * resizing, Skin editing, Asset Browser pickers, asset-id references, add/delete
+ * through the Scene2D preview, generic layout solving, automatic saving, or full
+ * Scene2D actor serialization.
+ */
+class UiComposerStructurePanel(
+    private val state: UiComposerState,
+    private val operations: UiComposerOperations,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    private var selectedAddType: UiSceneNodeType = UiSceneNodeType.Label
+
+    /** Draws selected-node structure actions for the current `.krui` document. */
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(UiComposerPanelIds.Structure)
+        val expanded = beginImGuiPanel(UiComposerPanelIds.Structure, layout, layoutTracker)
+        eventLogger.observe(UiComposerPanelIds.Structure, layout.title)
+        if (!expanded) {
+            ImGui.end()
+            return
+        }
+
+        val document = state.document
+        if (document == null) {
+            ImGui.textUnformatted("No document loaded.")
+            ImGui.end()
+            return
+        }
+
+        val selectedNode = findUiSceneNodeById(document.root, state.selectedNodeId) ?: document.root
+        val isRoot = selectedNode.id == document.root.id
+        val canAddChild = selectedNode.type.isContainerLike()
+
+        property("selected id", selectedNode.id)
+        property("selected type", selectedNode.type.name)
+        property("root", isRoot.toString())
+        ImGui.textWrapped("Structure editing is hierarchy-based. Canvas drag/drop is not implemented yet.")
+        ImGui.separator()
+
+        drawAddChildControls(canAddChild)
+        if (!canAddChild) {
+            ImGui.textWrapped("Selected node type is leaf-like; add child is disabled.")
+        }
+        ImGui.separator()
+
+        val hasSelectedNode = state.selectedNodeId != null || document.root.id == selectedNode.id
+        ImGui.beginDisabled(!hasSelectedNode || isRoot)
+        with(dsl) {
+            button("Delete Selected##ui_composer_delete_selected") {
+                operations.deleteSelectedNode()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Duplicate Selected##ui_composer_duplicate_selected") {
+                operations.duplicateSelectedNode()
+            }
+        }
+        ImGui.endDisabled()
+
+        ImGui.beginDisabled(!hasSelectedNode || isRoot)
+        with(dsl) {
+            button("Move Up##ui_composer_move_up") {
+                operations.moveSelectedNodeUp()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Move Down##ui_composer_move_down") {
+                operations.moveSelectedNodeDown()
+            }
+        }
+        ImGui.endDisabled()
+
+        ImGui.separator()
+        ImGui.beginDisabled(!hasSelectedNode || isRoot)
+        with(dsl) {
+            button("Wrap in Container##ui_composer_wrap_container") {
+                operations.wrapSelectedNode(UiSceneNodeType.Container)
+            }
+        }
+        with(dsl) {
+            button("Wrap in Stack##ui_composer_wrap_stack") {
+                operations.wrapSelectedNode(UiSceneNodeType.Stack)
+            }
+        }
+        with(dsl) {
+            button("Wrap in Table##ui_composer_wrap_table") {
+                operations.wrapSelectedNode(UiSceneNodeType.Table)
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.end()
+    }
+
+    private fun drawAddChildControls(canAddChild: Boolean) {
+        // A compact combo keeps creation type selection local to the structure panel.
+        if (ImGui.beginCombo("Child Type##ui_composer_add_child_type", selectedAddType.name)) {
+            UiSceneNodeType.entries.forEach { type ->
+                if (ImGui.selectable("${type.name}##ui_composer_add_child_type_${type.name}", type == selectedAddType)) {
+                    selectedAddType = type
+                }
+            }
+            ImGui.endCombo()
+        }
+        ImGui.beginDisabled(!canAddChild)
+        with(dsl) {
+            button("Add Child##ui_composer_add_child") {
+                operations.addChildToSelected(selectedAddType)
+            }
+        }
+        ImGui.endDisabled()
+    }
+
+    private fun property(
+        name: String,
+        value: String,
+    ) {
+        ImGui.textUnformatted("$name: $value")
+    }
+}
+
+/**
+ * Inspector panel for selected-node scalar property editing and structure context.
  *
  * This panel belongs to editor selected-node property editing. It edits scalar
- * fields on the selected `.krui` node and leaves document-level metadata and node
- * type read-only. It intentionally omits add/delete/duplicate/reorder, child
- * structure editing, drag/drop canvas editing, canvas selection, Skin editing,
+ * fields on the selected `.krui` node and shows read-only parent/sibling context
+ * for structure editing. It leaves document-level metadata and node type
+ * read-only. It intentionally omits add/delete/duplicate/reorder controls,
+ * child-list editing, drag/drop canvas editing, canvas selection, Skin editing,
  * Asset Browser picking, asset-id references, JSON text editing, preview payload
- * persistence, and full Scene2D actor serialization.
+ * persistence, layout solving, and full Scene2D actor serialization.
  */
 class UiComposerInspectorPanel(
     private val state: UiComposerState,
@@ -173,7 +328,7 @@ class UiComposerInspectorPanel(
         if (selectedNode == null) {
             drawDocumentInfo(document)
         } else {
-            drawNodeInfo(selectedNode)
+            drawNodeInfo(document, selectedNode)
         }
         ImGui.end()
     }
@@ -188,7 +343,10 @@ class UiComposerInspectorPanel(
         property("Root type", document.root.type.name)
     }
 
-    private fun drawNodeInfo(node: UiSceneNode) {
+    private fun drawNodeInfo(
+        document: UiSceneDocument,
+        node: UiSceneNode,
+    ) {
         ImGui.textUnformatted("Selected Node")
         ImGui.separator()
         editableString(node, "id", node.id, emptyAsNull = false) { value ->
@@ -260,9 +418,22 @@ class UiComposerInspectorPanel(
         editableFloat(node, "spacing", node.spacing, allowNull = false) { value ->
             operations.updateSelectedNode { it.copy(spacing = value ?: it.spacing) }
         }
+        ImGui.separator()
+        drawStructureContext(document, node)
         property("child count", node.children.size.toString())
         ImGui.separator()
         drawActorInfo(node)
+    }
+
+    private fun drawStructureContext(
+        document: UiSceneDocument,
+        node: UiSceneNode,
+    ) {
+        // Read-only context helps structure edits without duplicating edit controls in Inspector.
+        val parent = document.parentOf(node.id)
+        val siblingIndex = parent?.children?.indexOfFirst { it.id == node.id }
+        property("parent id", parent?.id ?: "<root>")
+        property("sibling index", siblingIndex?.takeIf { it >= 0 }?.toString() ?: "<none>")
     }
 
     private fun editableString(
@@ -501,10 +672,10 @@ class UiComposerDiagnosticsPanel(
         }
         ImGui.separator()
         ImGui.textWrapped(
-            "MVP limitations: read-only preview; preview payload is not saved and is not runtime state; " +
-                "no .krui save/editing; no Skin editing; no drag/drop; " +
+            "MVP limitations: structure editing is hierarchy/inspector-driven only; preview payload is not saved " +
+                "and is not runtime state; no canvas drag/drop; no canvas selection; no Skin editing; " +
                 "no Asset Browser picker yet; no asset-id references; no full Scene2D actor serialization; " +
-                "no embedded ImGui viewport yet; selected-node highlight is best-effort.",
+                "no layout solver; reload dirty confirmation is toolbar-level only; selected-node highlight is best-effort.",
         )
         ImGui.end()
     }
@@ -528,3 +699,6 @@ private fun writeBuffer(
     val bytes = value.toByteArray(StandardCharsets.UTF_8)
     bytes.copyInto(buffer, endIndex = bytes.size.coerceAtMost(buffer.size - 1))
 }
+
+private fun UiSceneNodeType.isContainerLike(): Boolean =
+    this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container

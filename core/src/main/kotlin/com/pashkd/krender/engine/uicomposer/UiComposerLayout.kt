@@ -4,16 +4,25 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 
 /**
- * Stable panel ids used by the read-only UiComposer MVP.
+ * Stable panel ids used by the UiComposer MVP.
  *
- * These ids belong to editor UI layout only. They do not affect the shared
- * `.krui` document, runtime UI layers, future editing data, saving, Skin
- * editing, drag/drop canvas editing, Asset Browser picking, asset-id references,
- * or Scene2D actor serialization.
+ * These ids belong to editor UI layout and structure editing panel placement
+ * only. They do not affect the shared `.krui` document, runtime UI layers,
+ * saving, Skin editing, drag/drop canvas editing, Asset Browser picking,
+ * asset-id references, generic layout solving, or Scene2D actor serialization.
  */
 object UiComposerPanelIds {
     const val Toolbar = "uiComposerToolbar"
     const val Hierarchy = "uiComposerHierarchy"
+    /**
+     * Panel id for hierarchy-driven structure editing controls.
+     *
+     * This belongs to editor structure editing layout. It does not add canvas
+     * drag/drop, canvas selection, Skin editing, Asset Browser picking,
+     * asset-id references, layout solving, saving behavior, or actor
+     * serialization.
+     */
+    const val Structure = "uiComposerStructure"
     const val Inspector = "uiComposerInspector"
     const val PreviewPayload = "uiComposerPreviewPayload"
     const val Diagnostics = "uiComposerDiagnostics"
@@ -21,12 +30,13 @@ object UiComposerPanelIds {
 }
 
 /**
- * Fallback ImGui layout for the read-only UiComposer preview tool.
+ * Fallback ImGui layout for the UiComposer preview and structure editing tool.
  *
  * This belongs to editor window layout. It intentionally keeps the Scene2D
  * preview fullscreen behind ImGui rather than embedding it into an ImGui child
- * viewport, and it does not add save/editing, Skin editing, drag/drop, Asset
- * Browser pickers, asset-id references, or full Scene2D actor serialization.
+ * viewport, and it does not add Skin editing, drag/drop, Asset Browser pickers,
+ * asset-id references, generic layout solving, or full Scene2D actor
+ * serialization.
  */
 object UiComposerUiLayoutDefaults {
     /** Project-relative path where UiComposer ImGui panel layout is loaded and persisted. */
@@ -46,7 +56,14 @@ object UiComposerUiLayoutDefaults {
                 x = 16f,
                 y = 136f,
                 width = 320f,
-                height = 472f,
+                height = 352f,
+            ),
+            UiComposerPanelIds.Structure to ImGuiPanelLayout(
+                title = "UI Structure",
+                x = 16f,
+                y = 504f,
+                width = 320f,
+                height = 240f,
             ),
             UiComposerPanelIds.Inspector to ImGuiPanelLayout(
                 title = "UI Scene Inspector",

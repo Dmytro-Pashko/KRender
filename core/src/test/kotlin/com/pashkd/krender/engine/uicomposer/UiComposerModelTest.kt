@@ -1,10 +1,12 @@
 package com.pashkd.krender.engine.uicomposer
 
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
+import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -178,6 +180,143 @@ internal class UiComposerModelTest {
         assertTrue(updated.containsNodeId("renamed_label"))
     }
 
+    @Test
+    internal fun `addChildNode adds child to selected parent`() {
+        val document = editableDocument()
+
+        val updated = document.addChildNode(
+            parentId = "panel",
+            child = UiSceneNode(id = "button", type = UiSceneNodeType.TextButton, text = "Button"),
+        )
+
+        assertEquals("button", findUiSceneNodeById(updated.root, "button")?.id)
+        assertNull(findUiSceneNodeById(document.root, "button"))
+    }
+
+    @Test
+    internal fun `addChildNode does not add to missing parent`() {
+        val document = editableDocument()
+
+        val updated = document.addChildNode(
+            parentId = "missing",
+            child = UiSceneNode(id = "button", type = UiSceneNodeType.TextButton, text = "Button"),
+        )
+
+        assertEquals(document, updated)
+        assertNull(findUiSceneNodeById(updated.root, "button"))
+    }
+
+    @Test
+    internal fun `deleteNode deletes non-root node`() {
+        val document = editableDocument()
+
+        val updated = document.deleteNode("label")
+
+        assertNull(findUiSceneNodeById(updated.root, "label"))
+        assertNotNull(findUiSceneNodeById(document.root, "label"))
+    }
+
+    @Test
+    internal fun `deleteNode does not delete root`() {
+        val document = editableDocument()
+
+        val updated = document.deleteNode("root")
+
+        assertEquals(document, updated)
+        assertEquals("root", updated.root.id)
+    }
+
+    @Test
+    internal fun `duplicateNode duplicates selected node with new id`() {
+        val document = editableDocument()
+
+        val updated = document.duplicateNode("label", "label_copy")
+
+        val panelChildren = findUiSceneNodeById(updated.root, "panel")?.children.orEmpty()
+        assertEquals(listOf("label", "label_copy"), panelChildren.map { it.id })
+        assertEquals("Original", findUiSceneNodeById(updated.root, "label_copy")?.text)
+    }
+
+    @Test
+    internal fun `moveNodeUp swaps with previous sibling`() {
+        val document = siblingDocument()
+
+        val updated = document.moveNodeUp("third")
+
+        val childIds = findUiSceneNodeById(updated.root, "panel")?.children.orEmpty().map { it.id }
+        assertEquals(listOf("first", "third", "second"), childIds)
+    }
+
+    @Test
+    internal fun `moveNodeDown swaps with next sibling`() {
+        val document = siblingDocument()
+
+        val updated = document.moveNodeDown("first")
+
+        val childIds = findUiSceneNodeById(updated.root, "panel")?.children.orEmpty().map { it.id }
+        assertEquals(listOf("second", "first", "third"), childIds)
+    }
+
+    @Test
+    internal fun `moveNodeUp on first sibling leaves document unchanged`() {
+        val document = siblingDocument()
+
+        val updated = document.moveNodeUp("first")
+
+        assertEquals(document, updated)
+    }
+
+    @Test
+    internal fun `wrapNode wraps selected node in wrapper`() {
+        val document = editableDocument()
+
+        val updated = document.wrapNode(
+            nodeId = "label",
+            wrapper = UiSceneNode(id = "container", type = UiSceneNodeType.Container),
+        )
+
+        val wrapper = findUiSceneNodeById(updated.root, "container")
+        assertNotNull(wrapper)
+        assertEquals(listOf("label"), wrapper.children.map { it.id })
+        val panelChildren = findUiSceneNodeById(updated.root, "panel")?.children.orEmpty()
+        assertEquals(listOf("container"), panelChildren.map { it.id })
+    }
+
+    @Test
+    internal fun `wrapNode does not wrap root`() {
+        val document = editableDocument()
+
+        val updated = document.wrapNode(
+            nodeId = "root",
+            wrapper = UiSceneNode(id = "container", type = UiSceneNodeType.Container),
+        )
+
+        assertEquals(document, updated)
+        assertFalse(updated.containsNodeId("container"))
+    }
+
+    @Test
+    internal fun `uniqueNodeId appends suffix when id exists`() {
+        val document = editableDocument()
+
+        assertEquals("label_1", document.uniqueNodeId("label"))
+        assertEquals("awkward_id", document.uniqueNodeId(" awkward id! "))
+    }
+
+    @Test
+    internal fun `createDefaultUiSceneNode creates sensible defaults`() {
+        assertEquals(emptyList(), createDefaultUiSceneNode(UiSceneNodeType.Stack, "stack").children)
+        assertEquals(8f, createDefaultUiSceneNode(UiSceneNodeType.Table, "table").spacing)
+        assertEquals(UiSceneAlign.Center, createDefaultUiSceneNode(UiSceneNodeType.Container, "container").align)
+        assertEquals("Label", createDefaultUiSceneNode(UiSceneNodeType.Label, "label").text)
+        assertEquals("Button", createDefaultUiSceneNode(UiSceneNodeType.TextButton, "button").text)
+        assertEquals("action.todo", createDefaultUiSceneNode(UiSceneNodeType.TextButton, "button").action)
+        assertEquals(0.5f, createDefaultUiSceneNode(UiSceneNodeType.ProgressBar, "progress").value)
+        assertNull(createDefaultUiSceneNode(UiSceneNodeType.Image, "image").texture)
+        assertEquals(16f, createDefaultUiSceneNode(UiSceneNodeType.Space, "space").width)
+        assertEquals(16f, createDefaultUiSceneNode(UiSceneNodeType.Space, "space").height)
+    }
+
     private fun editableDocument(): UiSceneDocument =
         UiSceneDocument(
             id = "editable",
@@ -191,6 +330,27 @@ internal class UiComposerModelTest {
                         type = UiSceneNodeType.Table,
                         children = listOf(
                             UiSceneNode(id = "label", type = UiSceneNodeType.Label, text = "Original"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+    private fun siblingDocument(): UiSceneDocument =
+        UiSceneDocument(
+            id = "siblings",
+            skin = "ui/skins/craftacular-ui.json",
+            root = UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Stack,
+                children = listOf(
+                    UiSceneNode(
+                        id = "panel",
+                        type = UiSceneNodeType.Table,
+                        children = listOf(
+                            UiSceneNode(id = "first", type = UiSceneNodeType.Label, text = "First"),
+                            UiSceneNode(id = "second", type = UiSceneNodeType.Label, text = "Second"),
+                            UiSceneNode(id = "third", type = UiSceneNodeType.Label, text = "Third"),
                         ),
                     ),
                 ),

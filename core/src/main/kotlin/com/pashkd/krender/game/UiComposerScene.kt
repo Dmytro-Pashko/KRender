@@ -14,6 +14,7 @@ import com.pashkd.krender.engine.uicomposer.UiComposerOperations
 import com.pashkd.krender.engine.uicomposer.UiComposerPanelIds
 import com.pashkd.krender.engine.uicomposer.UiComposerPreviewPayloadPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerState
+import com.pashkd.krender.engine.uicomposer.UiComposerStructurePanel
 import com.pashkd.krender.engine.uicomposer.UiComposerToolbarPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerUiLayoutDefaults
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
@@ -27,11 +28,12 @@ import com.pashkd.krender.engine.ui.editor.UiSystem
  * Editor scene opened for `.krui` UiScene assets from Asset Browser.
  *
  * This scene belongs to editor/tool UI and backend preview plumbing, not RuntimeUiService or
- * gameplay UI. Phase 5 decodes, validates, previews, inspects, edits supported scalar fields on
- * the selected `.krui` node, and can save the document. It intentionally omits add/delete/reorder,
- * drag/drop canvas editing, canvas selection, Skin editing, Asset Browser pickers, asset-id
- * references, child structure editing, JSON text editing, and full Scene2D actor serialization.
- * The selected-node highlight is best-effort.
+ * gameplay UI. Phase 5.5/6 decodes, validates, previews, inspects, edits supported scalar fields,
+ * performs hierarchy/inspector-driven structure edits, and can save the document. It intentionally
+ * omits canvas drag/drop, canvas selection, actor resizing on canvas, Skin editing, Asset Browser
+ * pickers, asset-id references, JSON text editing, generic visual layout solving, and full Scene2D
+ * actor serialization. Reload dirty confirmation is a simple toolbar state, and the selected-node
+ * highlight is best-effort.
  */
 class UiComposerScene(
     private val uiScenePath: String,
@@ -113,6 +115,7 @@ class UiComposerScene(
         engine.logger.info(TAG) { "Reloading UI Composer document path='${composerState.uiScenePath}'" }
         loader.reload(composerState)
         composerState.dirty = false
+        composerState.pendingReloadConfirmation = false
         composerState.saveStatusMessage = null
         if (composerState.document == null) {
             composerState.statusMessage = "Failed to load document."
@@ -158,6 +161,7 @@ class UiComposerScene(
         return UiSystem(engine.ui).also { uiSystem ->
             addPanel(uiSystem, "Toolbar", UiComposerToolbarPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Hierarchy", UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
+            addPanel(uiSystem, "Structure", UiComposerStructurePanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Inspector", UiComposerInspectorPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "PreviewPayload", UiComposerPreviewPayloadPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Diagnostics", UiComposerDiagnosticsPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
