@@ -202,6 +202,31 @@ class WoolboySystemsTest {
     }
 
     @Test
+    fun `third person camera ignores orbit input when input is disabled`() {
+        val world = SceneWorld()
+        val player = world.createEntity("Player")
+        player.add(PlayerControllerComponent())
+        val camera = world.createEntity("Camera")
+        camera.add(PerspectiveCameraComponent())
+        camera.add(ActiveCameraComponent())
+        val input = FakeInputService(
+            InputSnapshot(
+                mouseButtonsDown = setOf(MouseButton.Right),
+                mouseDelta = Vec2(12f, -8f),
+                scrollDelta = 1f,
+            ),
+        )
+
+        ThirdPersonCameraFollowSystem(input, NoopLogger, inputEnabled = { false }).lateUpdate(world, dt = 0f)
+
+        val lookAt = camera.get<PerspectiveCameraComponent>()?.lookAt!!
+        assertFalse(input.cursorCaptured)
+        assertEquals(ThirdPersonCameraFollowSystem.CameraLookAtHeight, lookAt.y)
+        assertEquals(ThirdPersonCameraFollowSystem.CameraLookAtHeight + 2.85f, camera.transform.position.y, absoluteTolerance = 0.02f)
+        assertEquals(7.0f, distance(camera.transform.position, lookAt), absoluteTolerance = 0.02f)
+    }
+
+    @Test
     fun `third person camera initializes from authored camera instead of default orbit`() {
         val world = SceneWorld()
         val player = world.createEntity("Player")

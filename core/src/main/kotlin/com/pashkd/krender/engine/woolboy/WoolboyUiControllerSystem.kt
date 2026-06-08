@@ -28,6 +28,9 @@ class WoolboyUiControllerSystem(
 ) : System(), RuntimeUiActionHandler {
     companion object {
         private const val TAG = "WoolboyUiControllerSystem"
+        private const val HeartSlots = 3
+        private const val FullHeartTexturePath = "textures/woolboy/hud_heart_full.png"
+        private const val EmptyHeartTexturePath = "textures/woolboy/hud_heart_empty.png"
     }
 
     private var loadingPresented = false
@@ -115,24 +118,37 @@ class WoolboyUiControllerSystem(
             ),
         )
 
-    private fun mainMenuScreen(): RuntimeUiScreen =
-        RuntimeUiScreen(
+    private fun mainMenuScreen(): RuntimeUiScreen {
+        val gameStarted = gameState.gameStarted
+        return RuntimeUiScreen(
             id = "woolboy.main_menu",
             payload = mapOf(
-                "gameStarted" to gameState.gameStarted.toString(),
+                "gameStarted" to gameStarted.toString(),
+                "primaryButtonText" to if (gameStarted) "Continue" else "Start Game",
+                "primaryButtonAction" to if (gameStarted) "woolboy.continue" else "woolboy.start",
             ),
         )
+    }
 
     private fun hudScreen(): RuntimeUiScreen {
+        val lives = gameState.lives.coerceIn(0, HeartSlots)
         return RuntimeUiScreen(
             id = "woolboy.hud",
             payload = mapOf(
                 "healthLabel" to "${gameState.health}/${gameState.maxHealth}",
                 "scores" to gameState.scores.toString(),
-                "lives" to gameState.lives.toString(),
+                "life1Texture" to lifeTexture(slot = 1, lives = lives),
+                "life2Texture" to lifeTexture(slot = 2, lives = lives),
+                "life3Texture" to lifeTexture(slot = 3, lives = lives),
             ),
         )
     }
+
+    private fun lifeTexture(
+        slot: Int,
+        lives: Int,
+    ): String =
+        if (slot <= lives) FullHeartTexturePath else EmptyHeartTexturePath
 
     private fun finalResultsScreen(): RuntimeUiScreen =
         RuntimeUiScreen(

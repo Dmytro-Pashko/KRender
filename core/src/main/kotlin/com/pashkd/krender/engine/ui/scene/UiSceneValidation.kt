@@ -100,6 +100,12 @@ class UiSceneValidator {
                 if (node.value == null && node.valueBinding.isNullOrBlank()) {
                     issues += UiSceneValidationIssue(nodeId, "ProgressBar should define either value or valueBinding.")
                 }
+                if (node.max <= node.min) {
+                    issues += UiSceneValidationIssue(nodeId, "ProgressBar max must be greater than min.")
+                }
+                if (node.step <= 0f) {
+                    issues += UiSceneValidationIssue(nodeId, "ProgressBar step must be positive.")
+                }
                 warnForLeafChildren(node, nodeId, issues)
             }
 

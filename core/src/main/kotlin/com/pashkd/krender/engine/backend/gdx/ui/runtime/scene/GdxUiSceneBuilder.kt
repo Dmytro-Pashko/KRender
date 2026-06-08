@@ -34,7 +34,8 @@ import com.pashkd.krender.engine.ui.scene.UiSceneSpacing
  * UI. It maps the KRender-native `.krui` widget subset to real Scene2D widgets and
  * deliberately keeps Scene2D as the layout engine. It does not implement custom
  * rendering, Skin editing, Asset Browser integration, arbitrary Actor
- * serialization, or UiComposerScene editor UI.
+ * serialization, or UiComposerScene editor UI. `.krui` background values are
+ * existing Skin drawable names only.
  */
 class GdxUiSceneBuilder(
     private val logger: Logger,
@@ -44,25 +45,24 @@ class GdxUiSceneBuilder(
         private const val DefaultProgressStyle = "default-horizontal"
     }
 
-    private val ownedSkins = mutableListOf<Skin>()
-    private val ownedTextures = mutableListOf<Texture>()
+    private val skinCache = mutableMapOf<String, Skin>()
+    private val textureCache = mutableMapOf<String, Texture>()
 
     /**
      * Builds a Scene2D actor tree from a decoded `.krui` document.
      *
-     * The [payload] provides simple string bindings for text placeholders and
-     * progress values. For the MVP, the builder loads the Skin and Image textures
-     * directly from project-relative paths; asset-service-backed caching and
-     * disposal ownership should replace this later.
+     * The [payload] provides simple string bindings for text placeholders, button
+     * action placeholders, and progress values. For the MVP, the builder caches
+     * Skin and Image textures by project-relative path; asset-service-backed
+     * loading and disposal ownership should replace this later.
      */
     fun build(
         document: UiSceneDocument,
         payload: Map<String, String>,
         actionHandler: RuntimeUiActionHandler?,
     ): Actor {
-        // TODO: Cache Skin instances by project-relative path once runtime UI scene usage grows.
-        val skin = Skin(Gdx.files.internal(document.skin))
-        ownedSkins += skin
+        // TODO: Replace this path cache with AssetService-backed loading and explicit lifetime tracking.
+        val skin = skin(document.skin)
         return buildNode(
             node = document.root,
             skin = skin,
@@ -76,10 +76,10 @@ class GdxUiSceneBuilder(
      * Disposes Skin and Texture resources loaded by this runtime builder.
      */
     override fun dispose() {
-        ownedTextures.forEach(Texture::dispose)
-        ownedTextures.clear()
-        ownedSkins.forEach(Skin::dispose)
-        ownedSkins.clear()
+        textureCache.values.forEach(Texture::dispose)
+        textureCache.clear()
+        skinCache.values.forEach(Skin::dispose)
+        skinCache.clear()
     }
 
     private fun buildNode(
@@ -96,7 +96,7 @@ class GdxUiSceneBuilder(
             UiSceneNodeType.Label -> buildLabel(node, skin, payload)
             UiSceneNodeType.TextButton -> buildTextButton(node, skin, payload, actionHandler)
             UiSceneNodeType.ProgressBar -> buildProgressBar(node, skin, payload)
-            UiSceneNodeType.Image -> buildImage(node)
+            UiSceneNodeType.Image -> buildImage(node, payload)
             UiSceneNodeType.Space -> Actor()
         }
         actor.isVisible = node.visible
@@ -128,8 +128,13 @@ class GdxUiSceneBuilder(
         Table().apply {
             setFillParent(isRoot)
             applyPadding(node.padding)
+            applyBackground(node, skin)
             node.children.forEachIndexed { index, child ->
                 val childActor = buildNode(child, skin, payload, actionHandler, isRoot = false)
+                // MVP layout rule:
+                // `.krui` Table currently adds every child as a new row. This intentionally
+                // keeps the runtime builder simple while UI Composer is not implemented yet.
+                // Horizontal rows/cell metadata can be added later as an explicit schema change.
                 add(childActor)
                     .applyNodeSize(child)
                     .padBottom(if (index < node.children.lastIndex) node.spacing else 0f)
@@ -148,6 +153,12 @@ class GdxUiSceneBuilder(
             node.children.isEmpty() -> Table()
             node.children.size == 1 -> buildNode(node.children.first(), skin, payload, actionHandler, isRoot = false)
             else -> {
+                // MVP fallback:
+                // Scene2D Container is a single-child widget. `.krui` is editor-authored,
+                // so invalid/multi-child containers may happen while building early tools.
+                // Instead of dropping children, we wrap them in a Stack so the document still
+                // previews/renders. The validator should warn about suspicious structures;
+                // future UI Composer should either prevent this or explicitly insert a Stack.
                 logger.warn(TAG) {
                     "Container '${node.id}' has ${node.children.size} children; wrapping them in a Stack for `.krui` MVP."
                 }
@@ -160,6 +171,7 @@ class GdxUiSceneBuilder(
             setActor(content)
             node.align?.let { align(toGdxAlign(it)) }
             applyPadding(node.padding)
+            applyBackground(node, skin)
         }
     }
 
@@ -174,7 +186,9 @@ class GdxUiSceneBuilder(
         } else {
             Label(text, skin, node.style)
         }.apply {
-            wrap = true
+            // Only explicit-width labels wrap. Unbounded wrapped labels can collapse
+            // to a tiny preferred width and render words or characters vertically.
+            wrap = node.width != null
             node.align?.let { setAlignment(toGdxAlign(it)) }
         }
     }
@@ -191,7 +205,9 @@ class GdxUiSceneBuilder(
         } else {
             TextButton(text, skin, node.style)
         }
-        val action = node.action?.takeIf(String::isNotBlank)
+        val action = node.action
+            ?.let { UiSceneBindings.bindText(it, payload) }
+            ?.takeIf(String::isNotBlank)
         if (action != null) {
             button.addListener(
                 object : ClickListener() {
@@ -213,6 +229,12 @@ class GdxUiSceneBuilder(
         skin: Skin,
         payload: Map<String, String>,
     ): ProgressBar {
+        require(node.max > node.min) {
+            "ProgressBar '${node.id}' must have max greater than min, but min=${node.min}, max=${node.max}."
+        }
+        require(node.step > 0f) {
+            "ProgressBar '${node.id}' must have positive step, but step=${node.step}."
+        }
         val styleName = node.style?.takeIf(String::isNotBlank) ?: DefaultProgressStyle
         val progressBar = ProgressBar(
             node.min,
@@ -228,20 +250,33 @@ class GdxUiSceneBuilder(
         return progressBar
     }
 
-    private fun buildImage(node: UiSceneNode): Image {
-        val texturePath = node.texture?.takeIf(String::isNotBlank)
+    private fun buildImage(
+        node: UiSceneNode,
+        payload: Map<String, String>,
+    ): Image {
+        val texturePath = node.texture
+            ?.let { UiSceneBindings.bindText(it, payload) }
+            ?.takeIf(String::isNotBlank)
         if (texturePath == null) {
             logger.warn(TAG) { "Image '${node.id}' has no texture path; using an empty Actor-sized Image." }
             return Image()
         }
 
-        // TODO: Load images through the asset service with caching and lifetime tracking.
-        val texture = Texture(Gdx.files.internal(texturePath))
-        ownedTextures += texture
+        val texture = texture(texturePath)
         return Image(texture).apply {
             setScaling(toGdxScaling(node.scaling))
         }
     }
+
+    private fun skin(path: String): Skin =
+        skinCache.getOrPut(path) {
+            Skin(Gdx.files.internal(path))
+        }
+
+    private fun texture(path: String): Texture =
+        textureCache.getOrPut(path) {
+            Texture(Gdx.files.internal(path))
+        }
 
     private fun Table.applyPadding(spacing: UiSceneSpacing) {
         pad(spacing.top, spacing.left, spacing.bottom, spacing.right)
@@ -249,6 +284,24 @@ class GdxUiSceneBuilder(
 
     private fun Container<Actor>.applyPadding(spacing: UiSceneSpacing) {
         pad(spacing.top, spacing.left, spacing.bottom, spacing.right)
+    }
+
+    private fun Table.applyBackground(
+        node: UiSceneNode,
+        skin: Skin,
+    ) {
+        node.background?.takeIf(String::isNotBlank)?.let { drawableName ->
+            setBackground(skin.getDrawable(drawableName))
+        }
+    }
+
+    private fun Container<Actor>.applyBackground(
+        node: UiSceneNode,
+        skin: Skin,
+    ) {
+        node.background?.takeIf(String::isNotBlank)?.let { drawableName ->
+            background(skin.getDrawable(drawableName))
+        }
     }
 
     private fun Cell<Actor>.applyNodeSize(node: UiSceneNode): Cell<Actor> {

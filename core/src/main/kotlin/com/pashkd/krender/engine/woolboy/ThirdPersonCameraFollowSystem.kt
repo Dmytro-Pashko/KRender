@@ -21,11 +21,14 @@ import kotlin.math.sqrt
  *
  * RMB drag rotates around the active player and the mouse wheel controls the
  * orbit distance. The system deliberately avoids OS cursor capture because the
- * current backend recenters captured cursors at screen edges.
+ * current backend recenters captured cursors at screen edges. Runtime UI can
+ * disable camera input while menus are active; the camera still follows the
+ * player transform so gameplay resumes from a consistent view.
  */
 class ThirdPersonCameraFollowSystem(
     private val input: InputService,
     private val logger: Logger,
+    private val inputEnabled: () -> Boolean = { true },
 ) : System() {
     companion object {
         private const val TAG = "ThirdPersonCameraFollowSystem"
@@ -66,7 +69,12 @@ class ThirdPersonCameraFollowSystem(
             playerTransform.position.z,
         )
         initializeOrbitFromCamera(cameraTransform, target)
-        updateOrbitInput()
+        if (inputEnabled()) {
+            updateOrbitInput()
+        } else {
+            orbiting = false
+            input.setCursorCaptured(false)
+        }
 
         val yaw = Math.toRadians(orbitYawDegrees.toDouble())
         val pitch = Math.toRadians(orbitPitchDegrees.toDouble())

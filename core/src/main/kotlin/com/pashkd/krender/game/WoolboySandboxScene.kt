@@ -124,7 +124,14 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
             ),
         )
         addSystem("CharacterAnimationSystem", CharacterAnimationSystem(engine.assets, engine.logger))
-        addSystem("ThirdPersonCameraFollowSystem", ThirdPersonCameraFollowSystem(engine.input, engine.logger))
+        addSystem(
+            "ThirdPersonCameraFollowSystem",
+            ThirdPersonCameraFollowSystem(
+                input = engine.input,
+                logger = engine.logger,
+                inputEnabled = { gameState.playerInputEnabled },
+            ),
+        )
         addSystem("TerrainRenderSystem", TerrainRenderSystem())
         addSystem(
             "RuntimeEnvironmentSystem",

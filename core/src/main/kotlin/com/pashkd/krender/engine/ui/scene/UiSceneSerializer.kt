@@ -75,6 +75,7 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
             type = node.requiredEnum("type", DocumentName, UiSceneNodeType::valueOf),
             visible = node.booleanOrDefault("visible", true),
             style = node.stringOrNull("style"),
+            background = node.stringOrNull("background"),
             text = node.stringOrNull("text"),
             action = node.stringOrNull("action"),
             texture = node.stringOrNull("texture")?.let(::normalizedProjectPath),
@@ -125,6 +126,7 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
             put("type", JsonPrimitive(type.name))
             putIfNonDefault("visible", visible, true)
             putIfNotNull("style", style)
+            putIfNotNull("background", background)
             putIfNotNull("text", text)
             putIfNotNull("action", action)
             putIfNotNull("texture", texture?.let(::normalizedProjectPath))

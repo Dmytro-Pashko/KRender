@@ -42,16 +42,17 @@ enum class UiSceneNodeType {
  * One generic `.krui` node used by runtime loading and the future UI Composer.
  *
  * The schema keeps JSON simple and editor-friendly while limiting behavior to a
- * small Scene2D subset. Styles are referenced by name and must already exist in
- * the Skin. Texture references are project-relative paths for now. This phase has
- * no Skin editing, no custom rendering, no editor UI, and no support for arbitrary
- * Scene2D Actor serialization.
+ * small Scene2D subset. Styles and backgrounds are referenced by existing Skin
+ * names only. Texture references are project-relative paths for now. This phase
+ * has no Skin editing, no custom rendering, no editor UI, and no support for
+ * arbitrary Scene2D Actor serialization.
  */
 data class UiSceneNode(
     val id: String,
     val type: UiSceneNodeType,
     val visible: Boolean = true,
     val style: String? = null,
+    val background: String? = null,
     val text: String? = null,
     val action: String? = null,
     val texture: String? = null,

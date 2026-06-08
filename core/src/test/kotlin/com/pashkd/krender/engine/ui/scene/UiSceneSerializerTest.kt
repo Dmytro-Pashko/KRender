@@ -8,6 +8,12 @@ import kotlin.test.assertTrue
 class UiSceneSerializerTest {
     private val serializer = UiSceneSerializer()
     private val exampleLoadingFile = File("../assets/ui/scenes/example_loading.krui")
+    private val woolboySceneFiles = listOf(
+        File("../assets/ui/scenes/woolboy_loading.krui"),
+        File("../assets/ui/scenes/woolboy_main_menu.krui"),
+        File("../assets/ui/scenes/woolboy_hud.krui"),
+        File("../assets/ui/scenes/woolboy_final_results.krui"),
+    )
 
     @Test
     fun `decodes example loading document`() {
@@ -33,6 +39,7 @@ class UiSceneSerializerTest {
                     UiSceneNode(
                         id = "score",
                         type = UiSceneNodeType.Label,
+                        background = "window",
                         text = "Score: {scores}",
                         align = UiSceneAlign.Top,
                     ),
@@ -46,6 +53,7 @@ class UiSceneSerializerTest {
         assertEquals("ui/skins/craftacular-ui.json", decoded.skin)
         assertEquals(UiSceneNodeType.Stack, decoded.root.type)
         assertEquals("Score: {scores}", decoded.root.children.single().text)
+        assertEquals("window", decoded.root.children.single().background)
         assertEquals(UiSceneAlign.Top, decoded.root.children.single().align)
     }
 
@@ -95,5 +103,43 @@ class UiSceneSerializerTest {
         val issues = UiSceneValidator().validate(document)
 
         assertEquals(emptyList(), issues)
+    }
+
+    @Test
+    fun `validator accepts Woolboy scene documents`() {
+        val validator = UiSceneValidator()
+
+        woolboySceneFiles.forEach { file ->
+            val document = serializer.decode(file.readText())
+
+            assertEquals(emptyList(), validator.validate(document), "Expected ${file.name} to be valid.")
+        }
+    }
+
+    @Test
+    fun `validator reports invalid progress bar ranges`() {
+        val document = UiSceneDocument(
+            id = "bad_progress",
+            skin = "ui/skins/craftacular-ui.json",
+            root = UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Table,
+                children = listOf(
+                    UiSceneNode(
+                        id = "bad",
+                        type = UiSceneNodeType.ProgressBar,
+                        valueBinding = "progress",
+                        min = 1f,
+                        max = 1f,
+                        step = 0f,
+                    ),
+                ),
+            ),
+        )
+
+        val issues = UiSceneValidator().validate(document)
+
+        assertTrue(issues.any { it.nodeId == "bad" && it.message == "ProgressBar max must be greater than min." })
+        assertTrue(issues.any { it.nodeId == "bad" && it.message == "ProgressBar step must be positive." })
     }
 }

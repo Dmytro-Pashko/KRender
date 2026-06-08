@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "id": "woolboy_hud",
+  "skin": "ui/skins/craftacular-ui.json",
+  "root": {
+    "id": "root",
+    "type": "Stack",
+    "children": [
+      {
+        "id": "health_container",
+        "type": "Container",
+        "align": "TopLeft",
+        "padding": {
+          "left": 32,
+          "top": 32
+        },
+        "children": [
+          {
+            "id": "health_label",
+            "type": "Label",
+            "text": "Health: {healthLabel}",
+            "align": "Left"
+          }
+        ]
+      },
+      {
+        "id": "score_container",
+        "type": "Container",
+        "align": "Top",
+        "padding": {
+          "top": 32
+        },
+        "children": [
+          {
+            "id": "score_label",
+            "type": "Label",
+            "style": "hud-score-title",
+            "text": "Score: {scores}",
+            "align": "Center"
+          }
+        ]
+      },
+      {
+        "id": "life_1_container",
+        "type": "Container",
+        "align": "TopRight",
+        "padding": {
+          "top": 32,
+          "right": 144
+        },
+        "children": [
+          {
+            "id": "life_1_table",
+            "type": "Table",
+            "children": [
+              {
+                "id": "life_1",
+                "type": "Image",
+                "texture": "{life1Texture}",
+                "width": 48,
+                "height": 48
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "life_2_container",
+        "type": "Container",
+        "align": "TopRight",
+        "padding": {
+          "top": 32,
+          "right": 88
+        },
+        "children": [
+          {
+            "id": "life_2_table",
+            "type": "Table",
+            "children": [
+              {
+                "id": "life_2",
+                "type": "Image",
+                "texture": "{life2Texture}",
+                "width": 48,
+                "height": 48
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "life_3_container",
+        "type": "Container",
+        "align": "TopRight",
+        "padding": {
+          "top": 32,
+          "right": 32
+        },
+        "children": [
+          {
+            "id": "life_3_table",
+            "type": "Table",
+            "children": [
+              {
+                "id": "life_3",
+                "type": "Image",
+                "texture": "{life3Texture}",
+                "width": 48,
+                "height": 48
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "controls_container",
+        "type": "Container",
+        "align": "Left",
+        "padding": {
+          "left": 32
+        },
+        "children": [
+          {
+            "id": "controls_table",
+            "type": "Table",
+            "background": "window",
+            "padding": {
+              "left": 20,
+              "top": 20,
+              "right": 20,
+              "bottom": 20
+            },
+            "spacing": 6,
+            "children": [
+              {
+                "id": "controls_title",
+                "type": "Label",
+                "style": "hud-controls",
+                "text": "Controls",
+                "align": "Left"
+              },
+              {
+                "id": "controls_move",
+                "type": "Label",
+                "style": "hud-controls",
+                "text": "W/A/S/D - Move",
+                "align": "Left"
+              },
+              {
+                "id": "controls_camera",
+                "type": "Label",
+                "style": "hud-controls",
+                "text": "RMB - Camera",
+                "align": "Left"
+              },
+              {
+                "id": "controls_jump",
+                "type": "Label",
+                "style": "hud-controls",
+                "text": "Space - Jump",
+                "align": "Left"
+              },
+              {
+                "id": "controls_greeting",
+                "type": "Label",
+                "style": "hud-controls",
+                "text": "F - Greeting",
+                "align": "Left"
+              },
+              {
+                "id": "controls_menu",
+                "type": "Label",
+                "style": "hud-controls",
+                "text": "Esc - Menu",
+                "align": "Left"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -210,7 +210,7 @@ class LibGdxBackend(
         logger = logger,
         input = input,
         screenFactoryProvider = { _, actionHandlerProvider ->
-            listOf(WoolboyRuntimeUiFactory(actionHandlerProvider))
+            listOf(WoolboyRuntimeUiFactory(logger, actionHandlerProvider))
         },
     )
     override val ui: UiService = if (Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.Android) {
