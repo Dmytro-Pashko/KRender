@@ -9,14 +9,17 @@ import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import imgui.ImGui
 import imgui.dsl
+import java.nio.charset.StandardCharsets
 
 /**
  * Toolbar panel for the Phase 4 read-only UiComposer preview.
  *
- * This panel belongs to editor UI. It exposes reload and bounds toggling only;
- * it intentionally does not implement saving, property editing, node creation,
- * node deletion, drag/drop canvas editing, Skin editing, Asset Browser picking,
- * asset-id references, JSON editing, or full Scene2D actor serialization.
+ * This panel belongs to editor preview UX. It exposes document reload, panel
+ * layout persistence, bounds toggling, and selected-node highlighting only; it
+ * intentionally does not save `.krui`, edit node properties, create/delete
+ * nodes, reorder nodes, implement drag/drop canvas editing, edit Skins, add
+ * Asset Browser picking, introduce asset-id references, edit JSON, or serialize
+ * full Scene2D actors.
  */
 class UiComposerToolbarPanel(
     private val state: UiComposerState,
@@ -36,13 +39,13 @@ class UiComposerToolbarPanel(
         }
 
         with(dsl) {
-            button("Persist UI##ui_composer_persist_ui") {
+            button("Save Panel Layout##ui_composer_save_panel_layout") {
                 operations.saveUiLayout()
             }
         }
         ImGui.sameLine()
         with(dsl) {
-            button("Reset UI to Default##ui_composer_reset_ui") {
+            button("Reset Panel Layout##ui_composer_reset_panel_layout") {
                 operations.restoreUiLayout()
             }
         }
@@ -54,6 +57,8 @@ class UiComposerToolbarPanel(
         }
         ImGui.sameLine()
         ImGui.checkbox("Show Bounds##ui_composer_show_bounds", state::showBounds)
+        ImGui.sameLine()
+        ImGui.checkbox("Highlight Selected##ui_composer_highlight_selected", state::highlightSelected)
         ImGui.separator()
         ImGui.textUnformatted("Path: ${state.uiScenePath}")
         ImGui.textUnformatted("Status: ${state.statusMessage}")
@@ -188,6 +193,23 @@ class UiComposerInspectorPanel(
         property("padding", "l=${node.padding.left}, t=${node.padding.top}, r=${node.padding.right}, b=${node.padding.bottom}")
         property("spacing", node.spacing.toString())
         property("child count", node.children.size.toString())
+        ImGui.separator()
+        drawActorInfo(node)
+    }
+
+    private fun drawActorInfo(node: UiSceneNode) {
+        ImGui.textUnformatted("Preview Actor")
+        val actorInfo = state.selectedActorInfo
+        if (actorInfo == null || actorInfo.nodeId != node.id) {
+            property("actor", "<not built>")
+            return
+        }
+        property("class", actorInfo.actorClass)
+        property("x", "%.2f".format(actorInfo.x))
+        property("y", "%.2f".format(actorInfo.y))
+        property("width", "%.2f".format(actorInfo.width))
+        property("height", "%.2f".format(actorInfo.height))
+        property("visible", actorInfo.visible.toString())
     }
 
     private fun property(
@@ -196,6 +218,78 @@ class UiComposerInspectorPanel(
     ) {
         ImGui.textUnformatted("$name: ${value ?: "<none>"}")
     }
+}
+
+/**
+ * Preview-only payload panel for testing `.krui` binding placeholders.
+ *
+ * This panel belongs to editor preview UX, not the shared `.krui` model, runtime
+ * Woolboy UI, or the future editing pipeline. Edited values rebuild the backend
+ * preview only and are never saved to `.krui`, never treated as runtime state,
+ * and never used for Skin editing, Asset Browser picking, asset-id references,
+ * drag/drop canvas editing, node editing, or full Scene2D actor serialization.
+ */
+class UiComposerPreviewPayloadPanel(
+    private val state: UiComposerState,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    private val valueBuffers = linkedMapOf<String, ByteArray>()
+
+    /** Draws editable preview-only key/value fields for the current binding payload. */
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(UiComposerPanelIds.PreviewPayload)
+        val expanded = beginImGuiPanel(UiComposerPanelIds.PreviewPayload, layout, layoutTracker)
+        eventLogger.observe(UiComposerPanelIds.PreviewPayload, layout.title)
+        if (!expanded) {
+            ImGui.end()
+            return
+        }
+
+        ImGui.textWrapped("Preview-only binding values. They are not saved to .krui and are not runtime state.")
+        ImGui.separator()
+        with(dsl) {
+            button("Reset Preview Payload##ui_composer_reset_preview_payload") {
+                state.previewPayload.clear()
+                state.previewPayload.putAll(DefaultPreviewPayload)
+                syncBuffers(force = true)
+                state.previewRebuildRequested = true
+                state.statusMessage = "Preview payload reset."
+            }
+        }
+        ImGui.separator()
+        syncBuffers(force = false)
+        previewPayloadKeys().forEach { key ->
+            val buffer = valueBuffers.getValue(key)
+            if (ImGui.inputText("${key}##ui_composer_payload_${payloadInputId(key)}", buffer)) {
+                state.previewPayload[key] = readBuffer(buffer)
+                state.previewRebuildRequested = true
+                state.statusMessage = "Preview payload changed."
+            }
+        }
+        ImGui.end()
+    }
+
+    private fun syncBuffers(force: Boolean) {
+        previewPayloadKeys().forEach { key ->
+            val value = state.previewPayload[key].orEmpty()
+            val buffer = valueBuffers.getOrPut(key) { ByteArray(TextInputBufferSize) }
+            if (force || readBuffer(buffer) != value) {
+                writeBuffer(buffer, value)
+            }
+        }
+    }
+
+    private fun previewPayloadKeys(): List<String> {
+        // Keep the Woolboy defaults in a stable order, then append any extra preview keys.
+        val defaultKeys = DefaultPreviewPayload.keys.toList()
+        val extraKeys = state.previewPayload.keys.filterNot { it in DefaultPreviewPayload }.sorted()
+        return defaultKeys + extraKeys
+    }
+
+    private fun payloadInputId(key: String): String =
+        key.filter { char -> char.isLetterOrDigit() || char == '_' || char == '-' }.ifBlank { "key" }
 }
 
 /**
@@ -239,10 +333,27 @@ class UiComposerDiagnosticsPanel(
         }
         ImGui.separator()
         ImGui.textWrapped(
-            "MVP limitations: read-only preview; no save/editing; no Skin editing; no drag/drop; " +
+            "MVP limitations: read-only preview; preview payload is not saved and is not runtime state; " +
+                "no .krui save/editing; no Skin editing; no drag/drop; " +
                 "no Asset Browser picker yet; no asset-id references; no full Scene2D actor serialization; " +
-                "selected-node highlight is best-effort.",
+                "no embedded ImGui viewport yet; selected-node highlight is best-effort.",
         )
         ImGui.end()
     }
+}
+
+private const val TextInputBufferSize = 256
+
+private fun readBuffer(buffer: ByteArray): String {
+    val end = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size
+    return String(buffer, 0, end, StandardCharsets.UTF_8)
+}
+
+private fun writeBuffer(
+    buffer: ByteArray,
+    value: String,
+) {
+    buffer.fill(0)
+    val bytes = value.toByteArray(StandardCharsets.UTF_8)
+    bytes.copyInto(buffer, endIndex = bytes.size.coerceAtMost(buffer.size - 1))
 }

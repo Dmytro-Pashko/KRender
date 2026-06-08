@@ -28,12 +28,12 @@ class UiComposerOperations(
         try {
             val config = layoutTracker.currentConfig()
             ImGuiLayoutConfigCodec.save(UiComposerUiLayoutDefaults.assetPath, config, context.sceneFiles)
-            state.statusMessage = "UI layout saved."
+            state.statusMessage = "Panel layout saved."
             context.logger.info(TAG) {
                 "UiComposer UI layout saved path='${UiComposerUiLayoutDefaults.assetPath}' panels=${config.panels.size}"
             }
         } catch (error: Exception) {
-            state.statusMessage = "UI layout save failed: ${error.message}"
+            state.statusMessage = "Panel layout save failed: ${error.message}"
             context.logger.error(TAG, error) {
                 "Failed to save UiComposer UI layout path='${UiComposerUiLayoutDefaults.assetPath}': ${error.message}"
             }
@@ -48,7 +48,7 @@ class UiComposerOperations(
      */
     fun restoreUiLayout() {
         layoutTracker.requestRestore(UiComposerUiLayoutDefaults.config)
-        state.statusMessage = "UI layout reset to default."
+        state.statusMessage = "Panel layout reset to default."
         context.logger.info(TAG) {
             "UiComposer UI layout reset to default panels=${UiComposerUiLayoutDefaults.config.panels.size}"
         }

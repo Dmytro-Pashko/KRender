@@ -15,6 +15,7 @@ object UiComposerPanelIds {
     const val Toolbar = "uiComposerToolbar"
     const val Hierarchy = "uiComposerHierarchy"
     const val Inspector = "uiComposerInspector"
+    const val PreviewPayload = "uiComposerPreviewPayload"
     const val Diagnostics = "uiComposerDiagnostics"
     const val Logs = "runtimeLogs"
 }
@@ -53,6 +54,13 @@ object UiComposerUiLayoutDefaults {
                 y = 136f,
                 width = 320f,
                 height = 472f,
+            ),
+            UiComposerPanelIds.PreviewPayload to ImGuiPanelLayout(
+                title = "UI Preview Payload",
+                x = 928f,
+                y = 624f,
+                width = 320f,
+                height = 240f,
             ),
             UiComposerPanelIds.Diagnostics to ImGuiPanelLayout(
                 title = "UI Scene Diagnostics",

@@ -17,14 +17,50 @@ import com.pashkd.krender.engine.ui.scene.UiSceneValidator
  * picking, asset-id references, and full Scene2D actor serialization.
  */
 data class UiComposerState(
+    /** Project-relative `.krui` path opened by this editor preview tool. */
     val uiScenePath: String,
+    /** Last decoded shared `.krui` document; null when parsing or preview build failed. */
     var document: UiSceneDocument? = null,
+    /** Shared validator output shown by editor diagnostics without blocking the preview scene. */
     var validationIssues: List<UiSceneValidationIssue> = emptyList(),
+    /** Parse or backend preview build error shown in diagnostics; this does not crash the scene. */
     var parseError: String? = null,
+    /** Selected `.krui` node id from the hierarchy, kept independent from Scene2D actor instances. */
     var selectedNodeId: String? = null,
+    /** Shows Scene2D debug bounds for every built actor in the backend preview only. */
     var showBounds: Boolean = true,
+    /** Shows a best-effort Scene2D debug highlight for only the selected node's actor. */
+    var highlightSelected: Boolean = true,
+    /** Requests the document file to be reloaded and the backend preview rebuilt. */
     var reloadRequested: Boolean = false,
+    /** Requests the backend preview to rebuild from the current document and preview-only payload. */
+    var previewRebuildRequested: Boolean = false,
+    /** Toolbar status for editor preview operations such as reload, rebuild, and panel layout persistence. */
     var statusMessage: String = "Read-only preview.",
+    /** Last Scene2D actor metadata for the selected node, reported by the backend preview. */
+    var selectedActorInfo: UiComposerActorPreviewInfo? = null,
+    /** Mutable editor-only binding payload used to test `.krui` placeholders; it is never saved or runtime state. */
+    val previewPayload: MutableMap<String, String> = DefaultPreviewPayload.toMutableMap(),
+)
+
+/**
+ * Backend-neutral snapshot of one built Scene2D actor for the selected `.krui` node.
+ *
+ * This belongs to editor preview UX diagnostics. It lets the read-only Inspector
+ * report whether a selected node reached the backend preview and what bounds the
+ * generated actor has, without exposing mutable LibGDX Actor instances to editor
+ * UI panels. It intentionally does not serialize actors, edit properties, save
+ * `.krui`, add drag/drop, edit Skins, introduce asset-id references, or represent
+ * runtime UI state.
+ */
+data class UiComposerActorPreviewInfo(
+    val nodeId: String,
+    val actorClass: String,
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float,
+    val visible: Boolean,
 )
 
 /**
@@ -32,8 +68,9 @@ data class UiComposerState(
  *
  * This belongs to editor preview data only: it lets bound Woolboy `.krui` labels,
  * progress bars, actions, and images render with useful placeholder values. It
- * is not editable in Phase 4, is not saved to `.krui`, does not introduce
- * asset-id references, and is not a runtime Woolboy UI behavior change.
+ * is editable only inside the Phase 4.5 preview panel, is not saved to `.krui`,
+ * does not introduce asset-id references, and is not a runtime Woolboy UI
+ * behavior change.
  */
 val DefaultPreviewPayload: Map<String, String> = mapOf(
     "title" to "Loading...",

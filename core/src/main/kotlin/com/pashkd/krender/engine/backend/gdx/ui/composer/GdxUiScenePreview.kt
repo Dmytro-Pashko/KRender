@@ -9,6 +9,7 @@ import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.backend.gdx.ui.runtime.scene.GdxUiSceneBuilder
+import com.pashkd.krender.engine.uicomposer.UiComposerActorPreviewInfo
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 
 /**
@@ -30,6 +31,7 @@ class GdxUiScenePreview(
     private val builder = GdxUiSceneBuilder(logger)
     private val actorsByNodeId = linkedMapOf<String, Actor>()
     private var showBounds = true
+    private var highlightSelected = true
     private var selectedNodeId: String? = null
 
     /**
@@ -55,7 +57,7 @@ class GdxUiScenePreview(
             },
         )
         stage.addActor(actor)
-        updateDebugOverlay(showBounds, selectedNodeId)
+        updateDebugOverlay(showBounds, highlightSelected, selectedNodeId)
         logger.debug(TAG) { "Rebuilt UI scene preview document='${document.id}' actors=${actorsByNodeId.size}" }
     }
 
@@ -70,14 +72,17 @@ class GdxUiScenePreview(
     }
 
     /**
-     * Draws the preview Stage over the main renderer and under ImGui.
+     * Draws the preview Stage over a neutral editor background and under ImGui.
      *
-     * The method assumes the engine renderer already cleared the backbuffer. It
-     * intentionally draws fullscreen rather than embedding into an ImGui child
-     * viewport; that viewport integration is left for a later composer phase.
+     * The UiComposer preview owns the editor background for this scene so
+     * transparent Scene2D widgets remain visible. Runtime UI backends must not
+     * clear the backbuffer this way. This preview still intentionally draws
+     * fullscreen rather than embedding into an ImGui child viewport.
      */
     fun render() {
         Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+        Gdx.gl.glClearColor(0.075f, 0.078f, 0.088f, 1f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
         Gdx.gl.glDisable(GL20.GL_DEPTH_TEST)
         Gdx.gl.glDepthMask(false)
         Gdx.gl.glDisable(GL20.GL_CULL_FACE)
@@ -110,13 +115,38 @@ class GdxUiScenePreview(
      */
     fun updateDebugOverlay(
         showBounds: Boolean,
+        highlightSelected: Boolean,
         selectedNodeId: String?,
     ) {
         this.showBounds = showBounds
+        this.highlightSelected = highlightSelected
         this.selectedNodeId = selectedNodeId
         clearActorDebug(stage.root)
         stage.setDebugAll(showBounds)
-        actorsByNodeId[selectedNodeId]?.setDebug(true)
+        if (highlightSelected) {
+            actorsByNodeId[selectedNodeId]?.setDebug(true)
+        }
+    }
+
+    /**
+     * Returns immutable preview actor metadata for a selected `.krui` node id.
+     *
+     * This belongs to editor preview diagnostics and deliberately avoids exposing
+     * mutable LibGDX Actor objects to editor panels. It does not edit, save,
+     * serialize actors, modify Skins, add drag/drop, or create runtime UI state.
+     */
+    fun actorInfo(nodeId: String?): UiComposerActorPreviewInfo? {
+        val id = nodeId ?: return null
+        val actor = actorsByNodeId[id] ?: return null
+        return UiComposerActorPreviewInfo(
+            nodeId = id,
+            actorClass = actor.javaClass.simpleName.takeIf(String::isNotBlank) ?: actor.javaClass.name,
+            x = actor.x,
+            y = actor.y,
+            width = actor.width,
+            height = actor.height,
+            visible = actor.isVisible,
+        )
     }
 
     /**

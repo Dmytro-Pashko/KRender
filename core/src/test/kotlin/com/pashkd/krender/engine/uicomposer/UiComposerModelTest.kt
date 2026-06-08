@@ -34,8 +34,14 @@ internal class UiComposerModelTest {
     internal fun `preview payload contains Woolboy defaults`() {
         assertEquals("Loading...", DefaultPreviewPayload["title"])
         assertEquals("0.65", DefaultPreviewPayload["progress"])
+        assertTrue(DefaultPreviewPayload.containsKey("primaryButtonText"))
         assertEquals("textures/woolboy/hud_heart_full.png", DefaultPreviewPayload["life1Texture"])
+        assertTrue(DefaultPreviewPayload.containsKey("life2Texture"))
+        assertTrue(DefaultPreviewPayload.containsKey("life3Texture"))
         assertTrue(DefaultPreviewPayload.containsKey("primaryButtonAction"))
+        assertTrue(DefaultPreviewPayload.containsKey("healthLabel"))
+        assertTrue(DefaultPreviewPayload.containsKey("scores"))
+        assertTrue(DefaultPreviewPayload.containsKey("lives"))
     }
 
     @Test
@@ -74,5 +80,65 @@ internal class UiComposerModelTest {
         assertEquals("test", state.document?.id)
         assertEquals(emptyList(), state.validationIssues)
         assertNull(state.parseError)
+    }
+
+    @Test
+    internal fun `loader preserves selection when node still exists`() {
+        val state = UiComposerState(uiScenePath = "ok.krui", selectedNodeId = "child")
+        val loader = UiComposerDocumentLoader(readText = {
+            """
+            {
+              "schemaVersion": 1,
+              "id": "test",
+              "skin": "ui/skins/craftacular-ui.json",
+              "root": {
+                "id": "root",
+                "type": "Stack",
+                "children": [
+                  { "id": "child", "type": "Space" }
+                ]
+              }
+            }
+            """.trimIndent()
+        })
+
+        loader.reload(state)
+
+        assertEquals("child", state.selectedNodeId)
+    }
+
+    @Test
+    internal fun `loader clears selection when node disappears`() {
+        val state = UiComposerState(uiScenePath = "ok.krui", selectedNodeId = "missing")
+        val loader = UiComposerDocumentLoader(readText = {
+            """
+            {
+              "schemaVersion": 1,
+              "id": "test",
+              "skin": "ui/skins/craftacular-ui.json",
+              "root": {
+                "id": "root",
+                "type": "Stack",
+                "children": []
+              }
+            }
+            """.trimIndent()
+        })
+
+        loader.reload(state)
+
+        assertNull(state.selectedNodeId)
+    }
+
+    @Test
+    internal fun `preview payload reset returns default values`() {
+        val state = UiComposerState(uiScenePath = "ok.krui")
+        state.previewPayload["title"] = "Changed"
+        state.previewPayload["progress"] = "0.10"
+
+        state.previewPayload.clear()
+        state.previewPayload.putAll(DefaultPreviewPayload)
+
+        assertEquals(DefaultPreviewPayload, state.previewPayload)
     }
 }

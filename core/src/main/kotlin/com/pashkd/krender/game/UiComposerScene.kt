@@ -6,13 +6,13 @@ import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiScenePreview
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.uicomposer.DefaultPreviewPayload
 import com.pashkd.krender.engine.uicomposer.UiComposerDiagnosticsPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerDocumentLoader
 import com.pashkd.krender.engine.uicomposer.UiComposerHierarchyPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerInspectorPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerOperations
 import com.pashkd.krender.engine.uicomposer.UiComposerPanelIds
+import com.pashkd.krender.engine.uicomposer.UiComposerPreviewPayloadPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerState
 import com.pashkd.krender.engine.uicomposer.UiComposerToolbarPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerUiLayoutDefaults
@@ -70,6 +70,8 @@ class UiComposerScene(
     override fun update(dt: Float) {
         if (composerState.reloadRequested) {
             reloadDocumentAndPreview()
+        } else if (composerState.previewRebuildRequested) {
+            rebuildPreviewOnly()
         }
         super.update(dt)
     }
@@ -105,18 +107,37 @@ class UiComposerScene(
     private fun reloadDocumentAndPreview() {
         engine.logger.info(TAG) { "Reloading UI Composer document path='${composerState.uiScenePath}'" }
         loader.reload(composerState)
+        if (composerState.document == null) {
+            composerState.statusMessage = "Failed to load document."
+            composerState.selectedActorInfo = null
+            preview.rebuild(null)
+            return
+        }
+        composerState.statusMessage = "Document reloaded."
+        rebuildPreviewOnly(statusOnSuccess = "Document reloaded.")
+    }
+
+    private fun rebuildPreviewOnly(statusOnSuccess: String = "Preview rebuilt.") {
+        composerState.previewRebuildRequested = false
         try {
-            preview.rebuild(composerState.document, DefaultPreviewPayload)
+            preview.rebuild(composerState.document, composerState.previewPayload)
+            preview.updateDebugOverlay(
+                showBounds = composerState.showBounds,
+                highlightSelected = composerState.highlightSelected,
+                selectedNodeId = composerState.selectedNodeId,
+            )
+            composerState.selectedActorInfo = preview.actorInfo(composerState.selectedNodeId)
+            composerState.parseError = null
+            composerState.statusMessage = statusOnSuccess
         } catch (error: Exception) {
-            composerState.document = null
-            composerState.validationIssues = emptyList()
             composerState.parseError = error.message ?: error::class.simpleName ?: "Unknown UI scene preview error."
+            composerState.selectedActorInfo = null
+            composerState.statusMessage = "Failed to build preview."
             engine.logger.error(TAG, error) {
                 "UI Composer preview rebuild failed path='${composerState.uiScenePath}': ${composerState.parseError}"
             }
             preview.rebuild(null)
         }
-        preview.updateDebugOverlay(composerState.showBounds, composerState.selectedNodeId)
     }
 
     private fun createUiSystem(): UiSystem {
@@ -126,6 +147,7 @@ class UiComposerScene(
             addPanel(uiSystem, "Toolbar", UiComposerToolbarPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Hierarchy", UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Inspector", UiComposerInspectorPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
+            addPanel(uiSystem, "PreviewPayload", UiComposerPreviewPayloadPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Diagnostics", UiComposerDiagnosticsPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(
                 uiSystem,
@@ -167,7 +189,8 @@ private class UiComposerPreviewUpdateSystem(
     private val preview: GdxUiScenePreview,
 ) : System() {
     override fun update(world: SceneWorld, dt: Float) {
-        preview.updateDebugOverlay(state.showBounds, state.selectedNodeId)
+        preview.updateDebugOverlay(state.showBounds, state.highlightSelected, state.selectedNodeId)
         preview.update(dt)
+        state.selectedActorInfo = preview.actorInfo(state.selectedNodeId)
     }
 }

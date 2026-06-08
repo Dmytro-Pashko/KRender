@@ -21,6 +21,13 @@
       "width": 340,
       "height": 528
     },
+    "uiComposerPreviewPayload": {
+      "title": "UI Preview Payload",
+      "x": 1567,
+      "y": 716,
+      "width": 340,
+      "height": 320
+    },
     "uiComposerDiagnostics": {
       "title": "UI Scene Diagnostics",
       "x": 1569,
