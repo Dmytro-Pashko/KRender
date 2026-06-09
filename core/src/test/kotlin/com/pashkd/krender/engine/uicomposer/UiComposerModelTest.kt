@@ -47,6 +47,30 @@ internal class UiComposerModelTest {
     }
 
     @Test
+    internal fun `canvas selection state defaults to selection-only enabled`() {
+        val state = UiComposerState(uiScenePath = "ok.krui")
+
+        assertTrue(state.canvasSelectionEnabled)
+        assertTrue(state.highlightHovered)
+        assertNull(state.hoveredNodeId)
+        assertNull(state.canvasStatusMessage)
+    }
+
+    @Test
+    internal fun `hovered node can be cleared independently from selected node`() {
+        val state = UiComposerState(
+            uiScenePath = "ok.krui",
+            selectedNodeId = "selected",
+            hoveredNodeId = "hovered",
+        )
+
+        state.hoveredNodeId = null
+
+        assertEquals("selected", state.selectedNodeId)
+        assertNull(state.hoveredNodeId)
+    }
+
+    @Test
     internal fun `loader captures parse failures without throwing`() {
         val state = UiComposerState(uiScenePath = "bad.krui")
         val loader = UiComposerDocumentLoader(readText = { "{" })

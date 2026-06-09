@@ -19,10 +19,12 @@ import java.nio.charset.StandardCharsets
  *
  * This panel belongs to editor preview UX. It exposes document reload, panel
  * layout persistence, `.krui` saving, toolbar-level reload confirmation, bounds
- * toggling, and selected-node highlighting only; it intentionally does not
- * implement a modal framework, create/delete nodes, reorder nodes, implement
- * drag/drop canvas editing, edit Skins, add Asset Browser picking, introduce
- * asset-id references, edit JSON, or serialize full Scene2D actors.
+ * toggling, selected-node highlighting, and selection-only canvas interaction
+ * toggles; it intentionally does not implement a modal framework,
+ * create/delete nodes, reorder nodes, drag/drop canvas editing, resize handles,
+ * multi-select, snapping, transform gizmos, edit Skins, add Asset Browser
+ * picking, introduce asset-id references, edit JSON, or serialize full Scene2D
+ * actors.
  */
 class UiComposerToolbarPanel(
     private val state: UiComposerState,
@@ -90,9 +92,14 @@ class UiComposerToolbarPanel(
         ImGui.checkbox("Show Bounds##ui_composer_show_bounds", state::showBounds)
         ImGui.sameLine()
         ImGui.checkbox("Highlight Selected##ui_composer_highlight_selected", state::highlightSelected)
+        ImGui.sameLine()
+        ImGui.checkbox("Canvas Selection##ui_composer_canvas_selection", state::canvasSelectionEnabled)
+        ImGui.sameLine()
+        ImGui.checkbox("Highlight Hovered##ui_composer_highlight_hovered", state::highlightHovered)
         ImGui.separator()
         ImGui.textUnformatted("Path: ${state.uiScenePath}")
         ImGui.textUnformatted("Status: ${state.statusMessage}")
+        ImGui.textUnformatted("Hovered: ${state.hoveredNodeId ?: "<none>"}")
         ImGui.textUnformatted("Dirty: ${if (state.dirty) "yes" else "no"}")
         state.saveStatusMessage?.let { message -> ImGui.textUnformatted("Save: $message") }
         if (state.pendingReloadConfirmation) {
@@ -162,10 +169,10 @@ class UiComposerHierarchyPanel(
  * This panel belongs to editor structure editing. It exposes add child, delete,
  * duplicate, sibling move, and simple wrapper commands for the selected hierarchy
  * node while keeping hierarchy display and scalar Inspector editing separate. It
- * intentionally does not implement canvas drag/drop, canvas selection, canvas
- * resizing, Skin editing, Asset Browser pickers, asset-id references, add/delete
- * through the Scene2D preview, generic layout solving, automatic saving, or full
- * Scene2D actor serialization.
+ * intentionally does not implement canvas drag/drop, canvas resizing,
+ * multi-select, snapping, transform gizmos, Skin editing, Asset Browser
+ * pickers, asset-id references, add/delete through the Scene2D preview, generic
+ * layout solving, automatic saving, or full Scene2D actor serialization.
  */
 class UiComposerStructurePanel(
     private val state: UiComposerState,
@@ -200,7 +207,7 @@ class UiComposerStructurePanel(
         property("selected id", selectedNode.id)
         property("selected type", selectedNode.type.name)
         property("root", isRoot.toString())
-        ImGui.textWrapped("Structure editing is hierarchy-based. Canvas drag/drop is not implemented yet.")
+        ImGui.textWrapped("Structure editing is hierarchy-based. Canvas interaction is selection-only.")
         ImGui.separator()
 
         drawAddChildControls(canAddChild)
@@ -293,9 +300,10 @@ class UiComposerStructurePanel(
  * fields on the selected `.krui` node and shows read-only parent/sibling context
  * for structure editing. It leaves document-level metadata and node type
  * read-only. It intentionally omits add/delete/duplicate/reorder controls,
- * child-list editing, drag/drop canvas editing, canvas selection, Skin editing,
- * Asset Browser picking, asset-id references, JSON text editing, preview payload
- * persistence, layout solving, and full Scene2D actor serialization.
+ * child-list editing, drag/drop canvas editing, resize handles, multi-select,
+ * Skin editing, Asset Browser picking, asset-id references, snapping, transform
+ * gizmos, JSON text editing, preview payload persistence, layout solving, and
+ * full Scene2D actor serialization.
  */
 class UiComposerInspectorPanel(
     private val state: UiComposerState,
@@ -421,6 +429,7 @@ class UiComposerInspectorPanel(
         ImGui.separator()
         drawStructureContext(document, node)
         property("child count", node.children.size.toString())
+        property("hovered node", state.hoveredNodeId)
         ImGui.separator()
         drawActorInfo(node)
     }
@@ -634,7 +643,9 @@ class UiComposerPreviewPayloadPanel(
  * This panel belongs to editor UI diagnostics. It reports parser/build failures
  * and shared validator warnings while intentionally omitting automatic repairs,
  * schema changes, JSON editing, saving, Skin editing, Asset Browser picking,
- * asset-id references, drag/drop canvas editing, and full Actor serialization.
+ * asset-id references, drag/drop canvas editing, resize handles, multi-select,
+ * snapping, transform gizmos, canvas structure editing, and full Actor
+ * serialization.
  */
 class UiComposerDiagnosticsPanel(
     private val state: UiComposerState,
@@ -659,6 +670,10 @@ class UiComposerDiagnosticsPanel(
         state.saveStatusMessage?.let { message ->
             ImGui.textWrapped("Save status: $message")
         }
+        state.canvasStatusMessage?.let { message ->
+            ImGui.textWrapped("Canvas status: $message")
+        }
+        ImGui.textUnformatted("Hovered node: ${state.hoveredNodeId ?: "<none>"}")
 
         val issues = state.validationIssues
         ImGui.textUnformatted("Validation issues: ${issues.size}")
@@ -673,9 +688,10 @@ class UiComposerDiagnosticsPanel(
         ImGui.separator()
         ImGui.textWrapped(
             "MVP limitations: structure editing is hierarchy/inspector-driven only; preview payload is not saved " +
-                "and is not runtime state; no canvas drag/drop; no canvas selection; no Skin editing; " +
-                "no Asset Browser picker yet; no asset-id references; no full Scene2D actor serialization; " +
-                "no layout solver; reload dirty confirmation is toolbar-level only; selected-node highlight is best-effort.",
+                "and is not runtime state; canvas interaction is selection-only; no canvas drag/drop; no resize handles; " +
+                "no multi-select; no canvas editing; no Skin editing; no Asset Browser picker yet; no asset-id references; " +
+                "no snapping; no transform gizmos; no custom shape overlay yet; no full Scene2D actor serialization; " +
+                "no layout solver; reload dirty confirmation is toolbar-level only; selected/hover highlight is best-effort.",
         )
         ImGui.end()
     }

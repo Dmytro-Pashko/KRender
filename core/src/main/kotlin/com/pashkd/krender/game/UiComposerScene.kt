@@ -1,5 +1,7 @@
 package com.pashkd.krender.game
 
+import com.pashkd.krender.engine.api.InputService
+import com.pashkd.krender.engine.api.MouseButton
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.System
@@ -29,11 +31,12 @@ import com.pashkd.krender.engine.ui.editor.UiSystem
  *
  * This scene belongs to editor/tool UI and backend preview plumbing, not RuntimeUiService or
  * gameplay UI. Phase 5.5/6 decodes, validates, previews, inspects, edits supported scalar fields,
- * performs hierarchy/inspector-driven structure edits, and can save the document. It intentionally
- * omits canvas drag/drop, canvas selection, actor resizing on canvas, Skin editing, Asset Browser
- * pickers, asset-id references, JSON text editing, generic visual layout solving, and full Scene2D
- * actor serialization. Reload dirty confirmation is a simple toolbar state, and the selected-node
- * highlight is best-effort.
+ * performs hierarchy/inspector-driven structure edits, supports selection-only canvas hit-testing,
+ * and can save the document. It intentionally omits canvas drag/drop, actor resizing on canvas,
+ * multi-select, canvas structure editing, Skin editing, Asset Browser pickers, asset-id references,
+ * snapping, transform gizmos, JSON text editing, generic visual layout solving, and full Scene2D
+ * actor serialization. Reload dirty confirmation is a simple toolbar state, and the selected/hover
+ * highlights are best-effort.
  */
 class UiComposerScene(
     private val uiScenePath: String,
@@ -63,6 +66,7 @@ class UiComposerScene(
 
         reloadDocumentAndPreview()
 
+        world.systems.add(UiComposerCanvasInteractionSystem(composerState, preview, engine.input))
         world.systems.add(UiComposerPreviewUpdateSystem(composerState, preview))
         world.systems.add(createUiSystem())
     }
@@ -140,6 +144,8 @@ class UiComposerScene(
                 showBounds = composerState.showBounds,
                 highlightSelected = composerState.highlightSelected,
                 selectedNodeId = composerState.selectedNodeId,
+                highlightHovered = composerState.highlightHovered,
+                hoveredNodeId = composerState.hoveredNodeId,
             )
             composerState.selectedActorInfo = preview.actorInfo(composerState.selectedNodeId)
             composerState.parseError = null
@@ -205,8 +211,59 @@ private class UiComposerPreviewUpdateSystem(
     private val preview: GdxUiScenePreview,
 ) : System() {
     override fun update(world: SceneWorld, dt: Float) {
-        preview.updateDebugOverlay(state.showBounds, state.highlightSelected, state.selectedNodeId)
+        preview.updateDebugOverlay(
+            showBounds = state.showBounds,
+            highlightSelected = state.highlightSelected,
+            selectedNodeId = state.selectedNodeId,
+            highlightHovered = state.highlightHovered,
+            hoveredNodeId = state.hoveredNodeId,
+        )
         preview.update(dt)
         state.selectedActorInfo = preview.actorInfo(state.selectedNodeId)
+    }
+}
+
+/**
+ * Selection-only mouse interaction layer for the UiComposer Scene2D preview canvas.
+ *
+ * This system belongs to editor canvas interaction, not the backend preview
+ * builder, shared `.krui` model, or runtime UI action system. It reads the
+ * current engine input snapshot, respects ImGui mouse capture, hit-tests the
+ * preview, updates hover state, and selects the hit node on left click. It
+ * intentionally does not mutate `.krui`, save files, dispatch Woolboy runtime
+ * actions, drag/drop, resize, edit properties by dragging, add/delete/reorder
+ * nodes from the canvas, support multi-select, snap, create transform gizmos,
+ * edit Skins, pick assets, or solve layout.
+ */
+private class UiComposerCanvasInteractionSystem(
+    private val state: UiComposerState,
+    private val preview: GdxUiScenePreview,
+    private val input: InputService,
+) : System() {
+    override fun update(world: SceneWorld, dt: Float) {
+        val snapshot = input.snapshot()
+        if (!state.canvasSelectionEnabled) {
+            state.hoveredNodeId = null
+            state.canvasStatusMessage = "Canvas selection disabled."
+            return
+        }
+        if (snapshot.uiCapturesMouse) {
+            state.hoveredNodeId = null
+            state.canvasStatusMessage = "Canvas input paused while ImGui captures mouse."
+            return
+        }
+
+        val hit = preview.hitTest(
+            screenX = snapshot.mousePosition.x.toInt(),
+            screenY = snapshot.mousePosition.y.toInt(),
+        )
+        state.hoveredNodeId = hit?.nodeId
+        state.canvasStatusMessage = hit?.let { "Hovered '${it.nodeId}'." } ?: "No preview actor hovered."
+
+        if (snapshot.wasMousePressed(MouseButton.Left) && hit != null) {
+            state.selectedNodeId = hit.nodeId
+            state.statusMessage = "Selected '${hit.nodeId}' from preview."
+            state.canvasStatusMessage = "Selected '${hit.nodeId}' from preview canvas."
+        }
     }
 }

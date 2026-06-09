@@ -13,9 +13,10 @@ import com.pashkd.krender.engine.ui.scene.UiSceneValidator
  * runtime UI service, shared `.krui` model definition, or a completed canvas
  * editing pipeline. It keeps document loading, validation diagnostics,
  * hierarchy selection, inspector edit state, bounds toggling, reload/save
- * requests, and preview-only payload data in one simple place while
- * intentionally omitting canvas drag/drop, canvas selection, resizing actors on
- * canvas, Skin editing, Asset Browser picking, asset-id references, full actor
+ * requests, selection-only canvas interaction state, and preview-only payload
+ * data in one simple place while intentionally omitting canvas drag/drop,
+ * resizing actors on canvas, multi-select, canvas editing, Skin editing, Asset
+ * Browser picking, snapping, transform gizmos, asset-id references, full actor
  * serialization, and any generic visual layout solver.
  */
 data class UiComposerState(
@@ -33,6 +34,44 @@ data class UiComposerState(
     var showBounds: Boolean = true,
     /** Shows a best-effort Scene2D debug highlight for only the selected node's actor. */
     var highlightSelected: Boolean = true,
+    /**
+     * Node id currently hovered by the preview canvas hit-test.
+     *
+     * This is editor-only canvas interaction state. It is derived from the
+     * backend preview actor map and never modifies the shared `.krui` document,
+     * saves files, dispatches runtime UI actions, edits Skin data, picks assets,
+     * starts drag/drop, shows resize handles, supports multi-select, snaps,
+     * creates transform gizmos, or performs canvas structure editing.
+     */
+    var hoveredNodeId: String? = null,
+    /**
+     * Enables mouse selection directly in the Scene2D preview canvas.
+     *
+     * This belongs to editor canvas interaction and gates the selection-only
+     * MVP. It does not modify `.krui`, drag/drop nodes, resize actors, edit
+     * properties by dragging, add/delete/reorder nodes from the canvas, edit
+     * Skins, pick Asset Browser entries, support snapping, create transform
+     * gizmos, or enable multi-select.
+     */
+    var canvasSelectionEnabled: Boolean = true,
+    /**
+     * Shows hover bounds independently from selected-node highlighting.
+     *
+     * This belongs to editor canvas interaction feedback. It only controls
+     * best-effort Scene2D debug drawing and does not change `.krui`, solve
+     * layout, add resize handles, start drag/drop, edit Skin data, pick assets,
+     * snap actors, display transform gizmos, or serialize Scene2D actors.
+     */
+    var highlightHovered: Boolean = true,
+    /**
+     * Last canvas hit-test status for editor diagnostics.
+     *
+     * This belongs to editor canvas interaction diagnostics only. It is not
+     * saved, does not modify `.krui`, does not dispatch runtime UI actions, and
+     * does not represent drag/drop, resizing, multi-select, snapping, Skin
+     * editing, Asset Browser picking, transform gizmos, or canvas editing.
+     */
+    var canvasStatusMessage: String? = null,
     /** Requests the document file to be reloaded and the backend preview rebuilt. */
     var reloadRequested: Boolean = false,
     /** Requests the current in-memory `.krui` document to be saved to [uiScenePath]. */
@@ -78,6 +117,32 @@ data class UiComposerActorPreviewInfo(
     val width: Float,
     val height: Float,
     val visible: Boolean,
+)
+
+/**
+ * Backend-neutral snapshot of a Scene2D actor hit by the UiComposer preview canvas.
+ *
+ * This exists so editor canvas selection can talk about a hit actor without
+ * exposing mutable LibGDX Actor instances outside the backend preview. It
+ * belongs to editor canvas interaction and backend preview diagnostics, not the
+ * shared `.krui` model or runtime UI action system. It intentionally does not
+ * serialize actors, modify documents, drag/drop nodes, resize actors, edit
+ * Skin data, pick assets, support multi-select, snap to grids, create transform
+ * gizmos, or perform canvas-based structure editing.
+ */
+data class UiComposerCanvasHit(
+    /** `.krui` node id for the nearest mapped actor under the preview mouse position. */
+    val nodeId: String,
+    /** Backend actor class name reported for diagnostics without exposing the mutable actor. */
+    val actorClass: String,
+    /** Actor local x position in its Scene2D parent, reported for diagnostics only. */
+    val x: Float,
+    /** Actor local y position in its Scene2D parent, reported for diagnostics only. */
+    val y: Float,
+    /** Actor width in the Scene2D preview, reported for diagnostics only. */
+    val width: Float,
+    /** Actor height in the Scene2D preview, reported for diagnostics only. */
+    val height: Float,
 )
 
 /**
