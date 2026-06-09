@@ -30,17 +30,17 @@
     },
     "uiComposerInspector": {
       "title": "UI Scene Inspector",
-      "x": 1638,
-      "y": 439,
-      "width": 490,
-      "height": 883
+      "x": 1636,
+      "y": 608,
+      "width": 498,
+      "height": 722
     },
     "uiComposerSceneBindings": {
       "title": "UI Scene Bindings",
       "x": 1636,
       "y": 8,
-      "width": 496,
-      "height": 424
+      "width": 497,
+      "height": 596
     },
     "uiComposerDiagnostics": {
       "title": "UI Scene Diagnostics",

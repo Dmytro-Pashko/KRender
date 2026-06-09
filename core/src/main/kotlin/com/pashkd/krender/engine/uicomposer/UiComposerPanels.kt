@@ -1508,6 +1508,9 @@ class UiComposerSceneBindingsPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private val valueBuffers = linkedMapOf<String, ByteArray>()
+    private val keyBuffers = linkedMapOf<String, ByteArray>()
+    private val newBindingKeyBuffer = ByteArray(TextInputBufferSize)
+    private var newBindingType = UiSceneBindingType.Text
 
     /** Draws editable scene binding definitions and their editor default preview values. */
     override fun draw() {
@@ -1525,20 +1528,92 @@ class UiComposerSceneBindingsPanel(
         )
         ImGui.separator()
         syncBuffers(force = false)
+        drawAddBindingControls()
+        ImGui.separator()
         val bindings = state.document?.bindings.orEmpty()
         if (bindings.isEmpty()) {
             ImGui.textWrapped("No bindings are defined for this UI scene.")
         }
         bindings.forEach { binding ->
-            drawBindingDefaultValue(binding)
+            drawBindingRow(binding)
         }
         ImGui.separator()
         drawBindingIssues()
         ImGui.end()
     }
 
+    private fun drawAddBindingControls() {
+        ImGui.textUnformatted("Add Binding")
+        ImGui.inputText("Key##ui_composer_new_binding_key", newBindingKeyBuffer)
+        drawBindingTypeCombo(
+            id = "new_binding_type",
+            current = newBindingType,
+            onChanged = { type -> newBindingType = type },
+        )
+        with(dsl) {
+            button("Add Binding##ui_composer_add_binding") {
+                val key = readBuffer(newBindingKeyBuffer).trim()
+                operations.addBindingDefinition(
+                    UiSceneBindingDefinition(
+                        key = key,
+                        type = newBindingType,
+                        defaultValue = defaultValueForNewBinding(key, newBindingType),
+                    ),
+                )
+                writeBuffer(newBindingKeyBuffer, "")
+                newBindingType = UiSceneBindingType.Text
+            }
+        }
+    }
+
+    private fun drawBindingRow(binding: UiSceneBindingDefinition) {
+        ImGui.separator()
+        ImGui.textUnformatted("Binding: ${binding.key} [${binding.type.name}]")
+        drawBindingKeyEditor(binding)
+        drawBindingTypeEditor(binding)
+        drawBindingDefaultValue(binding)
+        drawBindingUsages(binding.key)
+        with(dsl) {
+            button("Delete##ui_composer_delete_binding_${payloadInputId(binding.key)}") {
+                operations.deleteBindingDefinition(binding.key)
+            }
+        }
+    }
+
+    private fun drawBindingKeyEditor(binding: UiSceneBindingDefinition) {
+        val buffer = keyBufferFor(binding)
+        ImGui.inputText("Key##ui_composer_binding_key_${payloadInputId(binding.key)}", buffer)
+        ImGui.sameLine()
+        with(dsl) {
+            button("Apply##ui_composer_apply_binding_key_${payloadInputId(binding.key)}") {
+                operations.renameBindingKey(binding.key, readBuffer(buffer))
+            }
+        }
+    }
+
+    private fun drawBindingTypeEditor(binding: UiSceneBindingDefinition) {
+        drawBindingTypeCombo(
+            id = "binding_type_${payloadInputId(binding.key)}",
+            current = binding.type,
+            onChanged = { type -> operations.updateBindingType(binding.key, type) },
+        )
+    }
+
+    private fun drawBindingTypeCombo(
+        id: String,
+        current: UiSceneBindingType,
+        onChanged: (UiSceneBindingType) -> Unit,
+    ) {
+        if (!ImGui.beginCombo("Type##$id", current.name)) return
+        UiSceneBindingType.values().forEach { type ->
+            if (ImGui.selectable("${type.name}##${id}_${type.name}", type == current)) {
+                onChanged(type)
+            }
+        }
+        ImGui.endCombo()
+    }
+
     private fun drawBindingDefaultValue(binding: UiSceneBindingDefinition) {
-        ImGui.textUnformatted("${binding.key} [${binding.type.name}]")
         when (binding.type) {
             UiSceneBindingType.Text -> drawTextBindingDefault(binding)
             UiSceneBindingType.Number -> drawNumberBindingDefault(binding)
@@ -1546,6 +1621,31 @@ class UiComposerSceneBindingsPanel(
             UiSceneBindingType.Action -> drawActionBindingDefault(binding)
         }
     }
+
+    private fun drawBindingUsages(key: String) {
+        val document = state.document ?: return
+        val usages = collectBindingReferences(document).filter { reference -> reference.key == key }
+        if (usages.isEmpty()) {
+            ImGui.textUnformatted("Usages: none")
+            return
+        }
+
+        ImGui.textUnformatted("Usages: ${usages.size}")
+        usages.forEach { reference ->
+            ImGui.textWrapped("- ${reference.nodeId}.${reference.fieldName}")
+        }
+    }
+
+    private fun defaultValueForNewBinding(
+        key: String,
+        type: UiSceneBindingType,
+    ): String =
+        when (type) {
+            UiSceneBindingType.Text -> defaultPreviewPayloadValueFor(key).takeIf(String::isNotBlank).orEmpty()
+            UiSceneBindingType.Number -> defaultPreviewPayloadValueFor(key).takeIf { value -> value.toFloatOrNull() != null } ?: "0"
+            UiSceneBindingType.Texture -> defaultPreviewPayloadValueFor(key)
+            UiSceneBindingType.Action -> defaultPreviewPayloadValueFor(key).takeIf(String::isNotBlank) ?: "action.todo"
+        }
 
     private fun drawTextBindingDefault(binding: UiSceneBindingDefinition) {
         drawDefaultValueTextInput(binding, label = "Default text")
@@ -1574,7 +1674,7 @@ class UiComposerSceneBindingsPanel(
         state.textureOptions.forEach { option ->
             val optionLabel = textureOptionLabel(option)
             if (ImGui.selectable("$optionLabel##binding_${payloadInputId(binding.key)}_${option.path}", option.path == binding.defaultValue)) {
-                writeBuffer(valueBuffers.getValue(binding.key), option.path)
+                writeBuffer(valueBufferFor(binding), option.path)
                 operations.updateBindingDefaultValue(binding.key, option.path)
             }
         }
@@ -1589,7 +1689,7 @@ class UiComposerSceneBindingsPanel(
         binding: UiSceneBindingDefinition,
         label: String,
     ) {
-        val buffer = valueBuffers.getValue(binding.key)
+        val buffer = valueBufferFor(binding)
         if (ImGui.inputText("$label##ui_composer_payload_${payloadInputId(binding.key)}", buffer)) {
             operations.updateBindingDefaultValue(binding.key, readBuffer(buffer))
         }
@@ -1631,15 +1731,33 @@ class UiComposerSceneBindingsPanel(
     }
 
     private fun syncBuffers(force: Boolean) {
-        state.document?.bindings.orEmpty().forEach { binding ->
-            val key = binding.key
+        val bindings = state.document?.bindings.orEmpty()
+        bindings.forEach { binding ->
             val value = binding.defaultValue
-            val buffer = valueBuffers.getOrPut(key) { ByteArray(TextInputBufferSize) }
+            val buffer = valueBufferFor(binding)
             if (force || readBuffer(buffer) != value) {
                 writeBuffer(buffer, value)
             }
+
+            val keyBuffer = keyBufferFor(binding)
+            if (force || readBuffer(keyBuffer).isBlank()) {
+                writeBuffer(keyBuffer, binding.key)
+            }
         }
+        val keys = bindings.mapTo(mutableSetOf()) { binding -> binding.key }
+        valueBuffers.keys.removeAll { key -> key !in keys }
+        keyBuffers.keys.removeAll { key -> key !in keys }
     }
+
+    private fun valueBufferFor(binding: UiSceneBindingDefinition): ByteArray =
+        valueBuffers.getOrPut(binding.key) {
+            ByteArray(TextInputBufferSize).also { created -> writeBuffer(created, binding.defaultValue) }
+        }
+
+    private fun keyBufferFor(binding: UiSceneBindingDefinition): ByteArray =
+        keyBuffers.getOrPut(binding.key) {
+            ByteArray(TextInputBufferSize).also { created -> writeBuffer(created, binding.key) }
+        }
 }
 
 /**

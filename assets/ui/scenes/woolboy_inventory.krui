@@ -2,6 +2,13 @@
   "schemaVersion": 1,
   "id": "woolboy_inventory",
   "skin": "ui/skins/craftacular-ui.json",
+  "bindings": [
+    {
+      "key": "kkj",
+      "type": "Texture",
+      "defaultValue": "textures/t_dirt_01_s.png"
+    }
+  ],
   "root": {
     "id": "root",
     "type": "Stack",
@@ -38,7 +45,7 @@
                       {
                         "id": "image",
                         "type": "Image",
-                        "texture": "textures/uv_checker_1k.png",
+                        "texture": "{kkj}",
                         "width": 75.0,
                         "height": 75.0
                       },

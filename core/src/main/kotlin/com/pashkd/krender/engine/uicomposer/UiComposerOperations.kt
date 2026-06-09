@@ -4,6 +4,7 @@ import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
+import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
@@ -160,6 +161,103 @@ class UiComposerOperations(
             description = description,
             transform = { current ->
                 current.copy(bindings = upsertBindingDefinition(current.bindings, binding))
+            },
+        )
+    }
+
+    /**
+     * Adds a new saved scene binding definition without rewriting existing node usages.
+     */
+    fun addBindingDefinition(binding: UiSceneBindingDefinition) {
+        val document = state.document ?: return
+        val key = binding.key.trim()
+        if (key.isBlank()) {
+            state.statusMessage = "Binding key cannot be blank."
+            return
+        }
+        if (key in bindingKeys(document)) {
+            state.statusMessage = "Binding '$key' already exists."
+            return
+        }
+
+        applyDocumentChange(
+            description = "Binding '$key' added.",
+            transform = { current ->
+                current.copy(
+                    bindings = (current.bindings + binding.copy(key = key))
+                        .sortedBy { existing -> existing.key.lowercase() },
+                )
+            },
+        )
+    }
+
+    /**
+     * Renames a scene binding definition key without rewriting node usages.
+     */
+    fun renameBindingKey(
+        oldKey: String,
+        newKey: String,
+    ) {
+        val document = state.document ?: return
+        val trimmed = newKey.trim()
+        if (trimmed.isBlank()) {
+            state.statusMessage = "Binding key cannot be blank."
+            return
+        }
+        if (trimmed == oldKey) return
+        if (document.bindings.any { binding -> binding.key == trimmed }) {
+            state.statusMessage = "Binding '$trimmed' already exists."
+            return
+        }
+
+        applyDocumentChange(
+            description = "Binding '$oldKey' renamed to '$trimmed'.",
+            transform = { current ->
+                current.copy(
+                    bindings = current.bindings
+                        .map { binding -> if (binding.key == oldKey) binding.copy(key = trimmed) else binding }
+                        .sortedBy { binding -> binding.key.lowercase() },
+                )
+            },
+        )
+    }
+
+    /**
+     * Updates a binding definition type and leaves its default preview value untouched.
+     */
+    fun updateBindingType(
+        key: String,
+        type: UiSceneBindingType,
+    ) {
+        val document = state.document ?: return
+        val binding = document.bindings.firstOrNull { existing -> existing.key == key } ?: return
+        if (binding.type == type) return
+
+        applyDocumentChange(
+            description = "Binding '$key' type changed to ${type.name}.",
+            transform = { current ->
+                current.copy(
+                    bindings = current.bindings.map { existing ->
+                        if (existing.key == key) existing.copy(type = type) else existing
+                    },
+                )
+            },
+        )
+    }
+
+    /**
+     * Deletes a binding definition without removing references from nodes.
+     */
+    fun deleteBindingDefinition(key: String) {
+        val document = state.document ?: return
+        if (document.bindings.none { binding -> binding.key == key }) return
+
+        applyDocumentChange(
+            description = "Binding '$key' deleted.",
+            transform = { current ->
+                current.copy(
+                    bindings = current.bindings.filterNot { binding -> binding.key == key },
+                )
             },
         )
     }
