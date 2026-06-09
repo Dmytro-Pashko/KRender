@@ -136,12 +136,15 @@ class UiComposerPreviewCanvasPanel(
             state.canvasPreviewRect = UiComposerCanvasRect()
             state.canvasLocalMouseX = null
             state.canvasLocalMouseY = null
+            state.canvasWorldMouseX = null
+            state.canvasWorldMouseY = null
             ImGui.end()
             return
         }
 
         drawResolutionControls()
         drawViewControls()
+        drawGuideControls()
         ImGui.separator()
 
         val min = ImGui.cursorScreenPos
@@ -246,6 +249,30 @@ class UiComposerPreviewCanvasPanel(
         }
         ImGui.sameLine()
         ImGui.textUnformatted("Zoom: ${formatPercent(state.previewZoom)}")
+    }
+
+    private fun drawGuideControls() {
+        ImGui.textUnformatted("Guides")
+        ImGui.sameLine()
+        ImGui.checkbox("Selected##ui_composer_guide_selected", state::showSelectedGuide)
+        ImGui.sameLine()
+        ImGui.checkbox("Hovered##ui_composer_guide_hovered", state::showHoveredGuide)
+        ImGui.sameLine()
+        ImGui.checkbox("Parents##ui_composer_guide_parents", state::showParentChainGuides)
+        ImGui.sameLine()
+        ImGui.checkbox("Padding##ui_composer_guide_padding", state::showPaddingGuides)
+        ImGui.sameLine()
+        ImGui.checkbox("Align##ui_composer_guide_align", state::showAlignmentGuide)
+        ImGui.sameLine()
+        ImGui.checkbox("Table##ui_composer_guide_table", state::showTableOrientationGuide)
+        ImGui.sameLine()
+        ImGui.checkbox("Label##ui_composer_guide_label", state::showNodeIdLabel)
+        ImGui.sameLine()
+        ImGui.checkbox("Mouse##ui_composer_guide_mouse", state::showLocalMouseCoordinates)
+        if (state.showLocalMouseCoordinates) {
+            ImGui.sameLine()
+            ImGui.textUnformatted("Mouse: ${formatMouseCoordinates(state)}")
+        }
     }
 }
 
@@ -1008,14 +1035,24 @@ class UiComposerDiagnosticsPanel(
                 )
             }",
         )
+        ImGui.textUnformatted(
+            "Canvas world mouse: ${
+                formatNullablePoint(
+                    state.canvasWorldMouseX,
+                    state.canvasWorldMouseY,
+                )
+            }",
+        )
         ImGui.separator()
-        ImGui.checkbox("Show Bounds##ui_composer_diagnostics_show_bounds", state::showBounds)
+        ImGui.checkbox("Scene2D Bounds##ui_composer_diagnostics_show_bounds", state::showBounds)
         ImGui.sameLine()
-        ImGui.checkbox("Highlight Selected##ui_composer_diagnostics_highlight_selected", state::highlightSelected)
+        ImGui.checkbox("Scene2D Selected##ui_composer_diagnostics_highlight_selected", state::highlightSelected)
         ImGui.sameLine()
         ImGui.checkbox("Canvas Selection##ui_composer_diagnostics_canvas_selection", state::canvasSelectionEnabled)
         ImGui.sameLine()
-        ImGui.checkbox("Highlight Hovered##ui_composer_diagnostics_highlight_hovered", state::highlightHovered)
+        ImGui.checkbox("Scene2D Hovered##ui_composer_diagnostics_highlight_hovered", state::highlightHovered)
+        ImGui.separator()
+        drawGuideDiagnostics()
         ImGui.separator()
 
         val issues = state.validationIssues + state.styleValidationIssues + state.textureValidationIssues
@@ -1029,6 +1066,50 @@ class UiComposerDiagnosticsPanel(
             }
         }
         ImGui.end()
+    }
+
+    private fun drawGuideDiagnostics() {
+        val snapshot = state.guideSnapshot
+        ImGui.textUnformatted("Guide snapshot")
+        property("selected", snapshot.selected?.nodeId)
+        property("hovered", snapshot.hovered?.nodeId)
+        property(
+            "parent chain",
+            snapshot.parentChain.joinToString(" > ") { it.nodeId ?: it.label }.ifBlank { "<none>" },
+        )
+        property("selected guide available", if (snapshot.selected != null) "yes" else "no")
+        property("hovered guide available", if (snapshot.hovered != null) "yes" else "no")
+        ImGui.textWrapped(
+            "Visual Debug Guides are best-effort overlays based on built Scene2D actors. " +
+                "They do not implement drag/drop, resize handles, snapping, transform gizmos, " +
+                "multi-select, canvas structure editing, safe-area overlays, grid/flex layout, " +
+                "or runtime UI behavior changes.",
+        )
+        ImGui.textWrapped(
+            "Parent chain shows mapped .krui actors only. Padding guides are best-effort for " +
+                "Container/Table padding and may not exactly match complex Scene2D internals. " +
+                "Table orientation markers are informational only.",
+        )
+        ImGui.textUnformatted("Guide toggles")
+        ImGui.textWrapped(
+            listOf(
+                "selected=${state.showSelectedGuide}",
+                "hovered=${state.showHoveredGuide}",
+                "parents=${state.showParentChainGuides}",
+                "padding=${state.showPaddingGuides}",
+                "align=${state.showAlignmentGuide}",
+                "table=${state.showTableOrientationGuide}",
+                "label=${state.showNodeIdLabel}",
+                "mouse=${state.showLocalMouseCoordinates}",
+            ).joinToString(", "),
+        )
+    }
+
+    private fun property(
+        name: String,
+        value: String?,
+    ) {
+        ImGui.textUnformatted("$name: ${value ?: "<none>"}")
     }
 }
 
@@ -1051,6 +1132,18 @@ private fun formatNullablePoint(x: Float?, y: Float?): String =
     } else {
         "x=${formatFloat(x)}, y=${formatFloat(y)}"
     }
+
+private fun formatMouseCoordinates(state: UiComposerState): String {
+    val localX = state.canvasLocalMouseX
+    val localY = state.canvasLocalMouseY
+    val worldX = state.canvasWorldMouseX
+    val worldY = state.canvasWorldMouseY
+    return if (localX == null || localY == null || worldX == null || worldY == null) {
+        "<outside preview>"
+    } else {
+        "local ${formatFloat(localX)}, ${formatFloat(localY)} | world ${formatFloat(worldX)}, ${formatFloat(worldY)}"
+    }
+}
 
 private fun UiComposerPreviewResolutionPreset.displayName(): String =
     when (this) {

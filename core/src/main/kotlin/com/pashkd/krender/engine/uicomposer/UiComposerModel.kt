@@ -2,8 +2,10 @@ package com.pashkd.krender.engine.uicomposer
 
 import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
+import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneSerializer
+import com.pashkd.krender.engine.ui.scene.UiSceneSpacing
 import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
 import com.pashkd.krender.engine.ui.scene.UiSceneValidator
 
@@ -78,6 +80,59 @@ data class UiComposerState(
     var showBounds: Boolean = true,
     /** Shows a best-effort Scene2D debug highlight for only the selected node's actor. */
     var highlightSelected: Boolean = true,
+    /**
+     * Shows custom selected actor bounds in the Preview Canvas overlay.
+     *
+     * This is editor-only visual debugging state. It is not saved to `.krui`, does
+     * not mutate the document, and does not implement drag/drop, resize handles,
+     * snapping, transform gizmos, or canvas editing.
+     */
+    var showSelectedGuide: Boolean = true,
+    /**
+     * Shows custom hovered actor bounds in the Preview Canvas overlay.
+     *
+     * This is editor-only visual debugging state. It does not mutate `.krui`, does
+     * not set dirty state, and does not dispatch runtime UI actions.
+     */
+    var showHoveredGuide: Boolean = true,
+    /**
+     * Shows parent-chain bounds for the selected actor.
+     *
+     * This helps debug Scene2D layout nesting. It is overlay-only and does not
+     * change `.krui`, layout, or runtime UI behavior.
+     */
+    var showParentChainGuides: Boolean = true,
+    /**
+     * Shows padding guides for the selected node when its `.krui` padding is relevant.
+     *
+     * This is best-effort visual debugging for Container/Table padding. It does not
+     * edit padding or enable canvas drag editing.
+     */
+    var showPaddingGuides: Boolean = true,
+    /**
+     * Shows alignment anchor marker for the selected node when it has `.krui` align.
+     *
+     * This is best-effort visual debugging only. It does not modify align values.
+     */
+    var showAlignmentGuide: Boolean = true,
+    /**
+     * Shows Table orientation marker for selected Table nodes.
+     *
+     * This is visual-only and does not modify tableOrientation.
+     */
+    var showTableOrientationGuide: Boolean = true,
+    /**
+     * Shows selected node id label near the selected actor.
+     *
+     * This is visual-only and does not modify node ids.
+     */
+    var showNodeIdLabel: Boolean = true,
+    /**
+     * Shows local Preview Canvas mouse coordinates.
+     *
+     * This is diagnostic-only and does not affect input, hit-testing, or `.krui`.
+     */
+    var showLocalMouseCoordinates: Boolean = true,
     /**
      * Node id currently hovered by the preview canvas hit-test.
      *
@@ -195,6 +250,22 @@ data class UiComposerState(
      */
     var canvasLocalMouseY: Float? = null,
     /**
+     * Last Scene2D world x under the Preview Canvas mouse, for diagnostics only.
+     *
+     * This editor-only diagnostic value is shown by ImGui so it stays independent
+     * from Preview Canvas camera zoom/pan rendering. It is not saved to `.krui`,
+     * is not runtime viewport state, and does not add canvas editing behavior.
+     */
+    var canvasWorldMouseX: Float? = null,
+    /**
+     * Last Scene2D world y under the Preview Canvas mouse, for diagnostics only.
+     *
+     * This editor-only diagnostic value is shown by ImGui so it stays independent
+     * from Preview Canvas camera zoom/pan rendering. It is not saved to `.krui`,
+     * is not runtime viewport state, and does not add canvas editing behavior.
+     */
+    var canvasWorldMouseY: Float? = null,
+    /**
      * Scene2D logical-space camera x offset from the center of the preview.
      *
      * This editor-only value supports Preview Canvas pan/zoom inspection. It is
@@ -254,6 +325,8 @@ data class UiComposerState(
     var saveStatusMessage: String? = null,
     /** Last Scene2D actor metadata for the selected node, reported by the backend preview. */
     var selectedActorInfo: UiComposerActorPreviewInfo? = null,
+    /** Last backend guide snapshot used by diagnostics panels. */
+    var guideSnapshot: UiComposerGuideSnapshot = UiComposerGuideSnapshot(),
     /** Mutable editor-only binding payload used to test `.krui` placeholders; it is never saved or runtime state. */
     val previewPayload: MutableMap<String, String> = DefaultPreviewPayload.toMutableMap(),
 )
@@ -392,6 +465,111 @@ fun previewWorldUnitsPerScreenPixel(
     logicalSize.coerceAtLeast(1).toFloat() /
         screenSize.coerceAtLeast(1f) /
         clampPreviewZoom(zoom)
+
+/**
+ * Backend-neutral visual guide options passed to the preview renderer.
+ *
+ * These values are editor-only overlay state. They are not saved to `.krui`,
+ * do not mutate documents, and do not enable canvas editing.
+ */
+data class UiComposerVisualGuideOptions(
+    val showSelectedGuide: Boolean = true,
+    val showHoveredGuide: Boolean = true,
+    val showParentChainGuides: Boolean = true,
+    val showPaddingGuides: Boolean = true,
+    val showAlignmentGuide: Boolean = true,
+    val showTableOrientationGuide: Boolean = true,
+    val showNodeIdLabel: Boolean = true,
+    val showLocalMouseCoordinates: Boolean = true,
+    val canvasLocalMouseX: Float? = null,
+    val canvasLocalMouseY: Float? = null,
+)
+
+/**
+ * Backend-neutral actor bounds snapshot in Scene2D logical coordinates.
+ *
+ * This belongs to Preview Canvas visual debugging. It deliberately avoids
+ * exposing mutable LibGDX Actor instances to editor UI panels.
+ */
+data class UiComposerGuideBounds(
+    val nodeId: String?,
+    val label: String,
+    val actorClass: String,
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float,
+)
+
+/**
+ * Snapshot of all guide-relevant actor bounds for the current selection/hover.
+ *
+ * This is editor-only diagnostic data. It is not saved to `.krui` and does not
+ * represent document editing state.
+ */
+data class UiComposerGuideSnapshot(
+    val selected: UiComposerGuideBounds? = null,
+    val hovered: UiComposerGuideBounds? = null,
+    val parentChain: List<UiComposerGuideBounds> = emptyList(),
+)
+
+/**
+ * Backend-neutral guide rectangle in Scene2D logical coordinates.
+ *
+ * Kept separate from LibGDX Rectangle so guide math can be tested without a
+ * graphics backend.
+ */
+data class UiComposerGuideRect(
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float,
+) {
+    val left: Float get() = x
+    val right: Float get() = x + width
+    val bottom: Float get() = y
+    val top: Float get() = y + height
+    val centerX: Float get() = x + width * 0.5f
+    val centerY: Float get() = y + height * 0.5f
+}
+
+/** Backend-neutral guide point in Scene2D logical coordinates. */
+data class UiComposerGuidePoint(
+    val x: Float,
+    val y: Float,
+)
+
+/**
+ * Computes the best-effort content rectangle inside [bounds] after `.krui`
+ * padding is applied.
+ */
+fun computePaddingInnerRect(
+    bounds: UiComposerGuideRect,
+    padding: UiSceneSpacing,
+): UiComposerGuideRect =
+    UiComposerGuideRect(
+        x = bounds.x + padding.left,
+        y = bounds.y + padding.bottom,
+        width = (bounds.width - padding.left - padding.right).coerceAtLeast(0f),
+        height = (bounds.height - padding.top - padding.bottom).coerceAtLeast(0f),
+    )
+
+/** Computes the marker point for a `.krui` alignment value inside [bounds]. */
+fun computeAlignmentAnchor(
+    bounds: UiComposerGuideRect,
+    align: UiSceneAlign,
+): UiComposerGuidePoint =
+    when (align) {
+        UiSceneAlign.TopLeft -> UiComposerGuidePoint(bounds.left, bounds.top)
+        UiSceneAlign.Top -> UiComposerGuidePoint(bounds.centerX, bounds.top)
+        UiSceneAlign.TopRight -> UiComposerGuidePoint(bounds.right, bounds.top)
+        UiSceneAlign.Left -> UiComposerGuidePoint(bounds.left, bounds.centerY)
+        UiSceneAlign.Center -> UiComposerGuidePoint(bounds.centerX, bounds.centerY)
+        UiSceneAlign.Right -> UiComposerGuidePoint(bounds.right, bounds.centerY)
+        UiSceneAlign.BottomLeft -> UiComposerGuidePoint(bounds.left, bounds.bottom)
+        UiSceneAlign.Bottom -> UiComposerGuidePoint(bounds.centerX, bounds.bottom)
+        UiSceneAlign.BottomRight -> UiComposerGuidePoint(bounds.right, bounds.bottom)
+    }
 
 /**
  * Backend-neutral snapshot of one built Scene2D actor for the selected `.krui` node.

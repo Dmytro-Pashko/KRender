@@ -67,6 +67,8 @@ internal class UiComposerModelTest {
         assertNull(state.hoveredNodeId)
         assertNull(state.skinMetadata)
         assertNull(state.canvasStatusMessage)
+        assertNull(state.canvasWorldMouseX)
+        assertNull(state.canvasWorldMouseY)
         assertEquals(0f, state.previewCameraOffsetX)
         assertEquals(0f, state.previewCameraOffsetY)
         assertEquals(1f, state.previewZoom)

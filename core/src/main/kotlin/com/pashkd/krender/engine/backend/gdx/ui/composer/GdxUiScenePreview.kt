@@ -1,8 +1,12 @@
 package com.pashkd.krender.engine.backend.gdx.ui.composer
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
@@ -14,8 +18,18 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.backend.gdx.ui.runtime.scene.GdxUiSceneBuilder
 import com.pashkd.krender.engine.uicomposer.UiComposerActorPreviewInfo
 import com.pashkd.krender.engine.uicomposer.UiComposerCanvasHit
+import com.pashkd.krender.engine.uicomposer.UiComposerGuideBounds
+import com.pashkd.krender.engine.uicomposer.UiComposerGuideRect
+import com.pashkd.krender.engine.uicomposer.UiComposerGuideSnapshot
+import com.pashkd.krender.engine.uicomposer.UiComposerVisualGuideOptions
 import com.pashkd.krender.engine.uicomposer.clampPreviewZoom
+import com.pashkd.krender.engine.uicomposer.computeAlignmentAnchor
+import com.pashkd.krender.engine.uicomposer.computePaddingInnerRect
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
+import com.pashkd.krender.engine.ui.scene.UiSceneNode
+import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
+import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
+import kotlin.math.abs
 
 /**
  * LibGDX Scene2D preview owned by the read-only UiComposer editor tool.
@@ -35,8 +49,12 @@ class GdxUiScenePreview(
 ) : Disposable {
     private val stage = Stage(FitViewport(1f, 1f))
     private val builder = GdxUiSceneBuilder(logger)
+    private val guideShapeRenderer = ShapeRenderer()
+    private val guideBatch = SpriteBatch()
+    private val guideFont = BitmapFont()
     private val actorsByNodeId = linkedMapOf<String, Actor>()
     private val nodeIdsByActor = mutableMapOf<Actor, String>()
+    private val nodesById = linkedMapOf<String, UiSceneNode>()
     private var viewportX = 0
     private var viewportY = 0
     private var viewportWidth = 1
@@ -51,6 +69,7 @@ class GdxUiScenePreview(
     private var selectedNodeId: String? = null
     private var highlightHovered = true
     private var hoveredNodeId: String? = null
+    private var visualGuideOptions = UiComposerVisualGuideOptions()
 
     /**
      * Rebuilds the preview Stage from [document] using simple string [payload] bindings.
@@ -65,6 +84,7 @@ class GdxUiScenePreview(
         stage.clear()
         actorsByNodeId.clear()
         nodeIdsByActor.clear()
+        nodesById.clear()
         if (document == null) return
 
         val actor = builder.build(
@@ -74,6 +94,7 @@ class GdxUiScenePreview(
             onActorBuilt = { node, builtActor ->
                 actorsByNodeId[node.id] = builtActor
                 nodeIdsByActor[builtActor] = node.id
+                nodesById[node.id] = node
             },
         )
         stage.addActor(actor)
@@ -122,6 +143,7 @@ class GdxUiScenePreview(
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         Gdx.gl.glColorMask(true, true, true, true)
         stage.draw()
+        renderVisualGuides()
         Gdx.gl.glDepthMask(true)
 
         if (!scissorWasEnabled) {
@@ -130,6 +152,33 @@ class GdxUiScenePreview(
             Gdx.gl.glScissor(previousScissor[0], previousScissor[1], previousScissor[2], previousScissor[3])
         }
         Gdx.gl.glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3])
+    }
+
+    /**
+     * Updates visual guide overlay options for the next render pass.
+     *
+     * These options are editor-only and never mutate `.krui`, dirty state, or
+     * runtime UI behavior.
+     */
+    fun updateVisualGuideOptions(options: UiComposerVisualGuideOptions) {
+        visualGuideOptions = options
+    }
+
+    /**
+     * Returns a backend-neutral snapshot describing which semantic guide bounds
+     * are available for the current selected and hovered nodes.
+     */
+    fun guideSnapshot(
+        selectedNodeId: String?,
+        hoveredNodeId: String?,
+    ): UiComposerGuideSnapshot {
+        val selectedActor = actorsByNodeId[selectedNodeId]
+        val hoveredActor = actorsByNodeId[hoveredNodeId]
+        return UiComposerGuideSnapshot(
+            selected = selectedActor?.toGuideBounds(selectedNodeId),
+            hovered = hoveredActor?.toGuideBounds(hoveredNodeId),
+            parentChain = selectedActor?.mappedParentGuideBounds().orEmpty(),
+        )
     }
 
     /**
@@ -248,6 +297,24 @@ class GdxUiScenePreview(
     }
 
     /**
+     * Converts effective-preview-rect-local coordinates into Scene2D Stage coordinates.
+     */
+    fun previewLocalToStage(
+        localX: Float,
+        localY: Float,
+    ): Vector2 {
+        val visibleWorldWidth = logicalWidth.toFloat() / previewZoom
+        val visibleWorldHeight = logicalHeight.toFloat() / previewZoom
+        val cameraCenterX = logicalWidth.toFloat() * 0.5f + cameraOffsetX
+        val cameraCenterY = logicalHeight.toFloat() * 0.5f + cameraOffsetY
+        val stageX = cameraCenterX - visibleWorldWidth * 0.5f +
+            localX / viewportWidth.toFloat() * visibleWorldWidth
+        val stageY = cameraCenterY + visibleWorldHeight * 0.5f -
+            localY / viewportHeight.toFloat() * visibleWorldHeight
+        return Vector2(stageX, stageY)
+    }
+
+    /**
      * Hit-tests the editor preview Stage and returns the closest mapped `.krui` node.
      *
      * Kept for older call sites and diagnostics. New canvas interaction should
@@ -289,9 +356,253 @@ class GdxUiScenePreview(
      * RuntimeUiService layers or shared `.krui` model state.
      */
     override fun dispose() {
+        guideShapeRenderer.dispose()
+        guideBatch.dispose()
+        guideFont.dispose()
         stage.dispose()
         builder.dispose()
     }
+
+    private fun renderVisualGuides() {
+        val selectedActor = actorsByNodeId[selectedNodeId]
+        val hoveredActor = actorsByNodeId[hoveredNodeId]
+        val selectedNode = nodesById[selectedNodeId]
+        val projection = stage.camera.combined
+
+        guideShapeRenderer.projectionMatrix = projection
+        guideBatch.projectionMatrix = projection
+
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        Gdx.gl.glLineWidth(1f)
+        guideShapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+
+        if (visualGuideOptions.showParentChainGuides && selectedActor != null) {
+            selectedActor.mappedParentGuideBounds().forEachIndexed { index, bounds ->
+                guideShapeRenderer.color = parentGuideColor(index)
+                drawRect(bounds.toRect())
+            }
+        }
+
+        if (
+            visualGuideOptions.showHoveredGuide &&
+            hoveredActor != null &&
+            hoveredNodeId != selectedNodeId
+        ) {
+            guideShapeRenderer.color = HoveredGuideColor
+            drawRect(actorStageRect(hoveredActor))
+        }
+
+        if (visualGuideOptions.showSelectedGuide && selectedActor != null) {
+            guideShapeRenderer.color = SelectedGuideColor
+            drawRect(actorStageRect(selectedActor))
+        }
+
+        if (
+            visualGuideOptions.showPaddingGuides &&
+            selectedActor != null &&
+            selectedNode != null &&
+            selectedNode.hasMeaningfulPaddingGuide()
+        ) {
+            drawPaddingGuide(actorStageRect(selectedActor), selectedNode)
+        }
+
+        if (
+            visualGuideOptions.showAlignmentGuide &&
+            selectedActor != null &&
+            selectedNode?.align != null
+        ) {
+            drawAlignmentMarker(actorStageRect(selectedActor), selectedNode)
+        }
+
+        if (
+            visualGuideOptions.showTableOrientationGuide &&
+            selectedActor != null &&
+            selectedNode?.type == UiSceneNodeType.Table
+        ) {
+            drawTableOrientationMarker(actorStageRect(selectedActor), selectedNode)
+        }
+
+        guideShapeRenderer.end()
+        Gdx.gl.glLineWidth(1f)
+
+        guideBatch.begin()
+        if (visualGuideOptions.showNodeIdLabel && selectedActor != null && selectedNode != null) {
+            drawText(
+                text = "${selectedNode.id} [${selectedNode.type}]",
+                x = actorStageRect(selectedActor).x,
+                y = labelY(actorStageRect(selectedActor)),
+                color = LabelTextColor,
+            )
+        }
+        if (
+            visualGuideOptions.showTableOrientationGuide &&
+            selectedActor != null &&
+            selectedNode?.type == UiSceneNodeType.Table
+        ) {
+            drawTableOrientationText(actorStageRect(selectedActor), selectedNode)
+        }
+        if (
+            visualGuideOptions.showAlignmentGuide &&
+            selectedActor != null &&
+            selectedNode?.align != null
+        ) {
+            val anchor = computeAlignmentAnchor(actorStageRect(selectedActor), selectedNode.align)
+            drawText("align: ${selectedNode.align}", anchor.x + 6f, anchor.y + 14f, AlignmentGuideColor)
+        }
+        guideBatch.end()
+    }
+
+    private fun drawPaddingGuide(
+        bounds: UiComposerGuideRect,
+        node: UiSceneNode,
+    ) {
+        val inner = computePaddingInnerRect(bounds, node.padding)
+        guideShapeRenderer.color = PaddingGuideColor
+        drawRect(inner)
+        guideShapeRenderer.line(bounds.left, bounds.top, inner.left, inner.top)
+        guideShapeRenderer.line(bounds.right, bounds.top, inner.right, inner.top)
+        guideShapeRenderer.line(bounds.left, bounds.bottom, inner.left, inner.bottom)
+        guideShapeRenderer.line(bounds.right, bounds.bottom, inner.right, inner.bottom)
+    }
+
+    private fun drawAlignmentMarker(
+        bounds: UiComposerGuideRect,
+        node: UiSceneNode,
+    ) {
+        val align = node.align ?: return
+        val anchor = computeAlignmentAnchor(bounds, align)
+        guideShapeRenderer.color = AlignmentGuideColor
+        guideShapeRenderer.line(anchor.x - MarkerRadius, anchor.y, anchor.x + MarkerRadius, anchor.y)
+        guideShapeRenderer.line(anchor.x, anchor.y - MarkerRadius, anchor.x, anchor.y + MarkerRadius)
+        guideShapeRenderer.line(anchor.x - MarkerRadius, anchor.y, anchor.x, anchor.y + MarkerRadius)
+        guideShapeRenderer.line(anchor.x, anchor.y + MarkerRadius, anchor.x + MarkerRadius, anchor.y)
+        guideShapeRenderer.line(anchor.x + MarkerRadius, anchor.y, anchor.x, anchor.y - MarkerRadius)
+        guideShapeRenderer.line(anchor.x, anchor.y - MarkerRadius, anchor.x - MarkerRadius, anchor.y)
+    }
+
+    private fun drawTableOrientationMarker(
+        bounds: UiComposerGuideRect,
+        node: UiSceneNode,
+    ) {
+        val startX = bounds.x + 10f
+        val startY = bounds.top - 22f
+        guideShapeRenderer.color = TableGuideColor
+        when (node.tableOrientation) {
+            UiSceneTableOrientation.Vertical -> {
+                guideShapeRenderer.line(startX, startY + 12f, startX, startY - 12f)
+                guideShapeRenderer.line(startX, startY - 12f, startX - 5f, startY - 5f)
+                guideShapeRenderer.line(startX, startY - 12f, startX + 5f, startY - 5f)
+            }
+            UiSceneTableOrientation.Horizontal -> {
+                guideShapeRenderer.line(startX, startY, startX + 24f, startY)
+                guideShapeRenderer.line(startX + 24f, startY, startX + 17f, startY + 5f)
+                guideShapeRenderer.line(startX + 24f, startY, startX + 17f, startY - 5f)
+            }
+        }
+    }
+
+    private fun drawTableOrientationText(
+        bounds: UiComposerGuideRect,
+        node: UiSceneNode,
+    ) {
+        val arrow = when (node.tableOrientation) {
+            UiSceneTableOrientation.Vertical -> "v"
+            UiSceneTableOrientation.Horizontal -> ">"
+        }
+        drawText(
+            text = "Table: ${node.tableOrientation} $arrow",
+            x = bounds.x + 20f,
+            y = bounds.top - 12f,
+            color = TableGuideColor,
+        )
+    }
+
+    private fun drawText(
+        text: String,
+        x: Float,
+        y: Float,
+        color: Color,
+    ) {
+        guideFont.color = color
+        guideFont.draw(guideBatch, text, x, y)
+    }
+
+    private fun drawRect(rect: UiComposerGuideRect) {
+        guideShapeRenderer.rect(rect.x, rect.y, rect.width, rect.height)
+    }
+
+    private fun actorStageRect(actor: Actor): UiComposerGuideRect {
+        val bottomLeft = actor.localToStageCoordinates(Vector2(0f, 0f))
+        val topRight = actor.localToStageCoordinates(Vector2(actor.width, actor.height))
+        val x = minOf(bottomLeft.x, topRight.x)
+        val y = minOf(bottomLeft.y, topRight.y)
+        return UiComposerGuideRect(
+            x = x,
+            y = y,
+            width = abs(topRight.x - bottomLeft.x),
+            height = abs(topRight.y - bottomLeft.y),
+        )
+    }
+
+    private fun visibleStageRect(): UiComposerGuideRect {
+        val visibleWorldWidth = logicalWidth.toFloat() / previewZoom
+        val visibleWorldHeight = logicalHeight.toFloat() / previewZoom
+        val cameraCenterX = logicalWidth.toFloat() * 0.5f + cameraOffsetX
+        val cameraCenterY = logicalHeight.toFloat() * 0.5f + cameraOffsetY
+        return UiComposerGuideRect(
+            x = cameraCenterX - visibleWorldWidth * 0.5f,
+            y = cameraCenterY - visibleWorldHeight * 0.5f,
+            width = visibleWorldWidth,
+            height = visibleWorldHeight,
+        )
+    }
+
+    private fun Actor.toGuideBounds(nodeId: String?): UiComposerGuideBounds {
+        val bounds = actorStageRect(this)
+        return UiComposerGuideBounds(
+            nodeId = nodeId,
+            label = nodeId ?: "<unmapped>",
+            actorClass = javaClass.simpleName.takeIf(String::isNotBlank) ?: javaClass.name,
+            x = bounds.x,
+            y = bounds.y,
+            width = bounds.width,
+            height = bounds.height,
+        )
+    }
+
+    private fun Actor.mappedParentGuideBounds(): List<UiComposerGuideBounds> {
+        val parents = mutableListOf<UiComposerGuideBounds>()
+        var parent = this.parent
+        while (parent != null && parent != stage.root) {
+            val parentNodeId = nodeIdsByActor[parent]
+            if (parentNodeId != null) {
+                parents += parent.toGuideBounds(parentNodeId)
+            }
+            parent = parent.parent
+        }
+        return parents.asReversed()
+    }
+
+    private fun UiComposerGuideBounds.toRect(): UiComposerGuideRect =
+        UiComposerGuideRect(x, y, width, height)
+
+    private fun UiSceneNode.hasMeaningfulPaddingGuide(): Boolean =
+        type == UiSceneNodeType.Container ||
+            type == UiSceneNodeType.Table ||
+            padding.left != 0f ||
+            padding.top != 0f ||
+            padding.right != 0f ||
+            padding.bottom != 0f
+
+    private fun labelY(bounds: UiComposerGuideRect): Float {
+        val visible = visibleStageRect()
+        val above = bounds.top + 16f
+        return if (above <= visible.top) above else bounds.top - 6f
+    }
+
+    private fun parentGuideColor(index: Int): Color =
+        Color(0.78f, 0.68f, 1f, (0.70f - index * 0.08f).coerceAtLeast(0.32f))
 
     private fun clearActorDebug(actor: Actor) {
         actor.setDebug(false)
@@ -339,5 +650,12 @@ class GdxUiScenePreview(
 
     companion object {
         private const val TAG = "GdxUiScenePreview"
+        private const val MarkerRadius = 7f
+        private val SelectedGuideColor = Color(0.20f, 0.82f, 1f, 1f)
+        private val HoveredGuideColor = Color(1f, 0.76f, 0.20f, 0.92f)
+        private val PaddingGuideColor = Color(0.32f, 1f, 0.52f, 0.92f)
+        private val AlignmentGuideColor = Color(1f, 0.35f, 0.82f, 0.95f)
+        private val TableGuideColor = Color(0.92f, 0.92f, 0.28f, 0.95f)
+        private val LabelTextColor = Color(0.72f, 0.94f, 1f, 1f)
     }
 }

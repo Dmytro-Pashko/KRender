@@ -22,6 +22,7 @@
             "id": "menu_panel",
             "type": "Table",
             "background": "window",
+            "align": "Center",
             "padding": {
               "left": 32.0,
               "top": 32.0,

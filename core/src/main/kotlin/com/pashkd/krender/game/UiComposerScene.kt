@@ -16,6 +16,7 @@ import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.uicomposer.UiComposerDiagnosticsPanel
+import com.pashkd.krender.engine.uicomposer.UiComposerCanvasRect
 import com.pashkd.krender.engine.uicomposer.UiComposerDocumentLoader
 import com.pashkd.krender.engine.uicomposer.UiComposerHierarchyPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerInspectorPanel
@@ -28,6 +29,8 @@ import com.pashkd.krender.engine.uicomposer.UiComposerStructurePanel
 import com.pashkd.krender.engine.uicomposer.UiComposerToolbarPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerTextureOptionsProvider
 import com.pashkd.krender.engine.uicomposer.UiComposerUiLayoutDefaults
+import com.pashkd.krender.engine.uicomposer.UiComposerGuideSnapshot
+import com.pashkd.krender.engine.uicomposer.UiComposerVisualGuideOptions
 import com.pashkd.krender.engine.uicomposer.clampPreviewZoom
 import com.pashkd.krender.engine.uicomposer.previewWorldUnitsPerScreenPixel
 import com.pashkd.krender.engine.uicomposer.validateTextureReferences
@@ -167,6 +170,7 @@ class UiComposerScene(
         if (composerState.document == null) {
             composerState.statusMessage = "Failed to load document."
             composerState.selectedActorInfo = null
+            composerState.guideSnapshot = UiComposerGuideSnapshot()
             composerState.skinMetadata = null
             composerState.styleValidationIssues = emptyList()
             composerState.textureValidationIssues = emptyList()
@@ -195,11 +199,16 @@ class UiComposerScene(
                 hoveredNodeId = composerState.hoveredNodeId,
             )
             composerState.selectedActorInfo = preview.actorInfo(composerState.selectedNodeId)
+            composerState.guideSnapshot = preview.guideSnapshot(
+                selectedNodeId = composerState.selectedNodeId,
+                hoveredNodeId = composerState.hoveredNodeId,
+            )
             composerState.parseError = null
             composerState.statusMessage = statusOnSuccess
         } catch (error: Exception) {
             composerState.parseError = error.message ?: error::class.simpleName ?: "Unknown UI scene preview error."
             composerState.selectedActorInfo = null
+            composerState.guideSnapshot = UiComposerGuideSnapshot()
             composerState.statusMessage = "Failed to build preview."
             engine.logger.error(TAG, error) {
                 "UI Composer preview rebuild failed path='${composerState.uiScenePath}': ${composerState.parseError}"
@@ -324,8 +333,26 @@ private class UiComposerPreviewUpdateSystem(
             highlightHovered = state.highlightHovered,
             hoveredNodeId = state.hoveredNodeId,
         )
+        preview.updateVisualGuideOptions(
+            UiComposerVisualGuideOptions(
+                showSelectedGuide = state.showSelectedGuide,
+                showHoveredGuide = state.showHoveredGuide,
+                showParentChainGuides = state.showParentChainGuides,
+                showPaddingGuides = state.showPaddingGuides,
+                showAlignmentGuide = state.showAlignmentGuide,
+                showTableOrientationGuide = state.showTableOrientationGuide,
+                showNodeIdLabel = state.showNodeIdLabel,
+                showLocalMouseCoordinates = state.showLocalMouseCoordinates,
+                canvasLocalMouseX = state.canvasLocalMouseX,
+                canvasLocalMouseY = state.canvasLocalMouseY,
+            ),
+        )
         preview.update(dt)
         state.selectedActorInfo = preview.actorInfo(state.selectedNodeId)
+        state.guideSnapshot = preview.guideSnapshot(
+            selectedNodeId = state.selectedNodeId,
+            hoveredNodeId = state.hoveredNodeId,
+        )
     }
 }
 
@@ -354,6 +381,8 @@ private class UiComposerCanvasInteractionSystem(
             state.hoveredNodeId = null
             state.canvasLocalMouseX = null
             state.canvasLocalMouseY = null
+            state.canvasWorldMouseX = null
+            state.canvasWorldMouseY = null
             state.canvasPanning = false
             state.canvasStatusMessage = "Preview canvas is not visible."
             return
@@ -365,6 +394,8 @@ private class UiComposerCanvasInteractionSystem(
             state.hoveredNodeId = null
             state.canvasLocalMouseX = null
             state.canvasLocalMouseY = null
+            state.canvasWorldMouseX = null
+            state.canvasWorldMouseY = null
             state.canvasPanning = false
             state.canvasStatusMessage = "Mouse outside preview canvas."
             return
@@ -379,6 +410,7 @@ private class UiComposerCanvasInteractionSystem(
             state.previewZoom = clampPreviewZoom(state.previewZoom * ZoomWheelStep.pow(-snapshot.scrollDelta))
             state.statusMessage = "Preview zoom set to ${(state.previewZoom * 100f).toInt()}%."
         }
+        updateWorldMouse(localX, localY, previewRect)
 
         val controlDown = snapshot.isDown(Key.ControlLeft) || snapshot.isDown(Key.ControlRight)
         val panning = controlDown && snapshot.isMouseDown(MouseButton.Left)
@@ -396,6 +428,7 @@ private class UiComposerCanvasInteractionSystem(
             )
             state.previewCameraOffsetX -= snapshot.mouseDelta.x * worldPerPixelX
             state.previewCameraOffsetY += snapshot.mouseDelta.y * worldPerPixelY
+            updateWorldMouse(localX, localY, previewRect)
             state.hoveredNodeId = null
             state.canvasStatusMessage = "Panning preview canvas."
             return
@@ -423,5 +456,20 @@ private class UiComposerCanvasInteractionSystem(
 
     private companion object {
         private const val ZoomWheelStep = 1.1f
+    }
+
+    private fun updateWorldMouse(
+        localX: Float,
+        localY: Float,
+        previewRect: UiComposerCanvasRect,
+    ) {
+        val visibleWorldWidth = state.previewLogicalWidth.toFloat() / state.previewZoom
+        val visibleWorldHeight = state.previewLogicalHeight.toFloat() / state.previewZoom
+        val cameraCenterX = state.previewLogicalWidth.toFloat() * 0.5f + state.previewCameraOffsetX
+        val cameraCenterY = state.previewLogicalHeight.toFloat() * 0.5f + state.previewCameraOffsetY
+        state.canvasWorldMouseX = cameraCenterX - visibleWorldWidth * 0.5f +
+            localX / previewRect.width.coerceAtLeast(1f) * visibleWorldWidth
+        state.canvasWorldMouseY = cameraCenterY + visibleWorldHeight * 0.5f -
+            localY / previewRect.height.coerceAtLeast(1f) * visibleWorldHeight
     }
 }
