@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.uicomposer
 
+import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
+import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
@@ -97,12 +99,83 @@ internal class UiComposerBindingHelpersTest {
 
     @Test
     internal fun `defaultPreviewPayloadValueFor uses editor only heuristics`() {
-        assertEquals("", defaultPreviewPayloadValueFor("life1Texture"))
+        assertEquals("textures/woolboy/hud_heart_full.png", defaultPreviewPayloadValueFor("life1Texture"))
         assertEquals("action.todo", defaultPreviewPayloadValueFor("primaryButtonAction"))
         assertEquals("0.5", defaultPreviewPayloadValueFor("progress"))
         assertEquals("0", defaultPreviewPayloadValueFor("scores"))
         assertEquals("100/100", defaultPreviewPayloadValueFor("healthLabel"))
         assertEquals("", defaultPreviewPayloadValueFor("unknown"))
+    }
+
+    @Test
+    internal fun `previewPayloadFromBindings uses binding default values`() {
+        val payload = previewPayloadFromBindings(
+            listOf(
+                UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading..."),
+                UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.65"),
+            ),
+        )
+
+        assertEquals("Loading...", payload["title"])
+        assertEquals("0.65", payload["progress"])
+    }
+
+    @Test
+    internal fun `upsertBindingDefinition replaces existing binding by key`() {
+        val bindings = listOf(
+            UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.5"),
+            UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading..."),
+        )
+
+        val updated = upsertBindingDefinition(
+            bindings,
+            UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Ready"),
+        )
+
+        assertEquals(
+            listOf(
+                UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.5"),
+                UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Ready"),
+            ),
+            updated,
+        )
+    }
+
+    @Test
+    internal fun `upsertBindingDefinition inserts new binding sorted by key`() {
+        val updated = upsertBindingDefinition(
+            listOf(UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading...")),
+            UiSceneBindingDefinition("action", UiSceneBindingType.Action, "action.todo"),
+        )
+
+        assertEquals(listOf("action", "title"), updated.map { binding -> binding.key })
+    }
+
+    @Test
+    internal fun `updateBindingDefaultValue updates only matching binding`() {
+        val updated = updateBindingDefaultValue(
+            bindings = listOf(
+                UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.5"),
+                UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading..."),
+            ),
+            key = "title",
+            defaultValue = "Ready",
+        )
+
+        assertEquals("0.5", updated.single { binding -> binding.key == "progress" }.defaultValue)
+        assertEquals("Ready", updated.single { binding -> binding.key == "title" }.defaultValue)
+    }
+
+    @Test
+    internal fun `bindingKeys returns document binding keys`() {
+        val document = bindingDocument().copy(
+            bindings = listOf(
+                UiSceneBindingDefinition("scores", UiSceneBindingType.Number, "0"),
+                UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.5"),
+            ),
+        )
+
+        assertEquals(setOf("scores", "progress"), bindingKeys(document))
     }
 
     private fun bindingDocument(): UiSceneDocument =

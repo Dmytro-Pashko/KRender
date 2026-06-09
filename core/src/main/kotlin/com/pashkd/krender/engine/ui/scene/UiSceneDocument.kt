@@ -7,6 +7,9 @@ package com.pashkd.krender.engine.ui.scene
  * It describes a small, stable subset of widgets that KRender can build at runtime
  * and edit later in the UI Composer. The [skin] is a project-relative path to an
  * existing Scene2D Skin file; this phase does not support Skin editing or asset ids.
+ * [bindings] describe the expected data keys for this UI scene and provide
+ * editor preview defaults. Runtime systems are still expected to provide their
+ * own payload values explicitly; defaults are not automatic runtime fallback.
  */
 data class UiSceneDocument(
     val schemaVersion: Int = CurrentSchemaVersion,
@@ -24,10 +27,10 @@ data class UiSceneDocument(
 /**
  * Data type for one predefined UI scene binding.
  *
- * These definitions are editor-authored preview/data contracts stored in `.krui`.
+ * These definitions are editor-authored scene contracts stored in `.krui`.
  * Runtime binding remains string-key based; this type helps UiComposer present
- * expected values and default preview data without introducing expressions or a
- * gameplay data model.
+ * expected values and editor default preview data without introducing
+ * expressions or a gameplay data model.
  */
 enum class UiSceneBindingType {
     Text,
@@ -39,9 +42,10 @@ enum class UiSceneBindingType {
 /**
  * One predefined binding key for a `.krui` document.
  *
- * [defaultValue] is the editor-preview value saved with the scene so UiComposer
- * can rebuild previews consistently. Runtime systems may still provide their
- * own payload values for the same keys.
+ * [defaultValue] is the editor preview default saved with the scene so
+ * UiComposer can rebuild previews consistently. Runtime systems may use these
+ * definitions for validation/contract discovery, but must provide actual payload
+ * values explicitly.
  */
 data class UiSceneBindingDefinition(
     val key: String,

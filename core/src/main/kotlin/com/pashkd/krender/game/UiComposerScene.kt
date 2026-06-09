@@ -23,7 +23,7 @@ import com.pashkd.krender.engine.uicomposer.UiComposerInspectorPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerOperations
 import com.pashkd.krender.engine.uicomposer.UiComposerPanelIds
 import com.pashkd.krender.engine.uicomposer.UiComposerPreviewCanvasPanel
-import com.pashkd.krender.engine.uicomposer.UiComposerPreviewPayloadPanel
+import com.pashkd.krender.engine.uicomposer.UiComposerSceneBindingsPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerState
 import com.pashkd.krender.engine.uicomposer.UiComposerStructurePanel
 import com.pashkd.krender.engine.uicomposer.UiComposerToolbarPanel
@@ -31,6 +31,7 @@ import com.pashkd.krender.engine.uicomposer.UiComposerTextureOptionsProvider
 import com.pashkd.krender.engine.uicomposer.UiComposerUiLayoutDefaults
 import com.pashkd.krender.engine.uicomposer.UiComposerGuideSnapshot
 import com.pashkd.krender.engine.uicomposer.UiComposerVisualGuideOptions
+import com.pashkd.krender.engine.uicomposer.bindingKeys
 import com.pashkd.krender.engine.uicomposer.clampPreviewZoom
 import com.pashkd.krender.engine.uicomposer.missingBindingKeys
 import com.pashkd.krender.engine.uicomposer.previewWorldUnitsPerScreenPixel
@@ -273,7 +274,7 @@ class UiComposerScene(
             composerState.missingBindingKeys = emptyList()
             return
         }
-        val knownKeys = composerState.previewPayload.keys
+        val knownKeys = bindingKeys(document)
         composerState.bindingValidationIssues = validateBindingReferences(document, knownKeys)
         composerState.missingBindingKeys = missingBindingKeys(document, knownKeys)
     }
@@ -287,7 +288,7 @@ class UiComposerScene(
             addPanel(uiSystem, "Hierarchy", UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Structure", UiComposerStructurePanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Inspector", UiComposerInspectorPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
-            addPanel(uiSystem, "PreviewPayload", UiComposerPreviewPayloadPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
+            addPanel(uiSystem, "SceneBindings", UiComposerSceneBindingsPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Diagnostics", UiComposerDiagnosticsPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(
                 uiSystem,

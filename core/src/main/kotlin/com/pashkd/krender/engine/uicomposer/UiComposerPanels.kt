@@ -1153,7 +1153,7 @@ class UiComposerInspectorPanel(
  * Browser drag/drop, asset-id references, drag/drop canvas editing, node editing,
  * or full Scene2D actor serialization.
  */
-class UiComposerPreviewPayloadPanel(
+class UiComposerSceneBindingsPanel(
     private val state: UiComposerState,
     private val operations: UiComposerOperations,
     private val layoutConfig: ImGuiLayoutConfig,
@@ -1162,17 +1162,20 @@ class UiComposerPreviewPayloadPanel(
 ) : UiPanel {
     private val valueBuffers = linkedMapOf<String, ByteArray>()
 
-    /** Draws editable preview-only key/value fields for the current binding payload. */
+    /** Draws editable scene binding definitions and their editor default preview values. */
     override fun draw() {
-        val layout = layoutConfig.panels.getValue(UiComposerPanelIds.PreviewPayload)
-        val expanded = beginImGuiPanel(UiComposerPanelIds.PreviewPayload, layout, layoutTracker)
-        eventLogger.observe(UiComposerPanelIds.PreviewPayload, layout.title)
+        val layout = layoutConfig.panels.getValue(UiComposerPanelIds.SceneBindings)
+        val expanded = beginImGuiPanel(UiComposerPanelIds.SceneBindings, layout, layoutTracker)
+        eventLogger.observe(UiComposerPanelIds.SceneBindings, layout.title)
         if (!expanded) {
             ImGui.end()
             return
         }
 
-        ImGui.textWrapped("Scene binding definitions and default preview data saved with this .krui document.")
+        ImGui.textWrapped(
+            "Scene binding definitions and editor default preview values saved with this .krui document. " +
+                "Runtime systems must still provide actual payload values explicitly.",
+        )
         ImGui.separator()
         syncBuffers(force = false)
         val bindings = state.document?.bindings.orEmpty()
@@ -1183,7 +1186,7 @@ class UiComposerPreviewPayloadPanel(
             val key = binding.key
             ImGui.textUnformatted("${binding.key} [${binding.type.name}]")
             val buffer = valueBuffers.getValue(key)
-            if (ImGui.inputText("Default data##ui_composer_payload_${payloadInputId(binding.key)}", buffer)) {
+            if (ImGui.inputText("Default preview value##ui_composer_payload_${payloadInputId(binding.key)}", buffer)) {
                 operations.updateBindingDefaultValue(binding.key, readBuffer(buffer))
             }
         }
@@ -1204,6 +1207,9 @@ class UiComposerPreviewPayloadPanel(
             ImGui.textUnformatted("No missing binding definitions.")
         } else {
             ImGui.textUnformatted("Missing binding definitions: ${missingKeys.size}")
+            ImGui.textWrapped(
+                "Missing binding definitions are added to this .krui document with an editor default preview value.",
+            )
             missingKeys.forEach { missing ->
                 ImGui.textWrapped(
                     "${missing.key} used by nodes=${missing.nodeIds.joinToString()}, " +

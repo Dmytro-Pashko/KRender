@@ -55,10 +55,10 @@ class UiComposerOperations(
     /**
      * Saves the current in-memory `.krui` document to [UiComposerState.uiScenePath].
      *
-     * This operation belongs to editor document saving. It serializes only the
-     * shared `.krui` document model and deliberately does not persist preview
-     * payload values, ImGui panel layout, runtime UI state, Skin data, Asset
-     * Browser choices, or Scene2D actor instances.
+     * This serializes the shared `.krui` document model, including scene binding
+     * definitions and their editor default preview values. It does not persist
+     * transient canvas state, panel layout, runtime UI state, Skin data, Asset
+     * Browser choices, runtime payload values, or Scene2D actor instances.
      */
     fun saveDocument() {
         val document = state.document
@@ -118,10 +118,11 @@ class UiComposerOperations(
     }
 
     /**
-     * Updates a saved binding default value and the live preview payload.
+     * Updates a saved binding default preview value and the live editor preview payload.
      *
-     * Binding definitions are stored in `.krui`, so editing preview data marks
-     * the document dirty and will be persisted by Save.
+     * Binding definitions are stored in `.krui`, so editing default preview
+     * values marks the document dirty and will be persisted by Save. Runtime
+     * payload values are still supplied explicitly by runtime systems.
      */
     fun updateBindingDefaultValue(
         key: String,
@@ -139,11 +140,11 @@ class UiComposerOperations(
         state.pendingReloadConfirmation = false
         state.previewRebuildRequested = true
         state.saveStatusMessage = null
-        state.statusMessage = "Binding default changed."
+        state.statusMessage = "Binding default preview value changed."
     }
 
     /**
-     * Adds or replaces a saved binding definition and syncs the preview payload.
+     * Adds or replaces a saved scene binding definition and syncs the preview payload.
      */
     fun upsertBindingDefinition(binding: UiSceneBindingDefinition) {
         val document = state.document ?: return
@@ -151,6 +152,7 @@ class UiComposerOperations(
             state.statusMessage = "Binding key cannot be blank."
             return
         }
+        val replacing = binding.key in bindingKeys(document)
         val updatedDocument = document.copy(
             bindings = upsertBindingDefinition(document.bindings, binding),
         )
@@ -162,7 +164,11 @@ class UiComposerOperations(
         state.pendingReloadConfirmation = false
         state.previewRebuildRequested = true
         state.saveStatusMessage = null
-        state.statusMessage = "Binding '${binding.key}' saved in document."
+        state.statusMessage = if (replacing) {
+            "Binding '${binding.key}' updated in scene bindings."
+        } else {
+            "Binding '${binding.key}' added to scene bindings."
+        }
     }
 
     /**
@@ -367,8 +373,9 @@ class UiComposerOperations(
             textureOptions = state.textureOptions,
             assetTypeByPath = state.textureAssetTypesByPath,
         )
-        state.bindingValidationIssues = validateBindingReferences(document, state.previewPayload.keys)
-        state.missingBindingKeys = missingBindingKeys(document, state.previewPayload.keys)
+        val knownKeys = bindingKeys(document)
+        state.bindingValidationIssues = validateBindingReferences(document, knownKeys)
+        state.missingBindingKeys = missingBindingKeys(document, knownKeys)
     }
 
     companion object {

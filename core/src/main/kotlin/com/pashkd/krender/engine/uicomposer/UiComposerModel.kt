@@ -16,8 +16,8 @@ import com.pashkd.krender.engine.ui.scene.UiSceneValidator
  * runtime UI service, shared `.krui` model definition, or a completed canvas
  * editing pipeline. It keeps document loading, validation diagnostics,
  * hierarchy selection, inspector edit state, bounds toggling, reload/save
- * requests, selection-only canvas interaction state, and preview-only payload
- * data in one simple place while intentionally omitting canvas drag/drop,
+ * requests, selection-only canvas interaction state, and transient editor
+ * preview payload data in one simple place while intentionally omitting canvas drag/drop,
  * resizing actors on canvas, multi-select, canvas editing, Skin editing, Asset
  * Browser drag/drop, texture import/copy, texture thumbnails, atlas region
  * picking, snapping, transform gizmos, asset-id references, full actor
@@ -42,7 +42,7 @@ data class UiComposerState(
      */
     var bindingValidationIssues: List<UiSceneValidationIssue> = emptyList(),
     /**
-     * Missing binding keys grouped for Diagnostics quick-add actions.
+     * Missing binding keys grouped for Scene Bindings quick-add actions.
      *
      * This is editor helper state used to add binding definitions to `.krui`. It
      * does not change runtime behavior.
@@ -328,7 +328,7 @@ data class UiComposerState(
     var reloadRequested: Boolean = false,
     /** Requests the current in-memory `.krui` document to be saved to [uiScenePath]. */
     var saveRequested: Boolean = false,
-    /** Requests the backend preview to rebuild from the current document and preview-only payload. */
+    /** Requests the backend preview to rebuild from the current document and transient editor payload. */
     var previewRebuildRequested: Boolean = false,
     /** True when selected-node property edits changed the in-memory `.krui` document. */
     var dirty: Boolean = false,
@@ -349,7 +349,15 @@ data class UiComposerState(
     var selectedActorInfo: UiComposerActorPreviewInfo? = null,
     /** Last backend guide snapshot used by diagnostics panels. */
     var guideSnapshot: UiComposerGuideSnapshot = UiComposerGuideSnapshot(),
-    /** Mutable editor preview payload loaded from document binding definitions and saved back to `.krui`. */
+    /**
+     * Mutable editor preview payload derived from document binding definitions.
+     *
+     * This map is rebuilt from `document.bindings.defaultValue` on reload and is
+     * passed to the Scene2D preview builder. It is not a separate persisted model:
+     * editing binding defaults updates `UiSceneDocument.bindings` and then syncs this
+     * map. Runtime payloads are still provided explicitly by runtime systems and do
+     * not automatically fall back to these defaults.
+     */
     val previewPayload: MutableMap<String, String> = mutableMapOf(),
 )
 
@@ -667,8 +675,9 @@ class UiComposerDocumentLoader(
             state.previewPayload.clear()
             state.previewPayload.putAll(previewPayloadFromBindings(document.bindings))
             state.validationIssues = validator.validate(document)
-            state.bindingValidationIssues = validateBindingReferences(document, state.previewPayload.keys)
-            state.missingBindingKeys = missingBindingKeys(document, state.previewPayload.keys)
+            val knownKeys = bindingKeys(document)
+            state.bindingValidationIssues = validateBindingReferences(document, knownKeys)
+            state.missingBindingKeys = missingBindingKeys(document, knownKeys)
             state.parseError = null
             if (state.selectedNodeId != null && findUiSceneNodeById(document.root, state.selectedNodeId) == null) {
                 state.selectedNodeId = null

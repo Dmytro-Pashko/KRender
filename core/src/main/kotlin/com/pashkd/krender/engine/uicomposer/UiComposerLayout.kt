@@ -25,7 +25,7 @@ object UiComposerPanelIds {
      */
     const val Structure = "uiComposerStructure"
     const val Inspector = "uiComposerInspector"
-    const val PreviewPayload = "uiComposerPreviewPayload"
+    const val SceneBindings = "uiComposerSceneBindings"
     const val Diagnostics = "uiComposerDiagnostics"
     const val Logs = "runtimeLogs"
 }
@@ -79,7 +79,7 @@ object UiComposerUiLayoutDefaults {
                 width = 320f,
                 height = 472f,
             ),
-            UiComposerPanelIds.PreviewPayload to ImGuiPanelLayout(
+            UiComposerPanelIds.SceneBindings to ImGuiPanelLayout(
                 title = "UI Scene Bindings",
                 x = 928f,
                 y = 624f,

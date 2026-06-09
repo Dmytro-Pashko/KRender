@@ -52,10 +52,14 @@ class GdxUiSceneBuilder(
     /**
      * Builds a Scene2D actor tree from a decoded `.krui` document.
      *
-     * The [payload] provides simple string bindings for text placeholders, button
-     * action placeholders, and progress values. For the MVP, the builder caches
-     * Skin and Image textures by project-relative path; asset-service-backed
-     * loading and disposal ownership should replace this later. [onActorBuilt] is
+     * The [payload] is supplied by the caller and is the only source used for
+     * placeholder replacement in runtime/preview builds. `document.bindings`
+     * definitions are not automatically merged here; UiComposer may derive its
+     * preview payload from those definitions before calling this builder.
+     *
+     * For the MVP, the builder caches Skin and Image textures by project-relative
+     * path; asset-service-backed loading and disposal ownership should replace
+     * this later. [onActorBuilt] is
      * an editor/diagnostic-friendly callback used by UiComposer preview tooling
      * to map document nodes to actors for best-effort selection highlighting and
      * bounds diagnostics; it is optional and does not affect runtime UI behavior.

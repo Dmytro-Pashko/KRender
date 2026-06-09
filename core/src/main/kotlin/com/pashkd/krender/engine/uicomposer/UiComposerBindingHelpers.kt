@@ -11,7 +11,7 @@ import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
  * Describes one binding reference found in a `.krui` node field.
  *
  * This belongs to editor-only binding diagnostics. It does not change runtime
- * binding behavior, does not mutate `.krui`, and does not save preview payload.
+ * binding behavior, does not mutate `.krui`, and does not save binding defaults.
  */
 data class UiComposerBindingReference(
     val nodeId: String,
@@ -23,8 +23,8 @@ data class UiComposerBindingReference(
 /**
  * Editor-only missing binding key discovered in the current `.krui` document.
  *
- * This is used by Diagnostics to offer "Add binding" actions. It is
- * not saved to `.krui` and does not represent runtime state.
+ * This is used by the Scene Bindings panel to offer "Add binding" actions. It
+ * is not saved to `.krui` and does not represent runtime state.
  */
 data class UiComposerMissingBindingKey(
     val key: String,
@@ -33,6 +33,7 @@ data class UiComposerMissingBindingKey(
 )
 
 private val BindingPlaceholderRegex = Regex("""\{([^{}]+)}""")
+private const val DefaultPreviewTexturePath = "textures/woolboy/hud_heart_full.png"
 
 /**
  * Extracts `{key}` placeholders from text-like `.krui` fields.
@@ -116,7 +117,7 @@ fun validateBindingReferences(
         }
 
 /**
- * Groups missing binding references by key for Diagnostics quick-add actions.
+ * Groups missing binding references by key for Scene Bindings quick-add actions.
  */
 fun missingBindingKeys(
     document: UiSceneDocument,
@@ -133,6 +134,15 @@ fun missingBindingKeys(
             )
         }
         .sortedBy { missing -> missing.key.lowercase() }
+
+/**
+ * Returns the document-owned binding keys that define this scene contract.
+ */
+fun bindingKeys(document: UiSceneDocument): Set<String> =
+    document.bindings
+        .map { binding -> binding.key }
+        .filter(String::isNotBlank)
+        .toSet()
 
 /**
  * Appends a `{key}` placeholder to a text-like field.
@@ -155,12 +165,13 @@ fun textureBindingPlaceholder(key: String): String = "{${key}}"
  * Provides heuristic editor-only preview data for a newly discovered binding key.
  *
  * The returned value seeds a document binding definition so the editor can
- * render missing bindings quickly. It is saved as `.krui` default data but does
- * not affect runtime payload data and does not define a gameplay data model.
+ * render missing bindings quickly. It is saved as a `.krui` editor default
+ * preview value but does not affect runtime payload data and does not define a
+ * gameplay data model.
  */
 fun defaultPreviewPayloadValueFor(key: String): String =
     when {
-        key.contains("texture", ignoreCase = true) -> ""
+        key.contains("texture", ignoreCase = true) -> DefaultPreviewTexturePath
         key.contains("action", ignoreCase = true) -> "action.todo"
         key.contains("progress", ignoreCase = true) -> "0.5"
         key.contains("percent", ignoreCase = true) -> "0.5"
@@ -170,7 +181,7 @@ fun defaultPreviewPayloadValueFor(key: String): String =
     }
 
 /**
- * Converts saved `.krui` binding definitions into the editor preview payload.
+ * Converts saved `.krui` binding definitions into the transient editor preview payload.
  */
 fun previewPayloadFromBindings(bindings: List<UiSceneBindingDefinition>): Map<String, String> =
     bindings
@@ -178,7 +189,7 @@ fun previewPayloadFromBindings(bindings: List<UiSceneBindingDefinition>): Map<St
         .associate { binding -> binding.key to binding.defaultValue }
 
 /**
- * Returns document bindings with [key]'s default preview value updated.
+ * Returns document bindings with [key]'s saved editor default preview value updated.
  */
 fun updateBindingDefaultValue(
     bindings: List<UiSceneBindingDefinition>,
@@ -191,6 +202,9 @@ fun updateBindingDefaultValue(
 
 /**
  * Returns document bindings with [binding] inserted or replaced by key.
+ *
+ * Binding definitions are document-owned scene contract metadata; their default
+ * values are editor preview defaults, not runtime payload fallback values.
  */
 fun upsertBindingDefinition(
     bindings: List<UiSceneBindingDefinition>,
