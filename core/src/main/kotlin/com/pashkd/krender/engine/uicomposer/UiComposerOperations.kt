@@ -312,6 +312,11 @@ class UiComposerOperations(
         // Shared document validation and Skin-backed name validation travel together in editor diagnostics.
         state.validationIssues = validator.validate(document)
         state.styleValidationIssues = validateStyleReferences(document, state.skinMetadata)
+        state.textureValidationIssues = validateTextureReferences(
+            document = document,
+            textureOptions = state.textureOptions,
+            assetTypeByPath = state.textureAssetTypesByPath,
+        )
     }
 
     companion object {

@@ -1,5 +1,11 @@
 package com.pashkd.krender.engine.uicomposer
 
+import com.pashkd.krender.engine.assets.AssetCategory
+import com.pashkd.krender.engine.assets.AssetDescriptor
+import com.pashkd.krender.engine.assets.AssetId
+import com.pashkd.krender.engine.assets.AssetRegistryService
+import com.pashkd.krender.engine.assets.AssetRegistrySnapshot
+import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
@@ -53,6 +59,10 @@ internal class UiComposerModelTest {
         assertTrue(state.canvasSelectionEnabled)
         assertTrue(state.highlightHovered)
         assertTrue(state.styleValidationIssues.isEmpty())
+        assertTrue(state.textureValidationIssues.isEmpty())
+        assertTrue(state.textureOptions.isEmpty())
+        assertFalse(state.textureOptionsReloadRequested)
+        assertEquals("", state.textureSearchQuery)
         assertNull(state.hoveredNodeId)
         assertNull(state.skinMetadata)
         assertNull(state.canvasStatusMessage)
@@ -168,6 +178,121 @@ internal class UiComposerModelTest {
         state.previewPayload.putAll(DefaultPreviewPayload)
 
         assertEquals(DefaultPreviewPayload, state.previewPayload)
+    }
+
+    @Test
+    internal fun `texture option provider returns sorted texture descriptors only`() {
+        val provider = UiComposerTextureOptionsProvider(
+            assets = FakeAssetRegistry(
+                listOf(
+                    descriptor(
+                        id = "asset:heart",
+                        name = "Heart",
+                        path = "textures/woolboy/hud_heart_full.png",
+                        category = AssetCategory.Texture,
+                        type = AssetType.Texture,
+                    ),
+                    descriptor(
+                        id = "asset:scene",
+                        name = "Scene",
+                        path = "ui/scenes/hud.krui",
+                        category = AssetCategory.UI,
+                        type = AssetType.UiScene,
+                    ),
+                    descriptor(
+                        id = "asset:broken",
+                        name = "Broken",
+                        path = "textures/broken.bin",
+                        category = AssetCategory.Texture,
+                        type = AssetType.Unknown,
+                    ),
+                    descriptor(
+                        id = "asset:alpha",
+                        name = "Alpha",
+                        path = "textures/alpha.png",
+                        category = AssetCategory.Texture,
+                        type = AssetType.Texture,
+                        metadata = mapOf("displayName" to "Alpha Texture"),
+                    ),
+                ),
+            ),
+        )
+
+        val options = provider.listTextureOptions()
+
+        assertEquals(listOf("Alpha Texture", "Heart"), options.map { it.displayName })
+        assertEquals(listOf("textures/alpha.png", "textures/woolboy/hud_heart_full.png"), options.map { it.path })
+        assertEquals("asset:alpha", options.first().assetId)
+    }
+
+    @Test
+    internal fun `texture validation warns for Image path missing from registry`() {
+        val document = UiSceneDocument(
+            id = "textures",
+            skin = "ui/skins/craftacular-ui.json",
+            root = UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Stack,
+                children = listOf(
+                    UiSceneNode(id = "heart", type = UiSceneNodeType.Image, texture = "textures/missing.png"),
+                ),
+            ),
+        )
+
+        val issues = validateTextureReferences(
+            document = document,
+            textureOptions = listOf(UiComposerTextureOption("Known", "textures/known.png")),
+        )
+
+        assertEquals(1, issues.size)
+        assertEquals("heart", issues.single().nodeId)
+        assertTrue(issues.single().message.contains("not in Asset Registry"))
+    }
+
+    @Test
+    internal fun `texture validation warns when path resolves to non texture asset`() {
+        val document = UiSceneDocument(
+            id = "textures",
+            skin = "ui/skins/craftacular-ui.json",
+            root = UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Stack,
+                children = listOf(
+                    UiSceneNode(id = "bad", type = UiSceneNodeType.Image, texture = "ui/scenes/hud.krui"),
+                ),
+            ),
+        )
+
+        val issues = validateTextureReferences(
+            document = document,
+            textureOptions = emptyList(),
+            assetTypeByPath = mapOf("ui/scenes/hud.krui" to AssetType.UiScene),
+        )
+
+        assertEquals(1, issues.size)
+        assertTrue(issues.single().message.contains("not Texture"))
+    }
+
+    @Test
+    internal fun `texture validation accepts known texture option`() {
+        val document = UiSceneDocument(
+            id = "textures",
+            skin = "ui/skins/craftacular-ui.json",
+            root = UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Stack,
+                children = listOf(
+                    UiSceneNode(id = "heart", type = UiSceneNodeType.Image, texture = "textures/heart.png"),
+                ),
+            ),
+        )
+
+        val issues = validateTextureReferences(
+            document = document,
+            textureOptions = listOf(UiComposerTextureOption("Heart", "textures/heart.png")),
+        )
+
+        assertTrue(issues.isEmpty())
     }
 
     @Test
@@ -382,4 +507,42 @@ internal class UiComposerModelTest {
                 ),
             ),
         )
+
+    private fun descriptor(
+        id: String,
+        name: String,
+        path: String,
+        category: AssetCategory,
+        type: AssetType,
+        metadata: Map<String, String> = emptyMap(),
+    ): AssetDescriptor =
+        AssetDescriptor(
+            id = AssetId(id),
+            name = name,
+            path = path,
+            category = category,
+            type = type,
+            extension = path.substringAfterLast('.', ""),
+            sizeBytes = 1L,
+            modifiedAtMillis = 0L,
+            metadata = metadata,
+        )
+}
+
+private class FakeAssetRegistry(
+    override val assets: List<AssetDescriptor>,
+) : AssetRegistryService {
+    override fun scanSnapshot(): AssetRegistrySnapshot =
+        AssetRegistrySnapshot(assets, scannedAtMillis = 0L, durationMillis = 0L, errors = emptyList())
+
+    override fun applySnapshot(snapshot: AssetRegistrySnapshot) = Unit
+
+    override fun findById(id: AssetId): AssetDescriptor? =
+        assets.firstOrNull { asset -> asset.id == id }
+
+    override fun findByPath(path: String): AssetDescriptor? =
+        assets.firstOrNull { asset -> asset.path == path }
+
+    override fun byCategory(category: AssetCategory): List<AssetDescriptor> =
+        assets.filter { asset -> asset.category == category }
 }

@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.uicomposer
 
+import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneSerializer
@@ -28,10 +29,48 @@ data class UiComposerState(
     var validationIssues: List<UiSceneValidationIssue> = emptyList(),
     /** Editor-only Skin-backed warnings for missing style/background names in the current document. */
     var styleValidationIssues: List<UiSceneValidationIssue> = emptyList(),
+    /** Editor-only Asset Registry-backed warnings for Image texture paths. */
+    var textureValidationIssues: List<UiSceneValidationIssue> = emptyList(),
     /** Parse or backend preview build error shown in diagnostics; this does not crash the scene. */
     var parseError: String? = null,
     /** Last inspected path-based Skin snapshot used by Inspector dropdowns and diagnostics. */
     var skinMetadata: UiComposerSkinMetadata? = null,
+    /**
+     * Last Asset Registry texture picker rows shown for Image.texture.
+     *
+     * This belongs to editor asset picking and Asset Registry integration. The
+     * selected `.krui` node still stores only a path string, and these rows are
+     * not saved as asset-id references. The picker intentionally does not
+     * import/copy textures, pick atlas regions, show thumbnails, support
+     * Asset Browser drag/drop, or change runtime behavior.
+     */
+    var textureOptions: List<UiComposerTextureOption> = emptyList(),
+    /**
+     * Requests a refresh of Asset Registry-backed Image.texture picker options.
+     *
+     * This is editor-only refresh state. It triggers registry rescanning for
+     * picker choices and diagnostics, but it does not mutate `.krui`, import
+     * textures, copy files, create asset ids in documents, support drag/drop, or
+     * change runtime UI loading.
+     */
+    var textureOptionsReloadRequested: Boolean = false,
+    /**
+     * Current Inspector filter text for the Image texture picker.
+     *
+     * This belongs only to editor asset picking UI. It filters displayed rows
+     * by display name/path and is never saved to `.krui`, never used as a
+     * runtime value, and does not replace manual path editing.
+     */
+    var textureSearchQuery: String = "",
+    /**
+     * Known registry asset types keyed by project-relative path for diagnostics.
+     *
+     * This supports editor warnings when an Image texture path resolves to a
+     * non-texture registry asset. It is diagnostic context only and does not
+     * create asset-id references, block save, import/copy textures, pick atlas
+     * regions, or change runtime UI behavior.
+     */
+    var textureAssetTypesByPath: Map<String, AssetType> = emptyMap(),
     /** Selected `.krui` node id from the hierarchy, kept independent from Scene2D actor instances. */
     var selectedNodeId: String? = null,
     /** Shows Scene2D debug bounds for every built actor in the backend preview only. */
@@ -205,6 +244,7 @@ class UiComposerDocumentLoader(
             state.document = null
             state.validationIssues = emptyList()
             state.styleValidationIssues = emptyList()
+            state.textureValidationIssues = emptyList()
             state.skinMetadata = null
             state.parseError = error.message ?: error::class.simpleName ?: "Unknown UI scene parse error."
         } finally {

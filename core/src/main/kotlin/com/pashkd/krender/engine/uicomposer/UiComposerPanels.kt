@@ -379,8 +379,8 @@ class UiComposerInspectorPanel(
         editableString(node, "action", node.action, emptyAsNull = true) { value ->
             operations.updateSelectedNode { it.copy(action = value) }
         }
-        editableString(node, "texture", node.texture, emptyAsNull = true) { value ->
-            operations.updateSelectedNode { it.copy(texture = value) }
+        if (node.type == UiSceneNodeType.Image) {
+            drawTextureEditor(node)
         }
         editableEnum(node, "scaling", node.scaling, UiSceneScaling.entries.toList()) { scaling ->
             operations.updateSelectedNode { it.copy(scaling = scaling) }
@@ -654,6 +654,85 @@ class UiComposerInspectorPanel(
         }
     }
 
+    private fun drawTextureEditor(node: UiSceneNode) {
+        ImGui.separator()
+        ImGui.textUnformatted("Texture")
+        editableString(node, "texture (manual)", node.texture, emptyAsNull = true) { value ->
+            operations.updateSelectedNode { it.copy(texture = value) }
+        }
+        drawSelectedTextureInfo(node)
+        drawTextureWarning(node)
+        drawTextureSearch(node)
+        drawTexturePicker(node)
+        with(dsl) {
+            button("Refresh Textures##ui_composer_texture_refresh") {
+                state.textureOptionsReloadRequested = true
+                state.statusMessage = "Texture refresh requested."
+            }
+        }
+        ImGui.textWrapped(
+            "Texture picker writes the path string only. No asset-id references, atlas region picker, " +
+                "thumbnail browser, texture import/copy, Asset Browser drag/drop, or runtime behavior change.",
+        )
+    }
+
+    private fun drawSelectedTextureInfo(node: UiSceneNode) {
+        val selected = state.textureOptions.firstOrNull { option -> option.path == node.texture }
+        property("texture display", selected?.displayName)
+        property("texture path", node.texture)
+    }
+
+    private fun drawTextureWarning(node: UiSceneNode) {
+        val textureIssue = (state.validationIssues + state.textureValidationIssues)
+            .firstOrNull { issue -> issue.nodeId == node.id && issue.message.contains("texture", ignoreCase = true) }
+        textureIssue?.let { issue ->
+            ImGui.textWrapped("Warning: ${issue.message}")
+        }
+    }
+
+    private fun drawTextureSearch(node: UiSceneNode) {
+        val buffer = bufferFor(node.id, "textureSearch", state.textureSearchQuery)
+        if (ImGui.inputText("Filter textures##ui_composer_texture_filter_${node.id}", buffer)) {
+            state.textureSearchQuery = readBuffer(buffer)
+        }
+    }
+
+    private fun drawTexturePicker(node: UiSceneNode) {
+        val options = filteredTextureOptions()
+        val selected = state.textureOptions.firstOrNull { option -> option.path == node.texture }
+        val preview = when {
+            node.texture == null -> "<none>"
+            selected != null -> textureOptionLabel(selected)
+            else -> "${node.texture} (not in Asset Registry)"
+        }
+        if (!ImGui.beginCombo("Texture Asset##ui_composer_texture_picker_${node.id}", preview)) return
+
+        if (ImGui.selectable("<none>##ui_composer_texture_picker_${node.id}_none", node.texture == null)) {
+            writeBuffer(bufferFor(node.id, "texture (manual)", node.texture.orEmpty()), "")
+            operations.updateSelectedNode { it.copy(texture = null) }
+        }
+        options.forEach { option ->
+            val optionLabel = textureOptionLabel(option)
+            if (ImGui.selectable("$optionLabel##ui_composer_texture_picker_${node.id}_${option.path}", option.path == node.texture)) {
+                writeBuffer(bufferFor(node.id, "texture (manual)", node.texture.orEmpty()), option.path)
+                operations.updateSelectedNode { it.copy(texture = option.path) }
+            }
+        }
+        if (options.isEmpty()) {
+            ImGui.textWrapped("No texture assets match the current filter.")
+        }
+        ImGui.endCombo()
+    }
+
+    private fun filteredTextureOptions(): List<UiComposerTextureOption> {
+        val query = state.textureSearchQuery.trim().lowercase()
+        if (query.isBlank()) return state.textureOptions
+        // Filtering checks both user-facing name and stored path so manual-path users can search either.
+        return state.textureOptions.filter { option ->
+            option.displayName.lowercase().contains(query) || option.path.lowercase().contains(query)
+        }
+    }
+
     private fun property(
         name: String,
         value: String?,
@@ -772,7 +851,7 @@ class UiComposerDiagnosticsPanel(
         }
         ImGui.textUnformatted("Hovered node: ${state.hoveredNodeId ?: "<none>"}")
 
-        val issues = state.validationIssues + state.styleValidationIssues
+        val issues = state.validationIssues + state.styleValidationIssues + state.textureValidationIssues
         ImGui.textUnformatted("Validation issues: ${issues.size}")
         if (issues.isEmpty() && parseError == null) {
             ImGui.textUnformatted("No validation issues.")
@@ -787,8 +866,10 @@ class UiComposerDiagnosticsPanel(
             "MVP limitations: structure editing is hierarchy/inspector-driven only; preview payload is not saved " +
                 "and is not runtime state; style/background picker reads Skin only and does not edit Skin files; " +
                 "Skin inspection is path-based and falls back to manual text editing when unavailable; " +
-                "style names are not asset ids; canvas interaction is selection-only; no canvas drag/drop; no resize handles; " +
-                "no multi-select; no canvas editing; no Skin editing; no Asset Browser picker yet; no asset-id references; " +
+                "style names are not asset ids; Image texture picker writes paths only and has no atlas region picker, " +
+                "no texture import/copy, no thumbnails, no Asset Browser drag/drop, and no asset-id references; " +
+                "canvas interaction is selection-only; no canvas drag/drop; no resize handles; " +
+                "no multi-select; no canvas editing; no Skin editing; no runtime behavior change; " +
                 "no snapping; no transform gizmos; no custom shape overlay yet; no full Scene2D actor serialization; " +
                 "no layout solver; reload dirty confirmation is toolbar-level only; selected/hover highlight is best-effort.",
         )
@@ -814,6 +895,9 @@ private fun writeBuffer(
     val bytes = value.toByteArray(StandardCharsets.UTF_8)
     bytes.copyInto(buffer, endIndex = bytes.size.coerceAtMost(buffer.size - 1))
 }
+
+private fun textureOptionLabel(option: UiComposerTextureOption): String =
+    "${option.displayName} - ${option.path}"
 
 private fun UiSceneNodeType.isContainerLike(): Boolean =
     this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container

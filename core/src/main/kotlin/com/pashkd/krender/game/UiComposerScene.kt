@@ -7,6 +7,8 @@ import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiComposerSkinMetadataReader
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiScenePreview
+import com.pashkd.krender.engine.assets.AssetImporterRegistry
+import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.uicomposer.UiComposerDiagnosticsPanel
@@ -19,7 +21,9 @@ import com.pashkd.krender.engine.uicomposer.UiComposerPreviewPayloadPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerState
 import com.pashkd.krender.engine.uicomposer.UiComposerStructurePanel
 import com.pashkd.krender.engine.uicomposer.UiComposerToolbarPanel
+import com.pashkd.krender.engine.uicomposer.UiComposerTextureOptionsProvider
 import com.pashkd.krender.engine.uicomposer.UiComposerUiLayoutDefaults
+import com.pashkd.krender.engine.uicomposer.validateTextureReferences
 import com.pashkd.krender.engine.uicomposer.validateStyleReferences
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -49,6 +53,8 @@ class UiComposerScene(
     private lateinit var loader: UiComposerDocumentLoader
     private lateinit var preview: GdxUiScenePreview
     private lateinit var skinMetadataReader: GdxUiComposerSkinMetadataReader
+    private lateinit var textureRegistry: LocalAssetRegistryService
+    private lateinit var textureOptionsProvider: UiComposerTextureOptionsProvider
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
     private lateinit var operations: UiComposerOperations
 
@@ -61,6 +67,11 @@ class UiComposerScene(
         loader = UiComposerDocumentLoader(engine.sceneFiles::readText)
         preview = GdxUiScenePreview(engine.logger)
         skinMetadataReader = GdxUiComposerSkinMetadataReader(engine.logger)
+        textureRegistry = LocalAssetRegistryService(
+            logger = engine.logger,
+            importers = AssetImporterRegistry.withDefaults(engine.logger),
+        )
+        textureOptionsProvider = UiComposerTextureOptionsProvider(textureRegistry)
         val layoutConfig = ImGuiLayoutConfigLoader(
             assetPath = UiComposerUiLayoutDefaults.assetPath,
             fallback = UiComposerUiLayoutDefaults.config,
@@ -68,6 +79,7 @@ class UiComposerScene(
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         operations = UiComposerOperations(composerState, engine, layoutTracker)
 
+        refreshTextureOptions(reason = "initial")
         reloadDocumentAndPreview()
 
         world.systems.add(UiComposerCanvasInteractionSystem(composerState, preview, engine.input))
@@ -81,6 +93,9 @@ class UiComposerScene(
     override fun update(dt: Float) {
         if (composerState.saveRequested) {
             operations.saveDocument()
+        }
+        if (composerState.textureOptionsReloadRequested) {
+            refreshTextureOptions(reason = "manual")
         }
         if (composerState.reloadRequested) {
             reloadDocumentAndPreview()
@@ -133,6 +148,7 @@ class UiComposerScene(
             composerState.selectedActorInfo = null
             composerState.skinMetadata = null
             composerState.styleValidationIssues = emptyList()
+            composerState.textureValidationIssues = emptyList()
             preview.rebuild(null)
             return
         }
@@ -179,6 +195,38 @@ class UiComposerScene(
         }
         composerState.skinMetadata = skinMetadataReader.read(document.skin)
         composerState.styleValidationIssues = validateStyleReferences(document, composerState.skinMetadata)
+        composerState.textureValidationIssues = validateTextureReferences(
+            document = document,
+            textureOptions = composerState.textureOptions,
+            assetTypeByPath = composerState.textureAssetTypesByPath,
+        )
+    }
+
+    private fun refreshTextureOptions(reason: String) {
+        composerState.textureOptionsReloadRequested = false
+        try {
+            val snapshot = textureRegistry.scanSnapshot()
+            textureRegistry.applySnapshot(snapshot)
+            composerState.textureOptions = textureOptionsProvider.listTextureOptions()
+            composerState.textureAssetTypesByPath = textureRegistry.assets.associate { asset -> asset.path to asset.type }
+            composerState.document?.let { document ->
+                composerState.textureValidationIssues = validateTextureReferences(
+                    document = document,
+                    textureOptions = composerState.textureOptions,
+                    assetTypeByPath = composerState.textureAssetTypesByPath,
+                )
+            }
+            composerState.statusMessage = "Indexed ${composerState.textureOptions.size} texture assets."
+            engine.logger.info(TAG) {
+                "UiComposer texture options refreshed reason='$reason' options=${composerState.textureOptions.size} " +
+                    "assets=${snapshot.assets.size} errors=${snapshot.errors.size}"
+            }
+        } catch (error: Exception) {
+            composerState.statusMessage = "Texture refresh failed: ${error.message}"
+            engine.logger.warn(TAG, error) {
+                "UiComposer texture option refresh failed reason='$reason': ${error.message}"
+            }
+        }
     }
 
     private fun createUiSystem(): UiSystem {
