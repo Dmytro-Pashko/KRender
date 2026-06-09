@@ -1646,6 +1646,8 @@ class UiComposerDiagnosticsPanel(
 private const val TextInputBufferSize = 256
 private const val MaxCustomPreviewSize = 8192
 private const val ZoomButtonStep = 1.25f
+private const val ActorPreviewBoxSize = 100f
+private const val UiComposerInspectorTag = "UiComposerInspectorPanel"
 
 private fun formatFloat(value: Float): String =
     if (value % 1f == 0f) value.toInt().toString() else "%.3f".format(value).trimEnd('0').trimEnd('.')
@@ -1709,6 +1711,8 @@ private fun textureOptionLabel(option: UiComposerTextureOption): String =
 
 private fun payloadInputId(key: String): String =
     key.filter { char -> char.isLetterOrDigit() || char == '_' || char == '-' }.ifBlank { "key" }
+
+private val BindingPlaceholderRegex = Regex("""\{([^{}]+)}""")
 
 private fun UiSceneNodeType.isContainerLike(): Boolean =
     this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container

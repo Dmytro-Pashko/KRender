@@ -1,5 +1,6 @@
 package com.pashkd.krender.game
 
+import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Key
@@ -237,6 +238,10 @@ class UiComposerScene(
             val snapshot = textureRegistry.scanSnapshot()
             textureRegistry.applySnapshot(snapshot)
             composerState.textureOptions = textureOptionsProvider.listTextureOptions()
+            val queuedTexturePreviewCount = composerState.textureOptions.size
+            composerState.textureOptions.forEach { option ->
+                engine.assets.queue(AssetRef.texture(option.path))
+            }
             composerState.textureAssetTypesByPath = textureRegistry.assets.associate { asset -> asset.path to asset.type }
             composerState.document?.let { document ->
                 refreshUiComposerValidationBuckets(composerState, document)
@@ -244,7 +249,7 @@ class UiComposerScene(
             composerState.statusMessage = "Indexed ${composerState.textureOptions.size} texture assets."
             engine.logger.info(TAG) {
                 "UiComposer texture options refreshed reason='$reason' options=${composerState.textureOptions.size} " +
-                    "assets=${snapshot.assets.size} errors=${snapshot.errors.size}"
+                    "queuedTexturePreviews=$queuedTexturePreviewCount assets=${snapshot.assets.size} errors=${snapshot.errors.size}"
             }
         } catch (error: Exception) {
             composerState.statusMessage = "Texture refresh failed: ${error.message}"
@@ -271,7 +276,20 @@ class UiComposerScene(
             addPanel(uiSystem, "PreviewCanvas", UiComposerPreviewCanvasPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Hierarchy", UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Structure", UiComposerStructurePanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
-            addPanel(uiSystem, "Inspector", UiComposerInspectorPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
+            addPanel(
+                uiSystem,
+                "Inspector",
+                UiComposerInspectorPanel(
+                    composerState,
+                    operations,
+                    engine.assets,
+                    engine.ui,
+                    engine.logger,
+                    layoutConfig,
+                    layoutTracker,
+                    panelEventLogger,
+                ),
+            )
             addPanel(uiSystem, "SceneBindings", UiComposerSceneBindingsPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Diagnostics", UiComposerDiagnosticsPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(

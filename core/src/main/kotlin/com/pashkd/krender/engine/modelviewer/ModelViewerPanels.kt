@@ -860,25 +860,15 @@ private fun drawTextureSlotPreview(
         return
     }
 
-    val previewSize = TexturePreviewSize
-    val aspect = if (handle.height > 0) handle.width.toFloat() / handle.height.toFloat() else 1f
-    val width = when {
-        aspect >= 1f -> previewSize
-        else -> previewSize * aspect
-    }.coerceAtLeast(MinTexturePreviewSide)
-    val height = when {
-        aspect >= 1f -> previewSize / aspect
-        else -> previewSize
-    }.coerceAtLeast(MinTexturePreviewSide)
-
-    if (!ui.drawTexturePreview(handle, width, height)) {
+    if (!ui.drawTexturePreview(handle, TexturePreviewSize, TexturePreviewSize)) {
         ImGui.text("Preview unavailable.")
+        return
     }
+    ImGui.textUnformatted("Size: ${handle.width} x ${handle.height}")
 }
 
 private fun textLine(text: String) {
     ImGui.textUnformatted(text)
 }
 
-private const val TexturePreviewSize = 96f
-private const val MinTexturePreviewSide = 16f
+private const val TexturePreviewSize = 100f
