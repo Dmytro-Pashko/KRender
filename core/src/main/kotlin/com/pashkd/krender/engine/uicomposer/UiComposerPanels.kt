@@ -10,6 +10,7 @@ import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
 import com.pashkd.krender.engine.ui.scene.UiSceneScaling
+import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
 import imgui.ImGui
 import imgui.dsl
 import java.nio.charset.StandardCharsets
@@ -369,6 +370,11 @@ class UiComposerInspectorPanel(
         property("type", node.type.name)
         editableBoolean(node, "visible", node.visible) { visible ->
             operations.updateSelectedNode { it.copy(visible = visible) }
+        }
+        if (node.type == UiSceneNodeType.Table) {
+            editableEnum(node, "tableOrientation", node.tableOrientation, UiSceneTableOrientation.entries.toList()) { orientation ->
+                operations.updateSelectedNode { it.copy(tableOrientation = orientation) }
+            }
         }
         drawSkinPickerWarning(document, skinMetadata)
         drawStyleEditor(node, skinMetadata)
@@ -870,6 +876,8 @@ class UiComposerDiagnosticsPanel(
                 "no texture import/copy, no thumbnails, no Asset Browser drag/drop, and no asset-id references; " +
                 "canvas interaction is selection-only; no canvas drag/drop; no resize handles; " +
                 "no multi-select; no canvas editing; no Skin editing; no runtime behavior change; " +
+                "Table supports only simple Vertical or Horizontal orientation; no per-cell expand/fill, " +
+                "colspan/rowspan, wrapping, grid, or flex layout yet; " +
                 "no snapping; no transform gizmos; no custom shape overlay yet; no full Scene2D actor serialization; " +
                 "no layout solver; reload dirty confirmation is toolbar-level only; selected/hover highlight is best-effort.",
         )

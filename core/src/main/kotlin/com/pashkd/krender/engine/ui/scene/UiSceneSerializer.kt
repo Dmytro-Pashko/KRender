@@ -90,6 +90,12 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
             align = node.enumOrNull("align", DocumentName, UiSceneAlign::valueOf),
             padding = readSpacing(node["padding"]),
             spacing = node.floatOrDefault("spacing", 0f),
+            tableOrientation = node.enumOrDefault(
+                "tableOrientation",
+                DocumentName,
+                UiSceneTableOrientation.Vertical,
+                UiSceneTableOrientation::valueOf,
+            ),
             children = readChildren(node["children"], node.stringOrDefault("id", context)),
         )
     }
@@ -141,6 +147,7 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
             putIfNotNull("align", align?.name)
             putIfNonZero("padding", padding)
             putIfNonDefault("spacing", spacing, 0f)
+            putIfNonDefault("tableOrientation", tableOrientation.name, UiSceneTableOrientation.Vertical.name)
             if (children.isNotEmpty()) {
                 put(
                     "children",

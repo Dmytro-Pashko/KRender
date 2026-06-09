@@ -10,6 +10,7 @@ import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
+import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -332,6 +333,20 @@ internal class UiComposerModelTest {
     }
 
     @Test
+    internal fun `updateNode can change Table orientation`() {
+        val document = editableDocument()
+
+        val updated = document.updateNode("panel") { node ->
+            node.copy(tableOrientation = UiSceneTableOrientation.Horizontal)
+        }
+
+        assertEquals(
+            UiSceneTableOrientation.Horizontal,
+            findUiSceneNodeById(updated.root, "panel")?.tableOrientation,
+        )
+    }
+
+    @Test
     internal fun `addChildNode adds child to selected parent`() {
         val document = editableDocument()
 
@@ -458,6 +473,10 @@ internal class UiComposerModelTest {
     internal fun `createDefaultUiSceneNode creates sensible defaults`() {
         assertEquals(emptyList(), createDefaultUiSceneNode(UiSceneNodeType.Stack, "stack").children)
         assertEquals(8f, createDefaultUiSceneNode(UiSceneNodeType.Table, "table").spacing)
+        assertEquals(
+            UiSceneTableOrientation.Vertical,
+            createDefaultUiSceneNode(UiSceneNodeType.Table, "table").tableOrientation,
+        )
         assertEquals(UiSceneAlign.Center, createDefaultUiSceneNode(UiSceneNodeType.Container, "container").align)
         assertEquals("Label", createDefaultUiSceneNode(UiSceneNodeType.Label, "label").text)
         assertEquals("Button", createDefaultUiSceneNode(UiSceneNodeType.TextButton, "button").text)

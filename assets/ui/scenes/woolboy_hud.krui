@@ -41,55 +41,7 @@
         ]
       },
       {
-        "id": "life_1_container",
-        "type": "Container",
-        "align": "TopRight",
-        "padding": {
-          "top": 32,
-          "right": 144
-        },
-        "children": [
-          {
-            "id": "life_1_table",
-            "type": "Table",
-            "children": [
-              {
-                "id": "life_1",
-                "type": "Image",
-                "texture": "{life1Texture}",
-                "width": 48,
-                "height": 48
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "life_2_container",
-        "type": "Container",
-        "align": "TopRight",
-        "padding": {
-          "top": 32,
-          "right": 88
-        },
-        "children": [
-          {
-            "id": "life_2_table",
-            "type": "Table",
-            "children": [
-              {
-                "id": "life_2",
-                "type": "Image",
-                "texture": "{life2Texture}",
-                "width": 48,
-                "height": 48
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "life_3_container",
+        "id": "lives_container",
         "type": "Container",
         "align": "TopRight",
         "padding": {
@@ -98,9 +50,25 @@
         },
         "children": [
           {
-            "id": "life_3_table",
+            "id": "lives_row",
             "type": "Table",
+            "spacing": 8,
+            "tableOrientation": "Horizontal",
             "children": [
+              {
+                "id": "life_1",
+                "type": "Image",
+                "texture": "{life1Texture}",
+                "width": 48,
+                "height": 48
+              },
+              {
+                "id": "life_2",
+                "type": "Image",
+                "texture": "{life2Texture}",
+                "width": 48,
+                "height": 48
+              },
               {
                 "id": "life_3",
                 "type": "Image",

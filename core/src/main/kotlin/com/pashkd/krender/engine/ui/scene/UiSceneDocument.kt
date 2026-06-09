@@ -39,6 +39,18 @@ enum class UiSceneNodeType {
 }
 
 /**
+ * Simple child flow direction for `.krui` Table nodes.
+ *
+ * This belongs to the shared `.krui` layout model. It intentionally keeps the
+ * Table MVP small: no per-cell config, no colspan/rowspan, no expand/fill, no
+ * wrapping, no grid/flex layout, and no absolute positioning.
+ */
+enum class UiSceneTableOrientation {
+    Vertical,
+    Horizontal,
+}
+
+/**
  * One generic `.krui` node used by runtime loading and the future UI Composer.
  *
  * The schema keeps JSON simple and editor-friendly while limiting behavior to a
@@ -67,6 +79,15 @@ data class UiSceneNode(
     val align: UiSceneAlign? = null,
     val padding: UiSceneSpacing = UiSceneSpacing.zero(),
     val spacing: Float = 0f,
+    /**
+     * Child flow direction for Table nodes.
+     *
+     * Only used when [type] is [UiSceneNodeType.Table]. `Vertical` preserves the
+     * original behavior where every child is added as a new Scene2D Table row.
+     * `Horizontal` places all children in one row. Other node types ignore this
+     * field.
+     */
+    val tableOrientation: UiSceneTableOrientation = UiSceneTableOrientation.Vertical,
     val children: List<UiSceneNode> = emptyList(),
 )
 

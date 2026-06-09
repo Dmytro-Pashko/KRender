@@ -58,6 +58,62 @@ class UiSceneSerializerTest {
     }
 
     @Test
+    fun `Table orientation defaults to Vertical when omitted`() {
+        val json = """
+            {
+              "schemaVersion": 1,
+              "id": "table_test",
+              "skin": "ui/skins/craftacular-ui.json",
+              "root": {
+                "id": "root",
+                "type": "Table"
+              }
+            }
+        """.trimIndent()
+
+        val document = serializer.decode(json)
+
+        assertEquals(UiSceneTableOrientation.Vertical, document.root.tableOrientation)
+    }
+
+    @Test
+    fun `Table orientation deserializes Horizontal`() {
+        val json = """
+            {
+              "schemaVersion": 1,
+              "id": "table_test",
+              "skin": "ui/skins/craftacular-ui.json",
+              "root": {
+                "id": "root",
+                "type": "Table",
+                "tableOrientation": "Horizontal"
+              }
+            }
+        """.trimIndent()
+
+        val document = serializer.decode(json)
+
+        assertEquals(UiSceneTableOrientation.Horizontal, document.root.tableOrientation)
+    }
+
+    @Test
+    fun `serializer preserves Horizontal table orientation`() {
+        val document = UiSceneDocument(
+            id = "table_test",
+            skin = "ui/skins/craftacular-ui.json",
+            root = UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Table,
+                tableOrientation = UiSceneTableOrientation.Horizontal,
+            ),
+        )
+
+        val decoded = serializer.decode(serializer.encode(document))
+
+        assertEquals(UiSceneTableOrientation.Horizontal, decoded.root.tableOrientation)
+    }
+
+    @Test
     fun `binding helpers replace known placeholders and keep missing placeholders`() {
         val text = UiSceneBindings.bindText(
             "Score: {scores} Health: {healthLabel} Missing: {missing}",

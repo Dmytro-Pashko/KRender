@@ -4,6 +4,7 @@ import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
+import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
 
 /**
  * Replaces one node in a `.krui` document tree by id.
@@ -214,7 +215,12 @@ fun createDefaultUiSceneNode(
 ): UiSceneNode =
     when (type) {
         UiSceneNodeType.Stack -> UiSceneNode(id = id, type = type)
-        UiSceneNodeType.Table -> UiSceneNode(id = id, type = type, spacing = 8f)
+        UiSceneNodeType.Table -> UiSceneNode(
+            id = id,
+            type = type,
+            spacing = 8f,
+            tableOrientation = UiSceneTableOrientation.Vertical,
+        )
         UiSceneNodeType.Container -> UiSceneNode(id = id, type = type, align = UiSceneAlign.Center)
         UiSceneNodeType.Label -> UiSceneNode(id = id, type = type, text = "Label")
         UiSceneNodeType.TextButton -> UiSceneNode(id = id, type = type, text = "Button", action = "action.todo")

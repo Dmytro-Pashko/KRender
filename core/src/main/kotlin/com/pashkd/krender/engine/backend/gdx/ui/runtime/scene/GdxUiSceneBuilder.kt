@@ -26,6 +26,7 @@ import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
 import com.pashkd.krender.engine.ui.scene.UiSceneScaling
 import com.pashkd.krender.engine.ui.scene.UiSceneSpacing
+import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
 
 /**
  * Builds LibGDX Scene2D actors from shared `.krui` documents.
@@ -142,14 +143,15 @@ class GdxUiSceneBuilder(
             applyBackground(node, skin)
             node.children.forEachIndexed { index, child ->
                 val childActor = buildNode(child, skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
-                // MVP layout rule:
-                // `.krui` Table currently adds every child as a new row. This intentionally
-                // keeps the runtime builder simple while UI Composer is not implemented yet.
-                // Horizontal rows/cell metadata can be added later as an explicit schema change.
-                add(childActor)
-                    .applyNodeSize(child)
-                    .padBottom(if (index < node.children.lastIndex) node.spacing else 0f)
-                row()
+                val cell = add(childActor).applyNodeSize(child)
+                // Table orientation is intentionally limited to vertical rows or one horizontal row.
+                // Per-cell config, wrapping, expand/fill, and grid/flex layout are out of scope.
+                if (node.tableOrientation == UiSceneTableOrientation.Vertical) {
+                    cell.padBottom(if (index < node.children.lastIndex) node.spacing else 0f)
+                    row()
+                } else {
+                    cell.padRight(if (index < node.children.lastIndex) node.spacing else 0f)
+                }
             }
         }
 
