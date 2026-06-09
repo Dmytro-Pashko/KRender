@@ -1022,24 +1022,11 @@ class UiComposerInspectorPanel(
         }
 
         property("Texture", resolvedPath)
-        property("Texture status", if (textureExists(resolvedPath)) "found" else "missing from Asset Registry")
-        val handle = assets.texturePreviewHandle(resolvedPath)
-        if (handle == null) {
-            val reason = texturePreviewUnavailableReason(resolvedPath)
-            ImGui.textWrapped("Texture preview unavailable: $reason")
-            logPreviewDiagnosticOnce(
-                key = "texture:$resolvedPath:$reason",
-                message = "UiComposer actor texture preview unavailable path='$resolvedPath': $reason",
-            )
-            return
-        }
-
-        drawPreviewHandle(
-            handle = handle,
-            failureKey = "texture:$resolvedPath:draw-failed:${handle.id}",
-            failureMessage = { reason -> "UiComposer actor texture preview draw failed path='$resolvedPath': $reason" },
+        property(
+            "Texture status",
+            if (textureExists(resolvedPath)) "found" else "missing from Asset Registry",
         )
-        property("Image size", previewHandleSize(handle))
+        drawTexturePreview(resolvedPath)
     }
 
     private fun drawContainerPreview(node: UiSceneNode) {
@@ -1053,6 +1040,26 @@ class UiComposerInspectorPanel(
             property("Spacing", node.spacing.toString())
         }
         property("Padding", paddingSummary(node))
+    }
+
+    private fun drawTexturePreview(path: String) {
+        val handle = assets.texturePreviewHandle(path)
+        if (handle == null) {
+            val reason = texturePreviewUnavailableReason(path)
+            ImGui.textWrapped("Texture preview unavailable: $reason")
+            logPreviewDiagnosticOnce(
+                key = "texture:$path:$reason",
+                message = "UiComposer actor texture preview unavailable path='$path': $reason",
+            )
+            return
+        }
+
+        drawPreviewHandle(
+            handle = handle,
+            failureKey = "texture:$path:draw-failed:${handle.id}",
+            failureMessage = { reason -> "UiComposer actor texture preview draw failed path='$path': $reason" },
+        )
+        property("Image size", previewHandleSize(handle))
     }
 
     private fun drawBackgroundPreview(drawableName: String) {
@@ -1086,7 +1093,58 @@ class UiComposerInspectorPanel(
         if (!ui.drawTexturePreview(handle, ActorPreviewBoxSize, ActorPreviewBoxSize)) {
             val reason = "UI backend rejected texture handle id=${handle.id} size=${handle.width}x${handle.height}."
             ImGui.textWrapped("Preview unavailable: $reason")
-            logPreviewDiagnosticOnce(failureKey, failureMessage(reason))
+            logPreviewDiagnosticOnce(
+                key = failureKey,
+                message = failureMessage(reason),
+            )
+        }
+    }
+
+    private fun drawStyleStatus(node: UiSceneNode) {
+        val styleName = runtimeStyleName(node)
+        val explicitStyle = node.style?.takeIf(String::isNotBlank)
+        property(
+            "Style",
+            when {
+                styleName == null -> "<none>"
+                explicitStyle == null -> "$styleName (implicit)"
+                else -> styleName
+            },
+        )
+
+        val styleOptions = styleName?.let { styleOptionsFor(node.type, state.skinMetadata) }
+        when {
+            styleName == null -> ImGui.textUnformatted("Style preview not applicable.")
+            state.skinMetadata == null -> {
+                val reason = "Skin metadata is not loaded."
+                ImGui.textUnformatted("Style metadata unavailable: $reason")
+                logPreviewDiagnosticOnce(
+                    key = "style:${node.type}:${node.id}:metadata-null",
+                    message = "UiComposer actor style preview unavailable node='${node.id}' type=${node.type}: $reason",
+                )
+            }
+            state.skinMetadata?.loadError != null -> {
+                val reason = state.skinMetadata?.loadError.orEmpty()
+                ImGui.textWrapped("Style metadata unavailable: $reason")
+                logPreviewDiagnosticOnce(
+                    key = "style:${node.type}:${node.id}:metadata-error:$reason",
+                    message = "UiComposer actor style preview unavailable node='${node.id}' type=${node.type}: $reason",
+                )
+            }
+            styleOptions == null -> ImGui.textUnformatted("Style preview not applicable.")
+            styleOptions.contains(styleName) -> {
+                property("Style status", "found")
+                property("Known styles", styleOptions.joinToString(", "))
+            }
+            else -> {
+                property("Style status", "missing from Skin")
+                property("Known styles", styleOptions.joinToString(", ").ifBlank { "<none>" })
+                logPreviewDiagnosticOnce(
+                    key = "style:${node.type}:$styleName:missing",
+                    message = "UiComposer actor style preview missing style node='${node.id}' type=${node.type} " +
+                        "style='$styleName' knownStyles=${styleOptions.joinToString(",")}",
+                )
+            }
         }
     }
 
@@ -1098,6 +1156,12 @@ class UiComposerInspectorPanel(
             null -> ImGui.textUnformatted("Style metadata unavailable.")
         }
     }
+
+    private fun resolveBindingText(value: String?): String =
+        BindingPlaceholderRegex.replace(value.orEmpty()) { match ->
+            val key = match.groupValues[1].trim()
+            state.previewPayload[key] ?: "<missing:$key>"
+        }
 
     private fun resolveTexturePath(texture: String?): String? {
         val raw = texture?.trim().orEmpty()
@@ -1114,6 +1178,15 @@ class UiComposerInspectorPanel(
     private fun isBindingPlaceholder(value: String): Boolean =
         BindingPlaceholderRegex.matches(value)
 
+    private fun resolvedProgressValue(node: UiSceneNode): Float? {
+        val bindingKey = node.valueBinding?.trim().orEmpty()
+        return if (bindingKey.isNotBlank()) {
+            state.previewPayload[bindingKey]?.toFloatOrNull()
+        } else {
+            node.value
+        }
+    }
+
     private fun textureExists(path: String): Boolean =
         state.textureOptions.any { option -> option.path == path }
 
@@ -1128,9 +1201,22 @@ class UiComposerInspectorPanel(
         }
     }
 
-    private fun drawableExists(drawableName: String): Boolean? {
-        val metadata = state.skinMetadata?.takeUnless { it.loadError != null } ?: return null
-        return metadata.drawables.contains(drawableName)
+    private fun previewHandleSize(handle: TexturePreviewHandle): String =
+        "${handle.width} x ${handle.height}"
+
+    private fun runtimeStyleName(node: UiSceneNode): String? {
+        val explicitStyle = node.style?.takeIf(String::isNotBlank)
+        return when (node.type) {
+            UiSceneNodeType.Label -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.TextButton -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.ProgressBar -> explicitStyle ?: DefaultProgressBarStyle
+            UiSceneNodeType.Stack,
+            UiSceneNodeType.Table,
+            UiSceneNodeType.Container,
+            UiSceneNodeType.Image,
+            UiSceneNodeType.Space,
+                -> null
+        }
     }
 
     private fun logPreviewDiagnosticOnce(
@@ -1142,8 +1228,13 @@ class UiComposerInspectorPanel(
         }
     }
 
-    private fun previewHandleSize(handle: TexturePreviewHandle): String =
-        "${handle.width} x ${handle.height}"
+    private fun drawableExists(drawableName: String): Boolean? {
+        val metadata = state.skinMetadata?.takeUnless { it.loadError != null } ?: return null
+        return metadata.drawables.contains(drawableName)
+    }
+
+    private fun buttonPreviewText(text: String): String =
+        text.ifBlank { " " }
 
     private fun paddingSummary(node: UiSceneNode): String =
         "L ${node.padding.left}, T ${node.padding.top}, R ${node.padding.right}, B ${node.padding.bottom}"
@@ -1663,6 +1754,8 @@ private const val TextInputBufferSize = 256
 private const val MaxCustomPreviewSize = 8192
 private const val ZoomButtonStep = 1.25f
 private const val ActorPreviewBoxSize = 100f
+private const val DefaultScene2dStyle = "default"
+private const val DefaultProgressBarStyle = "default-horizontal"
 private const val UiComposerInspectorTag = "UiComposerInspectorPanel"
 
 private fun formatFloat(value: Float): String =

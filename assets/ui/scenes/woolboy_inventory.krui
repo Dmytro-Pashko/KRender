@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "id": "woolboy_inventory",
+  "skin": "ui/skins/craftacular-ui.json",
+  "root": {
+    "id": "root",
+    "type": "Stack",
+    "children": [
+      {
+        "id": "container",
+        "type": "Container",
+        "width": 0.0,
+        "height": 0.0,
+        "children": [
+          {
+            "id": "table",
+            "type": "Table",
+            "background": "window",
+            "spacing": 8.0,
+            "children": [
+              {
+                "id": "container_1",
+                "type": "Container",
+                "align": "Left",
+                "children": [
+                  {
+                    "id": "table_1",
+                    "type": "Table",
+                    "padding": {
+                      "left": 16.0,
+                      "top": 16.0,
+                      "right": 16.0,
+                      "bottom": 16.0
+                    },
+                    "spacing": 16.0,
+                    "tableOrientation": "Horizontal",
+                    "children": [
+                      {
+                        "id": "image",
+                        "type": "Image",
+                        "texture": "textures/uv_checker_1k.png",
+                        "width": 75.0,
+                        "height": 75.0
+                      },
+                      {
+                        "id": "label",
+                        "type": "Label",
+                        "text": "NPC Name"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "container_2",
+                "type": "Container",
+                "padding": {
+                  "left": 32.0,
+                  "top": 0.0,
+                  "right": 32.0,
+                  "bottom": 32.0
+                },
+                "children": [
+                  {
+                    "id": "label_1",
+                    "type": "Label",
+                    "style": "default",
+                    "text": "Long Long Text"
+                  }
+                ]
+              },
+              {
+                "id": "bu",
+                "type": "Container",
+                "align": "Center",
+                "padding": {
+                  "left": 16.0,
+                  "top": 16.0,
+                  "right": 16.0,
+                  "bottom": 16.0
+                },
+                "children": [
+                  {
+                    "id": "table_2",
+                    "type": "Table",
+                    "spacing": 8.0,
+                    "tableOrientation": "Horizontal",
+                    "children": [
+                      {
+                        "id": "cancel",
+                        "type": "TextButton",
+                        "text": "Confirm",
+                        "action": "action.todo",
+                        "width": 200.0,
+                        "height": 60.0
+                      },
+                      {
+                        "id": "button_1",
+                        "type": "TextButton",
+                        "text": "Cancel",
+                        "action": "action.todo",
+                        "width": 200.0,
+                        "height": 60.0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
