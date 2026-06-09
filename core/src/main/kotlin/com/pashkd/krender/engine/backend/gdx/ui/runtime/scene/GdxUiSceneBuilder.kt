@@ -19,6 +19,7 @@ import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.Scaling
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiActionHandler
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiBindingContract
 import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneBindings
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
@@ -72,6 +73,8 @@ class GdxUiSceneBuilder(
         actionHandler: RuntimeUiActionHandler?,
         onActorBuilt: ((UiSceneNode, Actor) -> Unit)? = null,
     ): Actor {
+        RuntimeUiBindingContract.requirePayload(document, payload)
+
         // TODO: Replace this path cache with AssetService-backed loading and explicit lifetime tracking.
         val skin = skin(document.skin)
         return buildNode(

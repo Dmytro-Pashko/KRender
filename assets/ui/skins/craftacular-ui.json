@@ -119,10 +119,6 @@
 		"background": "slider",
 		"knob": "slider-knob"
 	},
-	"hunger": {
-		"background": "meat-bg",
-		"knobAfter": "meat"
-	},
 	"health": {
 		"background": "heart-bg",
 		"knobBefore": "heart"
@@ -130,10 +126,6 @@
 	"xp": {
 		"background": "xp-bg",
 		"knobBefore": "xp"
-	},
-	"armor": {
-		"background": "armor-bg",
-		"knobBefore": "armor"
 	}
 },
 "ScrollPaneStyle": {

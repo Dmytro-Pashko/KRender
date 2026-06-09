@@ -1,12 +1,18 @@
 package com.pashkd.krender.engine.uicomposer
 
+import com.pashkd.krender.engine.api.AssetRef
+import com.pashkd.krender.engine.api.AssetService
+import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
+import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
@@ -461,11 +467,15 @@ class UiComposerStructurePanel(
 class UiComposerInspectorPanel(
     private val state: UiComposerState,
     private val operations: UiComposerOperations,
+    private val assets: AssetService,
+    private val ui: UiService,
+    private val logger: Logger,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private val editBuffers = mutableMapOf<String, ByteArray>()
+    private val loggedPreviewDiagnostics = mutableSetOf<String>()
 
     /** Draws document details or selected-node scalar editing controls. */
     override fun draw() {
@@ -523,50 +533,117 @@ class UiComposerInspectorPanel(
         editableBoolean(node, "visible", node.visible) { visible ->
             operations.updateSelectedNode { it.copy(visible = visible) }
         }
-        if (node.type == UiSceneNodeType.Table) {
-            editableEnum(node, "tableOrientation", node.tableOrientation, UiSceneTableOrientation.entries.toList()) { orientation ->
-                operations.updateSelectedNode { it.copy(tableOrientation = orientation) }
-            }
-        }
-        drawSkinPickerWarning(document, skinMetadata)
-        drawStyleEditor(node, skinMetadata)
-        drawBackgroundEditor(node, skinMetadata)
         ImGui.separator()
+        drawSkinBackedFields(document, node, skinMetadata)
+        drawTypeSpecificFields(node)
+        drawCommonSizeFields(node)
+        ImGui.separator()
+        drawStructureContext(document, node)
+        property("child count", node.children.size.toString())
+        ImGui.separator()
+        drawActorInfo(node)
+    }
+
+    private fun drawSkinBackedFields(
+        document: UiSceneDocument,
+        node: UiSceneNode,
+        skinMetadata: UiComposerSkinMetadata?,
+    ) {
+        when (node.type) {
+            UiSceneNodeType.Label,
+            UiSceneNodeType.TextButton,
+            UiSceneNodeType.ProgressBar,
+                -> {
+                drawSkinPickerWarning(document, skinMetadata)
+                drawStyleEditor(node, skinMetadata)
+                ImGui.separator()
+            }
+
+            UiSceneNodeType.Table,
+            UiSceneNodeType.Container,
+                -> {
+                drawSkinPickerWarning(document, skinMetadata)
+                drawBackgroundEditor(node, skinMetadata)
+                ImGui.separator()
+            }
+
+            UiSceneNodeType.Stack,
+            UiSceneNodeType.Image,
+            UiSceneNodeType.Space,
+                -> Unit
+        }
+    }
+
+    private fun drawTypeSpecificFields(node: UiSceneNode) {
+        when (node.type) {
+            UiSceneNodeType.Label -> {
+                drawTextEditor(node)
+                drawAlignEditor(node)
+            }
+
+            UiSceneNodeType.TextButton -> {
+                drawTextEditor(node)
+                drawActionEditor(node)
+            }
+
+            UiSceneNodeType.Image -> {
+                drawTextureEditor(node)
+                drawImageScalingEditor(node)
+            }
+
+            UiSceneNodeType.ProgressBar -> {
+                drawProgressBarEditor(node)
+            }
+
+            UiSceneNodeType.Table -> {
+                drawTableLayoutEditor(node)
+            }
+
+            UiSceneNodeType.Container -> {
+                drawContainerLayoutEditor(node)
+            }
+
+            UiSceneNodeType.Stack,
+            UiSceneNodeType.Space,
+                -> Unit
+        }
+    }
+
+    private fun drawTextEditor(node: UiSceneNode) {
         editableString(node, "text", node.text, emptyAsNull = false) { value ->
             operations.updateSelectedNode { it.copy(text = value ?: "") }
         }
-        if (node.type == UiSceneNodeType.Label || node.type == UiSceneNodeType.TextButton) {
-            drawPlaceholderBindingControls(
-                node = node,
-                fieldName = "text",
-                comboLabel = "Text Binding",
-                buttonLabel = "Insert into text",
-                current = node.text.orEmpty(),
-                separatorAfterButton = true,
-            ) { next ->
-                writeBuffer(bufferFor(node.id, "text", node.text.orEmpty()), next)
-                operations.updateSelectedNode { it.copy(text = next) }
-            }
+        drawPlaceholderBindingControls(
+            node = node,
+            fieldName = "text",
+            comboLabel = "Text Binding",
+            buttonLabel = "Insert into text",
+            current = node.text.orEmpty(),
+            separatorAfterButton = true,
+        ) { next ->
+            writeBuffer(bufferFor(node.id, "text", node.text.orEmpty()), next)
+            operations.updateSelectedNode { it.copy(text = next) }
         }
+    }
+
+    private fun drawActionEditor(node: UiSceneNode) {
         editableString(node, "action", node.action, emptyAsNull = true) { value ->
             operations.updateSelectedNode { it.copy(action = value) }
         }
-        if (node.type == UiSceneNodeType.TextButton) {
-            drawPlaceholderBindingControls(
-                node = node,
-                fieldName = "action",
-                comboLabel = "Action Binding",
-                buttonLabel = "Insert into action",
-                current = node.action.orEmpty(),
-                separatorAfterButton = true,
-            ) { next ->
-                writeBuffer(bufferFor(node.id, "action", node.action.orEmpty()), next)
-                operations.updateSelectedNode { it.copy(action = next) }
-            }
+        drawPlaceholderBindingControls(
+            node = node,
+            fieldName = "action",
+            comboLabel = "Action Binding",
+            buttonLabel = "Insert into action",
+            current = node.action.orEmpty(),
+            separatorAfterButton = true,
+        ) { next ->
+            writeBuffer(bufferFor(node.id, "action", node.action.orEmpty()), next)
+            operations.updateSelectedNode { it.copy(action = next) }
         }
-        if (node.type == UiSceneNodeType.Image) {
-            drawTextureEditor(node)
-        }
+    }
+
+    private fun drawImageScalingEditor(node: UiSceneNode) {
         editableEnum(
             node,
             "scaling",
@@ -576,6 +653,9 @@ class UiComposerInspectorPanel(
         ) { scaling ->
             operations.updateSelectedNode { it.copy(scaling = scaling) }
         }
+    }
+
+    private fun drawProgressBarEditor(node: UiSceneNode) {
         editableFloat(
             node,
             "value",
@@ -594,9 +674,7 @@ class UiComposerInspectorPanel(
         ) { value ->
             operations.updateSelectedNode { it.copy(valueBinding = value) }
         }
-        if (node.type == UiSceneNodeType.ProgressBar) {
-            drawProgressBarBindingControls(node)
-        }
+        drawProgressBarBindingControls(node)
         editableFloat(
             node,
             "min",
@@ -624,24 +702,9 @@ class UiComposerInspectorPanel(
         ) { value ->
             operations.updateSelectedNode { it.copy(step = value ?: it.step) }
         }
-        editableFloat(
-            node,
-            "width",
-            node.width,
-            allowNull = true,
-            tooltip = "Preferred widget width. Blank lets layout choose the width.",
-        ) { value ->
-            operations.updateSelectedNode { it.copy(width = value) }
-        }
-        editableFloat(
-            node,
-            "height",
-            node.height,
-            allowNull = true,
-            tooltip = "Preferred widget height. Blank lets layout choose the height.",
-        ) { value ->
-            operations.updateSelectedNode { it.copy(height = value) }
-        }
+    }
+
+    private fun drawAlignEditor(node: UiSceneNode) {
         editableOptionalEnum(
             node,
             "align",
@@ -651,6 +714,30 @@ class UiComposerInspectorPanel(
         ) { align ->
             operations.updateSelectedNode { it.copy(align = align) }
         }
+    }
+
+    private fun drawTableLayoutEditor(node: UiSceneNode) {
+        editableEnum(node, "tableOrientation", node.tableOrientation, UiSceneTableOrientation.entries.toList()) { orientation ->
+            operations.updateSelectedNode { it.copy(tableOrientation = orientation) }
+        }
+        drawPaddingEditor(node)
+        editableFloat(
+            node,
+            "spacing",
+            node.spacing,
+            allowNull = false,
+            tooltip = "Gap between children in Table layout.",
+        ) { value ->
+            operations.updateSelectedNode { it.copy(spacing = value ?: it.spacing) }
+        }
+    }
+
+    private fun drawContainerLayoutEditor(node: UiSceneNode) {
+        drawAlignEditor(node)
+        drawPaddingEditor(node)
+    }
+
+    private fun drawPaddingEditor(node: UiSceneNode) {
         editableFloat(
             node,
             "padding.left",
@@ -687,20 +774,27 @@ class UiComposerInspectorPanel(
         ) { value ->
             operations.updateSelectedNode { it.copy(padding = it.padding.copy(bottom = value ?: it.padding.bottom)) }
         }
+    }
+
+    private fun drawCommonSizeFields(node: UiSceneNode) {
         editableFloat(
             node,
-            "spacing",
-            node.spacing,
-            allowNull = false,
-            tooltip = "Gap between children in Table layout.",
+            "width",
+            node.width,
+            allowNull = true,
+            tooltip = "Preferred widget width. Blank lets layout choose the width.",
         ) { value ->
-            operations.updateSelectedNode { it.copy(spacing = value ?: it.spacing) }
+            operations.updateSelectedNode { it.copy(width = value) }
         }
-        ImGui.separator()
-        drawStructureContext(document, node)
-        property("child count", node.children.size.toString())
-        ImGui.separator()
-        drawActorInfo(node)
+        editableFloat(
+            node,
+            "height",
+            node.height,
+            allowNull = true,
+            tooltip = "Preferred widget height. Blank lets layout choose the height.",
+        ) { value ->
+            operations.updateSelectedNode { it.copy(height = value) }
+        }
     }
 
     private fun drawStructureContext(
@@ -865,14 +959,177 @@ class UiComposerInspectorPanel(
         val actorInfo = state.selectedActorInfo
         if (actorInfo == null || actorInfo.nodeId != node.id) {
             property("actor", "<not built>")
+        } else {
+            property("class", actorInfo.actorClass)
+            property("x", "%.2f".format(actorInfo.x))
+            property("y", "%.2f".format(actorInfo.y))
+            property("width", "%.2f".format(actorInfo.width))
+            property("height", "%.2f".format(actorInfo.height))
+            property("visible", actorInfo.visible.toString())
+        }
+        ImGui.separator()
+        drawPreviewActorSection(node)
+    }
+
+    private fun drawPreviewActorSection(node: UiSceneNode) {
+        when (node.type) {
+            UiSceneNodeType.Image -> drawImagePreview(node)
+            UiSceneNodeType.Container,
+            UiSceneNodeType.Stack,
+            UiSceneNodeType.Table,
+                -> drawContainerPreview(node)
+            UiSceneNodeType.Label,
+            UiSceneNodeType.TextButton,
+            UiSceneNodeType.ProgressBar,
+            UiSceneNodeType.Space,
+                -> ImGui.textUnformatted("Preview rendering skipped for ${node.type}.")
+        }
+    }
+
+    private fun drawImagePreview(node: UiSceneNode) {
+        val rawTexture = node.texture?.trim().orEmpty()
+        val resolvedPath = resolveTexturePath(node.texture)
+        when {
+            rawTexture.isBlank() -> {
+                ImGui.textUnformatted("No texture")
+                return
+            }
+            resolvedPath.isNullOrBlank() && isBindingPlaceholder(rawTexture) -> {
+                ImGui.textUnformatted("Texture binding has no preview value")
+                return
+            }
+            resolvedPath.isNullOrBlank() -> {
+                ImGui.textUnformatted("No texture")
+                return
+            }
+        }
+
+        property("Texture", resolvedPath)
+        property("Texture status", if (textureExists(resolvedPath)) "found" else "missing from Asset Registry")
+        val handle = assets.texturePreviewHandle(resolvedPath)
+        if (handle == null) {
+            val reason = texturePreviewUnavailableReason(resolvedPath)
+            ImGui.textWrapped("Texture preview unavailable: $reason")
+            logPreviewDiagnosticOnce(
+                key = "texture:$resolvedPath:$reason",
+                message = "UiComposer actor texture preview unavailable path='$resolvedPath': $reason",
+            )
             return
         }
-        property("class", actorInfo.actorClass)
-        property("x", "%.2f".format(actorInfo.x))
-        property("y", "%.2f".format(actorInfo.y))
-        property("width", "%.2f".format(actorInfo.width))
-        property("height", "%.2f".format(actorInfo.height))
-        property("visible", actorInfo.visible.toString())
+
+        drawPreviewHandle(
+            handle = handle,
+            failureKey = "texture:$resolvedPath:draw-failed:${handle.id}",
+            failureMessage = { reason -> "UiComposer actor texture preview draw failed path='$resolvedPath': $reason" },
+        )
+        property("Image size", previewHandleSize(handle))
+    }
+
+    private fun drawContainerPreview(node: UiSceneNode) {
+        val background = node.background?.takeIf(String::isNotBlank)
+        property("Background", background ?: "<none>")
+        drawBackgroundStatus(background)
+        background?.let(::drawBackgroundPreview)
+        property("Children", node.children.size.toString())
+        if (node.type == UiSceneNodeType.Table) {
+            property("Table orientation", node.tableOrientation.name)
+            property("Spacing", node.spacing.toString())
+        }
+        property("Padding", paddingSummary(node))
+    }
+
+    private fun drawBackgroundPreview(drawableName: String) {
+        val handle = state.skinMetadata
+            ?.takeUnless { it.loadError != null }
+            ?.drawablePreviewHandles
+            ?.get(drawableName)
+        if (handle == null) {
+            val reason = "Skin drawable '$drawableName' has no atlas region preview handle."
+            ImGui.textWrapped("Background preview unavailable: $reason")
+            logPreviewDiagnosticOnce(
+                key = "background:$drawableName:no-handle",
+                message = "UiComposer background preview unavailable drawable='$drawableName': $reason",
+            )
+            return
+        }
+
+        drawPreviewHandle(
+            handle = handle,
+            failureKey = "background:$drawableName:draw-failed:${handle.id}",
+            failureMessage = { reason -> "UiComposer background preview draw failed drawable='$drawableName': $reason" },
+        )
+        property("Background size", previewHandleSize(handle))
+    }
+
+    private fun drawPreviewHandle(
+        handle: TexturePreviewHandle,
+        failureKey: String,
+        failureMessage: (String) -> String,
+    ) {
+        if (!ui.drawTexturePreview(handle, ActorPreviewBoxSize, ActorPreviewBoxSize)) {
+            val reason = "UI backend rejected texture handle id=${handle.id} size=${handle.width}x${handle.height}."
+            ImGui.textWrapped("Preview unavailable: $reason")
+            logPreviewDiagnosticOnce(failureKey, failureMessage(reason))
+        }
+    }
+
+    private fun drawBackgroundStatus(background: String?) {
+        if (background == null) return
+        when (val exists = drawableExists(background)) {
+            true -> property("Background status", "found")
+            false -> property("Background status", "missing from Skin")
+            null -> ImGui.textUnformatted("Style metadata unavailable.")
+        }
+    }
+
+    private fun resolveTexturePath(texture: String?): String? {
+        val raw = texture?.trim().orEmpty()
+        if (raw.isBlank()) return null
+        val match = BindingPlaceholderRegex.matchEntire(raw)
+        return if (match != null) {
+            val key = match.groupValues[1].trim()
+            state.previewPayload[key]?.takeIf(String::isNotBlank)
+        } else {
+            raw
+        }
+    }
+
+    private fun isBindingPlaceholder(value: String): Boolean =
+        BindingPlaceholderRegex.matches(value)
+
+    private fun textureExists(path: String): Boolean =
+        state.textureOptions.any { option -> option.path == path }
+
+    private fun texturePreviewUnavailableReason(path: String): String {
+        val registered = textureExists(path)
+        val loadState = runCatching { assets.isLoaded(AssetRef.texture(path)) }
+        return when {
+            !registered -> "path is missing from Asset Registry."
+            loadState.isFailure -> "AssetService load state check failed: ${loadState.exceptionOrNull()?.message ?: "unknown error"}."
+            loadState.getOrDefault(false) -> "AssetService reports the texture is loaded, but the backend returned no preview handle."
+            else -> "path is registered, but the texture is not loaded by AssetService yet."
+        }
+    }
+
+    private fun drawableExists(drawableName: String): Boolean? {
+        val metadata = state.skinMetadata?.takeUnless { it.loadError != null } ?: return null
+        return metadata.drawables.contains(drawableName)
+    }
+
+    private fun logPreviewDiagnosticOnce(
+        key: String,
+        message: String,
+    ) {
+        if (loggedPreviewDiagnostics.add(key)) {
+            logger.warn(UiComposerInspectorTag) { message }
+        }
+    }
+
+    private fun previewHandleSize(handle: TexturePreviewHandle): String =
+        "${handle.width} x ${handle.height}"
+
+    private fun paddingSummary(node: UiSceneNode): String =
+        "L ${node.padding.left}, T ${node.padding.top}, R ${node.padding.right}, B ${node.padding.bottom}"
     }
 
     private fun drawSkinPickerWarning(
@@ -950,7 +1207,6 @@ class UiComposerInspectorPanel(
         drawTextureBindingControls(node)
         drawSelectedTextureInfo(node)
         drawTextureWarning(node)
-        drawTextureSearch(node)
         drawTexturePicker(node)
         with(dsl) {
             button("Refresh Textures##ui_composer_texture_refresh") {
@@ -1093,15 +1349,8 @@ class UiComposerInspectorPanel(
         }
     }
 
-    private fun drawTextureSearch(node: UiSceneNode) {
-        val buffer = bufferFor(node.id, "textureSearch", state.textureSearchQuery)
-        if (ImGui.inputText("Filter textures##ui_composer_texture_filter_${node.id}", buffer)) {
-            state.textureSearchQuery = readBuffer(buffer)
-        }
-    }
-
     private fun drawTexturePicker(node: UiSceneNode) {
-        val options = filteredTextureOptions()
+        val options = state.textureOptions
         val selected = state.textureOptions.firstOrNull { option -> option.path == node.texture }
         val preview = when {
             node.texture == null -> "<none>"
@@ -1122,18 +1371,9 @@ class UiComposerInspectorPanel(
             }
         }
         if (options.isEmpty()) {
-            ImGui.textWrapped("No texture assets match the current filter.")
+            ImGui.textWrapped("No texture assets are indexed.")
         }
         ImGui.endCombo()
-    }
-
-    private fun filteredTextureOptions(): List<UiComposerTextureOption> {
-        val query = state.textureSearchQuery.trim().lowercase()
-        if (query.isBlank()) return state.textureOptions
-        // Filtering checks both user-facing name and stored path so manual-path users can search either.
-        return state.textureOptions.filter { option ->
-            option.displayName.lowercase().contains(query) || option.path.lowercase().contains(query)
-        }
     }
 
     private fun property(
@@ -1183,16 +1423,69 @@ class UiComposerSceneBindingsPanel(
             ImGui.textWrapped("No bindings are defined for this UI scene.")
         }
         bindings.forEach { binding ->
-            val key = binding.key
-            ImGui.textUnformatted("${binding.key} [${binding.type.name}]")
-            val buffer = valueBuffers.getValue(key)
-            if (ImGui.inputText("Default preview value##ui_composer_payload_${payloadInputId(binding.key)}", buffer)) {
-                operations.updateBindingDefaultValue(binding.key, readBuffer(buffer))
-            }
+            drawBindingDefaultValue(binding)
         }
         ImGui.separator()
         drawBindingIssues()
         ImGui.end()
+    }
+
+    private fun drawBindingDefaultValue(binding: UiSceneBindingDefinition) {
+        ImGui.textUnformatted("${binding.key} [${binding.type.name}]")
+        when (binding.type) {
+            UiSceneBindingType.Text -> drawTextBindingDefault(binding)
+            UiSceneBindingType.Number -> drawNumberBindingDefault(binding)
+            UiSceneBindingType.Texture -> drawTextureBindingDefault(binding)
+            UiSceneBindingType.Action -> drawActionBindingDefault(binding)
+        }
+    }
+
+    private fun drawTextBindingDefault(binding: UiSceneBindingDefinition) {
+        drawDefaultValueTextInput(binding, label = "Default text")
+    }
+
+    private fun drawNumberBindingDefault(binding: UiSceneBindingDefinition) {
+        drawDefaultValueTextInput(binding, label = "Default number")
+    }
+
+    private fun drawTextureBindingDefault(binding: UiSceneBindingDefinition) {
+        drawDefaultValueTextInput(binding, label = "Default texture")
+
+        if (state.textureOptions.isEmpty()) {
+            ImGui.textWrapped("No texture assets indexed. Use Refresh Textures in the Image texture picker if needed.")
+            return
+        }
+
+        val selected = state.textureOptions.firstOrNull { option -> option.path == binding.defaultValue }
+        val preview = when {
+            binding.defaultValue.isBlank() -> "<none>"
+            selected != null -> textureOptionLabel(selected)
+            else -> "${binding.defaultValue} (not in Asset Registry)"
+        }
+        if (!ImGui.beginCombo("Texture asset##binding_${payloadInputId(binding.key)}", preview)) return
+
+        state.textureOptions.forEach { option ->
+            val optionLabel = textureOptionLabel(option)
+            if (ImGui.selectable("$optionLabel##binding_${payloadInputId(binding.key)}_${option.path}", option.path == binding.defaultValue)) {
+                writeBuffer(valueBuffers.getValue(binding.key), option.path)
+                operations.updateBindingDefaultValue(binding.key, option.path)
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    private fun drawActionBindingDefault(binding: UiSceneBindingDefinition) {
+        drawDefaultValueTextInput(binding, label = "Default action")
+    }
+
+    private fun drawDefaultValueTextInput(
+        binding: UiSceneBindingDefinition,
+        label: String,
+    ) {
+        val buffer = valueBuffers.getValue(binding.key)
+        if (ImGui.inputText("$label##ui_composer_payload_${payloadInputId(binding.key)}", buffer)) {
+            operations.updateBindingDefaultValue(binding.key, readBuffer(buffer))
+        }
     }
 
     private fun drawBindingIssues() {

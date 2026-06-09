@@ -11,8 +11,8 @@
       "title": "Preview Canvas",
       "x": 363,
       "y": 144,
-      "width": 1271,
-      "height": 959
+      "width": 1270,
+      "height": 961
     },
     "uiComposerHierarchy": {
       "title": "UI Scene Hierarchy",
@@ -30,17 +30,17 @@
     },
     "uiComposerInspector": {
       "title": "UI Scene Inspector",
-      "x": 1636,
-      "y": 366,
-      "width": 496,
-      "height": 966
+      "x": 1638,
+      "y": 439,
+      "width": 490,
+      "height": 883
     },
     "uiComposerSceneBindings": {
       "title": "UI Scene Bindings",
       "x": 1636,
-      "y": 10,
-      "width": 494,
-      "height": 350
+      "y": 8,
+      "width": 496,
+      "height": 424
     },
     "uiComposerDiagnostics": {
       "title": "UI Scene Diagnostics",
