@@ -121,6 +121,14 @@ data class TexturePreviewHandle(
     val width: Int,
     /** Source texture height in pixels, when known. */
     val height: Int,
+    /** Left UV coordinate for atlas-backed previews. */
+    val u0: Float = 0f,
+    /** Top UV coordinate for atlas-backed previews. */
+    val v0: Float = 0f,
+    /** Right UV coordinate for atlas-backed previews. */
+    val u1: Float = 1f,
+    /** Bottom UV coordinate for atlas-backed previews. */
+    val v1: Float = 1f,
 )
 
 /**
