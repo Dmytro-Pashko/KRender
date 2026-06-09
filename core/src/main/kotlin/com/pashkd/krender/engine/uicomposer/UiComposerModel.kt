@@ -17,7 +17,8 @@ import com.pashkd.krender.engine.ui.scene.UiSceneValidator
  * requests, selection-only canvas interaction state, and preview-only payload
  * data in one simple place while intentionally omitting canvas drag/drop,
  * resizing actors on canvas, multi-select, canvas editing, Skin editing, Asset
- * Browser picking, snapping, transform gizmos, asset-id references, full actor
+ * Browser drag/drop, texture import/copy, texture thumbnails, atlas region
+ * picking, snapping, transform gizmos, asset-id references, full actor
  * serialization, and any generic visual layout solver.
  */
 data class UiComposerState(
@@ -93,7 +94,7 @@ data class UiComposerState(
      * This belongs to editor canvas interaction and gates the selection-only
      * MVP. It does not modify `.krui`, drag/drop nodes, resize actors, edit
      * properties by dragging, add/delete/reorder nodes from the canvas, edit
-     * Skins, pick Asset Browser entries, support snapping, create transform
+     * Skins, support Asset Browser drag/drop, support snapping, create transform
      * gizmos, or enable multi-select.
      */
     var canvasSelectionEnabled: Boolean = true,
@@ -112,7 +113,7 @@ data class UiComposerState(
      * This belongs to editor canvas interaction diagnostics only. It is not
      * saved, does not modify `.krui`, does not dispatch runtime UI actions, and
      * does not represent drag/drop, resizing, multi-select, snapping, Skin
-     * editing, Asset Browser picking, transform gizmos, or canvas editing.
+     * editing, Asset Browser drag/drop, transform gizmos, or canvas editing.
      */
     var canvasStatusMessage: String? = null,
     /** Requests the document file to be reloaded and the backend preview rebuilt. */

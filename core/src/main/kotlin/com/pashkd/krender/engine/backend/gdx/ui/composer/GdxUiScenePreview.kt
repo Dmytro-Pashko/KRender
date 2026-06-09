@@ -22,7 +22,7 @@ import com.pashkd.krender.engine.ui.scene.UiSceneDocument
  * builds the currently loaded document directly into a private Stage so editor
  * preview stays independent from runtime UI layers. It intentionally does not
  * implement saving, property editing, node editing, drag/drop canvas editing,
- * Skin editing, Asset Browser picking, asset-id references, editable payloads,
+ * Skin editing, Asset Browser drag/drop, asset-id references, editable payloads,
  * multi-select, snapping, transform gizmos, resize handles, canvas structure
  * editing, or full Scene2D actor serialization; selected-node and hover
  * highlighting are best-effort Scene2D debug drawing.

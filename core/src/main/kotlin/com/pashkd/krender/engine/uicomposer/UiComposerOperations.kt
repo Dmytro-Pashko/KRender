@@ -17,9 +17,10 @@ import com.pashkd.krender.engine.ui.scene.UiSceneValidator
  * perform hierarchy/inspector-driven structure edits, validate the in-memory
  * document, request preview rebuilds, and save the `.krui` document. It
  * intentionally does not implement drag/drop or canvas selection, resize actors
- * on canvas, edit Skins, add Asset Browser pickers, introduce asset-id
- * references, save preview payload into `.krui`, alter runtime Woolboy UI
- * behavior, solve generic visual layout, or serialize full Scene2D actors.
+ * on canvas, edit Skins, import/copy textures, add Asset Browser drag/drop,
+ * introduce asset-id references, save preview payload into `.krui`, alter
+ * runtime Woolboy UI behavior, solve generic visual layout, or serialize full
+ * Scene2D actors.
  */
 class UiComposerOperations(
     private val state: UiComposerState,
@@ -199,7 +200,7 @@ class UiComposerOperations(
      *
      * This operation belongs to editor structure editing and keeps selection on
      * the moved node. It does not implement canvas drag/drop, autosave, Skin
-     * editing, Asset Browser picking, asset-id references, layout solving, or
+     * editing, Asset Browser drag/drop, asset-id references, layout solving, or
      * full actor serialization.
      */
     fun moveSelectedNodeUp() {
@@ -222,7 +223,7 @@ class UiComposerOperations(
      *
      * This operation belongs to editor structure editing and keeps selection on
      * the moved node. It does not implement canvas drag/drop, autosave, Skin
-     * editing, Asset Browser picking, asset-id references, layout solving, or
+     * editing, Asset Browser drag/drop, asset-id references, layout solving, or
      * full actor serialization.
      */
     fun moveSelectedNodeDown() {

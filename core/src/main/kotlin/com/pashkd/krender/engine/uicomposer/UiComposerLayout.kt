@@ -8,7 +8,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
  *
  * These ids belong to editor UI layout and structure editing panel placement
  * only. They do not affect the shared `.krui` document, runtime UI layers,
- * saving, Skin editing, drag/drop canvas editing, Asset Browser picking,
+ * saving, Skin editing, drag/drop canvas editing, Asset Browser drag/drop,
  * asset-id references, generic layout solving, or Scene2D actor serialization.
  */
 object UiComposerPanelIds {
@@ -18,7 +18,7 @@ object UiComposerPanelIds {
      * Panel id for hierarchy-driven structure editing controls.
      *
      * This belongs to editor structure editing layout. It does not add canvas
-     * drag/drop, canvas selection, Skin editing, Asset Browser picking,
+     * drag/drop, canvas selection, Skin editing, Asset Browser drag/drop,
      * asset-id references, layout solving, saving behavior, or actor
      * serialization.
      */
@@ -34,9 +34,9 @@ object UiComposerPanelIds {
  *
  * This belongs to editor window layout. It intentionally keeps the Scene2D
  * preview fullscreen behind ImGui rather than embedding it into an ImGui child
- * viewport, and it does not add Skin editing, drag/drop, Asset Browser pickers,
- * asset-id references, generic layout solving, or full Scene2D actor
- * serialization.
+ * viewport, and it does not add Skin editing, drag/drop, texture import/copy,
+ * Asset Browser drag/drop, asset-id references, generic layout solving, or full
+ * Scene2D actor serialization.
  */
 object UiComposerUiLayoutDefaults {
     /** Project-relative path where UiComposer ImGui panel layout is loaded and persisted. */

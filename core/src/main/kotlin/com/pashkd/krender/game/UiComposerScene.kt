@@ -1,13 +1,16 @@
 package com.pashkd.krender.game
 
 import com.pashkd.krender.engine.api.InputService
+import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.MouseButton
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.System
+import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiComposerSkinMetadataReader
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiScenePreview
 import com.pashkd.krender.engine.assets.AssetImporterRegistry
+import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
@@ -36,13 +39,17 @@ import com.pashkd.krender.engine.ui.editor.UiSystem
  * Editor scene opened for `.krui` UiScene assets from Asset Browser.
  *
  * This scene belongs to editor/tool UI and backend preview plumbing, not RuntimeUiService or
- * gameplay UI. Phase 5.5/6 decodes, validates, previews, inspects, edits supported scalar fields,
- * performs hierarchy/inspector-driven structure edits, supports selection-only canvas hit-testing,
- * and can save the document. It intentionally omits canvas drag/drop, actor resizing on canvas,
- * multi-select, canvas structure editing, Skin editing, Asset Browser pickers, asset-id references,
- * snapping, transform gizmos, JSON text editing, generic visual layout solving, and full Scene2D
- * actor serialization. Reload dirty confirmation is a simple toolbar state, and the selected/hover
- * highlights are best-effort.
+ * gameplay UI. It can decode and validate `.krui`, render a Scene2D preview, inspect and edit
+ * selected-node scalar fields, perform hierarchy-driven structure editing, save the document,
+ * select nodes through hierarchy or selection-only preview canvas hit-testing, and provide
+ * Skin-backed style/background pickers plus Asset Registry-backed Image texture picking.
+ *
+ * It intentionally does not implement canvas drag/drop, actor resizing on canvas, multi-select,
+ * canvas-based structure editing, Skin editing, texture import/copy, atlas region picking, texture
+ * thumbnails, Asset Browser drag/drop, asset-id references in `.krui`, snapping, transform gizmos,
+ * JSON source editing, generic visual layout solving, or full Scene2D actor serialization. Reload
+ * dirty confirmation is a simple toolbar state, and selected/hover highlights are best-effort
+ * Scene2D debug drawing.
  */
 class UiComposerScene(
     private val uiScenePath: String,
@@ -53,6 +60,15 @@ class UiComposerScene(
     private lateinit var loader: UiComposerDocumentLoader
     private lateinit var preview: GdxUiScenePreview
     private lateinit var skinMetadataReader: GdxUiComposerSkinMetadataReader
+
+    /**
+     * Local Asset Registry snapshot used only for the Image texture picker.
+     *
+     * This is intentionally local because [EngineContext] currently exposes the runtime
+     * [AssetService], not a shared [AssetRegistryService] suitable for editor picker scans. It
+     * should be replaced with the shared engine asset registry once Asset Browser and Composer use
+     * the same registry service.
+     */
     private lateinit var textureRegistry: LocalAssetRegistryService
     private lateinit var textureOptionsProvider: UiComposerTextureOptionsProvider
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker

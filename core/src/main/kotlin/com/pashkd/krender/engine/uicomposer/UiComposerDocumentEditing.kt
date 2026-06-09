@@ -26,7 +26,7 @@ fun UiSceneDocument.updateNode(
  * Replaces this node or one descendant by id using immutable copies.
  *
  * This helper belongs to editor selected-node property editing and keeps the
- * Phase 5 scope to scalar property replacement only. It intentionally does not
+ * current scope to selected-node scalar property replacement only. It intentionally does not
  * add/delete/reorder children, drag/drop nodes, edit Skins, resolve Asset Browser
  * assets, create asset ids, or serialize Scene2D actors.
  */
@@ -61,7 +61,7 @@ fun UiSceneDocument.containsNodeId(id: String): Boolean =
  * `.krui` changes. It updates the shared document model immutably so the caller
  * can validate, rebuild preview, mark dirty, and save explicitly. It does not
  * implement canvas drag/drop, canvas selection, layout solving, Skin editing,
- * Asset Browser picking, asset-id references, Scene2D actor serialization, or
+ * Asset Browser drag/drop, asset-id references, Scene2D actor serialization, or
  * automatic saving.
  */
 fun UiSceneDocument.addChildNode(
@@ -114,7 +114,7 @@ fun UiSceneDocument.duplicateNode(
  * This helper belongs to editor structure editing. It only changes sibling order
  * inside the shared `.krui` tree and leaves invalid root or first-sibling moves
  * unchanged. It does not implement canvas drag/drop, layout solving, automatic
- * saving, Skin editing, Asset Browser picking, asset-id references, or actor
+ * saving, Skin editing, Asset Browser drag/drop, asset-id references, or actor
  * serialization.
  */
 fun UiSceneDocument.moveNodeUp(nodeId: String): UiSceneDocument {
@@ -129,7 +129,7 @@ fun UiSceneDocument.moveNodeUp(nodeId: String): UiSceneDocument {
  * This helper belongs to editor structure editing. It only changes sibling order
  * inside the shared `.krui` tree and leaves invalid root or last-sibling moves
  * unchanged. It does not implement canvas drag/drop, layout solving, automatic
- * saving, Skin editing, Asset Browser picking, asset-id references, or actor
+ * saving, Skin editing, Asset Browser drag/drop, asset-id references, or actor
  * serialization.
  */
 fun UiSceneDocument.moveNodeDown(nodeId: String): UiSceneDocument {

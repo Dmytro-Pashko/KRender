@@ -22,9 +22,9 @@ import java.nio.charset.StandardCharsets
  * toggling, selected-node highlighting, and selection-only canvas interaction
  * toggles; it intentionally does not implement a modal framework,
  * create/delete nodes, reorder nodes, drag/drop canvas editing, resize handles,
- * multi-select, snapping, transform gizmos, edit Skins, add Asset Browser
- * picking, introduce asset-id references, edit JSON, or serialize full Scene2D
- * actors.
+ * multi-select, snapping, transform gizmos, edit Skins, import/copy textures,
+ * add Asset Browser drag/drop, introduce asset-id references, edit JSON, or
+ * serialize full Scene2D actors.
  */
 class UiComposerToolbarPanel(
     private val state: UiComposerState,
@@ -117,7 +117,7 @@ class UiComposerToolbarPanel(
  * This panel belongs to editor UI. It selects existing `.krui` nodes by id for
  * inspection and best-effort preview highlighting, but intentionally omits
  * inline add/delete/reorder operations, drag/drop canvas editing, saving, Skin
- * editing, Asset Browser picking, asset-id references, layout solving, and actor
+ * editing, Asset Browser drag/drop, asset-id references, layout solving, and actor
  * serialization.
  */
 class UiComposerHierarchyPanel(
@@ -301,7 +301,7 @@ class UiComposerStructurePanel(
  * for structure editing. It leaves document-level metadata and node type
  * read-only. It intentionally omits add/delete/duplicate/reorder controls,
  * child-list editing, drag/drop canvas editing, resize handles, multi-select,
- * Skin editing, Asset Browser picking, asset-id references, snapping, transform
+ * Skin editing, Asset Browser drag/drop, asset-id references, snapping, transform
  * gizmos, JSON text editing, preview payload persistence, layout solving, and
  * full Scene2D actor serialization.
  */
@@ -747,7 +747,7 @@ class UiComposerInspectorPanel(
  * This panel belongs to editor preview UX, not the shared `.krui` model, runtime
  * Woolboy UI, or the future editing pipeline. Edited values rebuild the backend
  * preview only and are never saved to `.krui`, never treated as runtime state,
- * and never used for Skin editing, Asset Browser picking, asset-id references,
+ * and never used for Skin editing, Asset Browser drag/drop, asset-id references,
  * drag/drop canvas editing, node editing, or full Scene2D actor serialization.
  */
 class UiComposerPreviewPayloadPanel(
@@ -818,10 +818,10 @@ class UiComposerPreviewPayloadPanel(
  *
  * This panel belongs to editor UI diagnostics. It reports parser/build failures
  * and shared validator warnings while intentionally omitting automatic repairs,
- * schema changes, JSON editing, saving, Skin editing, Asset Browser picking,
- * asset-id references, drag/drop canvas editing, resize handles, multi-select,
- * snapping, transform gizmos, canvas structure editing, and full Actor
- * serialization.
+ * schema changes, JSON editing, saving, Skin editing, Asset Browser drag/drop,
+ * texture import/copy, texture thumbnails, atlas region picking, asset-id
+ * references, drag/drop canvas editing, resize handles, multi-select, snapping,
+ * transform gizmos, canvas structure editing, and full Actor serialization.
  */
 class UiComposerDiagnosticsPanel(
     private val state: UiComposerState,

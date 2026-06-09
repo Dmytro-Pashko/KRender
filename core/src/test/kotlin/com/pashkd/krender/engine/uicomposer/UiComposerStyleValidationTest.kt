@@ -5,22 +5,25 @@ import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 internal class UiComposerStyleValidationTest {
     @Test
-    internal fun `reports missing typed styles and background drawables`() {
+    internal fun `style validation accepts known Label style`() {
         val document = UiSceneDocument(
             id = "style_test",
-            skin = "ui/skins/test.json",
+            skin = "ui/skins/craftacular-ui.json",
             root = UiSceneNode(
                 id = "root",
                 type = UiSceneNodeType.Stack,
                 children = listOf(
-                    UiSceneNode(id = "title", type = UiSceneNodeType.Label, style = "missing_label", text = "Title"),
-                    UiSceneNode(id = "play", type = UiSceneNodeType.TextButton, style = "missing_button", text = "Play", action = "play"),
-                    UiSceneNode(id = "progress", type = UiSceneNodeType.ProgressBar, style = "missing_progress", value = 0.5f),
-                    UiSceneNode(id = "panel", type = UiSceneNodeType.Table, background = "missing_background"),
+                    UiSceneNode(
+                        id = "title",
+                        type = UiSceneNodeType.Label,
+                        style = "title",
+                        text = "Title",
+                    ),
                 ),
             ),
         )
@@ -28,50 +31,144 @@ internal class UiComposerStyleValidationTest {
         val issues = validateStyleReferences(
             document = document,
             skinMetadata = UiComposerSkinMetadata(
-                skinPath = "ui/skins/test.json",
-                labelStyles = listOf("default"),
-                textButtonStyles = listOf("default"),
-                progressBarStyles = listOf("default-horizontal"),
-                drawables = listOf("window"),
+                skinPath = document.skin,
+                labelStyles = listOf("title"),
             ),
         )
 
-        assertEquals(4, issues.size)
-        assertTrue(issues.any { it.nodeId == "title" && it.message.contains("Label style 'missing_label'") })
-        assertTrue(issues.any { it.nodeId == "play" && it.message.contains("TextButton style 'missing_button'") })
-        assertTrue(issues.any { it.nodeId == "progress" && it.message.contains("ProgressBar style 'missing_progress'") })
-        assertTrue(issues.any { it.nodeId == "panel" && it.message.contains("Background drawable 'missing_background'") })
+        assertTrue(issues.isEmpty())
     }
 
     @Test
-    internal fun `reports skin load errors as document diagnostics`() {
-        val document = UiSceneDocument(
-            id = "style_test",
-            skin = "ui/skins/missing.json",
-            root = UiSceneNode(id = "root", type = UiSceneNodeType.Stack),
+    internal fun `style validation warns for missing Label style`() {
+        val document = simpleDocument(
+            UiSceneNode(
+                id = "title",
+                type = UiSceneNodeType.Label,
+                style = "title",
+                text = "Title",
+            ),
         )
 
         val issues = validateStyleReferences(
             document = document,
             skinMetadata = UiComposerSkinMetadata(
                 skinPath = document.skin,
-                loadError = "File not found",
+                labelStyles = listOf("default"),
             ),
         )
 
         assertEquals(1, issues.size)
-        assertEquals(null, issues.single().nodeId)
-        assertTrue(issues.single().message.contains("Skin 'ui/skins/missing.json' could not be loaded: File not found"))
+        assertEquals("title", issues.single().nodeId)
+        assertTrue(issues.single().message.contains("Label style"))
+        assertTrue(issues.single().message.contains("not found"))
     }
 
     @Test
-    internal fun `returns no issues when metadata is unavailable`() {
-        val document = UiSceneDocument(
-            id = "style_test",
-            skin = "ui/skins/test.json",
-            root = UiSceneNode(id = "root", type = UiSceneNodeType.Stack),
+    internal fun `style validation warns for missing TextButton style`() {
+        val document = simpleDocument(
+            UiSceneNode(
+                id = "start_button",
+                type = UiSceneNodeType.TextButton,
+                style = "menu-button",
+                text = "Start",
+            ),
         )
 
-        assertTrue(validateStyleReferences(document, skinMetadata = null).isEmpty())
+        val issues = validateStyleReferences(
+            document = document,
+            skinMetadata = UiComposerSkinMetadata(
+                skinPath = document.skin,
+                textButtonStyles = listOf("default"),
+            ),
+        )
+
+        assertEquals(1, issues.size)
+        assertEquals("start_button", issues.single().nodeId)
+        assertTrue(issues.single().message.contains("TextButton style"))
+        assertTrue(issues.single().message.contains("not found"))
     }
+
+    @Test
+    internal fun `style validation warns for missing ProgressBar style`() {
+        val document = simpleDocument(
+            UiSceneNode(
+                id = "health_bar",
+                type = UiSceneNodeType.ProgressBar,
+                style = "hud-health",
+            ),
+        )
+
+        val issues = validateStyleReferences(
+            document = document,
+            skinMetadata = UiComposerSkinMetadata(
+                skinPath = document.skin,
+                progressBarStyles = listOf("default-horizontal"),
+            ),
+        )
+
+        assertEquals(1, issues.size)
+        assertEquals("health_bar", issues.single().nodeId)
+        assertTrue(issues.single().message.contains("ProgressBar style"))
+        assertTrue(issues.single().message.contains("not found"))
+    }
+
+    @Test
+    internal fun `style validation warns for missing background drawable`() {
+        val document = simpleDocument(
+            UiSceneNode(
+                id = "panel",
+                type = UiSceneNodeType.Container,
+                background = "panel-bg",
+            ),
+        )
+
+        val issues = validateStyleReferences(
+            document = document,
+            skinMetadata = UiComposerSkinMetadata(
+                skinPath = document.skin,
+                drawables = listOf("window"),
+            ),
+        )
+
+        assertEquals(1, issues.size)
+        assertEquals("panel", issues.single().nodeId)
+        assertTrue(issues.single().message.contains("Background drawable"))
+        assertTrue(issues.single().message.contains("not found"))
+    }
+
+    @Test
+    internal fun `style validation reports Skin load error as document issue`() {
+        val document = simpleDocument()
+
+        val issues = validateStyleReferences(
+            document = document,
+            skinMetadata = UiComposerSkinMetadata(
+                skinPath = document.skin,
+                loadError = "missing file",
+            ),
+        )
+
+        assertEquals(1, issues.size)
+        assertNull(issues.single().nodeId)
+        assertTrue(issues.single().message.contains("could not be loaded"))
+    }
+
+    @Test
+    internal fun `style validation returns no issues when metadata is unavailable`() {
+        val issues = validateStyleReferences(simpleDocument(), skinMetadata = null)
+
+        assertTrue(issues.isEmpty())
+    }
+
+    private fun simpleDocument(vararg children: UiSceneNode): UiSceneDocument =
+        UiSceneDocument(
+            id = "style_test",
+            skin = "ui/skins/craftacular-ui.json",
+            root = UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Stack,
+                children = children.toList(),
+            ),
+        )
 }
