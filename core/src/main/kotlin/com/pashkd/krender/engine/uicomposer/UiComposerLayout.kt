@@ -13,6 +13,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
  */
 object UiComposerPanelIds {
     const val Toolbar = "uiComposerToolbar"
+    const val PreviewCanvas = "uiComposerPreviewCanvas"
     const val Hierarchy = "uiComposerHierarchy"
     /**
      * Panel id for hierarchy-driven structure editing controls.
@@ -33,10 +34,9 @@ object UiComposerPanelIds {
  * Fallback ImGui layout for the UiComposer preview and structure editing tool.
  *
  * This belongs to editor window layout. It intentionally keeps the Scene2D
- * preview fullscreen behind ImGui rather than embedding it into an ImGui child
- * viewport, and it does not add Skin editing, drag/drop, texture import/copy,
- * Asset Browser drag/drop, asset-id references, generic layout solving, or full
- * Scene2D actor serialization.
+ * preview in a dedicated Preview Canvas panel and does not add Skin editing,
+ * drag/drop, texture import/copy, Asset Browser drag/drop, asset-id references,
+ * generic layout solving, or full Scene2D actor serialization.
  */
 object UiComposerUiLayoutDefaults {
     /** Project-relative path where UiComposer ImGui panel layout is loaded and persisted. */
@@ -50,6 +50,13 @@ object UiComposerUiLayoutDefaults {
                 y = 16f,
                 width = 720f,
                 height = 104f,
+            ),
+            UiComposerPanelIds.PreviewCanvas to ImGuiPanelLayout(
+                title = "Preview Canvas",
+                x = 360f,
+                y = 72f,
+                width = 960f,
+                height = 720f,
             ),
             UiComposerPanelIds.Hierarchy to ImGuiPanelLayout(
                 title = "UI Scene Hierarchy",

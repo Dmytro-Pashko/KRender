@@ -13,19 +13,19 @@ import com.pashkd.krender.engine.ui.scene.UiSceneScaling
 import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
 import imgui.ImGui
 import imgui.dsl
+import glm_.vec2.Vec2 as ImVec2
 import java.nio.charset.StandardCharsets
 
 /**
  * Toolbar panel for the UiComposer preview and `.krui` save/reload workflow.
  *
  * This panel belongs to editor preview UX. It exposes document reload, panel
- * layout persistence, `.krui` saving, toolbar-level reload confirmation, bounds
- * toggling, selected-node highlighting, and selection-only canvas interaction
- * toggles; it intentionally does not implement a modal framework,
- * create/delete nodes, reorder nodes, drag/drop canvas editing, resize handles,
- * multi-select, snapping, transform gizmos, edit Skins, import/copy textures,
- * add Asset Browser drag/drop, introduce asset-id references, edit JSON, or
- * serialize full Scene2D actors.
+ * layout persistence, `.krui` saving, and toolbar-level reload confirmation; it
+ * intentionally does not implement a modal framework, create/delete nodes,
+ * reorder nodes, drag/drop canvas editing, resize handles, multi-select,
+ * snapping, transform gizmos, edit Skins, import/copy textures, add Asset
+ * Browser drag/drop, introduce asset-id references, edit JSON, or serialize full
+ * Scene2D actors.
  */
 class UiComposerToolbarPanel(
     private val state: UiComposerState,
@@ -89,17 +89,13 @@ class UiComposerToolbarPanel(
                 }
             }
         }
-        ImGui.sameLine()
-        ImGui.checkbox("Show Bounds##ui_composer_show_bounds", state::showBounds)
-        ImGui.sameLine()
-        ImGui.checkbox("Highlight Selected##ui_composer_highlight_selected", state::highlightSelected)
-        ImGui.sameLine()
-        ImGui.checkbox("Canvas Selection##ui_composer_canvas_selection", state::canvasSelectionEnabled)
-        ImGui.sameLine()
-        ImGui.checkbox("Highlight Hovered##ui_composer_highlight_hovered", state::highlightHovered)
         ImGui.separator()
         ImGui.textUnformatted("Path: ${state.uiScenePath}")
         ImGui.textUnformatted("Status: ${state.statusMessage}")
+        ImGui.textUnformatted("Resolution: ${state.previewLogicalWidth} x ${state.previewLogicalHeight}")
+        ImGui.textUnformatted(
+            "Canvas: ${formatFloat(state.canvasPreviewRect.width)} x ${formatFloat(state.canvasPreviewRect.height)}",
+        )
         ImGui.textUnformatted("Hovered: ${state.hoveredNodeId ?: "<none>"}")
         ImGui.textUnformatted("Dirty: ${if (state.dirty) "yes" else "no"}")
         state.saveStatusMessage?.let { message -> ImGui.textUnformatted("Save: $message") }
@@ -109,6 +105,147 @@ class UiComposerToolbarPanel(
             ImGui.textUnformatted("Reload requires confirmation before discarding unsaved .krui changes.")
         }
         ImGui.end()
+    }
+}
+
+/**
+ * ImGui panel that reserves the visible canvas area for the Scene2D preview.
+ *
+ * This panel belongs to editor preview placement. It records the panel content
+ * rectangle used by the backend preview renderer and canvas hit-test. It also
+ * exposes editor-only resolution preset controls. It does not render `.krui`
+ * itself, does not edit nodes, and does not implement drag/drop, resize handles,
+ * snapping, safe-area simulation, transform gizmos, multi-select, DPI
+ * simulation, or canvas structure editing.
+ */
+class UiComposerPreviewCanvasPanel(
+    private val state: UiComposerState,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(UiComposerPanelIds.PreviewCanvas)
+        // Scene2D preview renders before ImGui, so this window background must stay transparent.
+        ImGui.setNextWindowBgAlpha(0f)
+        val expanded = beginImGuiPanel(UiComposerPanelIds.PreviewCanvas, layout, layoutTracker)
+        eventLogger.observe(UiComposerPanelIds.PreviewCanvas, layout.title)
+
+        if (!expanded) {
+            state.canvasPanelRect = UiComposerCanvasRect()
+            state.canvasPreviewRect = UiComposerCanvasRect()
+            state.canvasLocalMouseX = null
+            state.canvasLocalMouseY = null
+            ImGui.end()
+            return
+        }
+
+        drawResolutionControls()
+        drawViewControls()
+        ImGui.separator()
+
+        val min = ImGui.cursorScreenPos
+        val available = ImGui.contentRegionAvail
+        val panelWidth = available.x.coerceAtLeast(1f)
+        val panelHeight = available.y.coerceAtLeast(1f)
+
+        state.canvasPanelRect = UiComposerCanvasRect(
+            x = min.x,
+            y = min.y,
+            width = panelWidth,
+            height = panelHeight,
+        )
+
+        val logical = state.previewResolutionPreset.defaultResolution(
+            customWidth = state.customPreviewWidth,
+            customHeight = state.customPreviewHeight,
+            panelWidth = panelWidth.toInt().coerceAtLeast(1),
+            panelHeight = panelHeight.toInt().coerceAtLeast(1),
+        )
+        state.previewLogicalWidth = logical.width
+        state.previewLogicalHeight = logical.height
+        state.canvasPreviewRect = computePreviewRect(
+            panel = state.canvasPanelRect,
+            logicalWidth = state.previewLogicalWidth,
+            logicalHeight = state.previewLogicalHeight,
+        )
+
+        ImGui.invisibleButton("##ui_composer_preview_canvas_area", ImVec2(panelWidth, panelHeight))
+        if (ImGui.isItemHovered()) {
+            ImGui.setTooltip("Preview canvas: click UI actors to select nodes. Ctrl+left drag pans, mouse wheel zooms.")
+        }
+
+        ImGui.end()
+    }
+
+    private fun drawResolutionControls() {
+        ImGui.textUnformatted("Resolution")
+        ImGui.sameLine()
+
+        if (ImGui.beginCombo(
+                "##ui_composer_preview_resolution",
+                state.previewResolutionPreset.displayName(),
+            )
+        ) {
+            UiComposerPreviewResolutionPreset.entries.forEach { preset ->
+                if (ImGui.selectable(
+                        "${preset.displayName()}##ui_composer_preview_resolution_${preset.name}",
+                        preset == state.previewResolutionPreset,
+                    )
+                ) {
+                    state.previewResolutionPreset = preset
+                    state.statusMessage = "Preview resolution set to ${preset.displayName()}."
+                }
+            }
+            ImGui.endCombo()
+        }
+
+        if (state.previewResolutionPreset == UiComposerPreviewResolutionPreset.Custom) {
+            drawCustomResolutionInputs()
+        }
+
+        ImGui.sameLine()
+        ImGui.textUnformatted("Logical: ${state.previewLogicalWidth} x ${state.previewLogicalHeight}")
+    }
+
+    private fun drawCustomResolutionInputs() {
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(96f)
+        if (ImGui.input("W##ui_composer_custom_preview_width", state::customPreviewWidth, 16, 128)) {
+            state.customPreviewWidth = state.customPreviewWidth.coerceIn(1, MaxCustomPreviewSize)
+            state.statusMessage = "Custom preview width set to ${state.customPreviewWidth}."
+        }
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(96f)
+        if (ImGui.input("H##ui_composer_custom_preview_height", state::customPreviewHeight, 16, 128)) {
+            state.customPreviewHeight = state.customPreviewHeight.coerceIn(1, MaxCustomPreviewSize)
+            state.statusMessage = "Custom preview height set to ${state.customPreviewHeight}."
+        }
+    }
+
+    private fun drawViewControls() {
+        ImGui.sameLine()
+        ImGui.textUnformatted("View")
+        ImGui.sameLine()
+        with(dsl) {
+            button("-##ui_composer_preview_zoom_out") {
+                setPreviewZoom(state, state.previewZoom / ZoomButtonStep)
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("+##ui_composer_preview_zoom_in") {
+                setPreviewZoom(state, state.previewZoom * ZoomButtonStep)
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Fit##ui_composer_preview_fit_camera") {
+                resetPreviewCamera(state)
+            }
+        }
+        ImGui.sameLine()
+        ImGui.textUnformatted("Zoom: ${formatPercent(state.previewZoom)}")
     }
 }
 
@@ -856,6 +993,30 @@ class UiComposerDiagnosticsPanel(
             ImGui.textWrapped("Canvas status: $message")
         }
         ImGui.textUnformatted("Hovered node: ${state.hoveredNodeId ?: "<none>"}")
+        ImGui.textUnformatted("Resolution preset: ${state.previewResolutionPreset.name}")
+        ImGui.textUnformatted("Preview logical size: ${state.previewLogicalWidth} x ${state.previewLogicalHeight}")
+        ImGui.textUnformatted("Preview camera offset: x=${formatFloat(state.previewCameraOffsetX)}, y=${formatFloat(state.previewCameraOffsetY)}")
+        ImGui.textUnformatted("Preview zoom: ${formatPercent(state.previewZoom)}")
+        ImGui.textUnformatted("Preview panning: ${if (state.canvasPanning) "yes" else "no"}")
+        ImGui.textUnformatted("Canvas panel rect: ${formatRect(state.canvasPanelRect)}")
+        ImGui.textUnformatted("Preview rect: ${formatRect(state.canvasPreviewRect)}")
+        ImGui.textUnformatted(
+            "Canvas local mouse: ${
+                formatNullablePoint(
+                    state.canvasLocalMouseX,
+                    state.canvasLocalMouseY,
+                )
+            }",
+        )
+        ImGui.separator()
+        ImGui.checkbox("Show Bounds##ui_composer_diagnostics_show_bounds", state::showBounds)
+        ImGui.sameLine()
+        ImGui.checkbox("Highlight Selected##ui_composer_diagnostics_highlight_selected", state::highlightSelected)
+        ImGui.sameLine()
+        ImGui.checkbox("Canvas Selection##ui_composer_diagnostics_canvas_selection", state::canvasSelectionEnabled)
+        ImGui.sameLine()
+        ImGui.checkbox("Highlight Hovered##ui_composer_diagnostics_highlight_hovered", state::highlightHovered)
+        ImGui.separator()
 
         val issues = state.validationIssues + state.styleValidationIssues + state.textureValidationIssues
         ImGui.textUnformatted("Validation issues: ${issues.size}")
@@ -867,28 +1028,56 @@ class UiComposerDiagnosticsPanel(
                 ImGui.textWrapped("${index + 1}. [$node] ${issue.message}")
             }
         }
-        ImGui.separator()
-        ImGui.textWrapped(
-            "MVP limitations: structure editing is hierarchy/inspector-driven only; preview payload is not saved " +
-                "and is not runtime state; style/background picker reads Skin only and does not edit Skin files; " +
-                "Skin inspection is path-based and falls back to manual text editing when unavailable; " +
-                "style names are not asset ids; Image texture picker writes paths only and has no atlas region picker, " +
-                "no texture import/copy, no thumbnails, no Asset Browser drag/drop, and no asset-id references; " +
-                "canvas interaction is selection-only; no canvas drag/drop; no resize handles; " +
-                "no multi-select; no canvas editing; no Skin editing; no runtime behavior change; " +
-                "Table supports only simple Vertical or Horizontal orientation; no per-cell expand/fill, " +
-                "colspan/rowspan, wrapping, grid, or flex layout yet; " +
-                "no snapping; no transform gizmos; no custom shape overlay yet; no full Scene2D actor serialization; " +
-                "no layout solver; reload dirty confirmation is toolbar-level only; selected/hover highlight is best-effort.",
-        )
         ImGui.end()
     }
 }
 
 private const val TextInputBufferSize = 256
+private const val MaxCustomPreviewSize = 8192
+private const val ZoomButtonStep = 1.25f
 
 private fun formatFloat(value: Float): String =
     if (value % 1f == 0f) value.toInt().toString() else "%.3f".format(value).trimEnd('0').trimEnd('.')
+
+private fun formatPercent(value: Float): String =
+    "${(clampPreviewZoom(value) * 100f).toInt()}%"
+
+private fun formatRect(rect: UiComposerCanvasRect): String =
+    "x=${formatFloat(rect.x)}, y=${formatFloat(rect.y)}, w=${formatFloat(rect.width)}, h=${formatFloat(rect.height)}"
+
+private fun formatNullablePoint(x: Float?, y: Float?): String =
+    if (x == null || y == null) {
+        "<none>"
+    } else {
+        "x=${formatFloat(x)}, y=${formatFloat(y)}"
+    }
+
+private fun UiComposerPreviewResolutionPreset.displayName(): String =
+    when (this) {
+        UiComposerPreviewResolutionPreset.FitPanel -> "Fit Panel"
+        UiComposerPreviewResolutionPreset.HD_1280x720 -> "1280 x 720"
+        UiComposerPreviewResolutionPreset.FullHD_1920x1080 -> "1920 x 1080"
+        UiComposerPreviewResolutionPreset.QHD_2560x1440 -> "2560 x 1440"
+        UiComposerPreviewResolutionPreset.Ultrawide_3440x1440 -> "3440 x 1440"
+        UiComposerPreviewResolutionPreset.XGA_1024x768 -> "1024 x 768"
+        UiComposerPreviewResolutionPreset.Custom -> "Custom"
+    }
+
+private fun setPreviewZoom(
+    state: UiComposerState,
+    zoom: Float,
+) {
+    state.previewZoom = clampPreviewZoom(zoom)
+    state.statusMessage = "Preview zoom set to ${formatPercent(state.previewZoom)}."
+}
+
+private fun resetPreviewCamera(state: UiComposerState) {
+    state.previewCameraOffsetX = 0f
+    state.previewCameraOffsetY = 0f
+    state.previewZoom = 1f
+    state.canvasPanning = false
+    state.statusMessage = "Preview camera fit to viewport."
+}
 
 private fun readBuffer(buffer: ByteArray): String {
     val end = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size

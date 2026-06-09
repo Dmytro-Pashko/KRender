@@ -116,6 +116,121 @@ data class UiComposerState(
      * editing, Asset Browser drag/drop, transform gizmos, or canvas editing.
      */
     var canvasStatusMessage: String? = null,
+    /**
+     * Full Preview Canvas panel content rectangle in screen coordinates.
+     *
+     * This is editor-only preview placement state. It is not saved to `.krui`,
+     * is not runtime viewport state, and does not add drag/drop editing, resize
+     * handles, snapping, transform gizmos, safe-area simulation, DPI simulation,
+     * or canvas structure editing.
+     */
+    var canvasPanelRect: UiComposerCanvasRect = UiComposerCanvasRect(),
+    /**
+     * Effective preview rectangle inside [canvasPanelRect].
+     *
+     * This editor-only rectangle may be smaller than the panel because fixed
+     * resolution presets are centered and letterboxed to preserve aspect ratio.
+     * It is not saved to `.krui`, is not runtime viewport state, and does not
+     * add drag/drop editing, resize handles, snapping, transform gizmos,
+     * safe-area simulation, DPI simulation, or canvas structure editing.
+     */
+    var canvasPreviewRect: UiComposerCanvasRect = UiComposerCanvasRect(),
+    /**
+     * Selected editor-only preview resolution preset.
+     *
+     * This is not saved to `.krui`, is not runtime viewport state, and does not
+     * simulate drag/drop editing, resize handles, safe areas, DPI, snapping,
+     * transform gizmos, or canvas structure editing.
+     */
+    var previewResolutionPreset: UiComposerPreviewResolutionPreset =
+        UiComposerPreviewResolutionPreset.FitPanel,
+    /**
+     * Custom preview width used only when [previewResolutionPreset] is Custom.
+     *
+     * This editor-only value is not saved to `.krui`, is not runtime viewport
+     * state, and does not add drag/drop editing, resize handles, safe-area
+     * simulation, DPI simulation, snapping, transform gizmos, or canvas structure editing.
+     */
+    var customPreviewWidth: Int = 1920,
+    /**
+     * Custom preview height used only when [previewResolutionPreset] is Custom.
+     *
+     * This editor-only value is not saved to `.krui`, is not runtime viewport
+     * state, and does not add drag/drop editing, resize handles, safe-area
+     * simulation, DPI simulation, snapping, transform gizmos, or canvas structure editing.
+     */
+    var customPreviewHeight: Int = 1080,
+    /**
+     * Current logical width used by the Scene2D preview Stage.
+     *
+     * This editor-only value is not saved to `.krui`, is not runtime viewport
+     * state, and does not add drag/drop editing, resize handles, safe-area
+     * simulation, DPI simulation, snapping, transform gizmos, or canvas structure editing.
+     */
+    var previewLogicalWidth: Int = 1,
+    /**
+     * Current logical height used by the Scene2D preview Stage.
+     *
+     * This editor-only value is not saved to `.krui`, is not runtime viewport
+     * state, and does not add drag/drop editing, resize handles, safe-area
+     * simulation, DPI simulation, snapping, transform gizmos, or canvas structure editing.
+     */
+    var previewLogicalHeight: Int = 1,
+    /**
+     * Last preview-local mouse x inside [canvasPreviewRect], for diagnostics only.
+     *
+     * This editor-only diagnostic value is not saved to `.krui`, is not runtime
+     * viewport state, and does not add drag/drop editing, resize handles,
+     * safe-area simulation, DPI simulation, snapping, transform gizmos, or
+     * canvas structure editing.
+     */
+    var canvasLocalMouseX: Float? = null,
+    /**
+     * Last preview-local mouse y inside [canvasPreviewRect], for diagnostics only.
+     *
+     * This editor-only diagnostic value is not saved to `.krui`, is not runtime
+     * viewport state, and does not add drag/drop editing, resize handles,
+     * safe-area simulation, DPI simulation, snapping, transform gizmos, or
+     * canvas structure editing.
+     */
+    var canvasLocalMouseY: Float? = null,
+    /**
+     * Scene2D logical-space camera x offset from the center of the preview.
+     *
+     * This editor-only value supports Preview Canvas pan/zoom inspection. It is
+     * not saved to `.krui`, is not runtime viewport state, and does not add
+     * drag/drop editing, resize handles, snapping, transform gizmos, safe-area
+     * simulation, DPI simulation, or canvas structure editing.
+     */
+    var previewCameraOffsetX: Float = 0f,
+    /**
+     * Scene2D logical-space camera y offset from the center of the preview.
+     *
+     * This editor-only value supports Preview Canvas pan/zoom inspection. It is
+     * not saved to `.krui`, is not runtime viewport state, and does not add
+     * drag/drop editing, resize handles, snapping, transform gizmos, safe-area
+     * simulation, DPI simulation, or canvas structure editing.
+     */
+    var previewCameraOffsetY: Float = 0f,
+    /**
+     * Preview Canvas camera zoom scale.
+     *
+     * A value of `1` fits the full logical preview into the effective preview
+     * rectangle. Larger values zoom in, smaller values zoom out. This
+     * editor-only value is not saved to `.krui`, is not runtime viewport state,
+     * and does not add drag/drop editing, resize handles, snapping, transform
+     * gizmos, safe-area simulation, DPI simulation, or canvas structure editing.
+     */
+    var previewZoom: Float = 1f,
+    /**
+     * True while Ctrl + left mouse button is panning the Preview Canvas camera.
+     *
+     * This is editor-only interaction state. It is not saved to `.krui`, is not
+     * runtime viewport state, and does not add drag/drop editing, resize handles,
+     * snapping, transform gizmos, safe-area simulation, DPI simulation, or
+     * canvas structure editing.
+     */
+    var canvasPanning: Boolean = false,
     /** Requests the document file to be reloaded and the backend preview rebuilt. */
     var reloadRequested: Boolean = false,
     /** Requests the current in-memory `.krui` document to be saved to [uiScenePath]. */
@@ -142,6 +257,141 @@ data class UiComposerState(
     /** Mutable editor-only binding payload used to test `.krui` placeholders; it is never saved or runtime state. */
     val previewPayload: MutableMap<String, String> = DefaultPreviewPayload.toMutableMap(),
 )
+
+/**
+ * Editor-only rectangle in screen coordinates.
+ *
+ * This belongs to UiComposer preview placement and canvas interaction. It is not
+ * saved to `.krui`, does not affect runtime UI, and does not implement
+ * drag/drop editing, resize handles, snapping, transform gizmos, safe-area
+ * simulation, DPI simulation, or canvas structure editing.
+ */
+data class UiComposerCanvasRect(
+    val x: Float = 0f,
+    val y: Float = 0f,
+    val width: Float = 0f,
+    val height: Float = 0f,
+) {
+    val isValid: Boolean get() = width > 1f && height > 1f
+
+    fun contains(screenX: Float, screenY: Float): Boolean =
+        screenX >= x &&
+            screenY >= y &&
+            screenX <= x + width &&
+            screenY <= y + height
+}
+
+/**
+ * Preview resolution preset used by UiComposer's Scene2D canvas.
+ *
+ * This belongs to editor preview UX only. It controls the logical size used to
+ * build and inspect `.krui` inside the editor preview. It does not change
+ * runtime viewport configuration, does not write to `.krui`, and does not
+ * simulate DPI, safe areas, drag/drop editing, resize handles, snapping,
+ * transform gizmos, canvas structure editing, or device-specific input.
+ */
+enum class UiComposerPreviewResolutionPreset {
+    FitPanel,
+    HD_1280x720,
+    FullHD_1920x1080,
+    QHD_2560x1440,
+    Ultrawide_3440x1440,
+    XGA_1024x768,
+    Custom,
+}
+
+/**
+ * Logical preview size used by the Scene2D Stage.
+ *
+ * This is editor-only preview state. It is not saved into `.krui`, does not
+ * change RuntimeViewportService or gameplay UI configuration, and does not add
+ * drag/drop editing, resize handles, snapping, transform gizmos, safe-area
+ * simulation, DPI simulation, or canvas structure editing.
+ */
+data class UiComposerPreviewResolution(
+    val width: Int,
+    val height: Int,
+)
+
+fun UiComposerPreviewResolutionPreset.defaultResolution(
+    customWidth: Int,
+    customHeight: Int,
+    panelWidth: Int,
+    panelHeight: Int,
+): UiComposerPreviewResolution =
+    when (this) {
+        UiComposerPreviewResolutionPreset.FitPanel ->
+            UiComposerPreviewResolution(panelWidth.coerceAtLeast(1), panelHeight.coerceAtLeast(1))
+        UiComposerPreviewResolutionPreset.HD_1280x720 ->
+            UiComposerPreviewResolution(1280, 720)
+        UiComposerPreviewResolutionPreset.FullHD_1920x1080 ->
+            UiComposerPreviewResolution(1920, 1080)
+        UiComposerPreviewResolutionPreset.QHD_2560x1440 ->
+            UiComposerPreviewResolution(2560, 1440)
+        UiComposerPreviewResolutionPreset.Ultrawide_3440x1440 ->
+            UiComposerPreviewResolution(3440, 1440)
+        UiComposerPreviewResolutionPreset.XGA_1024x768 ->
+            UiComposerPreviewResolution(1024, 768)
+        UiComposerPreviewResolutionPreset.Custom ->
+            UiComposerPreviewResolution(
+                customWidth.coerceAtLeast(1),
+                customHeight.coerceAtLeast(1),
+            )
+    }
+
+/**
+ * Computes the centered preview rectangle inside a panel while preserving the
+ * selected logical preview aspect ratio.
+ *
+ * `FitPanel` usually uses the panel size as logical size, so this rect equals
+ * the panel rect. Fixed presets preserve their aspect ratio and may letterbox
+ * inside the panel. This is editor-only preview placement and is not saved to
+ * `.krui` or used as runtime viewport state.
+ */
+fun computePreviewRect(
+    panel: UiComposerCanvasRect,
+    logicalWidth: Int,
+    logicalHeight: Int,
+): UiComposerCanvasRect {
+    if (!panel.isValid || logicalWidth <= 0 || logicalHeight <= 0) {
+        return UiComposerCanvasRect()
+    }
+
+    val targetAspect = logicalWidth.toFloat() / logicalHeight.toFloat()
+    val panelAspect = panel.width / panel.height
+
+    val previewWidth: Float
+    val previewHeight: Float
+    if (panelAspect > targetAspect) {
+        previewHeight = panel.height
+        previewWidth = previewHeight * targetAspect
+    } else {
+        previewWidth = panel.width
+        previewHeight = previewWidth / targetAspect
+    }
+
+    return UiComposerCanvasRect(
+        x = panel.x + (panel.width - previewWidth) * 0.5f,
+        y = panel.y + (panel.height - previewHeight) * 0.5f,
+        width = previewWidth,
+        height = previewHeight,
+    )
+}
+
+const val UiComposerPreviewMinZoom = 0.1f
+const val UiComposerPreviewMaxZoom = 8f
+
+fun clampPreviewZoom(zoom: Float): Float =
+    zoom.takeIf(Float::isFinite)?.coerceIn(UiComposerPreviewMinZoom, UiComposerPreviewMaxZoom) ?: 1f
+
+fun previewWorldUnitsPerScreenPixel(
+    logicalSize: Int,
+    screenSize: Float,
+    zoom: Float,
+): Float =
+    logicalSize.coerceAtLeast(1).toFloat() /
+        screenSize.coerceAtLeast(1f) /
+        clampPreviewZoom(zoom)
 
 /**
  * Backend-neutral snapshot of one built Scene2D actor for the selected `.krui` node.

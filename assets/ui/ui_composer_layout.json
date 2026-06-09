@@ -4,43 +4,57 @@
       "title": "UI Composer Toolbar",
       "x": 4,
       "y": 6,
-      "width": 763,
-      "height": 127
+      "width": 1624,
+      "height": 159
+    },
+    "uiComposerPreviewCanvas": {
+      "title": "Preview Canvas",
+      "x": 359,
+      "y": 169,
+      "width": 1271,
+      "height": 965
     },
     "uiComposerHierarchy": {
       "title": "UI Scene Hierarchy",
-      "x": 5,
-      "y": 138,
-      "width": 320,
-      "height": 472
+      "x": 4,
+      "y": 171,
+      "width": 349,
+      "height": 384
+    },
+    "uiComposerStructure": {
+      "title": "UI Structure",
+      "x": 4,
+      "y": 561,
+      "width": 349,
+      "height": 291
     },
     "uiComposerInspector": {
       "title": "UI Scene Inspector",
-      "x": 1567,
-      "y": 180,
-      "width": 340,
-      "height": 528
+      "x": 1636,
+      "y": 366,
+      "width": 496,
+      "height": 966
     },
     "uiComposerPreviewPayload": {
       "title": "UI Preview Payload",
-      "x": 1567,
-      "y": 716,
-      "width": 340,
-      "height": 320
+      "x": 1636,
+      "y": 10,
+      "width": 494,
+      "height": 350
     },
     "uiComposerDiagnostics": {
       "title": "UI Scene Diagnostics",
-      "x": 1569,
-      "y": 10,
-      "width": 339,
-      "height": 162
+      "x": 3,
+      "y": 856,
+      "width": 350,
+      "height": 471
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
-      "x": 237,
-      "y": 1053,
-      "width": 1393,
-      "height": 224
+      "x": 359,
+      "y": 1141,
+      "width": 1271,
+      "height": 192
     }
   }
 }

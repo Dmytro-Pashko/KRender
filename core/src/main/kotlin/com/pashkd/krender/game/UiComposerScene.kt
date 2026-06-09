@@ -2,6 +2,7 @@ package com.pashkd.krender.game
 
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.EngineContext
+import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.MouseButton
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.Scene
@@ -20,12 +21,15 @@ import com.pashkd.krender.engine.uicomposer.UiComposerHierarchyPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerInspectorPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerOperations
 import com.pashkd.krender.engine.uicomposer.UiComposerPanelIds
+import com.pashkd.krender.engine.uicomposer.UiComposerPreviewCanvasPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerPreviewPayloadPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerState
 import com.pashkd.krender.engine.uicomposer.UiComposerStructurePanel
 import com.pashkd.krender.engine.uicomposer.UiComposerToolbarPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerTextureOptionsProvider
 import com.pashkd.krender.engine.uicomposer.UiComposerUiLayoutDefaults
+import com.pashkd.krender.engine.uicomposer.clampPreviewZoom
+import com.pashkd.krender.engine.uicomposer.previewWorldUnitsPerScreenPixel
 import com.pashkd.krender.engine.uicomposer.validateTextureReferences
 import com.pashkd.krender.engine.uicomposer.validateStyleReferences
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
@@ -34,6 +38,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.LogsPanel
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.UiSystem
+import kotlin.math.pow
 
 /**
  * Editor scene opened for `.krui` UiScene assets from Asset Browser.
@@ -54,7 +59,7 @@ import com.pashkd.krender.engine.ui.editor.UiSystem
 class UiComposerScene(
     private val uiScenePath: String,
 ) : Scene("ui_composer") {
-    override val config: SceneConfig = SceneConfigPresets.EditorTool
+    override val config: SceneConfig = SceneConfigPresets.UiComposer
 
     private lateinit var composerState: UiComposerState
     private lateinit var loader: UiComposerDocumentLoader
@@ -99,8 +104,8 @@ class UiComposerScene(
         reloadDocumentAndPreview()
 
         world.systems.add(UiComposerCanvasInteractionSystem(composerState, preview, engine.input))
-        world.systems.add(UiComposerPreviewUpdateSystem(composerState, preview))
         world.systems.add(createUiSystem())
+        world.systems.add(UiComposerPreviewUpdateSystem(composerState, preview))
     }
 
     /**
@@ -250,6 +255,7 @@ class UiComposerScene(
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "UiComposerUi")
         return UiSystem(engine.ui).also { uiSystem ->
             addPanel(uiSystem, "Toolbar", UiComposerToolbarPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
+            addPanel(uiSystem, "PreviewCanvas", UiComposerPreviewCanvasPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Hierarchy", UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Structure", UiComposerStructurePanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Inspector", UiComposerInspectorPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
@@ -295,6 +301,22 @@ private class UiComposerPreviewUpdateSystem(
     private val preview: GdxUiScenePreview,
 ) : System() {
     override fun update(world: SceneWorld, dt: Float) {
+        val rect = state.canvasPreviewRect
+        if (rect.isValid) {
+            preview.setCanvasViewport(
+                x = rect.x.toInt(),
+                y = rect.y.toInt(),
+                width = rect.width.toInt(),
+                height = rect.height.toInt(),
+                logicalWidth = state.previewLogicalWidth,
+                logicalHeight = state.previewLogicalHeight,
+                cameraOffsetX = state.previewCameraOffsetX,
+                cameraOffsetY = state.previewCameraOffsetY,
+                previewZoom = state.previewZoom,
+            )
+        } else {
+            preview.clearCanvasViewport()
+        }
         preview.updateDebugOverlay(
             showBounds = state.showBounds,
             highlightSelected = state.highlightSelected,
@@ -312,8 +334,9 @@ private class UiComposerPreviewUpdateSystem(
  *
  * This system belongs to editor canvas interaction, not the backend preview
  * builder, shared `.krui` model, or runtime UI action system. It reads the
- * current engine input snapshot, respects ImGui mouse capture, hit-tests the
- * preview, updates hover state, and selects the hit node on left click. It
+ * current engine input snapshot, scopes hit-testing to the Preview Canvas effective
+ * preview rectangle, updates hover state, supports Ctrl+left-drag camera panning,
+ * applies mouse-wheel zoom, and selects the hit node on left click. It
  * intentionally does not mutate `.krui`, save files, dispatch Woolboy runtime
  * actions, drag/drop, resize, edit properties by dragging, add/delete/reorder
  * nodes from the canvas, support multi-select, snap, create transform gizmos,
@@ -326,28 +349,79 @@ private class UiComposerCanvasInteractionSystem(
 ) : System() {
     override fun update(world: SceneWorld, dt: Float) {
         val snapshot = input.snapshot()
+        val previewRect = state.canvasPreviewRect
+        if (!previewRect.isValid) {
+            state.hoveredNodeId = null
+            state.canvasLocalMouseX = null
+            state.canvasLocalMouseY = null
+            state.canvasPanning = false
+            state.canvasStatusMessage = "Preview canvas is not visible."
+            return
+        }
+
+        val mouseX = snapshot.mousePosition.x
+        val mouseY = snapshot.mousePosition.y
+        if (!previewRect.contains(mouseX, mouseY)) {
+            state.hoveredNodeId = null
+            state.canvasLocalMouseX = null
+            state.canvasLocalMouseY = null
+            state.canvasPanning = false
+            state.canvasStatusMessage = "Mouse outside preview canvas."
+            return
+        }
+
+        val localX = mouseX - previewRect.x
+        val localY = mouseY - previewRect.y
+        state.canvasLocalMouseX = localX
+        state.canvasLocalMouseY = localY
+
+        if (snapshot.scrollDelta != 0f) {
+            state.previewZoom = clampPreviewZoom(state.previewZoom * ZoomWheelStep.pow(-snapshot.scrollDelta))
+            state.statusMessage = "Preview zoom set to ${(state.previewZoom * 100f).toInt()}%."
+        }
+
+        val controlDown = snapshot.isDown(Key.ControlLeft) || snapshot.isDown(Key.ControlRight)
+        val panning = controlDown && snapshot.isMouseDown(MouseButton.Left)
+        state.canvasPanning = panning
+        if (panning) {
+            val worldPerPixelX = previewWorldUnitsPerScreenPixel(
+                logicalSize = state.previewLogicalWidth,
+                screenSize = previewRect.width,
+                zoom = state.previewZoom,
+            )
+            val worldPerPixelY = previewWorldUnitsPerScreenPixel(
+                logicalSize = state.previewLogicalHeight,
+                screenSize = previewRect.height,
+                zoom = state.previewZoom,
+            )
+            state.previewCameraOffsetX -= snapshot.mouseDelta.x * worldPerPixelX
+            state.previewCameraOffsetY += snapshot.mouseDelta.y * worldPerPixelY
+            state.hoveredNodeId = null
+            state.canvasStatusMessage = "Panning preview canvas."
+            return
+        }
+
         if (!state.canvasSelectionEnabled) {
             state.hoveredNodeId = null
             state.canvasStatusMessage = "Canvas selection disabled."
             return
         }
-        if (snapshot.uiCapturesMouse) {
-            state.hoveredNodeId = null
-            state.canvasStatusMessage = "Canvas input paused while ImGui captures mouse."
-            return
-        }
 
-        val hit = preview.hitTest(
-            screenX = snapshot.mousePosition.x.toInt(),
-            screenY = snapshot.mousePosition.y.toInt(),
+        val hit = preview.hitTestLocal(
+            localX = localX.toInt(),
+            localY = localY.toInt(),
         )
         state.hoveredNodeId = hit?.nodeId
         state.canvasStatusMessage = hit?.let { "Hovered '${it.nodeId}'." } ?: "No preview actor hovered."
 
-        if (snapshot.wasMousePressed(MouseButton.Left) && hit != null) {
+        if (!controlDown && snapshot.wasMousePressed(MouseButton.Left) && hit != null) {
             state.selectedNodeId = hit.nodeId
             state.statusMessage = "Selected '${hit.nodeId}' from preview."
             state.canvasStatusMessage = "Selected '${hit.nodeId}' from preview canvas."
         }
+    }
+
+    private companion object {
+        private const val ZoomWheelStep = 1.1f
     }
 }

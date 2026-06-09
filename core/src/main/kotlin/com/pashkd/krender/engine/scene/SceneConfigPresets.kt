@@ -52,4 +52,17 @@ object SceneConfigPresets {
             mode = WindowMode.Windowed,
         ),
     )
+
+    /** Current Asset Browser preset. Kept separate for future divergence. */
+    val UiComposer = SceneConfig(
+        viewport = RuntimeViewportConfig(
+            designWidth = 1920f,
+            designHeight = 1080f,
+            scalePolicy = UiScalePolicy.ScaleByHeight,
+        ),
+        window = RuntimeWindowConfig(
+            resolution = WindowResolution(width = 2138, height = 1335),
+            mode = WindowMode.Windowed,
+        ),
+    )
 }
