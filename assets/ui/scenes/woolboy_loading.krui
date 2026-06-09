@@ -2,6 +2,18 @@
   "schemaVersion": 1,
   "id": "woolboy_loading",
   "skin": "ui/skins/craftacular-ui.json",
+  "bindings": [
+    {
+      "key": "title",
+      "type": "Text",
+      "defaultValue": "Loading..."
+    },
+    {
+      "key": "progress",
+      "type": "Number",
+      "defaultValue": "0.65"
+    }
+  ],
   "root": {
     "id": "root",
     "type": "Stack",

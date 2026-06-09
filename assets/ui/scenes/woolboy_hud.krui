@@ -2,6 +2,33 @@
   "schemaVersion": 1,
   "id": "woolboy_hud",
   "skin": "ui/skins/craftacular-ui.json",
+  "bindings": [
+    {
+      "key": "healthLabel",
+      "type": "Text",
+      "defaultValue": "100/100"
+    },
+    {
+      "key": "scores",
+      "type": "Number",
+      "defaultValue": "1230"
+    },
+    {
+      "key": "life1Texture",
+      "type": "Texture",
+      "defaultValue": "textures/woolboy/hud_heart_full.png"
+    },
+    {
+      "key": "life2Texture",
+      "type": "Texture",
+      "defaultValue": "textures/woolboy/hud_heart_full.png"
+    },
+    {
+      "key": "life3Texture",
+      "type": "Texture",
+      "defaultValue": "textures/woolboy/hud_heart_empty.png"
+    }
+  ],
   "root": {
     "id": "root",
     "type": "Stack",
@@ -11,15 +38,16 @@
         "type": "Container",
         "align": "TopLeft",
         "padding": {
-          "left": 32,
-          "top": 32
+          "left": 32.0,
+          "top": 32.0,
+          "right": 0.0,
+          "bottom": 0.0
         },
         "children": [
           {
             "id": "health_label",
             "type": "Label",
-            "text": "Health: {healthLabel}",
-            "align": "Left"
+            "text": "Health: {healthLabel}"
           }
         ]
       },
@@ -28,15 +56,17 @@
         "type": "Container",
         "align": "Top",
         "padding": {
-          "top": 32
+          "left": 0.0,
+          "top": 32.0,
+          "right": 0.0,
+          "bottom": 0.0
         },
         "children": [
           {
             "id": "score_label",
             "type": "Label",
             "style": "hud-score-title",
-            "text": "Score: {scores}",
-            "align": "Center"
+            "text": "Score: {scores}"
           }
         ]
       },
@@ -45,36 +75,38 @@
         "type": "Container",
         "align": "TopRight",
         "padding": {
-          "top": 32,
-          "right": 32
+          "left": 0.0,
+          "top": 32.0,
+          "right": 32.0,
+          "bottom": 0.0
         },
         "children": [
           {
             "id": "lives_row",
             "type": "Table",
-            "spacing": 8,
+            "spacing": 8.0,
             "tableOrientation": "Horizontal",
             "children": [
               {
                 "id": "life_1",
                 "type": "Image",
                 "texture": "{life1Texture}",
-                "width": 48,
-                "height": 48
+                "width": 48.0,
+                "height": 48.0
               },
               {
                 "id": "life_2",
                 "type": "Image",
                 "texture": "{life2Texture}",
-                "width": 48,
-                "height": 48
+                "width": 48.0,
+                "height": 48.0
               },
               {
                 "id": "life_3",
                 "type": "Image",
                 "texture": "{life3Texture}",
-                "width": 48,
-                "height": 48
+                "width": 48.0,
+                "height": 48.0
               }
             ]
           }
@@ -85,7 +117,10 @@
         "type": "Container",
         "align": "Left",
         "padding": {
-          "left": 32
+          "left": 32.0,
+          "top": 0.0,
+          "right": 0.0,
+          "bottom": 0.0
         },
         "children": [
           {
@@ -93,12 +128,12 @@
             "type": "Table",
             "background": "window",
             "padding": {
-              "left": 20,
-              "top": 20,
-              "right": 20,
-              "bottom": 20
+              "left": 20.0,
+              "top": 20.0,
+              "right": 20.0,
+              "bottom": 20.0
             },
-            "spacing": 6,
+            "spacing": 6.0,
             "children": [
               {
                 "id": "controls_title",

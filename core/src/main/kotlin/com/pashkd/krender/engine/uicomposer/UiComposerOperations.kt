@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.uicomposer
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
@@ -18,7 +19,7 @@ import com.pashkd.krender.engine.ui.scene.UiSceneValidator
  * document, request preview rebuilds, and save the `.krui` document. It
  * intentionally does not implement drag/drop or canvas selection, resize actors
  * on canvas, edit Skins, import/copy textures, add Asset Browser drag/drop,
- * introduce asset-id references, save preview payload into `.krui`, alter
+ * introduce asset-id references, alter
  * runtime Woolboy UI behavior, solve generic visual layout, or serialize full
  * Scene2D actors.
  */
@@ -95,7 +96,7 @@ class UiComposerOperations(
      * This operation belongs to editor selected-node property editing. It updates
      * the in-memory document, revalidates it, marks `.krui` dirty, and requests a
      * preview rebuild. It intentionally does not edit child structure, add/delete
-     * nodes, reorder nodes, save automatically, edit preview payload, edit Skins,
+     * nodes, reorder nodes, save automatically, edit Skins,
      * create asset-id references, or serialize Scene2D actors.
      */
     fun updateSelectedNode(transform: (UiSceneNode) -> UiSceneNode) {
@@ -114,6 +115,54 @@ class UiComposerOperations(
         state.previewRebuildRequested = true
         state.saveStatusMessage = null
         state.statusMessage = "Document edited."
+    }
+
+    /**
+     * Updates a saved binding default value and the live preview payload.
+     *
+     * Binding definitions are stored in `.krui`, so editing preview data marks
+     * the document dirty and will be persisted by Save.
+     */
+    fun updateBindingDefaultValue(
+        key: String,
+        defaultValue: String,
+    ) {
+        val document = state.document ?: return
+        if (key !in document.bindings.map { binding -> binding.key }) return
+        val updatedDocument = document.copy(
+            bindings = updateBindingDefaultValue(document.bindings, key, defaultValue),
+        )
+        state.document = updatedDocument
+        state.previewPayload[key] = defaultValue
+        refreshDiagnostics(updatedDocument)
+        state.dirty = true
+        state.pendingReloadConfirmation = false
+        state.previewRebuildRequested = true
+        state.saveStatusMessage = null
+        state.statusMessage = "Binding default changed."
+    }
+
+    /**
+     * Adds or replaces a saved binding definition and syncs the preview payload.
+     */
+    fun upsertBindingDefinition(binding: UiSceneBindingDefinition) {
+        val document = state.document ?: return
+        if (binding.key.isBlank()) {
+            state.statusMessage = "Binding key cannot be blank."
+            return
+        }
+        val updatedDocument = document.copy(
+            bindings = upsertBindingDefinition(document.bindings, binding),
+        )
+        state.document = updatedDocument
+        state.previewPayload.clear()
+        state.previewPayload.putAll(previewPayloadFromBindings(updatedDocument.bindings))
+        refreshDiagnostics(updatedDocument)
+        state.dirty = true
+        state.pendingReloadConfirmation = false
+        state.previewRebuildRequested = true
+        state.saveStatusMessage = null
+        state.statusMessage = "Binding '${binding.key}' saved in document."
     }
 
     /**
@@ -318,6 +367,8 @@ class UiComposerOperations(
             textureOptions = state.textureOptions,
             assetTypeByPath = state.textureAssetTypesByPath,
         )
+        state.bindingValidationIssues = validateBindingReferences(document, state.previewPayload.keys)
+        state.missingBindingKeys = missingBindingKeys(document, state.previewPayload.keys)
     }
 
     companion object {

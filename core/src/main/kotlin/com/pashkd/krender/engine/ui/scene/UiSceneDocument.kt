@@ -12,6 +12,7 @@ data class UiSceneDocument(
     val schemaVersion: Int = CurrentSchemaVersion,
     val id: String,
     val skin: String,
+    val bindings: List<UiSceneBindingDefinition> = emptyList(),
     val root: UiSceneNode,
 ) {
     companion object {
@@ -19,6 +20,34 @@ data class UiSceneDocument(
         const val CurrentSchemaVersion = 1
     }
 }
+
+/**
+ * Data type for one predefined UI scene binding.
+ *
+ * These definitions are editor-authored preview/data contracts stored in `.krui`.
+ * Runtime binding remains string-key based; this type helps UiComposer present
+ * expected values and default preview data without introducing expressions or a
+ * gameplay data model.
+ */
+enum class UiSceneBindingType {
+    Text,
+    Number,
+    Texture,
+    Action,
+}
+
+/**
+ * One predefined binding key for a `.krui` document.
+ *
+ * [defaultValue] is the editor-preview value saved with the scene so UiComposer
+ * can rebuild previews consistently. Runtime systems may still provide their
+ * own payload values for the same keys.
+ */
+data class UiSceneBindingDefinition(
+    val key: String,
+    val type: UiSceneBindingType,
+    val defaultValue: String = "",
+)
 
 /**
  * Explicit Scene2D widget subset supported by the `.krui` MVP.

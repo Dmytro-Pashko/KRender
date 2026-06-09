@@ -91,7 +91,10 @@ private fun collectTextureIssues(
     issues: MutableList<UiSceneValidationIssue>,
 ) {
     if (node.type == UiSceneNodeType.Image) {
-        val texturePath = node.texture?.takeIf(String::isNotBlank)?.let(::normalizeTexturePath)
+        val texturePath = node.texture
+            ?.takeIf(String::isNotBlank)
+            ?.takeUnless { texture -> extractBindingPlaceholders(texture).isNotEmpty() }
+            ?.let(::normalizeTexturePath)
         if (texturePath != null && texturePath !in texturePaths) {
             val knownType = assetTypeByPath[texturePath]
             val message = if (knownType != null && knownType != AssetType.Texture) {

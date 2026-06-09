@@ -2,6 +2,18 @@
   "schemaVersion": 1,
   "id": "woolboy_main_menu",
   "skin": "ui/skins/craftacular-ui.json",
+  "bindings": [
+    {
+      "key": "primaryButtonText",
+      "type": "Text",
+      "defaultValue": "Start Game"
+    },
+    {
+      "key": "primaryButtonAction",
+      "type": "Action",
+      "defaultValue": "woolboy.start"
+    }
+  ],
   "root": {
     "id": "root",
     "type": "Stack",

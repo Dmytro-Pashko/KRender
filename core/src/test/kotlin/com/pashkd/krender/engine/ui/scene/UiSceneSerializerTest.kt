@@ -32,6 +32,13 @@ class UiSceneSerializerTest {
         val document = UiSceneDocument(
             id = "hud",
             skin = "ui\\skins\\craftacular-ui.json",
+            bindings = listOf(
+                UiSceneBindingDefinition(
+                    key = "scores",
+                    type = UiSceneBindingType.Number,
+                    defaultValue = "120",
+                ),
+            ),
             root = UiSceneNode(
                 id = "root",
                 type = UiSceneNodeType.Stack,
@@ -51,6 +58,7 @@ class UiSceneSerializerTest {
 
         assertEquals("hud", decoded.id)
         assertEquals("ui/skins/craftacular-ui.json", decoded.skin)
+        assertEquals(listOf(UiSceneBindingDefinition("scores", UiSceneBindingType.Number, "120")), decoded.bindings)
         assertEquals(UiSceneNodeType.Stack, decoded.root.type)
         assertEquals("Score: {scores}", decoded.root.children.single().text)
         assertEquals("window", decoded.root.children.single().background)
@@ -74,6 +82,54 @@ class UiSceneSerializerTest {
         val document = serializer.decode(json)
 
         assertEquals(UiSceneTableOrientation.Vertical, document.root.tableOrientation)
+    }
+
+    @Test
+    fun `binding definitions default to empty list when omitted`() {
+        val json = """
+            {
+              "schemaVersion": 1,
+              "id": "bindings_test",
+              "skin": "ui/skins/craftacular-ui.json",
+              "root": {
+                "id": "root",
+                "type": "Table"
+              }
+            }
+        """.trimIndent()
+
+        val document = serializer.decode(json)
+
+        assertEquals(emptyList(), document.bindings)
+    }
+
+    @Test
+    fun `binding definitions deserialize and serialize`() {
+        val json = """
+            {
+              "schemaVersion": 1,
+              "id": "bindings_test",
+              "skin": "ui/skins/craftacular-ui.json",
+              "bindings": [
+                { "key": "title", "type": "Text", "defaultValue": "Loading..." },
+                { "key": "progress", "type": "Number", "defaultValue": "0.65" }
+              ],
+              "root": {
+                "id": "root",
+                "type": "Table"
+              }
+            }
+        """.trimIndent()
+
+        val decoded = serializer.decode(serializer.encode(serializer.decode(json)))
+
+        assertEquals(
+            listOf(
+                UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading..."),
+                UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.65"),
+            ),
+            decoded.bindings,
+        )
     }
 
     @Test
@@ -150,6 +206,26 @@ class UiSceneSerializerTest {
         val issues = UiSceneValidator().validate(document)
 
         assertTrue(issues.any { it.nodeId == "duplicate" && it.message.contains("duplicated") })
+    }
+
+    @Test
+    fun `validator reports duplicate binding keys`() {
+        val document = UiSceneDocument(
+            id = "bad",
+            skin = "ui/skins/craftacular-ui.json",
+            bindings = listOf(
+                UiSceneBindingDefinition("scores", UiSceneBindingType.Number, "1"),
+                UiSceneBindingDefinition("scores", UiSceneBindingType.Number, "2"),
+            ),
+            root = UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Table,
+            ),
+        )
+
+        val issues = UiSceneValidator().validate(document)
+
+        assertTrue(issues.any { it.message.contains("Binding key 'scores' is duplicated") })
     }
 
     @Test

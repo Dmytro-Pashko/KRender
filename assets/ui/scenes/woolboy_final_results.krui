@@ -2,6 +2,13 @@
   "schemaVersion": 1,
   "id": "woolboy_final_results",
   "skin": "ui/skins/craftacular-ui.json",
+  "bindings": [
+    {
+      "key": "scores",
+      "type": "Number",
+      "defaultValue": "1230"
+    }
+  ],
   "root": {
     "id": "root",
     "type": "Stack",

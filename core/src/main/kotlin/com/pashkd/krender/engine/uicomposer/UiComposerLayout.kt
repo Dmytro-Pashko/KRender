@@ -80,14 +80,14 @@ object UiComposerUiLayoutDefaults {
                 height = 472f,
             ),
             UiComposerPanelIds.PreviewPayload to ImGuiPanelLayout(
-                title = "UI Preview Payload",
+                title = "UI Scene Bindings",
                 x = 928f,
                 y = 624f,
                 width = 320f,
                 height = 240f,
             ),
             UiComposerPanelIds.Diagnostics to ImGuiPanelLayout(
-                title = "UI Scene Diagnostics",
+                title = "UI Scene info",
                 x = 352f,
                 y = 640f,
                 width = 896f,

@@ -47,7 +47,23 @@ class UiSceneValidator {
         }
 
         collectNodeIssues(document.root, mutableSetOf(), issues)
+        collectBindingIssues(document.bindings, issues)
         return issues
+    }
+
+    private fun collectBindingIssues(
+        bindings: List<UiSceneBindingDefinition>,
+        issues: MutableList<UiSceneValidationIssue>,
+    ) {
+        val seenKeys = mutableSetOf<String>()
+        bindings.forEach { binding ->
+            when {
+                binding.key.isBlank() -> issues += UiSceneValidationIssue(null, "Binding key must not be blank.")
+                !seenKeys.add(binding.key) -> {
+                    issues += UiSceneValidationIssue(null, "Binding key '${binding.key}' is duplicated within this document.")
+                }
+            }
+        }
     }
 
     private fun collectNodeIssues(

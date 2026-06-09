@@ -34,6 +34,20 @@ data class UiComposerState(
     var styleValidationIssues: List<UiSceneValidationIssue> = emptyList(),
     /** Editor-only Asset Registry-backed warnings for Image texture paths. */
     var textureValidationIssues: List<UiSceneValidationIssue> = emptyList(),
+    /**
+     * Editor-only binding diagnostics for unknown `.krui` placeholders/valueBinding keys.
+     *
+     * These warnings compare document references against document binding keys. They
+     * do not block save, do not mutate runtime UI, and are not saved to `.krui`.
+     */
+    var bindingValidationIssues: List<UiSceneValidationIssue> = emptyList(),
+    /**
+     * Missing binding keys grouped for Diagnostics quick-add actions.
+     *
+     * This is editor helper state used to add binding definitions to `.krui`. It
+     * does not change runtime behavior.
+     */
+    var missingBindingKeys: List<UiComposerMissingBindingKey> = emptyList(),
     /** Parse or backend preview build error shown in diagnostics; this does not crash the scene. */
     var parseError: String? = null,
     /** Last inspected path-based Skin snapshot used by Inspector dropdowns and diagnostics. */
@@ -65,6 +79,14 @@ data class UiComposerState(
      * runtime value, and does not replace manual path editing.
      */
     var textureSearchQuery: String = "",
+    /**
+     * Current binding keys selected by Inspector binding helper controls.
+     *
+     * Keys are scoped by selected node id and field name so Text, Action,
+     * Texture, and valueBinding controls do not mirror each other's selection.
+     * This is editor-only UI state and is never saved.
+     */
+    val selectedBindingKeysByField: MutableMap<String, String> = mutableMapOf(),
     /**
      * Known registry asset types keyed by project-relative path for diagnostics.
      *
@@ -327,8 +349,8 @@ data class UiComposerState(
     var selectedActorInfo: UiComposerActorPreviewInfo? = null,
     /** Last backend guide snapshot used by diagnostics panels. */
     var guideSnapshot: UiComposerGuideSnapshot = UiComposerGuideSnapshot(),
-    /** Mutable editor-only binding payload used to test `.krui` placeholders; it is never saved or runtime state. */
-    val previewPayload: MutableMap<String, String> = DefaultPreviewPayload.toMutableMap(),
+    /** Mutable editor preview payload loaded from document binding definitions and saved back to `.krui`. */
+    val previewPayload: MutableMap<String, String> = mutableMapOf(),
 )
 
 /**
@@ -618,28 +640,6 @@ data class UiComposerCanvasHit(
 )
 
 /**
- * Sample payload values used by the UiComposer preview.
- *
- * This belongs to editor preview data only: it lets bound Woolboy `.krui` labels,
- * progress bars, actions, and images render with useful placeholder values. It
- * is editable only inside the Phase 4.5 preview panel, is not saved to `.krui`,
- * does not introduce asset-id references, and is not a runtime Woolboy UI
- * behavior change.
- */
-val DefaultPreviewPayload: Map<String, String> = mapOf(
-    "title" to "Loading...",
-    "progress" to "0.65",
-    "primaryButtonText" to "Start Game",
-    "primaryButtonAction" to "woolboy.start",
-    "healthLabel" to "100/100",
-    "scores" to "1230",
-    "lives" to "3",
-    "life1Texture" to "textures/woolboy/hud_heart_full.png",
-    "life2Texture" to "textures/woolboy/hud_heart_full.png",
-    "life3Texture" to "textures/woolboy/hud_heart_empty.png",
-)
-
-/**
  * Backend-neutral loader for UiComposer `.krui` documents.
  *
  * This belongs to editor preview backend-neutral plumbing: it decodes the file
@@ -664,7 +664,11 @@ class UiComposerDocumentLoader(
         try {
             val document = serializer.decode(readText(state.uiScenePath))
             state.document = document
+            state.previewPayload.clear()
+            state.previewPayload.putAll(previewPayloadFromBindings(document.bindings))
             state.validationIssues = validator.validate(document)
+            state.bindingValidationIssues = validateBindingReferences(document, state.previewPayload.keys)
+            state.missingBindingKeys = missingBindingKeys(document, state.previewPayload.keys)
             state.parseError = null
             if (state.selectedNodeId != null && findUiSceneNodeById(document.root, state.selectedNodeId) == null) {
                 state.selectedNodeId = null
@@ -674,6 +678,9 @@ class UiComposerDocumentLoader(
             state.validationIssues = emptyList()
             state.styleValidationIssues = emptyList()
             state.textureValidationIssues = emptyList()
+            state.bindingValidationIssues = emptyList()
+            state.missingBindingKeys = emptyList()
+            state.previewPayload.clear()
             state.skinMetadata = null
             state.parseError = error.message ?: error::class.simpleName ?: "Unknown UI scene parse error."
         } finally {

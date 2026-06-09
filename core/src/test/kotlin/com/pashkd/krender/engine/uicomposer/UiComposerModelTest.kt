@@ -6,6 +6,8 @@ import com.pashkd.krender.engine.assets.AssetId
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.AssetRegistrySnapshot
 import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
+import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
@@ -40,17 +42,15 @@ internal class UiComposerModelTest {
     }
 
     @Test
-    internal fun `preview payload contains Woolboy defaults`() {
-        assertEquals("Loading...", DefaultPreviewPayload["title"])
-        assertEquals("0.65", DefaultPreviewPayload["progress"])
-        assertTrue(DefaultPreviewPayload.containsKey("primaryButtonText"))
-        assertEquals("textures/woolboy/hud_heart_full.png", DefaultPreviewPayload["life1Texture"])
-        assertTrue(DefaultPreviewPayload.containsKey("life2Texture"))
-        assertTrue(DefaultPreviewPayload.containsKey("life3Texture"))
-        assertTrue(DefaultPreviewPayload.containsKey("primaryButtonAction"))
-        assertTrue(DefaultPreviewPayload.containsKey("healthLabel"))
-        assertTrue(DefaultPreviewPayload.containsKey("scores"))
-        assertTrue(DefaultPreviewPayload.containsKey("lives"))
+    internal fun `preview payload is built from document bindings`() {
+        val payload = previewPayloadFromBindings(
+            listOf(
+                UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading..."),
+                UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.65"),
+            ),
+        )
+
+        assertEquals(mapOf("title" to "Loading...", "progress" to "0.65"), payload)
     }
 
     @Test
@@ -61,9 +61,13 @@ internal class UiComposerModelTest {
         assertTrue(state.highlightHovered)
         assertTrue(state.styleValidationIssues.isEmpty())
         assertTrue(state.textureValidationIssues.isEmpty())
+        assertTrue(state.bindingValidationIssues.isEmpty())
+        assertTrue(state.missingBindingKeys.isEmpty())
         assertTrue(state.textureOptions.isEmpty())
         assertFalse(state.textureOptionsReloadRequested)
         assertEquals("", state.textureSearchQuery)
+        assertTrue(state.selectedBindingKeysByField.isEmpty())
+        assertTrue(state.previewPayload.isEmpty())
         assertNull(state.hoveredNodeId)
         assertNull(state.skinMetadata)
         assertNull(state.canvasStatusMessage)
@@ -109,6 +113,9 @@ internal class UiComposerModelTest {
               "schemaVersion": 1,
               "id": "test",
               "skin": "ui/skins/craftacular-ui.json",
+              "bindings": [
+                { "key": "title", "type": "Text", "defaultValue": "Loading..." }
+              ],
               "root": {
                 "id": "root",
                 "type": "Stack",
@@ -124,6 +131,7 @@ internal class UiComposerModelTest {
         assertEquals(UiSceneDocument.CurrentSchemaVersion, state.document?.schemaVersion)
         assertEquals("test", state.document?.id)
         assertEquals(emptyList(), state.validationIssues)
+        assertEquals(mapOf("title" to "Loading..."), state.previewPayload)
         assertNull(state.parseError)
     }
 
@@ -176,15 +184,19 @@ internal class UiComposerModelTest {
     }
 
     @Test
-    internal fun `preview payload reset returns default values`() {
+    internal fun `preview payload can be repopulated from document bindings`() {
         val state = UiComposerState(uiScenePath = "ok.krui")
         state.previewPayload["title"] = "Changed"
         state.previewPayload["progress"] = "0.10"
+        val bindings = listOf(
+            UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading..."),
+            UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.65"),
+        )
 
         state.previewPayload.clear()
-        state.previewPayload.putAll(DefaultPreviewPayload)
+        state.previewPayload.putAll(previewPayloadFromBindings(bindings))
 
-        assertEquals(DefaultPreviewPayload, state.previewPayload)
+        assertEquals(mapOf("title" to "Loading...", "progress" to "0.65"), state.previewPayload)
     }
 
     @Test
@@ -297,6 +309,28 @@ internal class UiComposerModelTest {
         val issues = validateTextureReferences(
             document = document,
             textureOptions = listOf(UiComposerTextureOption("Heart", "textures/heart.png")),
+        )
+
+        assertTrue(issues.isEmpty())
+    }
+
+    @Test
+    internal fun `texture validation leaves bound Image textures to binding diagnostics`() {
+        val document = UiSceneDocument(
+            id = "textures",
+            skin = "ui/skins/craftacular-ui.json",
+            root = UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Stack,
+                children = listOf(
+                    UiSceneNode(id = "heart", type = UiSceneNodeType.Image, texture = "{life1Texture}"),
+                ),
+            ),
+        )
+
+        val issues = validateTextureReferences(
+            document = document,
+            textureOptions = emptyList(),
         )
 
         assertTrue(issues.isEmpty())

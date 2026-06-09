@@ -51,6 +51,7 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
             schemaVersion = root.intOrDefault("schemaVersion", UiSceneDocument.CurrentSchemaVersion),
             id = root.requiredString("id", DocumentName),
             skin = normalizedProjectPath(root.requiredString("skin", DocumentName)),
+            bindings = readBindings(root["bindings"]),
             root = readNode(root["root"], "root"),
         )
     }
@@ -108,6 +109,19 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
         return children.mapIndexed { index, child -> readNode(child, "$parentId.children[$index]") }
     }
 
+    private fun readBindings(element: JsonElement?): List<UiSceneBindingDefinition> {
+        val bindings = element as? JsonArray ?: return emptyList()
+        return bindings.mapIndexed { index, bindingElement ->
+            val binding = bindingElement as? JsonObject
+                ?: throw IllegalArgumentException("UI scene binding 'bindings[$index]' must be a JSON object")
+            UiSceneBindingDefinition(
+                key = binding.requiredString("key", DocumentName).trim(),
+                type = binding.enumOrDefault("type", DocumentName, UiSceneBindingType.Text, UiSceneBindingType::valueOf),
+                defaultValue = binding.stringOrDefault("defaultValue", ""),
+            )
+        }
+    }
+
     private fun readSpacing(element: JsonElement?): UiSceneSpacing {
         val spacing = element as? JsonObject ?: return UiSceneSpacing.zero()
         return UiSceneSpacing(
@@ -123,7 +137,22 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
             put("schemaVersion", JsonPrimitive(schemaVersion))
             put("id", JsonPrimitive(id))
             put("skin", JsonPrimitive(normalizedProjectPath(skin)))
+            if (bindings.isNotEmpty()) {
+                put(
+                    "bindings",
+                    buildJsonArray {
+                        bindings.forEach { binding -> add(binding.toJsonObject()) }
+                    },
+                )
+            }
             put("root", root.toJsonObject())
+        }
+
+    private fun UiSceneBindingDefinition.toJsonObject(): JsonObject =
+        buildJsonObject {
+            put("key", JsonPrimitive(key))
+            put("type", JsonPrimitive(type.name))
+            put("defaultValue", JsonPrimitive(defaultValue))
         }
 
     private fun UiSceneNode.toJsonObject(): JsonObject =

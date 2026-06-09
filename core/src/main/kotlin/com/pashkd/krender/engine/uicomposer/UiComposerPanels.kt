@@ -6,6 +6,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import com.pashkd.krender.engine.ui.scene.UiSceneAlign
+import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
@@ -92,11 +93,6 @@ class UiComposerToolbarPanel(
         ImGui.separator()
         ImGui.textUnformatted("Path: ${state.uiScenePath}")
         ImGui.textUnformatted("Status: ${state.statusMessage}")
-        ImGui.textUnformatted("Resolution: ${state.previewLogicalWidth} x ${state.previewLogicalHeight}")
-        ImGui.textUnformatted(
-            "Canvas: ${formatFloat(state.canvasPreviewRect.width)} x ${formatFloat(state.canvasPreviewRect.height)}",
-        )
-        ImGui.textUnformatted("Hovered: ${state.hoveredNodeId ?: "<none>"}")
         ImGui.textUnformatted("Dirty: ${if (state.dirty) "yes" else "no"}")
         state.saveStatusMessage?.let { message -> ImGui.textUnformatted("Save: $message") }
         if (state.pendingReloadConfirmation) {
@@ -174,9 +170,6 @@ class UiComposerPreviewCanvasPanel(
         )
 
         ImGui.invisibleButton("##ui_composer_preview_canvas_area", ImVec2(panelWidth, panelHeight))
-        if (ImGui.isItemHovered()) {
-            ImGui.setTooltip("Preview canvas: click UI actors to select nodes. Ctrl+left drag pans, mouse wheel zooms.")
-        }
 
         ImGui.end()
     }
@@ -269,10 +262,6 @@ class UiComposerPreviewCanvasPanel(
         ImGui.checkbox("Label##ui_composer_guide_label", state::showNodeIdLabel)
         ImGui.sameLine()
         ImGui.checkbox("Mouse##ui_composer_guide_mouse", state::showLocalMouseCoordinates)
-        if (state.showLocalMouseCoordinates) {
-            ImGui.sameLine()
-            ImGui.textUnformatted("Mouse: ${formatMouseCoordinates(state)}")
-        }
     }
 }
 
@@ -372,7 +361,6 @@ class UiComposerStructurePanel(
         property("selected id", selectedNode.id)
         property("selected type", selectedNode.type.name)
         property("root", isRoot.toString())
-        ImGui.textWrapped("Structure editing is hierarchy-based. Canvas interaction is selection-only.")
         ImGui.separator()
 
         drawAddChildControls(canAddChild)
@@ -467,7 +455,7 @@ class UiComposerStructurePanel(
  * read-only. It intentionally omits add/delete/duplicate/reorder controls,
  * child-list editing, drag/drop canvas editing, resize handles, multi-select,
  * Skin editing, Asset Browser drag/drop, asset-id references, snapping, transform
- * gizmos, JSON text editing, preview payload persistence, layout solving, and
+ * gizmos, JSON text editing, layout solving, and
  * full Scene2D actor serialization.
  */
 class UiComposerInspectorPanel(
@@ -543,61 +531,174 @@ class UiComposerInspectorPanel(
         drawSkinPickerWarning(document, skinMetadata)
         drawStyleEditor(node, skinMetadata)
         drawBackgroundEditor(node, skinMetadata)
+        ImGui.separator()
         editableString(node, "text", node.text, emptyAsNull = false) { value ->
             operations.updateSelectedNode { it.copy(text = value ?: "") }
+        }
+        if (node.type == UiSceneNodeType.Label || node.type == UiSceneNodeType.TextButton) {
+            drawPlaceholderBindingControls(
+                node = node,
+                fieldName = "text",
+                comboLabel = "Text Binding",
+                buttonLabel = "Insert into text",
+                current = node.text.orEmpty(),
+                separatorAfterButton = true,
+            ) { next ->
+                writeBuffer(bufferFor(node.id, "text", node.text.orEmpty()), next)
+                operations.updateSelectedNode { it.copy(text = next) }
+            }
         }
         editableString(node, "action", node.action, emptyAsNull = true) { value ->
             operations.updateSelectedNode { it.copy(action = value) }
         }
+        if (node.type == UiSceneNodeType.TextButton) {
+            drawPlaceholderBindingControls(
+                node = node,
+                fieldName = "action",
+                comboLabel = "Action Binding",
+                buttonLabel = "Insert into action",
+                current = node.action.orEmpty(),
+                separatorAfterButton = true,
+            ) { next ->
+                writeBuffer(bufferFor(node.id, "action", node.action.orEmpty()), next)
+                operations.updateSelectedNode { it.copy(action = next) }
+            }
+        }
         if (node.type == UiSceneNodeType.Image) {
             drawTextureEditor(node)
         }
-        editableEnum(node, "scaling", node.scaling, UiSceneScaling.entries.toList()) { scaling ->
+        editableEnum(
+            node,
+            "scaling",
+            node.scaling,
+            UiSceneScaling.entries.toList(),
+            tooltip = "Controls how Image texture content fits inside the image actor bounds.",
+        ) { scaling ->
             operations.updateSelectedNode { it.copy(scaling = scaling) }
         }
-        editableFloat(node, "value", node.value, allowNull = true) { value ->
+        editableFloat(
+            node,
+            "value",
+            node.value,
+            allowNull = true,
+            tooltip = "Static ProgressBar value used when no valueBinding overrides it.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(value = value) }
         }
-        editableString(node, "valueBinding", node.valueBinding, emptyAsNull = true) { value ->
+        editableString(
+            node,
+            "valueBinding",
+            node.valueBinding,
+            emptyAsNull = true,
+            tooltip = "Raw binding key used by ProgressBar to read its preview/runtime value.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(valueBinding = value) }
         }
-        editableFloat(node, "min", node.min, allowNull = false) { value ->
+        if (node.type == UiSceneNodeType.ProgressBar) {
+            drawProgressBarBindingControls(node)
+        }
+        editableFloat(
+            node,
+            "min",
+            node.min,
+            allowNull = false,
+            tooltip = "Lower numeric bound for ProgressBar values.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(min = value ?: it.min) }
         }
-        editableFloat(node, "max", node.max, allowNull = false) { value ->
+        editableFloat(
+            node,
+            "max",
+            node.max,
+            allowNull = false,
+            tooltip = "Upper numeric bound for ProgressBar values.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(max = value ?: it.max) }
         }
-        editableFloat(node, "step", node.step, allowNull = false) { value ->
+        editableFloat(
+            node,
+            "step",
+            node.step,
+            allowNull = false,
+            tooltip = "ProgressBar increment size used by the underlying widget.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(step = value ?: it.step) }
         }
-        editableFloat(node, "width", node.width, allowNull = true) { value ->
+        editableFloat(
+            node,
+            "width",
+            node.width,
+            allowNull = true,
+            tooltip = "Preferred widget width. Blank lets layout choose the width.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(width = value) }
         }
-        editableFloat(node, "height", node.height, allowNull = true) { value ->
+        editableFloat(
+            node,
+            "height",
+            node.height,
+            allowNull = true,
+            tooltip = "Preferred widget height. Blank lets layout choose the height.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(height = value) }
         }
-        editableOptionalEnum(node, "align", node.align, UiSceneAlign.entries.toList()) { align ->
+        editableOptionalEnum(
+            node,
+            "align",
+            node.align,
+            UiSceneAlign.entries.toList(),
+            tooltip = "Positions this node within its parent container or cell.",
+        ) { align ->
             operations.updateSelectedNode { it.copy(align = align) }
         }
-        editableFloat(node, "padding.left", node.padding.left, allowNull = false) { value ->
+        editableFloat(
+            node,
+            "padding.left",
+            node.padding.left,
+            allowNull = false,
+            tooltip = "Inner left inset before this container or table lays out its children.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(padding = it.padding.copy(left = value ?: it.padding.left)) }
         }
-        editableFloat(node, "padding.top", node.padding.top, allowNull = false) { value ->
+        editableFloat(
+            node,
+            "padding.top",
+            node.padding.top,
+            allowNull = false,
+            tooltip = "Inner top inset before this container or table lays out its children.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(padding = it.padding.copy(top = value ?: it.padding.top)) }
         }
-        editableFloat(node, "padding.right", node.padding.right, allowNull = false) { value ->
+        editableFloat(
+            node,
+            "padding.right",
+            node.padding.right,
+            allowNull = false,
+            tooltip = "Inner right inset before this container or table lays out its children.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(padding = it.padding.copy(right = value ?: it.padding.right)) }
         }
-        editableFloat(node, "padding.bottom", node.padding.bottom, allowNull = false) { value ->
+        editableFloat(
+            node,
+            "padding.bottom",
+            node.padding.bottom,
+            allowNull = false,
+            tooltip = "Inner bottom inset before this container or table lays out its children.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(padding = it.padding.copy(bottom = value ?: it.padding.bottom)) }
         }
-        editableFloat(node, "spacing", node.spacing, allowNull = false) { value ->
+        editableFloat(
+            node,
+            "spacing",
+            node.spacing,
+            allowNull = false,
+            tooltip = "Gap between children in Table layout.",
+        ) { value ->
             operations.updateSelectedNode { it.copy(spacing = value ?: it.spacing) }
         }
         ImGui.separator()
         drawStructureContext(document, node)
         property("child count", node.children.size.toString())
-        property("hovered node", state.hoveredNodeId)
         ImGui.separator()
         drawActorInfo(node)
     }
@@ -618,6 +719,7 @@ class UiComposerInspectorPanel(
         fieldName: String,
         current: String?,
         emptyAsNull: Boolean,
+        tooltip: String? = null,
         onChanged: (String?) -> Unit,
     ) {
         val buffer = bufferFor(node.id, fieldName, current.orEmpty())
@@ -625,6 +727,7 @@ class UiComposerInspectorPanel(
             val rawValue = readBuffer(buffer)
             onChanged(rawValue.takeUnless { emptyAsNull && it.isBlank() })
         }
+        drawFieldTooltip(tooltip)
     }
 
     private fun editableFloat(
@@ -632,6 +735,7 @@ class UiComposerInspectorPanel(
         fieldName: String,
         current: Float?,
         allowNull: Boolean,
+        tooltip: String? = null,
         onChanged: (Float?) -> Unit,
     ) {
         val buffer = bufferFor(node.id, fieldName, current?.let(::formatFloat).orEmpty())
@@ -648,6 +752,7 @@ class UiComposerInspectorPanel(
                 onChanged(parsed)
             }
         }
+        drawFieldTooltip(tooltip)
     }
 
     private fun editableBoolean(
@@ -700,9 +805,12 @@ class UiComposerInspectorPanel(
         fieldName: String,
         current: T,
         values: List<T>,
+        tooltip: String? = null,
         onChanged: (T) -> Unit,
     ) {
-        if (!ImGui.beginCombo("$fieldName##ui_composer_inspector_${node.id}_$fieldName", current.name)) return
+        val opened = ImGui.beginCombo("$fieldName##ui_composer_inspector_${node.id}_$fieldName", current.name)
+        drawFieldTooltip(tooltip)
+        if (!opened) return
         values.forEach { value ->
             if (ImGui.selectable("${value.name}##ui_composer_${node.id}_${fieldName}_${value.name}", value == current)) {
                 onChanged(value)
@@ -716,10 +824,13 @@ class UiComposerInspectorPanel(
         fieldName: String,
         current: T?,
         values: List<T>,
+        tooltip: String? = null,
         onChanged: (T?) -> Unit,
     ) {
         val preview = current?.name ?: "<none>"
-        if (!ImGui.beginCombo("$fieldName##ui_composer_inspector_${node.id}_$fieldName", preview)) return
+        val opened = ImGui.beginCombo("$fieldName##ui_composer_inspector_${node.id}_$fieldName", preview)
+        drawFieldTooltip(tooltip)
+        if (!opened) return
         if (ImGui.selectable("<none>##ui_composer_${node.id}_${fieldName}_none", current == null)) {
             onChanged(null)
         }
@@ -729,6 +840,12 @@ class UiComposerInspectorPanel(
             }
         }
         ImGui.endCombo()
+    }
+
+    private fun drawFieldTooltip(tooltip: String?) {
+        if (tooltip != null && ImGui.isItemHovered()) {
+            ImGui.setTooltip(tooltip)
+        }
     }
 
     private fun bufferFor(
@@ -830,6 +947,7 @@ class UiComposerInspectorPanel(
         editableString(node, "texture (manual)", node.texture, emptyAsNull = true) { value ->
             operations.updateSelectedNode { it.copy(texture = value) }
         }
+        drawTextureBindingControls(node)
         drawSelectedTextureInfo(node)
         drawTextureWarning(node)
         drawTextureSearch(node)
@@ -844,6 +962,121 @@ class UiComposerInspectorPanel(
             "Texture picker writes the path string only. No asset-id references, atlas region picker, " +
                 "thumbnail browser, texture import/copy, Asset Browser drag/drop, or runtime behavior change.",
         )
+    }
+
+    private fun drawPlaceholderBindingControls(
+        node: UiSceneNode,
+        fieldName: String,
+        comboLabel: String,
+        buttonLabel: String,
+        current: String,
+        separatorAfterButton: Boolean = false,
+        onInsert: (String) -> Unit,
+    ) {
+        val selectedKey = drawBindingCombo(node, fieldName, comboLabel)
+        ImGui.beginDisabled(selectedKey == null)
+        with(dsl) {
+            button("$buttonLabel##ui_composer_binding_${node.id}_$fieldName") {
+                selectedKey?.let { key -> onInsert(insertPlaceholder(current, key)) }
+            }
+        }
+        ImGui.endDisabled()
+        if (separatorAfterButton) {
+            ImGui.separator()
+        }
+    }
+
+    private fun drawTextureBindingControls(node: UiSceneNode) {
+        val selectedKey = drawBindingCombo(node, "texture", "Texture Binding")
+        ImGui.beginDisabled(selectedKey == null)
+        with(dsl) {
+            button("Use as texture binding##ui_composer_binding_${node.id}_texture") {
+                selectedKey?.let { key ->
+                    val next = textureBindingPlaceholder(key)
+                    writeBuffer(bufferFor(node.id, "texture (manual)", node.texture.orEmpty()), next)
+                    operations.updateSelectedNode { it.copy(texture = next) }
+                }
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.separator()
+    }
+
+    private fun drawProgressBarBindingControls(node: UiSceneNode) {
+        ImGui.separator()
+        val keys = bindingKeys()
+        val selectionKey = bindingSelectionKey(node, "valueBinding")
+        syncSelectedBindingKey(selectionKey, keys)
+        val current = node.valueBinding?.takeIf(String::isNotBlank)
+        val preview = current ?: "<none>"
+        if (ImGui.beginCombo("Binding##ui_composer_value_binding_${node.id}", preview)) {
+            if (ImGui.selectable("<none>##ui_composer_value_binding_${node.id}_none", current == null)) {
+                writeBuffer(bufferFor(node.id, "valueBinding", node.valueBinding.orEmpty()), "")
+                operations.updateSelectedNode { it.copy(valueBinding = null) }
+            }
+            keys.forEach { key ->
+                if (ImGui.selectable("$key##ui_composer_value_binding_${node.id}_$key", key == current)) {
+                    state.selectedBindingKeysByField[selectionKey] = key
+                    writeBuffer(bufferFor(node.id, "valueBinding", node.valueBinding.orEmpty()), key)
+                    operations.updateSelectedNode { it.copy(valueBinding = key) }
+                }
+            }
+            if (keys.isEmpty()) {
+                ImGui.textWrapped("No bindings are defined for this UI scene.")
+            }
+            ImGui.endCombo()
+        }
+    }
+
+    private fun drawBindingCombo(
+        node: UiSceneNode,
+        fieldName: String,
+        label: String,
+    ): String? {
+        val keys = bindingKeys()
+        val selectionKey = bindingSelectionKey(node, fieldName)
+        syncSelectedBindingKey(selectionKey, keys)
+        val selectedKey = state.selectedBindingKeysByField[selectionKey]
+        val preview = selectedKey ?: "<none>"
+        if (ImGui.beginCombo("$label##ui_composer_binding_${node.id}_$fieldName", preview)) {
+            keys.forEach { key ->
+                if (ImGui.selectable("$key##ui_composer_binding_${node.id}_${fieldName}_$key", key == selectedKey)) {
+                    state.selectedBindingKeysByField[selectionKey] = key
+                }
+            }
+            if (keys.isEmpty()) {
+                ImGui.textWrapped("No bindings are defined for this UI scene.")
+            }
+            ImGui.endCombo()
+        }
+        return state.selectedBindingKeysByField[selectionKey]
+    }
+
+    private fun bindingSelectionKey(
+        node: UiSceneNode,
+        fieldName: String,
+    ): String =
+        "${node.id}:$fieldName"
+
+    private fun bindingKeys(): List<String> =
+        state.document?.bindings
+            ?.map { binding -> binding.key }
+            ?.filter(String::isNotBlank)
+            ?.sorted()
+            ?: emptyList()
+
+    private fun syncSelectedBindingKey(
+        selectionKey: String,
+        keys: List<String>,
+    ) {
+        val current = state.selectedBindingKeysByField[selectionKey]
+        if (current != null && current in keys) return
+        val fallback = keys.firstOrNull()
+        if (fallback == null) {
+            state.selectedBindingKeysByField.remove(selectionKey)
+        } else {
+            state.selectedBindingKeysByField[selectionKey] = fallback
+        }
     }
 
     private fun drawSelectedTextureInfo(node: UiSceneNode) {
@@ -912,16 +1145,17 @@ class UiComposerInspectorPanel(
 }
 
 /**
- * Preview-only payload panel for testing `.krui` binding placeholders.
+ * Panel for `.krui` binding definitions and default preview data.
  *
- * This panel belongs to editor preview UX, not the shared `.krui` model, runtime
- * Woolboy UI, or the future editing pipeline. Edited values rebuild the backend
- * preview only and are never saved to `.krui`, never treated as runtime state,
- * and never used for Skin editing, Asset Browser drag/drop, asset-id references,
- * drag/drop canvas editing, node editing, or full Scene2D actor serialization.
+ * This panel belongs to editor preview UX and edits document-owned binding
+ * defaults. Edited values rebuild the backend preview and are saved with `.krui`,
+ * but are not runtime Woolboy state and are not used for Skin editing, Asset
+ * Browser drag/drop, asset-id references, drag/drop canvas editing, node editing,
+ * or full Scene2D actor serialization.
  */
 class UiComposerPreviewPayloadPanel(
     private val state: UiComposerState,
+    private val operations: UiComposerOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
@@ -938,49 +1172,69 @@ class UiComposerPreviewPayloadPanel(
             return
         }
 
-        ImGui.textWrapped("Preview-only binding values. They are not saved to .krui and are not runtime state.")
-        ImGui.separator()
-        with(dsl) {
-            button("Reset Preview Payload##ui_composer_reset_preview_payload") {
-                state.previewPayload.clear()
-                state.previewPayload.putAll(DefaultPreviewPayload)
-                syncBuffers(force = true)
-                state.previewRebuildRequested = true
-                state.statusMessage = "Preview payload reset."
-            }
-        }
+        ImGui.textWrapped("Scene binding definitions and default preview data saved with this .krui document.")
         ImGui.separator()
         syncBuffers(force = false)
-        previewPayloadKeys().forEach { key ->
+        val bindings = state.document?.bindings.orEmpty()
+        if (bindings.isEmpty()) {
+            ImGui.textWrapped("No bindings are defined for this UI scene.")
+        }
+        bindings.forEach { binding ->
+            val key = binding.key
+            ImGui.textUnformatted("${binding.key} [${binding.type.name}]")
             val buffer = valueBuffers.getValue(key)
-            if (ImGui.inputText("${key}##ui_composer_payload_${payloadInputId(key)}", buffer)) {
-                state.previewPayload[key] = readBuffer(buffer)
-                state.previewRebuildRequested = true
-                state.statusMessage = "Preview payload changed."
+            if (ImGui.inputText("Default data##ui_composer_payload_${payloadInputId(binding.key)}", buffer)) {
+                operations.updateBindingDefaultValue(binding.key, readBuffer(buffer))
             }
         }
+        ImGui.separator()
+        drawBindingIssues()
         ImGui.end()
     }
 
+    private fun drawBindingIssues() {
+        ImGui.textUnformatted("Binding issues: ${state.bindingValidationIssues.size}")
+        state.bindingValidationIssues.forEachIndexed { index, issue ->
+            val node = issue.nodeId ?: "document"
+            ImGui.textWrapped("${index + 1}. [$node] ${issue.message}")
+        }
+
+        val missingKeys = state.missingBindingKeys
+        if (missingKeys.isEmpty()) {
+            ImGui.textUnformatted("No missing binding definitions.")
+        } else {
+            ImGui.textUnformatted("Missing binding definitions: ${missingKeys.size}")
+            missingKeys.forEach { missing ->
+                ImGui.textWrapped(
+                    "${missing.key} used by nodes=${missing.nodeIds.joinToString()}, " +
+                        "fields=${missing.fields.joinToString()}",
+                )
+                ImGui.sameLine()
+                with(dsl) {
+                    button("Add##ui_composer_add_missing_binding_${payloadInputId(missing.key)}") {
+                        operations.upsertBindingDefinition(
+                            UiSceneBindingDefinition(
+                                key = missing.key,
+                                type = defaultBindingTypeFor(missing),
+                                defaultValue = defaultPreviewPayloadValueFor(missing.key),
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     private fun syncBuffers(force: Boolean) {
-        previewPayloadKeys().forEach { key ->
-            val value = state.previewPayload[key].orEmpty()
+        state.document?.bindings.orEmpty().forEach { binding ->
+            val key = binding.key
+            val value = binding.defaultValue
             val buffer = valueBuffers.getOrPut(key) { ByteArray(TextInputBufferSize) }
             if (force || readBuffer(buffer) != value) {
                 writeBuffer(buffer, value)
             }
         }
     }
-
-    private fun previewPayloadKeys(): List<String> {
-        // Keep the Woolboy defaults in a stable order, then append any extra preview keys.
-        val defaultKeys = DefaultPreviewPayload.keys.toList()
-        val extraKeys = state.previewPayload.keys.filterNot { it in DefaultPreviewPayload }.sorted()
-        return defaultKeys + extraKeys
-    }
-
-    private fun payloadInputId(key: String): String =
-        key.filter { char -> char.isLetterOrDigit() || char == '_' || char == '-' }.ifBlank { "key" }
 }
 
 /**
@@ -1021,12 +1275,14 @@ class UiComposerDiagnosticsPanel(
         }
         ImGui.textUnformatted("Hovered node: ${state.hoveredNodeId ?: "<none>"}")
         ImGui.textUnformatted("Resolution preset: ${state.previewResolutionPreset.name}")
-        ImGui.textUnformatted("Preview logical size: ${state.previewLogicalWidth} x ${state.previewLogicalHeight}")
+        ImGui.textUnformatted("Resolution: ${state.previewLogicalWidth} x ${state.previewLogicalHeight}")
         ImGui.textUnformatted("Preview camera offset: x=${formatFloat(state.previewCameraOffsetX)}, y=${formatFloat(state.previewCameraOffsetY)}")
         ImGui.textUnformatted("Preview zoom: ${formatPercent(state.previewZoom)}")
         ImGui.textUnformatted("Preview panning: ${if (state.canvasPanning) "yes" else "no"}")
         ImGui.textUnformatted("Canvas panel rect: ${formatRect(state.canvasPanelRect)}")
-        ImGui.textUnformatted("Preview rect: ${formatRect(state.canvasPreviewRect)}")
+        ImGui.textUnformatted(
+            "Canvas: ${formatFloat(state.canvasPreviewRect.width)} x ${formatFloat(state.canvasPreviewRect.height)}",
+        )
         ImGui.textUnformatted(
             "Canvas local mouse: ${
                 formatNullablePoint(
@@ -1044,18 +1300,20 @@ class UiComposerDiagnosticsPanel(
             }",
         )
         ImGui.separator()
-        ImGui.checkbox("Scene2D Bounds##ui_composer_diagnostics_show_bounds", state::showBounds)
+        ImGui.checkbox("Bounds##ui_composer_diagnostics_show_bounds", state::showBounds)
         ImGui.sameLine()
-        ImGui.checkbox("Scene2D Selected##ui_composer_diagnostics_highlight_selected", state::highlightSelected)
+        ImGui.checkbox("Selected##ui_composer_diagnostics_highlight_selected", state::highlightSelected)
         ImGui.sameLine()
-        ImGui.checkbox("Canvas Selection##ui_composer_diagnostics_canvas_selection", state::canvasSelectionEnabled)
+        ImGui.checkbox("Canvas##ui_composer_diagnostics_canvas_selection", state::canvasSelectionEnabled)
         ImGui.sameLine()
-        ImGui.checkbox("Scene2D Hovered##ui_composer_diagnostics_highlight_hovered", state::highlightHovered)
+        ImGui.checkbox("Hovered##ui_composer_diagnostics_highlight_hovered", state::highlightHovered)
         ImGui.separator()
         drawGuideDiagnostics()
         ImGui.separator()
 
-        val issues = state.validationIssues + state.styleValidationIssues + state.textureValidationIssues
+        val issues = state.validationIssues +
+            state.styleValidationIssues +
+            state.textureValidationIssues
         ImGui.textUnformatted("Validation issues: ${issues.size}")
         if (issues.isEmpty() && parseError == null) {
             ImGui.textUnformatted("No validation issues.")
@@ -1072,37 +1330,12 @@ class UiComposerDiagnosticsPanel(
         val snapshot = state.guideSnapshot
         ImGui.textUnformatted("Guide snapshot")
         property("selected", snapshot.selected?.nodeId)
-        property("hovered", snapshot.hovered?.nodeId)
         property(
             "parent chain",
             snapshot.parentChain.joinToString(" > ") { it.nodeId ?: it.label }.ifBlank { "<none>" },
         )
         property("selected guide available", if (snapshot.selected != null) "yes" else "no")
         property("hovered guide available", if (snapshot.hovered != null) "yes" else "no")
-        ImGui.textWrapped(
-            "Visual Debug Guides are best-effort overlays based on built Scene2D actors. " +
-                "They do not implement drag/drop, resize handles, snapping, transform gizmos, " +
-                "multi-select, canvas structure editing, safe-area overlays, grid/flex layout, " +
-                "or runtime UI behavior changes.",
-        )
-        ImGui.textWrapped(
-            "Parent chain shows mapped .krui actors only. Padding guides are best-effort for " +
-                "Container/Table padding and may not exactly match complex Scene2D internals. " +
-                "Table orientation markers are informational only.",
-        )
-        ImGui.textUnformatted("Guide toggles")
-        ImGui.textWrapped(
-            listOf(
-                "selected=${state.showSelectedGuide}",
-                "hovered=${state.showHoveredGuide}",
-                "parents=${state.showParentChainGuides}",
-                "padding=${state.showPaddingGuides}",
-                "align=${state.showAlignmentGuide}",
-                "table=${state.showTableOrientationGuide}",
-                "label=${state.showNodeIdLabel}",
-                "mouse=${state.showLocalMouseCoordinates}",
-            ).joinToString(", "),
-        )
     }
 
     private fun property(
@@ -1132,18 +1365,6 @@ private fun formatNullablePoint(x: Float?, y: Float?): String =
     } else {
         "x=${formatFloat(x)}, y=${formatFloat(y)}"
     }
-
-private fun formatMouseCoordinates(state: UiComposerState): String {
-    val localX = state.canvasLocalMouseX
-    val localY = state.canvasLocalMouseY
-    val worldX = state.canvasWorldMouseX
-    val worldY = state.canvasWorldMouseY
-    return if (localX == null || localY == null || worldX == null || worldY == null) {
-        "<outside preview>"
-    } else {
-        "local ${formatFloat(localX)}, ${formatFloat(localY)} | world ${formatFloat(worldX)}, ${formatFloat(worldY)}"
-    }
-}
 
 private fun UiComposerPreviewResolutionPreset.displayName(): String =
     when (this) {
@@ -1188,6 +1409,9 @@ private fun writeBuffer(
 
 private fun textureOptionLabel(option: UiComposerTextureOption): String =
     "${option.displayName} - ${option.path}"
+
+private fun payloadInputId(key: String): String =
+    key.filter { char -> char.isLetterOrDigit() || char == '_' || char == '-' }.ifBlank { "key" }
 
 private fun UiSceneNodeType.isContainerLike(): Boolean =
     this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container

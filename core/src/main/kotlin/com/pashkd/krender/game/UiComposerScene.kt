@@ -32,7 +32,9 @@ import com.pashkd.krender.engine.uicomposer.UiComposerUiLayoutDefaults
 import com.pashkd.krender.engine.uicomposer.UiComposerGuideSnapshot
 import com.pashkd.krender.engine.uicomposer.UiComposerVisualGuideOptions
 import com.pashkd.krender.engine.uicomposer.clampPreviewZoom
+import com.pashkd.krender.engine.uicomposer.missingBindingKeys
 import com.pashkd.krender.engine.uicomposer.previewWorldUnitsPerScreenPixel
+import com.pashkd.krender.engine.uicomposer.validateBindingReferences
 import com.pashkd.krender.engine.uicomposer.validateTextureReferences
 import com.pashkd.krender.engine.uicomposer.validateStyleReferences
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
@@ -174,6 +176,8 @@ class UiComposerScene(
             composerState.skinMetadata = null
             composerState.styleValidationIssues = emptyList()
             composerState.textureValidationIssues = emptyList()
+            composerState.bindingValidationIssues = emptyList()
+            composerState.missingBindingKeys = emptyList()
             preview.rebuild(null)
             return
         }
@@ -189,6 +193,7 @@ class UiComposerScene(
 
     private fun rebuildPreviewOnly(statusOnSuccess: String = "Preview rebuilt.") {
         composerState.previewRebuildRequested = false
+        refreshBindingDiagnostics()
         try {
             preview.rebuild(composerState.document, composerState.previewPayload)
             preview.updateDebugOverlay(
@@ -221,6 +226,8 @@ class UiComposerScene(
         val document = composerState.document ?: run {
             composerState.skinMetadata = null
             composerState.styleValidationIssues = emptyList()
+            composerState.bindingValidationIssues = emptyList()
+            composerState.missingBindingKeys = emptyList()
             return
         }
         composerState.skinMetadata = skinMetadataReader.read(document.skin)
@@ -230,6 +237,7 @@ class UiComposerScene(
             textureOptions = composerState.textureOptions,
             assetTypeByPath = composerState.textureAssetTypesByPath,
         )
+        refreshBindingDiagnostics()
     }
 
     private fun refreshTextureOptions(reason: String) {
@@ -259,6 +267,17 @@ class UiComposerScene(
         }
     }
 
+    private fun refreshBindingDiagnostics() {
+        val document = composerState.document ?: run {
+            composerState.bindingValidationIssues = emptyList()
+            composerState.missingBindingKeys = emptyList()
+            return
+        }
+        val knownKeys = composerState.previewPayload.keys
+        composerState.bindingValidationIssues = validateBindingReferences(document, knownKeys)
+        composerState.missingBindingKeys = missingBindingKeys(document, knownKeys)
+    }
+
     private fun createUiSystem(): UiSystem {
         val layoutConfig = layoutTracker.currentConfig()
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "UiComposerUi")
@@ -268,7 +287,7 @@ class UiComposerScene(
             addPanel(uiSystem, "Hierarchy", UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Structure", UiComposerStructurePanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Inspector", UiComposerInspectorPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
-            addPanel(uiSystem, "PreviewPayload", UiComposerPreviewPayloadPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
+            addPanel(uiSystem, "PreviewPayload", UiComposerPreviewPayloadPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(uiSystem, "Diagnostics", UiComposerDiagnosticsPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
             addPanel(
                 uiSystem,
