@@ -3,22 +3,16 @@ package com.pashkd.krender.engine.uicomposer
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
 import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
+import com.pashkd.krender.engine.ui.scene.UiSceneValidationCode
 import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
+import com.pashkd.krender.engine.ui.scene.error
+import com.pashkd.krender.engine.ui.scene.validation.UiSceneBindingReference
+import com.pashkd.krender.engine.ui.scene.validation.bindingKeys as sceneBindingKeys
+import com.pashkd.krender.engine.ui.scene.validation.collectBindingReferences as collectSceneBindingReferences
+import com.pashkd.krender.engine.ui.scene.validation.extractBindingPlaceholders as extractSceneBindingPlaceholders
+import com.pashkd.krender.engine.ui.scene.validation.unknownBindingMessage
 
-/**
- * Describes one binding reference found in a `.krui` node field.
- *
- * This belongs to editor-only binding diagnostics. It does not change runtime
- * binding behavior, does not mutate `.krui`, and does not save binding defaults.
- */
-data class UiComposerBindingReference(
-    val nodeId: String,
-    val fieldName: String,
-    val key: String,
-    val placeholderSyntax: Boolean,
-)
+typealias UiComposerBindingReference = UiSceneBindingReference
 
 /**
  * Editor-only missing binding key discovered in the current `.krui` document.
@@ -32,7 +26,6 @@ data class UiComposerMissingBindingKey(
     val fields: Set<String>,
 )
 
-private val BindingPlaceholderRegex = Regex("""\{([^{}]+)}""")
 private const val DefaultPreviewTexturePath = "textures/woolboy/hud_heart_full.png"
 
 /**
@@ -42,11 +35,7 @@ private const val DefaultPreviewTexturePath = "textures/woolboy/hud_heart_full.p
  * `{key}` where key is non-empty and does not contain `{` or `}`.
  */
 fun extractBindingPlaceholders(value: String?): Set<String> =
-    value.orEmpty()
-        .let(BindingPlaceholderRegex::findAll)
-        .map { match -> match.groupValues[1].trim() }
-        .filter(String::isNotBlank)
-        .toSet()
+    extractSceneBindingPlaceholders(value)
 
 /**
  * Collects all binding references from fields supported by UiComposer binding helpers.
@@ -54,54 +43,14 @@ fun extractBindingPlaceholders(value: String?): Set<String> =
  * This is editor-only introspection. It does not mutate the document and does
  * not change runtime binding behavior.
  */
-fun collectBindingReferences(document: UiSceneDocument): List<UiComposerBindingReference> {
-    val references = mutableListOf<UiComposerBindingReference>()
-
-    fun visit(node: UiSceneNode) {
-        when (node.type) {
-            UiSceneNodeType.Label -> {
-                collectPlaceholderReferences(node, fieldName = "text", value = node.text, references = references)
-            }
-
-            UiSceneNodeType.TextButton -> {
-                collectPlaceholderReferences(node, fieldName = "text", value = node.text, references = references)
-                collectPlaceholderReferences(node, fieldName = "action", value = node.action, references = references)
-            }
-
-            UiSceneNodeType.Image -> {
-                collectPlaceholderReferences(node, fieldName = "texture", value = node.texture, references = references)
-            }
-
-            UiSceneNodeType.ProgressBar -> {
-                val key = node.valueBinding?.trim().orEmpty()
-                if (key.isNotBlank()) {
-                    references += UiComposerBindingReference(
-                        nodeId = node.id,
-                        fieldName = "valueBinding",
-                        key = key,
-                        placeholderSyntax = false,
-                    )
-                }
-            }
-
-            UiSceneNodeType.Stack,
-            UiSceneNodeType.Table,
-            UiSceneNodeType.Container,
-            UiSceneNodeType.Space,
-                -> Unit
-        }
-
-        node.children.forEach(::visit)
-    }
-
-    visit(document.root)
-    return references
-}
+fun collectBindingReferences(document: UiSceneDocument): List<UiComposerBindingReference> =
+    collectSceneBindingReferences(document)
 
 /**
  * Validates `.krui` binding references against known document binding keys.
  *
- * This is editor-only diagnostics. Unknown keys are warnings, not save blockers.
+ * This is editor-only diagnostics. Unknown keys are validation errors, but
+ * runtime binding fallback behavior is intentionally unchanged in this phase.
  */
 fun validateBindingReferences(
     document: UiSceneDocument,
@@ -110,8 +59,11 @@ fun validateBindingReferences(
     collectBindingReferences(document)
         .filter { reference -> reference.key !in knownKeys }
         .map { reference ->
-            UiSceneValidationIssue(
+            error(
+                code = UiSceneValidationCode.UnknownBindingKey,
                 nodeId = reference.nodeId,
+                fieldName = reference.fieldName,
+                bindingKey = reference.key,
                 message = unknownBindingMessage(reference),
             )
         }
@@ -139,10 +91,7 @@ fun missingBindingKeys(
  * Returns the document-owned binding keys that define this scene contract.
  */
 fun bindingKeys(document: UiSceneDocument): Set<String> =
-    document.bindings
-        .map { binding -> binding.key }
-        .filter(String::isNotBlank)
-        .toSet()
+    sceneBindingKeys(document)
 
 /**
  * Appends a `{key}` placeholder to a text-like field.
@@ -237,31 +186,4 @@ fun defaultBindingTypeFor(missing: UiComposerMissingBindingKey): UiSceneBindingT
         missing.key.contains("progress", ignoreCase = true) -> UiSceneBindingType.Number
         missing.key.contains("percent", ignoreCase = true) -> UiSceneBindingType.Number
         else -> UiSceneBindingType.Text
-    }
-
-private fun collectPlaceholderReferences(
-    node: UiSceneNode,
-    fieldName: String,
-    value: String?,
-    references: MutableList<UiComposerBindingReference>,
-) {
-    extractBindingPlaceholders(value).forEach { key ->
-        references += UiComposerBindingReference(
-            nodeId = node.id,
-            fieldName = fieldName,
-            key = key,
-            placeholderSyntax = true,
-        )
-    }
-}
-
-private fun unknownBindingMessage(reference: UiComposerBindingReference): String =
-    if (reference.placeholderSyntax) {
-        val guidance = when (reference.fieldName) {
-            "texture" -> "Add a binding definition or use a static texture path."
-            else -> "Add a binding definition or fix the placeholder."
-        }
-        "Unknown binding key '${reference.key}' in ${reference.fieldName}. $guidance"
-    } else {
-        "Unknown valueBinding key '${reference.key}'. Add a binding definition or clear valueBinding."
     }

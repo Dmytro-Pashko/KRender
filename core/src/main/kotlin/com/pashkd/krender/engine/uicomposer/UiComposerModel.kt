@@ -674,10 +674,13 @@ class UiComposerDocumentLoader(
             state.document = document
             state.previewPayload.clear()
             state.previewPayload.putAll(previewPayloadFromBindings(document.bindings))
-            state.validationIssues = validator.validate(document)
-            val knownKeys = bindingKeys(document)
-            state.bindingValidationIssues = validateBindingReferences(document, knownKeys)
-            state.missingBindingKeys = missingBindingKeys(document, knownKeys)
+            refreshUiComposerValidationBuckets(
+                state = state,
+                document = document,
+                validator = validator,
+                includeSkinMetadata = false,
+                includeTextureMetadata = false,
+            )
             state.parseError = null
             if (state.selectedNodeId != null && findUiSceneNodeById(document.root, state.selectedNodeId) == null) {
                 state.selectedNodeId = null

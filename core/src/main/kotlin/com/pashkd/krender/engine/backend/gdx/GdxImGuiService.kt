@@ -126,8 +126,8 @@ class GdxImGuiService(
         image(
             handle.id,
             Vec2(width, height),
-            Vec2(0f, 1f),
-            Vec2(1f, 0f),
+            Vec2(handle.u0, handle.v0),
+            Vec2(handle.u1, handle.v1),
         )
         true
     }

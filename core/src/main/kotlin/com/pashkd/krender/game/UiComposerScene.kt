@@ -31,13 +31,9 @@ import com.pashkd.krender.engine.uicomposer.UiComposerTextureOptionsProvider
 import com.pashkd.krender.engine.uicomposer.UiComposerUiLayoutDefaults
 import com.pashkd.krender.engine.uicomposer.UiComposerGuideSnapshot
 import com.pashkd.krender.engine.uicomposer.UiComposerVisualGuideOptions
-import com.pashkd.krender.engine.uicomposer.bindingKeys
 import com.pashkd.krender.engine.uicomposer.clampPreviewZoom
-import com.pashkd.krender.engine.uicomposer.missingBindingKeys
 import com.pashkd.krender.engine.uicomposer.previewWorldUnitsPerScreenPixel
-import com.pashkd.krender.engine.uicomposer.validateBindingReferences
-import com.pashkd.krender.engine.uicomposer.validateTextureReferences
-import com.pashkd.krender.engine.uicomposer.validateStyleReferences
+import com.pashkd.krender.engine.uicomposer.refreshUiComposerValidationBuckets
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -232,13 +228,7 @@ class UiComposerScene(
             return
         }
         composerState.skinMetadata = skinMetadataReader.read(document.skin)
-        composerState.styleValidationIssues = validateStyleReferences(document, composerState.skinMetadata)
-        composerState.textureValidationIssues = validateTextureReferences(
-            document = document,
-            textureOptions = composerState.textureOptions,
-            assetTypeByPath = composerState.textureAssetTypesByPath,
-        )
-        refreshBindingDiagnostics()
+        refreshUiComposerValidationBuckets(composerState, document)
     }
 
     private fun refreshTextureOptions(reason: String) {
@@ -249,11 +239,7 @@ class UiComposerScene(
             composerState.textureOptions = textureOptionsProvider.listTextureOptions()
             composerState.textureAssetTypesByPath = textureRegistry.assets.associate { asset -> asset.path to asset.type }
             composerState.document?.let { document ->
-                composerState.textureValidationIssues = validateTextureReferences(
-                    document = document,
-                    textureOptions = composerState.textureOptions,
-                    assetTypeByPath = composerState.textureAssetTypesByPath,
-                )
+                refreshUiComposerValidationBuckets(composerState, document)
             }
             composerState.statusMessage = "Indexed ${composerState.textureOptions.size} texture assets."
             engine.logger.info(TAG) {
@@ -274,9 +260,7 @@ class UiComposerScene(
             composerState.missingBindingKeys = emptyList()
             return
         }
-        val knownKeys = bindingKeys(document)
-        composerState.bindingValidationIssues = validateBindingReferences(document, knownKeys)
-        composerState.missingBindingKeys = missingBindingKeys(document, knownKeys)
+        refreshUiComposerValidationBuckets(composerState, document)
     }
 
     private fun createUiSystem(): UiSystem {

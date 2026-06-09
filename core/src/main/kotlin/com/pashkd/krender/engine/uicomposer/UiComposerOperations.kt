@@ -365,17 +365,11 @@ class UiComposerOperations(
     }
 
     private fun refreshDiagnostics(document: UiSceneDocument) {
-        // Shared document validation and Skin-backed name validation travel together in editor diagnostics.
-        state.validationIssues = validator.validate(document)
-        state.styleValidationIssues = validateStyleReferences(document, state.skinMetadata)
-        state.textureValidationIssues = validateTextureReferences(
+        refreshUiComposerValidationBuckets(
+            state = state,
             document = document,
-            textureOptions = state.textureOptions,
-            assetTypeByPath = state.textureAssetTypesByPath,
+            validator = validator,
         )
-        val knownKeys = bindingKeys(document)
-        state.bindingValidationIssues = validateBindingReferences(document, knownKeys)
-        state.missingBindingKeys = missingBindingKeys(document, knownKeys)
     }
 
     companion object {

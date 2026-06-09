@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.backend.gdx.ui.composer
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
@@ -8,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Disposable
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.uicomposer.UiComposerSkinMetadata
 
 /**
@@ -54,18 +56,30 @@ class GdxUiComposerSkinMetadataReader(
     private fun loadMetadata(skinPath: String): UiComposerSkinMetadata =
         try {
             val skin = skinCache.getOrPut(skinPath) { Skin(Gdx.files.internal(skinPath)) }
+            val drawableNames = skin.namesFor(Drawable::class.java)
             UiComposerSkinMetadata(
                 skinPath = skinPath,
                 labelStyles = skin.namesFor(Label.LabelStyle::class.java),
                 textButtonStyles = skin.namesFor(TextButton.TextButtonStyle::class.java),
                 progressBarStyles = skin.namesFor(ProgressBar.ProgressBarStyle::class.java),
-                drawables = skin.namesFor(Drawable::class.java),
+                drawables = drawableNames,
+                drawablePreviewHandles = drawableNames.mapNotNull { drawableName ->
+                    skin.previewHandleForRegion(drawableName)?.let { handle -> drawableName to handle }
+                }.toMap(),
             ).also { metadata ->
                 metadataCache[skinPath] = metadata
                 logger.debug(TAG) {
                     "Loaded UiComposer Skin metadata path='$skinPath' labelStyles=${metadata.labelStyles.size} " +
                         "textButtonStyles=${metadata.textButtonStyles.size} " +
-                        "progressBarStyles=${metadata.progressBarStyles.size} drawables=${metadata.drawables.size}"
+                        "progressBarStyles=${metadata.progressBarStyles.size} drawables=${metadata.drawables.size} " +
+                        "drawablePreviewHandles=${metadata.drawablePreviewHandles.size}"
+                }
+                logger.debug(TAG) {
+                    "UiComposer Skin metadata names path='$skinPath' " +
+                        "labelStyles=${metadata.labelStyles.joinToString(",")} " +
+                        "textButtonStyles=${metadata.textButtonStyles.joinToString(",")} " +
+                        "progressBarStyles=${metadata.progressBarStyles.joinToString(",")} " +
+                        "drawables=${metadata.drawables.joinToString(",")}"
                 }
             }
         } catch (error: Exception) {
@@ -86,6 +100,24 @@ class GdxUiComposerSkinMetadataReader(
         }
         return names.sorted()
     }
+
+    private fun Skin.previewHandleForRegion(name: String): TexturePreviewHandle? =
+        try {
+            getRegion(name).toPreviewHandle()
+        } catch (_: Exception) {
+            null
+        }
+
+    private fun TextureRegion.toPreviewHandle(): TexturePreviewHandle =
+        TexturePreviewHandle(
+            id = texture.textureObjectHandle,
+            width = regionWidth,
+            height = regionHeight,
+            u0 = u,
+            v0 = v,
+            u1 = u2,
+            v1 = v2,
+        )
 
     companion object {
         private const val TAG = "GdxUiComposerSkinMetadataReader"

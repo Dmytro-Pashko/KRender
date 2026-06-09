@@ -1089,7 +1089,7 @@ class UiComposerInspectorPanel(
         val textureIssue = (state.validationIssues + state.textureValidationIssues)
             .firstOrNull { issue -> issue.nodeId == node.id && issue.message.contains("texture", ignoreCase = true) }
         textureIssue?.let { issue ->
-            ImGui.textWrapped("Warning: ${issue.message}")
+            ImGui.textWrapped(formatValidationIssue(issue))
         }
     }
 
@@ -1198,8 +1198,7 @@ class UiComposerSceneBindingsPanel(
     private fun drawBindingIssues() {
         ImGui.textUnformatted("Binding issues: ${state.bindingValidationIssues.size}")
         state.bindingValidationIssues.forEachIndexed { index, issue ->
-            val node = issue.nodeId ?: "document"
-            ImGui.textWrapped("${index + 1}. [$node] ${issue.message}")
+            ImGui.textWrapped("${index + 1}. ${formatValidationIssue(issue)}")
         }
 
         val missingKeys = state.missingBindingKeys
@@ -1325,8 +1324,7 @@ class UiComposerDiagnosticsPanel(
             ImGui.textUnformatted("No validation issues.")
         } else {
             issues.forEachIndexed { index, issue ->
-                val node = issue.nodeId ?: "document"
-                ImGui.textWrapped("${index + 1}. [$node] ${issue.message}")
+                ImGui.textWrapped("${index + 1}. ${formatValidationIssue(issue)}")
             }
         }
         ImGui.end()

@@ -1,151 +1,148 @@
 package com.pashkd.krender.engine.ui.scene
 
+import com.pashkd.krender.engine.ui.scene.validation.UiSceneTextureValidationMetadata
+import com.pashkd.krender.engine.ui.scene.validation.UiSceneSkinValidationMetadata
+import com.pashkd.krender.engine.ui.scene.validation.UiSceneValidationContext
+import com.pashkd.krender.engine.ui.scene.validation.UiSceneValidationPipeline
+
 /**
- * One validation warning or structural issue found in a `.krui` document.
+ * Severity of one `.krui` validation issue.
  *
- * Validation belongs to the shared UI pipeline so runtime loading and the future
- * UiComposerScene can report the same document problems. [nodeId] is null for
- * document-level issues.
+ * Errors represent invalid document states that should block reliable runtime
+ * usage. Warnings represent suspicious or unsupported editor/runtime patterns.
+ * Info issues document non-blocking notes or hints.
+ */
+enum class UiSceneValidationSeverity {
+    Info,
+    Warning,
+    Error,
+}
+
+/**
+ * Stable validation issue code.
+ *
+ * Codes are intentionally explicit so UiComposer can group/filter issues and
+ * future runtime validation can throw clear exceptions with stable identifiers.
+ */
+enum class UiSceneValidationCode {
+    UnsupportedSchemaVersion,
+    BlankDocumentId,
+    BlankSkinPath,
+    InvalidRootType,
+
+    BlankNodeId,
+    DuplicateNodeId,
+    LeafNodeHasChildren,
+    ContainerHasMultipleChildren,
+    InvalidProgressBarRange,
+    InvalidProgressBarStep,
+    MissingProgressBarValue,
+
+    BlankBindingKey,
+    DuplicateBindingKey,
+    InvalidNumberBindingDefault,
+    BlankTextureBindingDefault,
+    MissingTextureBindingDefault,
+    BlankActionBindingDefault,
+
+    UnknownBindingKey,
+    MalformedBindingPlaceholder,
+    InvalidBindingTypeForField,
+
+    MissingStyle,
+    MissingBackgroundDrawable,
+    MissingTexture,
+    NonTextureAsset,
+}
+
+/**
+ * One validation issue found in a `.krui` document.
+ *
+ * [nodeId] is present for node-scoped issues.
+ * [bindingKey] is present for binding-definition or binding-reference issues.
+ * [fieldName] identifies the affected field when known, for example:
+ * `text`, `action`, `texture`, `valueBinding`, `bindings.defaultValue`.
  */
 data class UiSceneValidationIssue(
-    val nodeId: String?,
+    val severity: UiSceneValidationSeverity,
+    val code: UiSceneValidationCode,
     val message: String,
+    val nodeId: String? = null,
+    val fieldName: String? = null,
+    val bindingKey: String? = null,
 )
 
+fun error(
+    code: UiSceneValidationCode,
+    message: String,
+    nodeId: String? = null,
+    fieldName: String? = null,
+    bindingKey: String? = null,
+): UiSceneValidationIssue =
+    UiSceneValidationIssue(
+        severity = UiSceneValidationSeverity.Error,
+        code = code,
+        message = message,
+        nodeId = nodeId,
+        fieldName = fieldName,
+        bindingKey = bindingKey,
+    )
+
+fun warning(
+    code: UiSceneValidationCode,
+    message: String,
+    nodeId: String? = null,
+    fieldName: String? = null,
+    bindingKey: String? = null,
+): UiSceneValidationIssue =
+    UiSceneValidationIssue(
+        severity = UiSceneValidationSeverity.Warning,
+        code = code,
+        message = message,
+        nodeId = nodeId,
+        fieldName = fieldName,
+        bindingKey = bindingKey,
+    )
+
+fun info(
+    code: UiSceneValidationCode,
+    message: String,
+    nodeId: String? = null,
+    fieldName: String? = null,
+    bindingKey: String? = null,
+): UiSceneValidationIssue =
+    UiSceneValidationIssue(
+        severity = UiSceneValidationSeverity.Info,
+        code = code,
+        message = message,
+        nodeId = nodeId,
+        fieldName = fieldName,
+        bindingKey = bindingKey,
+    )
+
 /**
- * Minimal validator for the `.krui` MVP schema.
- *
- * The validator documents and enforces the current limitations: only a small
- * Scene2D widget subset is supported, styles must already exist in the Skin, asset
- * references are project-relative paths, Skin editing is out of scope, arbitrary
- * Actor serialization is unsupported, and no editor UI exists yet.
+ * Facade for the default modular `.krui` validation pipeline.
  */
-class UiSceneValidator {
+class UiSceneValidator(
+    private val pipeline: UiSceneValidationPipeline = UiSceneValidationPipeline.default(),
+) {
     /**
-     * Returns validation issues without throwing, so runtime and future editor code
-     * can choose whether to warn, block loading, or offer repairs.
+     * Returns validation issues without throwing, so runtime and editor code can
+     * choose whether to warn, block loading, or offer repairs.
      */
-    fun validate(document: UiSceneDocument): List<UiSceneValidationIssue> {
-        val issues = mutableListOf<UiSceneValidationIssue>()
-        if (document.schemaVersion != UiSceneDocument.CurrentSchemaVersion) {
-            issues += UiSceneValidationIssue(
-                nodeId = null,
-                message = "Unsupported schemaVersion ${document.schemaVersion}; expected ${UiSceneDocument.CurrentSchemaVersion}.",
-            )
-        }
-        if (document.id.isBlank()) {
-            issues += UiSceneValidationIssue(null, "Document id must not be blank.")
-        }
-        if (document.skin.isBlank()) {
-            issues += UiSceneValidationIssue(null, "Skin path must not be blank.")
-        }
-        if (!document.root.type.isContainer()) {
-            issues += UiSceneValidationIssue(
-                nodeId = document.root.id.takeIf(String::isNotBlank),
-                message = "Root node should be Stack, Table, or Container.",
-            )
-        }
+    fun validate(
+        document: UiSceneDocument,
+        skinMetadata: UiSceneSkinValidationMetadata? = null,
+        textureMetadata: UiSceneTextureValidationMetadata? = null,
+    ): List<UiSceneValidationIssue> =
+        validate(
+            UiSceneValidationContext(
+                document = document,
+                skinMetadata = skinMetadata,
+                textureMetadata = textureMetadata,
+            ),
+        )
 
-        collectNodeIssues(document.root, mutableSetOf(), issues)
-        collectBindingIssues(document.bindings, issues)
-        return issues
-    }
-
-    private fun collectBindingIssues(
-        bindings: List<UiSceneBindingDefinition>,
-        issues: MutableList<UiSceneValidationIssue>,
-    ) {
-        val seenKeys = mutableSetOf<String>()
-        bindings.forEach { binding ->
-            when {
-                binding.key.isBlank() -> issues += UiSceneValidationIssue(null, "Binding key must not be blank.")
-                !seenKeys.add(binding.key) -> {
-                    issues += UiSceneValidationIssue(null, "Binding key '${binding.key}' is duplicated within this document.")
-                }
-            }
-        }
-    }
-
-    private fun collectNodeIssues(
-        node: UiSceneNode,
-        seenIds: MutableSet<String>,
-        issues: MutableList<UiSceneValidationIssue>,
-    ) {
-        val nodeId = node.id.takeIf(String::isNotBlank)
-        if (node.id.isBlank()) {
-            issues += UiSceneValidationIssue(null, "Node id must not be blank.")
-        } else if (!seenIds.add(node.id)) {
-            issues += UiSceneValidationIssue(node.id, "Node id '${node.id}' is duplicated within this document.")
-        }
-
-        validateNodeShape(node, nodeId, issues)
-        node.children.forEach { child -> collectNodeIssues(child, seenIds, issues) }
-    }
-
-    private fun validateNodeShape(
-        node: UiSceneNode,
-        nodeId: String?,
-        issues: MutableList<UiSceneValidationIssue>,
-    ) {
-        when (node.type) {
-            UiSceneNodeType.Label -> {
-                if (node.text == null) {
-                    issues += UiSceneValidationIssue(nodeId, "Label should define text, even if the text is blank.")
-                }
-                warnForLeafChildren(node, nodeId, issues)
-            }
-
-            UiSceneNodeType.TextButton -> {
-                if (node.text.isNullOrBlank()) {
-                    issues += UiSceneValidationIssue(nodeId, "TextButton should define visible text.")
-                }
-                if (node.action.isNullOrBlank()) {
-                    issues += UiSceneValidationIssue(nodeId, "TextButton should define an action string.")
-                }
-                warnForLeafChildren(node, nodeId, issues)
-            }
-
-            UiSceneNodeType.Image -> {
-                if (node.texture.isNullOrBlank()) {
-                    issues += UiSceneValidationIssue(nodeId, "Image should define a project-relative texture path.")
-                }
-                warnForLeafChildren(node, nodeId, issues)
-            }
-
-            UiSceneNodeType.ProgressBar -> {
-                if (node.value == null && node.valueBinding.isNullOrBlank()) {
-                    issues += UiSceneValidationIssue(nodeId, "ProgressBar should define either value or valueBinding.")
-                }
-                if (node.max <= node.min) {
-                    issues += UiSceneValidationIssue(nodeId, "ProgressBar max must be greater than min.")
-                }
-                if (node.step <= 0f) {
-                    issues += UiSceneValidationIssue(nodeId, "ProgressBar step must be positive.")
-                }
-                warnForLeafChildren(node, nodeId, issues)
-            }
-
-            UiSceneNodeType.Space -> warnForLeafChildren(node, nodeId, issues)
-            UiSceneNodeType.Stack,
-            UiSceneNodeType.Table,
-            UiSceneNodeType.Container,
-                -> Unit
-        }
-    }
-
-    private fun warnForLeafChildren(
-        node: UiSceneNode,
-        nodeId: String?,
-        issues: MutableList<UiSceneValidationIssue>,
-    ) {
-        if (node.children.isNotEmpty()) {
-            issues += UiSceneValidationIssue(
-                nodeId,
-                "${node.type} is a leaf widget in the `.krui` MVP and should not define children.",
-            )
-        }
-    }
-
-    private fun UiSceneNodeType.isContainer(): Boolean =
-        this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container
+    fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> =
+        pipeline.validate(context)
 }

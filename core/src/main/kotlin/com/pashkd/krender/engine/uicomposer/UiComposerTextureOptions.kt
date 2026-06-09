@@ -4,9 +4,10 @@ import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
+import com.pashkd.krender.engine.ui.scene.UiSceneValidator
 import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
+import com.pashkd.krender.engine.ui.scene.validation.UiSceneTextureValidationMetadata
+import com.pashkd.krender.engine.ui.scene.validation.normalizeTexturePath
 
 /**
  * One texture row shown by the UiComposer Image texture picker.
@@ -77,37 +78,23 @@ fun validateTextureReferences(
     textureOptions: List<UiComposerTextureOption>,
     assetTypeByPath: Map<String, AssetType> = emptyMap(),
 ): List<UiSceneValidationIssue> {
+    val metadata = textureValidationMetadata(textureOptions, assetTypeByPath)
+    return UiSceneValidator()
+        .validate(document, textureMetadata = metadata)
+        .filterTextureIssues()
+}
+
+fun textureValidationMetadata(
+    textureOptions: List<UiComposerTextureOption>,
+    assetTypeByPath: Map<String, AssetType> = emptyMap(),
+): UiSceneTextureValidationMetadata {
     val texturePaths = textureOptions.mapTo(mutableSetOf()) { option -> normalizeTexturePath(option.path) }
-    val normalizedAssetTypes = assetTypeByPath.mapKeys { (path, _) -> normalizeTexturePath(path) }
-    val issues = mutableListOf<UiSceneValidationIssue>()
-    collectTextureIssues(document.root, texturePaths, normalizedAssetTypes, issues)
-    return issues
+    val nonTextureAssetPaths = assetTypeByPath
+        .filterValues { assetType -> assetType != AssetType.Texture }
+        .keys
+        .mapTo(mutableSetOf(), ::normalizeTexturePath)
+    return UiSceneTextureValidationMetadata(
+        texturePaths = texturePaths,
+        nonTextureAssetPaths = nonTextureAssetPaths,
+    )
 }
-
-private fun collectTextureIssues(
-    node: UiSceneNode,
-    texturePaths: Set<String>,
-    assetTypeByPath: Map<String, AssetType>,
-    issues: MutableList<UiSceneValidationIssue>,
-) {
-    if (node.type == UiSceneNodeType.Image) {
-        val texturePath = node.texture
-            ?.takeIf(String::isNotBlank)
-            ?.takeUnless { texture -> extractBindingPlaceholders(texture).isNotEmpty() }
-            ?.let(::normalizeTexturePath)
-        if (texturePath != null && texturePath !in texturePaths) {
-            val knownType = assetTypeByPath[texturePath]
-            val message = if (knownType != null && knownType != AssetType.Texture) {
-                "Image texture path '${node.texture}' resolves to $knownType, not Texture."
-            } else {
-                "Image texture path '${node.texture}' is not in Asset Registry."
-            }
-            issues += UiSceneValidationIssue(node.id, message)
-        }
-    }
-    // Texture diagnostics mirror the document tree so nested Image nodes are covered.
-    node.children.forEach { child -> collectTextureIssues(child, texturePaths, assetTypeByPath, issues) }
-}
-
-private fun normalizeTexturePath(path: String): String =
-    path.trim().replace('\\', '/').trimStart('/')

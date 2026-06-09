@@ -1,9 +1,9 @@
 package com.pashkd.krender.engine.uicomposer
 
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
+import com.pashkd.krender.engine.ui.scene.UiSceneValidator
 import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
+import com.pashkd.krender.engine.ui.scene.validation.UiSceneSkinValidationMetadata
 
 /**
  * Validates `.krui` style and background references against the currently inspected Skin snapshot.
@@ -19,72 +19,17 @@ fun validateStyleReferences(
     document: UiSceneDocument,
     skinMetadata: UiComposerSkinMetadata?,
 ): List<UiSceneValidationIssue> {
-    if (skinMetadata == null) return emptyList()
-    if (skinMetadata.loadError != null) {
-        return listOf(
-            UiSceneValidationIssue(
-                nodeId = null,
-                message = "Skin '${document.skin}' could not be loaded: ${skinMetadata.loadError}",
-            ),
-        )
-    }
-
-    val issues = mutableListOf<UiSceneValidationIssue>()
-    collectStyleReferenceIssues(document.root, skinMetadata, issues)
-    return issues
+    val validationMetadata = skinMetadata?.toValidationMetadata() ?: return emptyList()
+    return UiSceneValidator()
+        .validate(document, skinMetadata = validationMetadata)
+        .filterStyleIssues()
 }
 
-private fun collectStyleReferenceIssues(
-    node: UiSceneNode,
-    skinMetadata: UiComposerSkinMetadata,
-    issues: MutableList<UiSceneValidationIssue>,
-) {
-    val nodeId = node.id.takeIf(String::isNotBlank)
-    val styleName = node.style?.takeIf(String::isNotBlank)
-    val backgroundName = node.background?.takeIf(String::isNotBlank)
-
-    when (node.type) {
-        UiSceneNodeType.Label -> {
-            if (styleName != null && styleName !in skinMetadata.labelStyles) {
-                issues += UiSceneValidationIssue(nodeId, "Label style '$styleName' was not found in Skin '${skinMetadata.skinPath}'.")
-            }
-        }
-
-        UiSceneNodeType.TextButton -> {
-            if (styleName != null && styleName !in skinMetadata.textButtonStyles) {
-                issues += UiSceneValidationIssue(
-                    nodeId,
-                    "TextButton style '$styleName' was not found in Skin '${skinMetadata.skinPath}'.",
-                )
-            }
-        }
-
-        UiSceneNodeType.ProgressBar -> {
-            if (styleName != null && styleName !in skinMetadata.progressBarStyles) {
-                issues += UiSceneValidationIssue(
-                    nodeId,
-                    "ProgressBar style '$styleName' was not found in Skin '${skinMetadata.skinPath}'.",
-                )
-            }
-        }
-
-        UiSceneNodeType.Stack,
-        UiSceneNodeType.Table,
-        UiSceneNodeType.Container,
-        UiSceneNodeType.Image,
-        UiSceneNodeType.Space,
-            -> Unit
-    }
-
-    if (backgroundName != null && backgroundName !in skinMetadata.drawables) {
-        issues += UiSceneValidationIssue(
-            nodeId,
-            "Background drawable '$backgroundName' was not found in Skin '${skinMetadata.skinPath}'.",
-        )
-    }
-
-    node.children.forEach { child ->
-        // Style diagnostics walk the whole `.krui` tree because unresolved names can live outside the current selection.
-        collectStyleReferenceIssues(child, skinMetadata, issues)
-    }
-}
+fun UiComposerSkinMetadata.toValidationMetadata(): UiSceneSkinValidationMetadata =
+    UiSceneSkinValidationMetadata(
+        labelStyles = labelStyles.toSet(),
+        textButtonStyles = textButtonStyles.toSet(),
+        progressBarStyles = progressBarStyles.toSet(),
+        drawables = drawables.toSet(),
+        loadError = loadError,
+    )

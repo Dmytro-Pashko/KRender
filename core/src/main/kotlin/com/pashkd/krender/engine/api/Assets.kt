@@ -121,6 +121,10 @@ data class TexturePreviewHandle(
     val width: Int,
     /** Source texture height in pixels, when known. */
     val height: Int,
+    val u0: Float = 0f,
+    val v0: Float = 0f,
+    val u1: Float = 1f,
+    val v1: Float = 1f,
 )
 
 /**

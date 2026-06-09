@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.uicomposer
 
+import com.pashkd.krender.engine.api.TexturePreviewHandle
+
 /**
  * Immutable snapshot of Skin-defined names used by the UiComposer Inspector picker UX.
  *
@@ -17,5 +19,6 @@ data class UiComposerSkinMetadata(
     val textButtonStyles: List<String> = emptyList(),
     val progressBarStyles: List<String> = emptyList(),
     val drawables: List<String> = emptyList(),
+    val drawablePreviewHandles: Map<String, TexturePreviewHandle> = emptyMap(),
     val loadError: String? = null,
 )
