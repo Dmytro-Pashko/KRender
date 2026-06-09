@@ -65,6 +65,22 @@ class UiComposerToolbarPanel(
             }
         }
         ImGui.sameLine()
+        ImGui.beginDisabled(state.document == null || !state.history.canUndo)
+        with(dsl) {
+            button("Undo##ui_composer_undo") {
+                operations.undo()
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.sameLine()
+        ImGui.beginDisabled(state.document == null || !state.history.canRedo)
+        with(dsl) {
+            button("Redo##ui_composer_redo") {
+                operations.redo()
+            }
+        }
+        ImGui.endDisabled()
+        ImGui.sameLine()
         with(dsl) {
             button("Reset Panel Layout##ui_composer_reset_panel_layout") {
                 operations.restoreUiLayout()
@@ -100,6 +116,7 @@ class UiComposerToolbarPanel(
         ImGui.textUnformatted("Path: ${state.uiScenePath}")
         ImGui.textUnformatted("Status: ${state.statusMessage}")
         ImGui.textUnformatted("Dirty: ${if (state.dirty) "yes" else "no"}")
+        ImGui.textUnformatted("History: undo=${state.history.undoCount} redo=${state.history.redoCount}")
         state.saveStatusMessage?.let { message -> ImGui.textUnformatted("Save: $message") }
         if (state.pendingReloadConfirmation) {
             ImGui.textUnformatted("Reload confirmation is toolbar-level MVP; no modal is shown.")
@@ -1130,7 +1147,6 @@ class UiComposerInspectorPanel(
 
     private fun paddingSummary(node: UiSceneNode): String =
         "L ${node.padding.left}, T ${node.padding.top}, R ${node.padding.right}, B ${node.padding.bottom}"
-    }
 
     private fun drawSkinPickerWarning(
         document: UiSceneDocument,

@@ -115,6 +115,7 @@ class UiComposerScene(
      * Handles deferred save/reload/rebuild requests and then lets the registered systems update.
      */
     override fun update(dt: Float) {
+        handleUndoRedoShortcuts()
         if (composerState.saveRequested) {
             operations.saveDocument()
         }
@@ -127,6 +128,24 @@ class UiComposerScene(
             rebuildPreviewOnly()
         }
         super.update(dt)
+    }
+
+    private fun handleUndoRedoShortcuts() {
+        val snapshot = engine.input.snapshot()
+        if (snapshot.uiCapturesKeyboard) return
+
+        val controlDown = snapshot.isDown(Key.ControlLeft) || snapshot.isDown(Key.ControlRight)
+        if (!controlDown) return
+
+        val shiftDown = snapshot.isDown(Key.ShiftLeft) || snapshot.isDown(Key.ShiftRight)
+        val redoPressed = snapshot.wasPressed(Key.Y) || (shiftDown && snapshot.wasPressed(Key.Z))
+        val undoPressed = !shiftDown && snapshot.wasPressed(Key.Z)
+
+        if (redoPressed) {
+            operations.redo()
+        } else if (undoPressed) {
+            operations.undo()
+        }
     }
 
     /**

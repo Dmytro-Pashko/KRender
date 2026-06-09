@@ -72,6 +72,7 @@ class UiComposerOperations(
         try {
             refreshDiagnostics(document)
             context.sceneFiles.writeText(state.uiScenePath, serializer.encode(document))
+            state.savedDocumentSnapshot = document
             state.dirty = false
             state.pendingReloadConfirmation = false
             state.saveStatusMessage = "Document saved."
@@ -106,15 +107,15 @@ class UiComposerOperations(
         val newNode = transform(oldNode)
         if (newNode == oldNode) return
 
-        val updatedDocument = document.updateNode(selectedId) { newNode }
-        state.document = updatedDocument
-        state.selectedNodeId = newNode.id
-        refreshDiagnostics(updatedDocument)
-        state.dirty = true
-        state.pendingReloadConfirmation = false
-        state.previewRebuildRequested = true
-        state.saveStatusMessage = null
-        state.statusMessage = "Document edited."
+        applyDocumentChange(
+            description = "Document edited.",
+            transform = { current ->
+                current.updateNode(selectedId) { newNode }
+            },
+            selectNodeId = { newDocument ->
+                newNode.id.takeIf { id -> findUiSceneNodeById(newDocument.root, id) != null }
+            },
+        )
     }
 
     /**
@@ -130,17 +131,14 @@ class UiComposerOperations(
     ) {
         val document = state.document ?: return
         if (key !in document.bindings.map { binding -> binding.key }) return
-        val updatedDocument = document.copy(
-            bindings = updateBindingDefaultValue(document.bindings, key, defaultValue),
+        applyDocumentChange(
+            description = "Binding default preview value changed.",
+            transform = { current ->
+                current.copy(
+                    bindings = updateBindingDefaultValue(current.bindings, key, defaultValue),
+                )
+            },
         )
-        state.document = updatedDocument
-        state.previewPayload[key] = defaultValue
-        refreshDiagnostics(updatedDocument)
-        state.dirty = true
-        state.pendingReloadConfirmation = false
-        state.previewRebuildRequested = true
-        state.saveStatusMessage = null
-        state.statusMessage = "Binding default preview value changed."
     }
 
     /**
@@ -153,22 +151,17 @@ class UiComposerOperations(
             return
         }
         val replacing = binding.key in bindingKeys(document)
-        val updatedDocument = document.copy(
-            bindings = upsertBindingDefinition(document.bindings, binding),
-        )
-        state.document = updatedDocument
-        state.previewPayload.clear()
-        state.previewPayload.putAll(previewPayloadFromBindings(updatedDocument.bindings))
-        refreshDiagnostics(updatedDocument)
-        state.dirty = true
-        state.pendingReloadConfirmation = false
-        state.previewRebuildRequested = true
-        state.saveStatusMessage = null
-        state.statusMessage = if (replacing) {
+        val description = if (replacing) {
             "Binding '${binding.key}' updated in scene bindings."
         } else {
             "Binding '${binding.key}' added to scene bindings."
         }
+        applyDocumentChange(
+            description = description,
+            transform = { current ->
+                current.copy(bindings = upsertBindingDefinition(current.bindings, binding))
+            },
+        )
     }
 
     /**
@@ -192,9 +185,11 @@ class UiComposerOperations(
 
         val childId = document.uniqueNodeId(type.defaultIdBase())
         val child = createDefaultUiSceneNode(type, childId)
-        applyDocumentEdit(
-            status = "Added ${type.name} child.",
-            selectNodeId = childId,
+        applyDocumentChange(
+            description = "Added ${type.name} child.",
+            selectNodeId = { updatedDocument ->
+                childId.takeIf { updatedDocument.containsNodeId(it) }
+            },
         ) { current ->
             current.addChildNode(parentId, child)
         }
@@ -217,9 +212,11 @@ class UiComposerOperations(
             return
         }
         val parentId = document.parentOf(selectedId)?.id ?: document.root.id
-        applyDocumentEdit(
-            status = "Deleted selected node.",
-            selectNodeId = parentId,
+        applyDocumentChange(
+            description = "Deleted selected node.",
+            selectNodeId = { updatedDocument ->
+                parentId.takeIf { updatedDocument.containsNodeId(it) } ?: updatedDocument.root.id
+            },
         ) { current ->
             current.deleteNode(selectedId)
         }
@@ -242,9 +239,11 @@ class UiComposerOperations(
             return
         }
         val duplicateId = document.uniqueNodeId("${selectedId}_copy")
-        applyDocumentEdit(
-            status = "Duplicated selected node.",
-            selectNodeId = duplicateId,
+        applyDocumentChange(
+            description = "Duplicated selected node.",
+            selectNodeId = { updatedDocument ->
+                duplicateId.takeIf { updatedDocument.containsNodeId(it) }
+            },
         ) { current ->
             current.duplicateNode(selectedId, duplicateId)
         }
@@ -265,9 +264,11 @@ class UiComposerOperations(
             state.statusMessage = "Root node cannot be moved."
             return
         }
-        applyDocumentEdit(
-            status = "Moved selected node up.",
-            selectNodeId = selectedId,
+        applyDocumentChange(
+            description = "Moved selected node up.",
+            selectNodeId = { updatedDocument ->
+                selectedId.takeIf { updatedDocument.containsNodeId(it) }
+            },
         ) { current ->
             current.moveNodeUp(selectedId)
         }
@@ -288,9 +289,11 @@ class UiComposerOperations(
             state.statusMessage = "Root node cannot be moved."
             return
         }
-        applyDocumentEdit(
-            status = "Moved selected node down.",
-            selectNodeId = selectedId,
+        applyDocumentChange(
+            description = "Moved selected node down.",
+            selectNodeId = { updatedDocument ->
+                selectedId.takeIf { updatedDocument.containsNodeId(it) }
+            },
         ) { current ->
             current.moveNodeDown(selectedId)
         }
@@ -319,9 +322,11 @@ class UiComposerOperations(
 
         val wrapperId = document.uniqueNodeId(wrapperType.defaultIdBase())
         val wrapper = createDefaultUiSceneNode(wrapperType, wrapperId)
-        applyDocumentEdit(
-            status = "Wrapped selected node in ${wrapperType.name}.",
-            selectNodeId = wrapperId,
+        applyDocumentChange(
+            description = "Wrapped selected node in ${wrapperType.name}.",
+            selectNodeId = { updatedDocument ->
+                wrapperId.takeIf { updatedDocument.containsNodeId(it) }
+            },
         ) { current ->
             current.wrapNode(selectedId, wrapper)
         }
@@ -341,27 +346,87 @@ class UiComposerOperations(
         }
     }
 
-    private fun applyDocumentEdit(
-        status: String,
-        selectNodeId: String? = state.selectedNodeId,
+    fun undo() {
+        val currentDocument = state.document ?: return
+        val entry = state.history.undo(
+            UiComposerHistoryEntry(
+                document = currentDocument,
+                selectedNodeId = state.selectedNodeId,
+                description = "Current",
+            ),
+        ) ?: return
+
+        restoreHistoryEntry(entry, statusPrefix = "Undo")
+    }
+
+    fun redo() {
+        val currentDocument = state.document ?: return
+        val entry = state.history.redo(
+            UiComposerHistoryEntry(
+                document = currentDocument,
+                selectedNodeId = state.selectedNodeId,
+                description = "Current",
+            ),
+        ) ?: return
+
+        restoreHistoryEntry(entry, statusPrefix = "Redo")
+    }
+
+    private fun applyDocumentChange(
+        description: String,
+        selectNodeId: ((UiSceneDocument) -> String?)? = null,
         transform: (UiSceneDocument) -> UiSceneDocument,
     ) {
-        val document = state.document ?: return
-        val updatedDocument = transform(document)
-        if (updatedDocument == document) {
-            state.statusMessage = "Structure edit had no effect."
-            return
-        }
+        val oldDocument = state.document ?: return
+        val oldSelectedNodeId = state.selectedNodeId
+        val newDocument = transform(oldDocument)
+        if (newDocument == oldDocument) return
 
-        // Every structure edit follows the same validate/dirty/rebuild path.
-        state.document = updatedDocument
-        state.selectedNodeId = selectNodeId?.takeIf { updatedDocument.containsNodeId(it) } ?: updatedDocument.root.id
-        refreshDiagnostics(updatedDocument)
-        state.dirty = true
+        state.history.recordBeforeChange(
+            UiComposerHistoryEntry(
+                document = oldDocument,
+                selectedNodeId = oldSelectedNodeId,
+                description = description,
+            ),
+        )
+
+        state.document = newDocument
+        state.selectedNodeId = selectNodeId?.invoke(newDocument)
+            ?: oldSelectedNodeId?.takeIf { id -> findUiSceneNodeById(newDocument.root, id) != null }
+            ?: newDocument.root.id
+
+        afterDocumentChanged(newDocument)
+        state.statusMessage = description
+    }
+
+    private fun afterDocumentChanged(document: UiSceneDocument) {
+        state.previewPayload.clear()
+        state.previewPayload.putAll(previewPayloadFromBindings(document.bindings))
+        refreshDiagnostics(document)
+        state.dirty = document != state.savedDocumentSnapshot
         state.pendingReloadConfirmation = false
         state.previewRebuildRequested = true
         state.saveStatusMessage = null
-        state.statusMessage = status
+    }
+
+    private fun restoreHistoryEntry(
+        entry: UiComposerHistoryEntry,
+        statusPrefix: String,
+    ) {
+        state.document = entry.document
+        state.selectedNodeId = entry.selectedNodeId
+            ?.takeIf { id -> findUiSceneNodeById(entry.document.root, id) != null }
+            ?: entry.document.root.id
+
+        state.previewPayload.clear()
+        state.previewPayload.putAll(previewPayloadFromBindings(entry.document.bindings))
+        refreshDiagnostics(entry.document)
+
+        state.dirty = entry.document != state.savedDocumentSnapshot
+        state.pendingReloadConfirmation = false
+        state.previewRebuildRequested = true
+        state.saveStatusMessage = null
+        state.statusMessage = "$statusPrefix: ${entry.description}"
     }
 
     private fun refreshDiagnostics(document: UiSceneDocument) {

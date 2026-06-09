@@ -28,6 +28,19 @@ data class UiComposerState(
     val uiScenePath: String,
     /** Last decoded shared `.krui` document; null when parsing or preview build failed. */
     var document: UiSceneDocument? = null,
+    /**
+     * Document snapshot captured after the last successful load/save.
+     *
+     * Dirty state is derived by comparing [document] with this snapshot after
+     * document-changing operations, undo, redo, load, and save.
+     */
+    var savedDocumentSnapshot: UiSceneDocument? = null,
+    /**
+     * Snapshot history for document-changing UiComposer operations.
+     *
+     * This is editor-only and is never saved to `.krui`.
+     */
+    val history: UiComposerHistory = UiComposerHistory(),
     /** Shared validator output shown by editor diagnostics without blocking the preview scene. */
     var validationIssues: List<UiSceneValidationIssue> = emptyList(),
     /** Editor-only Skin-backed warnings for missing style/background names in the current document. */
@@ -672,6 +685,9 @@ class UiComposerDocumentLoader(
         try {
             val document = serializer.decode(readText(state.uiScenePath))
             state.document = document
+            state.savedDocumentSnapshot = document
+            state.history.clear()
+            state.dirty = false
             state.previewPayload.clear()
             state.previewPayload.putAll(previewPayloadFromBindings(document.bindings))
             refreshUiComposerValidationBuckets(
@@ -687,6 +703,8 @@ class UiComposerDocumentLoader(
             }
         } catch (error: Exception) {
             state.document = null
+            state.savedDocumentSnapshot = null
+            state.history.clear()
             state.validationIssues = emptyList()
             state.styleValidationIssues = emptyList()
             state.textureValidationIssues = emptyList()
