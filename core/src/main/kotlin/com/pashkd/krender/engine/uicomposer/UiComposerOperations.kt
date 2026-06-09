@@ -68,7 +68,7 @@ class UiComposerOperations(
         }
 
         try {
-            state.validationIssues = validator.validate(document)
+            refreshDiagnostics(document)
             context.sceneFiles.writeText(state.uiScenePath, serializer.encode(document))
             state.dirty = false
             state.pendingReloadConfirmation = false
@@ -107,7 +107,7 @@ class UiComposerOperations(
         val updatedDocument = document.updateNode(selectedId) { newNode }
         state.document = updatedDocument
         state.selectedNodeId = newNode.id
-        state.validationIssues = validator.validate(updatedDocument)
+        refreshDiagnostics(updatedDocument)
         state.dirty = true
         state.pendingReloadConfirmation = false
         state.previewRebuildRequested = true
@@ -300,12 +300,18 @@ class UiComposerOperations(
         // Every structure edit follows the same validate/dirty/rebuild path.
         state.document = updatedDocument
         state.selectedNodeId = selectNodeId?.takeIf { updatedDocument.containsNodeId(it) } ?: updatedDocument.root.id
-        state.validationIssues = validator.validate(updatedDocument)
+        refreshDiagnostics(updatedDocument)
         state.dirty = true
         state.pendingReloadConfirmation = false
         state.previewRebuildRequested = true
         state.saveStatusMessage = null
         state.statusMessage = status
+    }
+
+    private fun refreshDiagnostics(document: UiSceneDocument) {
+        // Shared document validation and Skin-backed name validation travel together in editor diagnostics.
+        state.validationIssues = validator.validate(document)
+        state.styleValidationIssues = validateStyleReferences(document, state.skinMetadata)
     }
 
     companion object {

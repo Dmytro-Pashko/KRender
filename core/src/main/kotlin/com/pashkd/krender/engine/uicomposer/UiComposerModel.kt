@@ -26,8 +26,12 @@ data class UiComposerState(
     var document: UiSceneDocument? = null,
     /** Shared validator output shown by editor diagnostics without blocking the preview scene. */
     var validationIssues: List<UiSceneValidationIssue> = emptyList(),
+    /** Editor-only Skin-backed warnings for missing style/background names in the current document. */
+    var styleValidationIssues: List<UiSceneValidationIssue> = emptyList(),
     /** Parse or backend preview build error shown in diagnostics; this does not crash the scene. */
     var parseError: String? = null,
+    /** Last inspected path-based Skin snapshot used by Inspector dropdowns and diagnostics. */
+    var skinMetadata: UiComposerSkinMetadata? = null,
     /** Selected `.krui` node id from the hierarchy, kept independent from Scene2D actor instances. */
     var selectedNodeId: String? = null,
     /** Shows Scene2D debug bounds for every built actor in the backend preview only. */
@@ -200,6 +204,8 @@ class UiComposerDocumentLoader(
         } catch (error: Exception) {
             state.document = null
             state.validationIssues = emptyList()
+            state.styleValidationIssues = emptyList()
+            state.skinMetadata = null
             state.parseError = error.message ?: error::class.simpleName ?: "Unknown UI scene parse error."
         } finally {
             state.reloadRequested = false

@@ -52,7 +52,9 @@ internal class UiComposerModelTest {
 
         assertTrue(state.canvasSelectionEnabled)
         assertTrue(state.highlightHovered)
+        assertTrue(state.styleValidationIssues.isEmpty())
         assertNull(state.hoveredNodeId)
+        assertNull(state.skinMetadata)
         assertNull(state.canvasStatusMessage)
     }
 

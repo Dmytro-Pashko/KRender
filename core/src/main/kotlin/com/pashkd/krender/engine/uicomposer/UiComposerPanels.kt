@@ -355,6 +355,7 @@ class UiComposerInspectorPanel(
         document: UiSceneDocument,
         node: UiSceneNode,
     ) {
+        val skinMetadata = state.skinMetadata
         ImGui.textUnformatted("Selected Node")
         ImGui.separator()
         editableString(node, "id", node.id, emptyAsNull = false) { value ->
@@ -369,12 +370,9 @@ class UiComposerInspectorPanel(
         editableBoolean(node, "visible", node.visible) { visible ->
             operations.updateSelectedNode { it.copy(visible = visible) }
         }
-        editableString(node, "style", node.style, emptyAsNull = true) { value ->
-            operations.updateSelectedNode { it.copy(style = value) }
-        }
-        editableString(node, "background", node.background, emptyAsNull = true) { value ->
-            operations.updateSelectedNode { it.copy(background = value) }
-        }
+        drawSkinPickerWarning(document, skinMetadata)
+        drawStyleEditor(node, skinMetadata)
+        drawBackgroundEditor(node, skinMetadata)
         editableString(node, "text", node.text, emptyAsNull = false) { value ->
             operations.updateSelectedNode { it.copy(text = value ?: "") }
         }
@@ -494,6 +492,39 @@ class UiComposerInspectorPanel(
         }
     }
 
+    private fun editableNullableChoice(
+        node: UiSceneNode,
+        fieldName: String,
+        current: String?,
+        nullLabel: String,
+        options: List<String>,
+        missingSuffix: String,
+        onChanged: (String?) -> Unit,
+    ) {
+        val preview = when {
+            current == null -> nullLabel
+            current in options -> current
+            else -> "$current$missingSuffix"
+        }
+        if (!ImGui.beginCombo("$fieldName##ui_composer_inspector_${node.id}_$fieldName", preview)) return
+        if (ImGui.selectable("$nullLabel##ui_composer_${node.id}_${fieldName}_none", current == null)) {
+            onChanged(null)
+        }
+        options.forEach { value ->
+            if (ImGui.selectable("$value##ui_composer_${node.id}_${fieldName}_$value", value == current)) {
+                onChanged(value)
+            }
+        }
+        if (current != null && current !in options) {
+            // Keep missing values selectable so reload/save cycles preserve unknown Skin names.
+            val missingLabel = "$current$missingSuffix"
+            if (ImGui.selectable("$missingLabel##ui_composer_${node.id}_${fieldName}_missing", true)) {
+                onChanged(current)
+            }
+        }
+        ImGui.endCombo()
+    }
+
     private fun <T : Enum<T>> editableEnum(
         node: UiSceneNode,
         fieldName: String,
@@ -555,6 +586,72 @@ class UiComposerInspectorPanel(
         property("width", "%.2f".format(actorInfo.width))
         property("height", "%.2f".format(actorInfo.height))
         property("visible", actorInfo.visible.toString())
+    }
+
+    private fun drawSkinPickerWarning(
+        document: UiSceneDocument,
+        skinMetadata: UiComposerSkinMetadata?,
+    ) {
+        val error = when {
+            skinMetadata == null -> "Skin metadata unavailable: '${document.skin}' has not been inspected."
+            skinMetadata.loadError != null -> "Skin metadata unavailable: ${skinMetadata.loadError}"
+            else -> null
+        }
+        error?.let { message ->
+            ImGui.textWrapped(message)
+            ImGui.textWrapped(
+                "Picker reads Skin only, does not edit Skin files, uses the document's path-based Skin, " +
+                    "and falls back to manual text editing when inspection is unavailable.",
+            )
+        }
+    }
+
+    private fun drawStyleEditor(
+        node: UiSceneNode,
+        skinMetadata: UiComposerSkinMetadata?,
+    ) {
+        val styleOptions = styleOptionsFor(node.type, skinMetadata)
+        if (styleOptions == null) {
+            editableString(node, "style (manual)", node.style, emptyAsNull = true) { value ->
+                operations.updateSelectedNode { it.copy(style = value) }
+            }
+            return
+        }
+
+        editableNullableChoice(
+            node = node,
+            fieldName = "style",
+            current = node.style,
+            nullLabel = "<default>",
+            options = styleOptions,
+            missingSuffix = " (missing from Skin)",
+        ) { value ->
+            operations.updateSelectedNode { it.copy(style = value) }
+        }
+    }
+
+    private fun drawBackgroundEditor(
+        node: UiSceneNode,
+        skinMetadata: UiComposerSkinMetadata?,
+    ) {
+        val drawableOptions = skinMetadata?.takeUnless { it.loadError != null }?.drawables
+        if (drawableOptions == null) {
+            editableString(node, "background (manual)", node.background, emptyAsNull = true) { value ->
+                operations.updateSelectedNode { it.copy(background = value) }
+            }
+            return
+        }
+
+        editableNullableChoice(
+            node = node,
+            fieldName = "background",
+            current = node.background,
+            nullLabel = "<none>",
+            options = drawableOptions,
+            missingSuffix = " (missing from Skin)",
+        ) { value ->
+            operations.updateSelectedNode { it.copy(background = value) }
+        }
     }
 
     private fun property(
@@ -675,7 +772,7 @@ class UiComposerDiagnosticsPanel(
         }
         ImGui.textUnformatted("Hovered node: ${state.hoveredNodeId ?: "<none>"}")
 
-        val issues = state.validationIssues
+        val issues = state.validationIssues + state.styleValidationIssues
         ImGui.textUnformatted("Validation issues: ${issues.size}")
         if (issues.isEmpty() && parseError == null) {
             ImGui.textUnformatted("No validation issues.")
@@ -688,7 +785,9 @@ class UiComposerDiagnosticsPanel(
         ImGui.separator()
         ImGui.textWrapped(
             "MVP limitations: structure editing is hierarchy/inspector-driven only; preview payload is not saved " +
-                "and is not runtime state; canvas interaction is selection-only; no canvas drag/drop; no resize handles; " +
+                "and is not runtime state; style/background picker reads Skin only and does not edit Skin files; " +
+                "Skin inspection is path-based and falls back to manual text editing when unavailable; " +
+                "style names are not asset ids; canvas interaction is selection-only; no canvas drag/drop; no resize handles; " +
                 "no multi-select; no canvas editing; no Skin editing; no Asset Browser picker yet; no asset-id references; " +
                 "no snapping; no transform gizmos; no custom shape overlay yet; no full Scene2D actor serialization; " +
                 "no layout solver; reload dirty confirmation is toolbar-level only; selected/hover highlight is best-effort.",
@@ -718,3 +817,21 @@ private fun writeBuffer(
 
 private fun UiSceneNodeType.isContainerLike(): Boolean =
     this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container
+
+private fun styleOptionsFor(
+    nodeType: UiSceneNodeType,
+    skinMetadata: UiComposerSkinMetadata?,
+): List<String>? {
+    val metadata = skinMetadata?.takeUnless { it.loadError != null } ?: return null
+    return when (nodeType) {
+        UiSceneNodeType.Label -> metadata.labelStyles
+        UiSceneNodeType.TextButton -> metadata.textButtonStyles
+        UiSceneNodeType.ProgressBar -> metadata.progressBarStyles
+        UiSceneNodeType.Stack,
+        UiSceneNodeType.Table,
+        UiSceneNodeType.Container,
+        UiSceneNodeType.Image,
+        UiSceneNodeType.Space,
+            -> null
+    }
+}

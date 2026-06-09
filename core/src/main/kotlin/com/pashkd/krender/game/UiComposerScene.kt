@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.api.MouseButton
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.System
+import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiComposerSkinMetadataReader
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiScenePreview
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
@@ -19,6 +20,7 @@ import com.pashkd.krender.engine.uicomposer.UiComposerState
 import com.pashkd.krender.engine.uicomposer.UiComposerStructurePanel
 import com.pashkd.krender.engine.uicomposer.UiComposerToolbarPanel
 import com.pashkd.krender.engine.uicomposer.UiComposerUiLayoutDefaults
+import com.pashkd.krender.engine.uicomposer.validateStyleReferences
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -46,6 +48,7 @@ class UiComposerScene(
     private lateinit var composerState: UiComposerState
     private lateinit var loader: UiComposerDocumentLoader
     private lateinit var preview: GdxUiScenePreview
+    private lateinit var skinMetadataReader: GdxUiComposerSkinMetadataReader
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
     private lateinit var operations: UiComposerOperations
 
@@ -57,6 +60,7 @@ class UiComposerScene(
         composerState = UiComposerState(uiScenePath = uiScenePath)
         loader = UiComposerDocumentLoader(engine.sceneFiles::readText)
         preview = GdxUiScenePreview(engine.logger)
+        skinMetadataReader = GdxUiComposerSkinMetadataReader(engine.logger)
         val layoutConfig = ImGuiLayoutConfigLoader(
             assetPath = UiComposerUiLayoutDefaults.assetPath,
             fallback = UiComposerUiLayoutDefaults.config,
@@ -111,6 +115,9 @@ class UiComposerScene(
         if (::preview.isInitialized) {
             preview.dispose()
         }
+        if (::skinMetadataReader.isInitialized) {
+            skinMetadataReader.dispose()
+        }
         super.dispose()
     }
 
@@ -124,9 +131,12 @@ class UiComposerScene(
         if (composerState.document == null) {
             composerState.statusMessage = "Failed to load document."
             composerState.selectedActorInfo = null
+            composerState.skinMetadata = null
+            composerState.styleValidationIssues = emptyList()
             preview.rebuild(null)
             return
         }
+        refreshSkinMetadata()
         val status = if (discardedUnsavedChanges) {
             "Reloaded document; unsaved changes were discarded."
         } else {
@@ -159,6 +169,16 @@ class UiComposerScene(
             }
             preview.rebuild(null)
         }
+    }
+
+    private fun refreshSkinMetadata() {
+        val document = composerState.document ?: run {
+            composerState.skinMetadata = null
+            composerState.styleValidationIssues = emptyList()
+            return
+        }
+        composerState.skinMetadata = skinMetadataReader.read(document.skin)
+        composerState.styleValidationIssues = validateStyleReferences(document, composerState.skinMetadata)
     }
 
     private fun createUiSystem(): UiSystem {
