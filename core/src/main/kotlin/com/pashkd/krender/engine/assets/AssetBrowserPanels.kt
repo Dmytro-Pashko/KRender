@@ -1,12 +1,15 @@
 package com.pashkd.krender.engine.assets
 
 import com.pashkd.krender.engine.api.ModelAssetInfo
+import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import glm_.vec2.Vec2
+import imgui.Cond
 import imgui.ImGui
 import imgui.MouseButton
 import imgui.dsl
@@ -50,8 +53,6 @@ class AssetBrowserPanel(
         drawToolbar()
         ImGui.separator()
         drawBrowserBody()
-        ImGui.separator()
-        drawStatus()
 
         ImGui.end()
 
@@ -72,6 +73,14 @@ class AssetBrowserPanel(
 
         ImGui.sameLine()
         with(dsl) {
+            button("[x]##${panelId}_clear_search") {
+                state.searchQuery = ""
+                writeBuffer(searchBuffer, "")
+            }
+        }
+
+        ImGui.sameLine()
+        with(dsl) {
             button("Refresh##$panelId") {
                 state.refreshRequested = true
                 state.statusMessage = "Refresh requested."
@@ -79,16 +88,6 @@ class AssetBrowserPanel(
         }
 
         if (mode == AssetBrowserMode.Full) {
-            ImGui.sameLine()
-            with(dsl) {
-                button("Create##$panelId") {
-                    state.createNameBuffer = ""
-                    createBufferSynced = false
-                    state.showCreateDialog = true
-                }
-            }
-            ImGui.sameLine()
-            drawViewModeCombo()
             ImGui.sameLine()
             drawSortModeCombo()
         }
@@ -111,8 +110,6 @@ class AssetBrowserPanel(
         val assets = visibleAssets()
         if (assets.isEmpty()) {
             ImGui.text("No assets match the current filters.")
-        } else if (state.viewMode == AssetBrowserViewMode.Grid) {
-            drawGrid(assets)
         } else {
             drawList(assets)
         }
@@ -125,7 +122,7 @@ class AssetBrowserPanel(
             state.selectedCategory = null
         }
 
-        AssetCategory.entries
+        SupportedBrowserCategories
             .sortedBy(AssetCategory::sortOrder)
             .filter(::categoryAccepted)
             .forEach { category ->
@@ -138,17 +135,7 @@ class AssetBrowserPanel(
 
     private fun drawList(assets: List<AssetDescriptor>) {
         assets.forEach { asset ->
-            val label = "${assetIcon(asset)} ${asset.name}  ${asset.type.name}  ${asset.path}##asset_${asset.id.value}"
-            drawSelectableAsset(asset, label)
-        }
-    }
-
-    private fun drawGrid(assets: List<AssetDescriptor>) {
-        assets.forEachIndexed { index, asset ->
-            if (index > 0 && index % GridColumns != 0) {
-                ImGui.sameLine()
-            }
-            val label = "${assetIcon(asset)} ${asset.name}##asset_grid_${asset.id.value}"
+            val label = "${assetIcon(asset)} ${asset.name}  ${asset.type.name}  ${asset.path} (${formatByteCount(asset.sizeBytes)})##asset_${asset.id.value}"
             drawSelectableAsset(asset, label)
         }
     }
@@ -206,27 +193,6 @@ class AssetBrowserPanel(
     private fun baseName(asset: AssetDescriptor): String =
         asset.name
 
-    private fun drawStatus() {
-        textLine("Assets: ${state.filteredAssets.size} / ${state.assets.size}")
-        if (state.statusMessage.isNotBlank()) {
-            ImGui.sameLine()
-            textLine("Status: ${state.statusMessage}")
-        }
-        state.errorMessage?.let { error ->
-            textLine("Error: $error")
-        }
-    }
-
-    private fun drawViewModeCombo() {
-        if (!ImGui.beginCombo("View##${panelId}_view", state.viewMode.name)) return
-        AssetBrowserViewMode.entries.forEach { viewMode ->
-            if (ImGui.selectable("${viewMode.name}##${panelId}_view_$viewMode", state.viewMode == viewMode)) {
-                state.viewMode = viewMode
-            }
-        }
-        ImGui.endCombo()
-    }
-
     private fun drawSortModeCombo() {
         if (!ImGui.beginCombo("Sort##${panelId}_sort", sortModeLabel(state.sortMode))) return
         AssetSortMode.entries.forEach { sortMode ->
@@ -246,7 +212,7 @@ class AssetBrowserPanel(
         }
 
     private fun categoryAccepted(category: AssetCategory): Boolean =
-        acceptedCategories == null || category in acceptedCategories
+        category in SupportedBrowserCategories && (acceptedCategories == null || category in acceptedCategories)
 
     private fun syncSearchBuffer() {
         if (!searchInputActive && readBuffer(searchBuffer) != state.searchQuery) {
@@ -257,36 +223,29 @@ class AssetBrowserPanel(
     private fun drawCreateDialog() {
         if (!state.showCreateDialog) return
         if (!createBufferSynced) {
-            writeBuffer(createNameByteBuffer, state.createNameBuffer)
+            writeBuffer(createNameByteBuffer, state.createDraft.name)
             createBufferSynced = true
         }
         ImGui.openPopup("Create Asset##${panelId}_create")
+        ImGui.setNextWindowSize(Vec2(500f, 250f), Cond.Always)
         if (!ImGui.beginPopupModal("Create Asset##${panelId}_create")) return
+
+        drawCreateAssetKindSelector()
         ImGui.text("Name")
         ImGui.sameLine()
+        ImGui.pushItemWidth(330f)
         if (ImGui.inputText("##${panelId}_create_name", createNameByteBuffer)) {
-            state.createNameBuffer = readBuffer(createNameByteBuffer)
+            state.createDraft = state.createDraft.copy(name = readBuffer(createNameByteBuffer))
         }
-        if (ImGui.beginCombo("Category##${panelId}_create_cat", state.createCategory.displayName)) {
-            AssetCategory.entries.forEach { c ->
-                if (ImGui.selectable(c.displayName, state.createCategory == c)) {
-                    state.createCategory = c
-                }
-            }
-            ImGui.endCombo()
-        }
-        if (ImGui.beginCombo("Type##${panelId}_create_type", state.createType.name)) {
-            AssetType.entries.forEach { t ->
-                if (ImGui.selectable(t.name, state.createType == t)) {
-                    state.createType = t
-                }
-            }
-            ImGui.endCombo()
-        }
+        ImGui.popItemWidth()
+        ImGui.sameLine()
+        textLine(".${state.createDraft.kind.extension}")
+        drawCreateUiSceneSkinSelector()
+
         ImGui.separator()
         with(dsl) {
             button("Create##${panelId}_create_ok") {
-                operations.create(state.createNameBuffer, state.createType, state.createCategory)
+                operations.create(state.createDraft.withSyncedDefaults(state.assets))
                 state.showCreateDialog = false
                 createBufferSynced = false
                 ImGui.closeCurrentPopup()
@@ -300,7 +259,59 @@ class AssetBrowserPanel(
                 ImGui.closeCurrentPopup()
             }
         }
+
+        ImGui.separator()
+        drawCreateAssetMetadata()
         ImGui.endPopup()
+    }
+
+    private fun drawCreateAssetKindSelector() {
+        if (!ImGui.beginCombo("Asset Type##${panelId}_create_kind", state.createDraft.kind.displayName)) return
+        CreatableAssetKind.entries.forEach { kind ->
+            if (ImGui.selectable(kind.displayName, state.createDraft.kind == kind)) {
+                state.createDraft = state.createDraft.copy(kind = kind).withSyncedDefaults(state.assets)
+                if (kind == CreatableAssetKind.UiScene) {
+                    writeBuffer(createNameByteBuffer, state.createDraft.name)
+                }
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    private fun drawCreateUiSceneSkinSelector() {
+        if (state.createDraft.kind != CreatableAssetKind.UiScene) return
+        state.createDraft = state.createDraft.withSyncedDefaults(state.assets)
+        val skinAssets = discoveredScene2DSkinAssets(state.assets)
+        ImGui.text("Skin")
+        ImGui.sameLine()
+        val currentLabel = skinAssets
+            .firstOrNull { asset -> asset.path == state.createDraft.uiSceneSkinPath }
+            ?.let { asset -> "${asset.name} (${asset.path})" }
+            ?: state.createDraft.uiSceneSkinPath
+        if (!ImGui.beginCombo("##${panelId}_create_ui_skin", currentLabel)) return
+        skinAssets.forEach { asset ->
+            val label = "${asset.name} (${asset.path})##${panelId}_create_ui_skin_${asset.id.value}"
+            if (ImGui.selectable(label, state.createDraft.uiSceneSkinPath == asset.path)) {
+                state.createDraft = state.createDraft.copy(uiSceneSkinPath = asset.path)
+            }
+        }
+        if (skinAssets.isEmpty()) {
+            ImGui.textUnformatted("No Scene2D Skin assets indexed.")
+        }
+        ImGui.endCombo()
+    }
+
+    private fun drawCreateAssetMetadata() {
+        val draft = state.createDraft.withSyncedDefaults(state.assets)
+        val path = createAssetRelativePath(draft)
+        val exists = state.assets.any { asset -> asset.path.equals(path, ignoreCase = true) }
+        ImGui.text("Metadata")
+        textLine("File: $path")
+        textLine("Is Already Exist: ${if (exists) "Yes" else "No"}")
+        textLine("Default params:")
+        createAssetDefaultParams(draft).forEach { param ->
+            textLine("  $param")
+        }
     }
 
     private fun drawRenameDialog() {
@@ -373,7 +384,6 @@ class AssetBrowserPanel(
 
     companion object {
         private const val TextInputBufferSize = 256
-        private const val GridColumns = 3
     }
 }
 
@@ -398,18 +408,39 @@ class AssetControlsPanel(
         }
 
         with(dsl) {
-            button("Play Woolboy Scene##${panelId}_play_woolboy") {
-                operations.playWoolboyScene()
+            button("Create Asset##${panelId}_create_asset") {
+                state.createDraft = defaultCreateAssetDraft(state.assets)
+                state.showCreateDialog = true
             }
         }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Import Asset##${panelId}_import_asset") {
+                state.statusMessage = "Import Asset is not implemented."
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Export Asset##${panelId}_export_asset") {
+                state.statusMessage = "Export Asset is not implemented."
+            }
+        }
+        ImGui.sameLine()
         with(dsl) {
             button("Persist UI##${panelId}_persist_ui") {
                 operations.saveUiLayout()
             }
         }
+        ImGui.sameLine()
         with(dsl) {
             button("Reset UI to Default##${panelId}_reset_ui") {
                 operations.restoreUiLayout()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Play Woolboy Scene MVP##${panelId}_play_woolboy") {
+                operations.playWoolboyScene()
             }
         }
 
@@ -433,6 +464,8 @@ class AssetControlsPanel(
  */
 class AssetDetailsPanel(
     private val state: AssetBrowserState,
+    private val assets: AssetService,
+    private val ui: UiService,
     private val layoutConfig: ImGuiLayoutConfig,
     private val eventLogger: ImGuiWindowEventLogger,
     private val panelId: String = AssetBrowserPanelIds.Details,
@@ -493,7 +526,6 @@ class AssetDetailsPanel(
         textLine("Tags: ${asset.tags.ifEmpty { listOf("none") }.joinToString(", ")}")
 
         ImGui.separator()
-        ImGui.text("Metadata")
         if (asset.category == AssetCategory.Texture) {
             drawTextureMetadata(asset)
             return
@@ -503,7 +535,11 @@ class AssetDetailsPanel(
             return
         }
         if (asset.category == AssetCategory.UI) {
-            drawUiSceneMetadata(asset)
+            if (asset.type == AssetType.Scene2DSkin) {
+                drawScene2DSkinMetadata(asset)
+            } else {
+                drawUiSceneMetadata(asset)
+            }
             return
         }
         if (asset.category == AssetCategory.Scene) {
@@ -544,17 +580,31 @@ class AssetDetailsPanel(
     }
 
     private fun drawTextureMetadata(asset: AssetDescriptor) {
-        textLine("Display Name: ${asset.metadata["displayName"] ?: asset.name}")
-        ImGui.text("Settings:")
+        ImGui.text("Preview")
+        drawTexturePreview(asset)
+        ImGui.separator()
+        ImGui.text("Metadata")
         val resolution = asset.metadata["textureResolution"] ?: "unknown"
         val colorFormat = asset.metadata["textureColorFormat"] ?: "unknown"
-        textLine("Resolution: $resolution")
+        textLine("Source resolution: $resolution")
         textLine("Format: $colorFormat")
     }
 
+    private fun drawTexturePreview(asset: AssetDescriptor) {
+        val handle = assets.texturePreviewHandle(asset.path)
+        if (handle == null) {
+            textLine("Preview unavailable.")
+            return
+        }
+        if (!ui.drawTexturePreview(handle, AssetTexturePreviewSize, AssetTexturePreviewSize)) {
+            textLine("Preview unavailable.")
+            return
+        }
+        textLine("Preview size: ${AssetTexturePreviewSize.toInt()} x ${AssetTexturePreviewSize.toInt()}")
+    }
+
     private fun drawTerrainMetadata(asset: AssetDescriptor) {
-        textLine("Display Name: ${asset.metadata["displayName"] ?: asset.name}")
-        ImGui.text("Settings:")
+        ImGui.text("Metadata")
         textLine("Size: ${asset.metadata["terrainSize"] ?: "unknown"}")
         textLine("Layers: ${asset.metadata["terrainLayerCount"] ?: "unknown"}")
     }
@@ -563,29 +613,12 @@ class AssetDetailsPanel(
      * Shows lightweight `.krui` indexing data without attempting UI Composer preview or editing.
      */
     private fun drawUiSceneMetadata(asset: AssetDescriptor) {
-        textLine("Display Name: ${asset.metadata["displayName"] ?: asset.name}")
-        textLine("Source: ${asset.metadata["sourcePath"] ?: asset.path}")
+        ImGui.text("Metadata")
         textLine("Document ID: ${asset.metadata["uiSceneDocumentId"] ?: "unknown"}")
         textLine("Skin: ${asset.metadata["uiSceneSkinPath"] ?: "unknown"}")
         textLine("Schema: ${asset.metadata["uiSceneSchemaVersion"] ?: "unknown"}")
         textLine("Status: ${asset.metadata["uiSceneStatus"] ?: "unknown"}")
         asset.metadata["uiSceneParseError"]?.let { error -> textLine("Parse error: $error") }
-
-        val tools = operations.toolsFor(asset)
-        if (tools.isNotEmpty()) {
-            ImGui.separator()
-            ImGui.text("UI scene actions")
-            tools.forEachIndexed { index, tool ->
-                with(dsl) {
-                    button("${tool.label}##${panelId}_ui_scene_tool_${tool.id}") {
-                        operations.openWith(asset, tool.id)
-                    }
-                }
-                if (index < tools.lastIndex) {
-                    ImGui.sameLine()
-                }
-            }
-        }
 
         ImGui.separator()
         ImGui.text("Diagnostics")
@@ -593,8 +626,33 @@ class AssetDetailsPanel(
         asset.metadata["uiSceneValidationIssuePreview"]?.let { preview -> textLine("Issues: $preview") }
     }
 
+    private fun drawScene2DSkinMetadata(asset: AssetDescriptor) {
+        ImGui.text("Metadata")
+        textLine("Status: ${asset.metadata["skinStatus"] ?: "unknown"}")
+        asset.metadata["skinParseError"]?.let { error -> textLine("Parse error: $error") }
+
+        ImGui.separator()
+        textLine("Preview: ${asset.metadata["skinPreview"] ?: "unknown"}")
+        textLine("Colors: ${asset.metadata["skinColorCount"] ?: "0"}")
+        textLine("Drawables: ${asset.metadata["skinDrawableCount"] ?: "0"}")
+        textLine("Texture regions: ${asset.metadata["skinTextureRegionCount"] ?: "0"}")
+        textLine("Style classes: ${asset.metadata["skinStyleClassCount"] ?: "0"}")
+
+        ImGui.separator()
+        ImGui.text("Styles")
+        textLine("Labels: ${asset.metadata["skinLabelStyleCount"] ?: "0"}")
+        textLine("Text buttons: ${asset.metadata["skinTextButtonStyleCount"] ?: "0"}")
+        textLine("Progress bars: ${asset.metadata["skinProgressBarStyleCount"] ?: "0"}")
+        textLine("Image buttons: ${asset.metadata["skinImageButtonStyleCount"] ?: "0"}")
+        textLine("Check boxes: ${asset.metadata["skinCheckBoxStyleCount"] ?: "0"}")
+        textLine("Text fields: ${asset.metadata["skinTextFieldStyleCount"] ?: "0"}")
+        textLine("Scroll panes: ${asset.metadata["skinScrollPaneStyleCount"] ?: "0"}")
+        textLine("Select boxes: ${asset.metadata["skinSelectBoxStyleCount"] ?: "0"}")
+        textLine("Windows: ${asset.metadata["skinWindowStyleCount"] ?: "0"}")
+    }
+
     private fun drawSceneMetadata(asset: AssetDescriptor) {
-        textLine("Display Name: ${asset.metadata["displayName"] ?: asset.name}")
+        ImGui.text("Metadata")
         textLine("Scene Name: ${asset.metadata["sceneName"] ?: asset.name}")
         textLine("Schema: ${asset.metadata["sceneSchemaVersion"] ?: "unknown"}")
 
@@ -689,7 +747,7 @@ data class AssetToolDescriptor(val id: String, val label: String)
  * without requiring panels to perform IO directly.
  */
 interface AssetBrowserOperationsHandler {
-    fun create(name: String, type: AssetType, category: AssetCategory)
+    fun create(draft: CreateAssetDraft)
     fun rename(asset: AssetDescriptor, newName: String)
     fun duplicate(asset: AssetDescriptor, targetName: String)
     fun delete(asset: AssetDescriptor)
@@ -700,7 +758,7 @@ interface AssetBrowserOperationsHandler {
     companion object {
         /** Default no-op handler used when the panel runs without operations support (e.g. picker mode). */
         val NoOp: AssetBrowserOperationsHandler = object : AssetBrowserOperationsHandler {
-            override fun create(name: String, type: AssetType, category: AssetCategory) = Unit
+            override fun create(draft: CreateAssetDraft) = Unit
             override fun rename(asset: AssetDescriptor, newName: String) = Unit
             override fun duplicate(asset: AssetDescriptor, targetName: String) = Unit
             override fun delete(asset: AssetDescriptor) = Unit
@@ -716,19 +774,31 @@ private fun textLine(value: String) {
 }
 
 private fun assetIcon(asset: AssetDescriptor): String =
-    when (asset.category) {
-        AssetCategory.Model -> "[M]"
-        AssetCategory.Texture -> "[T]"
-        AssetCategory.Skybox -> "[Sky]"
-        AssetCategory.Material -> "[Mat]"
-        AssetCategory.Terrain -> "[Ter]"
-        AssetCategory.UI -> "[UI]"
-        AssetCategory.Shader -> "[S]"
-        AssetCategory.Scene -> "[Sc]"
-        AssetCategory.Audio -> "[A]"
-        AssetCategory.Script -> "[C]"
-        AssetCategory.Unknown -> "[?]"
+    when {
+        asset.type == AssetType.Scene2DSkin -> "[Skin]"
+        else -> when (asset.category) {
+            AssetCategory.Model -> "[M]"
+            AssetCategory.Texture -> "[T]"
+            AssetCategory.Skybox -> "[Sky]"
+            AssetCategory.Material -> "[Mat]"
+            AssetCategory.Terrain -> "[Ter]"
+            AssetCategory.UI -> "[UI]"
+            AssetCategory.Scene -> "[Sc]"
+            AssetCategory.Unknown -> "[?]"
+        }
     }
+
+private val SupportedBrowserCategories = setOf(
+    AssetCategory.Model,
+    AssetCategory.Texture,
+    AssetCategory.Skybox,
+    AssetCategory.Material,
+    AssetCategory.Terrain,
+    AssetCategory.UI,
+    AssetCategory.Scene,
+)
+
+private const val AssetTexturePreviewSize = 250f
 
 private fun sortModeLabel(mode: AssetSortMode): String =
     when (mode) {

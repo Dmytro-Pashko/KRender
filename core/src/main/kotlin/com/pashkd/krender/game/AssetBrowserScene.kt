@@ -19,9 +19,12 @@ import com.pashkd.krender.engine.assets.AssetTool
 import com.pashkd.krender.engine.assets.AssetToolDescriptor
 import com.pashkd.krender.engine.assets.AssetToolRegistry
 import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.assets.CreateAssetDraft
 import com.pashkd.krender.engine.assets.CreateAssetRequest
+import com.pashkd.krender.engine.assets.DefaultUiSceneSkinPath
 import com.pashkd.krender.engine.assets.LocalAssetOperationsService
 import com.pashkd.krender.engine.assets.LocalAssetRegistryService
+import com.pashkd.krender.engine.assets.normalizedUiSceneSkinPath
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.terrain.TerrainData
@@ -116,9 +119,11 @@ class AssetBrowserScene : Scene("asset_browser") {
             )
             uiSystem.addPanel(
                 AssetDetailsPanel(
-                    browserState,
-                    layoutConfig,
-                    panelEventLogger,
+                    state = browserState,
+                    assets = engine.assets,
+                    ui = engine.ui,
+                    layoutConfig = layoutConfig,
+                    eventLogger = panelEventLogger,
                     layoutTracker = layoutTracker,
                     operations = operationsHandler,
                 ),
@@ -171,17 +176,15 @@ private class SceneOperationsHandler(
     private val engineProvider: () -> EngineContext,
     private val logger: Logger,
 ) : AssetBrowserOperationsHandler {
-    override fun create(name: String, type: AssetType, category: AssetCategory) {
-        val targetDir = defaultDirFor(category)
-        val ext = defaultExtensionFor(type, category)
+    override fun create(draft: CreateAssetDraft) {
         operations.create(
             CreateAssetRequest(
-                name = name,
-                type = type,
-                category = category,
-                targetDirectory = targetDir,
-                extension = ext,
-                initialContent = defaultContent(name, category),
+                name = draft.name,
+                type = draft.kind.type,
+                category = draft.kind.category,
+                targetDirectory = draft.kind.targetDirectory,
+                extension = draft.kind.extension,
+                initialContent = defaultContent(draft),
             ),
         )
     }
@@ -223,61 +226,16 @@ private class SceneOperationsHandler(
         }
     }
 
-    private fun defaultDirFor(category: AssetCategory): String =
-        when (category) {
-            AssetCategory.Model -> "model"
-            AssetCategory.Texture -> "textures"
-            AssetCategory.Skybox -> "skyboxes"
-            AssetCategory.Material -> "materials"
-            AssetCategory.Terrain -> "terrains"
-            AssetCategory.UI -> "ui/scenes"
-            AssetCategory.Scene -> "scenes"
-            AssetCategory.Shader -> "shaders"
-            else -> "assets"
+    private fun defaultContent(draft: CreateAssetDraft): ByteArray =
+        when (draft.kind.type) {
+            AssetType.UiScene -> defaultUiSceneContent(
+                draft.name,
+                normalizedUiSceneSkinPath(draft.uiSceneSkinPath),
+            ).toByteArray()
+            AssetType.Terrain -> defaultTerrainContent(draft.name).toByteArray()
+            AssetType.Scene -> defaultSceneContent().toByteArray()
+            else -> ByteArray(0)
         }
-
-    private fun defaultExtensionFor(type: AssetType, category: AssetCategory): String =
-        when (type) {
-            AssetType.GltfModel -> "gltf"
-            AssetType.ObjModel -> "obj"
-            AssetType.GdxModel -> "g3dj"
-            AssetType.Texture -> "png"
-            AssetType.Skybox -> "krskybox"
-            AssetType.Terrain -> "json"
-            AssetType.UiScene -> "krui"
-            AssetType.Scene -> "krscene"
-            AssetType.Material -> "json"
-            AssetType.Shader -> "glsl"
-            AssetType.Unknown -> when (category) {
-                AssetCategory.UI -> "krui"
-                AssetCategory.Scene -> "krscene"
-                AssetCategory.Skybox -> "krskybox"
-                AssetCategory.Material, AssetCategory.Terrain -> "json"
-                AssetCategory.Shader -> "glsl"
-                else -> "bin"
-            }
-        }
-
-    private fun defaultContent(name: String, category: AssetCategory): ByteArray? =
-        when (category) {
-            AssetCategory.Material -> "{}\n".toByteArray()
-            AssetCategory.Terrain -> defaultTerrainContent(name).toByteArray()
-            AssetCategory.Skybox -> defaultSkyboxContent().toByteArray()
-            AssetCategory.UI -> defaultUiSceneContent(name).toByteArray()
-            AssetCategory.Scene -> defaultSceneContent().toByteArray()
-            else -> null
-        }
-
-    private fun defaultSkyboxContent(): String =
-        """
-        {
-          "schemaVersion": 1,
-          "id": "skybox:new",
-          "name": "New Skybox",
-          "texturePath": "textures/default_skybox_studio.png",
-          "intensity": 1.0
-        }
-        """.trimIndent()
 
     private fun defaultSceneContent(): String =
         """
@@ -290,28 +248,32 @@ private class SceneOperationsHandler(
         }
         """.trimIndent() + "\n"
 
-    /**
-     * Creates the minimal `.krui` document used by the existing generic Create Asset action.
-     */
-    private fun defaultUiSceneContent(name: String): String {
-        val id = name.trim().replace(Regex("[^A-Za-z0-9_\\-:.]"), "_").ifBlank { "new_ui_scene" }
-        return """
-        {
-          "schemaVersion": 1,
-          "id": "$id",
-          "skin": "ui/skins/craftacular-ui.json",
-          "root": {
-            "id": "root",
-            "type": "Stack",
-            "children": []
-          }
-        }
-        """.trimIndent() + "\n"
-    }
-
     companion object {
         private const val TAG = "AssetBrowserSceneOps"
     }
+}
+
+/**
+ * Creates the minimal `.krui` document used by the generic Create Asset action.
+ */
+internal fun defaultUiSceneContent(
+    name: String,
+    skinPath: String = DefaultUiSceneSkinPath,
+): String {
+    val id = name.trim().replace(Regex("[^A-Za-z0-9_\\-:.]"), "_").ifBlank { "new_ui_scene" }
+    val normalizedSkinPath = normalizedUiSceneSkinPath(skinPath)
+    return """
+    {
+      "schemaVersion": 1,
+      "id": "$id",
+      "skin": "$normalizedSkinPath",
+      "root": {
+        "id": "root",
+        "type": "Stack",
+        "children": []
+      }
+    }
+    """.trimIndent() + "\n"
 }
 
 internal fun defaultTerrainContent(name: String): String {

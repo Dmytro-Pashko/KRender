@@ -84,7 +84,7 @@ class LocalAssetRegistryService(
                 .filterNot(::isIgnoredFile)
                 .forEach { file ->
                     try {
-                        scanned += describe(file)
+                        describe(file)?.let(scanned::add)
                     } catch (error: Exception) {
                         val rel = relativeAssetPath(file)
                         logger.warn(TAG, error) { "Failed to index asset '$rel': ${error.message}" }
@@ -124,13 +124,17 @@ class LocalAssetRegistryService(
     override fun byCategory(category: AssetCategory): List<AssetDescriptor> =
         descriptors.filter { it.category == category }
 
-    private fun describe(file: File): AssetDescriptor {
+    private fun describe(file: File): AssetDescriptor? {
         val path = relativeAssetPath(file)
         val importer = importers.resolve(path)
         val detection = if (importer != null) {
             AssetTypeDetection(importer.outputType, importer.outputCategory)
         } else {
             AssetTypeDetector.detect(path)
+        }
+        if (detection.category == AssetCategory.Unknown || detection.type == AssetType.Unknown) {
+            logger.debug(TAG) { "Skipping unsupported asset '$path'" }
+            return null
         }
         val document = readOrCreateMetadata(file, detection, importer)
         val extension = file.extension.lowercase()
@@ -272,10 +276,21 @@ class LocalAssetRegistryService(
          * Asset root folders scanned by the local registry.
          *
          * The `ui/scenes` entry exists so `.krui` UiScene documents under `assets/ui/scenes` are indexed by
-         * Asset Browser. It is an asset-indexing route only; it does not enable UI Composer editing,
+         * Asset Browser. `ui/skins` indexes LibGDX Scene2D Skin JSON descriptors for `.krui` creation and
+         * future Skin tooling. These are asset-indexing routes only; they do not enable UI Composer editing,
          * preview rendering, Skin editing, drag/drop editing, or asset-id based references.
          */
-        val DefaultRootPaths = listOf("model", "textures", "skyboxes", "materials", "terrains", "ui/scenes", "scenes", "shaders", "assets")
+        val DefaultRootPaths = listOf(
+            "model",
+            "textures",
+            "skyboxes",
+            "materials",
+            "terrains",
+            "ui/scenes",
+            "ui/skins",
+            "scenes",
+            "assets",
+        )
 
         private fun defaultBaseDirectory(): File {
             val current = File(".")

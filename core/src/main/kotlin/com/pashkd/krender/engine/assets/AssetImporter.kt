@@ -62,9 +62,9 @@ class AssetImporterRegistry(
                 register(TextureImporter())
                 register(SkyboxImporter())
                 register(TerrainImporter())
+                register(Scene2DSkinImporter(logger))
                 register(UiSceneImporter(logger))
                 register(MaterialImporter())
-                register(ShaderImporter())
             }
     }
 }
@@ -157,6 +157,39 @@ class TerrainImporter : AssetImporter {
 }
 
 /**
+ * LibGDX Scene2D Skin JSON descriptors located under `ui/skins/`.
+ *
+ * This importer only extracts backend-neutral metadata and never instantiates `Skin` or requires
+ * a rendering backend while assets are scanned.
+ */
+class Scene2DSkinImporter(
+    private val logger: Logger? = null,
+) : AssetImporter {
+    override val id = "scene2d-skin"
+    override val displayName = "Scene2D Skin"
+    override val supportedExtensions = setOf("json")
+    override val outputType = AssetType.Scene2DSkin
+    override val outputCategory = AssetCategory.UI
+
+    override fun canImport(path: String): Boolean {
+        val normalized = path.replace('\\', '/').lowercase()
+        return normalized.endsWith(".json") && normalized.startsWith("ui/skins/")
+    }
+
+    override fun readMetadata(file: File): Map<String, String> {
+        val metadata = Scene2DSkinAssetMetadataReader.read(file)
+        if (metadata.parseError != null) {
+            logger?.warn(TAG) { "Invalid Scene2D Skin asset '${file.path}': ${metadata.parseError}" }
+        }
+        return metadata.toMetadataMap()
+    }
+
+    companion object {
+        private const val TAG = "Scene2DSkinImporter"
+    }
+}
+
+/**
  * KRender-native `.krui` UiScene document importer.
  *
  * This importer belongs to asset indexing and asset metadata. It recognizes the shared UiScene
@@ -209,17 +242,4 @@ class MaterialImporter : AssetImporter {
         if (normalizedExtension(path) !in supportedExtensions) return false
         return normalizedLower(path).contains("materials/")
     }
-}
-
-/**
- * GLSL shader source files.
- */
-class ShaderImporter : AssetImporter {
-    override val id = "shader"
-    override val displayName = "Shader"
-    override val supportedExtensions = setOf("vert", "frag", "glsl")
-    override val outputType = AssetType.Shader
-    override val outputCategory = AssetCategory.Shader
-
-    override fun canImport(path: String): Boolean = normalizedExtension(path) in supportedExtensions
 }

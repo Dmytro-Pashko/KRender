@@ -9,7 +9,6 @@ data class AssetBrowserState(
     var searchQuery: String = "",
     var selectedCategory: AssetCategory? = null,
     var selectedAssetId: AssetId? = null,
-    var viewMode: AssetBrowserViewMode = AssetBrowserViewMode.List,
     var sortMode: AssetSortMode = AssetSortMode.NameAsc,
     var assets: List<AssetDescriptor> = emptyList(),
     var filteredAssets: List<AssetDescriptor> = emptyList(),
@@ -25,16 +24,9 @@ data class AssetBrowserState(
     var showCreateDialog: Boolean = false,
     var showRenameDialog: Boolean = false,
     var showDeleteDialog: Boolean = false,
-    var createNameBuffer: String = "",
     var renameBuffer: String = "",
-    var createType: AssetType = AssetType.Material,
-    var createCategory: AssetCategory = AssetCategory.Material,
+    var createDraft: CreateAssetDraft = CreateAssetDraft(),
 )
-
-enum class AssetBrowserViewMode {
-    Grid,
-    List,
-}
 
 enum class AssetSortMode {
     NameAsc,
@@ -49,4 +41,3 @@ enum class AssetBrowserMode {
     Embedded,
     Picker,
 }
-

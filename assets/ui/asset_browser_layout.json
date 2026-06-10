@@ -2,31 +2,31 @@
   "panels": {
     "assetBrowserControls": {
       "title": "Asset Browser Controls",
-      "x": 780,
-      "y": 6,
-      "width": 463,
-      "height": 174
+      "x": 2,
+      "y": 4,
+      "width": 1283,
+      "height": 115
     },
     "assetBrowser": {
       "title": "Asset Browser",
-      "x": 4,
-      "y": 6,
-      "width": 772,
-      "height": 571
+      "x": 3,
+      "y": 123,
+      "width": 1281,
+      "height": 663
     },
     "assetDetails": {
       "title": "Asset Details",
-      "x": 779,
-      "y": 184,
-      "width": 462,
-      "height": 395
+      "x": 1289,
+      "y": 5,
+      "width": 505,
+      "height": 1087
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
       "x": 3,
-      "y": 581,
-      "width": 1239,
-      "height": 314
+      "y": 791,
+      "width": 1282,
+      "height": 302
     }
   }
 }

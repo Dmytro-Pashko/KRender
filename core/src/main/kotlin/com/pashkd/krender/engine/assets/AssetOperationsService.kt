@@ -88,7 +88,12 @@ class LocalAssetOperationsService(
     private val onChanged: () -> Unit,
 ) : AssetOperationsService {
     override fun create(request: CreateAssetRequest): AssetOperationResult {
-        val baseName = sanitize(request.name).ifBlank { "new_${request.category.name.lowercase()}" }
+        require(CreatableAssetKind.entries.any { kind ->
+            kind.type == request.type && kind.category == request.category
+        }) {
+            "Unsupported asset creation type=${request.type} category=${request.category}"
+        }
+        val baseName = sanitizedAssetName(request.name, defaultAssetBaseName(request.type, request.category))
         val ext = request.extension.lowercase().trimStart('.')
         val dir = File(registry.baseDir(), request.targetDirectory)
         if (!dir.exists() && !dir.mkdirs()) {
@@ -97,8 +102,9 @@ class LocalAssetOperationsService(
         val target = uniqueFile(dir, baseName, ext)
         return runCatching {
             target.writeBytes(request.initialContent ?: ByteArray(0))
-            val importer = importers.byCategory(request.category).firstOrNull { it.canImport(target.name) }
-                ?: importers.resolve(target.name)
+            val rel = relativePath(target)
+            val importer = importers.byCategory(request.category).firstOrNull { it.canImport(rel) }
+                ?: importers.resolve(rel)
             writeMetadata(
                 file = target,
                 document = AssetMetadataDocument(
@@ -109,7 +115,6 @@ class LocalAssetOperationsService(
                     importerId = importer?.id,
                 ),
             )
-            val rel = relativePath(target)
             logger.info(TAG) { "Created asset '$rel' (${request.category.name})" }
             onChanged()
             AssetOperationResult.Success(rel, "Created '$rel'")
@@ -120,7 +125,7 @@ class LocalAssetOperationsService(
     }
 
     override fun rename(asset: AssetDescriptor, newName: String): AssetOperationResult {
-        val sanitized = sanitize(newName)
+        val sanitized = sanitizeFileName(newName)
         if (sanitized.isBlank()) return failure("Name cannot be blank")
         val source = registry.resolve(asset)
         if (!source.exists()) return failure("Asset file no longer exists at '${asset.path}'")
@@ -150,7 +155,7 @@ class LocalAssetOperationsService(
     override fun duplicate(asset: AssetDescriptor, targetName: String): AssetOperationResult {
         val source = registry.resolve(asset)
         if (!source.exists()) return failure("Asset file no longer exists at '${asset.path}'")
-        val baseName = sanitize(targetName).ifBlank { "${source.nameWithoutExtension}_copy" }
+        val baseName = sanitizeFileName(targetName).ifBlank { "${source.nameWithoutExtension}_copy" }
         val ext = source.extension
         val target = uniqueFile(source.parentFile, baseName, ext)
         return runCatching {
@@ -262,7 +267,7 @@ class LocalAssetOperationsService(
         }
     }
 
-    private fun sanitize(name: String): String =
+    private fun sanitizeFileName(name: String): String =
         name.trim().replace(Regex("[\\\\/:*?\"<>|]"), "_")
 
     private fun failure(message: String): AssetOperationResult.Failure {

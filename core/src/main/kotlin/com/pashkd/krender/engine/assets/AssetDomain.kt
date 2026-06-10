@@ -26,11 +26,8 @@ enum class AssetCategory(
      * drag/drop authoring, or asset-id references.
      */
     UI("UI", 5),
-    Shader("Shader", 6),
-    Scene("Scene", 7),
-    Audio("Audio", 8),
-    Script("Script", 9),
-    Unknown("Unknown", 10),
+    Scene("Scene", 6),
+    Unknown("Unknown", 7),
 }
 
 /**
@@ -52,9 +49,15 @@ enum class AssetType {
      * and asset-id references are intentionally deferred.
      */
     UiScene,
+    /**
+     * LibGDX Scene2D Skin JSON descriptor used by `.krui` UI scenes and future Skin tooling.
+     *
+     * This asset type is metadata-only for now. Asset Browser can index and inspect Skin JSON files,
+     * but Skin editing, preview rendering, and asset-id based texture migration are intentionally out of scope.
+     */
+    Scene2DSkin,
     Scene,
     Material,
-    Shader,
     Unknown,
 }
 

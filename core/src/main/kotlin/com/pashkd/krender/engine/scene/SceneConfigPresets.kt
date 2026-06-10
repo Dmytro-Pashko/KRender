@@ -48,7 +48,7 @@ object SceneConfigPresets {
             scalePolicy = UiScalePolicy.ScaleByHeight,
         ),
         window = RuntimeWindowConfig(
-            resolution = WindowResolution(width = 1250, height = 900),
+            resolution = WindowResolution(width = 1800, height = 1100),
             mode = WindowMode.Windowed,
         ),
     )

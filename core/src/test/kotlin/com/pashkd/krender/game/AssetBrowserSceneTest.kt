@@ -20,7 +20,9 @@ import com.pashkd.krender.engine.api.TaskService
 import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetId
+import com.pashkd.krender.engine.assets.DefaultUiSceneSkinPath
 import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.ui.scene.UiSceneSerializer
 import com.pashkd.krender.engine.scene.DefaultSceneFileService
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
@@ -77,6 +79,23 @@ class AssetBrowserSceneTest {
         assertTrue(tool.canOpen(asset))
         tool.open(asset, context)
         assertEquals("ui/scenes/woolboy_hud.krui", launcher.uiComposerPath)
+    }
+
+    @Test
+    fun `default ui scene content writes provided skin path`() {
+        val content = defaultUiSceneContent("inventory screen", "ui\\skins\\default_ui.json")
+        val document = UiSceneSerializer().decode(content)
+
+        assertEquals("inventory_screen", document.id)
+        assertEquals("ui/skins/default_ui.json", document.skin)
+    }
+
+    @Test
+    fun `default ui scene content keeps craftacular fallback`() {
+        val content = defaultUiSceneContent("hud")
+        val document = UiSceneSerializer().decode(content)
+
+        assertEquals(DefaultUiSceneSkinPath, document.skin)
     }
 }
 

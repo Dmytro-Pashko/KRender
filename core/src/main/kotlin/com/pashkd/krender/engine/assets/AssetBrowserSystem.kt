@@ -23,6 +23,7 @@ class AssetBrowserSystem(
     private var initialScanRequested = false
     private var scanInFlight = false
     private var queuedModelPath: String? = null
+    private var queuedTexturePath: String? = null
 
     override fun update(world: SceneWorld, dt: Float) {
         if (!initialScanRequested) {
@@ -37,6 +38,7 @@ class AssetBrowserSystem(
 
         applyFilteringAndSorting()
         syncSelectedModelInfo()
+        syncSelectedTexturePreview()
         handleActivationRequest()
     }
 
@@ -135,6 +137,20 @@ class AssetBrowserSystem(
             "Loading ${"%.0f".format(assets.progress() * 100f)}%"
         }
         state.selectedModelInfo = if (loaded) assets.modelInfo(modelRef) else null
+    }
+
+    private fun syncSelectedTexturePreview() {
+        val selected = selectedAsset()
+        if (selected == null || selected.type != AssetType.Texture) {
+            queuedTexturePath = null
+            return
+        }
+
+        if (queuedTexturePath != selected.path) {
+            queuedTexturePath = selected.path
+            logger.info(TAG) { "Queueing selected texture '${selected.path}' for browser preview." }
+            assets.queue(AssetRef.texture(selected.path))
+        }
     }
 
     private fun handleActivationRequest() {
