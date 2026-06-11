@@ -117,7 +117,6 @@ class AssetBrowserPanel(
     }
 
     private fun drawCategoryList() {
-        ImGui.text("Categories")
         if (ImGui.selectable("All (${visibleCategoryCount(null)})##${panelId}_cat_all", state.selectedCategory == null)) {
             state.selectedCategory = null
         }
@@ -784,7 +783,7 @@ private fun assetIcon(asset: AssetDescriptor): String =
             AssetCategory.Terrain -> "[Ter]"
             AssetCategory.UI -> "[UI]"
             AssetCategory.Scene -> "[Sc]"
-            AssetCategory.Unknown -> "[?]"
+            AssetCategory.Other -> "[?]"
         }
     }
 
@@ -796,6 +795,7 @@ private val SupportedBrowserCategories = setOf(
     AssetCategory.Terrain,
     AssetCategory.UI,
     AssetCategory.Scene,
+    AssetCategory.Other,
 )
 
 private const val AssetTexturePreviewSize = 250f

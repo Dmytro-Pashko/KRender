@@ -84,7 +84,7 @@ class LocalAssetRegistryService(
                 .filterNot(::isIgnoredFile)
                 .forEach { file ->
                     try {
-                        describe(file)?.let(scanned::add)
+                        scanned += describe(file)
                     } catch (error: Exception) {
                         val rel = relativeAssetPath(file)
                         logger.warn(TAG, error) { "Failed to index asset '$rel': ${error.message}" }
@@ -124,7 +124,7 @@ class LocalAssetRegistryService(
     override fun byCategory(category: AssetCategory): List<AssetDescriptor> =
         descriptors.filter { it.category == category }
 
-    private fun describe(file: File): AssetDescriptor? {
+    private fun describe(file: File): AssetDescriptor {
         val path = relativeAssetPath(file)
         val importer = importers.resolve(path)
         val detection = if (importer != null) {
@@ -132,15 +132,11 @@ class LocalAssetRegistryService(
         } else {
             AssetTypeDetector.detect(path)
         }
-        if (detection.category == AssetCategory.Unknown || detection.type == AssetType.Unknown) {
-            logger.debug(TAG) { "Skipping unsupported asset '$path'" }
-            return null
-        }
         val document = readOrCreateMetadata(file, detection, importer)
         val extension = file.extension.lowercase()
         val displayName = document.displayName.takeIf(String::isNotBlank) ?: file.nameWithoutExtension
         val type = enumValueOrNull<AssetType>(document.type)?.takeUnless { it == AssetType.Unknown } ?: detection.type
-        val category = enumValueOrNull<AssetCategory>(document.category)?.takeUnless { it == AssetCategory.Unknown } ?: detection.category
+        val category = enumValueOrNull<AssetCategory>(document.category)?.takeUnless { it == AssetCategory.Other } ?: detection.category
         val descriptorMetadata = buildMap<String, String> {
             put("displayName", displayName)
             put("sourcePath", path)

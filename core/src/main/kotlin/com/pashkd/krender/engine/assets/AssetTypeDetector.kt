@@ -23,7 +23,7 @@ object AssetTypeDetector {
             extension == "krscene" -> AssetTypeDetection(AssetType.Scene, AssetCategory.Scene)
             lowerPath.startsWith("scenes/") && extension == "json" -> AssetTypeDetection(AssetType.Scene, AssetCategory.Scene)
             lowerPath.startsWith("materials/") && extension == "json" -> AssetTypeDetection(AssetType.Material, AssetCategory.Material)
-            else -> AssetTypeDetection(AssetType.Unknown, AssetCategory.Unknown)
+            else -> AssetTypeDetection(AssetType.Unknown, AssetCategory.Other)
         }
     }
 

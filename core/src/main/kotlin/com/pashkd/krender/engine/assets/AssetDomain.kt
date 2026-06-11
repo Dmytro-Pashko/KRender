@@ -27,7 +27,7 @@ enum class AssetCategory(
      */
     UI("UI", 5),
     Scene("Scene", 6),
-    Unknown("Unknown", 7),
+    Other("Other", 7),
 }
 
 /**
