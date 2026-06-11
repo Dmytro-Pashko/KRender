@@ -37,7 +37,8 @@ class AssetControlsPanel(
         ImGui.sameLine()
         with(dsl) {
             button("Import Asset##${panelId}_import_asset") {
-                state.statusMessage = "Import Asset is not implemented."
+                state.showImportDialog = true
+                state.importPlan = null
             }
         }
         ImGui.sameLine()

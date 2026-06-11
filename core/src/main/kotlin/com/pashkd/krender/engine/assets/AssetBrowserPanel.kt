@@ -1,6 +1,9 @@
 package com.pashkd.krender.engine.assets
 
 import com.pashkd.krender.engine.assets.creation.CreateAssetDialog
+import com.pashkd.krender.engine.assets.importing.AssetImportService
+import com.pashkd.krender.engine.assets.importing.FileDialogService
+import com.pashkd.krender.engine.assets.importing.ImportAssetDialog
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -25,10 +28,13 @@ class AssetBrowserPanel(
     private val eventLogger: ImGuiWindowEventLogger,
     private val panelId: String = AssetBrowserPanelIds.Browser,
     private val operations: AssetBrowserOperationsHandler = AssetBrowserOperationsHandler.NoOp,
+    private val importService: AssetImportService,
+    private val fileDialogService: FileDialogService,
 ) : UiPanel {
     private val searchBuffer = ByteArray(TextInputBufferSize)
     private val renameByteBuffer = ByteArray(TextInputBufferSize)
     private val createDialog = CreateAssetDialog(state, operations, panelId)
+    private val importDialog = ImportAssetDialog(state, importService, fileDialogService, panelId)
     private var searchInputActive = false
     private var renameBufferSynced = false
 
@@ -50,6 +56,7 @@ class AssetBrowserPanel(
 
         if (mode == AssetBrowserMode.Full) {
             createDialog.draw()
+            importDialog.draw()
             drawRenameDialog()
             drawDeleteDialog()
         }

@@ -25,6 +25,10 @@ import com.pashkd.krender.engine.assets.CreateAssetRequest
 import com.pashkd.krender.engine.assets.DefaultUiSceneSkinPath
 import com.pashkd.krender.engine.assets.LocalAssetOperationsService
 import com.pashkd.krender.engine.assets.LocalAssetRegistryService
+import com.pashkd.krender.engine.assets.importing.AwtFileDialogService
+import com.pashkd.krender.engine.assets.importing.AssetImportService
+import com.pashkd.krender.engine.assets.importing.FileDialogService
+import com.pashkd.krender.engine.assets.importing.LocalAssetImportService
 import com.pashkd.krender.engine.assets.normalizedUiSceneSkinPath
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
@@ -49,6 +53,8 @@ class AssetBrowserScene : Scene("asset_browser") {
     private lateinit var importers: AssetImporterRegistry
     private lateinit var tools: AssetToolRegistry
     private lateinit var operations: AssetOperationsService
+    private lateinit var importService: AssetImportService
+    private lateinit var fileDialogService: FileDialogService
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
 
     override val config: SceneConfig = SceneConfigPresets.AssetBrowser
@@ -79,6 +85,13 @@ class AssetBrowserScene : Scene("asset_browser") {
             logger = engine.logger,
             onChanged = { browserState.refreshRequested = true },
         )
+        importService = LocalAssetImportService(
+            registry = registry,
+            importers = importers,
+            logger = engine.logger,
+            onChanged = { browserState.refreshRequested = true },
+        )
+        fileDialogService = AwtFileDialogService()
 
         world.systems.add(
             AssetBrowserSystem(
@@ -116,6 +129,8 @@ class AssetBrowserScene : Scene("asset_browser") {
                     layoutTracker = layoutTracker,
                     eventLogger = panelEventLogger,
                     operations = operationsHandler,
+                    importService = importService,
+                    fileDialogService = fileDialogService,
                 ),
             )
             uiSystem.addPanel(
