@@ -172,28 +172,59 @@ backend.input.endFrame()
 
 ### Asset Browser
 
-Asset Browser provides a file-explorer-like interface for browsing project assets, viewing metadata, and opening assets with registered tools.
+Asset Browser is the main project asset management tool. It scans local asset roots, indexes supported files, creates
+and maintains `.krmeta` sidecars, shows asset metadata, and routes assets to the editor tool that can work with them.
 
-It is the main entry point for working with local project assets. The browser scans configured asset roots, detects supported asset types, creates metadata sidecars when needed, and allows assets to be opened in the appropriate editor or viewer.
-
-Model assets can be opened in Model Viewer or Animation Viewer, terrain assets in Terrain Editor, and scene assets in Scene Editor.
+The tool is intentionally focused on the current production workflow: browse assets, inspect metadata, create core
+document assets, and open files in Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, UI Composer, or the
+runtime player where supported.
 
 Features:
 
-- Scans configured local asset directories for supported asset types.
-- Detects model, texture, material, terrain, shader, scene, and unknown assets.
-- Creates missing `.krmeta` metadata sidecars during registry scans.
-- Uses `.krmeta` files to store asset metadata without modifying original source files.
-- Supports search, category filters, list/grid view modes, and sorting by name, type, modified time, or size.
-- Shows base asset info, texture metadata, terrain metadata, and model metadata when available.
-- Opens assets with registered tools based on asset type.
-- Supports create, rename, duplicate, delete, and reveal-in-files operations.
-- Keeps asset files and metadata sidecars in sync during file operations.
+- Scans configured local asset directories and stores stable asset metadata in `.krmeta` sidecars.
+- Detects model, texture, skybox, material, terrain, scene, UI scene, and Scene2D Skin assets.
+- Groups unsupported files under the `Other` category so they remain visible without being treated as editable engine
+  assets.
+- Supports category filters, search with quick clear, list-only asset browsing, and sorting by name, type, modified
+  time, or size.
+- Shows asset path and file size directly in the asset list.
+- Shows base asset information and focused metadata panels for models, textures, terrains, scenes, UI scenes, and
+  Scene2D Skin JSON descriptors.
+- Renders texture previews in Asset Details through the shared backend texture preview path.
+- Indexes LibGDX Scene2D Skin JSON files under `ui/skins/` and extracts lightweight style metadata without creating a
+  LibGDX `Skin` or requiring an OpenGL context during scanning.
+- Opens assets with registered tools:
+  - models in Model Viewer or Animation Viewer;
+  - terrains in Terrain Editor;
+  - `.krscene` files in Scene Editor or Runtime;
+  - `.krui` files in UI Composer.
+- Provides context menu operations for opening, opening with a specific tool, renaming, duplicating, deleting, and
+  revealing files.
+- Provides a focused Create Asset dialog for `UI Scene`, `Terrain`, and `Scene` assets only.
+- Lets new `.krui` UI scenes select a discovered Scene2D Skin path while keeping the `.krui` schema path-based.
+- Shows a draft preview in the Create Asset dialog with final file path, existence state, and default parameters before
+  creation.
+- Keeps asset files and `.krmeta` sidecars in sync during create, rename, duplicate, and delete operations.
+- Keeps layout controls in the Asset Browser Controls panel, including Create Asset, placeholder Import/Export actions,
+  Persist UI, Reset UI, and Play Woolboy Scene MVP.
 
 Screenshots:
 
-![Asset Browser model list](docs/screenshot/asset-browser_model_list.png)
-![Asset Browser terrains list](docs/screenshot/asset-browser_terrains_list.png)
+Asset Browser Overview
+
+![Asset Browser overview](docs/screenshot/asset_browser/asset_browser_all.png)
+
+Asset Metadata Panels
+
+![Asset metadata panels](docs/screenshot/asset_browser/assets_metadata.png)
+
+Create Asset Dialog
+
+![Create Asset dialog](docs/screenshot/asset_browser/create_asset_dialog.png)
+
+Open With Context Menu
+
+![Open with context menu](docs/screenshot/asset_browser/open_with_context_menu.png)
 
 ### Model Viewer
 
