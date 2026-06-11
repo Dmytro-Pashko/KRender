@@ -19,6 +19,7 @@ import com.pashkd.krender.engine.assets.AssetTool
 import com.pashkd.krender.engine.assets.AssetToolDescriptor
 import com.pashkd.krender.engine.assets.AssetToolRegistry
 import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.assets.canOpenWithTools
 import com.pashkd.krender.engine.assets.CreateAssetDraft
 import com.pashkd.krender.engine.assets.CreateAssetRequest
 import com.pashkd.krender.engine.assets.DefaultUiSceneSkinPath
@@ -141,6 +142,13 @@ class AssetBrowserScene : Scene("asset_browser") {
     }
 
     private fun openAsset(asset: AssetDescriptor) {
+        if (!asset.canOpenWithTools()) {
+            browserState.statusMessage = "No default editor registered for ${asset.category.displayName} assets."
+            engine.logger.info(TAG) {
+                "Asset '${asset.path}' is visible-only or has no editor routing category=${asset.category} type=${asset.type}"
+            }
+            return
+        }
         val tool = tools.defaultToolFor(asset)
         if (tool == null) {
             browserState.statusMessage = "No default editor registered for ${asset.category.displayName} assets."
@@ -206,9 +214,18 @@ private class SceneOperationsHandler(
     }
 
     override fun toolsFor(asset: AssetDescriptor): List<AssetToolDescriptor> =
-        toolRegistry.toolsFor(asset).map { AssetToolDescriptor(it.id, it.displayName) }
+        if (!asset.canOpenWithTools()) {
+            emptyList()
+        } else {
+            toolRegistry.toolsFor(asset).map { AssetToolDescriptor(it.id, it.displayName) }
+        }
 
     override fun openWith(asset: AssetDescriptor, toolId: String) {
+        if (!asset.canOpenWithTools()) {
+            state.statusMessage = "Open With is unavailable for ${asset.category.displayName} assets."
+            logger.info(TAG) { "Open With rejected for visible-only asset '${asset.path}'" }
+            return
+        }
         val tool = toolRegistry.toolsFor(asset).firstOrNull { it.id == toolId }
         if (tool == null) {
             logger.warn(TAG) { "Open with: tool '$toolId' is not registered" }

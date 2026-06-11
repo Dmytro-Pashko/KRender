@@ -125,6 +125,7 @@ class LocalAssetOperationsService(
     }
 
     override fun rename(asset: AssetDescriptor, newName: String): AssetOperationResult {
+        if (!asset.assetCapabilities().canRename) return failure("Rename is unavailable for '${asset.path}'")
         val sanitized = sanitizeFileName(newName)
         if (sanitized.isBlank()) return failure("Name cannot be blank")
         val source = registry.resolve(asset)
@@ -153,6 +154,7 @@ class LocalAssetOperationsService(
     }
 
     override fun duplicate(asset: AssetDescriptor, targetName: String): AssetOperationResult {
+        if (!asset.assetCapabilities().canDuplicate) return failure("Duplicate is unavailable for '${asset.path}'")
         val source = registry.resolve(asset)
         if (!source.exists()) return failure("Asset file no longer exists at '${asset.path}'")
         val baseName = sanitizeFileName(targetName).ifBlank { "${source.nameWithoutExtension}_copy" }
@@ -180,6 +182,7 @@ class LocalAssetOperationsService(
     }
 
     override fun delete(asset: AssetDescriptor, mode: DeleteMode): AssetOperationResult {
+        if (!asset.assetCapabilities().canDelete) return failure("Delete is unavailable for '${asset.path}'")
         val source = registry.resolve(asset)
         if (!source.exists()) return failure("Asset file no longer exists at '${asset.path}'")
         val sourceMeta = metadataFileFor(source)
@@ -207,6 +210,7 @@ class LocalAssetOperationsService(
     }
 
     override fun reveal(asset: AssetDescriptor): AssetOperationResult {
+        if (!asset.assetCapabilities().canReveal) return failure("Reveal is unavailable for '${asset.path}'")
         val file = registry.resolve(asset)
         if (!file.exists()) return failure("Asset file no longer exists at '${asset.path}'")
         return runCatching {

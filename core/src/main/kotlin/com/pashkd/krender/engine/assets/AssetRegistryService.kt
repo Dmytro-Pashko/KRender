@@ -132,7 +132,10 @@ class LocalAssetRegistryService(
         } else {
             AssetTypeDetector.detect(path)
         }
-        val document = readOrCreateMetadata(file, detection, importer)
+        if (!detection.canHaveMetadataSidecar()) {
+            return describeVisibleOnly(file, path, detection)
+        }
+        val document = readOrCreateManagedMetadata(file, detection, importer)
         val extension = file.extension.lowercase()
         val displayName = document.displayName.takeIf(String::isNotBlank) ?: file.nameWithoutExtension
         val type = enumValueOrNull<AssetType>(document.type)?.takeUnless { it == AssetType.Unknown } ?: detection.type
@@ -160,6 +163,28 @@ class LocalAssetRegistryService(
             metadata = descriptorMetadata,
         )
     }
+
+    private fun describeVisibleOnly(
+        file: File,
+        path: String,
+        detection: AssetTypeDetection,
+    ): AssetDescriptor =
+        AssetDescriptor(
+            id = AssetId("visible:${path.lowercase()}"),
+            name = file.nameWithoutExtension,
+            path = path,
+            category = detection.category,
+            type = detection.type,
+            extension = file.extension.lowercase(),
+            sizeBytes = file.length(),
+            modifiedAtMillis = file.lastModified(),
+            tags = emptyList(),
+            metadata = mapOf(
+                "displayName" to file.nameWithoutExtension,
+                "sourcePath" to path,
+                "indexPolicy" to "visibleOnly",
+            ),
+        )
 
     private fun encodeImportSettings(settings: Map<String, Any?>): String {
         if (settings.isEmpty()) return "{}"
@@ -201,7 +226,7 @@ class LocalAssetRegistryService(
         }
     }
 
-    private fun readOrCreateMetadata(
+    private fun readOrCreateManagedMetadata(
         file: File,
         detection: AssetTypeDetection,
         importer: AssetImporter?,
@@ -257,6 +282,12 @@ class LocalAssetRegistryService(
     private fun isIgnoredFile(file: File): Boolean =
         file.name.endsWith(".krmeta", ignoreCase = true) ||
             file.name.startsWith(".") ||
+            file.name.startsWith("~$") ||
+            file.name.endsWith("~") ||
+            file.name.endsWith(".tmp", ignoreCase = true) ||
+            file.name.endsWith(".temp", ignoreCase = true) ||
+            file.name.endsWith(".bak", ignoreCase = true) ||
+            file.name.endsWith(".swp", ignoreCase = true) ||
             file.isHidden
 
     /** Returns the base directory used to resolve relative asset paths. */
@@ -301,3 +332,6 @@ class LocalAssetRegistryService(
 
 private inline fun <reified T : Enum<T>> enumValueOrNull(name: String): T? =
     enumValues<T>().firstOrNull { it.name.equals(name, ignoreCase = true) }
+
+private fun AssetTypeDetection.canHaveMetadataSidecar(): Boolean =
+    category != AssetCategory.Other && type != AssetType.Unknown
