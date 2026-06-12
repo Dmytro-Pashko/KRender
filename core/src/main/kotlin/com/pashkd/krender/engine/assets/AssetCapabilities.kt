@@ -38,6 +38,15 @@ fun AssetDescriptor.assetCapabilities(): AssetCapabilities =
             canDelete = false,
             canPreview = false,
         )
+    } else if (type == AssetType.Scene2DSkin) {
+        AssetCapabilities(
+            canOpenWith = true,
+            canReveal = true,
+            canRename = false,
+            canDuplicate = false,
+            canDelete = true,
+            canPreview = false,
+        )
     } else {
         AssetCapabilities(
             canOpenWith = true,

@@ -200,7 +200,8 @@ private class SceneOperationsHandler(
     private val logger: Logger,
 ) : AssetBrowserOperationsHandler {
     override fun create(draft: CreateAssetDraft) {
-        operations.create(
+        consumeResult(
+            operations.create(
             CreateAssetRequest(
                 name = draft.name,
                 type = draft.kind.type,
@@ -209,23 +210,24 @@ private class SceneOperationsHandler(
                 extension = draft.kind.extension,
                 initialContent = defaultContent(draft),
             ),
+            ),
         )
     }
 
     override fun rename(asset: AssetDescriptor, newName: String) {
-        operations.rename(asset, newName)
+        consumeResult(operations.rename(asset, newName))
     }
 
     override fun duplicate(asset: AssetDescriptor, targetName: String) {
-        operations.duplicate(asset, targetName)
+        consumeResult(operations.duplicate(asset, targetName))
     }
 
     override fun delete(asset: AssetDescriptor) {
-        operations.delete(asset)
+        consumeResult(operations.delete(asset))
     }
 
     override fun reveal(asset: AssetDescriptor) {
-        operations.reveal(asset)
+        consumeResult(operations.reveal(asset))
     }
 
     override fun toolsFor(asset: AssetDescriptor): List<AssetToolDescriptor> =
@@ -279,6 +281,19 @@ private class SceneOperationsHandler(
           "settings": {}
         }
         """.trimIndent() + "\n"
+
+    private fun consumeResult(result: com.pashkd.krender.engine.assets.AssetOperationResult) {
+        when (result) {
+            is com.pashkd.krender.engine.assets.AssetOperationResult.Success -> {
+                state.statusMessage = result.message
+                state.errorMessage = null
+            }
+            is com.pashkd.krender.engine.assets.AssetOperationResult.Failure -> {
+                state.errorMessage = result.message
+                state.statusMessage = result.message
+            }
+        }
+    }
 
     companion object {
         private const val TAG = "AssetBrowserSceneOps"

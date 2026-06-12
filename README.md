@@ -204,9 +204,29 @@ Features:
 - Lets new `.krui` UI scenes select a discovered Scene2D Skin path while keeping the `.krui` schema path-based.
 - Shows a draft preview in the Create Asset dialog with final file path, existence state, and default parameters before
   creation.
-- Keeps asset files and `.krmeta` sidecars in sync during create, rename, duplicate, and delete operations.
-- Keeps layout controls in the Asset Browser Controls panel, including Create Asset, placeholder Import/Export actions,
-  Persist UI, Reset UI, and Play Woolboy Scene MVP.
+- Keeps managed asset files and `.krmeta` sidecars in sync during create, rename, duplicate, and delete operations.
+- Keeps visible-only `Other` files indexed without promoting them into managed assets or creating `.krmeta`.
+- Deletes Scene2D Skin assets as a folder-scoped operation when they live under `ui/skins/<skinFolder>/...`: the skin
+  JSON, its `.krmeta`, and dependency files in that direct skin folder are removed together. Rename and duplicate are
+  currently disabled for Scene2D Skin assets to avoid partial folder operations.
+- Keeps layout controls in the Asset Browser Controls panel, including Create Asset, Import Asset, Export Asset
+  placeholder, Persist UI, Reset UI, and Play Woolboy Scene MVP.
+
+Import workflow:
+
+- Supported imports: textures (`.png`, `.jpg`, `.jpeg`, `.webp`), binary glTF models (`.glb`), and Scene2D Skin JSON
+  files. `.gltf` and `.obj` are detected by the browser, but import is not supported yet.
+- Import destinations: textures go to `textures/`, `.glb` files go to `model/`, and Scene2D Skin JSON files go to
+  `ui/skins/<skinFolder>/`.
+- Scene2D Skin import copies the main JSON into its own skin folder and also copies same-folder dependencies such as
+  `.atlas`, `.png`, `.jpg`, `.jpeg`, `.webp`, `.fnt`, `.ttf`, and `.otf`, plus dependency files referenced from the
+  skin JSON.
+- Collision policies: `Overwrite`, `Rename`, and `Skip`. `Overwrite` asks for confirmation when the main target
+  already exists, `Rename` picks a unique target path, and `Skip` leaves the existing target untouched.
+- Imported managed assets receive `.krmeta` sidecars. Visible-only `Other` files remain visible in Asset Browser but do
+  not receive `.krmeta`.
+- Deleting a Scene2D Skin imported into `ui/skins/<skinFolder>/` removes the entire direct skin folder and all
+  dependencies stored inside it.
 
 Screenshots:
 

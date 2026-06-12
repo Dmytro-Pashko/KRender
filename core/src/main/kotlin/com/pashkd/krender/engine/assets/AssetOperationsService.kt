@@ -4,6 +4,7 @@ import com.pashkd.krender.engine.api.Logger
 import java.awt.Desktop
 import java.io.File
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.util.UUID
 
 /**
@@ -87,6 +88,9 @@ class LocalAssetOperationsService(
     private val logger: Logger,
     private val onChanged: () -> Unit,
 ) : AssetOperationsService {
+    private val basePath = registry.baseDir().toPath().toAbsolutePath().normalize()
+    private val skinsRootPath = basePath.resolve(normalizePath("ui/skins")).normalize()
+
     override fun create(request: CreateAssetRequest): AssetOperationResult {
         require(CreatableAssetKind.entries.any { kind ->
             kind.type == request.type && kind.category == request.category
@@ -95,7 +99,8 @@ class LocalAssetOperationsService(
         }
         val baseName = sanitizedAssetName(request.name, defaultAssetBaseName(request.type, request.category))
         val ext = request.extension.lowercase().trimStart('.')
-        val dir = File(registry.baseDir(), request.targetDirectory)
+        val dir = resolveTargetDirectory(request.targetDirectory)
+            ?: return failure("Target directory is outside asset root: '${request.targetDirectory}'")
         if (!dir.exists() && !dir.mkdirs()) {
             return failure("Failed to create directory '${dir.path}'")
         }
@@ -128,21 +133,23 @@ class LocalAssetOperationsService(
         if (!asset.assetCapabilities().canRename) return failure("Rename is unavailable for '${asset.path}'")
         val sanitized = sanitizeFileName(newName)
         if (sanitized.isBlank()) return failure("Name cannot be blank")
-        val source = registry.resolve(asset)
+        val source = resolveAssetFile(asset)
+            ?: return failure("Asset path is outside asset root: '${asset.path}'")
         if (!source.exists()) return failure("Asset file no longer exists at '${asset.path}'")
 
         val ext = source.extension
         val target = File(source.parentFile, if (ext.isBlank()) sanitized else "$sanitized.$ext")
         if (target.exists()) return failure("'${target.name}' already exists")
+        val targetMeta = metadataFileFor(target)
+        if (targetMeta.exists()) return failure("Metadata for '${target.name}' already exists")
 
         return runCatching {
             val sourceMeta = metadataFileFor(source)
             val document = readDocumentOrSynthetic(sourceMeta, asset)
-            if (!source.renameTo(target)) error("rename '${source.name}' -> '${target.name}' failed")
-            val targetMeta = metadataFileFor(target)
-            if (sourceMeta.exists()) sourceMeta.renameTo(targetMeta)
+            move(source, target)
             // Preserve AssetId; only update displayName.
             writeMetadata(target, document.copy(displayName = sanitized))
+            deleteIfExists(sourceMeta)
             val rel = relativePath(target)
             logger.info(TAG) { "Renamed '${asset.path}' -> '$rel' (id preserved=${document.id})" }
             onChanged()
@@ -155,13 +162,14 @@ class LocalAssetOperationsService(
 
     override fun duplicate(asset: AssetDescriptor, targetName: String): AssetOperationResult {
         if (!asset.assetCapabilities().canDuplicate) return failure("Duplicate is unavailable for '${asset.path}'")
-        val source = registry.resolve(asset)
+        val source = resolveAssetFile(asset)
+            ?: return failure("Asset path is outside asset root: '${asset.path}'")
         if (!source.exists()) return failure("Asset file no longer exists at '${asset.path}'")
         val baseName = sanitizeFileName(targetName).ifBlank { "${source.nameWithoutExtension}_copy" }
         val ext = source.extension
         val target = uniqueFile(source.parentFile, baseName, ext)
         return runCatching {
-            source.copyTo(target, overwrite = false)
+            copy(source, target)
             val sourceMeta = metadataFileFor(source)
             val sourceDocument = readDocumentOrSynthetic(sourceMeta, asset)
             writeMetadata(
@@ -183,24 +191,27 @@ class LocalAssetOperationsService(
 
     override fun delete(asset: AssetDescriptor, mode: DeleteMode): AssetOperationResult {
         if (!asset.assetCapabilities().canDelete) return failure("Delete is unavailable for '${asset.path}'")
-        val source = registry.resolve(asset)
+        val source = resolveAssetFile(asset)
+            ?: return failure("Asset path is outside asset root: '${asset.path}'")
         if (!source.exists()) return failure("Asset file no longer exists at '${asset.path}'")
-        val sourceMeta = metadataFileFor(source)
         return runCatching {
-            when (mode) {
-                DeleteMode.Permanent -> {
-                    if (!source.delete()) error("delete '${source.name}' failed")
-                    if (sourceMeta.exists()) sourceMeta.delete()
+            val deletedPath = when {
+                asset.type == AssetType.Scene2DSkin -> {
+                    val skinFolder = scene2DSkinFolderForDelete(source)
+                    if (skinFolder != null) {
+                        deleteScene2DSkinFolder(skinFolder, mode)
+                        relativePath(skinFolder)
+                    } else {
+                        deleteSingleAsset(source, mode)
+                        asset.path
+                    }
                 }
-                DeleteMode.Trash -> {
-                    val trashDir = File(registry.baseDir(), ".trash")
-                    if (!trashDir.exists()) trashDir.mkdirs()
-                    val trashed = uniqueFile(trashDir, source.nameWithoutExtension, source.extension)
-                    if (!source.renameTo(trashed)) error("move to trash failed")
-                    if (sourceMeta.exists()) sourceMeta.renameTo(File(trashed.parentFile, "${trashed.name}.krmeta"))
+                else -> {
+                    deleteSingleAsset(source, mode)
+                    asset.path
                 }
             }
-            logger.info(TAG) { "Deleted '${asset.path}' mode=$mode" }
+            logger.info(TAG) { "Deleted '$deletedPath' mode=$mode" }
             onChanged()
             AssetOperationResult.Success(asset.path, "Deleted '${asset.name}'")
         }.getOrElse { error ->
@@ -211,7 +222,8 @@ class LocalAssetOperationsService(
 
     override fun reveal(asset: AssetDescriptor): AssetOperationResult {
         if (!asset.assetCapabilities().canReveal) return failure("Reveal is unavailable for '${asset.path}'")
-        val file = registry.resolve(asset)
+        val file = resolveAssetFile(asset)
+            ?: return failure("Asset path is outside asset root: '${asset.path}'")
         if (!file.exists()) return failure("Asset file no longer exists at '${asset.path}'")
         return runCatching {
             val parent = file.parentFile ?: file
@@ -249,12 +261,77 @@ class LocalAssetOperationsService(
         metadataFile.writeText(AssetMetadataCodec.encode(document), StandardCharsets.UTF_8)
     }
 
+    private fun deleteSingleAsset(source: File, mode: DeleteMode) {
+        val sourceMeta = metadataFileFor(source)
+        when (mode) {
+            DeleteMode.Permanent -> {
+                deletePath(source)
+                deleteIfExists(sourceMeta)
+            }
+            DeleteMode.Trash -> {
+                val trashDir = resolveTargetDirectory(".trash")
+                    ?: error("trash directory is outside asset root")
+                if (!trashDir.exists()) trashDir.mkdirs()
+                val trashed = uniqueFile(trashDir, source.nameWithoutExtension, source.extension)
+                move(source, trashed)
+                if (sourceMeta.exists()) {
+                    move(sourceMeta, metadataFileFor(trashed))
+                }
+            }
+        }
+    }
+
+    private fun deleteScene2DSkinFolder(folder: File, mode: DeleteMode) {
+        val folderPath = folder.toPath().toAbsolutePath().normalize()
+        require(folderPath.startsWith(skinsRootPath)) {
+            "Scene2D Skin folder escapes ui/skins: ${folder.path}"
+        }
+        require(folderPath != skinsRootPath) {
+            "Refusing to delete ui/skins root"
+        }
+        require(folderPath.parent == skinsRootPath) {
+            "Scene2D Skin delete is only supported for direct folders under ui/skins"
+        }
+        when (mode) {
+            DeleteMode.Permanent -> deleteTree(folder)
+            DeleteMode.Trash -> {
+                val trashRoot = resolveTargetDirectory(".trash/ui/skins")
+                    ?: error("trash directory is outside asset root")
+                if (!trashRoot.exists()) trashRoot.mkdirs()
+                val trashed = uniqueDirectory(trashRoot, folder.name)
+                move(folder, trashed)
+            }
+        }
+    }
+
+    private fun resolveAssetFile(asset: AssetDescriptor): File? =
+        resolveRelativePath(asset.path)
+
+    private fun resolveTargetDirectory(relativePath: String): File? =
+        resolveRelativePath(relativePath)
+
+    private fun resolveRelativePath(relativePath: String): File? {
+        val target = basePath.resolve(normalizePath(relativePath)).normalize()
+        return if (target.startsWith(basePath)) target.toFile() else null
+    }
+
+    private fun scene2DSkinFolderForDelete(source: File): File? {
+        val sourcePath = source.toPath().toAbsolutePath().normalize()
+        if (!sourcePath.startsWith(skinsRootPath)) return null
+        val parent = sourcePath.parent ?: return null
+        if (parent == skinsRootPath) return null
+        require(parent.parent == skinsRootPath) {
+            "Scene2D Skin delete is only supported for direct folders under ui/skins"
+        }
+        return parent.toFile()
+    }
+
     private fun metadataFileFor(file: File): File = File(file.parentFile, "${file.name}.krmeta")
 
     private fun relativePath(file: File): String {
-        val base = registry.baseDir().toPath().toAbsolutePath().normalize()
         val target = file.toPath().toAbsolutePath().normalize()
-        return normalizePath(base.relativize(target).toString())
+        require(target.startsWith(basePath)) { "Target path escapes asset root: ${file.path}" }
+        return normalizePath(basePath.relativize(target).toString())
     }
 
     private fun uniqueFile(directory: File, baseName: String, extension: String): File {
@@ -262,12 +339,52 @@ class LocalAssetOperationsService(
         val makeFile: (String) -> File = { name ->
             if (ext.isBlank()) File(directory, name) else File(directory, "$name.$ext")
         }
-        if (!makeFile(baseName).exists()) return makeFile(baseName)
+        if (isAvailable(makeFile(baseName))) return makeFile(baseName)
         var counter = 2
         while (true) {
             val candidate = makeFile("${baseName}_$counter")
+            if (isAvailable(candidate)) return candidate
+            counter += 1
+        }
+    }
+
+    private fun uniqueDirectory(parent: File, baseName: String): File {
+        val initial = File(parent, baseName)
+        if (!initial.exists()) return initial
+        var counter = 2
+        while (true) {
+            val candidate = File(parent, "${baseName}_$counter")
             if (!candidate.exists()) return candidate
             counter += 1
+        }
+    }
+
+    private fun isAvailable(file: File): Boolean =
+        !file.exists() && !metadataFileFor(file).exists()
+
+    private fun move(source: File, target: File) {
+        target.parentFile?.mkdirs()
+        Files.move(source.toPath(), target.toPath())
+    }
+
+    private fun copy(source: File, target: File) {
+        target.parentFile?.mkdirs()
+        Files.copy(source.toPath(), target.toPath())
+    }
+
+    private fun deletePath(file: File) {
+        if (!Files.deleteIfExists(file.toPath())) {
+            error("delete '${file.name}' failed")
+        }
+    }
+
+    private fun deleteIfExists(file: File) {
+        Files.deleteIfExists(file.toPath())
+    }
+
+    private fun deleteTree(root: File) {
+        root.walkBottomUp().forEach { entry ->
+            deletePath(entry)
         }
     }
 

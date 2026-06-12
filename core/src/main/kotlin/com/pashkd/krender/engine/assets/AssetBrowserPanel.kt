@@ -269,7 +269,15 @@ class AssetBrowserPanel(
         }
         ImGui.openPopup("Delete Asset##${panelId}_delete")
         if (!ImGui.beginPopupModal("Delete Asset##${panelId}_delete")) return
-        ImGui.textUnformatted("Permanently delete '${asset.name}'?")
+        val skinFolder = scene2dSkinFolderPath(asset)
+        if (skinFolder != null) {
+            ImGui.textWrapped(
+                "Delete Scene2D Skin '${asset.name}'? This will permanently delete the entire skin folder and all dependencies inside it.",
+            )
+            assetBrowserTextLine("Folder: $skinFolder")
+        } else {
+            ImGui.textUnformatted("Permanently delete '${asset.name}'?")
+        }
         assetBrowserTextLine("Path: ${asset.path}")
         ImGui.separator()
         with(dsl) {
@@ -297,6 +305,15 @@ class AssetBrowserPanel(
             AssetSortMode.ModifiedDesc -> "Modified"
             AssetSortMode.SizeDesc -> "Size"
         }
+
+    private fun scene2dSkinFolderPath(asset: AssetDescriptor): String? {
+        if (asset.type != AssetType.Scene2DSkin) return null
+        val normalized = normalizePath(asset.path)
+        if (!normalized.startsWith("ui/skins/")) return null
+        val suffix = normalized.removePrefix("ui/skins/")
+        val firstSegment = suffix.substringBefore('/', "")
+        return if (firstSegment.isBlank() || !suffix.contains('/')) null else "ui/skins/$firstSegment"
+    }
 
     companion object {
         private const val TextInputBufferSize = 256

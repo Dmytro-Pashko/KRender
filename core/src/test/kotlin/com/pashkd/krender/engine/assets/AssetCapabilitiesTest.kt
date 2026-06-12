@@ -57,6 +57,20 @@ class AssetCapabilitiesTest {
     }
 
     @Test
+    fun `scene2d skin delete stays enabled while rename and duplicate remain disabled`() {
+        val asset = descriptor(category = AssetCategory.UI, type = AssetType.Scene2DSkin)
+        val capabilities = asset.assetCapabilities()
+
+        assertTrue(asset.isManagedAsset())
+        assertTrue(capabilities.canOpenWith)
+        assertTrue(capabilities.canReveal)
+        assertFalse(capabilities.canRename)
+        assertFalse(capabilities.canDuplicate)
+        assertTrue(capabilities.canDelete)
+        assertFalse(capabilities.canPreview)
+    }
+
+    @Test
     fun `texture assets are previewable managed assets`() {
         val asset = descriptor(category = AssetCategory.Texture, type = AssetType.Texture)
         val capabilities = asset.assetCapabilities()
