@@ -11,9 +11,6 @@ import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiComposerSkinMetadataReader
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiScenePreview
-import com.pashkd.krender.engine.assets.AssetImporterRegistry
-import com.pashkd.krender.engine.assets.AssetRegistryService
-import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.uicomposer.UiComposerDiagnosticsPanel
@@ -69,15 +66,6 @@ class UiComposerScene(
     private lateinit var preview: GdxUiScenePreview
     private lateinit var skinMetadataReader: GdxUiComposerSkinMetadataReader
 
-    /**
-     * Local Asset Registry snapshot used only for the Image texture picker.
-     *
-     * This is intentionally local because [EngineContext] currently exposes the runtime
-     * [AssetService], not a shared [AssetRegistryService] suitable for editor picker scans. It
-     * should be replaced with the shared engine asset registry once Asset Browser and Composer use
-     * the same registry service.
-     */
-    private lateinit var textureRegistry: LocalAssetRegistryService
     private lateinit var textureOptionsProvider: UiComposerTextureOptionsProvider
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
     private lateinit var operations: UiComposerOperations
@@ -91,11 +79,7 @@ class UiComposerScene(
         loader = UiComposerDocumentLoader(engine.sceneFiles::readText)
         preview = GdxUiScenePreview(engine.logger)
         skinMetadataReader = GdxUiComposerSkinMetadataReader(engine.logger)
-        textureRegistry = LocalAssetRegistryService(
-            logger = engine.logger,
-            importers = AssetImporterRegistry.withDefaults(engine.logger),
-        )
-        textureOptionsProvider = UiComposerTextureOptionsProvider(textureRegistry)
+        textureOptionsProvider = UiComposerTextureOptionsProvider(engine.assetRegistry)
         val layoutConfig = ImGuiLayoutConfigLoader(
             assetPath = UiComposerUiLayoutDefaults.assetPath,
             fallback = UiComposerUiLayoutDefaults.config,
@@ -254,14 +238,14 @@ class UiComposerScene(
     private fun refreshTextureOptions(reason: String) {
         composerState.textureOptionsReloadRequested = false
         try {
-            val snapshot = textureRegistry.scanSnapshot()
-            textureRegistry.applySnapshot(snapshot)
+            val snapshot = engine.assetRegistry.scanSnapshot()
+            engine.assetRegistry.applySnapshot(snapshot)
             composerState.textureOptions = textureOptionsProvider.listTextureOptions()
             val queuedTexturePreviewCount = composerState.textureOptions.size
             composerState.textureOptions.forEach { option ->
                 engine.assets.queue(AssetRef.texture(option.path))
             }
-            composerState.textureAssetTypesByPath = textureRegistry.assets.associate { asset -> asset.path to asset.type }
+            composerState.textureAssetTypesByPath = engine.assetRegistry.assets.associate { asset -> asset.path to asset.type }
             composerState.document?.let { document ->
                 refreshUiComposerValidationBuckets(composerState, document)
             }

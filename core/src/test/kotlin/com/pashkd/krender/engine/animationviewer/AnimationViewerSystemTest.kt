@@ -25,6 +25,8 @@ import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.SceneManager
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.TaskService
+import com.pashkd.krender.engine.assets.AssetRegistryService
+import com.pashkd.krender.test.NoOpAssetRegistryService
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.LightComponent
@@ -691,6 +693,7 @@ class AnimationViewerSystemTest {
         override val assets: AssetService = FakeAssetService(),
     ) : EngineContext {
         override val scenes: SceneManager = SceneManager()
+        override val assetRegistry: AssetRegistryService = NoOpAssetRegistryService()
         override val sceneFiles: SceneFileService = object : SceneFileService {
             override fun writeText(path: String, text: String) = Unit
             override fun readText(path: String): String = error("unused")

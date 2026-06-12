@@ -101,12 +101,13 @@ context instead of directly constructing backend services.
 
 ## Scene Lifecycle
 
-The base `Scene` has lifecycle hooks for loading, asset scheduling, showing, updating, rendering, resizing, hiding, and
+The base `Scene` has lifecycle hooks for asset scheduling, showing, updating, rendering, resizing, hiding, and
 disposal.
 The `SceneManager` defers scene transitions until the end of the current frame to avoid mid-frame state changes.
+Effective activation is `scheduleAssets` then `show`; assets keep loading asynchronously afterwards, so scenes must
+tolerate assets that are not ready yet.
 
 ```kotlin
-open suspend fun load(context: SceneLoadContext)
 open fun scheduleAssets(assets: AssetService)
 open fun show()
 open fun fixedUpdate(dt: Float)

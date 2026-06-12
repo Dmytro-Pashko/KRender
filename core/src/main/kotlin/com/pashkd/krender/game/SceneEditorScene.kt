@@ -2,8 +2,6 @@ package com.pashkd.krender.game
 
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.assets.AssetImporterRegistry
-import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
@@ -76,7 +74,7 @@ class SceneEditorScene(
         document = SceneEditorDocument(world = SceneWorld())
         operations = SceneEditorOperations(document, editorState, engine, layoutTracker)
         assetBrowser = SceneAssetBrowserModel(
-            registry = LocalAssetRegistryService(engine.logger, AssetImporterRegistry.withDefaults(engine.logger)),
+            registry = engine.assetRegistry,
             tasks = engine.tasks,
             logger = engine.logger,
             state = assetPanelState,

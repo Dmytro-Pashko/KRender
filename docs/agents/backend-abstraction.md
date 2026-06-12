@@ -12,11 +12,17 @@
 - **Backend** (`engine.backend.gdx` only) implements those interfaces using libGDX/OpenGL/gdx-gltf.
 - `EngineBackend` (`api/EngineRuntime.kt`) is the platform contract; `LibGdxBackend`
   (`backend/gdx/LibGdxBackend.kt`) is the desktop/Android implementation; `GdxEngineApplication`
-  is the libGDX `ApplicationAdapter` bootstrap.
+  (`backend/gdx/GdxEngineApplication.kt`) is the libGDX `ApplicationAdapter` bootstrap.
+- The backend is split by responsibility into sibling files in `backend/gdx/`:
+  `LibGdxBackend.kt` (wiring only), `GdxEngineApplication.kt`, `GdxWindowService.kt`,
+  `GdxInputService.kt`, `GdxAssetService.kt`, `GdxTaskService.kt`, and `GdxRenderer3D.kt`
+  (renderer + sub-renderers). They all share the `com.pashkd.krender.engine.backend.gdx` package.
+- A handful of pre-existing leaks (`Gdx`/`Pixmap`/JSON utils in `ui.editor` and `terrain`) are
+  allow-listed in `BackendBoundaryTest`; do not add new ones.
 
 ## EngineBackend members
 
-`input`, `ui`, `runtimeUi`, `assets`, `sceneFiles`, `runtimeLauncher`, `editorToolLauncher`,
+`input`, `ui`, `runtimeUi`, `assets`, `assetRegistry`, `sceneFiles`, `runtimeLauncher`, `editorToolLauncher`,
 `logger`, `logs`, `runtimeStats`, `profiler`, `tasks`, `terrainTextureSamplerFactory` (nullable),
 `window`, `renderer`, and `requestExit()`. `EngineRuntime` exposes these through `EngineContext`
 (adding its own `scenes`, `events`, `runtimeUi` wrapper, `viewport`).
@@ -29,6 +35,7 @@
 | `ui` | `GdxImGuiService` on desktop, `NoOpUiService` on Android |
 | `runtimeUi` | `GdxRuntimeUiBackend` (+ `WoolboyRuntimeUiFactory`) |
 | `assets` | `GdxAssetService` (libGDX `AssetManager`) |
+| `assetRegistry` | `LocalAssetRegistryService` (shared project asset registry) |
 | `sceneFiles` | `GdxSceneFileService` |
 | `tasks` | `GdxTaskService` (coroutines) |
 | `window` | `GdxWindowService` |
@@ -70,5 +77,6 @@ Desktop tools and the runtime player run as **separate JVM processes**, not in-p
 - New platform capability → add a core interface first, then a backend implementation.
 - Editor-only GL work (e.g. terrain `Pixmap` preview baking) stays in editor/backend code and must
   not be required by the runtime path.
-- Recommended guard: a CI grep that fails on `import com.badlogic.gdx` (or `net.mgsx.gltf`) outside
-  `engine/backend/gdx/`.
+- Enforced guard: `BackendBoundaryTest` (`core` tests) fails the build on any new
+  `import com.badlogic.gdx` outside `engine/backend/gdx/` (pre-existing leaks are allow-listed).
+  Extend it to `net.mgsx.gltf` if that boundary needs the same protection.

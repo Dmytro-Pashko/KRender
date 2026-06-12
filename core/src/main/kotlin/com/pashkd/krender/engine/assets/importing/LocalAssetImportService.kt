@@ -6,7 +6,7 @@ import com.pashkd.krender.engine.assets.AssetImporterRegistry
 import com.pashkd.krender.engine.assets.AssetMetadataCodec
 import com.pashkd.krender.engine.assets.AssetMetadataDocument
 import com.pashkd.krender.engine.assets.AssetType
-import com.pashkd.krender.engine.assets.LocalAssetRegistryService
+import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.Scene2DSkinAssetMetadataReader
 import com.pashkd.krender.engine.assets.normalizePath
 import java.io.File
@@ -21,7 +21,7 @@ import java.util.UUID
  * All import file IO lives here so editor panels only collect input and invoke plans.
  */
 class LocalAssetImportService(
-    private val registry: LocalAssetRegistryService,
+    private val registry: AssetRegistryService,
     private val importers: AssetImporterRegistry,
     private val logger: Logger,
     private val onChanged: () -> Unit = {},

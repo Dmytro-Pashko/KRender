@@ -42,6 +42,9 @@ interface AssetRegistryService {
     fun findById(id: AssetId): AssetDescriptor?
     fun findByPath(path: String): AssetDescriptor?
     fun byCategory(category: AssetCategory): List<AssetDescriptor>
+
+    /** Returns the base directory used to resolve relative asset paths. */
+    fun baseDir(): File
 }
 
 /**
@@ -291,7 +294,7 @@ class LocalAssetRegistryService(
             file.isHidden
 
     /** Returns the base directory used to resolve relative asset paths. */
-    fun baseDir(): File = baseDirectory
+    override fun baseDir(): File = baseDirectory
 
     /** Resolves a relative descriptor path to a concrete [File]. */
     fun resolve(descriptor: AssetDescriptor): File = File(baseDirectory, descriptor.path)

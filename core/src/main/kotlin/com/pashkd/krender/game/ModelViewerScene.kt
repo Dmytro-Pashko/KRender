@@ -71,12 +71,12 @@ class ModelViewerScene(
      * Logs and schedules the single model asset required by this viewer.
      */
     override fun scheduleAssets(assets: AssetService) {
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "ModelViewer scheduleAssets start model='${model.path}' primitive=${model.isPrimitive} requiredPacks=${requiredAssets.size}"
         }
         try {
             super.scheduleAssets(assets)
-            engine.logger.info(TAG) { "ModelViewer scheduleAssets complete queued='${model.path}'" }
+            engine.logger.debug(TAG) { "ModelViewer scheduleAssets complete queued='${model.path}'" }
         } catch (error: Exception) {
             engine.logger.error(TAG, error) {
                 "ModelViewer scheduleAssets failed model='${model.path}': ${error.message}"
@@ -92,7 +92,7 @@ class ModelViewerScene(
         engine.logger.info(TAG) { "ModelViewer show start model='${model.path}' scale=${"%.3f".format(modelScale)}" }
         try {
             showInternal()
-            engine.logger.info(TAG) {
+            engine.logger.debug(TAG) {
                 "ModelViewer show complete model='${model.path}' entities=${world.all().size} modelEntityId=${viewerState.modelEntityId}"
             }
         } catch (error: Exception) {
@@ -111,7 +111,7 @@ class ModelViewerScene(
             assetPath = ModelViewerUiLayoutDefaults.assetPath,
             fallback = ModelViewerUiLayoutDefaults.config,
         ).load(engine.logger)
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "ModelViewer UI layout loaded panels=${layoutConfig.panels.keys.joinToString()}"
         }
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "ModelViewerUi")
@@ -121,7 +121,7 @@ class ModelViewerScene(
             model = model,
             modelScale = modelScale,
         )
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "ModelViewer state created model='${viewerState.modelPath}' displayMode=${viewerState.displayMode} " +
                 "debugMode=${viewerState.debugMode} grid=${viewerState.showGrid} axes=${viewerState.showAxes} " +
                 "bounds=${viewerState.showBoundingBox}"
@@ -157,7 +157,7 @@ class ModelViewerScene(
     override fun update(dt: Float) {
         updateFrameIndex += 1
         if (updateFrameIndex == 1L) {
-            engine.logger.info(TAG) {
+            engine.logger.debug(TAG) {
                 "ModelViewer scene first update dt=${"%.4f".format(dt)} entities=${world.all().size} systemsInitialized=true"
             }
         }
@@ -178,7 +178,7 @@ class ModelViewerScene(
     override fun render(alpha: Float) {
         renderFrameIndex += 1
         if (renderFrameIndex == 1L) {
-            engine.logger.info(TAG) {
+            engine.logger.debug(TAG) {
                 "ModelViewer scene first render alpha=${"%.4f".format(alpha)} entities=${world.all().size}"
             }
         }
@@ -201,7 +201,7 @@ class ModelViewerScene(
             "ModelViewer dispose model='${model.path}' entitiesBeforeFlush=${world.all().size}"
         }
         super.dispose()
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "ModelViewer dispose complete model='${model.path}' entitiesAfterFlush=${world.all().size}"
         }
     }
@@ -219,7 +219,7 @@ class ModelViewerScene(
                 material = Material(baseColor = Color.white()),
             ),
         )
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "ModelViewer model entity created id=${modelEntity.id} model='${model.path}' scale=${"%.3f".format(modelScale)}"
         }
     }
@@ -247,7 +247,7 @@ class ModelViewerScene(
                 far = 250f,
             ),
         )
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "ModelViewer camera created id=${camera.id} position=${formatVec3(camera.transform.position)} " +
                 "euler=${formatVec3(camera.transform.eulerDegrees)}"
         }
@@ -265,7 +265,7 @@ class ModelViewerScene(
                 intensity = 0.8f,
             ),
         )
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "ModelViewer ambient light created id=${ambient.id} color=0.55,0.58,0.64 intensity=0.80"
         }
     }
@@ -351,12 +351,12 @@ class ModelViewerScene(
                     initialAutoScrollToLatest = true,
                 ),
             )
-            engine.logger.info(TAG) { "ModelViewer UI panels registered count=8" }
+            engine.logger.debug(TAG) { "ModelViewer UI panels registered count=8" }
         }
 
     private fun addSystem(name: String, system: com.pashkd.krender.engine.api.System) {
         world.systems.add(system)
-        engine.logger.info(TAG) { "ModelViewer system added name='$name'" }
+        engine.logger.debug(TAG) { "ModelViewer system added name='$name'" }
     }
 
     private fun addPanel(uiSystem: UiSystem, name: String, panel: UiPanel) {

@@ -23,8 +23,8 @@ import com.pashkd.krender.engine.assets.canOpenWithTools
 import com.pashkd.krender.engine.assets.CreateAssetDraft
 import com.pashkd.krender.engine.assets.CreateAssetRequest
 import com.pashkd.krender.engine.assets.DefaultUiSceneSkinPath
+import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.LocalAssetOperationsService
-import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.assets.importing.AwtFileDialogService
 import com.pashkd.krender.engine.assets.importing.AssetImportService
 import com.pashkd.krender.engine.assets.importing.FileDialogService
@@ -48,7 +48,7 @@ import com.pashkd.krender.engine.ui.editor.UiSystem
  * Activation routing goes through [AssetToolRegistry] — no `when(asset.category)` here.
  */
 class AssetBrowserScene : Scene("asset_browser") {
-    private lateinit var registry: LocalAssetRegistryService
+    private lateinit var registry: AssetRegistryService
     private lateinit var browserState: AssetBrowserState
     private lateinit var importers: AssetImporterRegistry
     private lateinit var tools: AssetToolRegistry
@@ -69,7 +69,7 @@ class AssetBrowserScene : Scene("asset_browser") {
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "AssetBrowserUi")
 
         importers = AssetImporterRegistry.withDefaults(engine.logger)
-        registry = LocalAssetRegistryService(engine.logger, importers)
+        registry = engine.assetRegistry
         browserState = AssetBrowserState()
         tools = AssetToolRegistry(engine.logger).apply {
             register(ModelViewerAssetTool())

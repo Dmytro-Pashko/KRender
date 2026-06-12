@@ -604,4 +604,6 @@ private class FakeAssetRegistry(
 
     override fun byCategory(category: AssetCategory): List<AssetDescriptor> =
         assets.filter { asset -> asset.category == category }
+
+    override fun baseDir(): java.io.File = java.io.File(".")
 }

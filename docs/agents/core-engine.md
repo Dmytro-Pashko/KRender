@@ -8,7 +8,7 @@
 | File | Contents |
 |---|---|
 | `EngineRuntime.kt` | `EngineConfig`, `EngineContext`, `EngineBackend`, `GameLoop`, `EngineRuntime` (`typealias Engine`). |
-| `Scene.kt` | `SceneState`, `SceneLoadContext`, `Scene`, `SceneOp`, `SceneManager`. |
+| `Scene.kt` | `SceneState`, `Scene`, `SceneOp`, `SceneManager`. |
 | `Ecs.kt` | `Component` + built-ins, `Entity`, `System`, `SystemPipeline`, `WorldCommand`, `CommandBuffer`, `SceneWorld`. |
 | `Debug.kt` | Logging + diagnostics (see `logging.md`). |
 | `Events.kt`, `Input.kt`, `Tasks.kt`, `Render.kt`, `Assets.kt`, `Math.kt` | Supporting subsystems. |
@@ -52,8 +52,7 @@ Delta is clamped to `config.maxFrameDeltaSeconds` (default `0.25`); fixed step d
 
 ## Scene Lifecycle
 
-States (`SceneState`): `New`, `Loading`, `Preparing`, `Ready`, `Active`, `Paused`, `Disposing`,
-`Disposed`.
+States (`SceneState`): `New`, `Loading`, `Ready`, `Active`, `Paused`, `Disposing`, `Disposed`.
 
 `SceneManager.activateScene`:
 ```
@@ -61,9 +60,9 @@ attach(context) → setState(Loading) → scheduleAssets(assets) → setState(Re
 → stack.push → applySceneConfig(window+viewport) → show() → setState(Active)
 ```
 
-> **Dead paths (verified):** `Scene.load(context)` is **never called**, and `SceneState.Preparing`
-> is **never assigned**. Do not implement scene logic in `load()` expecting it to run; put setup in
-> `show()` and tolerate assets that are still loading.
+> **Effective lifecycle:** activation is `scheduleAssets` → `show`. There is no `Scene.load()` hook;
+> put setup in `show()`. Asset loading is advanced asynchronously by the game loop, so assets may
+> still be loading after `show()` returns — scenes must tolerate "not loaded yet".
 
 Transitions (`SceneOp`) are queued (`replace`/`push`/`pop`) and applied only in
 `applyPendingTransitions` — never mid-update/render. `push` pauses the previous top; `pop`

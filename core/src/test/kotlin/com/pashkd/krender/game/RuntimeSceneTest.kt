@@ -1,6 +1,7 @@
 package com.pashkd.krender.game
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.scene.*
 import com.pashkd.krender.engine.terrain.TerrainData
@@ -12,6 +13,7 @@ import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
+import com.pashkd.krender.test.NoOpAssetRegistryService
 import com.pashkd.krender.test.newTestRuntimeUiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -200,6 +202,7 @@ private class TestEngineContext(
 ) : EngineContext {
     override val scenes: SceneManager = SceneManager()
     override val assets: AssetService = assets
+    override val assetRegistry: AssetRegistryService = NoOpAssetRegistryService()
     override val sceneFiles: SceneFileService = TestSceneFileService(files)
     override val runtimeLauncher: RuntimeWindowLauncher = UnsupportedRuntimeWindowLauncher
     override val editorToolLauncher: EditorToolLauncher = UnsupportedEditorToolLauncher

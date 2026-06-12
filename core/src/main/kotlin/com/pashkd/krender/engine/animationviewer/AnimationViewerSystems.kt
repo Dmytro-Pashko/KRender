@@ -39,7 +39,7 @@ class AnimationViewerSystem(
     private var missingModelEntityLogged = false
 
     override fun onAdded(world: SceneWorld) {
-        logger.info(TAG) {
+        logger.debug(TAG) {
             "AnimationViewerSystem added model='${state.model.path}' modelEntityId=${state.modelEntityId} entities=${world.all().size}"
         }
     }
@@ -59,7 +59,7 @@ class AnimationViewerSystem(
 
     private fun updateInternal(world: SceneWorld, dt: Float) {
         if (frameIndex == 1L) {
-            logger.info(TAG) {
+            logger.debug(TAG) {
                 "AnimationViewer first update dt=${"%.4f".format(dt)} model='${state.model.path}' entities=${world.all().size}"
             }
         }

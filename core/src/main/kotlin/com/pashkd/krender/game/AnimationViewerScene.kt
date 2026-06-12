@@ -64,12 +64,12 @@ class AnimationViewerScene(
     private var renderFrameIndex = 0L
 
     override fun scheduleAssets(assets: AssetService) {
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "AnimationViewer scheduleAssets start model='${model.path}' primitive=${model.isPrimitive} requiredPacks=${requiredAssets.size}"
         }
         try {
             super.scheduleAssets(assets)
-            engine.logger.info(TAG) { "AnimationViewer scheduleAssets complete queued='${model.path}'" }
+            engine.logger.debug(TAG) { "AnimationViewer scheduleAssets complete queued='${model.path}'" }
         } catch (error: Exception) {
             engine.logger.error(TAG, error) {
                 "AnimationViewer scheduleAssets failed model='${model.path}': ${error.message}"
@@ -82,7 +82,7 @@ class AnimationViewerScene(
         engine.logger.info(TAG) { "AnimationViewer show start model='${model.path}' scale=${"%.3f".format(modelScale)}" }
         try {
             showInternal()
-            engine.logger.info(TAG) {
+            engine.logger.debug(TAG) {
                 "AnimationViewer show complete model='${model.path}' entities=${world.all().size} modelEntityId=${viewerState.modelEntityId}"
             }
         } catch (error: Exception) {
@@ -132,7 +132,7 @@ class AnimationViewerScene(
     override fun update(dt: Float) {
         updateFrameIndex += 1
         if (updateFrameIndex == 1L) {
-            engine.logger.info(TAG) {
+            engine.logger.debug(TAG) {
                 "AnimationViewer scene first update dt=${"%.4f".format(dt)} entities=${world.all().size} systemsInitialized=true"
             }
         }
@@ -149,7 +149,7 @@ class AnimationViewerScene(
     override fun render(alpha: Float) {
         renderFrameIndex += 1
         if (renderFrameIndex == 1L) {
-            engine.logger.info(TAG) {
+            engine.logger.debug(TAG) {
                 "AnimationViewer scene first render alpha=${"%.4f".format(alpha)} entities=${world.all().size}"
             }
         }
@@ -168,7 +168,7 @@ class AnimationViewerScene(
             "AnimationViewer dispose model='${model.path}' entitiesBeforeFlush=${world.all().size}"
         }
         super.dispose()
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "AnimationViewer dispose complete model='${model.path}' entitiesAfterFlush=${world.all().size}"
         }
     }
@@ -183,7 +183,7 @@ class AnimationViewerScene(
                 material = Material(baseColor = Color.white()),
             ),
         )
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "AnimationViewer model entity created id=${modelEntity.id} model='${model.path}' scale=${"%.3f".format(modelScale)}"
         }
     }
@@ -208,7 +208,7 @@ class AnimationViewerScene(
                 far = 250f,
             ),
         )
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "AnimationViewer camera created id=${camera.id} position=${formatVec3(camera.transform.position)} euler=${formatVec3(camera.transform.eulerDegrees)}"
         }
     }
@@ -223,7 +223,7 @@ class AnimationViewerScene(
                 intensity = viewerState.ambientLightIntensity,
             ),
         )
-        engine.logger.info(TAG) {
+        engine.logger.debug(TAG) {
             "AnimationViewer ambient light created id=${ambient.id} color=0.55,0.58,0.64 intensity=${"%.2f".format(viewerState.ambientLightIntensity)}"
         }
     }
@@ -283,12 +283,12 @@ class AnimationViewerScene(
                     initialAutoScrollToLatest = true,
                 ),
             )
-            engine.logger.info(TAG) { "AnimationViewer UI panels registered count=7" }
+            engine.logger.debug(TAG) { "AnimationViewer UI panels registered count=7" }
         }
 
     private fun addSystem(name: String, system: com.pashkd.krender.engine.api.System) {
         world.systems.add(system)
-        engine.logger.info(TAG) { "AnimationViewer system added name='$name'" }
+        engine.logger.debug(TAG) { "AnimationViewer system added name='$name'" }
     }
 
     private fun addPanel(uiSystem: UiSystem, name: String, panel: UiPanel) {

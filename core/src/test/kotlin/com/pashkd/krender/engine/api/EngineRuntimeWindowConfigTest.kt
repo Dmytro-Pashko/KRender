@@ -1,5 +1,8 @@
 package com.pashkd.krender.engine.api
 
+import com.pashkd.krender.engine.assets.AssetImporterRegistry
+import com.pashkd.krender.engine.assets.AssetRegistryService
+import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.SceneConfig
@@ -107,6 +110,8 @@ private class FakeEngineBackend(
         override fun <T : Any> get(asset: AssetRef<T>): T = error("unused")
         override fun unload(asset: AssetRef<*>) = Unit
     }
+    override val assetRegistry: AssetRegistryService =
+        LocalAssetRegistryService(EngineLogService(), AssetImporterRegistry.withDefaults(EngineLogService()))
     override val sceneFiles: SceneFileService = object : SceneFileService {
         override fun writeText(path: String, text: String) = Unit
         override fun readText(path: String): String = error("unused")

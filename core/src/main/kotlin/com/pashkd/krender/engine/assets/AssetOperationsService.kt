@@ -83,7 +83,7 @@ interface AssetOperationsService {
  * Local filesystem [AssetOperationsService]. Resolves paths through [LocalAssetRegistryService].
  */
 class LocalAssetOperationsService(
-    private val registry: LocalAssetRegistryService,
+    private val registry: AssetRegistryService,
     private val importers: AssetImporterRegistry,
     private val logger: Logger,
     private val onChanged: () -> Unit,

@@ -9,11 +9,9 @@ import java.util.ArrayDeque
 enum class SceneState {
     /** Scene object exists but has not been attached yet. */
     New,
-    /** Scene is preparing to load resources. */
+    /** Scene has been attached and is queuing its required assets. */
     Loading,
-    /** Scene is performing non-render-thread preparation. */
-    Preparing,
-    /** Scene is ready to be shown. */
+    /** Scene has scheduled its assets and is ready to be shown. */
     Ready,
     /** Scene is currently active on the top of the stack. */
     Active,
@@ -24,20 +22,6 @@ enum class SceneState {
     /** Scene has finished disposal. */
     Disposed,
 }
-
-/**
- * Services exposed to a scene during asynchronous load preparation.
- */
-data class SceneLoadContext(
-    /** Asset service available during load. */
-    val assets: AssetService,
-    /** Task service available during load. */
-    val tasks: TaskService,
-    /** Event bus available during load. */
-    val events: EventBus,
-    /** Logger available during load. */
-    val logger: Logger,
-)
 
 /**
  * Base type for gameplay scenes managed by the engine runtime.
@@ -71,21 +55,23 @@ abstract class Scene(
     }
 
     /**
-     * Stage A: CPU/IO-only preparation. Do not create GL-bound objects here.
-     */
-    open suspend fun load(context: SceneLoadContext) = Unit
-
-    /**
-     * Stage B: schedule scene-local assets through the engine AssetService.
+     * Queues the scene's [requiredAssets] through the engine [AssetService].
+     *
+     * Called once during activation, before [show]. Asset loading is advanced
+     * asynchronously by the game loop, so assets are usually NOT ready yet when
+     * [show] runs. Scenes must tolerate "not loaded yet" and poll
+     * [AssetService.isLoaded] before using an asset.
      */
     open fun scheduleAssets(assets: AssetService) {
         requiredAssets.flatMap { it.assets }.forEach(assets::queue)
     }
 
     /**
-     * Stage C: render-thread activation and final runtime binding.
+     * Render-thread activation and runtime binding (build entities/systems/panels).
+     *
+     * Runs after [scheduleAssets]. Assets may still be loading at this point; do
+     * not assume any required asset is available here.
      */
-    /** Activates the scene on the render thread. */
     open fun show() = Unit
     /** Runs fixed-step scene logic. */
     open fun fixedUpdate(dt: Float) = world.fixedUpdate(dt)
@@ -203,7 +189,13 @@ class SceneManager {
         }
     }
 
-    /** Attaches, loads, and activates a scene on the stack. */
+    /**
+     * Attaches and activates a scene on the stack.
+     *
+     * Effective lifecycle: `scheduleAssets` -> `show` -> active. Asset loading is
+     * advanced asynchronously by the game loop, so assets may still be loading
+     * after [Scene.show] returns; scenes must tolerate "not loaded yet".
+     */
     private fun activateScene(scene: Scene, context: EngineContext) {
         scene.attach(context)
         scene.setState(SceneState.Loading)

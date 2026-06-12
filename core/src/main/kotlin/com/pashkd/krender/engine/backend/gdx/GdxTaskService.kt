@@ -98,9 +98,6 @@ import com.pashkd.krender.engine.api.ProfilerService
 import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
-import com.pashkd.krender.engine.assets.AssetImporterRegistry
-import com.pashkd.krender.engine.assets.AssetRegistryService
-import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.backend.gdx.scene.GdxSceneFileService
 import com.pashkd.krender.engine.backend.gdx.ui.runtime.GdxRuntimeUiBackend
 import com.pashkd.krender.engine.backend.gdx.ui.runtime.WoolboyRuntimeUiFactory
@@ -149,56 +146,56 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Concrete engine backend that wires LibGDX services into the core runtime.
+ * Coroutine-backed task service with explicit background, IO, and render-thread dispatch.
  */
-class LibGdxBackend(
-    private val runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = { UnsupportedRuntimeWindowLauncher },
-    private val editorToolLauncherFactory: (Logger) -> EditorToolLauncher = { UnsupportedEditorToolLauncher },
-) : EngineBackend {
-    override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
-    override val logs: EngineLogService = EngineLogService(frameProvider = runtimeStats::frame).also { service ->
-        service.addSink(GdxAppLogSink())
-        runCatching { FileLogSink() }
-            .onSuccess(service::addSink)
-            .onFailure { error ->
-                Gdx.app.error(TAG, "File logging disabled: ${error.message}", error)
-            }
-    }
-    override val profiler: ProfilerService = FrameProfilerService()
-    override val logger: Logger = logs
-    override val input: GdxInputService = GdxInputService().also {
-        Gdx.input.inputProcessor = it
-    }
-    override val runtimeUi: RuntimeUiBackend = GdxRuntimeUiBackend(
-        logger = logger,
-        input = input,
-        screenFactoryProvider = { _, actionHandlerProvider ->
-            listOf(WoolboyRuntimeUiFactory(logger, actionHandlerProvider))
-        },
-    )
-    override val ui: UiService = if (Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.Android) {
-        NoOpUiService()
-    } else {
-        GdxImGuiService(input, runtimeStats)
-    }
-    override val assets: GdxAssetService = GdxAssetService(logger)
-    override val assetRegistry: AssetRegistryService =
-        LocalAssetRegistryService(logger, AssetImporterRegistry.withDefaults(logger))
-    override val sceneFiles: SceneFileService = GdxSceneFileService()
-    override val runtimeLauncher: RuntimeWindowLauncher = runtimeWindowLauncherFactory(logger)
-    override val editorToolLauncher: EditorToolLauncher = editorToolLauncherFactory(logger)
-    override val tasks: TaskService = GdxTaskService()
-    override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory =
-        TerrainMaterialTextureSamplerFactory { GdxTerrainMaterialTextureSampler(logger) }
-    override val window: WindowService = GdxWindowService(logger)
-    override val renderer: Renderer = GdxRenderer3D(assets, logger)
+class GdxTaskService : TaskService {
+    private val job = SupervisorJob()
+    private val backgroundScope = CoroutineScope(job + Dispatchers.Default)
+    private val mainQueue = MainThreadTaskQueue()
+    private val mainDispatcher = RenderThreadDispatcher()
+    private val jobs = mutableSetOf<Job>()
 
-    /** Requests application shutdown through the LibGDX app instance. */
-    override fun requestExit() {
-        Gdx.app.exit()
+    override val inFlightJobs: Int
+        get() = jobs.count { it.isActive }
+
+    /** Launches a tracked background coroutine. */
+    override fun launchBackground(name: String, block: suspend CoroutineScope.() -> Unit): Job {
+        val launched = backgroundScope.launch(block = block)
+        jobs += launched
+        launched.invokeOnCompletion { jobs -= launched }
+        return launched
     }
 
-    companion object {
-        private const val TAG = "LibGdxBackend"
+    /** Runs the block on the default background dispatcher. */
+    override suspend fun <T> onBackground(block: suspend () -> T): T = withContext(Dispatchers.Default) { block() }
+
+    /** Runs the block on the IO dispatcher. */
+    override suspend fun <T> onIo(block: suspend () -> T): T = withContext(Dispatchers.IO) { block() }
+
+    /** Runs the block on the render thread dispatcher. */
+    override suspend fun <T> onMain(block: suspend () -> T): T = withContext(mainDispatcher) { block() }
+
+    /** Queues a task for the main-thread task queue. */
+    override fun postToMain(block: () -> Unit) {
+        mainQueue.post(block)
+    }
+
+    /** Executes all queued main-thread tasks immediately. */
+    override fun flushMainThreadQueue() {
+        mainQueue.flush()
+    }
+
+    /** Cancels all background work owned by the service. */
+    override fun dispose() {
+        backgroundScope.cancel()
+        job.cancel()
+    }
+}
+
+/** Coroutine dispatcher that posts work onto the LibGDX application thread. */
+class RenderThreadDispatcher : CoroutineDispatcher() {
+    /** Schedules the runnable through LibGDX's `postRunnable` callback queue. */
+    override fun dispatch(context: CoroutineContext, block: Runnable) {
+        Gdx.app.postRunnable(block)
     }
 }

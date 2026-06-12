@@ -6,7 +6,7 @@
 ## 1. Runtime loading (`AssetService`)
 
 Core contract: `core/.../engine/api/Assets.kt`. Backend: `GdxAssetService` in
-`core/.../engine/backend/gdx/LibGdxBackend.kt`.
+`core/.../engine/backend/gdx/GdxAssetService.kt`.
 
 - **Typed handles.** `AssetRef<T>` carries a normalized `path` + a marker type
   (`ModelAsset`, `TextureAsset`, `TerrainAsset`, `ShaderAsset`). Build via
@@ -58,9 +58,12 @@ Core + impl: `core/.../engine/assets/`.
 - **Category metadata:** texture (resolution/alpha/format), terrain (size/layers), and scene
   metadata are read during `describe`.
 
+### Shared registry
+- `EngineContext.assetRegistry` exposes a single backend-provided `AssetRegistryService`
+  (`LibGdxBackend` creates a `LocalAssetRegistryService`). `AssetBrowserScene`, `SceneEditorScene`,
+  and `UiComposerScene` all use `engine.assetRegistry` instead of constructing their own.
+
 ### Known gaps
-- No shared registry on `EngineContext` — `UiComposerScene` and `SceneEditorScene` each construct
-  their own `LocalAssetRegistryService` (flagged as debt in code).
 - Full re-walk on every refresh (no incremental/watch).
 
 ## Rules

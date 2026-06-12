@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.api
 
+import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.SceneFileService
@@ -31,6 +32,9 @@ interface EngineContext {
 
     /** Shared asset service. */
     val assets: AssetService
+
+    /** Shared project asset registry used by editor tools for scanning and metadata. */
+    val assetRegistry: AssetRegistryService
 
     /** Shared scene file service. */
     val sceneFiles: SceneFileService
@@ -98,6 +102,9 @@ interface EngineBackend {
 
     /** Backend asset implementation. */
     val assets: AssetService
+
+    /** Backend project asset registry implementation. */
+    val assetRegistry: AssetRegistryService
 
     /** Backend scene file implementation. */
     val sceneFiles: SceneFileService
@@ -274,6 +281,9 @@ class EngineRuntime(
 
     /** Shared asset service exposed to scenes. */
     override val assets: AssetService = backend.assets
+
+    /** Shared project asset registry exposed to scenes. */
+    override val assetRegistry: AssetRegistryService = backend.assetRegistry
 
     /** Shared scene file service exposed to scenes. */
     override val sceneFiles: SceneFileService = backend.sceneFiles

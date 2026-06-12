@@ -1,6 +1,7 @@
 package com.pashkd.krender.game
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.scene.*
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
@@ -9,6 +10,7 @@ import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
+import com.pashkd.krender.test.NoOpAssetRegistryService
 import com.pashkd.krender.test.newTestRuntimeUiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -70,6 +72,7 @@ private class BuilderTestEngineContext : EngineContext {
         override fun <T : Any> get(asset: com.pashkd.krender.engine.api.AssetRef<T>): T = error("unused")
         override fun unload(asset: com.pashkd.krender.engine.api.AssetRef<*>) = Unit
     }
+    override val assetRegistry: AssetRegistryService = NoOpAssetRegistryService()
     override val sceneFiles: SceneFileService = object : SceneFileService {
         override fun writeText(path: String, text: String) = Unit
         override fun readText(path: String): String = error("unused")

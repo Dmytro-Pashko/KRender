@@ -20,6 +20,7 @@ import com.pashkd.krender.engine.api.TaskService
 import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetId
+import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.DefaultUiSceneSkinPath
 import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.ui.scene.UiSceneSerializer
@@ -36,6 +37,7 @@ import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
+import com.pashkd.krender.test.NoOpAssetRegistryService
 import com.pashkd.krender.test.newTestRuntimeUiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -116,6 +118,7 @@ private class TestToolEngineContext(
 ) : EngineContext {
     override val scenes: SceneManager = SceneManager()
     override val assets: AssetService = NoOpAssetService
+    override val assetRegistry: AssetRegistryService = NoOpAssetRegistryService()
     override val sceneFiles: SceneFileService = DefaultSceneFileService
     override val runtimeLauncher: RuntimeWindowLauncher = UnsupportedRuntimeWindowLauncher
     override val input: InputService = NoOpInputService
