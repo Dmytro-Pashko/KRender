@@ -146,11 +146,12 @@ class UiComposerOperations(
             return
         }
         val replacing = binding.key in bindingKeys(document)
-        val description = if (replacing) {
-            "Binding '${binding.key}' updated in scene bindings."
-        } else {
-            "Binding '${binding.key}' added to scene bindings."
-        }
+        val description =
+            if (replacing) {
+                "Binding '${binding.key}' updated in scene bindings."
+            } else {
+                "Binding '${binding.key}' added to scene bindings."
+            }
         applyDocumentChange(
             description = description,
             transform = { current ->
@@ -178,8 +179,9 @@ class UiComposerOperations(
             description = "Binding '$key' added.",
             transform = { current ->
                 current.copy(
-                    bindings = (current.bindings + binding.copy(key = key))
-                        .sortedBy { existing -> existing.key.lowercase() },
+                    bindings =
+                        (current.bindings + binding.copy(key = key))
+                            .sortedBy { existing -> existing.key.lowercase() },
                 )
             },
         )
@@ -208,9 +210,10 @@ class UiComposerOperations(
             description = "Binding '$oldKey' renamed to '$trimmed'.",
             transform = { current ->
                 current.copy(
-                    bindings = current.bindings
-                        .map { binding -> if (binding.key == oldKey) binding.copy(key = trimmed) else binding }
-                        .sortedBy { binding -> binding.key.lowercase() },
+                    bindings =
+                        current.bindings
+                            .map { binding -> if (binding.key == oldKey) binding.copy(key = trimmed) else binding }
+                            .sortedBy { binding -> binding.key.lowercase() },
                 )
             },
         )
@@ -231,9 +234,10 @@ class UiComposerOperations(
             description = "Binding '$key' type changed to ${type.name}.",
             transform = { current ->
                 current.copy(
-                    bindings = current.bindings.map { existing ->
-                        if (existing.key == key) existing.copy(type = type) else existing
-                    },
+                    bindings =
+                        current.bindings.map { existing ->
+                            if (existing.key == key) existing.copy(type = type) else existing
+                        },
                 )
             },
         )
@@ -440,26 +444,28 @@ class UiComposerOperations(
 
     fun undo() {
         val currentDocument = state.document ?: return
-        val entry = state.history.undo(
-            UiComposerHistoryEntry(
-                document = currentDocument,
-                selectedNodeId = state.selectedNodeId,
-                description = "Current",
-            ),
-        ) ?: return
+        val entry =
+            state.history.undo(
+                UiComposerHistoryEntry(
+                    document = currentDocument,
+                    selectedNodeId = state.selectedNodeId,
+                    description = "Current",
+                ),
+            ) ?: return
 
         restoreHistoryEntry(entry, statusPrefix = "Undo")
     }
 
     fun redo() {
         val currentDocument = state.document ?: return
-        val entry = state.history.redo(
-            UiComposerHistoryEntry(
-                document = currentDocument,
-                selectedNodeId = state.selectedNodeId,
-                description = "Current",
-            ),
-        ) ?: return
+        val entry =
+            state.history.redo(
+                UiComposerHistoryEntry(
+                    document = currentDocument,
+                    selectedNodeId = state.selectedNodeId,
+                    description = "Current",
+                ),
+            ) ?: return
 
         restoreHistoryEntry(entry, statusPrefix = "Redo")
     }

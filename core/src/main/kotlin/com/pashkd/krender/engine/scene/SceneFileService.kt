@@ -12,7 +12,10 @@ interface SceneFileService {
     /**
      * Writes [text] to [path], creating or replacing the target file content.
      */
-    fun writeText(path: String, text: String)
+    fun writeText(
+        path: String,
+        text: String,
+    )
 
     /**
      * Reads and returns the full text content stored at [path].
@@ -39,7 +42,10 @@ interface SceneFileService {
  * JVM/classpath-backed fallback file service used by core-only helpers.
  */
 object DefaultSceneFileService : SceneFileService {
-    override fun writeText(path: String, text: String) {
+    override fun writeText(
+        path: String,
+        text: String,
+    ) {
         val normalized = normalize(path)
         ensureDirectories(normalized)
         Files.writeString(localPath(normalized), text, StandardCharsets.UTF_8)
@@ -51,8 +57,9 @@ object DefaultSceneFileService : SceneFileService {
         if (Files.exists(localPath)) {
             return Files.readString(localPath, StandardCharsets.UTF_8)
         }
-        val resource = Thread.currentThread().contextClassLoader?.getResourceAsStream(normalized)
-            ?: DefaultSceneFileService::class.java.classLoader.getResourceAsStream(normalized)
+        val resource =
+            Thread.currentThread().contextClassLoader?.getResourceAsStream(normalized)
+                ?: DefaultSceneFileService::class.java.classLoader.getResourceAsStream(normalized)
         if (resource != null) {
             return resource.bufferedReader(StandardCharsets.UTF_8).use { reader -> reader.readText() }
         }

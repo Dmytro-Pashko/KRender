@@ -34,7 +34,10 @@ class AnimationViewerSystem(
         }
     }
 
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         frameIndex += 1
         try {
             updateInternal(world, dt)
@@ -47,7 +50,10 @@ class AnimationViewerSystem(
         }
     }
 
-    private fun updateInternal(world: SceneWorld, dt: Float) {
+    private fun updateInternal(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         if (frameIndex == 1L) {
             logger.debug(TAG) {
                 "AnimationViewer first update dt=${"%.4f".format(dt)} model='${state.model.path}' entities=${world.all().size}"
@@ -69,18 +75,20 @@ class AnimationViewerSystem(
     private fun syncStatus(world: SceneWorld) {
         state.assetProgress = assets.progress()
         state.assetLoaded = assets.isLoaded(state.model)
-        state.loadingStatus = if (state.assetLoaded) {
-            "Loaded"
-        } else {
-            "Loading ${"%.0f".format(state.assetProgress * 100f)}%"
-        }
+        state.loadingStatus =
+            if (state.assetLoaded) {
+                "Loaded"
+            } else {
+                "Loading ${"%.0f".format(state.assetProgress * 100f)}%"
+            }
         state.modelInfo = if (state.assetLoaded) assets.modelInfo(state.model) else null
         state.skeletonInfo = if (state.assetLoaded) assets.modelSkeleton(state.model) else null
-        state.errorMessage = if (state.assetLoaded && state.modelInfo == null) {
-            "Model metadata is unavailable for this asset."
-        } else {
-            null
-        }
+        state.errorMessage =
+            if (state.assetLoaded && state.modelInfo == null) {
+                "Model metadata is unavailable for this asset."
+            } else {
+                null
+            }
         if (!state.assetLoaded) {
             state.animationPreviewStatus = AnimationPreviewStatus.Unsupported
             state.skeletonPreviewStatus = SkeletonPreviewStatus.Unsupported
@@ -91,7 +99,7 @@ class AnimationViewerSystem(
             logger.info(TAG) {
                 "AnimationViewer asset status model='${state.model.path}' loaded=${state.assetLoaded} progress=${
                     "%.3f".format(
-                        state.assetProgress
+                        state.assetProgress,
                     )
                 }"
             }
@@ -100,9 +108,10 @@ class AnimationViewerSystem(
     }
 
     private fun applyWireframeMaterial(world: SceneWorld) {
-        val modelComponent = state.modelEntityId
-            ?.let(world::getEntity)
-            ?.get<ModelComponent>()
+        val modelComponent =
+            state.modelEntityId
+                ?.let(world::getEntity)
+                ?.get<ModelComponent>()
         if (modelComponent == null) {
             if (!missingModelEntityLogged) {
                 logger.warn(TAG) {
@@ -114,10 +123,11 @@ class AnimationViewerSystem(
         }
         missingModelEntityLogged = false
         if (modelComponent.material.wireframe != state.wireframe || modelComponent.material.wireframeOverlay) {
-            modelComponent.material = modelComponent.material.copy(
-                wireframe = state.wireframe,
-                wireframeOverlay = false,
-            )
+            modelComponent.material =
+                modelComponent.material.copy(
+                    wireframe = state.wireframe,
+                    wireframeOverlay = false,
+                )
         }
     }
 
@@ -145,21 +155,24 @@ class AnimationViewerSystem(
     private fun syncAnimationSelection() {
         val info = state.modelInfo
         val animations = info?.animations.orEmpty()
-        state.animationNames = if (animations.isNotEmpty()) {
-            animations.map { animation -> animation.name }
-        } else {
-            info?.animationNames.orEmpty()
-        }
+        state.animationNames =
+            if (animations.isNotEmpty()) {
+                animations.map { animation -> animation.name }
+            } else {
+                info?.animationNames.orEmpty()
+            }
 
         val previousSelection = state.selectedAnimationName
-        state.selectedAnimationIndex = state.selectedAnimationName?.let(state.animationNames::indexOf)
+        state.selectedAnimationIndex = state.selectedAnimationName
+            ?.let(state.animationNames::indexOf)
             ?.takeIf { it >= 0 }
             ?: state.selectedAnimationIndex?.takeIf { it in state.animationNames.indices }
 
         state.selectedAnimationName = state.selectedAnimationIndex?.let(state.animationNames::get)
-        state.durationSeconds = state.selectedAnimationName?.let { selected ->
-            info?.animations?.firstOrNull { animation -> animation.name == selected }?.durationSeconds
-        }
+        state.durationSeconds =
+            state.selectedAnimationName?.let { selected ->
+                info?.animations?.firstOrNull { animation -> animation.name == selected }?.durationSeconds
+            }
         state.currentTimeSeconds = clampAnimationTime(state.currentTimeSeconds, state.durationSeconds)
 
         if (previousSelection != null && state.selectedAnimationName == null) {
@@ -181,7 +194,7 @@ class AnimationViewerSystem(
             state.isPlaying = false
             state.statusMessage = "Playback reached the unknown-duration preview limit."
             logger.info(TAG) {
-                "AnimationViewer playback reached unknown-duration preview limit animation='${animationName}'"
+                "AnimationViewer playback reached unknown-duration preview limit animation='$animationName'"
             }
             return
         }
@@ -192,19 +205,20 @@ class AnimationViewerSystem(
         } else {
             state.currentTimeSeconds = duration
             state.isPlaying = false
-            state.statusMessage = "Playback reached the end of '${animationName}'."
-            logger.info(TAG) { "AnimationViewer playback reached end animation='${animationName}'" }
+            state.statusMessage = "Playback reached the end of '$animationName'."
+            logger.info(TAG) { "AnimationViewer playback reached end animation='$animationName'" }
         }
     }
 
     private fun syncPreviewSupport() {
-        state.animationPreviewStatus = when {
-            !state.assetLoaded || !state.animationMetadataAvailable -> AnimationPreviewStatus.Unsupported
-            state.selectedAnimationName.isNullOrBlank() -> AnimationPreviewStatus.MetadataOnly
-            state.selectedAnimationName !in state.animationNames -> AnimationPreviewStatus.MetadataOnly
-            state.viewMode == AnimationViewerViewMode.Skeleton -> AnimationPreviewStatus.MetadataOnly
-            else -> AnimationPreviewStatus.PreviewRequested
-        }
+        state.animationPreviewStatus =
+            when {
+                !state.assetLoaded || !state.animationMetadataAvailable -> AnimationPreviewStatus.Unsupported
+                state.selectedAnimationName.isNullOrBlank() -> AnimationPreviewStatus.MetadataOnly
+                state.selectedAnimationName !in state.animationNames -> AnimationPreviewStatus.MetadataOnly
+                state.viewMode == AnimationViewerViewMode.Skeleton -> AnimationPreviewStatus.MetadataOnly
+                else -> AnimationPreviewStatus.PreviewRequested
+            }
     }
 
     private fun syncSampledSkeletonPose() {
@@ -224,20 +238,22 @@ class AnimationViewerSystem(
             return
         }
 
-        val poses = assets.modelSkeletonPose(
-            asset = state.model,
-            animationName = state.selectedAnimationName,
-            timeSeconds = state.currentTimeSeconds,
-            loop = state.canLoopSelectedAnimation && state.loop,
-        )
+        val poses =
+            assets.modelSkeletonPose(
+                asset = state.model,
+                animationName = state.selectedAnimationName,
+                timeSeconds = state.currentTimeSeconds,
+                loop = state.canLoopSelectedAnimation && state.loop,
+            )
         state.sampledSkeletonPose = poses
         state.sampledSkeletonPoseAnimationName = state.selectedAnimationName
         state.sampledSkeletonPoseTimeSeconds = state.currentTimeSeconds
-        state.skeletonPreviewStatus = if (poses.isNotEmpty()) {
-            SkeletonPreviewStatus.PreviewAvailable
-        } else {
-            SkeletonPreviewStatus.MetadataOnly
-        }
+        state.skeletonPreviewStatus =
+            if (poses.isNotEmpty()) {
+                SkeletonPreviewStatus.PreviewAvailable
+            } else {
+                SkeletonPreviewStatus.MetadataOnly
+            }
     }
 
     private fun clearSampledSkeletonPose() {
@@ -247,27 +263,30 @@ class AnimationViewerSystem(
     }
 
     private fun syncWarnings() {
-        state.animationWarning = when {
-            state.selectedAnimationName != null && !state.hasKnownSelectedAnimationDuration ->
-                "Unknown animation duration. Preview is limited to 10.000 s."
+        state.animationWarning =
+            when {
+                state.selectedAnimationName != null && !state.hasKnownSelectedAnimationDuration ->
+                    "Unknown animation duration. Preview is limited to 10.000 s."
 
-            else -> null
-        }
-        state.skeletonWarning = when (state.skeletonPreviewStatus) {
-            SkeletonPreviewStatus.Inactive,
-            SkeletonPreviewStatus.PreviewAvailable,
-                -> null
+                else -> null
+            }
+        state.skeletonWarning =
+            when (state.skeletonPreviewStatus) {
+                SkeletonPreviewStatus.Inactive,
+                SkeletonPreviewStatus.PreviewAvailable,
+                    -> null
 
-            SkeletonPreviewStatus.Unsupported -> "Skeleton metadata is unavailable for this model/backend."
-            SkeletonPreviewStatus.MetadataOnly -> "Skeleton pose preview is unavailable for this model/backend."
-        }
+                SkeletonPreviewStatus.Unsupported -> "Skeleton metadata is unavailable for this model/backend."
+                SkeletonPreviewStatus.MetadataOnly -> "Skeleton pose preview is unavailable for this model/backend."
+            }
     }
 
     private fun syncAmbientLight(world: SceneWorld) {
-        val ambientLight = state.ambientLightEntityId
-            ?.let(world::getEntity)
-            ?.get<LightComponent>()
-            ?: return
+        val ambientLight =
+            state.ambientLightEntityId
+                ?.let(world::getEntity)
+                ?.get<LightComponent>()
+                ?: return
         if (ambientLight.type != LightType.Ambient) return
         val intensity = state.ambientLightIntensity.coerceAtLeast(0f)
         state.ambientLightIntensity = intensity
@@ -309,7 +328,7 @@ class AnimationViewerSystem(
         if (lastSelectionName != state.selectedAnimationName) {
             state.selectedAnimationName?.let { selected ->
                 logger.info(TAG) {
-                    "AnimationViewer animation selected name='${selected}' duration=${state.durationSeconds}"
+                    "AnimationViewer animation selected name='$selected' duration=${state.durationSeconds}"
                 }
             }
             lastSelectionName = state.selectedAnimationName
@@ -318,7 +337,7 @@ class AnimationViewerSystem(
             logger.info(TAG) {
                 "AnimationViewer playing=${state.isPlaying} animation='${state.selectedAnimationName}' time=${
                     "%.3f".format(
-                        state.currentTimeSeconds
+                        state.currentTimeSeconds,
                     )
                 }"
             }
@@ -355,7 +374,10 @@ class AnimationViewerSystem(
 class AnimationViewerViewportGuideSystem(
     private val state: AnimationViewerState,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         val halfExtentCells = state.gridHalfExtentCells.coerceAtLeast(1)
         val cellSize = state.gridCellSize.coerceAtLeast(MinCellSize)
         if (state.showGrid) {
@@ -383,7 +405,10 @@ class AnimationViewerBoundingBoxSystem(
     private val state: AnimationViewerState,
     private val assets: AssetService,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         if (!state.showBoundingBox || !state.assetLoaded) return
         val entity = state.modelEntityId?.let(world::getEntity) ?: return
         val transform = entity.get<TransformComponent>() ?: return
@@ -402,20 +427,21 @@ class AnimationViewerBoundingBoxSystem(
 
     companion object {
         private val BoundingBoxColor = Color(1f, 0.85f, 0.1f, 1f)
-        private val BoxEdges = listOf(
-            0 to 1,
-            1 to 2,
-            2 to 3,
-            3 to 0,
-            4 to 5,
-            5 to 6,
-            6 to 7,
-            7 to 4,
-            0 to 4,
-            1 to 5,
-            2 to 6,
-            3 to 7,
-        )
+        private val BoxEdges =
+            listOf(
+                0 to 1,
+                1 to 2,
+                2 to 3,
+                3 to 0,
+                4 to 5,
+                5 to 6,
+                6 to 7,
+                7 to 4,
+                0 to 4,
+                1 to 5,
+                2 to 6,
+                3 to 7,
+            )
     }
 }
 
@@ -425,7 +451,10 @@ class AnimationViewerBoundingBoxSystem(
 class AnimationViewerModelRenderSystem(
     private val state: AnimationViewerState,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         if (state.viewMode == AnimationViewerViewMode.Skeleton) return
         val entity = state.modelEntityId?.let(world::getEntity) ?: return
         val model = entity.get<ModelComponent>() ?: return
@@ -459,7 +488,10 @@ class AnimationViewerModelRenderSystem(
 class AnimationViewerSkeletonRenderSystem(
     private val state: AnimationViewerState,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         if (state.viewMode == AnimationViewerViewMode.Model || !state.assetLoaded) return
         if (!state.hasSkeletonData || state.sampledSkeletonPose.isEmpty()) return
         val entity = state.modelEntityId?.let(world::getEntity) ?: return
@@ -487,13 +519,14 @@ class AnimationViewerSkeletonRenderSystem(
                 DrawLine(
                     from = transformLocalPoint(parent.worldPosition, transform),
                     to = transformLocalPoint(pose.worldPosition, transform),
-                    color = lineColor(
-                        parent.boneIndex,
-                        pose.boneIndex,
-                        hoveredBoneIndex,
-                        selectedBoneIndex,
-                        connectedBoneIndices
-                    ),
+                    color =
+                        lineColor(
+                            parent.boneIndex,
+                            pose.boneIndex,
+                            hoveredBoneIndex,
+                            selectedBoneIndex,
+                            connectedBoneIndices,
+                        ),
                 ),
             )
         }
@@ -505,28 +538,31 @@ class AnimationViewerSkeletonRenderSystem(
         hoveredBoneIndex: Int?,
         selectedBoneIndex: Int?,
         connectedBoneIndices: Set<Int>,
-    ): Color = when {
-        boneIndex == hoveredBoneIndex -> HoveredBoneColor
-        boneIndex == selectedBoneIndex -> SelectedBoneColor
-        state.highlightConnectedBones && (
-            parentBoneIndex == selectedBoneIndex ||
-                boneIndex in connectedBoneIndices
-            ) -> ConnectedBoneColor
+    ): Color =
+        when {
+            boneIndex == hoveredBoneIndex -> HoveredBoneColor
+            boneIndex == selectedBoneIndex -> SelectedBoneColor
+            state.highlightConnectedBones &&
+                (
+                    parentBoneIndex == selectedBoneIndex ||
+                        boneIndex in connectedBoneIndices
+                    ) -> ConnectedBoneColor
 
-        else -> SkeletonColor
-    }
+            else -> SkeletonColor
+        }
 
     private fun jointColor(
         boneIndex: Int,
         hoveredBoneIndex: Int?,
         selectedBoneIndex: Int?,
         connectedBoneIndices: Set<Int>,
-    ): Color = when {
-        boneIndex == hoveredBoneIndex -> HoveredJointColor
-        boneIndex == selectedBoneIndex -> SelectedJointColor
-        state.highlightConnectedBones && boneIndex in connectedBoneIndices -> ConnectedJointColor
-        else -> JointColor
-    }
+    ): Color =
+        when {
+            boneIndex == hoveredBoneIndex -> HoveredJointColor
+            boneIndex == selectedBoneIndex -> SelectedJointColor
+            state.highlightConnectedBones && boneIndex in connectedBoneIndices -> ConnectedJointColor
+            else -> JointColor
+        }
 
     private fun submitJoint(
         world: SceneWorld,

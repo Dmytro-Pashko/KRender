@@ -331,7 +331,10 @@ interface Renderer {
     fun render(context: RenderContext)
 
     /** Updates backend state for a new surface size. */
-    fun resize(width: Int, height: Int)
+    fun resize(
+        width: Int,
+        height: Int,
+    )
 
     /** Releases renderer resources. */
     fun dispose()

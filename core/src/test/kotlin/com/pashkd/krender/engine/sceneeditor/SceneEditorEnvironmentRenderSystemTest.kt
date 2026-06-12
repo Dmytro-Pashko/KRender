@@ -9,8 +9,8 @@ import com.pashkd.krender.engine.scene.SceneEnvironmentDescriptor
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.SceneLightingDescriptor
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
-import com.pashkd.krender.engine.scene.SkyboxAssetSerializer
 import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
+import com.pashkd.krender.engine.scene.SkyboxAssetSerializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -20,34 +20,39 @@ class SceneEditorEnvironmentRenderSystemTest {
     @Test
     fun `submits environment command for configured scene skybox`() {
         val document = SceneEditorDocument(SceneWorld())
-        document.descriptor = SceneDescriptor(
-            id = "scene:test",
-            name = "Test",
-            settings = SceneSettingsDescriptor(
-                lighting = SceneLightingDescriptor(ambientIntensity = 0.4f),
-                environment = SceneEnvironmentDescriptor(
-                    skyboxAssetPath = "skyboxes/studio.krskybox",
-                    showSkybox = false,
-                    environmentIntensity = 1.5f,
-                ),
-            ),
-        )
+        document.descriptor =
+            SceneDescriptor(
+                id = "scene:test",
+                name = "Test",
+                settings =
+                    SceneSettingsDescriptor(
+                        lighting = SceneLightingDescriptor(ambientIntensity = 0.4f),
+                        environment =
+                            SceneEnvironmentDescriptor(
+                                skyboxAssetPath = "skyboxes/studio.krskybox",
+                                showSkybox = false,
+                                environmentIntensity = 1.5f,
+                            ),
+                    ),
+            )
         val runtimeWorld = SceneWorld()
         runtimeWorld.systems.add(
             SceneEditorEnvironmentRenderSystem(
                 document = document,
-                sceneFiles = TestSceneFileService(
-                    mapOf(
-                        "skyboxes/studio.krskybox" to SkyboxAssetSerializer.encode(
-                            SkyboxAssetDescriptor(
-                                id = "skybox:studio",
-                                name = "Studio",
-                                texturePath = "textures/studio.png",
-                                intensity = 0.5f,
-                            ),
+                sceneFiles =
+                    TestSceneFileService(
+                        mapOf(
+                            "skyboxes/studio.krskybox" to
+                                SkyboxAssetSerializer.encode(
+                                    SkyboxAssetDescriptor(
+                                        id = "skybox:studio",
+                                        name = "Studio",
+                                        texturePath = "textures/studio.png",
+                                        intensity = 0.5f,
+                                    ),
+                                ),
                         ),
                     ),
-                ),
                 logger = NoopLogger,
             ),
         )
@@ -64,17 +69,20 @@ class SceneEditorEnvironmentRenderSystemTest {
     @Test
     fun `submits environment command without skybox texture when scene has no skybox`() {
         val document = SceneEditorDocument(SceneWorld())
-        document.descriptor = SceneDescriptor(
-            id = "scene:test",
-            name = "Test",
-            settings = SceneSettingsDescriptor(
-                environment = SceneEnvironmentDescriptor(
-                    skyboxAssetPath = null,
-                    showSkybox = true,
-                    environmentIntensity = 2f,
-                ),
-            ),
-        )
+        document.descriptor =
+            SceneDescriptor(
+                id = "scene:test",
+                name = "Test",
+                settings =
+                    SceneSettingsDescriptor(
+                        environment =
+                            SceneEnvironmentDescriptor(
+                                skyboxAssetPath = null,
+                                showSkybox = true,
+                                environmentIntensity = 2f,
+                            ),
+                    ),
+            )
         val runtimeWorld = SceneWorld()
         runtimeWorld.systems.add(
             SceneEditorEnvironmentRenderSystem(
@@ -95,10 +103,12 @@ class SceneEditorEnvironmentRenderSystemTest {
     private class TestSceneFileService(
         private val files: Map<String, String>,
     ) : SceneFileService {
-        override fun writeText(path: String, text: String) = error("Test scene files are read-only")
+        override fun writeText(
+            path: String,
+            text: String,
+        ) = error("Test scene files are read-only")
 
-        override fun readText(path: String): String =
-            files[path] ?: error("Missing test scene file '$path'")
+        override fun readText(path: String): String = files[path] ?: error("Missing test scene file '$path'")
 
         override fun ensureDirectories(path: String) = Unit
 
@@ -108,6 +118,11 @@ class SceneEditorEnvironmentRenderSystemTest {
     }
 
     private object NoopLogger : Logger {
-        override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) = Unit
+        override fun log(
+            level: LogLevel,
+            tag: String,
+            error: Throwable?,
+            message: () -> String,
+        ) = Unit
     }
 }

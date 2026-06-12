@@ -15,7 +15,8 @@ object BindingTypeCompatibilityValidator : UiSceneValidationRule {
         val issues = mutableListOf<UiSceneValidationIssue>()
         when (node.type) {
             UiSceneNodeType.ProgressBar -> {
-                node.valueBinding?.trim()
+                node.valueBinding
+                    ?.trim()
                     ?.takeIf(String::isNotBlank)
                     ?.let { key ->
                         validateRequiredType(
@@ -51,23 +52,25 @@ object BindingTypeCompatibilityValidator : UiSceneValidationRule {
                     .filter { reference -> reference.nodeId == node.id }
                     .forEach { reference ->
                         when (reference.fieldName) {
-                            "action" -> validateRequiredType(
-                                node = node,
-                                fieldName = reference.fieldName,
-                                key = reference.key,
-                                requiredType = UiSceneBindingType.Action,
-                                context = context,
-                                issues = issues,
-                                messagePrefix = "TextButton.action binding must reference Action binding",
-                            )
+                            "action" ->
+                                validateRequiredType(
+                                    node = node,
+                                    fieldName = reference.fieldName,
+                                    key = reference.key,
+                                    requiredType = UiSceneBindingType.Action,
+                                    context = context,
+                                    issues = issues,
+                                    messagePrefix = "TextButton.action binding must reference Action binding",
+                                )
 
-                            "text" -> validateTextCompatibleType(
-                                node,
-                                reference.fieldName,
-                                reference.key,
-                                context,
-                                issues
-                            )
+                            "text" ->
+                                validateTextCompatibleType(
+                                    node,
+                                    reference.fieldName,
+                                    reference.key,
+                                    context,
+                                    issues,
+                                )
                         }
                     }
             }
@@ -100,13 +103,14 @@ object BindingTypeCompatibilityValidator : UiSceneValidationRule {
     ) {
         val actualType = context.bindingDefinitionsByKey[key]?.type ?: return
         if (actualType != requiredType) {
-            issues += error(
-                code = UiSceneValidationCode.InvalidBindingTypeForField,
-                message = "$messagePrefix, but '$key' is $actualType.",
-                nodeId = node.id.takeIf(String::isNotBlank),
-                fieldName = fieldName,
-                bindingKey = key,
-            )
+            issues +=
+                error(
+                    code = UiSceneValidationCode.InvalidBindingTypeForField,
+                    message = "$messagePrefix, but '$key' is $actualType.",
+                    nodeId = node.id.takeIf(String::isNotBlank),
+                    fieldName = fieldName,
+                    bindingKey = key,
+                )
         }
     }
 
@@ -119,13 +123,14 @@ object BindingTypeCompatibilityValidator : UiSceneValidationRule {
     ) {
         val actualType = context.bindingDefinitionsByKey[key]?.type ?: return
         if (actualType == UiSceneBindingType.Texture) {
-            issues += warning(
-                code = UiSceneValidationCode.InvalidBindingTypeForField,
-                message = "${node.type}.$fieldName should not reference Texture binding '$key'.",
-                nodeId = node.id.takeIf(String::isNotBlank),
-                fieldName = fieldName,
-                bindingKey = key,
-            )
+            issues +=
+                warning(
+                    code = UiSceneValidationCode.InvalidBindingTypeForField,
+                    message = "${node.type}.$fieldName should not reference Texture binding '$key'.",
+                    nodeId = node.id.takeIf(String::isNotBlank),
+                    fieldName = fieldName,
+                    bindingKey = key,
+                )
         }
     }
 }

@@ -84,11 +84,12 @@ data class TerrainRendererComponent(
     var meshRevision: Long = 0L,
     var materialRevision: Long = 0L,
 ) : Component {
-    var displayMode: TerrainDisplayMode = if (material.wireframe) {
-        TerrainDisplayMode.Wireframe
-    } else {
-        TerrainDisplayMode.Solid
-    }
+    var displayMode: TerrainDisplayMode =
+        if (material.wireframe) {
+            TerrainDisplayMode.Wireframe
+        } else {
+            TerrainDisplayMode.Solid
+        }
         private set
 
     /**

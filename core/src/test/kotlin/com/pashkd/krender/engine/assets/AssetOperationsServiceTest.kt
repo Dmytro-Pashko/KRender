@@ -124,7 +124,12 @@ class AssetOperationsServiceTest {
         assertTrue(fixture.changed)
         assertFalse(skinDir.toFile().exists())
         assertTrue(siblingSkinDir.toFile().exists())
-        assertTrue(fixture.baseDir.resolve("ui/skins").toFile().exists())
+        assertTrue(
+            fixture.baseDir
+                .resolve("ui/skins")
+                .toFile()
+                .exists(),
+        )
     }
 
     @Test
@@ -132,16 +137,17 @@ class AssetOperationsServiceTest {
         val fixture = fixture()
         val skinDir = fixture.baseDir.resolve("ui/skins/packs/Cloud").createDirectories()
         skinDir.resolve("skin.json").writeText(validSkinJson(), StandardCharsets.UTF_8)
-        val asset = AssetDescriptor(
-            id = AssetId("asset:skin:nested"),
-            name = "skin",
-            path = "ui/skins/packs/Cloud/skin.json",
-            category = AssetCategory.UI,
-            type = AssetType.Scene2DSkin,
-            extension = "json",
-            sizeBytes = 1L,
-            modifiedAtMillis = 1L,
-        )
+        val asset =
+            AssetDescriptor(
+                id = AssetId("asset:skin:nested"),
+                name = "skin",
+                path = "ui/skins/packs/Cloud/skin.json",
+                category = AssetCategory.UI,
+                type = AssetType.Scene2DSkin,
+                extension = "json",
+                sizeBytes = 1L,
+                modifiedAtMillis = 1L,
+            )
 
         val result = fixture.service.delete(asset)
 
@@ -156,16 +162,17 @@ class AssetOperationsServiceTest {
         val fixture = fixture()
         val outside = fixture.baseDir.parent.resolve("outside.png")
         outside.writeBytes(pngBytes())
-        val asset = AssetDescriptor(
-            id = AssetId("asset:escape"),
-            name = "outside",
-            path = "../outside.png",
-            category = AssetCategory.Texture,
-            type = AssetType.Texture,
-            extension = "png",
-            sizeBytes = outside.toFile().length(),
-            modifiedAtMillis = outside.toFile().lastModified(),
-        )
+        val asset =
+            AssetDescriptor(
+                id = AssetId("asset:escape"),
+                name = "outside",
+                path = "../outside.png",
+                category = AssetCategory.Texture,
+                type = AssetType.Texture,
+                extension = "png",
+                sizeBytes = outside.toFile().length(),
+                modifiedAtMillis = outside.toFile().lastModified(),
+            )
 
         val result = fixture.service.delete(asset)
 
@@ -179,23 +186,26 @@ class AssetOperationsServiceTest {
         val logger = EngineLogService()
         val baseDir = Files.createTempDirectory("krender-asset-ops")
         val importers = AssetImporterRegistry.withDefaults(logger)
-        val registry = LocalAssetRegistryService(
-            logger = logger,
-            importers = importers,
-            baseDirectory = baseDir.toFile(),
-            rootPaths = listOf("model", "textures", "ui/scenes", "ui/skins", "assets"),
-        )
-        val fixture = OperationFixture(
-            baseDir = baseDir,
-            registry = registry,
-            changed = false,
-        )
-        fixture.serviceInstance = LocalAssetOperationsService(
-            registry = registry,
-            importers = importers,
-            logger = logger,
-            onChanged = { fixture.changed = true },
-        )
+        val registry =
+            LocalAssetRegistryService(
+                logger = logger,
+                importers = importers,
+                baseDirectory = baseDir.toFile(),
+                rootPaths = listOf("model", "textures", "ui/scenes", "ui/skins", "assets"),
+            )
+        val fixture =
+            OperationFixture(
+                baseDir = baseDir,
+                registry = registry,
+                changed = false,
+            )
+        fixture.serviceInstance =
+            LocalAssetOperationsService(
+                registry = registry,
+                importers = importers,
+                logger = logger,
+                onChanged = { fixture.changed = true },
+            )
         return fixture
     }
 
@@ -209,8 +219,7 @@ class AssetOperationsServiceTest {
         registry.applySnapshot(registry.scanSnapshot())
     }
 
-    private fun OperationFixture.metadataFor(text: String): AssetMetadataDocument =
-        AssetMetadataCodec.decode(text)
+    private fun OperationFixture.metadataFor(text: String): AssetMetadataDocument = AssetMetadataCodec.decode(text)
 
     private fun validSkinJson(): String =
         """

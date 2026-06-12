@@ -50,6 +50,8 @@ import net.mgsx.gltf.scene3d.scene.SceneSkybox
 import net.mgsx.gltf.scene3d.shaders.PBRShaderProvider
 import net.mgsx.gltf.scene3d.utils.IBLBuilder
 import net.mgsx.gltf.scene3d.utils.MaterialConverter
+import java.lang.Math
+import java.lang.System
 import kotlin.math.cos
 import kotlin.math.sin
 import net.mgsx.gltf.scene3d.scene.Scene as GltfScene
@@ -64,13 +66,14 @@ class GdxRenderer3D(
 ) : Renderer {
     private val maxShaderBones =
         systemInt("krender.gl.maxBones", default = DefaultMaxShaderBones).coerceAtLeast(MinShaderBones)
-    private val modelBatch = ModelBatch(
-        DefaultShaderProvider(
-            DefaultShader.Config().apply {
-                numBones = maxShaderBones
-            },
-        ),
-    )
+    private val modelBatch =
+        ModelBatch(
+            DefaultShaderProvider(
+                DefaultShader.Config().apply {
+                    numBones = maxShaderBones
+                },
+            ),
+        )
     private val lineRenderer = GdxLineShaderRenderer()
     private val modelViewerDebugRenderer = GdxModelViewerDebugRenderer(assets, logger)
     private val pbrPreviewRenderer = GdxGltfPbrPreviewRenderer(assets, logger)
@@ -85,9 +88,10 @@ class GdxRenderer3D(
     private val primitives = mutableMapOf<String, Model>()
     private val dynamicModels = mutableMapOf<String, DynamicModelCacheEntry>()
     private val wireframeRenderables = Array<Renderable>()
-    private val wireframeRenderablePool = object : Pool<Renderable>() {
-        override fun newObject(): Renderable = Renderable()
-    }
+    private val wireframeRenderablePool =
+        object : Pool<Renderable>() {
+            override fun newObject(): Renderable = Renderable()
+        }
     private val wireframeTmpVertex = Vector3()
     private val forceBackBufferAlphaOpaque = systemBoolean("krender.gl.forceOpaqueAlpha", default = false)
     private val warnedGltfRenderKeys = mutableSetOf<String>()
@@ -205,7 +209,10 @@ class GdxRenderer3D(
     }
 
     /** Updates the cached viewport size used for camera creation. */
-    override fun resize(width: Int, height: Int) {
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) {
         this.width = width.coerceAtLeast(1)
         this.height = height.coerceAtLeast(1)
     }
@@ -227,28 +234,36 @@ class GdxRenderer3D(
     }
 
     /** Renders one static model command, including primitive and glTF handling. */
-    private fun renderModel(command: DrawModel, environment: Environment, camera: Camera) {
-        command.material.shader.assets().forEach(assets::queue)
+    private fun renderModel(
+        command: DrawModel,
+        environment: Environment,
+        camera: Camera,
+    ) {
+        command.material.shader
+            .assets()
+            .forEach(assets::queue)
         assets.queue(command.model)
 
-        val model = if (command.model.isPrimitive) {
-            primitive(command.model.path)
-        } else if (command.model.isGltf()) {
-            renderGltfScene(command, environment, camera)
-            return
-        } else {
-            assets.gdxModel(command.model)
-        } ?: return
+        val model =
+            if (command.model.isPrimitive) {
+                primitive(command.model.path)
+            } else if (command.model.isGltf()) {
+                renderGltfScene(command, environment, camera)
+                return
+            } else {
+                assets.gdxModel(command.model)
+            } ?: return
 
         val cacheKey = ModelCacheKey(command.entityId, command.model.path)
         val existing = instances[cacheKey]
-        val instance = if (existing?.model === model) {
-            existing
-        } else {
-            ModelInstance(model).also { created ->
-                instances[cacheKey] = created
+        val instance =
+            if (existing?.model === model) {
+                existing
+            } else {
+                ModelInstance(model).also { created ->
+                    instances[cacheKey] = created
+                }
             }
-        }
 
         instance.materials.forEach { applyMaterialAttributes(it, command.material) }
         applyAnimationPreview(instance, cacheKey, command.animation)
@@ -266,58 +281,70 @@ class GdxRenderer3D(
     }
 
     /** Returns a prepared model instance for shader-based debug rendering. */
-    private fun modelInstanceForDebug(command: DrawModel, camera: Camera): ModelInstance? {
-        command.material.shader.assets().forEach(assets::queue)
+    private fun modelInstanceForDebug(
+        command: DrawModel,
+        camera: Camera,
+    ): ModelInstance? {
+        command.material.shader
+            .assets()
+            .forEach(assets::queue)
         assets.queue(command.model)
-        val instance = if (command.model.isGltf()) {
-            val sceneAsset = assets.gltfScene(command.model) ?: return null
-            val cacheKey = ModelCacheKey(command.entityId, command.model.path)
-            val scene = gltfScenes.getOrPut(cacheKey) {
-                GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
-            }
-            applyAnimationPreview(scene, command.animation)
-            applyTransform(scene.modelInstance, command)
-            applyVisibleMeshPartFilter(scene.modelInstance, command.visibleMeshPartIndices)
-            scene.update(camera, if (command.animation != null) 0f else Gdx.graphics.deltaTime)
-            scene.modelInstance
-        } else {
-            val model = if (command.model.isPrimitive) {
-                primitive(command.model.path)
+        val instance =
+            if (command.model.isGltf()) {
+                val sceneAsset = assets.gltfScene(command.model) ?: return null
+                val cacheKey = ModelCacheKey(command.entityId, command.model.path)
+                val scene =
+                    gltfScenes.getOrPut(cacheKey) {
+                        GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
+                    }
+                applyAnimationPreview(scene, command.animation)
+                applyTransform(scene.modelInstance, command)
+                applyVisibleMeshPartFilter(scene.modelInstance, command.visibleMeshPartIndices)
+                scene.update(camera, if (command.animation != null) 0f else Gdx.graphics.deltaTime)
+                scene.modelInstance
             } else {
-                assets.gdxModel(command.model)
-            } ?: return null
+                val model =
+                    if (command.model.isPrimitive) {
+                        primitive(command.model.path)
+                    } else {
+                        assets.gdxModel(command.model)
+                    } ?: return null
 
-            val cacheKey = ModelCacheKey(command.entityId, command.model.path)
-            val existing = instances[cacheKey]
+                val cacheKey = ModelCacheKey(command.entityId, command.model.path)
+                val existing = instances[cacheKey]
+                if (existing?.model === model) {
+                    existing
+                } else {
+                    ModelInstance(model).also { created ->
+                        instances[cacheKey] = created
+                    }
+                }.also { prepared ->
+                    prepared.materials.forEach { applyMaterialAttributes(it, command.material) }
+                    applyAnimationPreview(prepared, cacheKey, command.animation)
+                    applyTransform(prepared, command)
+                    applyVisibleMeshPartFilter(prepared, command.visibleMeshPartIndices)
+                }
+            }
+        return instance
+    }
+
+    /** Renders one dynamic mesh-backed model command. */
+    private fun renderDynamicModel(
+        command: DrawDynamicModel,
+        environment: Environment,
+    ) {
+        command.runtimeTextures.forEach(assets::upsertRuntimeTexture)
+        val model = dynamicGdxModel(command.model)
+        val cacheKey = ModelCacheKey(command.entityId, command.model.id)
+        val existing = instances[cacheKey]
+        val instance =
             if (existing?.model === model) {
                 existing
             } else {
                 ModelInstance(model).also { created ->
                     instances[cacheKey] = created
                 }
-            }.also { prepared ->
-                prepared.materials.forEach { applyMaterialAttributes(it, command.material) }
-                applyAnimationPreview(prepared, cacheKey, command.animation)
-                applyTransform(prepared, command)
-                applyVisibleMeshPartFilter(prepared, command.visibleMeshPartIndices)
             }
-        }
-        return instance
-    }
-
-    /** Renders one dynamic mesh-backed model command. */
-    private fun renderDynamicModel(command: DrawDynamicModel, environment: Environment) {
-        command.runtimeTextures.forEach(assets::upsertRuntimeTexture)
-        val model = dynamicGdxModel(command.model)
-        val cacheKey = ModelCacheKey(command.entityId, command.model.id)
-        val existing = instances[cacheKey]
-        val instance = if (existing?.model === model) {
-            existing
-        } else {
-            ModelInstance(model).also { created ->
-                instances[cacheKey] = created
-            }
-        }
 
         instance.materials.forEach { applyMaterialAttributes(it, command.material) }
 
@@ -338,8 +365,9 @@ class GdxRenderer3D(
                 material.baseColor.a,
             ),
         )
-        val resolvedDiffuseTexture = material.diffuseTextureRef
-            ?.let { ref -> assets.textureByPathOrId(ref.id) }
+        val resolvedDiffuseTexture =
+            material.diffuseTextureRef
+                ?.let { ref -> assets.textureByPathOrId(ref.id) }
         if (resolvedDiffuseTexture != null) {
             gdxMaterial.set(TextureAttribute.createDiffuse(resolvedDiffuseTexture))
         } else {
@@ -348,7 +376,11 @@ class GdxRenderer3D(
     }
 
     /** Renders a cached glTF scene instance. */
-    private fun renderGltfScene(command: DrawModel, environment: Environment, camera: Camera) {
+    private fun renderGltfScene(
+        command: DrawModel,
+        environment: Environment,
+        camera: Camera,
+    ) {
         assets.queue(command.model)
         val sceneAsset = assets.gltfScene(command.model) ?: return
         val requiredBones = maxOf(sceneAsset.maxBones, assets.modelInfo(command.model)?.boneCount ?: 0)
@@ -361,9 +393,10 @@ class GdxRenderer3D(
             return
         }
         val cacheKey = ModelCacheKey(command.entityId, command.model.path)
-        val scene = gltfScenes.getOrPut(cacheKey) {
-            GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
-        }
+        val scene =
+            gltfScenes.getOrPut(cacheKey) {
+                GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
+            }
         applyAnimationPreview(scene, command.animation)
 
         val transform = command.transform
@@ -384,58 +417,72 @@ class GdxRenderer3D(
         }
     }
 
-    private fun warnGltfRenderOnce(key: String, message: () -> String) {
+    private fun warnGltfRenderOnce(
+        key: String,
+        message: () -> String,
+    ) {
         if (warnedGltfRenderKeys.add(key)) {
             logger.warn(TAG, message = message)
         }
     }
 
     /** Converts a static model command into line vertices and draws it as wireframe. */
-    private fun renderWireframeModel(command: DrawModel, camera: Camera) {
-        command.material.shader.assets().forEach(assets::queue)
+    private fun renderWireframeModel(
+        command: DrawModel,
+        camera: Camera,
+    ) {
+        command.material.shader
+            .assets()
+            .forEach(assets::queue)
         assets.queue(command.model)
 
-        val instance = if (command.model.isGltf()) {
-            val scene = wireframeGltfScene(command, camera) ?: return
-            scene.modelInstance
-        } else {
-            val model = if (command.model.isPrimitive) {
-                primitive(command.model.path)
+        val instance =
+            if (command.model.isGltf()) {
+                val scene = wireframeGltfScene(command, camera) ?: return
+                scene.modelInstance
             } else {
-                assets.gdxModel(command.model)
-            } ?: return
+                val model =
+                    if (command.model.isPrimitive) {
+                        primitive(command.model.path)
+                    } else {
+                        assets.gdxModel(command.model)
+                    } ?: return
 
-            val cacheKey = ModelCacheKey(command.entityId, command.model.path)
-            val existing = instances[cacheKey]
-            if (existing?.model === model) {
-                existing
-            } else {
-                ModelInstance(model).also { created ->
-                    instances[cacheKey] = created
+                val cacheKey = ModelCacheKey(command.entityId, command.model.path)
+                val existing = instances[cacheKey]
+                if (existing?.model === model) {
+                    existing
+                } else {
+                    ModelInstance(model).also { created ->
+                        instances[cacheKey] = created
+                    }
+                }.also { instance ->
+                    applyAnimationPreview(instance, cacheKey, command.animation)
+                    applyTransform(instance, command)
+                    applyVisibleMeshPartFilter(instance, command.visibleMeshPartIndices)
                 }
-            }.also { instance ->
-                applyAnimationPreview(instance, cacheKey, command.animation)
-                applyTransform(instance, command)
-                applyVisibleMeshPartFilter(instance, command.visibleMeshPartIndices)
             }
-        }
 
         val vertices = wireframeVerticesFor(instance, command.material.baseColor)
         lineRenderer.renderVertices(vertices, camera)
     }
 
     /** Converts a dynamic model command into line vertices and draws it as wireframe. */
-    private fun renderWireframeDynamicModel(command: DrawDynamicModel, camera: Camera) {
+    private fun renderWireframeDynamicModel(
+        command: DrawDynamicModel,
+        camera: Camera,
+    ) {
         val model = dynamicGdxModel(command.model)
         val cacheKey = ModelCacheKey(command.entityId, command.model.id)
         val existing = instances[cacheKey]
-        val instance = if (existing?.model === model) {
-            existing
-        } else {
-            ModelInstance(model).also { created ->
-                instances[cacheKey] = created
+        val instance =
+            if (existing?.model === model) {
+                existing
+            } else {
+                ModelInstance(model).also { created ->
+                    instances[cacheKey] = created
+                }
             }
-        }
 
         applyTransform(instance, command.transform)
         val vertices = wireframeVerticesFor(instance, command.material.baseColor)
@@ -443,12 +490,16 @@ class GdxRenderer3D(
     }
 
     /** Returns a transformed glTF scene instance for wireframe extraction. */
-    private fun wireframeGltfScene(command: DrawModel, camera: Camera): GltfScene? {
+    private fun wireframeGltfScene(
+        command: DrawModel,
+        camera: Camera,
+    ): GltfScene? {
         val sceneAsset = assets.gltfScene(command.model) ?: return null
         val cacheKey = ModelCacheKey(command.entityId, command.model.path)
-        val scene = gltfScenes.getOrPut(cacheKey) {
-            GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
-        }
+        val scene =
+            gltfScenes.getOrPut(cacheKey) {
+                GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
+            }
         applyAnimationPreview(scene, command.animation)
         applyTransform(scene.modelInstance, command)
         applyVisibleMeshPartFilter(scene.modelInstance, command.visibleMeshPartIndices)
@@ -466,7 +517,10 @@ class GdxRenderer3D(
         applyAnimationPreview(instance, controller, preview)
     }
 
-    private fun applyAnimationPreview(scene: GltfScene, preview: AnimationPlaybackView?) {
+    private fun applyAnimationPreview(
+        scene: GltfScene,
+        preview: AnimationPlaybackView?,
+    ) {
         applyAnimationPreview(scene.modelInstance, scene.animationController, preview)
     }
 
@@ -482,20 +536,23 @@ class GdxRenderer3D(
             controller.update(0f)
             return
         }
-        val animation = instance.getAnimation(animationName) ?: run {
-            controller.setAnimation(null as String?)
-            controller.update(0f)
-            return
-        }
+        val animation =
+            instance.getAnimation(animationName) ?: run {
+                controller.setAnimation(null as String?)
+                controller.update(0f)
+                return
+            }
         controller.paused = false
         controller.setAnimation(animationName, if (preview.loop) -1 else 1, 1f, null)
         controller.current?.time = normalizedAnimationTime(animation, preview.timeSeconds, preview.loop)
         controller.update(0f)
     }
 
-
     /** Applies a draw command's transform to the instance. */
-    private fun applyTransform(instance: ModelInstance, command: DrawModel) {
+    private fun applyTransform(
+        instance: ModelInstance,
+        command: DrawModel,
+    ) {
         applyTransform(instance, command.transform)
     }
 
@@ -549,47 +606,53 @@ class GdxRenderer3D(
         val uvs = meshData.uvs
         val hasColors = meshData.hasVertexColors()
         val maxIndex = meshData.indices.maxOrNull() ?: -1
-        val canUseIndices = meshData.indices.isNotEmpty() &&
-            meshData.vertexCount <= UNSIGNED_SHORT_MASK &&
-            maxIndex <= UNSIGNED_SHORT_MASK
+        val canUseIndices =
+            meshData.indices.isNotEmpty() &&
+                meshData.vertexCount <= UNSIGNED_SHORT_MASK &&
+                maxIndex <= UNSIGNED_SHORT_MASK
 
-        val attributes = mutableListOf(
-            VertexAttribute.Position(),
-            VertexAttribute.Normal(),
-            VertexAttribute.TexCoords(0),
-        )
+        val attributes =
+            mutableListOf(
+                VertexAttribute.Position(),
+                VertexAttribute.Normal(),
+                VertexAttribute.TexCoords(0),
+            )
         if (hasColors) {
             attributes += VertexAttribute.ColorUnpacked()
         }
 
-        val vertexBuffer = if (canUseIndices) {
-            interleaveVertices(positions, normals, uvs, meshData.colors)
-        } else {
-            expandVertices(meshData)
-        }
+        val vertexBuffer =
+            if (canUseIndices) {
+                interleaveVertices(positions, normals, uvs, meshData.colors)
+            } else {
+                expandVertices(meshData)
+            }
         val vertexStride = dynamicVertexFloatCount(hasColors)
 
-        val mesh = Mesh(
-            true,
-            vertexBuffer.size / vertexStride,
-            if (canUseIndices) meshData.indices.size else 0,
-            *attributes.toTypedArray(),
-        )
+        val mesh =
+            Mesh(
+                true,
+                vertexBuffer.size / vertexStride,
+                if (canUseIndices) meshData.indices.size else 0,
+                *attributes.toTypedArray(),
+            )
         mesh.setVertices(vertexBuffer)
         if (canUseIndices) {
             mesh.setIndices(meshData.indices.map(Int::toShort).toShortArray())
         }
 
-        val material = Material(
-            ColorAttribute.createDiffuse(1f, 1f, 1f, 1f),
-        )
+        val material =
+            Material(
+                ColorAttribute.createDiffuse(1f, 1f, 1f, 1f),
+            )
         val partSize = if (canUseIndices) meshData.indices.size else vertexBuffer.size / vertexStride
         val meshPart = MeshPart(dynamicModel.id, mesh, 0, partSize, GL20.GL_TRIANGLES)
         val nodePart = NodePart(meshPart, material)
-        val node = Node().apply {
-            id = dynamicModel.id
-            parts.add(nodePart)
-        }
+        val node =
+            Node().apply {
+                id = dynamicModel.id
+                parts.add(nodePart)
+            }
 
         return Model().also { model ->
             model.meshes.add(mesh)
@@ -703,18 +766,22 @@ class GdxRenderer3D(
         val positionOffset = positionAttribute.offset / FLOAT_BYTES
         val vertexData = FloatArray(mesh.numVertices * vertexStride)
         mesh.getVertices(vertexData)
-        val indexData = if (mesh.numIndices > 0) {
-            ShortArray(mesh.numIndices).also(mesh::getIndices)
-        } else {
-            null
-        }
+        val indexData =
+            if (mesh.numIndices > 0) {
+                ShortArray(mesh.numIndices).also(mesh::getIndices)
+            } else {
+                null
+            }
 
         fun vertexIndex(localIndex: Int): Int {
             val absoluteIndex = meshPart.offset + localIndex
             return indexData?.getOrNull(absoluteIndex)?.toInt()?.and(UNSIGNED_SHORT_MASK) ?: absoluteIndex
         }
 
-        fun appendEdge(localA: Int, localB: Int) {
+        fun appendEdge(
+            localA: Int,
+            localB: Int,
+        ) {
             appendWireframeVertex(
                 vertices,
                 vertexData,
@@ -722,7 +789,7 @@ class GdxRenderer3D(
                 positionOffset,
                 vertexIndex(localA),
                 transform,
-                color
+                color,
             )
             appendWireframeVertex(
                 vertices,
@@ -731,7 +798,7 @@ class GdxRenderer3D(
                 positionOffset,
                 vertexIndex(localB),
                 transform,
-                color
+                color,
             )
         }
 
@@ -797,18 +864,21 @@ class GdxRenderer3D(
     /** Builds a LibGDX perspective camera from the active scene camera components. */
     private fun cameraFor(context: RenderContext): PerspectiveCamera {
         val activeCameraEntity =
-            context.scene.world.query<TransformComponent, PerspectiveCameraComponent, ActiveCameraComponent>()
+            context.scene.world
+                .query<TransformComponent, PerspectiveCameraComponent, ActiveCameraComponent>()
                 .firstOrNull()
         val cameraEntity =
-            activeCameraEntity ?: context.scene.world.query<TransformComponent, PerspectiveCameraComponent>()
+            activeCameraEntity ?: context.scene.world
+                .query<TransformComponent, PerspectiveCameraComponent>()
                 .firstOrNull()
         val cameraTransform = cameraEntity?.get<TransformComponent>()
         val cameraComponent = cameraEntity?.get<PerspectiveCameraComponent>()
-        val camera = PerspectiveCamera(
-            cameraComponent?.fieldOfViewDegrees ?: 67f,
-            width.toFloat(),
-            height.toFloat(),
-        )
+        val camera =
+            PerspectiveCamera(
+                cameraComponent?.fieldOfViewDegrees ?: 67f,
+                width.toFloat(),
+                height.toFloat(),
+            )
         val position = cameraTransform?.position
         camera.position.set(position?.x ?: 0f, position?.y ?: 2.5f, position?.z ?: 6f)
         camera.near = cameraComponent?.near ?: 0.1f
@@ -820,11 +890,12 @@ class GdxRenderer3D(
             val euler = cameraTransform?.eulerDegrees
             val pitch = Math.toRadians((euler?.x ?: 0f).toDouble())
             val yaw = Math.toRadians((euler?.y ?: 0f).toDouble())
-            camera.direction.set(
-                (sin(yaw) * cos(pitch)).toFloat(),
-                sin(pitch).toFloat(),
-                (cos(yaw) * cos(pitch)).toFloat(),
-            ).nor()
+            camera.direction
+                .set(
+                    (sin(yaw) * cos(pitch)).toFloat(),
+                    sin(pitch).toFloat(),
+                    (cos(yaw) * cos(pitch)).toFloat(),
+                ).nor()
         }
         camera.update()
         return camera
@@ -901,15 +972,16 @@ class GdxRenderer3D(
     }
 
     /** Returns a cached primitive model for built-in placeholder assets. */
-    private fun primitive(path: String): Model = primitives.getOrPut(path) {
-        ModelBuilder().createBox(
-            1f,
-            1f,
-            1f,
-            Material(ColorAttribute.createDiffuse(0.1f, 0.62f, 0.82f, 1f)),
-            (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal).toLong(),
-        )
-    }
+    private fun primitive(path: String): Model =
+        primitives.getOrPut(path) {
+            ModelBuilder().createBox(
+                1f,
+                1f,
+                1f,
+                Material(ColorAttribute.createDiffuse(0.1f, 0.62f, 0.82f, 1f)),
+                (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal).toLong(),
+            )
+        }
 
     companion object {
         private const val TAG = "GdxRenderer3D"
@@ -939,15 +1011,17 @@ private data class ModelCacheKey(
     val modelPath: String,
 )
 
-internal fun RuntimeTextureFilter.gdx(): Texture.TextureFilter = when (this) {
-    RuntimeTextureFilter.Nearest -> Texture.TextureFilter.Nearest
-    RuntimeTextureFilter.Linear -> Texture.TextureFilter.Linear
-}
+internal fun RuntimeTextureFilter.gdx(): Texture.TextureFilter =
+    when (this) {
+        RuntimeTextureFilter.Nearest -> Texture.TextureFilter.Nearest
+        RuntimeTextureFilter.Linear -> Texture.TextureFilter.Linear
+    }
 
-internal fun RuntimeTextureWrap.gdx(): Texture.TextureWrap = when (this) {
-    RuntimeTextureWrap.ClampToEdge -> Texture.TextureWrap.ClampToEdge
-    RuntimeTextureWrap.Repeat -> Texture.TextureWrap.Repeat
-}
+internal fun RuntimeTextureWrap.gdx(): Texture.TextureWrap =
+    when (this) {
+        RuntimeTextureWrap.ClampToEdge -> Texture.TextureWrap.ClampToEdge
+        RuntimeTextureWrap.Repeat -> Texture.TextureWrap.Repeat
+    }
 
 /**
  * Shared runtime skybox renderer for backend-neutral environment commands.
@@ -959,11 +1033,16 @@ private class GdxSkyboxRenderer(
     private val entries = mutableMapOf<String, RuntimeSkyboxEntry>()
     private val warnedKeys = mutableSetOf<String>()
 
-    fun render(command: ApplyEnvironment, camera: Camera, modelBatch: ModelBatch) {
-        val texturePath = command.skyboxTexture
-            ?.id
-            ?.takeIf { command.showSkybox && it.isNotBlank() }
-            ?: return
+    fun render(
+        command: ApplyEnvironment,
+        camera: Camera,
+        modelBatch: ModelBatch,
+    ) {
+        val texturePath =
+            command.skyboxTexture
+                ?.id
+                ?.takeIf { command.showSkybox && it.isNotBlank() }
+                ?: return
         val entry = entryFor(texturePath) ?: return
         val intensity = command.environmentIntensity.coerceAtLeast(0f)
         entry.skybox.color.set(intensity, intensity, intensity, 1f)
@@ -1022,7 +1101,10 @@ private class GdxSkyboxRenderer(
         }
     }
 
-    private fun warnOnce(key: String, message: () -> String) {
+    private fun warnOnce(
+        key: String,
+        message: () -> String,
+    ) {
         if (warnedKeys.add(key)) {
             logger.warn(TAG, message = message)
         }
@@ -1078,16 +1160,18 @@ private class GdxGltfPbrPreviewRenderer(
         return try {
             settings.skyboxTexture?.let { ref -> assets.queue(AssetRef.texture(ref.id)) }
             val cacheKey = ModelCacheKey(command.entityId, command.model.path)
-            val entry = entries.getOrPut(cacheKey) {
-                val scene = GltfScene(sceneAsset.scene)
-                val manager = GltfSceneManager(
-                    PBRShaderProvider.createDefault(sceneAsset.maxBones.coerceAtLeast(1)),
-                    PBRShaderProvider.createDefaultDepth(sceneAsset.maxBones.coerceAtLeast(1)),
-                )
-                manager.addScene(scene, false)
-                logger.info(TAG) { "Created PBR preview scene for '${command.model.path}'." }
-                PbrSceneEntry(scene = scene, manager = manager)
-            }
+            val entry =
+                entries.getOrPut(cacheKey) {
+                    val scene = GltfScene(sceneAsset.scene)
+                    val manager =
+                        GltfSceneManager(
+                            PBRShaderProvider.createDefault(sceneAsset.maxBones.coerceAtLeast(1)),
+                            PBRShaderProvider.createDefaultDepth(sceneAsset.maxBones.coerceAtLeast(1)),
+                        )
+                    manager.addScene(scene, false)
+                    logger.info(TAG) { "Created PBR preview scene for '${command.model.path}'." }
+                    PbrSceneEntry(scene = scene, manager = manager)
+                }
 
             applyTransform(entry.scene.modelInstance, command)
             meshPartFilter(entry.scene.modelInstance, command.visibleMeshPartIndices)
@@ -1109,7 +1193,10 @@ private class GdxGltfPbrPreviewRenderer(
         entries.clear()
     }
 
-    private fun configureEnvironment(entry: PbrSceneEntry, settings: com.pashkd.krender.engine.api.PbrPreviewView) {
+    private fun configureEnvironment(
+        entry: PbrSceneEntry,
+        settings: com.pashkd.krender.engine.api.PbrPreviewView,
+    ) {
         val direction = pbrLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
         val intensity = (settings.environmentIntensity * settings.exposure).coerceAtLeast(0f)
         entry.manager.environment.clear()
@@ -1119,8 +1206,8 @@ private class GdxGltfPbrPreviewRenderer(
                 0.08f * intensity,
                 0.09f * intensity,
                 0.1f * intensity,
-                1f
-            )
+                1f,
+            ),
         )
         if (settings.directionalLightEnabled) {
             entry.manager.environment.add(
@@ -1131,10 +1218,11 @@ private class GdxGltfPbrPreviewRenderer(
                 ),
             )
         }
-        val skyboxCubemap = settings.skyboxTexture
-            ?.id
-            ?.takeIf { path -> settings.showSkybox && path.isNotBlank() }
-            ?.let { path -> entry.ensureSkyboxCubemap(path) }
+        val skyboxCubemap =
+            settings.skyboxTexture
+                ?.id
+                ?.takeIf { path -> settings.showSkybox && path.isNotBlank() }
+                ?.let { path -> entry.ensureSkyboxCubemap(path) }
         if (skyboxCubemap != null) {
             entry.manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(skyboxCubemap))
             entry.manager.environment.set(PBRCubemapAttribute.createSpecularEnv(skyboxCubemap))
@@ -1181,13 +1269,17 @@ private class GdxGltfPbrPreviewRenderer(
         }
     }
 
-    private fun PbrSceneEntry.ensureIbl(direction: Vector3, intensity: Float): Boolean {
-        val nextKey = PbrEnvironmentKey(
-            intensity = "%.3f".format(intensity),
-            directionX = "%.3f".format(direction.x),
-            directionY = "%.3f".format(direction.y),
-            directionZ = "%.3f".format(direction.z),
-        )
+    private fun PbrSceneEntry.ensureIbl(
+        direction: Vector3,
+        intensity: Float,
+    ): Boolean {
+        val nextKey =
+            PbrEnvironmentKey(
+                intensity = "%.3f".format(intensity),
+                directionX = "%.3f".format(direction.x),
+                directionY = "%.3f".format(direction.y),
+                directionZ = "%.3f".format(direction.z),
+            )
         if (environmentKey == nextKey) return iblAvailable
         disposeEnvironment()
         val light = DirectionalLightEx().set(Color.WHITE, direction, intensity)
@@ -1214,7 +1306,10 @@ private class GdxGltfPbrPreviewRenderer(
         }
     }
 
-    private fun warnOnce(key: String, message: () -> String) {
+    private fun warnOnce(
+        key: String,
+        message: () -> String,
+    ) {
         if (warnedKeys.add(key)) {
             logger.warn(TAG, message = message)
         }
@@ -1273,7 +1368,10 @@ private data class PbrEnvironmentKey(
     val directionZ: String,
 )
 
-private fun pbrLightDirection(yawDegrees: Float, pitchDegrees: Float): Vector3 {
+private fun pbrLightDirection(
+    yawDegrees: Float,
+    pitchDegrees: Float,
+): Vector3 {
     val yaw = Math.toRadians(yawDegrees.toDouble())
     val pitch = Math.toRadians(pitchDegrees.toDouble())
     val x = (cos(pitch) * cos(yaw)).toFloat()
@@ -1332,7 +1430,10 @@ private data class CubemapFaceRegion(
     val y: Int,
 )
 
-private fun cubemapLayoutFor(width: Int, height: Int): CubemapLayout {
+private fun cubemapLayoutFor(
+    width: Int,
+    height: Int,
+): CubemapLayout {
     require(width > 0 && height > 0) {
         "Cubemap source dimensions must be positive, got ${width}x$height."
     }
@@ -1359,14 +1460,15 @@ private fun cubemapLayoutFor(width: Int, height: Int): CubemapLayout {
             val faceSize = width / 4
             CubemapLayout(
                 faceSize = faceSize,
-                faces = listOf(
-                    CubemapFaceRegion(2, 1), // +X
-                    CubemapFaceRegion(0, 1), // -X
-                    CubemapFaceRegion(1, 0), // +Y
-                    CubemapFaceRegion(1, 2), // -Y
-                    CubemapFaceRegion(1, 1), // +Z
-                    CubemapFaceRegion(3, 1), // -Z
-                ),
+                faces =
+                    listOf(
+                        CubemapFaceRegion(2, 1), // +X
+                        CubemapFaceRegion(0, 1), // -X
+                        CubemapFaceRegion(1, 0), // +Y
+                        CubemapFaceRegion(1, 2), // -Y
+                        CubemapFaceRegion(1, 1), // +Z
+                        CubemapFaceRegion(3, 1), // -Z
+                    ),
             )
         }
 
@@ -1379,21 +1481,23 @@ private fun cubemapLayoutFor(width: Int, height: Int): CubemapLayout {
             val faceSize = width / 3
             CubemapLayout(
                 faceSize = faceSize,
-                faces = listOf(
-                    CubemapFaceRegion(2, 1), // +X
-                    CubemapFaceRegion(0, 1), // -X
-                    CubemapFaceRegion(1, 0), // +Y
-                    CubemapFaceRegion(1, 2), // -Y
-                    CubemapFaceRegion(1, 1), // +Z
-                    CubemapFaceRegion(1, 3), // -Z
-                ),
+                faces =
+                    listOf(
+                        CubemapFaceRegion(2, 1), // +X
+                        CubemapFaceRegion(0, 1), // -X
+                        CubemapFaceRegion(1, 0), // +Y
+                        CubemapFaceRegion(1, 2), // -Y
+                        CubemapFaceRegion(1, 1), // +Z
+                        CubemapFaceRegion(1, 3), // -Z
+                    ),
             )
         }
 
-        else -> error(
-            "Unsupported cubemap texture layout ${width}x$height. " +
-                "Expected 6x1 strip, 1x6 strip, 4x3 cross, or 3x4 cross.",
-        )
+        else ->
+            error(
+                "Unsupported cubemap texture layout ${width}x$height. " +
+                    "Expected 6x1 strip, 1x6 strip, 4x3 cross, or 3x4 cross.",
+            )
     }
 }
 
@@ -1402,7 +1506,10 @@ private fun Pixmap.textureData(disposePixmap: Boolean): PixmapTextureData =
 
 private const val CUBEMAP_FACE_COUNT = 6
 
-private fun applyTransform(instance: ModelInstance, command: DrawModel) {
+private fun applyTransform(
+    instance: ModelInstance,
+    command: DrawModel,
+) {
     val transform = command.transform
     instance.transform.idt()
     instance.transform.translate(transform.position.x, transform.position.y, transform.position.z)
@@ -1420,33 +1527,37 @@ private class GdxModelViewerDebugRenderer(
     private val logger: Logger,
 ) {
     private val uvShaders = mutableMapOf<Int, ShaderProgram?>()
-    private val fallbackShader: ShaderProgram? = compileShader(
-        name = "model-viewer-debug-fallback",
-        vertex = """
-            attribute vec3 a_position;
-            uniform mat4 u_projViewTrans;
-            uniform mat4 u_worldTrans;
+    private val fallbackShader: ShaderProgram? =
+        compileShader(
+            name = "model-viewer-debug-fallback",
+            vertex =
+                """
+                attribute vec3 a_position;
+                uniform mat4 u_projViewTrans;
+                uniform mat4 u_worldTrans;
 
-            void main() {
-                gl_Position = u_projViewTrans * u_worldTrans * vec4(a_position, 1.0);
-            }
-        """.trimIndent(),
-        fragment = """
-            #ifdef GL_ES
-            precision mediump float;
-            #endif
+                void main() {
+                    gl_Position = u_projViewTrans * u_worldTrans * vec4(a_position, 1.0);
+                }
+                """.trimIndent(),
+            fragment =
+                """
+                #ifdef GL_ES
+                precision mediump float;
+                #endif
 
-            uniform vec4 u_FallbackColor;
+                uniform vec4 u_FallbackColor;
 
-            void main() {
-                gl_FragColor = u_FallbackColor;
-            }
-        """.trimIndent(),
-    )
+                void main() {
+                    gl_FragColor = u_FallbackColor;
+                }
+                """.trimIndent(),
+        )
     private val renderables = Array<Renderable>()
-    private val renderablePool = object : Pool<Renderable>() {
-        override fun newObject(): Renderable = Renderable()
-    }
+    private val renderablePool =
+        object : Pool<Renderable>() {
+            override fun newObject(): Renderable = Renderable()
+        }
     private val warnedKeys = mutableSetOf<String>()
 
     fun render(
@@ -1481,7 +1592,10 @@ private class GdxModelViewerDebugRenderer(
     }
 
     fun dispose() {
-        uvShaders.values.filterNotNull().toSet().forEach(ShaderProgram::dispose)
+        uvShaders.values
+            .filterNotNull()
+            .toSet()
+            .forEach(ShaderProgram::dispose)
         fallbackShader?.dispose()
     }
 
@@ -1501,11 +1615,12 @@ private class GdxModelViewerDebugRenderer(
             return
         }
 
-        val uvChannel = if (mode == MaterialDebugMode.UvChecker) {
-            debugView.uvChannel.coerceAtLeast(0)
-        } else {
-            textureRef?.texture?.uvChannel?.coerceAtLeast(0) ?: 0
-        }
+        val uvChannel =
+            if (mode == MaterialDebugMode.UvChecker) {
+                debugView.uvChannel.coerceAtLeast(0)
+            } else {
+                textureRef?.texture?.uvChannel?.coerceAtLeast(0) ?: 0
+            }
         if (!renderable.meshPart.hasUvChannel(uvChannel)) {
             warnOnce("missing-uv-$mode-$uvChannel") {
                 "ModelViewer debug shader fallback: mesh part '${renderable.meshPart.id}' has no UV$uvChannel for mode=$mode"
@@ -1514,15 +1629,16 @@ private class GdxModelViewerDebugRenderer(
             return
         }
 
-        val texture = if (mode == MaterialDebugMode.UvChecker) {
-            val checkerRef = debugView.uvCheckerTexture
-            checkerRef?.let { ref ->
-                assets.queue(AssetRef.texture(ref.id))
-                assets.gdxTexture(AssetRef.texture(ref.id))
+        val texture =
+            if (mode == MaterialDebugMode.UvChecker) {
+                val checkerRef = debugView.uvCheckerTexture
+                checkerRef?.let { ref ->
+                    assets.queue(AssetRef.texture(ref.id))
+                    assets.gdxTexture(AssetRef.texture(ref.id))
+                }
+            } else {
+                textureRef?.texture?.let { ref -> assets.textureByPathOrId(ref.id) }
             }
-        } else {
-            textureRef?.texture?.let { ref -> assets.textureByPathOrId(ref.id) }
-        }
 
         if (texture == null) {
             warnOnce("missing-texture-$mode-${materialIndex ?: "unknown"}") {
@@ -1532,10 +1648,11 @@ private class GdxModelViewerDebugRenderer(
             return
         }
 
-        val shader = uvShader(uvChannel) ?: run {
-            renderFallback(renderable, camera, FallbackShaderError)
-            return
-        }
+        val shader =
+            uvShader(uvChannel) ?: run {
+                renderFallback(renderable, camera, FallbackShaderError)
+                return
+            }
 
         texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat)
         texture.bind(0)
@@ -1548,8 +1665,11 @@ private class GdxModelViewerDebugRenderer(
         shader.setUniformi(
             "u_DebugComponent",
             textureDebugComponentCode(
-                if (mode == MaterialDebugMode.UvChecker) TextureDebugComponent.RGB
-                else textureRef?.component ?: TextureDebugComponent.RGB,
+                if (mode == MaterialDebugMode.UvChecker) {
+                    TextureDebugComponent.RGB
+                } else {
+                    textureRef?.component ?: TextureDebugComponent.RGB
+                },
             ),
         )
         shader.setUniformf("u_UvCheckerScale", debugView.uvScale.coerceAtLeast(MIN_UV_SCALE))
@@ -1597,7 +1717,8 @@ private class GdxModelViewerDebugRenderer(
         uvShaders.getOrPut(uvChannel) {
             compileShader(
                 name = "model-viewer-debug-uv$uvChannel",
-                vertex = """
+                vertex =
+                    """
                     attribute vec3 a_position;
                     attribute vec2 a_texCoord$uvChannel;
                     uniform mat4 u_projViewTrans;
@@ -1608,8 +1729,9 @@ private class GdxModelViewerDebugRenderer(
                         v_uv = a_texCoord$uvChannel;
                         gl_Position = u_projViewTrans * u_worldTrans * vec4(a_position, 1.0);
                     }
-                """.trimIndent(),
-                fragment = """
+                    """.trimIndent(),
+                fragment =
+                    """
                     #ifdef GL_ES
                     precision mediump float;
                     #endif
@@ -1640,11 +1762,15 @@ private class GdxModelViewerDebugRenderer(
                             gl_FragColor = vec4(texel.rgb, 1.0);
                         }
                     }
-                """.trimIndent(),
+                    """.trimIndent(),
             )
         }
 
-    private fun compileShader(name: String, vertex: String, fragment: String): ShaderProgram? {
+    private fun compileShader(
+        name: String,
+        vertex: String,
+        fragment: String,
+    ): ShaderProgram? {
         val shader = ShaderProgram(vertex, fragment)
         if (!shader.isCompiled) {
             logger.error(TAG) { "ModelViewer debug shader compile failed name='$name': ${shader.log}" }
@@ -1655,7 +1781,10 @@ private class GdxModelViewerDebugRenderer(
         return shader
     }
 
-    private fun warnOnce(key: String, message: () -> String) {
+    private fun warnOnce(
+        key: String,
+        message: () -> String,
+    ) {
         if (warnedKeys.add(key)) {
             logger.warn(TAG, message = message)
         }
@@ -1676,23 +1805,26 @@ private class GdxModelViewerDebugRenderer(
     }
 }
 
-private fun debugModeCode(mode: MaterialDebugMode): Int = when (mode) {
-    MaterialDebugMode.Alpha -> 6
-    MaterialDebugMode.UvChecker -> 7
-    else -> 1
-}
+private fun debugModeCode(mode: MaterialDebugMode): Int =
+    when (mode) {
+        MaterialDebugMode.Alpha -> 6
+        MaterialDebugMode.UvChecker -> 7
+        else -> 1
+    }
 
-private fun textureDebugComponentCode(component: TextureDebugComponent): Int = when (component) {
-    TextureDebugComponent.RGB -> 0
-    TextureDebugComponent.R -> 1
-    TextureDebugComponent.G -> 2
-    TextureDebugComponent.B -> 3
-    TextureDebugComponent.A -> 4
-    TextureDebugComponent.RGBA -> 5
-}
+private fun textureDebugComponentCode(component: TextureDebugComponent): Int =
+    when (component) {
+        TextureDebugComponent.RGB -> 0
+        TextureDebugComponent.R -> 1
+        TextureDebugComponent.G -> 2
+        TextureDebugComponent.B -> 3
+        TextureDebugComponent.A -> 4
+        TextureDebugComponent.RGBA -> 5
+    }
 
 private fun normalizeTextureChannel(channel: String?): String =
-    channel.orEmpty()
+    channel
+        .orEmpty()
         .lowercase()
         .filter { char -> char.isLetterOrDigit() }
 
@@ -1700,30 +1832,31 @@ private fun normalizeTextureChannel(channel: String?): String =
  * Minimal shader-based line renderer used for debug grids, axes, and wireframes.
  */
 class GdxLineShaderRenderer {
-    private val shader = ShaderProgram(
-        """
-        attribute vec3 a_position;
-        attribute vec4 a_color;
-        uniform mat4 u_projViewTrans;
-        varying vec4 v_color;
+    private val shader =
+        ShaderProgram(
+            """
+            attribute vec3 a_position;
+            attribute vec4 a_color;
+            uniform mat4 u_projViewTrans;
+            varying vec4 v_color;
 
-        void main() {
-            v_color = a_color;
-            gl_Position = u_projViewTrans * vec4(a_position, 1.0);
-        }
-        """.trimIndent(),
-        """
-        #ifdef GL_ES
-        precision mediump float;
-        #endif
+            void main() {
+                v_color = a_color;
+                gl_Position = u_projViewTrans * vec4(a_position, 1.0);
+            }
+            """.trimIndent(),
+            """
+            #ifdef GL_ES
+            precision mediump float;
+            #endif
 
-        varying vec4 v_color;
+            varying vec4 v_color;
 
-        void main() {
-            gl_FragColor = v_color;
-        }
-        """.trimIndent(),
-    )
+            void main() {
+                gl_FragColor = v_color;
+            }
+            """.trimIndent(),
+        )
 
     private var mesh: Mesh? = null
     private var vertexCapacity: Int = 0
@@ -1733,7 +1866,10 @@ class GdxLineShaderRenderer {
     }
 
     /** Renders non-overlay world debug lines such as grids and axes. */
-    fun render(commands: List<com.pashkd.krender.engine.api.RenderCommand>, camera: Camera) {
+    fun render(
+        commands: List<com.pashkd.krender.engine.api.RenderCommand>,
+        camera: Camera,
+    ) {
         val vertices = mutableListOf<Float>()
         commands.forEach { command ->
             when (command) {
@@ -1747,7 +1883,10 @@ class GdxLineShaderRenderer {
     }
 
     /** Renders explicit overlay lines without depth testing. */
-    fun renderOverlayLines(commands: List<com.pashkd.krender.engine.api.RenderCommand>, camera: Camera) {
+    fun renderOverlayLines(
+        commands: List<com.pashkd.krender.engine.api.RenderCommand>,
+        camera: Camera,
+    ) {
         val vertices = mutableListOf<Float>()
         commands.filterIsInstance<DrawLine>().forEach { command ->
             appendLine(vertices, command.from, command.to, command.color)
@@ -1794,7 +1933,10 @@ class GdxLineShaderRenderer {
     }
 
     /** Appends a world grid to the vertex list. */
-    private fun appendGrid(vertices: MutableList<Float>, command: DrawWorldGrid) {
+    private fun appendGrid(
+        vertices: MutableList<Float>,
+        command: DrawWorldGrid,
+    ) {
         val half = command.halfExtentCells.coerceAtLeast(1)
         val min = -half * command.cellSize
         val max = half * command.cellSize
@@ -1817,25 +1959,31 @@ class GdxLineShaderRenderer {
     }
 
     /** Appends RGB world axes centered at the origin. */
-    private fun appendAxes(vertices: MutableList<Float>, command: DrawWorldAxes) {
+    private fun appendAxes(
+        vertices: MutableList<Float>,
+        command: DrawWorldAxes,
+    ) {
         val length = command.length.coerceAtLeast(1f)
         appendLine(
             vertices,
             Vec3(-length, 0f, 0f),
             Vec3(length, 0f, 0f),
-            com.pashkd.krender.engine.api.Color(1f, 0f, 0f, 1f)
+            com.pashkd.krender.engine.api
+                .Color(1f, 0f, 0f, 1f),
         )
         appendLine(
             vertices,
             Vec3(0f, -length, 0f),
             Vec3(0f, length, 0f),
-            com.pashkd.krender.engine.api.Color(0f, 1f, 0f, 1f)
+            com.pashkd.krender.engine.api
+                .Color(0f, 1f, 0f, 1f),
         )
         appendLine(
             vertices,
             Vec3(0f, 0f, -length),
             Vec3(0f, 0f, length),
-            com.pashkd.krender.engine.api.Color(0f, 0.35f, 1f, 1f)
+            com.pashkd.krender.engine.api
+                .Color(0f, 0.35f, 1f, 1f),
         )
     }
 
@@ -1851,7 +1999,11 @@ class GdxLineShaderRenderer {
     }
 
     /** Appends one colored line vertex. */
-    private fun appendVertex(vertices: MutableList<Float>, position: Vec3, color: com.pashkd.krender.engine.api.Color) {
+    private fun appendVertex(
+        vertices: MutableList<Float>,
+        position: Vec3,
+        color: com.pashkd.krender.engine.api.Color,
+    ) {
         vertices += position.x
         vertices += position.y
         vertices += position.z
@@ -1866,13 +2018,14 @@ class GdxLineShaderRenderer {
         if (mesh == null || vertexCount > vertexCapacity) {
             mesh?.dispose()
             vertexCapacity = vertexCount
-            mesh = Mesh(
-                false,
-                vertexCapacity,
-                0,
-                VertexAttribute.Position(),
-                VertexAttribute.ColorUnpacked(),
-            )
+            mesh =
+                Mesh(
+                    false,
+                    vertexCapacity,
+                    0,
+                    VertexAttribute.Position(),
+                    VertexAttribute.ColorUnpacked(),
+                )
         }
         return mesh ?: error("Line mesh was not created")
     }
@@ -1886,18 +2039,26 @@ class GdxLineShaderRenderer {
 internal fun AssetRef<*>.isGltf(): Boolean =
     path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true)
 
-internal fun normalizedAnimationTime(animation: Animation, timeSeconds: Float, loop: Boolean): Float {
+internal fun normalizedAnimationTime(
+    animation: Animation,
+    timeSeconds: Float,
+    loop: Boolean,
+): Float {
     val duration = animation.duration.takeIf { it > 0f } ?: return 0f
     if (!loop) return timeSeconds.coerceIn(0f, duration)
     val wrapped = timeSeconds % duration
     return if (wrapped < 0f) wrapped + duration else wrapped
 }
 
-private fun systemBoolean(name: String, default: Boolean): Boolean {
+private fun systemBoolean(
+    name: String,
+    default: Boolean,
+): Boolean {
     val envName = name.replace('.', '_').uppercase()
-    val value = System.getProperty(name)
-        ?: System.getenv(envName)
-        ?: return default
+    val value =
+        System.getProperty(name)
+            ?: System.getenv(envName)
+            ?: return default
     return when (value.trim().lowercase()) {
         "1", "true", "yes", "on" -> true
         "0", "false", "no", "off" -> false
@@ -1905,10 +2066,14 @@ private fun systemBoolean(name: String, default: Boolean): Boolean {
     }
 }
 
-private fun systemInt(name: String, default: Int): Int {
+private fun systemInt(
+    name: String,
+    default: Int,
+): Int {
     val envName = name.replace('.', '_').uppercase()
-    val value = System.getProperty(name)
-        ?: System.getenv(envName)
-        ?: return default
+    val value =
+        System.getProperty(name)
+            ?: System.getenv(envName)
+            ?: return default
     return value.trim().toIntOrNull() ?: default
 }

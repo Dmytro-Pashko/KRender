@@ -57,23 +57,26 @@ class AnimationViewerOperations(
         }
 
         val scale = state.modelScale.coerceAtLeast(MinScale)
-        val center = Vec3(
-            x = ((bounds.min.x + bounds.max.x) * 0.5f) * scale,
-            y = ((bounds.min.y + bounds.max.y) * 0.5f) * scale,
-            z = ((bounds.min.z + bounds.max.z) * 0.5f) * scale,
-        )
-        val size = Vec3(
-            x = (bounds.max.x - bounds.min.x) * scale,
-            y = (bounds.max.y - bounds.min.y) * scale,
-            z = (bounds.max.z - bounds.min.z) * scale,
-        )
+        val center =
+            Vec3(
+                x = ((bounds.min.x + bounds.max.x) * 0.5f) * scale,
+                y = ((bounds.min.y + bounds.max.y) * 0.5f) * scale,
+                z = ((bounds.min.z + bounds.max.z) * 0.5f) * scale,
+            )
+        val size =
+            Vec3(
+                x = (bounds.max.x - bounds.min.x) * scale,
+                y = (bounds.max.y - bounds.min.y) * scale,
+                z = (bounds.max.z - bounds.min.z) * scale,
+            )
         val radius = sqrt(size.x * size.x + size.y * size.y + size.z * size.z) * 0.5f
         val distance = max(radius * FrameDistanceMultiplier, MinFrameDistance)
-        val position = Vec3(
-            x = center.x,
-            y = center.y + max(size.y * FrameHeightOffsetRatio, MinFrameHeightOffset),
-            z = center.z + distance,
-        )
+        val position =
+            Vec3(
+                x = center.x,
+                y = center.y + max(size.y * FrameHeightOffsetRatio, MinFrameHeightOffset),
+                z = center.z + distance,
+            )
         val eulerDegrees = Vec3(-10f, 180f, 0f)
 
         state.camera.pendingPosition = position
@@ -89,9 +92,13 @@ class AnimationViewerOperations(
         if (index !in names.indices) return
         state.selectedAnimationIndex = index
         state.selectedAnimationName = names[index]
-        state.durationSeconds = state.selectedAnimationName?.let { selected ->
-            state.modelInfo?.animations?.firstOrNull { animation -> animation.name == selected }?.durationSeconds
-        }
+        state.durationSeconds =
+            state.selectedAnimationName?.let { selected ->
+                state.modelInfo
+                    ?.animations
+                    ?.firstOrNull { animation -> animation.name == selected }
+                    ?.durationSeconds
+            }
         state.currentTimeSeconds = 0f
         state.statusMessage = "Selected animation: ${state.selectedAnimationName}"
         context.logger.info(TAG) {
@@ -212,7 +219,10 @@ class AnimationViewerOperations(
     }
 }
 
-internal fun clampAnimationTime(timeSeconds: Float, durationSeconds: Float?): Float {
+internal fun clampAnimationTime(
+    timeSeconds: Float,
+    durationSeconds: Float?,
+): Float {
     val duration = durationSeconds
     return if (duration != null && duration > 0f) {
         timeSeconds.coerceIn(0f, duration)
@@ -220,4 +230,3 @@ internal fun clampAnimationTime(timeSeconds: Float, durationSeconds: Float?): Fl
         timeSeconds.coerceIn(0f, AnimationViewerState.UnknownDurationPreviewWindowSeconds)
     }
 }
-

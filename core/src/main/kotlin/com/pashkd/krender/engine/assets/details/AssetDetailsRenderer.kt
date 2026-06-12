@@ -16,5 +16,9 @@ data class AssetDetailsRenderContext(
 
 interface AssetDetailsRenderer {
     fun supports(asset: AssetDescriptor): Boolean
-    fun render(asset: AssetDescriptor, context: AssetDetailsRenderContext)
+
+    fun render(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    )
 }

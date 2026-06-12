@@ -67,12 +67,13 @@ internal class UiComposerCanvasRectTest {
 
     @Test
     internal fun `FitPanel preset uses panel size`() {
-        val resolution = UiComposerPreviewResolutionPreset.FitPanel.defaultResolution(
-            customWidth = 1,
-            customHeight = 1,
-            panelWidth = 900,
-            panelHeight = 500,
-        )
+        val resolution =
+            UiComposerPreviewResolutionPreset.FitPanel.defaultResolution(
+                customWidth = 1,
+                customHeight = 1,
+                panelWidth = 900,
+                panelHeight = 500,
+            )
 
         assertEquals(900, resolution.width)
         assertEquals(500, resolution.height)
@@ -80,12 +81,13 @@ internal class UiComposerCanvasRectTest {
 
     @Test
     internal fun `FullHD preset uses 1920x1080`() {
-        val resolution = UiComposerPreviewResolutionPreset.FullHD_1920x1080.defaultResolution(
-            customWidth = 1,
-            customHeight = 1,
-            panelWidth = 900,
-            panelHeight = 500,
-        )
+        val resolution =
+            UiComposerPreviewResolutionPreset.FullHD_1920x1080.defaultResolution(
+                customWidth = 1,
+                customHeight = 1,
+                panelWidth = 900,
+                panelHeight = 500,
+            )
 
         assertEquals(1920, resolution.width)
         assertEquals(1080, resolution.height)
@@ -93,12 +95,13 @@ internal class UiComposerCanvasRectTest {
 
     @Test
     internal fun `Custom preset clamps to positive size`() {
-        val resolution = UiComposerPreviewResolutionPreset.Custom.defaultResolution(
-            customWidth = 0,
-            customHeight = -10,
-            panelWidth = 900,
-            panelHeight = 500,
-        )
+        val resolution =
+            UiComposerPreviewResolutionPreset.Custom.defaultResolution(
+                customWidth = 0,
+                customHeight = -10,
+                panelWidth = 900,
+                panelHeight = 500,
+            )
 
         assertEquals(1, resolution.width)
         assertEquals(1, resolution.height)

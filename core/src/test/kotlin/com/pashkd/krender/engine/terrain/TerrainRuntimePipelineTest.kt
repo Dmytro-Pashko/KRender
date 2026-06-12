@@ -16,8 +16,8 @@ import com.pashkd.krender.engine.render3d.Material
 import kotlin.math.roundToInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -26,12 +26,13 @@ class TerrainRuntimePipelineTest {
     @Test
     fun `bakes final splat texture from material fallback colors when texture files are unavailable`() {
         val terrain = terrainWithOneLayer(materialId = "terrain/grass")
-        val texture = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger).bakeFinalSplatTexture(
-            terrain = terrain,
-            resolution = 2,
-            textureId = "runtime:test:grass",
-            revision = 7L,
-        )
+        val texture =
+            TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger).bakeFinalSplatTexture(
+                terrain = terrain,
+                resolution = 2,
+                textureId = "runtime:test:grass",
+                revision = 7L,
+            )
 
         assertEquals("runtime:test:grass", texture.id)
         assertEquals(7L, texture.revision)
@@ -44,30 +45,33 @@ class TerrainRuntimePipelineTest {
     fun `bakes final splat texture from sampled material texture colors when available`() {
         val terrain = terrainWithOneLayer(materialId = "terrain/grass", tiling = 1.3f)
 
-        val texture = TerrainMaterialBakeService(
-            materialLibrary = testMaterialLibrary(),
-            logger = NoopLogger,
-            textureSamplerFactory = TerrainMaterialTextureSamplerFactory {
-                object : TerrainMaterialTextureSampler {
-                    override fun sample(
-                        layer: TerrainLayer,
-                        material: TerrainMaterialDescriptor,
-                        u: Float,
-                        v: Float,
-                    ): TerrainLayerColorDescriptor = TerrainLayerColorDescriptor(
-                        r = u.coerceIn(0f, 1f),
-                        g = v.coerceIn(0f, 1f),
-                        b = 0.25f,
-                        a = 1f,
-                    )
-                }
-            },
-        ).bakeFinalSplatTexture(
-            terrain = terrain,
-            resolution = 4,
-            textureId = "runtime:test:textured-grass",
-            revision = 2L,
-        )
+        val texture =
+            TerrainMaterialBakeService(
+                materialLibrary = testMaterialLibrary(),
+                logger = NoopLogger,
+                textureSamplerFactory =
+                    TerrainMaterialTextureSamplerFactory {
+                        object : TerrainMaterialTextureSampler {
+                            override fun sample(
+                                layer: TerrainLayer,
+                                material: TerrainMaterialDescriptor,
+                                u: Float,
+                                v: Float,
+                            ): TerrainLayerColorDescriptor =
+                                TerrainLayerColorDescriptor(
+                                    r = u.coerceIn(0f, 1f),
+                                    g = v.coerceIn(0f, 1f),
+                                    b = 0.25f,
+                                    a = 1f,
+                                )
+                        }
+                    },
+            ).bakeFinalSplatTexture(
+                terrain = terrain,
+                resolution = 4,
+                textureId = "runtime:test:textured-grass",
+                revision = 2L,
+            )
 
         assertEquals(4, texture.width)
         assertEquals(4, texture.height)
@@ -80,26 +84,28 @@ class TerrainRuntimePipelineTest {
         val layerColor = TerrainLayerColorDescriptor(0.2f, 0.3f, 0.4f, 1f)
         val terrain = terrainWithOneLayer(materialId = "terrain/missing", color = layerColor)
 
-        val texture = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger).bakeFinalSplatTexture(
-            terrain = terrain,
-            resolution = 2,
-            textureId = "runtime:test:layer-color",
-            revision = 1L,
-        )
+        val texture =
+            TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger).bakeFinalSplatTexture(
+                terrain = terrain,
+                resolution = 2,
+                textureId = "runtime:test:layer-color",
+                revision = 1L,
+            )
 
         assertTrue(texture.rgba8888.all { it == rgba8888(layerColor.r, layerColor.g, layerColor.b, layerColor.a) })
     }
 
     @Test
     fun `runtime factory throws when source is missing`() {
-        val error = assertFailsWith<IllegalArgumentException> {
-            TerrainRuntimeFactory(
-                logger = NoopLogger,
-                persistence = MissingTerrainPersistence,
-            ).load(
-                terrainFilePath = "terrains/missing.krterrain",
-            )
-        }
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                TerrainRuntimeFactory(
+                    logger = NoopLogger,
+                    persistence = MissingTerrainPersistence,
+                ).load(
+                    terrainFilePath = "terrains/missing.krterrain",
+                )
+            }
 
         assertTrue(error.message.orEmpty().contains("Runtime terrain asset not found"))
     }
@@ -167,12 +173,13 @@ class TerrainRuntimePipelineTest {
         tiling: Float = 8f,
     ): TerrainData {
         val terrain = TerrainData(width = 2, height = 2, vertexSpacing = 1f)
-        val layer = terrain.addLayer(
-            name = "Base",
-            materialId = materialId,
-            color = color,
-            visible = true,
-        )
+        val layer =
+            terrain.addLayer(
+                name = "Base",
+                materialId = materialId,
+                color = color,
+                visible = true,
+            )
         layer.tiling = tiling
         for (y in 0 until terrain.height) {
             for (x in 0 until terrain.width) {
@@ -198,12 +205,13 @@ class TerrainRuntimePipelineTest {
     private fun dummyModel(id: String): DynamicModel =
         DynamicModel(
             id = id,
-            mesh = DynamicMesh(
-                positions = floatArrayOf(0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 1f),
-                normals = floatArrayOf(0f, 1f, 0f, 0f, 1f, 0f, 0f, 1f, 0f),
-                uvs = floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f),
-                indices = intArrayOf(0, 1, 2),
-            ),
+            mesh =
+                DynamicMesh(
+                    positions = floatArrayOf(0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 1f),
+                    normals = floatArrayOf(0f, 1f, 0f, 0f, 1f, 0f, 0f, 1f, 0f),
+                    uvs = floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f),
+                    indices = intArrayOf(0, 1, 2),
+                ),
         )
 
     private fun runtimeTexture(id: String): RuntimeTextureData =
@@ -215,7 +223,12 @@ class TerrainRuntimePipelineTest {
             rgba8888 = intArrayOf(rgba8888(1f, 1f, 1f, 1f)),
         )
 
-    private fun rgba8888(r: Float, g: Float, b: Float, a: Float): Int {
+    private fun rgba8888(
+        r: Float,
+        g: Float,
+        b: Float,
+        a: Float,
+    ): Int {
         val red = (r.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
         val green = (g.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
         val blue = (b.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
@@ -223,7 +236,10 @@ class TerrainRuntimePipelineTest {
         return (red shl 24) or (green shl 16) or (blue shl 8) or alpha
     }
 
-    private inline fun <T> withGdxFiles(files: Files?, block: () -> T): T {
+    private inline fun <T> withGdxFiles(
+        files: Files?,
+        block: () -> T,
+    ): T {
         val previous = Gdx.files
         Gdx.files = files
         return try {
@@ -234,14 +250,19 @@ class TerrainRuntimePipelineTest {
     }
 
     private object NoopLogger : Logger {
-        override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) = Unit
+        override fun log(
+            level: LogLevel,
+            tag: String,
+            error: Throwable?,
+            message: () -> String,
+        ) = Unit
     }
 
     private object MissingTerrainPersistence : TerrainRuntimePersistence {
         override fun existsReadable(filePath: String): Boolean = false
-        override fun readableSource(filePath: String): String = "missing"
-        override fun loadDescriptor(filePath: String): TerrainFileDescriptor =
-            error("Missing persistence should not load descriptors")
-    }
 
+        override fun readableSource(filePath: String): String = "missing"
+
+        override fun loadDescriptor(filePath: String): TerrainFileDescriptor = error("Missing persistence should not load descriptors")
+    }
 }

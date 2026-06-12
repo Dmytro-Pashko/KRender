@@ -63,39 +63,42 @@ class SceneDependencyCollector(
         descriptor.entities.forEach { entity ->
             entity.components.forEach { component ->
                 when (component.type) {
-                    SceneComponentTypes.Model -> component.properties["model"]
-                        .normalizedDependencyPath()
-                        ?.let { path ->
-                            dependencies.merge(
-                                SceneDependency(
-                                    kind = SceneDependencyKind.Model,
-                                    path = path,
-                                    requirement = SceneDependencyRequirement.Required,
-                                    sourceEntityId = entity.id,
-                                    sourceComponentType = component.type,
-                                    schedulableAsset = AssetRef.model(path),
-                                ),
-                            )
-                        }
+                    SceneComponentTypes.Model ->
+                        component.properties["model"]
+                            .normalizedDependencyPath()
+                            ?.let { path ->
+                                dependencies.merge(
+                                    SceneDependency(
+                                        kind = SceneDependencyKind.Model,
+                                        path = path,
+                                        requirement = SceneDependencyRequirement.Required,
+                                        sourceEntityId = entity.id,
+                                        sourceComponentType = component.type,
+                                        schedulableAsset = AssetRef.model(path),
+                                    ),
+                                )
+                            }
 
-                    SceneComponentTypes.Terrain -> component.properties["terrain"]
-                        .normalizedDependencyPath()
-                        ?.let { path ->
-                            dependencies.merge(
-                                SceneDependency(
-                                    kind = SceneDependencyKind.Terrain,
-                                    path = path,
-                                    requirement = if (entity.id == activeTerrainEntityId) {
-                                        SceneDependencyRequirement.Required
-                                    } else {
-                                        SceneDependencyRequirement.Optional
-                                    },
-                                    sourceEntityId = entity.id,
-                                    sourceComponentType = component.type,
-                                    schedulableAsset = AssetRef.terrain(path),
-                                ),
-                            )
-                        }
+                    SceneComponentTypes.Terrain ->
+                        component.properties["terrain"]
+                            .normalizedDependencyPath()
+                            ?.let { path ->
+                                dependencies.merge(
+                                    SceneDependency(
+                                        kind = SceneDependencyKind.Terrain,
+                                        path = path,
+                                        requirement =
+                                            if (entity.id == activeTerrainEntityId) {
+                                                SceneDependencyRequirement.Required
+                                            } else {
+                                                SceneDependencyRequirement.Optional
+                                            },
+                                        sourceEntityId = entity.id,
+                                        sourceComponentType = component.type,
+                                        schedulableAsset = AssetRef.terrain(path),
+                                    ),
+                                )
+                            }
 
                     SceneComponentTypes.Name,
                     SceneComponentTypes.Transform,
@@ -137,7 +140,8 @@ class SceneDependencyCollector(
                 )
             }
 
-        resolvedSkybox?.texturePath
+        resolvedSkybox
+            ?.texturePath
             .normalizedDependencyPath()
             ?.let { path ->
                 dependencies.merge(
@@ -152,16 +156,17 @@ class SceneDependencyCollector(
             }
 
         val orderedDependencies = dependencies.values.toList()
-        val missing = orderedDependencies.mapNotNull { dependency ->
-            if (sceneFiles.exists(dependency.path)) {
-                null
-            } else {
-                MissingSceneDependency(
-                    dependency = dependency,
-                    message = "Missing ${dependency.kind.name.lowercase()} dependency '${dependency.path}'.",
-                )
+        val missing =
+            orderedDependencies.mapNotNull { dependency ->
+                if (sceneFiles.exists(dependency.path)) {
+                    null
+                } else {
+                    MissingSceneDependency(
+                        dependency = dependency,
+                        message = "Missing ${dependency.kind.name.lowercase()} dependency '${dependency.path}'.",
+                    )
+                }
             }
-        }
         return SceneDependencyGraph(
             dependencies = orderedDependencies,
             missing = missing,

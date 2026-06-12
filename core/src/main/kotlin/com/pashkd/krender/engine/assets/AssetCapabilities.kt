@@ -16,17 +16,13 @@ data class AssetCapabilities(
     val canPreview: Boolean,
 )
 
-fun AssetDescriptor.isVisibleOnlyAsset(): Boolean =
-    category == AssetCategory.Other || type == AssetType.Unknown
+fun AssetDescriptor.isVisibleOnlyAsset(): Boolean = category == AssetCategory.Other || type == AssetType.Unknown
 
-fun AssetDescriptor.isManagedAsset(): Boolean =
-    !isVisibleOnlyAsset()
+fun AssetDescriptor.isManagedAsset(): Boolean = !isVisibleOnlyAsset()
 
-fun AssetDescriptor.canHaveMetadataSidecar(): Boolean =
-    isManagedAsset()
+fun AssetDescriptor.canHaveMetadataSidecar(): Boolean = isManagedAsset()
 
-fun AssetDescriptor.canOpenWithTools(): Boolean =
-    isManagedAsset()
+fun AssetDescriptor.canOpenWithTools(): Boolean = isManagedAsset()
 
 fun AssetDescriptor.assetCapabilities(): AssetCapabilities =
     if (isVisibleOnlyAsset()) {

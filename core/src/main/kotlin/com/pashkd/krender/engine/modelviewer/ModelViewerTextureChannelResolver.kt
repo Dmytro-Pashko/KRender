@@ -2,21 +2,22 @@ package com.pashkd.krender.engine.modelviewer
 
 import com.pashkd.krender.engine.api.*
 
-internal fun isModelViewerTextureDebugMode(mode: MaterialDebugMode): Boolean = when (mode) {
-    MaterialDebugMode.BaseColor,
-    MaterialDebugMode.Normal,
-    MaterialDebugMode.Emission,
-    MaterialDebugMode.Roughness,
-    MaterialDebugMode.Metallic,
-    MaterialDebugMode.MetallicRoughnessPacked,
-    MaterialDebugMode.Occlusion,
-    MaterialDebugMode.Alpha,
-        -> true
+internal fun isModelViewerTextureDebugMode(mode: MaterialDebugMode): Boolean =
+    when (mode) {
+        MaterialDebugMode.BaseColor,
+        MaterialDebugMode.Normal,
+        MaterialDebugMode.Emission,
+        MaterialDebugMode.Roughness,
+        MaterialDebugMode.Metallic,
+        MaterialDebugMode.MetallicRoughnessPacked,
+        MaterialDebugMode.Occlusion,
+        MaterialDebugMode.Alpha,
+            -> true
 
-    MaterialDebugMode.None,
-    MaterialDebugMode.UvChecker,
-        -> false
-}
+        MaterialDebugMode.None,
+        MaterialDebugMode.UvChecker,
+            -> false
+    }
 
 internal fun matchingModelViewerTextureSlots(
     info: ModelAssetInfo?,
@@ -27,7 +28,8 @@ internal fun matchingModelViewerTextureSlots(
     if (!isModelViewerTextureDebugMode(mode)) return emptyList()
     val aliases = modelViewerTextureAliasesFor(mode)
     val selectedChannel = normalizeModelViewerTextureChannel(selectedTextureChannel)
-    return info?.materials
+    return info
+        ?.materials
         .orEmpty()
         .asSequence()
         .filter { material -> selectedMaterialIndex == null || material.index == selectedMaterialIndex }
@@ -35,8 +37,7 @@ internal fun matchingModelViewerTextureSlots(
         .filter { slot ->
             val channel = normalizeModelViewerTextureChannel(slot.channel)
             if (selectedChannel.isNotBlank()) channel == selectedChannel else channel in aliases
-        }
-        .toList()
+        }.toList()
 }
 
 internal fun resolvedModelViewerDebugTextureRefs(
@@ -55,11 +56,12 @@ internal fun resolvedModelViewerDebugTextureRefs(
         MaterialDebugTextureRef(
             materialIndex = slot.materialIndex,
             materialId = slot.materialId,
-            texture = MaterialTextureRef(
-                id = texturePath,
-                channel = slot.channel,
-                uvChannel = modelViewerUvChannelIndex(slot.uvChannel) ?: 0,
-            ),
+            texture =
+                MaterialTextureRef(
+                    id = texturePath,
+                    channel = slot.channel,
+                    uvChannel = modelViewerUvChannelIndex(slot.uvChannel) ?: 0,
+                ),
             component = textureDebugComponentFor(mode),
         )
     }
@@ -74,41 +76,46 @@ internal fun hasModelViewerTextureChannel(
     info: ModelAssetInfo?,
     mode: MaterialDebugMode,
     selectedMaterialIndex: Int?,
-): Boolean = matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex)
-    .any { slot -> !slot.texturePath.isNullOrBlank() }
+): Boolean =
+    matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex)
+        .any { slot -> !slot.texturePath.isNullOrBlank() }
 
-internal fun modelViewerTextureAliasesFor(mode: MaterialDebugMode): Set<String> = when (mode) {
-    MaterialDebugMode.BaseColor -> setOf("basecolor", "basecolortexture", "diffuse", "diffusetexture")
-    MaterialDebugMode.Normal -> setOf("normal", "normaltexture", "bump")
-    MaterialDebugMode.Emission -> setOf("emission", "emissive", "emissivetexture")
-    MaterialDebugMode.Roughness -> setOf(
-        "metallicroughness",
-        "metallicroughnesstexture",
-        "roughness",
-        "roughnesstexture",
-        "orm",
-    )
+internal fun modelViewerTextureAliasesFor(mode: MaterialDebugMode): Set<String> =
+    when (mode) {
+        MaterialDebugMode.BaseColor -> setOf("basecolor", "basecolortexture", "diffuse", "diffusetexture")
+        MaterialDebugMode.Normal -> setOf("normal", "normaltexture", "bump")
+        MaterialDebugMode.Emission -> setOf("emission", "emissive", "emissivetexture")
+        MaterialDebugMode.Roughness ->
+            setOf(
+                "metallicroughness",
+                "metallicroughnesstexture",
+                "roughness",
+                "roughnesstexture",
+                "orm",
+            )
 
-    MaterialDebugMode.Metallic -> setOf(
-        "metallicroughness",
-        "metallicroughnesstexture",
-        "metallic",
-        "metallictexture",
-        "orm",
-    )
+        MaterialDebugMode.Metallic ->
+            setOf(
+                "metallicroughness",
+                "metallicroughnesstexture",
+                "metallic",
+                "metallictexture",
+                "orm",
+            )
 
-    MaterialDebugMode.MetallicRoughnessPacked -> setOf(
-        "metallicroughness",
-        "metallicroughnesstexture",
-        "orm",
-    )
+        MaterialDebugMode.MetallicRoughnessPacked ->
+            setOf(
+                "metallicroughness",
+                "metallicroughnesstexture",
+                "orm",
+            )
 
-    MaterialDebugMode.Occlusion -> setOf("occlusion", "ao", "ambientocclusion")
-    MaterialDebugMode.Alpha -> setOf("alpha", "opacity", "alphatexture", "basecolor", "basecolortexture", "diffuse")
-    MaterialDebugMode.None,
-    MaterialDebugMode.UvChecker,
-        -> emptySet()
-}
+        MaterialDebugMode.Occlusion -> setOf("occlusion", "ao", "ambientocclusion")
+        MaterialDebugMode.Alpha -> setOf("alpha", "opacity", "alphatexture", "basecolor", "basecolortexture", "diffuse")
+        MaterialDebugMode.None,
+        MaterialDebugMode.UvChecker,
+            -> emptySet()
+    }
 
 private fun textureDebugComponentFor(mode: MaterialDebugMode): TextureDebugComponent =
     when (mode) {
@@ -128,7 +135,8 @@ private fun textureDebugComponentFor(mode: MaterialDebugMode): TextureDebugCompo
     }
 
 private fun normalizeModelViewerTextureChannel(channel: String?): String =
-    channel.orEmpty()
+    channel
+        .orEmpty()
         .lowercase()
         .filter { char -> char.isLetterOrDigit() }
 

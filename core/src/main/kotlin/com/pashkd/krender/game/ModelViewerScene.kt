@@ -21,14 +21,16 @@ class ModelViewerScene(
         modelScale: Float = 1f,
     ) : this(AssetRef.model(modelPath), modelScale)
 
-    override val requiredAssets: List<AssetPack> = listOf(
-        object : AssetPack {
-            override val assets =
-                listOf(model, AssetRef.texture(DEFAULT_PBR_SKYBOX_TEXTURE)) + UV_CHECKER_TEXTURE_OPTIONS.map { option ->
-                    AssetRef.texture(option.texturePath)
-                }
-        },
-    )
+    override val requiredAssets: List<AssetPack> =
+        listOf(
+            object : AssetPack {
+                override val assets =
+                    listOf(model, AssetRef.texture(DEFAULT_PBR_SKYBOX_TEXTURE)) +
+                        UV_CHECKER_TEXTURE_OPTIONS.map { option ->
+                            AssetRef.texture(option.texturePath)
+                        }
+            },
+        )
 
     override val config: SceneConfig = SceneConfigPresets.EditorTool
 
@@ -78,20 +80,22 @@ class ModelViewerScene(
         engine.logger.debug(TAG) {
             "Loading ModelViewer UI layout path='${ModelViewerUiLayoutDefaults.assetPath}' fallbackPanels=${ModelViewerUiLayoutDefaults.config.panels.keys.joinToString()}"
         }
-        val layoutConfig = ImGuiLayoutConfigLoader(
-            assetPath = ModelViewerUiLayoutDefaults.assetPath,
-            fallback = ModelViewerUiLayoutDefaults.config,
-        ).load(engine.logger)
+        val layoutConfig =
+            ImGuiLayoutConfigLoader(
+                assetPath = ModelViewerUiLayoutDefaults.assetPath,
+                fallback = ModelViewerUiLayoutDefaults.config,
+            ).load(engine.logger)
         engine.logger.debug(TAG) {
             "ModelViewer UI layout loaded panels=${layoutConfig.panels.keys.joinToString()}"
         }
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "ModelViewerUi")
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         engine.logger.debug(TAG) { "ModelViewer layout tracker created" }
-        viewerState = ModelViewerState(
-            model = model,
-            modelScale = modelScale,
-        )
+        viewerState =
+            ModelViewerState(
+                model = model,
+                modelScale = modelScale,
+            )
         engine.logger.debug(TAG) {
             "ModelViewer state created model='${viewerState.modelPath}' displayMode=${viewerState.displayMode} " +
                 "debugMode=${viewerState.debugMode} grid=${viewerState.showGrid} axes=${viewerState.showAxes} " +
@@ -109,7 +113,7 @@ class ModelViewerScene(
         addSystem("UiSystem", createUiSystem(layoutConfig, panelEventLogger))
         addSystem(
             "EditorViewportCameraSystem",
-            EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport)
+            EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport),
         )
         addSystem("ModelViewerBoundingBoxSystem", ModelViewerBoundingBoxSystem(viewerState, engine.assets))
         addSystem("ModelViewerModelRenderSystem", ModelViewerModelRenderSystem(viewerState))
@@ -196,7 +200,7 @@ class ModelViewerScene(
         engine.logger.debug(TAG) {
             "ModelViewer model entity created id=${modelEntity.id} model='${model.path}' scale=${
                 "%.3f".format(
-                    modelScale
+                    modelScale,
                 )
             }"
         }
@@ -332,12 +336,19 @@ class ModelViewerScene(
             engine.logger.debug(TAG) { "ModelViewer UI panels registered count=8" }
         }
 
-    private fun addSystem(name: String, system: System) {
+    private fun addSystem(
+        name: String,
+        system: System,
+    ) {
         world.systems.add(system)
         engine.logger.debug(TAG) { "ModelViewer system added name='$name'" }
     }
 
-    private fun addPanel(uiSystem: UiSystem, name: String, panel: UiPanel) {
+    private fun addPanel(
+        uiSystem: UiSystem,
+        name: String,
+        panel: UiPanel,
+    ) {
         uiSystem.addPanel(
             UiPanel {
                 try {
@@ -353,8 +364,7 @@ class ModelViewerScene(
         engine.logger.debug(TAG) { "ModelViewer UI panel registered name='$name'" }
     }
 
-    private fun formatVec3(value: Vec3): String =
-        "%.3f,%.3f,%.3f".format(value.x, value.y, value.z)
+    private fun formatVec3(value: Vec3): String = "%.3f,%.3f,%.3f".format(value.x, value.y, value.z)
 
     companion object {
         private const val TAG = "ModelViewerScene"

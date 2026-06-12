@@ -32,18 +32,24 @@ class PlayerControllerSystem(
          * Fallback basis used before a camera exists. A/D are intentionally
          * inverted for this prototype based on current scene controls feedback.
          */
-        private val DefaultCameraMovementBasis = CameraMovementBasis(
-            forward = Vec3(0f, 0f, 1f),
-            right = Vec3(-1f, 0f, 0f),
-        )
+        private val DefaultCameraMovementBasis =
+            CameraMovementBasis(
+                forward = Vec3(0f, 0f, 1f),
+                right = Vec3(-1f, 0f, 0f),
+            )
     }
 
     private var hasLoggedFirstUpdate = false
 
-    override fun update(world: SceneWorld, dt: Float) {
-        val player = world.query<TransformComponent, PlayerControllerComponent, VelocityComponent>()
-            .firstOrNull { entity -> entity.get<PlayerControllerComponent>()?.isActive == true }
-            ?: return
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
+        val player =
+            world
+                .query<TransformComponent, PlayerControllerComponent, VelocityComponent>()
+                .firstOrNull { entity -> entity.get<PlayerControllerComponent>()?.isActive == true }
+                ?: return
         val transform = player.get<TransformComponent>() ?: return
         val controller = player.get<PlayerControllerComponent>() ?: return
         val velocity = player.get<VelocityComponent>() ?: return
@@ -167,15 +173,16 @@ class PlayerControllerSystem(
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return DefaultCameraMovementBasis
         val lookAt = camera.lookAt
 
-        val forward = if (lookAt != null) {
-            Vec3(
-                x = lookAt.x - transform.position.x,
-                y = 0f,
-                z = lookAt.z - transform.position.z,
-            ).normalizedHorizontalOrNull()
-        } else {
-            horizontalForwardFromEuler(transform.eulerDegrees.y)
-        } ?: return DefaultCameraMovementBasis
+        val forward =
+            if (lookAt != null) {
+                Vec3(
+                    x = lookAt.x - transform.position.x,
+                    y = 0f,
+                    z = lookAt.z - transform.position.z,
+                ).normalizedHorizontalOrNull()
+            } else {
+                horizontalForwardFromEuler(transform.eulerDegrees.y)
+            } ?: return DefaultCameraMovementBasis
 
         return CameraMovementBasis(
             forward = forward,
@@ -199,8 +206,10 @@ class PlayerControllerSystem(
         return Vec3(x / length, 0f, z / length)
     }
 
-    private fun yawDegrees(x: Float, z: Float): Float =
-        (atan2(x.toDouble(), z.toDouble()) * 180.0 / PI).toFloat()
+    private fun yawDegrees(
+        x: Float,
+        z: Float,
+    ): Float = (atan2(x.toDouble(), z.toDouble()) * 180.0 / PI).toFloat()
 
     private data class CameraMovementBasis(
         val forward: Vec3,
@@ -214,7 +223,10 @@ class CharacterAnimationSystem(
 ) : System() {
     private var warnedMissingDuration = false
 
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         world.query<ModelComponent, AnimationComponent, PlayerControllerComponent>().forEach { entity ->
             val model = entity.get<ModelComponent>() ?: return@forEach
             val animation = entity.get<AnimationComponent>() ?: return@forEach
@@ -245,12 +257,13 @@ class CharacterAnimationSystem(
         when {
             !controller.isGrounded -> AnimationTarget(WoolboyAnimations.Jump, loop = false)
             moving -> AnimationTarget(WoolboyAnimations.Walk, loop = true)
-            controller.greetingRequested -> AnimationTarget(
-                name = WoolboyAnimations.Greeting,
-                loop = false,
-                restart = true,
-                locked = true,
-            )
+            controller.greetingRequested ->
+                AnimationTarget(
+                    name = WoolboyAnimations.Greeting,
+                    loop = false,
+                    restart = true,
+                    locked = true,
+                )
 
             animation.currentAnimation == WoolboyAnimations.Greeting && animation.lockedUntilFinished ->
                 AnimationTarget(WoolboyAnimations.Greeting, loop = false, locked = true)
@@ -285,10 +298,12 @@ class CharacterAnimationSystem(
         animation: AnimationComponent,
     ): Float? {
         val animationName = animation.currentAnimation ?: return null
-        val metadataDuration = assets.modelInfo(model.model)
-            ?.animations
-            ?.firstOrNull { info -> info.name == animationName }
-            ?.durationSeconds
+        val metadataDuration =
+            assets
+                .modelInfo(model.model)
+                ?.animations
+                ?.firstOrNull { info -> info.name == animationName }
+                ?.durationSeconds
         if (metadataDuration != null) return metadataDuration
 
         if (!warnedMissingDuration && (animationName == WoolboyAnimations.Greeting || animationName == WoolboyAnimations.Jump)) {

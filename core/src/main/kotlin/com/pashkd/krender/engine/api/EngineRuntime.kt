@@ -265,8 +265,7 @@ class GameLoop(
         runtimeStats.put("Max", formatMemoryMb(max))
     }
 
-    private fun formatMemoryMb(bytes: Long): String =
-        "%.1f MB".format(bytes / 1024f / 1024f)
+    private fun formatMemoryMb(bytes: Long): String = "%.1f MB".format(bytes / 1024f / 1024f)
 }
 
 /**
@@ -371,7 +370,10 @@ class EngineRuntime(
      * The active scene's viewport policy is reapplied on every resize so that
      * platform callbacks and scene-driven window changes remain idempotent.
      */
-    fun resize(width: Int, height: Int) {
+    fun resize(
+        width: Int,
+        height: Int,
+    ) {
         val viewportConfig = scenes.currentScene?.config?.viewport ?: RuntimeViewportConfig()
         viewport.resize(width, height, viewportConfig)
         val currentSceneId = scenes.currentScene?.id ?: "<none>"

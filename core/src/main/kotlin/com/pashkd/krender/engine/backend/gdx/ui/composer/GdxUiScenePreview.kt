@@ -87,16 +87,17 @@ class GdxUiScenePreview(
         nodesById.clear()
         if (document == null) return
 
-        val actor = builder.build(
-            document = document,
-            payload = payload,
-            actionHandler = null,
-            onActorBuilt = { node, builtActor ->
-                actorsByNodeId[node.id] = builtActor
-                nodeIdsByActor[builtActor] = node.id
-                nodesById[node.id] = node
-            },
-        )
+        val actor =
+            builder.build(
+                document = document,
+                payload = payload,
+                actionHandler = null,
+                onActorBuilt = { node, builtActor ->
+                    actorsByNodeId[node.id] = builtActor
+                    nodeIdsByActor[builtActor] = node.id
+                    nodesById[node.id] = node
+                },
+            )
         stage.addActor(actor)
         updateDebugOverlay(showBounds, highlightSelected, selectedNodeId, highlightHovered, hoveredNodeId)
         logger.debug(TAG) { "Rebuilt UI scene preview document='${document.id}' actors=${actorsByNodeId.size}" }
@@ -289,10 +290,12 @@ class GdxUiScenePreview(
         val visibleWorldHeight = logicalHeight.toFloat() / previewZoom
         val cameraCenterX = logicalWidth.toFloat() * 0.5f + cameraOffsetX
         val cameraCenterY = logicalHeight.toFloat() * 0.5f + cameraOffsetY
-        val stageX = cameraCenterX - visibleWorldWidth * 0.5f +
-            localX.toFloat() / viewportWidth.toFloat() * visibleWorldWidth
-        val stageY = cameraCenterY + visibleWorldHeight * 0.5f -
-            localY.toFloat() / viewportHeight.toFloat() * visibleWorldHeight
+        val stageX =
+            cameraCenterX - visibleWorldWidth * 0.5f +
+                localX.toFloat() / viewportWidth.toFloat() * visibleWorldWidth
+        val stageY =
+            cameraCenterY + visibleWorldHeight * 0.5f -
+                localY.toFloat() / viewportHeight.toFloat() * visibleWorldHeight
         return hitTestStage(stageX, stageY)
     }
 
@@ -307,10 +310,12 @@ class GdxUiScenePreview(
         val visibleWorldHeight = logicalHeight.toFloat() / previewZoom
         val cameraCenterX = logicalWidth.toFloat() * 0.5f + cameraOffsetX
         val cameraCenterY = logicalHeight.toFloat() * 0.5f + cameraOffsetY
-        val stageX = cameraCenterX - visibleWorldWidth * 0.5f +
-            localX / viewportWidth.toFloat() * visibleWorldWidth
-        val stageY = cameraCenterY + visibleWorldHeight * 0.5f -
-            localY / viewportHeight.toFloat() * visibleWorldHeight
+        val stageX =
+            cameraCenterX - visibleWorldWidth * 0.5f +
+                localX / viewportWidth.toFloat() * visibleWorldWidth
+        val stageY =
+            cameraCenterY + visibleWorldHeight * 0.5f -
+                localY / viewportHeight.toFloat() * visibleWorldHeight
         return Vector2(stageX, stageY)
     }
 
@@ -507,10 +512,11 @@ class GdxUiScenePreview(
         bounds: UiComposerGuideRect,
         node: UiSceneNode,
     ) {
-        val arrow = when (node.tableOrientation) {
-            UiSceneTableOrientation.Vertical -> "v"
-            UiSceneTableOrientation.Horizontal -> ">"
-        }
+        val arrow =
+            when (node.tableOrientation) {
+                UiSceneTableOrientation.Vertical -> "v"
+                UiSceneTableOrientation.Horizontal -> ">"
+            }
         drawText(
             text = "Table: ${node.tableOrientation} $arrow",
             x = bounds.x + 20f,
@@ -585,8 +591,7 @@ class GdxUiScenePreview(
         return parents.asReversed()
     }
 
-    private fun UiComposerGuideBounds.toRect(): UiComposerGuideRect =
-        UiComposerGuideRect(x, y, width, height)
+    private fun UiComposerGuideBounds.toRect(): UiComposerGuideRect = UiComposerGuideRect(x, y, width, height)
 
     private fun UiSceneNode.hasMeaningfulPaddingGuide(): Boolean =
         type == UiSceneNodeType.Container ||

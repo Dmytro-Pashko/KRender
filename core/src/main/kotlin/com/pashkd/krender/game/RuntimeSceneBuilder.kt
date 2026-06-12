@@ -39,10 +39,11 @@ class RuntimeSceneBuilder(
         activeCamera.add(ActiveCameraComponent())
 
         val resolvedSkybox = resolveSkybox(request)
-        val environment = RuntimeEnvironmentFactory.fromSceneSettings(
-            settings = request.descriptor.settings,
-            skybox = resolvedSkybox,
-        )
+        val environment =
+            RuntimeEnvironmentFactory.fromSceneSettings(
+                settings = request.descriptor.settings,
+                skybox = resolvedSkybox,
+            )
 
         var terrainPrepared = false
         var materialBakeService: TerrainMaterialBakeService? = null
@@ -51,17 +52,19 @@ class RuntimeSceneBuilder(
                 RuntimeTerrainMaterialLibraryService(engine.sceneFiles, engine.logger).loadRequired(
                     request.descriptor.settings.terrain.materialLibraryPath,
                 )
-            materialBakeService = TerrainMaterialBakeService(
-                materialLibrary = terrainMaterialLibrary,
-                logger = engine.logger,
-                textureSamplerFactory = terrainTextureSamplerFactory,
-            )
+            materialBakeService =
+                TerrainMaterialBakeService(
+                    materialLibrary = terrainMaterialLibrary,
+                    logger = engine.logger,
+                    textureSamplerFactory = terrainTextureSamplerFactory,
+                )
             RuntimeTerrainService(
                 logger = engine.logger,
-                terrainLoader = TerrainRuntimeLoader(
-                    logger = engine.logger,
-                    persistence = TerrainPersistence(logger = engine.logger, files = engine.sceneFiles),
-                ),
+                terrainLoader =
+                    TerrainRuntimeLoader(
+                        logger = engine.logger,
+                        persistence = TerrainPersistence(logger = engine.logger, files = engine.sceneFiles),
+                    ),
                 materialBakeService = materialBakeService,
             ).prepareActiveTerrain(world, request.descriptor)
             terrainPrepared = true
@@ -116,4 +119,3 @@ class RuntimeSceneBuilder(
         private const val TAG = "RuntimeSceneBuilder"
     }
 }
-

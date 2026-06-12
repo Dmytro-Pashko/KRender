@@ -24,19 +24,22 @@ class RuntimeTerrainServiceTest {
         activeTerrain.add(TerrainComponent(terrain = AssetRef.terrain("terrains/active.json"), bakedTextureResolution = 1024))
 
         val loadedPaths = mutableListOf<String>()
-        val service = RuntimeTerrainService(
-            logger = NoopLogger,
-            terrainLoader = RuntimeTerrainLoader { path ->
-                loadedPaths += path
-                terrainWithOneLayer()
-            },
-            materialBakeService = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger),
-        )
+        val service =
+            RuntimeTerrainService(
+                logger = NoopLogger,
+                terrainLoader =
+                    RuntimeTerrainLoader { path ->
+                        loadedPaths += path
+                        terrainWithOneLayer()
+                    },
+                materialBakeService = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger),
+            )
 
-        val result = service.prepareActiveTerrain(
-            world = world,
-            descriptor = descriptor(activeTerrainEntityId = 2L),
-        )
+        val result =
+            service.prepareActiveTerrain(
+                world = world,
+                descriptor = descriptor(activeTerrainEntityId = 2L),
+            )
 
         assertEquals(listOf("terrains/active.json"), loadedPaths)
         assertEquals(2L, result.entityId)
@@ -52,15 +55,17 @@ class RuntimeTerrainServiceTest {
         val world = SceneWorld()
         world.createEntityWithId(7L, "Broken Terrain")
 
-        val service = RuntimeTerrainService(
-            logger = NoopLogger,
-            terrainLoader = RuntimeTerrainLoader { terrainWithOneLayer() },
-            materialBakeService = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger),
-        )
+        val service =
+            RuntimeTerrainService(
+                logger = NoopLogger,
+                terrainLoader = RuntimeTerrainLoader { terrainWithOneLayer() },
+                materialBakeService = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger),
+            )
 
-        val error = assertFailsWith<IllegalStateException> {
-            service.prepareActiveTerrain(world, descriptor(activeTerrainEntityId = 7L))
-        }
+        val error =
+            assertFailsWith<IllegalStateException> {
+                service.prepareActiveTerrain(world, descriptor(activeTerrainEntityId = 7L))
+            }
 
         assertEquals(
             "Runtime scene activeTerrainEntityId=7 does not reference an entity with TerrainComponent.",
@@ -74,15 +79,17 @@ class RuntimeTerrainServiceTest {
         val terrain = world.createEntityWithId(9L, "Terrain")
         terrain.add(TerrainComponent(terrain = AssetRef.terrain("terrains/missing.json"), bakedTextureResolution = 512))
 
-        val service = RuntimeTerrainService(
-            logger = NoopLogger,
-            terrainLoader = RuntimeTerrainLoader { throw IllegalArgumentException("missing") },
-            materialBakeService = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger),
-        )
+        val service =
+            RuntimeTerrainService(
+                logger = NoopLogger,
+                terrainLoader = RuntimeTerrainLoader { throw IllegalArgumentException("missing") },
+                materialBakeService = TerrainMaterialBakeService(testMaterialLibrary(), NoopLogger),
+            )
 
-        val error = assertFailsWith<IllegalStateException> {
-            service.prepareActiveTerrain(world, descriptor(activeTerrainEntityId = 9L))
-        }
+        val error =
+            assertFailsWith<IllegalStateException> {
+                service.prepareActiveTerrain(world, descriptor(activeTerrainEntityId = 9L))
+            }
 
         assertEquals(
             "Failed to load runtime terrain entityId=9 path='terrains/missing.json': missing",
@@ -99,12 +106,13 @@ class RuntimeTerrainServiceTest {
 
     private fun terrainWithOneLayer(): TerrainData {
         val terrain = TerrainData(width = 2, height = 2, vertexSpacing = 1f)
-        val layer = terrain.addLayer(
-            name = "Base",
-            materialId = "terrain/grass",
-            color = TerrainLayerColorDescriptor(0.9f, 0.1f, 0.2f, 1f),
-            visible = true,
-        )
+        val layer =
+            terrain.addLayer(
+                name = "Base",
+                materialId = "terrain/grass",
+                color = TerrainLayerColorDescriptor(0.9f, 0.1f, 0.2f, 1f),
+                visible = true,
+            )
         for (y in 0 until terrain.height) {
             for (x in 0 until terrain.width) {
                 terrain.setLayerWeight(layer.id, x, y, 1f)
@@ -129,6 +137,11 @@ class RuntimeTerrainServiceTest {
     private fun interface RuntimeTerrainLoader : com.pashkd.krender.engine.terrain.RuntimeTerrainLoader
 
     private object NoopLogger : Logger {
-        override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) = Unit
+        override fun log(
+            level: LogLevel,
+            tag: String,
+            error: Throwable?,
+            message: () -> String,
+        ) = Unit
     }
 }

@@ -42,11 +42,12 @@ internal fun CreateAssetDraft.withSyncedDefaults(assets: List<AssetDescriptor>):
     if (kind == CreatableAssetKind.UiScene) {
         val skinAssets = discoveredScene2DSkinAssets(assets)
         val selectedPath = normalizedUiSceneSkinPath(uiSceneSkinPath)
-        val nextSkin = when {
-            skinAssets.isEmpty() -> DefaultUiSceneSkinPath
-            skinAssets.any { asset -> asset.path == selectedPath } -> selectedPath
-            else -> defaultUiSceneSkinPath(assets)
-        }
+        val nextSkin =
+            when {
+                skinAssets.isEmpty() -> DefaultUiSceneSkinPath
+                skinAssets.any { asset -> asset.path == selectedPath } -> selectedPath
+                else -> defaultUiSceneSkinPath(assets)
+            }
         copy(uiSceneSkinPath = nextSkin)
     } else {
         this
@@ -58,7 +59,10 @@ internal fun createAssetRelativePath(draft: CreateAssetDraft): String =
 internal fun createAssetBaseName(draft: CreateAssetDraft): String =
     sanitizedAssetName(draft.name, defaultAssetBaseName(draft.kind.type, draft.kind.category))
 
-internal fun defaultAssetBaseName(type: AssetType, category: AssetCategory): String =
+internal fun defaultAssetBaseName(
+    type: AssetType,
+    category: AssetCategory,
+): String =
     when (type) {
         AssetType.UiScene -> "new_ui_scene"
         AssetType.Terrain -> "new_terrain"
@@ -66,26 +70,31 @@ internal fun defaultAssetBaseName(type: AssetType, category: AssetCategory): Str
         else -> error("Unsupported asset creation type=$type category=$category")
     }
 
-internal fun sanitizedAssetName(name: String, fallback: String): String =
-    name.trim().replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { fallback }
+internal fun sanitizedAssetName(
+    name: String,
+    fallback: String,
+): String = name.trim().replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { fallback }
 
 internal fun createAssetDefaultParams(draft: CreateAssetDraft): List<String> =
     when (draft.kind) {
-        CreatableAssetKind.UiScene -> listOf(
-            "Skin: ${normalizedUiSceneSkinPath(draft.uiSceneSkinPath)}",
-            "Root: Stack",
-            "Schema: 1",
-        )
+        CreatableAssetKind.UiScene ->
+            listOf(
+                "Skin: ${normalizedUiSceneSkinPath(draft.uiSceneSkinPath)}",
+                "Root: Stack",
+                "Schema: 1",
+            )
 
-        CreatableAssetKind.Terrain -> listOf(
-            "Size: 64 x 64",
-            "Vertex spacing: 1.0",
-            "Layers: 0",
-        )
+        CreatableAssetKind.Terrain ->
+            listOf(
+                "Size: 64 x 64",
+                "Vertex spacing: 1.0",
+                "Layers: 0",
+            )
 
-        CreatableAssetKind.Scene -> listOf(
-            "Schema: 1",
-            "Entities: 0",
-            "Settings: default",
-        )
+        CreatableAssetKind.Scene ->
+            listOf(
+                "Schema: 1",
+                "Entities: 0",
+                "Settings: default",
+            )
     }

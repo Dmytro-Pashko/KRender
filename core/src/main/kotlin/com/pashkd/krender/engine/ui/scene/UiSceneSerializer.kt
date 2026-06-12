@@ -25,8 +25,9 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
      * documents can stay compact.
      */
     override fun decode(json: String): UiSceneDocument {
-        val root = this.json.parseToJsonElement(json) as? JsonObject
-            ?: throw IllegalArgumentException("UI scene document root must be a JSON object")
+        val root =
+            this.json.parseToJsonElement(json) as? JsonObject
+                ?: throw IllegalArgumentException("UI scene document root must be a JSON object")
         return UiSceneDocument(
             schemaVersion = root.intOrDefault("schemaVersion", UiSceneDocument.CurrentSchemaVersion),
             id = root.requiredString("id", DocumentName),
@@ -49,8 +50,9 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
         element: JsonElement?,
         context: String,
     ): UiSceneNode {
-        val node = element as? JsonObject
-            ?: throw IllegalArgumentException("UI scene node '$context' must be a JSON object")
+        val node =
+            element as? JsonObject
+                ?: throw IllegalArgumentException("UI scene node '$context' must be a JSON object")
         return UiSceneNode(
             id = node.requiredString("id", DocumentName),
             type = node.requiredEnum("type", DocumentName, UiSceneNodeType::valueOf),
@@ -71,12 +73,13 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
             align = node.enumOrNull("align", DocumentName, UiSceneAlign::valueOf),
             padding = readSpacing(node["padding"]),
             spacing = node.floatOrDefault("spacing", 0f),
-            tableOrientation = node.enumOrDefault(
-                "tableOrientation",
-                DocumentName,
-                UiSceneTableOrientation.Vertical,
-                UiSceneTableOrientation::valueOf,
-            ),
+            tableOrientation =
+                node.enumOrDefault(
+                    "tableOrientation",
+                    DocumentName,
+                    UiSceneTableOrientation.Vertical,
+                    UiSceneTableOrientation::valueOf,
+                ),
             children = readChildren(node["children"], node.stringOrDefault("id", context)),
         )
     }
@@ -92,16 +95,18 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
     private fun readBindings(element: JsonElement?): List<UiSceneBindingDefinition> {
         val bindings = element as? JsonArray ?: return emptyList()
         return bindings.mapIndexed { index, bindingElement ->
-            val binding = bindingElement as? JsonObject
-                ?: throw IllegalArgumentException("UI scene binding 'bindings[$index]' must be a JSON object")
+            val binding =
+                bindingElement as? JsonObject
+                    ?: throw IllegalArgumentException("UI scene binding 'bindings[$index]' must be a JSON object")
             UiSceneBindingDefinition(
                 key = binding.requiredString("key", DocumentName).trim(),
-                type = binding.enumOrDefault(
-                    "type",
-                    DocumentName,
-                    UiSceneBindingType.Text,
-                    UiSceneBindingType::valueOf
-                ),
+                type =
+                    binding.enumOrDefault(
+                        "type",
+                        DocumentName,
+                        UiSceneBindingType.Text,
+                        UiSceneBindingType::valueOf,
+                    ),
                 defaultValue = binding.stringOrDefault("defaultValue", ""),
             )
         }
@@ -172,7 +177,10 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
             }
         }
 
-    private fun JsonObjectBuilder.putIfNonZero(name: String, spacing: UiSceneSpacing) {
+    private fun JsonObjectBuilder.putIfNonZero(
+        name: String,
+        spacing: UiSceneSpacing,
+    ) {
         if (spacing != UiSceneSpacing.zero()) put(name, spacing.toJsonObject())
     }
 

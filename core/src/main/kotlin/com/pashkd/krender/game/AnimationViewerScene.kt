@@ -21,11 +21,12 @@ class AnimationViewerScene(
         modelScale: Float = 1f,
     ) : this(AssetRef.model(modelPath), modelScale)
 
-    override val requiredAssets: List<AssetPack> = listOf(
-        object : AssetPack {
-            override val assets = listOf(model)
-        },
-    )
+    override val requiredAssets: List<AssetPack> =
+        listOf(
+            object : AssetPack {
+                override val assets = listOf(model)
+            },
+        )
 
     override val config: SceneConfig = SceneConfigPresets.EditorTool
 
@@ -69,16 +70,18 @@ class AnimationViewerScene(
         engine.logger.debug(TAG) {
             "Loading AnimationViewer UI layout path='${AnimationViewerUiLayoutDefaults.assetPath}' fallbackPanels=${AnimationViewerUiLayoutDefaults.config.panels.keys.joinToString()}"
         }
-        val layoutConfig = ImGuiLayoutConfigLoader(
-            assetPath = AnimationViewerUiLayoutDefaults.assetPath,
-            fallback = AnimationViewerUiLayoutDefaults.config,
-        ).load(engine.logger)
+        val layoutConfig =
+            ImGuiLayoutConfigLoader(
+                assetPath = AnimationViewerUiLayoutDefaults.assetPath,
+                fallback = AnimationViewerUiLayoutDefaults.config,
+            ).load(engine.logger)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "AnimationViewerUi")
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
-        viewerState = AnimationViewerState(
-            model = model,
-            modelScale = modelScale,
-        )
+        viewerState =
+            AnimationViewerState(
+                model = model,
+                modelScale = modelScale,
+            )
         operations = AnimationViewerOperations(viewerState, engine, layoutTracker)
 
         createCamera()
@@ -90,7 +93,7 @@ class AnimationViewerScene(
         addSystem("UiSystem", createUiSystem(layoutConfig, panelEventLogger))
         addSystem(
             "EditorViewportCameraSystem",
-            EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport)
+            EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport),
         )
         addSystem("AnimationViewerBoundingBoxSystem", AnimationViewerBoundingBoxSystem(viewerState, engine.assets))
         addSystem("AnimationViewerModelRenderSystem", AnimationViewerModelRenderSystem(viewerState))
@@ -115,7 +118,11 @@ class AnimationViewerScene(
             super.update(dt)
         } catch (error: Exception) {
             engine.logger.error(TAG, error) {
-                "AnimationViewer scene update failed frame=$updateFrameIndex dt=${"%.4f".format(dt)} model='${model.path}': ${error.message}"
+                "AnimationViewer scene update failed frame=$updateFrameIndex dt=${
+                    "%.4f".format(
+                        dt,
+                    )
+                } model='${model.path}': ${error.message}"
             }
             throw error
         }
@@ -132,7 +139,11 @@ class AnimationViewerScene(
             super.render(alpha)
         } catch (error: Exception) {
             engine.logger.error(TAG, error) {
-                "AnimationViewer scene render failed frame=$renderFrameIndex alpha=${"%.4f".format(alpha)} model='${model.path}': ${error.message}"
+                "AnimationViewer scene render failed frame=$renderFrameIndex alpha=${
+                    "%.4f".format(
+                        alpha,
+                    )
+                } model='${model.path}': ${error.message}"
             }
             throw error
         }
@@ -161,7 +172,7 @@ class AnimationViewerScene(
         engine.logger.debug(TAG) {
             "AnimationViewer model entity created id=${modelEntity.id} model='${model.path}' scale=${
                 "%.3f".format(
-                    modelScale
+                    modelScale,
                 )
             }"
         }
@@ -190,7 +201,7 @@ class AnimationViewerScene(
         engine.logger.debug(TAG) {
             "AnimationViewer camera created id=${camera.id} position=${formatVec3(camera.transform.position)} euler=${
                 formatVec3(
-                    camera.transform.eulerDegrees
+                    camera.transform.eulerDegrees,
                 )
             }"
         }
@@ -209,7 +220,7 @@ class AnimationViewerScene(
         engine.logger.debug(TAG) {
             "AnimationViewer ambient light created id=${ambient.id} color=0.55,0.58,0.64 intensity=${
                 "%.2f".format(
-                    viewerState.ambientLightIntensity
+                    viewerState.ambientLightIntensity,
                 )
             }"
         }
@@ -273,12 +284,19 @@ class AnimationViewerScene(
             engine.logger.debug(TAG) { "AnimationViewer UI panels registered count=7" }
         }
 
-    private fun addSystem(name: String, system: System) {
+    private fun addSystem(
+        name: String,
+        system: System,
+    ) {
         world.systems.add(system)
         engine.logger.debug(TAG) { "AnimationViewer system added name='$name'" }
     }
 
-    private fun addPanel(uiSystem: UiSystem, name: String, panel: UiPanel) {
+    private fun addPanel(
+        uiSystem: UiSystem,
+        name: String,
+        panel: UiPanel,
+    ) {
         uiSystem.addPanel(
             UiPanel {
                 try {
@@ -294,8 +312,7 @@ class AnimationViewerScene(
         engine.logger.debug(TAG) { "AnimationViewer UI panel registered name='$name'" }
     }
 
-    private fun formatVec3(value: Vec3): String =
-        "%.3f,%.3f,%.3f".format(value.x, value.y, value.z)
+    private fun formatVec3(value: Vec3): String = "%.3f,%.3f,%.3f".format(value.x, value.y, value.z)
 
     companion object {
         private const val TAG = "AnimationViewerScene"

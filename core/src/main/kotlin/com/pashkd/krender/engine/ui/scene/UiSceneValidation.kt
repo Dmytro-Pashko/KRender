@@ -143,6 +143,5 @@ class UiSceneValidator(
             ),
         )
 
-    fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> =
-        pipeline.validate(context)
+    fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> = pipeline.validate(context)
 }

@@ -29,19 +29,19 @@ object ImportAssetDialogState {
         state: AssetBrowserState,
         importService: AssetImportService,
     ) {
-        state.importPlan = if (state.importSourcePath.isBlank()) {
-            null
-        } else {
-            importService.planImport(
-                sourcePath = state.importSourcePath,
-                collisionPolicy = state.importCollisionPolicy,
-                importName = state.importName,
-            )
-        }
+        state.importPlan =
+            if (state.importSourcePath.isBlank()) {
+                null
+            } else {
+                importService.planImport(
+                    sourcePath = state.importSourcePath,
+                    collisionPolicy = state.importCollisionPolicy,
+                    importName = state.importName,
+                )
+            }
     }
 
-    fun canImport(state: AssetBrowserState): Boolean =
-        state.importPlan?.supportedEntries?.isNotEmpty() == true
+    fun canImport(state: AssetBrowserState): Boolean = state.importPlan?.supportedEntries?.isNotEmpty() == true
 
     fun requiresOverwriteConfirmation(state: AssetBrowserState): Boolean =
         state.importPlan?.requiresOverwriteConfirmation == true
@@ -71,11 +71,12 @@ object ImportAssetDialogState {
     private fun defaultImportName(sourcePath: String): String {
         val source = File(sourcePath)
         val parent = source.parentFile
-        val packageName = if (parent?.name.equals("skin", ignoreCase = true)) {
-            parent?.parentFile?.name
-        } else {
-            parent?.name
-        }
+        val packageName =
+            if (parent?.name.equals("skin", ignoreCase = true)) {
+                parent?.parentFile?.name
+            } else {
+                parent?.name
+            }
         return if (source.extension.equals("json", ignoreCase = true) &&
             source.nameWithoutExtension.equals("uiskin", ignoreCase = true)
         ) {

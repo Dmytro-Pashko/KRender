@@ -38,26 +38,31 @@ class SceneSerializerTest {
 
     @Test
     fun `round trips nested scene settings`() {
-        val descriptor = SceneDescriptor(
-            id = "scene:test",
-            name = "Scene Settings",
-            settings = SceneSettingsDescriptor(
-                activeCameraEntityId = 11L,
-                activeTerrainEntityId = 22L,
-                lighting = SceneLightingDescriptor(
-                    ambientColor = Color(0.1f, 0.2f, 0.3f, 1f),
-                    ambientIntensity = 0.7f,
-                ),
-                environment = SceneEnvironmentDescriptor(
-                    skyboxAssetPath = "skyboxes/studio.krskybox",
-                    showSkybox = false,
-                    environmentIntensity = 1.25f,
-                ),
-                terrain = SceneTerrainSettingsDescriptor(
-                    materialLibraryPath = "materials/runtime_terrain_materials.json",
-                ),
-            ),
-        )
+        val descriptor =
+            SceneDescriptor(
+                id = "scene:test",
+                name = "Scene Settings",
+                settings =
+                    SceneSettingsDescriptor(
+                        activeCameraEntityId = 11L,
+                        activeTerrainEntityId = 22L,
+                        lighting =
+                            SceneLightingDescriptor(
+                                ambientColor = Color(0.1f, 0.2f, 0.3f, 1f),
+                                ambientIntensity = 0.7f,
+                            ),
+                        environment =
+                            SceneEnvironmentDescriptor(
+                                skyboxAssetPath = "skyboxes/studio.krskybox",
+                                showSkybox = false,
+                                environmentIntensity = 1.25f,
+                            ),
+                        terrain =
+                            SceneTerrainSettingsDescriptor(
+                                materialLibraryPath = "materials/runtime_terrain_materials.json",
+                            ),
+                    ),
+            )
 
         val decoded = SceneSerializer.decode(SceneSerializer.encode(descriptor))
 
@@ -75,23 +80,24 @@ class SceneSerializerTest {
 
     @Test
     fun `decodes legacy ambient settings when lighting node is missing`() {
-        val decoded = SceneSerializer.decode(
-            """
-            {
-              "schemaVersion": 1,
-              "id": "scene:legacy",
-              "name": "Legacy",
-              "entities": [],
-              "settings": {
-                "activeCameraEntityId": null,
-                "activeTerrainEntityId": null,
-                "ambientLightEntityId": null,
-                "ambientLightColor": "0.4,0.5,0.6,1.0",
-                "ambientLightIntensity": 0.8
-              }
-            }
-            """.trimIndent(),
-        )
+        val decoded =
+            SceneSerializer.decode(
+                """
+                {
+                  "schemaVersion": 1,
+                  "id": "scene:legacy",
+                  "name": "Legacy",
+                  "entities": [],
+                  "settings": {
+                    "activeCameraEntityId": null,
+                    "activeTerrainEntityId": null,
+                    "ambientLightEntityId": null,
+                    "ambientLightColor": "0.4,0.5,0.6,1.0",
+                    "ambientLightIntensity": 0.8
+                  }
+                }
+                """.trimIndent(),
+            )
 
         assertEquals(0.4f, decoded.settings.lighting.ambientColor.r)
         assertEquals(0.5f, decoded.settings.lighting.ambientColor.g)
@@ -101,23 +107,24 @@ class SceneSerializerTest {
 
     @Test
     fun `decodes literal string null skybox path as missing skybox`() {
-        val decoded = SceneSerializer.decode(
-            """
-            {
-              "schemaVersion": 1,
-              "id": "scene:legacy-null-skybox",
-              "name": "Legacy Null Skybox",
-              "entities": [],
-              "settings": {
-                "environment": {
-                  "skyboxAssetPath": "null",
-                  "showSkybox": true,
-                  "environmentIntensity": 1.0
+        val decoded =
+            SceneSerializer.decode(
+                """
+                {
+                  "schemaVersion": 1,
+                  "id": "scene:legacy-null-skybox",
+                  "name": "Legacy Null Skybox",
+                  "entities": [],
+                  "settings": {
+                    "environment": {
+                      "skyboxAssetPath": "null",
+                      "showSkybox": true,
+                      "environmentIntensity": 1.0
+                    }
+                  }
                 }
-              }
-            }
-            """.trimIndent(),
-        )
+                """.trimIndent(),
+            )
 
         assertEquals(null, decoded.settings.environment.skyboxAssetPath)
         assertEquals(true, decoded.settings.environment.showSkybox)
@@ -126,21 +133,25 @@ class SceneSerializerTest {
 
     @Test
     fun `serializer writes only new settings format`() {
-        val encoded = SceneSerializer.encode(
-            SceneDescriptor(
-                id = "scene:new-format",
-                name = "New Format",
-                settings = SceneSettingsDescriptor(
-                    lighting = SceneLightingDescriptor(
-                        ambientColor = Color(0.25f, 0.35f, 0.45f, 1f),
-                        ambientIntensity = 0.9f,
-                    ),
-                    terrain = SceneTerrainSettingsDescriptor(
-                        materialLibraryPath = "materials/terrain_runtime.json",
-                    ),
+        val encoded =
+            SceneSerializer.encode(
+                SceneDescriptor(
+                    id = "scene:new-format",
+                    name = "New Format",
+                    settings =
+                        SceneSettingsDescriptor(
+                            lighting =
+                                SceneLightingDescriptor(
+                                    ambientColor = Color(0.25f, 0.35f, 0.45f, 1f),
+                                    ambientIntensity = 0.9f,
+                                ),
+                            terrain =
+                                SceneTerrainSettingsDescriptor(
+                                    materialLibraryPath = "materials/terrain_runtime.json",
+                                ),
+                        ),
                 ),
-            ),
-        )
+            )
 
         assertTrue(encoded.contains("\"lighting\""))
         assertTrue(encoded.contains("\"environment\""))

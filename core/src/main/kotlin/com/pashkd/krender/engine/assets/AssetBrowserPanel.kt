@@ -118,7 +118,7 @@ class AssetBrowserPanel(
     private fun drawCategoryList() {
         if (ImGui.selectable(
                 "All (${visibleCategoryCount(null)})##${panelId}_cat_all",
-                state.selectedCategory == null
+                state.selectedCategory == null,
             )
         ) {
             state.selectedCategory = null
@@ -138,13 +138,17 @@ class AssetBrowserPanel(
 
     private fun drawList(assets: List<AssetDescriptor>) {
         assets.forEach { asset ->
-            val label = "${assetBrowserIcon(asset)} ${asset.name}  ${asset.type.name}  " +
-                "${asset.path} (${assetBrowserFormatByteCount(asset.sizeBytes)})##asset_${asset.id.value}"
+            val label =
+                "${assetBrowserIcon(asset)} ${asset.name}  ${asset.type.name}  " +
+                    "${asset.path} (${assetBrowserFormatByteCount(asset.sizeBytes)})##asset_${asset.id.value}"
             drawSelectableAsset(asset, label)
         }
     }
 
-    private fun drawSelectableAsset(asset: AssetDescriptor, label: String) {
+    private fun drawSelectableAsset(
+        asset: AssetDescriptor,
+        label: String,
+    ) {
         if (ImGui.selectable(label, state.selectedAssetId == asset.id)) {
             onAssetSelected(asset)
         }

@@ -46,7 +46,10 @@ interface RuntimeUiBackend {
 
     fun render()
 
-    fun resize(width: Int, height: Int)
+    fun resize(
+        width: Int,
+        height: Int,
+    )
 
     fun clear()
 

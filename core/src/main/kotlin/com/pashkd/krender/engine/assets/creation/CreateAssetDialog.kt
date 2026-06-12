@@ -85,10 +85,11 @@ class CreateAssetDialog(
         val skinAssets = discoveredScene2DSkinAssets(state.assets)
         ImGui.text("Skin")
         ImGui.sameLine()
-        val currentLabel = skinAssets
-            .firstOrNull { asset -> asset.path == state.createDraft.uiSceneSkinPath }
-            ?.let { asset -> "${asset.name} (${asset.path})" }
-            ?: state.createDraft.uiSceneSkinPath
+        val currentLabel =
+            skinAssets
+                .firstOrNull { asset -> asset.path == state.createDraft.uiSceneSkinPath }
+                ?.let { asset -> "${asset.name} (${asset.path})" }
+                ?: state.createDraft.uiSceneSkinPath
         if (!ImGui.beginCombo("##${panelId}_create_ui_skin", currentLabel)) return
         skinAssets.forEach { asset ->
             val label = "${asset.name} (${asset.path})##${panelId}_create_ui_skin_${asset.id.value}"

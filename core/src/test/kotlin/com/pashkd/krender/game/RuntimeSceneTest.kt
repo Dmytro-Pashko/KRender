@@ -2,6 +2,7 @@ package com.pashkd.krender.game
 
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.assets.AssetRegistryService
+import com.pashkd.krender.engine.assets.NoOpAssetRegistryService
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.scene.*
 import com.pashkd.krender.engine.terrain.TerrainData
@@ -13,7 +14,6 @@ import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
-import com.pashkd.krender.engine.assets.NoOpAssetRegistryService
 import com.pashkd.krender.test.newTestRuntimeUiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -25,10 +25,11 @@ class RuntimeSceneTest {
     fun `runtime scene with terrain and skybox does not create runtime sun or ambient light`() {
         val assets = TestAssetService()
         val scene = RuntimeScene("scenes/runtime.krscene")
-        val context = TestEngineContext(
-            assets = assets,
-            files = runtimeFiles(sceneDescriptor()),
-        )
+        val context =
+            TestEngineContext(
+                assets = assets,
+                files = runtimeFiles(sceneDescriptor()),
+            )
 
         context.scenes.replace(scene)
         context.scenes.applyPendingTransitions(context)
@@ -41,15 +42,17 @@ class RuntimeSceneTest {
     fun `runtime scene starts without terrain when active terrain is missing`() {
         val assets = TestAssetService()
         val scene = RuntimeScene("scenes/runtime_no_terrain.krscene")
-        val context = TestEngineContext(
-            assets = assets,
-            files = runtimeFiles(
-                sceneDescriptor(
-                    scenePath = "scenes/runtime_no_terrain.krscene",
-                    activeTerrainEntityId = null,
-                ),
-            ),
-        )
+        val context =
+            TestEngineContext(
+                assets = assets,
+                files =
+                    runtimeFiles(
+                        sceneDescriptor(
+                            scenePath = "scenes/runtime_no_terrain.krscene",
+                            activeTerrainEntityId = null,
+                        ),
+                    ),
+            )
 
         context.scenes.replace(scene)
         context.scenes.applyPendingTransitions(context)
@@ -62,16 +65,18 @@ class RuntimeSceneTest {
     fun `runtime scene starts without skybox when skybox is disabled`() {
         val assets = TestAssetService()
         val scene = RuntimeScene("scenes/runtime_no_skybox.krscene")
-        val context = TestEngineContext(
-            assets = assets,
-            files = runtimeFiles(
-                sceneDescriptor(
-                    scenePath = "scenes/runtime_no_skybox.krscene",
-                    showSkybox = false,
-                    skyboxAssetPath = null,
-                ),
-            ),
-        )
+        val context =
+            TestEngineContext(
+                assets = assets,
+                files =
+                    runtimeFiles(
+                        sceneDescriptor(
+                            scenePath = "scenes/runtime_no_skybox.krscene",
+                            showSkybox = false,
+                            skyboxAssetPath = null,
+                        ),
+                    ),
+            )
 
         context.scenes.replace(scene)
         context.scenes.applyPendingTransitions(context)
@@ -80,19 +85,21 @@ class RuntimeSceneTest {
     }
 
     private fun runtimeFiles(descriptor: SceneDescriptor): Map<String, String> {
-        val terrain = TerrainData(width = 2, height = 2, vertexSpacing = 1f).also { data ->
-            val layer = data.addLayer(
-                name = "Base",
-                materialId = "terrain/grass",
-                color = TerrainLayerColorDescriptor(0.2f, 0.6f, 0.3f, 1f),
-                visible = true,
-            )
-            for (y in 0 until data.height) {
-                for (x in 0 until data.width) {
-                    data.setLayerWeight(layer.id, x, y, 1f)
+        val terrain =
+            TerrainData(width = 2, height = 2, vertexSpacing = 1f).also { data ->
+                val layer =
+                    data.addLayer(
+                        name = "Base",
+                        materialId = "terrain/grass",
+                        color = TerrainLayerColorDescriptor(0.2f, 0.6f, 0.3f, 1f),
+                        visible = true,
+                    )
+                for (y in 0 until data.height) {
+                    for (x in 0 until data.width) {
+                        data.setLayerWeight(layer.id, x, y, 1f)
+                    }
                 }
             }
-        }
         return buildMap {
             put(descriptorPath(descriptor), SceneSerializer.encode(descriptor))
             put(
@@ -110,18 +117,18 @@ class RuntimeSceneTest {
             put(
                 DefaultTerrainMaterialLibraryPath,
                 """
+                {
+                  "formatVersion": 1,
+                  "materials": [
                     {
-                      "formatVersion": 1,
-                      "materials": [
-                        {
-                          "id": "terrain/grass",
-                          "name": "Grass",
-                          "albedoTexture": "textures/grass.png",
-                          "fallbackColor": { "r": 0.2, "g": 0.6, "b": 0.3, "a": 1.0 },
-                          "defaultTiling": 8.0
-                        }
-                      ]
+                      "id": "terrain/grass",
+                      "name": "Grass",
+                      "albedoTexture": "textures/grass.png",
+                      "fallbackColor": { "r": 0.2, "g": 0.6, "b": 0.3, "a": 1.0 },
+                      "defaultTiling": 8.0
                     }
+                  ]
+                }
                 """.trimIndent(),
             )
         }
@@ -136,64 +143,71 @@ class RuntimeSceneTest {
         SceneDescriptor(
             id = "scene:${scenePath.substringAfterLast('/').substringBeforeLast('.')}",
             name = "Runtime",
-            entities = buildList {
-                add(
-                    EntityDescriptor(
-                        id = 1L,
-                        name = "Camera",
-                        components = listOf(
-                            ComponentDescriptor(
-                                type = SceneComponentTypes.Transform,
-                                properties = mapOf(
-                                    "position" to "0,1,6",
-                                    "rotation" to "0,180,0",
-                                    "scale" to "1,1,1",
-                                ),
-                            ),
-                            ComponentDescriptor(
-                                type = SceneComponentTypes.Camera,
-                                properties = mapOf(
-                                    "fieldOfViewDegrees" to "60",
-                                    "near" to "0.1",
-                                    "far" to "500",
-                                ),
-                            ),
-                        ),
-                    ),
-                )
-                if (activeTerrainEntityId != null) {
+            entities =
+                buildList {
                     add(
                         EntityDescriptor(
-                            id = activeTerrainEntityId,
-                            name = "Terrain",
-                            components = listOf(
-                                ComponentDescriptor(
-                                    type = SceneComponentTypes.Terrain,
-                                    properties = mapOf(
-                                        "terrain" to "terrains/runtime_terrain.json",
-                                        "visible" to "true",
-                                        "previewMode" to "LayerColor",
-                                        "bakedTextureResolution" to "512",
+                            id = 1L,
+                            name = "Camera",
+                            components =
+                                listOf(
+                                    ComponentDescriptor(
+                                        type = SceneComponentTypes.Transform,
+                                        properties =
+                                            mapOf(
+                                                "position" to "0,1,6",
+                                                "rotation" to "0,180,0",
+                                                "scale" to "1,1,1",
+                                            ),
+                                    ),
+                                    ComponentDescriptor(
+                                        type = SceneComponentTypes.Camera,
+                                        properties =
+                                            mapOf(
+                                                "fieldOfViewDegrees" to "60",
+                                                "near" to "0.1",
+                                                "far" to "500",
+                                            ),
                                     ),
                                 ),
-                            ),
                         ),
                     )
-                }
-            },
-            settings = SceneSettingsDescriptor(
-                activeCameraEntityId = 1L,
-                activeTerrainEntityId = activeTerrainEntityId,
-                environment = SceneEnvironmentDescriptor(
-                    skyboxAssetPath = skyboxAssetPath,
-                    showSkybox = showSkybox,
-                    environmentIntensity = 1f,
+                    if (activeTerrainEntityId != null) {
+                        add(
+                            EntityDescriptor(
+                                id = activeTerrainEntityId,
+                                name = "Terrain",
+                                components =
+                                    listOf(
+                                        ComponentDescriptor(
+                                            type = SceneComponentTypes.Terrain,
+                                            properties =
+                                                mapOf(
+                                                    "terrain" to "terrains/runtime_terrain.json",
+                                                    "visible" to "true",
+                                                    "previewMode" to "LayerColor",
+                                                    "bakedTextureResolution" to "512",
+                                                ),
+                                        ),
+                                    ),
+                            ),
+                        )
+                    }
+                },
+            settings =
+                SceneSettingsDescriptor(
+                    activeCameraEntityId = 1L,
+                    activeTerrainEntityId = activeTerrainEntityId,
+                    environment =
+                        SceneEnvironmentDescriptor(
+                            skyboxAssetPath = skyboxAssetPath,
+                            showSkybox = showSkybox,
+                            environmentIntensity = 1f,
+                        ),
                 ),
-            ),
         )
 
-    private fun descriptorPath(descriptor: SceneDescriptor): String =
-        "scenes/${descriptor.id.substringAfter(':')}.krscene"
+    private fun descriptorPath(descriptor: SceneDescriptor): String = "scenes/${descriptor.id.substringAfter(':')}.krscene"
 }
 
 private class TestEngineContext(
@@ -233,8 +247,7 @@ private class TestAssetService : AssetService {
 
     override fun isLoaded(asset: AssetRef<*>): Boolean = true
 
-    override fun <T : Any> get(asset: AssetRef<T>): T =
-        error("Test asset service does not resolve assets")
+    override fun <T : Any> get(asset: AssetRef<T>): T = error("Test asset service does not resolve assets")
 
     override fun unload(asset: AssetRef<*>) = Unit
 }
@@ -242,10 +255,12 @@ private class TestAssetService : AssetService {
 private class TestSceneFileService(
     private val files: Map<String, String>,
 ) : SceneFileService {
-    override fun writeText(path: String, text: String) = error("Test scene files are read-only")
+    override fun writeText(
+        path: String,
+        text: String,
+    ) = error("Test scene files are read-only")
 
-    override fun readText(path: String): String =
-        files[path] ?: error("Missing test scene file '$path'")
+    override fun readText(path: String): String = files[path] ?: error("Missing test scene file '$path'")
 
     override fun ensureDirectories(path: String) = Unit
 
@@ -256,18 +271,27 @@ private class TestSceneFileService(
 
 private object TestInputService : InputService {
     override fun beginFrame() = Unit
+
     override fun snapshot(): InputSnapshot = InputSnapshot()
+
     override fun endFrame() = Unit
+
     override fun setCursorCaptured(captured: Boolean) = Unit
+
     override fun isActionPressed(action: Action): Boolean = false
+
     override fun isActionJustPressed(action: Action): Boolean = false
+
     override fun axis(axis: Axis): Float = 0f
 }
 
 private object TestTaskService : TaskService {
     override val inFlightJobs: Int = 0
 
-    override fun launchBackground(name: String, block: suspend CoroutineScope.() -> Unit): Job = Job()
+    override fun launchBackground(
+        name: String,
+        block: suspend CoroutineScope.() -> Unit,
+    ): Job = Job()
 
     override suspend fun <T> onBackground(block: suspend () -> T): T = block()
 

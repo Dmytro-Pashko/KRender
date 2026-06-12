@@ -23,8 +23,7 @@ data class UiSceneValidationContext(
             .associateBy { binding -> binding.key }
 }
 
-fun UiSceneNode.flattenNodes(): List<UiSceneNode> =
-    listOf(this) + children.flatMap { child -> child.flattenNodes() }
+fun UiSceneNode.flattenNodes(): List<UiSceneNode> = listOf(this) + children.flatMap { child -> child.flattenNodes() }
 
 /**
  * Skin metadata available to validation.

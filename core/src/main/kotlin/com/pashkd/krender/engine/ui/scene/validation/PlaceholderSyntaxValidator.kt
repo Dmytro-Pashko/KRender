@@ -9,17 +9,18 @@ object PlaceholderSyntaxValidator : UiSceneValidationRule {
         context.nodes.flatMap(::validateNode)
 
     private fun validateNode(node: UiSceneNode): List<UiSceneValidationIssue> {
-        val fields = when (node.type) {
-            UiSceneNodeType.Label -> listOf("text" to node.text)
-            UiSceneNodeType.TextButton -> listOf("text" to node.text, "action" to node.action)
-            UiSceneNodeType.Image -> listOf("texture" to node.texture)
-            UiSceneNodeType.Stack,
-            UiSceneNodeType.Table,
-            UiSceneNodeType.Container,
-            UiSceneNodeType.ProgressBar,
-            UiSceneNodeType.Space,
-                -> emptyList()
-        }
+        val fields =
+            when (node.type) {
+                UiSceneNodeType.Label -> listOf("text" to node.text)
+                UiSceneNodeType.TextButton -> listOf("text" to node.text, "action" to node.action)
+                UiSceneNodeType.Image -> listOf("texture" to node.texture)
+                UiSceneNodeType.Stack,
+                UiSceneNodeType.Table,
+                UiSceneNodeType.Container,
+                UiSceneNodeType.ProgressBar,
+                UiSceneNodeType.Space,
+                    -> emptyList()
+            }
         return fields.flatMap { (fieldName, value) ->
             findMalformedBindingPlaceholders(value).map { raw ->
                 warning(

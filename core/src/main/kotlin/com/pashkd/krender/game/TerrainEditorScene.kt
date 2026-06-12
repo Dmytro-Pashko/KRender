@@ -21,12 +21,13 @@ class TerrainEditorScene(
 ) : Scene("terrain_editor") {
     override val config: SceneConfig = SceneConfigPresets.EditorTool
 
-    private val terrainGenerators = listOf(
-        FlatTerrainGenerator(),
-        PerlinNoiseGenerator(),
-        SimplexNoiseGenerator(),
-        FractalNoiseGenerator(),
-    )
+    private val terrainGenerators =
+        listOf(
+            FlatTerrainGenerator(),
+            PerlinNoiseGenerator(),
+            SimplexNoiseGenerator(),
+            FractalNoiseGenerator(),
+        )
     private lateinit var terrainPersistence: TerrainPersistence
     private lateinit var terrainMaterialLibrary: TerrainMaterialLibrary
     private lateinit var editorState: TerrainEditorState
@@ -38,95 +39,102 @@ class TerrainEditorScene(
      */
     override fun show() {
         terrainPersistence = TerrainPersistence(engine.logger)
-        terrainMaterialLibrary = TerrainMaterialLibrary(engine.logger).also { library ->
-            library.load("materials/terrain_materials.json")
-        }
+        terrainMaterialLibrary =
+            TerrainMaterialLibrary(engine.logger).also { library ->
+                library.load("materials/terrain_materials.json")
+            }
         val initialTerrain = loadInitialTerrainData()
         engine.logger.info(TAG) {
             "Showing terrain editor path='$terrainFilePath' resolution=${initialTerrain.data.width} spacing=${
                 "%.2f".format(
-                    initialTerrain.data.vertexSpacing
+                    initialTerrain.data.vertexSpacing,
                 )
             } " +
                 "generators=${terrainGenerators.joinToString { it.id }} materials=${terrainMaterialLibrary.all().size}"
         }
-        val layoutConfig = ImGuiLayoutConfigLoader(
-            assetPath = TerrainEditorUiLayoutDefaults.assetPath,
-            fallback = TerrainEditorUiLayoutDefaults.config,
-        ).load(engine.logger)
+        val layoutConfig =
+            ImGuiLayoutConfigLoader(
+                assetPath = TerrainEditorUiLayoutDefaults.assetPath,
+                fallback = TerrainEditorUiLayoutDefaults.config,
+            ).load(engine.logger)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "TerrainEditorUi")
-        editorState = TerrainEditorState(
-            generators = terrainGenerators.map(::toGeneratorOption),
-            selectedGeneratorId = terrainGenerators.firstOrNull()?.id,
-            terrainResolution = initialTerrain.data.width,
-            vertexSpacing = initialTerrain.data.vertexSpacing,
-            terrainFilePath = terrainFilePath,
-            materialPreviewExportPath = terrainMaterialPreviewExportPath(terrainFilePath),
-            terrainSaveName = initialTerrain.name,
-            terrainFileExists = true,
-            terrainMaterials = terrainMaterialLibrary.all().map { material ->
-                TerrainMaterialOption(
-                    id = material.id,
-                    name = material.name,
-                    albedoTexture = material.albedoTexture,
-                    fallbackColor = material.fallbackColor,
-                    defaultTiling = material.defaultTiling,
-                )
-            },
-            persistenceMessage = initialTerrain.message,
-            persistenceError = false,
-        )
-        editorSystem = TerrainEditorSystem(
-            engine.input,
-            engine.logger,
-            editorState,
-            terrainGenerators.associateBy(TerrainGenerator::id),
-            terrainMaterialLibrary.all().associateBy { it.id },
-        )
+        editorState =
+            TerrainEditorState(
+                generators = terrainGenerators.map(::toGeneratorOption),
+                selectedGeneratorId = terrainGenerators.firstOrNull()?.id,
+                terrainResolution = initialTerrain.data.width,
+                vertexSpacing = initialTerrain.data.vertexSpacing,
+                terrainFilePath = terrainFilePath,
+                materialPreviewExportPath = terrainMaterialPreviewExportPath(terrainFilePath),
+                terrainSaveName = initialTerrain.name,
+                terrainFileExists = true,
+                terrainMaterials =
+                    terrainMaterialLibrary.all().map { material ->
+                        TerrainMaterialOption(
+                            id = material.id,
+                            name = material.name,
+                            albedoTexture = material.albedoTexture,
+                            fallbackColor = material.fallbackColor,
+                            defaultTiling = material.defaultTiling,
+                        )
+                    },
+                persistenceMessage = initialTerrain.message,
+                persistenceError = false,
+            )
+        editorSystem =
+            TerrainEditorSystem(
+                engine.input,
+                engine.logger,
+                editorState,
+                terrainGenerators.associateBy(TerrainGenerator::id),
+                terrainMaterialLibrary.all().associateBy { it.id },
+            )
 
         world.systems.add(TerrainCameraControllerSystem(engine.input, editorState))
         world.systems.add(editorSystem)
-        meshSyncSystem = TerrainEditorMeshSyncSystem(
-            materialColorResolver = { materialId ->
-                terrainMaterialLibrary.find(materialId)?.fallbackColor
-            },
-            blendModeProvider = { editorState.layerBlendMode },
-            layerColorPreviewProvider = { editorState.showLayerColorPreview },
-            previewModeProvider = { editorState.terrainPreviewMode },
-            materialPreviewResolutionProvider = { editorState.materialPreviewResolution },
-            materialPreviewDirtyProvider = { editorState.materialPreviewDirty },
-            selectedLayerIdProvider = { editorState.selectedLayerId },
-            materialPreviewStatusSink = { message ->
-                editorState.materialPreviewMessage = message
-                editorState.previewMessage = message
-            },
-            previewBakeStatsSink = { elapsedMs, stats ->
-                editorState.lastPreviewBakeTimeMs = elapsedMs
-                val previousCount = editorState.previewBakeCount
-                editorState.averagePreviewBakeTimeMs =
-                    if (previousCount <= 0) {
-                        elapsedMs
-                    } else {
-                        ((editorState.averagePreviewBakeTimeMs * previousCount) + elapsedMs) / (previousCount + 1)
-                    }
-                editorState.previewBakeCount = previousCount + 1
-                editorState.previewTextureCacheSize = stats.textureCount
-                editorState.previewTextureCacheMemoryBytes = stats.approximateMemoryBytes
-            },
-            materialPreviewCleanSink = {
-                editorState.materialPreviewDirty = false
-            },
-            materialPreviewExportRequestedProvider = { editorState.materialPreviewExportRequested },
-            materialPreviewExportPathProvider = { editorState.materialPreviewExportPath },
-            materialPreviewExportCompleteSink = { message ->
-                editorState.materialPreviewExportRequested = false
-                editorState.materialPreviewMessage = message
-                editorState.previewMessage = message
-            },
-            brushActiveProvider = { editorState.brushActive },
-            materialLibrary = terrainMaterialLibrary,
-            logger = engine.logger,
-        )
+        meshSyncSystem =
+            TerrainEditorMeshSyncSystem(
+                bindings =
+                    TerrainEditorMeshSyncBindings().apply {
+                        materialColorResolver = { materialId -> terrainMaterialLibrary.find(materialId)?.fallbackColor }
+                        blendModeProvider = { editorState.layerBlendMode }
+                        layerColorPreviewProvider = { editorState.showLayerColorPreview }
+                        previewModeProvider = { editorState.terrainPreviewMode }
+                        materialPreviewResolutionProvider = { editorState.materialPreviewResolution }
+                        materialPreviewDirtyProvider = { editorState.materialPreviewDirty }
+                        selectedLayerIdProvider = { editorState.selectedLayerId }
+                        materialPreviewStatusSink = { message ->
+                            editorState.materialPreviewMessage = message
+                            editorState.previewMessage = message
+                        }
+                        previewBakeStatsSink = { elapsedMs, stats ->
+                            editorState.lastPreviewBakeTimeMs = elapsedMs
+                            val previousCount = editorState.previewBakeCount
+                            editorState.averagePreviewBakeTimeMs =
+                                if (previousCount <= 0) {
+                                    elapsedMs
+                                } else {
+                                    ((editorState.averagePreviewBakeTimeMs * previousCount) + elapsedMs) / (previousCount + 1)
+                                }
+                            editorState.previewBakeCount = previousCount + 1
+                            editorState.previewTextureCacheSize = stats.textureCount
+                            editorState.previewTextureCacheMemoryBytes = stats.approximateMemoryBytes
+                        }
+                        materialPreviewCleanSink = {
+                            editorState.materialPreviewDirty = false
+                        }
+                        materialPreviewExportRequestedProvider = { editorState.materialPreviewExportRequested }
+                        materialPreviewExportPathProvider = { editorState.materialPreviewExportPath }
+                        materialPreviewExportCompleteSink = { message ->
+                            editorState.materialPreviewExportRequested = false
+                            editorState.materialPreviewMessage = message
+                            editorState.previewMessage = message
+                        }
+                        brushActiveProvider = { editorState.brushActive }
+                    },
+                materialLibrary = terrainMaterialLibrary,
+                logger = engine.logger,
+            )
         world.systems.add(meshSyncSystem)
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(TerrainRenderSystem())
@@ -156,8 +164,8 @@ class TerrainEditorScene(
                     engine.runtimeStats,
                     engine.profiler,
                     layoutConfig,
-                    panelEventLogger
-                )
+                    panelEventLogger,
+                ),
             )
             uiSystem.addPanel(TerrainEditorTerrainPanel(editorState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(TerrainEditorBrushPanel(editorState, layoutConfig, panelEventLogger))
@@ -281,4 +289,8 @@ private data class InitialTerrainData(
 )
 
 private fun TerrainData.describeTerrain(): String =
-    "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${allLayers().joinToString { layer -> "${layer.id}:${layer.name}" }}]"
+    "size=${width}x$height spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${
+        allLayers().joinToString { layer ->
+            "${layer.id}:${layer.name}"
+        }
+    }]"

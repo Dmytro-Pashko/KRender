@@ -7,7 +7,10 @@ import imgui.ImGui
 class GenericAssetDetailsRenderer : AssetDetailsRenderer {
     override fun supports(asset: AssetDescriptor): Boolean = true
 
-    override fun render(asset: AssetDescriptor, context: AssetDetailsRenderContext) {
+    override fun render(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    ) {
         ImGui.text("Metadata")
         if (asset.metadata.isEmpty()) {
             ImGui.text("none")

@@ -108,12 +108,13 @@ object TextureMetadataReader {
                 val chunkSize = input.readLittleEndianInt()
                 if (chunkSize < 0 || input.filePointer + chunkSize > input.length()) return null
                 val chunkDataStart = input.filePointer
-                val metadata = when (chunkType) {
-                    "VP8X" -> readWebpExtended(input, chunkSize)
-                    "VP8 " -> readWebpLossy(input, chunkSize)
-                    "VP8L" -> readWebpLossless(input, chunkSize)
-                    else -> null
-                }
+                val metadata =
+                    when (chunkType) {
+                        "VP8X" -> readWebpExtended(input, chunkSize)
+                        "VP8 " -> readWebpLossy(input, chunkSize)
+                        "VP8L" -> readWebpLossless(input, chunkSize)
+                        else -> null
+                    }
                 if (metadata != null) return metadata
                 input.seek(chunkDataStart + chunkSize + (chunkSize % 2))
             }
@@ -121,7 +122,10 @@ object TextureMetadataReader {
         }
     }
 
-    private fun readWebpExtended(input: RandomAccessFile, chunkSize: Int): TextureMetadata? {
+    private fun readWebpExtended(
+        input: RandomAccessFile,
+        chunkSize: Int,
+    ): TextureMetadata? {
         if (chunkSize < 10) return null
         val flags = input.readUnsignedByte()
         input.skipBytes(3)
@@ -131,7 +135,10 @@ object TextureMetadataReader {
         return TextureMetadata(width, height, hasAlpha = flags and WebpAlphaFlag != 0)
     }
 
-    private fun readWebpLossy(input: RandomAccessFile, chunkSize: Int): TextureMetadata? {
+    private fun readWebpLossy(
+        input: RandomAccessFile,
+        chunkSize: Int,
+    ): TextureMetadata? {
         if (chunkSize < 10) return null
         input.skipBytes(3)
         if (input.readUnsignedByte() != 0x9d || input.readUnsignedByte() != 0x01 || input.readUnsignedByte() != 0x2a) {
@@ -144,7 +151,10 @@ object TextureMetadataReader {
         return TextureMetadata(width, height, hasAlpha = false)
     }
 
-    private fun readWebpLossless(input: RandomAccessFile, chunkSize: Int): TextureMetadata? {
+    private fun readWebpLossless(
+        input: RandomAccessFile,
+        chunkSize: Int,
+    ): TextureMetadata? {
         if (chunkSize < 5) return null
         if (input.readUnsignedByte() != 0x2f) {
             input.skipBytes(chunkSize - 1)
@@ -194,19 +204,20 @@ object TextureMetadataReader {
     private const val JpegSos = 0xda
     private const val WebpAlphaFlag = 0x10
     private val JpegStandaloneMarkers = setOf(0x01) + (0xd0..0xd7)
-    private val JpegStartOfFrameMarkers = setOf(
-        0xc0,
-        0xc1,
-        0xc2,
-        0xc3,
-        0xc5,
-        0xc6,
-        0xc7,
-        0xc9,
-        0xca,
-        0xcb,
-        0xcd,
-        0xce,
-        0xcf,
-    )
+    private val JpegStartOfFrameMarkers =
+        setOf(
+            0xc0,
+            0xc1,
+            0xc2,
+            0xc3,
+            0xc5,
+            0xc6,
+            0xc7,
+            0xc9,
+            0xca,
+            0xcb,
+            0xcd,
+            0xce,
+            0xcf,
+        )
 }

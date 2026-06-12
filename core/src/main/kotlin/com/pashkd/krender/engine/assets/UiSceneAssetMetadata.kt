@@ -23,17 +23,18 @@ data class UiSceneAssetMetadata(
     /**
      * Converts parsed UiScene metadata into the flat map used by [AssetDescriptor].
      */
-    fun toMetadataMap(): Map<String, String> = buildMap {
-        put("uiSceneStatus", if (parseError == null) "valid" else "invalid")
-        documentId?.let { put("uiSceneDocumentId", it) }
-        skinPath?.let { put("uiSceneSkinPath", it) }
-        schemaVersion?.let { put("uiSceneSchemaVersion", it.toString()) }
-        parseError?.let { put("uiSceneParseError", it) }
-        put("uiSceneValidationWarningCount", validationIssues.size.toString())
-        if (validationIssues.isNotEmpty()) {
-            put("uiSceneValidationIssuePreview", validationIssues.take(3).joinToString("; "))
+    fun toMetadataMap(): Map<String, String> =
+        buildMap {
+            put("uiSceneStatus", if (parseError == null) "valid" else "invalid")
+            documentId?.let { put("uiSceneDocumentId", it) }
+            skinPath?.let { put("uiSceneSkinPath", it) }
+            schemaVersion?.let { put("uiSceneSchemaVersion", it.toString()) }
+            parseError?.let { put("uiSceneParseError", it) }
+            put("uiSceneValidationWarningCount", validationIssues.size.toString())
+            if (validationIssues.isNotEmpty()) {
+                put("uiSceneValidationIssuePreview", validationIssues.take(3).joinToString("; "))
+            }
         }
-    }
 }
 
 /**
@@ -50,9 +51,10 @@ object UiSceneAssetMetadataReader {
     fun read(file: File): UiSceneAssetMetadata =
         try {
             val document = UiSceneSerializer().decode(file.readText(StandardCharsets.UTF_8))
-            val issues = UiSceneValidator().validate(document).map { issue ->
-                if (issue.nodeId == null) issue.message else "${issue.nodeId}: ${issue.message}"
-            }
+            val issues =
+                UiSceneValidator().validate(document).map { issue ->
+                    if (issue.nodeId == null) issue.message else "${issue.nodeId}: ${issue.message}"
+                }
             UiSceneAssetMetadata(
                 documentId = document.id,
                 skinPath = document.skin,

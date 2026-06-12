@@ -18,11 +18,12 @@ class RuntimeViewportService(
         private set
 
     /** Latest calculated runtime viewport. */
-    var current: RuntimeViewport = calculateRuntimeViewport(
-        initialPixelWidth,
-        initialPixelHeight,
-        initialConfig,
-    )
+    var current: RuntimeViewport =
+        calculateRuntimeViewport(
+            initialPixelWidth,
+            initialPixelHeight,
+            initialConfig,
+        )
         private set
 
     /**

@@ -37,15 +37,17 @@ object SkyboxAssetSerializer : KRenderSerializer<SkyboxAssetDescriptor> {
     }
 
     override fun decode(jsonText: String): SkyboxAssetDescriptor {
-        val root = json.parseToJsonElement(jsonText) as? JsonObject
-            ?: throw IllegalArgumentException("Skybox asset descriptor root must be a JSON object")
-        val descriptor = SkyboxAssetDescriptor(
-            schemaVersion = root.intOrDefault("schemaVersion", SkyboxAssetDescriptor.CurrentSchemaVersion),
-            id = root.requiredString("id", DocumentName),
-            name = root.stringOrDefault("name", "Skybox"),
-            texturePath = normalizedProjectPath(root.requiredString("texturePath", DocumentName)),
-            intensity = root.floatOrDefault("intensity", 1f),
-        )
+        val root =
+            json.parseToJsonElement(jsonText) as? JsonObject
+                ?: throw IllegalArgumentException("Skybox asset descriptor root must be a JSON object")
+        val descriptor =
+            SkyboxAssetDescriptor(
+                schemaVersion = root.intOrDefault("schemaVersion", SkyboxAssetDescriptor.CurrentSchemaVersion),
+                id = root.requiredString("id", DocumentName),
+                name = root.stringOrDefault("name", "Skybox"),
+                texturePath = normalizedProjectPath(root.requiredString("texturePath", DocumentName)),
+                intensity = root.floatOrDefault("intensity", 1f),
+            )
         validate(descriptor)
         return descriptor
     }

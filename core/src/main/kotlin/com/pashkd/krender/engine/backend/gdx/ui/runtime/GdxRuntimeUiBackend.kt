@@ -32,10 +32,11 @@ class GdxRuntimeUiBackend(
     }
 
     private val skin = Skin(Gdx.files.internal(DefaultSkinPath))
-    private val screenFactory = CompositeRuntimeUiActorFactory(
-        factories = screenFactoryProvider(skin) { actionHandler },
-        fallbackFactory = FallbackRuntimeUiActorFactory(skin),
-    )
+    private val screenFactory =
+        CompositeRuntimeUiActorFactory(
+            factories = screenFactoryProvider(skin) { actionHandler },
+            fallbackFactory = FallbackRuntimeUiActorFactory(skin),
+        )
     private val stage = Stage(ScreenViewport())
     private var actionHandler: RuntimeUiActionHandler? = null
 
@@ -73,7 +74,10 @@ class GdxRuntimeUiBackend(
         forceOpaqueBackBufferAlpha()
     }
 
-    override fun resize(width: Int, height: Int) {
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) {
         stage.viewport.update(width, height, true)
     }
 
@@ -121,9 +125,10 @@ private class CompositeRuntimeUiActorFactory(
     fun create(
         screen: RuntimeUiScreen,
         layer: String,
-    ): Actor = factories.firstNotNullOfOrNull { factory -> factory.create(screen, layer) }
-        ?: fallbackFactory.create(screen, layer)
-        ?: error("Fallback runtime UI factory did not create a screen for '${screen.id}'.")
+    ): Actor =
+        factories.firstNotNullOfOrNull { factory -> factory.create(screen, layer) }
+            ?: fallbackFactory.create(screen, layer)
+            ?: error("Fallback runtime UI factory did not create a screen for '${screen.id}'.")
 
     fun dispose() {
         factories.forEach(RuntimeUiActorFactory::dispose)
@@ -139,15 +144,16 @@ private class FallbackRuntimeUiActorFactory(
         layer: String,
     ): Actor {
         val root = fullScreenTable()
-        val content = dialogTable().apply {
-            add(label(screen.payload["title"] ?: screen.id)).padBottom(20f).row()
-            add(
-                bodyLabel(
-                    screen.payload["message"]
-                        ?: "No runtime UI builder is registered for layer '$layer'.",
-                ),
-            ).width(540f)
-        }
+        val content =
+            dialogTable().apply {
+                add(label(screen.payload["title"] ?: screen.id)).padBottom(20f).row()
+                add(
+                    bodyLabel(
+                        screen.payload["message"]
+                            ?: "No runtime UI builder is registered for layer '$layer'.",
+                    ),
+                ).width(540f)
+            }
         root.add(content).width(680f).pad(40f)
         return root
     }

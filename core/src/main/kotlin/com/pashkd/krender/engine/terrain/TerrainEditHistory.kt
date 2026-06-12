@@ -40,10 +40,8 @@ data class LayerWeightChange(
 data class TerrainEditPatch(
     /** Human-readable label shown by history/undo UI. */
     val label: String,
-
     /** Height changes captured for this authoring action. */
     val heightChanges: List<HeightSampleChange> = emptyList(),
-
     /** Layer weight changes captured for this authoring action. */
     val layerWeightChanges: List<LayerWeightChange> = emptyList(),
 ) {
@@ -57,10 +55,8 @@ data class TerrainEditPatch(
 data class TerrainEditPatchInfo(
     /** User-visible action label, such as "Raise terrain". */
     val label: String,
-
     /** Number of height samples touched by the patch. */
     val heightChanges: Int,
-
     /** Number of layer-weight samples touched by the patch. */
     val layerChanges: Int,
 )
@@ -139,14 +135,16 @@ class TerrainEditPatchBuilder(
     fun build(): TerrainEditPatch =
         TerrainEditPatch(
             label = label,
-            heightChanges = heightChanges.values
-                // If a sample was modified and then returned to its original
-                // value during the same drag, the edit is not worth storing.
-                .filter { it.oldHeight != it.newHeight }
-                .map { HeightSampleChange(it.x, it.y, it.oldHeight, it.newHeight) },
-            layerWeightChanges = layerWeightChanges.values
-                .filter { it.oldWeight != it.newWeight }
-                .map { LayerWeightChange(it.layerId, it.x, it.y, it.oldWeight, it.newWeight) },
+            heightChanges =
+                heightChanges.values
+                    // If a sample was modified and then returned to its original
+                    // value during the same drag, the edit is not worth storing.
+                    .filter { it.oldHeight != it.newHeight }
+                    .map { HeightSampleChange(it.x, it.y, it.oldHeight, it.newHeight) },
+            layerWeightChanges =
+                layerWeightChanges.values
+                    .filter { it.oldWeight != it.newWeight }
+                    .map { LayerWeightChange(it.layerId, it.x, it.y, it.oldWeight, it.newWeight) },
         )
 
     /** Mutable staging record used while coalescing repeated height writes. */
@@ -167,8 +165,10 @@ class TerrainEditPatchBuilder(
     )
 
     /** Packs layer id and sample index into one map key for per-layer deduplication. */
-    private fun layerWeightKey(layerId: Int, sampleIndex: Int): Long =
-        (layerId.toLong() shl 32) or (sampleIndex.toLong() and 0xffffffffL)
+    private fun layerWeightKey(
+        layerId: Int,
+        sampleIndex: Int,
+    ): Long = (layerId.toLong() shl 32) or (sampleIndex.toLong() and 0xffffffffL)
 }
 
 /**
@@ -205,11 +205,12 @@ class TerrainEditHistory(
      */
     fun push(patch: TerrainEditPatch): Boolean {
         if (patch.isEmpty()) return false
-        val entry = HistoryEntry(
-            patch = patch,
-            beforeRevision = currentRevision,
-            afterRevision = nextRevision(),
-        )
+        val entry =
+            HistoryEntry(
+                patch = patch,
+                beforeRevision = currentRevision,
+                afterRevision = nextRevision(),
+            )
         undoStack.addLast(entry)
         if (undoStack.size > maxUndoSteps) {
             // Trim the oldest entry to keep memory bounded.
@@ -310,7 +311,10 @@ class TerrainEditHistory(
      * For example, `index = 0` undoes the most recent patch, `index = 1` undoes
      * the two most recent patches, and so on.
      */
-    fun jumpToUndoIndex(index: Int, data: TerrainData) {
+    fun jumpToUndoIndex(
+        index: Int,
+        data: TerrainData,
+    ) {
         require(index >= 0) { "Undo index must be >= 0" }
         repeat(minOf(index + 1, undoStack.size)) {
             undo(data)
@@ -318,7 +322,10 @@ class TerrainEditHistory(
     }
 
     /** Applies the undo-side values stored in a patch. */
-    private fun applyOldValues(data: TerrainData, patch: TerrainEditPatch) {
+    private fun applyOldValues(
+        data: TerrainData,
+        patch: TerrainEditPatch,
+    ) {
         patch.heightChanges.forEach { change ->
             data.setHeight(change.x, change.y, change.oldHeight)
         }
@@ -328,7 +335,10 @@ class TerrainEditHistory(
     }
 
     /** Applies the redo-side values stored in a patch. */
-    private fun applyNewValues(data: TerrainData, patch: TerrainEditPatch) {
+    private fun applyNewValues(
+        data: TerrainData,
+        patch: TerrainEditPatch,
+    ) {
         patch.heightChanges.forEach { change ->
             data.setHeight(change.x, change.y, change.newHeight)
         }

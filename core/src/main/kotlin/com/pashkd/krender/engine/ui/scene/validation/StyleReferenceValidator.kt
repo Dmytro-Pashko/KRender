@@ -54,12 +54,13 @@ object StyleReferenceValidator : UiSceneValidationRule {
         }
         val backgroundName = node.background?.takeIf(String::isNotBlank)
         if (backgroundName != null && backgroundName !in metadata.drawables) {
-            issues += warning(
-                code = UiSceneValidationCode.MissingBackgroundDrawable,
-                message = "Background drawable '$backgroundName' was not found in Skin.",
-                nodeId = nodeId,
-                fieldName = "background",
-            )
+            issues +=
+                warning(
+                    code = UiSceneValidationCode.MissingBackgroundDrawable,
+                    message = "Background drawable '$backgroundName' was not found in Skin.",
+                    nodeId = nodeId,
+                    fieldName = "background",
+                )
         }
         return issues
     }

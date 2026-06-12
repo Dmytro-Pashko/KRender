@@ -34,36 +34,40 @@ class AssetBrowserScene : Scene("asset_browser") {
 
     override fun show() {
         engine.logger.info(TAG) { "Showing Asset Browser scene" }
-        val layoutConfig = ImGuiLayoutConfigLoader(
-            assetPath = AssetBrowserUiLayoutDefaults.assetPath,
-            fallback = AssetBrowserUiLayoutDefaults.config,
-        ).load(engine.logger)
+        val layoutConfig =
+            ImGuiLayoutConfigLoader(
+                assetPath = AssetBrowserUiLayoutDefaults.assetPath,
+                fallback = AssetBrowserUiLayoutDefaults.config,
+            ).load(engine.logger)
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "AssetBrowserUi")
 
         importers = AssetImporterRegistry.withDefaults(engine.logger)
         registry = engine.assetRegistry
         browserState = AssetBrowserState()
-        tools = AssetToolRegistry(engine.logger).apply {
-            register(ModelViewerAssetTool())
-            register(AnimationViewerAssetTool())
-            register(TerrainEditorAssetTool())
-            register(UiComposerAssetTool())
-            register(SceneEditorAssetTool())
-            register(SceneRuntimeAssetTool())
-        }
-        operations = LocalAssetOperationsService(
-            registry = registry,
-            importers = importers,
-            logger = engine.logger,
-            onChanged = { browserState.refreshRequested = true },
-        )
-        importService = LocalAssetImportService(
-            registry = registry,
-            importers = importers,
-            logger = engine.logger,
-            onChanged = { browserState.refreshRequested = true },
-        )
+        tools =
+            AssetToolRegistry(engine.logger).apply {
+                register(ModelViewerAssetTool())
+                register(AnimationViewerAssetTool())
+                register(TerrainEditorAssetTool())
+                register(UiComposerAssetTool())
+                register(SceneEditorAssetTool())
+                register(SceneRuntimeAssetTool())
+            }
+        operations =
+            LocalAssetOperationsService(
+                registry = registry,
+                importers = importers,
+                logger = engine.logger,
+                onChanged = { browserState.refreshRequested = true },
+            )
+        importService =
+            LocalAssetImportService(
+                registry = registry,
+                importers = importers,
+                logger = engine.logger,
+                onChanged = { browserState.refreshRequested = true },
+            )
         fileDialogService = AwtFileDialogService()
 
         world.systems.add(
@@ -83,13 +87,14 @@ class AssetBrowserScene : Scene("asset_browser") {
         layoutConfig: ImGuiLayoutConfig,
         panelEventLogger: ImGuiWindowEventLogger,
     ): UiSystem {
-        val operationsHandler = SceneOperationsHandler(
-            operations = operations,
-            toolRegistry = tools,
-            state = browserState,
-            engineProvider = { engine },
-            logger = engine.logger,
-        )
+        val operationsHandler =
+            SceneOperationsHandler(
+                operations = operations,
+                toolRegistry = tools,
+                state = browserState,
+                engineProvider = { engine },
+                logger = engine.logger,
+            )
         val uiOperations = AssetBrowserUiOperations(browserState, engine, layoutTracker)
         return UiSystem(engine.ui).also { uiSystem ->
             uiSystem.addPanel(
@@ -98,8 +103,8 @@ class AssetBrowserScene : Scene("asset_browser") {
                     uiOperations,
                     layoutConfig,
                     layoutTracker,
-                    panelEventLogger
-                )
+                    panelEventLogger,
+                ),
             )
             uiSystem.addPanel(
                 AssetBrowserPanel(
@@ -195,11 +200,17 @@ private class SceneOperationsHandler(
         )
     }
 
-    override fun rename(asset: AssetDescriptor, newName: String) {
+    override fun rename(
+        asset: AssetDescriptor,
+        newName: String,
+    ) {
         consumeResult(operations.rename(asset, newName))
     }
 
-    override fun duplicate(asset: AssetDescriptor, targetName: String) {
+    override fun duplicate(
+        asset: AssetDescriptor,
+        targetName: String,
+    ) {
         consumeResult(operations.duplicate(asset, targetName))
     }
 
@@ -218,7 +229,10 @@ private class SceneOperationsHandler(
             toolRegistry.toolsFor(asset).map { AssetToolDescriptor(it.id, it.displayName) }
         }
 
-    override fun openWith(asset: AssetDescriptor, toolId: String) {
+    override fun openWith(
+        asset: AssetDescriptor,
+        toolId: String,
+    ) {
         if (!asset.canOpenWithTools()) {
             state.statusMessage = "Open With is unavailable for ${asset.category.displayName} assets."
             logger.info(TAG) { "Open With rejected for visible-only asset '${asset.path}'" }
@@ -243,10 +257,11 @@ private class SceneOperationsHandler(
 
     private fun defaultContent(draft: CreateAssetDraft): ByteArray =
         when (draft.kind.type) {
-            AssetType.UiScene -> defaultUiSceneContent(
-                draft.name,
-                normalizedUiSceneSkinPath(draft.uiSceneSkinPath),
-            ).toByteArray()
+            AssetType.UiScene ->
+                defaultUiSceneContent(
+                    draft.name,
+                    normalizedUiSceneSkinPath(draft.uiSceneSkinPath),
+                ).toByteArray()
 
             AssetType.Terrain -> defaultTerrainContent(draft.name).toByteArray()
             AssetType.Scene -> defaultSceneContent().toByteArray()
@@ -293,29 +308,31 @@ internal fun defaultUiSceneContent(
     val id = name.trim().replace(Regex("[^A-Za-z0-9_\\-:.]"), "_").ifBlank { "new_ui_scene" }
     val normalizedSkinPath = normalizedUiSceneSkinPath(skinPath)
     return """
-    {
-      "schemaVersion": 1,
-      "id": "$id",
-      "skin": "$normalizedSkinPath",
-      "root": {
-        "id": "root",
-        "type": "Stack",
-        "children": []
-      }
-    }
-    """.trimIndent() + "\n"
+        {
+          "schemaVersion": 1,
+          "id": "$id",
+          "skin": "$normalizedSkinPath",
+          "root": {
+            "id": "root",
+            "type": "Stack",
+            "children": []
+          }
+        }
+        """.trimIndent() + "\n"
 }
 
 internal fun defaultTerrainContent(name: String): String {
     val terrainName = name.trim().ifBlank { "terrain" }
-    val encoded = TerrainPersistence().encode(
-        data = TerrainData(
-            width = 64,
-            height = 64,
-            vertexSpacing = 1f,
-        ),
-        name = terrainName,
-    )
+    val encoded =
+        TerrainPersistence().encode(
+            data =
+                TerrainData(
+                    width = 64,
+                    height = 64,
+                    vertexSpacing = 1f,
+                ),
+            name = terrainName,
+        )
     return "$encoded\n"
 }
 
@@ -327,7 +344,10 @@ class ModelViewerAssetTool : AssetTool {
     override val displayName = "Open in Model Viewer"
     override val supportedCategories = setOf(AssetCategory.Model)
 
-    override fun open(asset: AssetDescriptor, context: EngineContext) {
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
         val path = normalizedAssetPath(asset)
         context.logger.info(TAG) { "Opening model asset '$path' in Model Viewer" }
         context.editorToolLauncher.launchModelViewer(path)
@@ -347,7 +367,10 @@ class AnimationViewerAssetTool : AssetTool {
     override val supportedCategories = setOf(AssetCategory.Model)
     override val defaultAction = false
 
-    override fun open(asset: AssetDescriptor, context: EngineContext) {
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
         val path = normalizedAssetPath(asset)
         context.logger.info(TAG) { "Opening model asset '$path' in Animation Viewer" }
         context.editorToolLauncher.launchAnimationViewer(path)
@@ -366,7 +389,10 @@ class TerrainEditorAssetTool : AssetTool {
     override val displayName = "Open in Terrain Editor"
     override val supportedCategories = setOf(AssetCategory.Terrain)
 
-    override fun open(asset: AssetDescriptor, context: EngineContext) {
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
         val path = normalizedAssetPath(asset)
         context.logger.info(TAG) { "Opening terrain asset '$path' in Terrain Editor" }
         context.editorToolLauncher.launchTerrainEditor(path)
@@ -396,7 +422,10 @@ class UiComposerAssetTool : AssetTool {
     /**
      * Launches the placeholder composer window for the selected UiScene path.
      */
-    override fun open(asset: AssetDescriptor, context: EngineContext) {
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
         val path = normalizedAssetPath(asset)
         context.logger.info(TAG) { "Opening UiScene asset '$path' in UI Composer placeholder" }
         context.editorToolLauncher.launchUiComposer(path)
@@ -416,7 +445,10 @@ class SceneEditorAssetTool : AssetTool {
     override val supportedCategories = setOf(AssetCategory.Scene)
     override val defaultAction = false
 
-    override fun open(asset: AssetDescriptor, context: EngineContext) {
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
         val path = normalizedAssetPath(asset)
         context.logger.info(TAG) { "Opening scene asset '$path' in Scene Editor" }
         context.editorToolLauncher.launchSceneEditorWithScene(path)
@@ -436,7 +468,10 @@ class SceneRuntimeAssetTool : AssetTool {
     override val supportedCategories = setOf(AssetCategory.Scene)
     override val defaultAction = false
 
-    override fun open(asset: AssetDescriptor, context: EngineContext) {
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
         val path = normalizedAssetPath(asset)
         context.logger.info(TAG) { "Launching scene asset '$path' in Runtime" }
         context.runtimeLauncher.launchRuntimeScene(path)
@@ -447,5 +482,4 @@ class SceneRuntimeAssetTool : AssetTool {
     }
 }
 
-private fun normalizedAssetPath(asset: AssetDescriptor): String =
-    asset.path.trim().replace('\\', '/')
+private fun normalizedAssetPath(asset: AssetDescriptor): String = asset.path.trim().replace('\\', '/')

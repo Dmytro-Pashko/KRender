@@ -23,10 +23,11 @@ object BindingReferenceValidator : UiSceneValidationRule {
 
 fun unknownBindingMessage(reference: UiSceneBindingReference): String =
     if (reference.placeholderSyntax) {
-        val guidance = when (reference.fieldName) {
-            "texture" -> "Add a binding definition or use a static texture path."
-            else -> "Add a binding definition or fix the placeholder."
-        }
+        val guidance =
+            when (reference.fieldName) {
+                "texture" -> "Add a binding definition or use a static texture path."
+                else -> "Add a binding definition or fix the placeholder."
+            }
         "Unknown binding key '${reference.key}' in ${reference.fieldName}. $guidance"
     } else {
         "Unknown valueBinding key '${reference.key}'. Add a binding definition or clear valueBinding."

@@ -45,8 +45,7 @@ class GdxWindowService(
             mode = fallbackMode ?: inferMode(),
         )
 
-    private fun inferMode(): WindowMode =
-        if (Gdx.graphics.isFullscreen) WindowMode.Fullscreen else WindowMode.Windowed
+    private fun inferMode(): WindowMode = if (Gdx.graphics.isFullscreen) WindowMode.Fullscreen else WindowMode.Windowed
 
     companion object {
         private const val TAG = "GdxWindowService"

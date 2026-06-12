@@ -60,7 +60,9 @@ class SceneEditorOperations(
             val config = layoutTracker.currentConfig()
             ImGuiLayoutConfigCodec.save(SceneEditorUiLayoutDefaults.assetPath, config, context.sceneFiles)
             state.statusMessage = "UI layout saved."
-            context.logger.info(TAG) { "Scene Editor UI layout saved path='${SceneEditorUiLayoutDefaults.assetPath}' panels=${config.panels.size}" }
+            context.logger.info(
+                TAG,
+            ) { "Scene Editor UI layout saved path='${SceneEditorUiLayoutDefaults.assetPath}' panels=${config.panels.size}" }
         } catch (error: Exception) {
             state.statusMessage = "UI layout save failed: ${error.message}"
             context.logger.error(TAG, error) {
@@ -72,18 +74,20 @@ class SceneEditorOperations(
     fun restoreUiLayout() {
         try {
             val text = context.sceneFiles.readText(SceneEditorUiLayoutDefaults.assetPath)
-            val result = ImGuiLayoutConfigCodec.decodeResult(
-                text = text,
-                fallback = SceneEditorUiLayoutDefaults.config,
-                logger = context.logger,
-                source = SceneEditorUiLayoutDefaults.assetPath,
-            )
+            val result =
+                ImGuiLayoutConfigCodec.decodeResult(
+                    text = text,
+                    fallback = SceneEditorUiLayoutDefaults.config,
+                    logger = context.logger,
+                    source = SceneEditorUiLayoutDefaults.assetPath,
+                )
             layoutTracker.requestRestore(result.config)
-            state.statusMessage = if (result.usedFallback) {
-                "UI layout restored to default."
-            } else {
-                "UI layout restored."
-            }
+            state.statusMessage =
+                if (result.usedFallback) {
+                    "UI layout restored to default."
+                } else {
+                    "UI layout restored."
+                }
             context.logger.info(TAG) {
                 "Scene Editor UI layout restore requested path='${SceneEditorUiLayoutDefaults.assetPath}' panels=${result.config.panels.size} fallback=${result.usedFallback}"
             }
@@ -266,7 +270,10 @@ class SceneEditorOperations(
         context.logger.info(TAG) { "Aligned editor view to camera entityId=${entity.id} name='${entity.name}'" }
     }
 
-    fun setLightType(entityId: EntityId, type: LightType) {
+    fun setLightType(
+        entityId: EntityId,
+        type: LightType,
+    ) {
         if (type != LightType.Directional && type != LightType.Point) {
             rejectLightEdit(entityId, "Only Directional and Point lights are supported in the editor.")
             return
@@ -287,7 +294,10 @@ class SceneEditorOperations(
         context.logger.info(TAG) { "Updated light type entityId=$entityId type=${type.name}" }
     }
 
-    fun setLightIntensity(entityId: EntityId, intensity: Float) {
+    fun setLightIntensity(
+        entityId: EntityId,
+        intensity: Float,
+    ) {
         val entity = lightEntity(entityId) ?: return
         val light = entity.get<LightComponent>() ?: return
         if (!intensity.isFinite() || intensity < 0f) {
@@ -301,7 +311,10 @@ class SceneEditorOperations(
         context.logger.debug(TAG) { "Updated light intensity entityId=$entityId value=$intensity" }
     }
 
-    fun setLightColor(entityId: EntityId, color: Color) {
+    fun setLightColor(
+        entityId: EntityId,
+        color: Color,
+    ) {
         val entity = lightEntity(entityId) ?: return
         val light = entity.get<LightComponent>() ?: return
         if (!color.isFinite()) {
@@ -322,7 +335,10 @@ class SceneEditorOperations(
         }
     }
 
-    fun setLightDirection(entityId: EntityId, direction: Vec3) {
+    fun setLightDirection(
+        entityId: EntityId,
+        direction: Vec3,
+    ) {
         val entity = lightEntity(entityId) ?: return
         val light = entity.get<LightComponent>() ?: return
         if (light.type != LightType.Directional) {
@@ -367,7 +383,11 @@ class SceneEditorOperations(
             return
         }
         val clamped = color.clamped()
-        val current = document.descriptor?.settings?.lighting?.ambientColor ?: defaultAmbientLightColor()
+        val current =
+            document.descriptor
+                ?.settings
+                ?.lighting
+                ?.ambientColor ?: defaultAmbientLightColor()
         if (current == clamped) return
 
         updateSceneSettings { settings ->
@@ -387,7 +407,11 @@ class SceneEditorOperations(
             context.logger.warn(TAG) { "Rejected ambient light intensity edit value=$intensity" }
             return
         }
-        val current = document.descriptor?.settings?.lighting?.ambientIntensity ?: DefaultAmbientLightIntensity
+        val current =
+            document.descriptor
+                ?.settings
+                ?.lighting
+                ?.ambientIntensity ?: DefaultAmbientLightIntensity
         if (current == intensity) return
 
         updateSceneSettings { settings ->
@@ -401,7 +425,11 @@ class SceneEditorOperations(
 
     fun setSkyboxAsset(path: String?) {
         val normalizedPath = normalizeOptionalAssetPath(path)
-        val currentPath = document.descriptor?.settings?.environment?.skyboxAssetPath
+        val currentPath =
+            document.descriptor
+                ?.settings
+                ?.environment
+                ?.skyboxAssetPath
         if (currentPath == normalizedPath) return
 
         updateSceneSettings { settings ->
@@ -420,7 +448,11 @@ class SceneEditorOperations(
     }
 
     fun setSkyboxVisible(visible: Boolean) {
-        val current = document.descriptor?.settings?.environment?.showSkybox ?: SceneEnvironmentDescriptor().showSkybox
+        val current =
+            document.descriptor
+                ?.settings
+                ?.environment
+                ?.showSkybox ?: SceneEnvironmentDescriptor().showSkybox
         if (current == visible) return
 
         updateSceneSettings { settings ->
@@ -438,8 +470,12 @@ class SceneEditorOperations(
             context.logger.warn(TAG) { "Rejected environment intensity edit value=$intensity" }
             return
         }
-        val current = document.descriptor?.settings?.environment?.environmentIntensity
-            ?: SceneEnvironmentDescriptor().environmentIntensity
+        val current =
+            document.descriptor
+                ?.settings
+                ?.environment
+                ?.environmentIntensity
+                ?: SceneEnvironmentDescriptor().environmentIntensity
         if (current == intensity) return
 
         updateSceneSettings { settings ->
@@ -451,7 +487,10 @@ class SceneEditorOperations(
         context.logger.debug(TAG) { "Updated environment intensity value=$intensity" }
     }
 
-    fun setCameraFov(entityId: EntityId, fov: Float) {
+    fun setCameraFov(
+        entityId: EntityId,
+        fov: Float,
+    ) {
         val entity = cameraEntity(entityId) ?: return
         val camera = entity.get<PerspectiveCameraComponent>() ?: return
         if (!fov.isFinite()) {
@@ -467,7 +506,10 @@ class SceneEditorOperations(
         context.logger.debug(TAG) { "Updated camera FOV entityId=$entityId value=$clampedFov" }
     }
 
-    fun setCameraNear(entityId: EntityId, near: Float) {
+    fun setCameraNear(
+        entityId: EntityId,
+        near: Float,
+    ) {
         val entity = cameraEntity(entityId) ?: return
         val camera = entity.get<PerspectiveCameraComponent>() ?: return
         if (!near.isFinite() || near <= MinCameraNear) {
@@ -485,7 +527,10 @@ class SceneEditorOperations(
         context.logger.debug(TAG) { "Updated camera near entityId=$entityId value=$near" }
     }
 
-    fun setCameraFar(entityId: EntityId, far: Float) {
+    fun setCameraFar(
+        entityId: EntityId,
+        far: Float,
+    ) {
         val entity = cameraEntity(entityId) ?: return
         val camera = entity.get<PerspectiveCameraComponent>() ?: return
         if (!far.isFinite() || far <= camera.near + CameraPlaneEpsilon) {
@@ -499,7 +544,10 @@ class SceneEditorOperations(
         context.logger.debug(TAG) { "Updated camera far entityId=$entityId value=$far" }
     }
 
-    fun renameEntity(entityId: EntityId, newName: String) {
+    fun renameEntity(
+        entityId: EntityId,
+        newName: String,
+    ) {
         val entity = editableEntity(entityId) ?: return
         val trimmedName = newName.trim()
         if (trimmedName.isBlank()) {
@@ -520,11 +568,17 @@ class SceneEditorOperations(
         context.logger.info(TAG) { "Renamed entity id=$entityId name='$trimmedName'" }
     }
 
-    fun setEntityName(entityId: EntityId, name: String) {
+    fun setEntityName(
+        entityId: EntityId,
+        name: String,
+    ) {
         renameEntity(entityId, name)
     }
 
-    fun setEntityActive(entityId: EntityId, active: Boolean) {
+    fun setEntityActive(
+        entityId: EntityId,
+        active: Boolean,
+    ) {
         val entity = editableEntity(entityId) ?: return
         if (entity.active == active) return
 
@@ -533,7 +587,10 @@ class SceneEditorOperations(
         context.logger.info(TAG) { "Set entity active id=$entityId active=$active" }
     }
 
-    fun setTerrainVisible(entityId: EntityId, visible: Boolean) {
+    fun setTerrainVisible(
+        entityId: EntityId,
+        visible: Boolean,
+    ) {
         val entity = editableEntity(entityId) ?: return
         val terrain = entity.get<TerrainComponent>() ?: return
         if (terrain.visible == visible) return
@@ -543,13 +600,17 @@ class SceneEditorOperations(
         context.logger.info(TAG) { "Set terrain visible entityId=$entityId visible=$visible" }
     }
 
-    fun setTerrainPreviewMode(entityId: EntityId, mode: TerrainPreviewMode) {
+    fun setTerrainPreviewMode(
+        entityId: EntityId,
+        mode: TerrainPreviewMode,
+    ) {
         val entity = terrainEntity(entityId) ?: return
         val terrain = entity.get<TerrainComponent>() ?: return
-        val supportedMode = when (mode) {
-            TerrainPreviewMode.MaterialTexture -> TerrainPreviewMode.MaterialTexture
-            else -> TerrainPreviewMode.LayerColor
-        }
+        val supportedMode =
+            when (mode) {
+                TerrainPreviewMode.MaterialTexture -> TerrainPreviewMode.MaterialTexture
+                else -> TerrainPreviewMode.LayerColor
+            }
         if (terrain.previewMode == supportedMode) return
 
         terrain.previewMode = supportedMode
@@ -557,7 +618,10 @@ class SceneEditorOperations(
         context.logger.info(TAG) { "Set terrain preview mode entityId=$entityId mode=$supportedMode" }
     }
 
-    fun setTerrainBakedTextureResolution(entityId: EntityId, resolution: Int) {
+    fun setTerrainBakedTextureResolution(
+        entityId: EntityId,
+        resolution: Int,
+    ) {
         val entity = terrainEntity(entityId) ?: return
         val terrain = entity.get<TerrainComponent>() ?: return
         val clamped = resolution.coerceIn(2, MaxTerrainBakedTextureResolution)
@@ -584,12 +648,15 @@ class SceneEditorOperations(
             state.statusMessage = "Failed to open Terrain Editor: ${error.message}"
             context.logger.error(
                 TAG,
-                error
+                error,
             ) { "Failed to open terrain '$normalizedPath' in Terrain Editor: ${error.message}" }
         }
     }
 
-    fun setTransformPosition(entityId: EntityId, position: Vec3) {
+    fun setTransformPosition(
+        entityId: EntityId,
+        position: Vec3,
+    ) {
         val entity = editableEntity(entityId) ?: return
         val transform = entity.get<TransformComponent>() ?: return transformMissing(entityId)
         if (transform.position == position) return
@@ -599,7 +666,10 @@ class SceneEditorOperations(
         context.logger.debug(TAG) { "Updated transform position entityId=$entityId value=$position" }
     }
 
-    fun setTransformRotation(entityId: EntityId, eulerDegrees: Vec3) {
+    fun setTransformRotation(
+        entityId: EntityId,
+        eulerDegrees: Vec3,
+    ) {
         val entity = editableEntity(entityId) ?: return
         val transform = entity.get<TransformComponent>() ?: return transformMissing(entityId)
         if (transform.eulerDegrees == eulerDegrees) return
@@ -609,7 +679,10 @@ class SceneEditorOperations(
         context.logger.debug(TAG) { "Updated transform rotation entityId=$entityId value=$eulerDegrees" }
     }
 
-    fun setTransformScale(entityId: EntityId, scale: Vec3) {
+    fun setTransformScale(
+        entityId: EntityId,
+        scale: Vec3,
+    ) {
         val entity = editableEntity(entityId) ?: return
         val transform = entity.get<TransformComponent>() ?: return transformMissing(entityId)
         if (transform.scale == scale) return
@@ -706,8 +779,9 @@ class SceneEditorOperations(
             applyValidation(descriptor, updateStatusMessage = false)
             state.currentScenePath = normalizedPath
             state.sceneName = descriptor.name
-            state.selectedEntityId = descriptor.settings.activeCameraEntityId
-                ?.takeIf { entityId -> document.world.getEntity(entityId) != null }
+            state.selectedEntityId =
+                descriptor.settings.activeCameraEntityId
+                    ?.takeIf { entityId -> document.world.getEntity(entityId) != null }
             state.hasUnsavedChanges = false
             state.openRequested = false
             state.openPath = normalizedPath
@@ -755,8 +829,7 @@ class SceneEditorOperations(
         }
     }
 
-    fun readSceneText(path: String): String =
-        context.sceneFiles.readText(path)
+    fun readSceneText(path: String): String = context.sceneFiles.readText(path)
 
     fun validateScene(): SceneValidationReport = refreshValidation(updateStatusMessage = true)
 
@@ -764,12 +837,13 @@ class SceneEditorOperations(
         try {
             val path = ScenePathUtils.normalizeScenePath(rawPath)
             context.logger.info(TAG) { "Saving scene path='$path'" }
-            val descriptor = SceneSerializer.toDescriptor(
-                world = document.world,
-                sceneName = state.sceneName,
-                existingDescriptor = document.descriptor,
-                includeEntity = { entity -> entity.get<EditorOnlyComponent>() == null },
-            )
+            val descriptor =
+                SceneSerializer.toDescriptor(
+                    world = document.world,
+                    sceneName = state.sceneName,
+                    existingDescriptor = document.descriptor,
+                    includeEntity = { entity -> entity.get<EditorOnlyComponent>() == null },
+                )
             context.logger.info(TAG) {
                 "Scene descriptor prepared id='${descriptor.id}' entities=${descriptor.entities.size}"
             }
@@ -814,15 +888,17 @@ class SceneEditorOperations(
         descriptor: SceneDescriptor,
         updateStatusMessage: Boolean,
     ): SceneValidationReport {
-        val resolvedSkybox = RuntimeSceneValidator.skyboxPath(descriptor)
-            ?.let { path ->
-                runCatching {
-                    SkyboxAssetService(
-                        context.sceneFiles,
-                        context.logger
-                    ).loadRequired(path)
-                }.getOrNull()
-            }
+        val resolvedSkybox =
+            RuntimeSceneValidator
+                .skyboxPath(descriptor)
+                ?.let { path ->
+                    runCatching {
+                        SkyboxAssetService(
+                            context.sceneFiles,
+                            context.logger,
+                        ).loadRequired(path)
+                    }.getOrNull()
+                }
         val dependencyGraph = SceneDependencyCollector(context.sceneFiles).collect(descriptor, resolvedSkybox)
         val report = RuntimeSceneValidator.validate(descriptor, dependencyGraph)
         state.validationReport = report
@@ -885,18 +961,26 @@ class SceneEditorOperations(
         }
         if (light.type != LightType.Directional && light.type != LightType.Point) {
             state.statusMessage = "Only Directional and Point lights are supported in the editor."
-            context.logger.warn(TAG) { "Scene light operation ignored because entity id=$entityId has unsupported light type ${light.type}" }
+            context.logger.warn(
+                TAG,
+            ) { "Scene light operation ignored because entity id=$entityId has unsupported light type ${light.type}" }
             return null
         }
         return entity
     }
 
-    private fun rejectCameraEdit(entityId: EntityId, message: String) {
+    private fun rejectCameraEdit(
+        entityId: EntityId,
+        message: String,
+    ) {
         state.statusMessage = message
         context.logger.warn(TAG) { "Rejected camera edit entityId=$entityId: $message" }
     }
 
-    private fun rejectLightEdit(entityId: EntityId, message: String) {
+    private fun rejectLightEdit(
+        entityId: EntityId,
+        message: String,
+    ) {
         state.statusMessage = message
         context.logger.warn(TAG) { "Rejected light edit entityId=$entityId: $message" }
     }
@@ -915,28 +999,31 @@ class SceneEditorOperations(
 
     private fun updateSceneSettings(update: (SceneSettingsDescriptor) -> SceneSettingsDescriptor) {
         val descriptor = document.descriptor
-        document.descriptor = if (descriptor == null) {
-            SceneDescriptor(
-                id = generateSceneId(),
-                name = state.sceneName,
-                entities = emptyList(),
-                settings = update(SceneSettingsDescriptor()),
-            )
-        } else {
-            descriptor.copy(settings = update(descriptor.settings))
-        }
+        document.descriptor =
+            if (descriptor == null) {
+                SceneDescriptor(
+                    id = generateSceneId(),
+                    name = state.sceneName,
+                    entities = emptyList(),
+                    settings = update(SceneSettingsDescriptor()),
+                )
+            } else {
+                descriptor.copy(settings = update(descriptor.settings))
+            }
     }
 
     private fun activeCameraExists(): Boolean {
         val activeCameraEntityId = document.descriptor?.settings?.activeCameraEntityId ?: return false
-        return document.world.getEntity(activeCameraEntityId)
+        return document.world
+            .getEntity(activeCameraEntityId)
             ?.takeUnless { entity -> entity.get<EditorOnlyComponent>() != null }
             ?.get<PerspectiveCameraComponent>() != null
     }
 
     private fun activeTerrainExists(): Boolean {
         val activeTerrainEntityId = document.descriptor?.settings?.activeTerrainEntityId ?: return false
-        return document.world.getEntity(activeTerrainEntityId)
+        return document.world
+            .getEntity(activeTerrainEntityId)
             ?.takeUnless { entity -> entity.get<EditorOnlyComponent>() != null }
             ?.get<TerrainComponent>() != null
     }
@@ -970,7 +1057,10 @@ class SceneEditorOperations(
         return detached
     }
 
-    private fun duplicateSupportedComponents(source: Entity, duplicate: Entity) {
+    private fun duplicateSupportedComponents(
+        source: Entity,
+        duplicate: Entity,
+    ) {
         // NameComponent is not duplicated explicitly because createEntity already sets it.
         source.get<TransformComponent>()?.let { component ->
             duplicate.add(component.cloneForSceneEntity())
@@ -1016,11 +1106,9 @@ class SceneEditorOperations(
         }
     }
 
-    private fun normalizeModelPath(path: String): String =
-        normalizeAssetPath(path)
+    private fun normalizeModelPath(path: String): String = normalizeAssetPath(path)
 
-    private fun normalizeAssetPath(path: String): String =
-        path.trim().replace('\\', '/')
+    private fun normalizeAssetPath(path: String): String = path.trim().replace('\\', '/')
 
     private fun normalizeOptionalAssetPath(path: String?): String? =
         path
@@ -1032,11 +1120,12 @@ class SceneEditorOperations(
     private fun modelEntityName(path: String): String {
         val fileName = path.substringAfterLast('/').ifBlank { "Model" }
         val baseName = fileName.substringBeforeLast('.', fileName)
-        val words = baseName
-            .replace(Regex("[_\\-]+"), " ")
-            .trim()
-            .split(Regex("\\s+"))
-            .filter(String::isNotBlank)
+        val words =
+            baseName
+                .replace(Regex("[_\\-]+"), " ")
+                .trim()
+                .split(Regex("\\s+"))
+                .filter(String::isNotBlank)
         if (words.isEmpty()) return "Model"
         return words.joinToString(" ") { word -> word.first().uppercaseChar().toString() + word.drop(1) }
     }
@@ -1047,10 +1136,12 @@ class SceneEditorOperations(
     }
 
     private fun uniqueLightName(baseName: String): String {
-        val existingNames = document.world.all()
-            .filter { entity -> entity.get<EditorOnlyComponent>() == null }
-            .map(Entity::name)
-            .toSet()
+        val existingNames =
+            document.world
+                .all()
+                .filter { entity -> entity.get<EditorOnlyComponent>() == null }
+                .map(Entity::name)
+                .toSet()
         if (baseName !in existingNames) return baseName
         var index = 2
         while ("$baseName $index" in existingNames) {
@@ -1060,10 +1151,12 @@ class SceneEditorOperations(
     }
 
     private fun uniqueCameraName(): String {
-        val existingNames = document.world.all()
-            .filter { entity -> entity.get<EditorOnlyComponent>() == null }
-            .map(Entity::name)
-            .toSet()
+        val existingNames =
+            document.world
+                .all()
+                .filter { entity -> entity.get<EditorOnlyComponent>() == null }
+                .map(Entity::name)
+                .toSet()
         if ("Camera" !in existingNames) return "Camera"
         var index = 2
         while ("Camera $index" in existingNames) {
@@ -1088,8 +1181,10 @@ class SceneEditorOperations(
         )
     }
 
-    private fun normalizedOrFallback(vector: Vec3, fallback: Vec3): Vec3 =
-        normalizedOrNull(vector) ?: fallback.copy()
+    private fun normalizedOrFallback(
+        vector: Vec3,
+        fallback: Vec3,
+    ): Vec3 = normalizedOrNull(vector) ?: fallback.copy()
 
     private fun normalizedOrNull(vector: Vec3): Vec3? {
         if (!vector.isFinite()) return null
@@ -1154,24 +1249,28 @@ object SceneEditorSceneFactory {
         val camera = createDefaultCamera(world)
         createDefaultDirectionalLight(world)
 
-        document.descriptor = SceneDescriptor(
-            id = generateSceneId(),
-            name = sceneName,
-            entities = emptyList(),
-            settings = SceneSettingsDescriptor(
-                activeCameraEntityId = camera.id,
-                activeTerrainEntityId = null,
-                lighting = SceneLightingDescriptor(
-                    ambientColor = defaultAmbientLightColor(),
-                    ambientIntensity = DefaultAmbientLightIntensity,
-                ),
-                environment = SceneEnvironmentDescriptor(
-                    skyboxAssetPath = DefaultSceneSkyboxAssetPath,
-                    showSkybox = true,
-                    environmentIntensity = 1f,
-                ),
-            ),
-        )
+        document.descriptor =
+            SceneDescriptor(
+                id = generateSceneId(),
+                name = sceneName,
+                entities = emptyList(),
+                settings =
+                    SceneSettingsDescriptor(
+                        activeCameraEntityId = camera.id,
+                        activeTerrainEntityId = null,
+                        lighting =
+                            SceneLightingDescriptor(
+                                ambientColor = defaultAmbientLightColor(),
+                                ambientIntensity = DefaultAmbientLightIntensity,
+                            ),
+                        environment =
+                            SceneEnvironmentDescriptor(
+                                skyboxAssetPath = DefaultSceneSkyboxAssetPath,
+                                showSkybox = true,
+                                environmentIntensity = 1f,
+                            ),
+                    ),
+            )
 
         state.sceneName = sceneName
         state.currentScenePath = null

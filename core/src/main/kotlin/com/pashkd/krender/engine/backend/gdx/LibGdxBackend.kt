@@ -25,31 +25,35 @@ class LibGdxBackend(
     private val editorToolLauncherFactory: (Logger) -> EditorToolLauncher = { UnsupportedEditorToolLauncher },
 ) : EngineBackend {
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
-    override val logs: EngineLogService = EngineLogService(frameProvider = runtimeStats::frame).also { service ->
-        service.addSink(GdxAppLogSink())
-        runCatching { FileLogSink() }
-            .onSuccess(service::addSink)
-            .onFailure { error ->
-                Gdx.app.error(TAG, "File logging disabled: ${error.message}", error)
-            }
-    }
+    override val logs: EngineLogService =
+        EngineLogService(frameProvider = runtimeStats::frame).also { service ->
+            service.addSink(GdxAppLogSink())
+            runCatching { FileLogSink() }
+                .onSuccess(service::addSink)
+                .onFailure { error ->
+                    Gdx.app.error(TAG, "File logging disabled: ${error.message}", error)
+                }
+        }
     override val profiler: ProfilerService = FrameProfilerService()
     override val logger: Logger = logs
-    override val input: GdxInputService = GdxInputService().also {
-        Gdx.input.inputProcessor = it
-    }
-    override val runtimeUi: RuntimeUiBackend = GdxRuntimeUiBackend(
-        logger = logger,
-        input = input,
-        screenFactoryProvider = { _, actionHandlerProvider ->
-            listOf(WoolboyRuntimeUiFactory(logger, actionHandlerProvider))
-        },
-    )
-    override val ui: UiService = if (Gdx.app.type == Application.ApplicationType.Android) {
-        NoOpUiService()
-    } else {
-        GdxImGuiService(input, runtimeStats)
-    }
+    override val input: GdxInputService =
+        GdxInputService().also {
+            Gdx.input.inputProcessor = it
+        }
+    override val runtimeUi: RuntimeUiBackend =
+        GdxRuntimeUiBackend(
+            logger = logger,
+            input = input,
+            screenFactoryProvider = { _, actionHandlerProvider ->
+                listOf(WoolboyRuntimeUiFactory(logger, actionHandlerProvider))
+            },
+        )
+    override val ui: UiService =
+        if (Gdx.app.type == Application.ApplicationType.Android) {
+            NoOpUiService()
+        } else {
+            GdxImGuiService(input, runtimeStats)
+        }
     override val assets: GdxAssetService = GdxAssetService(logger)
     override val assetRegistry: AssetRegistryService =
         if (Gdx.app.type == Application.ApplicationType.Android) {

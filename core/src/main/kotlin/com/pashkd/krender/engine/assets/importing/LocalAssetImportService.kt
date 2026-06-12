@@ -107,8 +107,9 @@ class LocalAssetImportService(
             return unsupported(source, "Source file does not exist.")
         }
 
-        val spec = importSpecFor(source, importName)
-            ?: return unsupported(source, unsupportedStatus(source))
+        val spec =
+            importSpecFor(source, importName)
+                ?: return unsupported(source, unsupportedStatus(source))
 
         val targetInfo = targetPathFor(source, spec.targetDirectory, collisionPolicy)
         if (targetInfo == null) {
@@ -127,11 +128,12 @@ class LocalAssetImportService(
             )
         }
 
-        val dependencies = if (spec.type == AssetType.Scene2DSkin) {
-            resolveSkinDependencies(source, spec.targetDirectory)
-        } else {
-            emptyList()
-        }
+        val dependencies =
+            if (spec.type == AssetType.Scene2DSkin) {
+                resolveSkinDependencies(source, spec.targetDirectory)
+            } else {
+                emptyList()
+            }
         return AssetImportEntry(
             sourcePath = source.path,
             sourceName = source.name,
@@ -144,40 +146,47 @@ class LocalAssetImportService(
             mainTargetExists = targetInfo.exists,
             dependencies = dependencies,
             warnings = dependencyWarnings(dependencies),
-            status = when {
-                collisionPolicy == AssetImportCollisionPolicy.Overwrite && targetInfo.exists ->
-                    "Ready to overwrite existing asset."
+            status =
+                when {
+                    collisionPolicy == AssetImportCollisionPolicy.Overwrite && targetInfo.exists ->
+                        "Ready to overwrite existing asset."
 
-                targetInfo.exists -> "Ready to import with collision handling."
-                else -> "Ready to import."
-            },
+                    targetInfo.exists -> "Ready to import with collision handling."
+                    else -> "Ready to import."
+                },
         )
     }
 
-    private fun importSpecFor(source: File, importName: String?): ImportSpec? {
+    private fun importSpecFor(
+        source: File,
+        importName: String?,
+    ): ImportSpec? {
         val extension = source.extension.lowercase()
-        val directory = when {
-            extension in TextureExtensions -> "textures"
-            extension == "glb" -> "model"
-            extension == "json" && isScene2DSkin(source) ->
-                normalizePath("ui/skins/${skinDirectoryName(source, importName)}")
+        val directory =
+            when {
+                extension in TextureExtensions -> "textures"
+                extension == "glb" -> "model"
+                extension == "json" && isScene2DSkin(source) ->
+                    normalizePath("ui/skins/${skinDirectoryName(source, importName)}")
 
-            else -> return null
-        }
+                else -> return null
+            }
         val targetPath = normalizePath("$directory/${sanitizeFileName(source.name)}")
         val importer = importers.resolve(targetPath)
-        val fallbackType = when (extension) {
-            in TextureExtensions -> AssetType.Texture
-            "glb" -> AssetType.GltfModel
-            "json" -> AssetType.Scene2DSkin
-            else -> AssetType.Unknown
-        }
-        val fallbackCategory = when (fallbackType) {
-            AssetType.Texture -> AssetCategory.Texture
-            AssetType.GltfModel -> AssetCategory.Model
-            AssetType.Scene2DSkin -> AssetCategory.UI
-            else -> AssetCategory.Other
-        }
+        val fallbackType =
+            when (extension) {
+                in TextureExtensions -> AssetType.Texture
+                "glb" -> AssetType.GltfModel
+                "json" -> AssetType.Scene2DSkin
+                else -> AssetType.Unknown
+            }
+        val fallbackCategory =
+            when (fallbackType) {
+                AssetType.Texture -> AssetCategory.Texture
+                AssetType.GltfModel -> AssetCategory.Model
+                AssetType.Scene2DSkin -> AssetCategory.UI
+                else -> AssetCategory.Other
+            }
         return ImportSpec(
             targetDirectory = directory,
             type = importer?.outputType ?: fallbackType,
@@ -188,7 +197,8 @@ class LocalAssetImportService(
 
     private fun isScene2DSkin(source: File): Boolean {
         val metadata = Scene2DSkinAssetMetadataReader.read(source)
-        if (metadata.status == "ok" && (
+        if (metadata.status == "ok" &&
+            (
                 metadata.colorCount > 0 ||
                     metadata.drawableCount > 0 ||
                     metadata.textureRegionCount > 0 ||
@@ -239,9 +249,13 @@ class LocalAssetImportService(
             }
     }
 
-    private fun referencedDependencyFiles(source: File, parent: File): List<File> {
+    private fun referencedDependencyFiles(
+        source: File,
+        parent: File,
+    ): List<File> {
         val text = runCatching { source.readText(StandardCharsets.UTF_8) }.getOrNull() ?: return emptyList()
-        return DependencyFileReferenceRegex.findAll(text)
+        return DependencyFileReferenceRegex
+            .findAll(text)
             .mapNotNull { match -> match.groups[1]?.value ?: match.groups[2]?.value }
             .map { name -> sanitizeFileName(name) }
             .filter { name -> name.isNotBlank() && !name.equals(source.name, ignoreCase = true) }
@@ -296,7 +310,11 @@ class LocalAssetImportService(
         }
     }
 
-    private fun uniqueFile(directory: File, baseName: String, extension: String): File {
+    private fun uniqueFile(
+        directory: File,
+        baseName: String,
+        extension: String,
+    ): File {
         fun candidate(name: String): File = File(directory, "$name.$extension")
         if (!candidate(baseName).exists()) return candidate(baseName)
         var counter = 2
@@ -307,21 +325,26 @@ class LocalAssetImportService(
         }
     }
 
-    private fun writeMetadata(file: File, entry: AssetImportEntry) {
+    private fun writeMetadata(
+        file: File,
+        entry: AssetImportEntry,
+    ) {
         val metadataFile = File(file.parentFile, "${file.name}.krmeta")
         val existing = readExistingMetadata(metadataFile)
-        val document = AssetMetadataDocument(
-            id = existing?.id ?: "asset:${UUID.randomUUID()}",
-            type = entry.type.name,
-            category = entry.category.name,
-            displayName = file.nameWithoutExtension,
-            tags = existing?.tags ?: emptyList(),
-            importerId = entry.importerId,
-            importSettings = mapOf(
-                "sourcePath" to entry.sourcePath,
-                "importedAtMillis" to System.currentTimeMillis(),
-            ),
-        )
+        val document =
+            AssetMetadataDocument(
+                id = existing?.id ?: "asset:${UUID.randomUUID()}",
+                type = entry.type.name,
+                category = entry.category.name,
+                displayName = file.nameWithoutExtension,
+                tags = existing?.tags ?: emptyList(),
+                importerId = entry.importerId,
+                importSettings =
+                    mapOf(
+                        "sourcePath" to entry.sourcePath,
+                        "importedAtMillis" to System.currentTimeMillis(),
+                    ),
+            )
         metadataFile.writeText(AssetMetadataCodec.encode(document), StandardCharsets.UTF_8)
     }
 
@@ -333,7 +356,12 @@ class LocalAssetImportService(
         }
 
     private fun resolveTarget(relativePath: String): File? {
-        val base = registry.baseDir().toPath().toAbsolutePath().normalize()
+        val base =
+            registry
+                .baseDir()
+                .toPath()
+                .toAbsolutePath()
+                .normalize()
         val target = base.resolve(normalizePath(relativePath)).normalize()
         return if (target.startsWith(base)) target.toFile() else null
     }
@@ -352,7 +380,10 @@ class LocalAssetImportService(
             else -> "Unsupported import type."
         }
 
-    private fun unsupported(source: File, status: String): AssetImportEntry =
+    private fun unsupported(
+        source: File,
+        status: String,
+    ): AssetImportEntry =
         AssetImportEntry(
             sourcePath = source.path,
             sourceName = source.name,
@@ -361,25 +392,31 @@ class LocalAssetImportService(
         )
 
     private fun sanitizeFileName(name: String): String =
-        name.trim()
+        name
+            .trim()
             .substringAfterLast('/')
             .substringAfterLast('\\')
             .replace(Regex("[\\\\/:*?\"<>|]"), "_")
 
-    private fun skinDirectoryName(source: File, importName: String?): String {
+    private fun skinDirectoryName(
+        source: File,
+        importName: String?,
+    ): String {
         val requested = importName?.trim().orEmpty()
         if (requested.isNotBlank()) return sanitizePathSegment(requested).ifBlank { "Skin" }
         val parent = source.parentFile
-        val packageName = if (parent?.name.equals("skin", ignoreCase = true)) {
-            parent?.parentFile?.name
-        } else {
-            parent?.name
-        }
-        val fallback = if (source.nameWithoutExtension.equals("uiskin", ignoreCase = true)) {
-            packageName ?: source.nameWithoutExtension
-        } else {
-            source.nameWithoutExtension
-        }
+        val packageName =
+            if (parent?.name.equals("skin", ignoreCase = true)) {
+                parent?.parentFile?.name
+            } else {
+                parent?.name
+            }
+        val fallback =
+            if (source.nameWithoutExtension.equals("uiskin", ignoreCase = true)) {
+                packageName ?: source.nameWithoutExtension
+            } else {
+                source.nameWithoutExtension
+            }
         return sanitizePathSegment(fallback).ifBlank { "Skin" }
     }
 
@@ -389,11 +426,15 @@ class LocalAssetImportService(
             .trim()
             .trim('_')
 
-    private fun normalizeSourcePath(sourcePath: String): String =
-        sourcePath.trim().trim('"').trim('\'')
+    private fun normalizeSourcePath(sourcePath: String): String = sourcePath.trim().trim('"').trim('\'')
 
     private fun relativePath(file: File): String {
-        val base = registry.baseDir().toPath().toAbsolutePath().normalize()
+        val base =
+            registry
+                .baseDir()
+                .toPath()
+                .toAbsolutePath()
+                .normalize()
         val target = file.toPath().toAbsolutePath().normalize()
         require(target.startsWith(base)) { "Target path escapes asset root: ${file.path}" }
         return normalizePath(base.relativize(target).toString())
@@ -423,33 +464,36 @@ class LocalAssetImportService(
     companion object {
         private const val TAG = "LocalAssetImportService"
         private val TextureExtensions = setOf("png", "jpg", "jpeg", "webp")
-        private val SameBasenameDependencyExtensions = setOf(
-            "atlas",
-            "png",
-            "jpg",
-            "jpeg",
-            "webp",
-            "fnt",
-            "ttf",
-            "otf",
-        )
-        private val DependencyFileReferenceRegex = Regex(
-            "(?i)\"([^\"]+\\.(?:atlas|png|jpg|jpeg|webp|fnt|ttf|otf))\"|([A-Za-z0-9_.-]+\\.(?:atlas|png|jpg|jpeg|webp|fnt|ttf|otf))",
-        )
-        private val Scene2DSkinMarkers = listOf(
-            "com.badlogic.gdx.scenes.scene2d.ui",
-            "com.badlogic.gdx.graphics.g2d.BitmapFont",
-            "LabelStyle",
-            "TextButtonStyle",
-            "ButtonStyle",
-            "ImageButtonStyle",
-            "CheckBoxStyle",
-            "TextFieldStyle",
-            "ProgressBarStyle",
-            "ScrollPaneStyle",
-            "SelectBoxStyle",
-            "WindowStyle",
-            "TintedDrawable",
-        )
+        private val SameBasenameDependencyExtensions =
+            setOf(
+                "atlas",
+                "png",
+                "jpg",
+                "jpeg",
+                "webp",
+                "fnt",
+                "ttf",
+                "otf",
+            )
+        private val DependencyFileReferenceRegex =
+            Regex(
+                "(?i)\"([^\"]+\\.(?:atlas|png|jpg|jpeg|webp|fnt|ttf|otf))\"|([A-Za-z0-9_.-]+\\.(?:atlas|png|jpg|jpeg|webp|fnt|ttf|otf))",
+            )
+        private val Scene2DSkinMarkers =
+            listOf(
+                "com.badlogic.gdx.scenes.scene2d.ui",
+                "com.badlogic.gdx.graphics.g2d.BitmapFont",
+                "LabelStyle",
+                "TextButtonStyle",
+                "ButtonStyle",
+                "ImageButtonStyle",
+                "CheckBoxStyle",
+                "TextFieldStyle",
+                "ProgressBarStyle",
+                "ScrollPaneStyle",
+                "SelectBoxStyle",
+                "WindowStyle",
+                "TintedDrawable",
+            )
     }
 }

@@ -537,6 +537,22 @@ On Linux/macOS:
 ./gradlew build
 ```
 
+### Static Analysis
+
+Run the repository static-analysis workflow from the root:
+
+```bash
+./scripts/static-analysis.sh
+```
+
+Safe Kotlin formatting plus verification:
+
+```bash
+./scripts/static-analysis.sh --fix
+```
+
+Reports are written under `build/reports/static-analysis/` and `build/reports/detekt/`. See `docs/quality/static-analysis.md` for details.
+
 ## License
 
 KRender is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).

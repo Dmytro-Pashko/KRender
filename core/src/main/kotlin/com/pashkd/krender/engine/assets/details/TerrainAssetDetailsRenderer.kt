@@ -6,10 +6,12 @@ import com.pashkd.krender.engine.assets.assetBrowserTextLine
 import imgui.ImGui
 
 class TerrainAssetDetailsRenderer : AssetDetailsRenderer {
-    override fun supports(asset: AssetDescriptor): Boolean =
-        asset.category == AssetCategory.Terrain
+    override fun supports(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Terrain
 
-    override fun render(asset: AssetDescriptor, context: AssetDetailsRenderContext) {
+    override fun render(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    ) {
         ImGui.text("Metadata")
         assetBrowserTextLine("Size: ${asset.metadata["terrainSize"] ?: "unknown"}")
         assetBrowserTextLine("Layers: ${asset.metadata["terrainLayerCount"] ?: "unknown"}")

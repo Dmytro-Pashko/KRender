@@ -29,17 +29,22 @@ class TerrainPersistence(
     private val logger: Logger? = null,
     private val files: SceneFileService = DefaultSceneFileService,
 ) : TerrainRuntimePersistence {
-    private val json = Json {
-        prettyPrint = true
-        prettyPrintIndent = "  "
-        ignoreUnknownKeys = true
-        explicitNulls = true
-    }
+    private val json =
+        Json {
+            prettyPrint = true
+            prettyPrintIndent = "  "
+            ignoreUnknownKeys = true
+            explicitNulls = true
+        }
 
     /**
      * Writes [data] as a versioned terrain file.
      */
-    fun save(data: TerrainData, filePath: String, name: String = "terrain") {
+    fun save(
+        data: TerrainData,
+        filePath: String,
+        name: String = "terrain",
+    ) {
         logger?.info(TAG) { "Saving terrain '$name' to '$filePath' (${data.describeTerrain()})" }
         val encoded = encode(data, name)
         files.ensureDirectories(filePath)
@@ -87,7 +92,10 @@ class TerrainPersistence(
     /**
      * Encodes terrain data to JSON. Exposed for serializer-level tests.
      */
-    fun encode(data: TerrainData, name: String = "terrain"): String =
+    fun encode(
+        data: TerrainData,
+        name: String = "terrain",
+    ): String =
         encode(
             TerrainFileDescriptor(
                 formatVersion = TerrainFileFormat.CurrentVersion,
@@ -130,13 +138,15 @@ class TerrainPersistence(
      */
     fun decodeDescriptor(jsonText: String): TerrainFileDescriptor {
         logger?.debug(TAG) { "Decoding terrain descriptor (${jsonText.length} chars)" }
-        val root = json.parseToJsonElement(jsonText) as? JsonObject
-            ?: throw IllegalArgumentException("Terrain descriptor root must be a JSON object")
-        val descriptor = TerrainFileDescriptor(
-            formatVersion = root.intOrDefault("formatVersion", TerrainFileFormat.CurrentVersion),
-            name = root.stringOrDefault("name", "terrain"),
-            terrain = readTerrainData(root.requiredObject("terrain")),
-        )
+        val root =
+            json.parseToJsonElement(jsonText) as? JsonObject
+                ?: throw IllegalArgumentException("Terrain descriptor root must be a JSON object")
+        val descriptor =
+            TerrainFileDescriptor(
+                formatVersion = root.intOrDefault("formatVersion", TerrainFileFormat.CurrentVersion),
+                name = root.stringOrDefault("name", "terrain"),
+                terrain = readTerrainData(root.requiredObject("terrain")),
+            )
         validate(descriptor)
         logger?.debug(TAG) {
             "Decoded terrain descriptor '${descriptor.name}' format=${descriptor.formatVersion} (${descriptor.terrain.describeTerrain()})"
@@ -156,8 +166,9 @@ class TerrainPersistence(
     private fun readLayers(node: JsonElement?): List<TerrainLayerDescriptor> {
         val layers = node as? JsonArray ?: return emptyList()
         return layers.mapIndexed { index, layerNode ->
-            val layer = layerNode as? JsonObject
-                ?: throw IllegalArgumentException("Terrain layer at index $index must be a JSON object")
+            val layer =
+                layerNode as? JsonObject
+                    ?: throw IllegalArgumentException("Terrain layer at index $index must be a JSON object")
             require(layer["texturePath"] == null) {
                 "Terrain layer '${layer.stringOrDefault("name", "unknown")}' cannot contain texturePath"
             }
@@ -296,20 +307,27 @@ class TerrainPersistence(
         ).clamped()
     }
 
-    private fun JsonObject.stringOrNull(name: String): String? =
-        (this[name] as? JsonPrimitive)?.content
+    private fun JsonObject.stringOrNull(name: String): String? = (this[name] as? JsonPrimitive)?.content
 
-    private fun JsonObject.stringOrDefault(name: String, defaultValue: String): String =
-        stringOrNull(name) ?: defaultValue
+    private fun JsonObject.stringOrDefault(
+        name: String,
+        defaultValue: String,
+    ): String = stringOrNull(name) ?: defaultValue
 
-    private fun JsonObject.intOrDefault(name: String, defaultValue: Int): Int =
-        (this[name] as? JsonPrimitive)?.content?.toIntOrNull() ?: defaultValue
+    private fun JsonObject.intOrDefault(
+        name: String,
+        defaultValue: Int,
+    ): Int = (this[name] as? JsonPrimitive)?.content?.toIntOrNull() ?: defaultValue
 
-    private fun JsonObject.floatOrDefault(name: String, defaultValue: Float): Float =
-        (this[name] as? JsonPrimitive)?.floatOrNull ?: defaultValue
+    private fun JsonObject.floatOrDefault(
+        name: String,
+        defaultValue: Float,
+    ): Float = (this[name] as? JsonPrimitive)?.floatOrNull ?: defaultValue
 
-    private fun JsonObject.booleanOrDefault(name: String, defaultValue: Boolean): Boolean =
-        (this[name] as? JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: defaultValue
+    private fun JsonObject.booleanOrDefault(
+        name: String,
+        defaultValue: Boolean,
+    ): Boolean = (this[name] as? JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: defaultValue
 
     companion object {
         private const val TAG = "TerrainPersistence"
@@ -325,7 +343,15 @@ private fun TerrainLayerColorDescriptor.clamped(): TerrainLayerColorDescriptor =
     )
 
 private fun TerrainData.describeTerrain(): String =
-    "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${allLayers().joinToString { layer -> "${layer.id}:${layer.name}" }}]"
+    "size=${width}x$height spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${
+        allLayers().joinToString { layer ->
+            "${layer.id}:${layer.name}"
+        }
+    }]"
 
 private fun TerrainDataDescriptor.describeTerrain(): String =
-    "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${layers.size} [${layers.joinToString { layer -> "${layer.id}:${layer.name}" }}]"
+    "size=${width}x$height spacing=${"%.2f".format(vertexSpacing)} layers=${layers.size} [${
+        layers.joinToString { layer ->
+            "${layer.id}:${layer.name}"
+        }
+    }]"

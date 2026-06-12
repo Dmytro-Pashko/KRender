@@ -19,15 +19,16 @@ class AssetDetailsPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker? = null,
     private val operations: AssetBrowserOperationsHandler = AssetBrowserOperationsHandler.NoOp,
 ) : UiPanel {
-    private val renderers = listOf(
-        TextureAssetDetailsRenderer(),
-        ModelAssetDetailsRenderer(),
-        TerrainAssetDetailsRenderer(),
-        UiSceneAssetDetailsRenderer(),
-        Scene2DSkinAssetDetailsRenderer(),
-        SceneAssetDetailsRenderer(),
-        GenericAssetDetailsRenderer(),
-    )
+    private val renderers =
+        listOf(
+            TextureAssetDetailsRenderer(),
+            ModelAssetDetailsRenderer(),
+            TerrainAssetDetailsRenderer(),
+            UiSceneAssetDetailsRenderer(),
+            Scene2DSkinAssetDetailsRenderer(),
+            SceneAssetDetailsRenderer(),
+            GenericAssetDetailsRenderer(),
+        )
 
     override fun draw() {
         val layout = layoutConfig.panels[panelId] ?: return
@@ -48,13 +49,14 @@ class AssetDetailsPanel(
         drawBaseInfo(asset)
         drawActions(asset)
         ImGui.separator()
-        val context = AssetDetailsRenderContext(
-            state = state,
-            assets = assets,
-            ui = ui,
-            operations = operations,
-            panelId = panelId,
-        )
+        val context =
+            AssetDetailsRenderContext(
+                state = state,
+                assets = assets,
+                ui = ui,
+                operations = operations,
+                panelId = panelId,
+            )
         renderers.first { renderer -> renderer.supports(asset) }.render(asset, context)
         ImGui.end()
     }

@@ -36,7 +36,10 @@ open class GdxEngineApplication(
     }
 
     /** Forwards window resize events to the runtime. */
-    override fun resize(width: Int, height: Int) {
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) {
         runtime.resize(width, height)
     }
 

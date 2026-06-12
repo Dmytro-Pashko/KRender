@@ -29,8 +29,7 @@ private const val DefaultPreviewTexturePath = "textures/woolboy/hud_heart_full.p
  * Supported syntax is intentionally simple and stable:
  * `{key}` where key is non-empty and does not contain `{` or `}`.
  */
-fun extractBindingPlaceholders(value: String?): Set<String> =
-    extractSceneBindingPlaceholders(value)
+fun extractBindingPlaceholders(value: String?): Set<String> = extractSceneBindingPlaceholders(value)
 
 /**
  * Collects all binding references from fields supported by UiComposer binding helpers.
@@ -79,14 +78,12 @@ fun missingBindingKeys(
                 nodeIds = references.mapTo(sortedSetOf()) { reference -> reference.nodeId },
                 fields = references.mapTo(sortedSetOf()) { reference -> reference.fieldName },
             )
-        }
-        .sortedBy { missing -> missing.key.lowercase() }
+        }.sortedBy { missing -> missing.key.lowercase() }
 
 /**
  * Returns the document-owned binding keys that define this scene contract.
  */
-fun bindingKeys(document: UiSceneDocument): Set<String> =
-    sceneBindingKeys(document)
+fun bindingKeys(document: UiSceneDocument): Set<String> = sceneBindingKeys(document)
 
 /**
  * Appends a `{key}` placeholder to a text-like field.
@@ -97,13 +94,12 @@ fun bindingKeys(document: UiSceneDocument): Set<String> =
 fun insertPlaceholder(
     current: String,
     key: String,
-): String =
-    if (current.isBlank()) "{${key}}" else "$current {${key}}"
+): String = if (current.isBlank()) "{$key}" else "$current {$key}"
 
 /**
  * Returns the placeholder form used when Image.texture is backed by a binding key.
  */
-fun textureBindingPlaceholder(key: String): String = "{${key}}"
+fun textureBindingPlaceholder(key: String): String = "{$key}"
 
 /**
  * Provides heuristic editor-only preview data for a newly discovered binding key.
@@ -156,14 +152,15 @@ fun upsertBindingDefinition(
 ): List<UiSceneBindingDefinition> {
     if (binding.key.isBlank()) return bindings
     var replaced = false
-    val updated = bindings.map { existing ->
-        if (existing.key == binding.key) {
-            replaced = true
-            binding
-        } else {
-            existing
+    val updated =
+        bindings.map { existing ->
+            if (existing.key == binding.key) {
+                replaced = true
+                binding
+            } else {
+                existing
+            }
         }
-    }
     return if (replaced) updated else (updated + binding).sortedBy { it.key.lowercase() }
 }
 

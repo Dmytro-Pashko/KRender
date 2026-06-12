@@ -15,7 +15,10 @@ internal fun assetBrowserReadBuffer(buffer: ByteArray): String {
     return String(buffer, 0, length, StandardCharsets.UTF_8)
 }
 
-internal fun assetBrowserWriteBuffer(buffer: ByteArray, value: String) {
+internal fun assetBrowserWriteBuffer(
+    buffer: ByteArray,
+    value: String,
+) {
     buffer.fill(0)
     val bytes = value.toByteArray(StandardCharsets.UTF_8)
     val length = minOf(bytes.size, buffer.size - 1)
@@ -35,27 +38,29 @@ internal fun assetBrowserFormatTimestamp(millis: Long): String =
 internal fun assetBrowserIcon(asset: AssetDescriptor): String =
     when {
         asset.type == AssetType.Scene2DSkin -> "[Skin]"
-        else -> when (asset.category) {
-            AssetCategory.Model -> "[M]"
-            AssetCategory.Texture -> "[T]"
-            AssetCategory.Skybox -> "[Sky]"
-            AssetCategory.Material -> "[Mat]"
-            AssetCategory.Terrain -> "[Ter]"
-            AssetCategory.UI -> "[UI]"
-            AssetCategory.Scene -> "[Sc]"
-            AssetCategory.Other -> "[?]"
-        }
+        else ->
+            when (asset.category) {
+                AssetCategory.Model -> "[M]"
+                AssetCategory.Texture -> "[T]"
+                AssetCategory.Skybox -> "[Sky]"
+                AssetCategory.Material -> "[Mat]"
+                AssetCategory.Terrain -> "[Ter]"
+                AssetCategory.UI -> "[UI]"
+                AssetCategory.Scene -> "[Sc]"
+                AssetCategory.Other -> "[?]"
+            }
     }
 
-internal val SupportedBrowserCategories = setOf(
-    AssetCategory.Model,
-    AssetCategory.Texture,
-    AssetCategory.Skybox,
-    AssetCategory.Material,
-    AssetCategory.Terrain,
-    AssetCategory.UI,
-    AssetCategory.Scene,
-    AssetCategory.Other,
-)
+internal val SupportedBrowserCategories =
+    setOf(
+        AssetCategory.Model,
+        AssetCategory.Texture,
+        AssetCategory.Skybox,
+        AssetCategory.Material,
+        AssetCategory.Terrain,
+        AssetCategory.UI,
+        AssetCategory.Scene,
+        AssetCategory.Other,
+    )
 
 private val AssetBrowserTimestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")

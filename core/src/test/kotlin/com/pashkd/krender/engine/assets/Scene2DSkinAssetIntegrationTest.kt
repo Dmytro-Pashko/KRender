@@ -49,12 +49,13 @@ class Scene2DSkinAssetIntegrationTest {
             StandardCharsets.UTF_8,
         )
 
-        val registry = LocalAssetRegistryService(
-            logger = logger,
-            importers = AssetImporterRegistry.withDefaults(logger),
-            baseDirectory = baseDir.toFile(),
-            rootPaths = listOf("ui/skins"),
-        )
+        val registry =
+            LocalAssetRegistryService(
+                logger = logger,
+                importers = AssetImporterRegistry.withDefaults(logger),
+                baseDirectory = baseDir.toFile(),
+                rootPaths = listOf("ui/skins"),
+            )
 
         val snapshot = registry.scanSnapshot()
         val asset = snapshot.assets.singleOrNull { descriptor -> descriptor.path == "ui/skins/minimal.json" }
@@ -154,24 +155,26 @@ class Scene2DSkinAssetIntegrationTest {
 
     @Test
     fun `default ui scene skin selection prefers craftacular skin`() {
-        val selected = defaultUiSceneSkinPath(
-            listOf(
-                skinAsset("ui/skins/default_ui.json"),
-                skinAsset(DefaultUiSceneSkinPath),
-            ),
-        )
+        val selected =
+            defaultUiSceneSkinPath(
+                listOf(
+                    skinAsset("ui/skins/default_ui.json"),
+                    skinAsset(DefaultUiSceneSkinPath),
+                ),
+            )
 
         assertEquals(DefaultUiSceneSkinPath, selected)
     }
 
     @Test
     fun `default ui scene skin selection falls back to first discovered skin`() {
-        val selected = defaultUiSceneSkinPath(
-            listOf(
-                skinAsset("ui/skins/arcade.json"),
-                skinAsset("ui/skins/default_ui.json"),
-            ),
-        )
+        val selected =
+            defaultUiSceneSkinPath(
+                listOf(
+                    skinAsset("ui/skins/arcade.json"),
+                    skinAsset("ui/skins/default_ui.json"),
+                ),
+            )
 
         assertEquals("ui/skins/arcade.json", selected)
     }
@@ -183,11 +186,12 @@ class Scene2DSkinAssetIntegrationTest {
 
     @Test
     fun `create asset draft builds ui scene path and default params`() {
-        val draft = CreateAssetDraft(
-            kind = CreatableAssetKind.UiScene,
-            name = "main menu",
-            uiSceneSkinPath = "ui\\skins\\default_ui.json",
-        )
+        val draft =
+            CreateAssetDraft(
+                kind = CreatableAssetKind.UiScene,
+                name = "main menu",
+                uiSceneSkinPath = "ui\\skins\\default_ui.json",
+            )
 
         assertEquals("ui/scenes/main menu.krui", createAssetRelativePath(draft))
         assertEquals(
@@ -218,7 +222,11 @@ class Scene2DSkinAssetIntegrationTest {
         )
     }
 
-    private fun assertDetection(path: String, type: AssetType, category: AssetCategory) {
+    private fun assertDetection(
+        path: String,
+        type: AssetType,
+        category: AssetCategory,
+    ) {
         val detection = AssetTypeDetector.detect(path)
 
         assertEquals(type, detection.type)

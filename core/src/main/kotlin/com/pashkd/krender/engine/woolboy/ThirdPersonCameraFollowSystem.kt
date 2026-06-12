@@ -40,10 +40,15 @@ class ThirdPersonCameraFollowSystem(
     private var orbitPitchDegrees = InitialOrbitPitchDegrees
     private var orbitDistance = InitialCameraDistance
 
-    override fun lateUpdate(world: SceneWorld, dt: Float) {
-        val player = world.query<TransformComponent, PlayerControllerComponent>()
-            .firstOrNull { entity -> entity.get<PlayerControllerComponent>()?.isActive == true }
-            ?: return
+    override fun lateUpdate(
+        world: SceneWorld,
+        dt: Float,
+    ) {
+        val player =
+            world
+                .query<TransformComponent, PlayerControllerComponent>()
+                .firstOrNull { entity -> entity.get<PlayerControllerComponent>()?.isActive == true }
+                ?: return
         val playerTransform = player.get<TransformComponent>() ?: return
         val cameraEntity =
             world.query<TransformComponent, PerspectiveCameraComponent, ActiveCameraComponent>().firstOrNull()
@@ -52,11 +57,12 @@ class ThirdPersonCameraFollowSystem(
         val cameraTransform = cameraEntity.get<TransformComponent>() ?: return
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
 
-        val target = Vec3(
-            playerTransform.position.x,
-            playerTransform.position.y + CameraLookAtHeight,
-            playerTransform.position.z,
-        )
+        val target =
+            Vec3(
+                playerTransform.position.x,
+                playerTransform.position.y + CameraLookAtHeight,
+                playerTransform.position.z,
+            )
         initializeOrbitFromCamera(cameraTransform, target)
         if (inputEnabled()) {
             updateOrbitInput()
@@ -101,13 +107,15 @@ class ThirdPersonCameraFollowSystem(
 
         if (orbiting) {
             orbitYawDegrees -= snapshot.mouseDelta.x * OrbitSensitivityDegreesPerPixel
-            orbitPitchDegrees = (orbitPitchDegrees + snapshot.mouseDelta.y * OrbitSensitivityDegreesPerPixel)
-                .coerceIn(MinOrbitPitchDegrees, MaxOrbitPitchDegrees)
+            orbitPitchDegrees =
+                (orbitPitchDegrees + snapshot.mouseDelta.y * OrbitSensitivityDegreesPerPixel)
+                    .coerceIn(MinOrbitPitchDegrees, MaxOrbitPitchDegrees)
         }
 
         if (mouseAvailable && snapshot.scrollDelta != 0f) {
-            orbitDistance = (orbitDistance * (1f - snapshot.scrollDelta * ZoomStep))
-                .coerceIn(MinCameraDistance, MaxCameraDistance)
+            orbitDistance =
+                (orbitDistance * (1f - snapshot.scrollDelta * ZoomStep))
+                    .coerceIn(MinCameraDistance, MaxCameraDistance)
         }
     }
 
@@ -124,8 +132,10 @@ class ThirdPersonCameraFollowSystem(
         if (distance >= MinCameraDistance) {
             orbitDistance = distance.coerceIn(MinCameraDistance, MaxCameraDistance)
             orbitYawDegrees = (atan2(offsetX.toDouble(), offsetZ.toDouble()) * 180.0 / PI).toFloat()
-            orbitPitchDegrees = (asin((offsetY / distance).coerceIn(-1f, 1f)) * 180.0 / PI).toFloat()
-                .coerceIn(MinOrbitPitchDegrees, MaxOrbitPitchDegrees)
+            orbitPitchDegrees =
+                (asin((offsetY / distance).coerceIn(-1f, 1f)) * 180.0 / PI)
+                    .toFloat()
+                    .coerceIn(MinOrbitPitchDegrees, MaxOrbitPitchDegrees)
         }
         orbitInitialized = true
     }

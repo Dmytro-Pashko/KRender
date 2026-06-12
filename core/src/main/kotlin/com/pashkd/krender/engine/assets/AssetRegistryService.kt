@@ -40,7 +40,9 @@ interface AssetRegistryService {
     fun applySnapshot(snapshot: AssetRegistrySnapshot)
 
     fun findById(id: AssetId): AssetDescriptor?
+
     fun findByPath(path: String): AssetDescriptor?
+
     fun byCategory(category: AssetCategory): List<AssetDescriptor>
 
     /** Returns the base directory used to resolve relative asset paths. */
@@ -82,7 +84,8 @@ class LocalAssetRegistryService(
                 return@forEach
             }
 
-            root.walkTopDown()
+            root
+                .walkTopDown()
                 .filter(File::isFile)
                 .filterNot(::isIgnoredFile)
                 .forEach { file ->
@@ -96,9 +99,10 @@ class LocalAssetRegistryService(
                 }
         }
 
-        val finalAssets = scanned
-            .distinctBy(AssetDescriptor::path)
-            .sortedWith(compareBy<AssetDescriptor> { it.category.sortOrder }.thenBy { it.name.lowercase() })
+        val finalAssets =
+            scanned
+                .distinctBy(AssetDescriptor::path)
+                .sortedWith(compareBy<AssetDescriptor> { it.category.sortOrder }.thenBy { it.name.lowercase() })
         val finished = System.currentTimeMillis()
         logger.info(TAG) {
             "Asset scan completed assets=${finalAssets.size} errors=${errors.size} duration=${finished - started}ms"
@@ -116,8 +120,7 @@ class LocalAssetRegistryService(
         logger.info(TAG) { "Snapshot applied assets=${snapshot.assets.size} errors=${snapshot.errors.size}" }
     }
 
-    override fun findById(id: AssetId): AssetDescriptor? =
-        descriptors.firstOrNull { it.id == id }
+    override fun findById(id: AssetId): AssetDescriptor? = descriptors.firstOrNull { it.id == id }
 
     override fun findByPath(path: String): AssetDescriptor? {
         val normalized = normalizePath(path)
@@ -130,11 +133,12 @@ class LocalAssetRegistryService(
     private fun describe(file: File): AssetDescriptor {
         val path = relativeAssetPath(file)
         val importer = importers.resolve(path)
-        val detection = if (importer != null) {
-            AssetTypeDetection(importer.outputType, importer.outputCategory)
-        } else {
-            AssetTypeDetector.detect(path)
-        }
+        val detection =
+            if (importer != null) {
+                AssetTypeDetection(importer.outputType, importer.outputCategory)
+            } else {
+                AssetTypeDetector.detect(path)
+            }
         if (!detection.canHaveMetadataSidecar()) {
             return describeVisibleOnly(file, path, detection)
         }
@@ -142,18 +146,20 @@ class LocalAssetRegistryService(
         val extension = file.extension.lowercase()
         val displayName = document.displayName.takeIf(String::isNotBlank) ?: file.nameWithoutExtension
         val type = enumValueOrNull<AssetType>(document.type)?.takeUnless { it == AssetType.Unknown } ?: detection.type
-        val category = enumValueOrNull<AssetCategory>(document.category)?.takeUnless { it == AssetCategory.Other }
-            ?: detection.category
-        val descriptorMetadata = buildMap<String, String> {
-            put("displayName", displayName)
-            put("sourcePath", path)
-            put("importSettings", encodeImportSettings(document.importSettings))
-            document.importerId?.let { put("importerId", it) }
-            putAll(importer?.readMetadata(file) ?: emptyMap())
-            putAll(textureMetadata(file, category))
-            putAll(terrainMetadata(file, category))
-            putAll(sceneMetadata(file, category))
-        }
+        val category =
+            enumValueOrNull<AssetCategory>(document.category)?.takeUnless { it == AssetCategory.Other }
+                ?: detection.category
+        val descriptorMetadata =
+            buildMap<String, String> {
+                put("displayName", displayName)
+                put("sourcePath", path)
+                put("importSettings", encodeImportSettings(document.importSettings))
+                document.importerId?.let { put("importerId", it) }
+                putAll(importer?.readMetadata(file) ?: emptyMap())
+                putAll(textureMetadata(file, category))
+                putAll(terrainMetadata(file, category))
+                putAll(sceneMetadata(file, category))
+            }
         return AssetDescriptor(
             id = AssetId(document.id),
             name = displayName,
@@ -183,11 +189,12 @@ class LocalAssetRegistryService(
             sizeBytes = file.length(),
             modifiedAtMillis = file.lastModified(),
             tags = emptyList(),
-            metadata = mapOf(
-                "displayName" to file.nameWithoutExtension,
-                "sourcePath" to path,
-                "indexPolicy" to "visibleOnly",
-            ),
+            metadata =
+                mapOf(
+                    "displayName" to file.nameWithoutExtension,
+                    "sourcePath" to path,
+                    "indexPolicy" to "visibleOnly",
+                ),
         )
 
     private fun encodeImportSettings(settings: Map<String, Any?>): String {
@@ -195,7 +202,10 @@ class LocalAssetRegistryService(
         return settings.entries.joinToString(prefix = "{", postfix = "}") { (k, v) -> "$k=$v" }
     }
 
-    private fun textureMetadata(file: File, category: AssetCategory): Map<String, String> {
+    private fun textureMetadata(
+        file: File,
+        category: AssetCategory,
+    ): Map<String, String> {
         if (category != AssetCategory.Texture) return emptyMap()
         val texture = TextureMetadataReader.read(file) ?: return emptyMap()
         return mapOf(
@@ -207,7 +217,10 @@ class LocalAssetRegistryService(
         )
     }
 
-    private fun terrainMetadata(file: File, category: AssetCategory): Map<String, String> {
+    private fun terrainMetadata(
+        file: File,
+        category: AssetCategory,
+    ): Map<String, String> {
         if (category != AssetCategory.Terrain) return emptyMap()
         val terrain = TerrainMetadataReader.read(file) ?: return emptyMap()
         return mapOf(
@@ -218,7 +231,10 @@ class LocalAssetRegistryService(
         )
     }
 
-    private fun sceneMetadata(file: File, category: AssetCategory): Map<String, String> {
+    private fun sceneMetadata(
+        file: File,
+        category: AssetCategory,
+    ): Map<String, String> {
         if (category != AssetCategory.Scene) return emptyMap()
         return try {
             SceneAssetMetadataReader.read(file, baseDirectory).toMetadataMap()
@@ -259,23 +275,23 @@ class LocalAssetRegistryService(
         importer: AssetImporter?,
         reason: String,
     ): AssetMetadataDocument {
-        val document = AssetMetadataDocument(
-            id = "asset:${UUID.randomUUID()}",
-            type = detection.type.name,
-            category = detection.category.name,
-            displayName = assetFile.nameWithoutExtension,
-            tags = emptyList(),
-            importerId = importer?.id,
-            importSettings = emptyMap(),
-        )
+        val document =
+            AssetMetadataDocument(
+                id = "asset:${UUID.randomUUID()}",
+                type = detection.type.name,
+                category = detection.category.name,
+                displayName = assetFile.nameWithoutExtension,
+                tags = emptyList(),
+                importerId = importer?.id,
+                importSettings = emptyMap(),
+            )
         metadataFile.parentFile?.mkdirs()
         metadataFile.writeText(AssetMetadataCodec.encode(document), StandardCharsets.UTF_8)
-        logger.info(TAG) { "Created .krmeta (${reason}) '${relativeAssetPath(metadataFile)}' id='${document.id}'" }
+        logger.info(TAG) { "Created .krmeta ($reason) '${relativeAssetPath(metadataFile)}' id='${document.id}'" }
         return document
     }
 
-    private fun metadataFileFor(file: File): File =
-        File(file.parentFile, "${file.name}.krmeta")
+    private fun metadataFileFor(file: File): File = File(file.parentFile, "${file.name}.krmeta")
 
     private fun relativeAssetPath(file: File): String {
         val basePath = baseDirectory.toPath().toAbsolutePath().normalize()
@@ -311,23 +327,25 @@ class LocalAssetRegistryService(
          * future Skin tooling. These are asset-indexing routes only; they do not enable UI Composer editing,
          * preview rendering, Skin editing, drag/drop editing, or asset-id based references.
          */
-        val DefaultRootPaths = listOf(
-            "model",
-            "textures",
-            "skyboxes",
-            "materials",
-            "terrains",
-            "ui/scenes",
-            "ui/skins",
-            "scenes",
-            "assets",
-        )
+        val DefaultRootPaths =
+            listOf(
+                "model",
+                "textures",
+                "skyboxes",
+                "materials",
+                "terrains",
+                "ui/scenes",
+                "ui/skins",
+                "scenes",
+                "assets",
+            )
 
         private fun defaultBaseDirectory(): File {
             val current = File(".")
-            val hasDirectRoot = DefaultRootPaths.any { root ->
-                root != "assets" && File(current, root).isDirectory
-            }
+            val hasDirectRoot =
+                DefaultRootPaths.any { root ->
+                    root != "assets" && File(current, root).isDirectory
+                }
             val assetDirectory = File(current, "assets")
             return if (!hasDirectRoot && assetDirectory.isDirectory) assetDirectory else current
         }

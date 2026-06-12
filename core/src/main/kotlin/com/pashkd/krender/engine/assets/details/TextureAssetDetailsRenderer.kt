@@ -6,10 +6,12 @@ import com.pashkd.krender.engine.assets.assetBrowserTextLine
 import imgui.ImGui
 
 class TextureAssetDetailsRenderer : AssetDetailsRenderer {
-    override fun supports(asset: AssetDescriptor): Boolean =
-        asset.category == AssetCategory.Texture
+    override fun supports(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Texture
 
-    override fun render(asset: AssetDescriptor, context: AssetDetailsRenderContext) {
+    override fun render(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    ) {
         ImGui.text("Preview")
         drawTexturePreview(asset, context)
         ImGui.separator()
@@ -18,7 +20,10 @@ class TextureAssetDetailsRenderer : AssetDetailsRenderer {
         assetBrowserTextLine("Format: ${asset.metadata["textureColorFormat"] ?: "unknown"}")
     }
 
-    private fun drawTexturePreview(asset: AssetDescriptor, context: AssetDetailsRenderContext) {
+    private fun drawTexturePreview(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    ) {
         val handle = context.assets.texturePreviewHandle(asset.path)
         if (handle == null) {
             assetBrowserTextLine("Preview unavailable.")

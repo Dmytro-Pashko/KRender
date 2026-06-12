@@ -1,7 +1,6 @@
 package com.pashkd.krender.engine.terrain
 
 import com.pashkd.krender.engine.api.*
-import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.material.TerrainMaterialDescriptor
 import com.pashkd.krender.engine.material.TerrainMaterialLibrary
 import com.pashkd.krender.engine.render3d.Material
@@ -27,9 +26,10 @@ class TerrainEditorSystem(
     private val input: InputService,
     private val logger: Logger,
     private val state: TerrainEditorState,
-    private val generatorsById: Map<String, TerrainGenerator> = listOf(FlatTerrainGenerator()).associateBy(
-        TerrainGenerator::id
-    ),
+    private val generatorsById: Map<String, TerrainGenerator> =
+        listOf(FlatTerrainGenerator()).associateBy(
+            TerrainGenerator::id,
+        ),
     private val terrainMaterialsById: Map<String, TerrainMaterialDescriptor> = emptyMap(),
 ) : System() {
     /**
@@ -55,51 +55,61 @@ class TerrainEditorSystem(
      * Brush strokes are assembled incrementally while the pointer remains down so
      * a drag gesture becomes a single history entry instead of many tiny edits.
      */
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         val terrainEntity =
             world.query<TransformComponent, TerrainDataComponent, TerrainRendererComponent>().firstOrNull()
                 ?: run {
                     resetBrushState()
                     return
                 }
-        val terrain = terrainEntity.get<TerrainDataComponent>()
-            ?: run {
-                resetBrushState()
-                return
-            }
-        val terrainRenderer = terrainEntity.get<TerrainRendererComponent>()
-            ?: run {
-                resetBrushState()
-                return
-            }
-        val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull()
-            ?: run {
-                resetBrushState()
-                return
-            }
-        val cameraTransform = cameraEntity.get<TransformComponent>()
-            ?: run {
-                resetBrushState()
-                return
-            }
-        val camera = cameraEntity.get<PerspectiveCameraComponent>()
-            ?: run {
-                resetBrushState()
-                return
-            }
-        val terrainTransform = terrainEntity.get<TransformComponent>()
-            ?: run {
-                resetBrushState()
-                return
-            }
+        val terrain =
+            terrainEntity.get<TerrainDataComponent>()
+                ?: run {
+                    resetBrushState()
+                    return
+                }
+        val terrainRenderer =
+            terrainEntity.get<TerrainRendererComponent>()
+                ?: run {
+                    resetBrushState()
+                    return
+                }
+        val cameraEntity =
+            world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull()
+                ?: run {
+                    resetBrushState()
+                    return
+                }
+        val cameraTransform =
+            cameraEntity.get<TransformComponent>()
+                ?: run {
+                    resetBrushState()
+                    return
+                }
+        val camera =
+            cameraEntity.get<PerspectiveCameraComponent>()
+                ?: run {
+                    resetBrushState()
+                    return
+                }
+        val terrainTransform =
+            terrainEntity.get<TransformComponent>()
+                ?: run {
+                    resetBrushState()
+                    return
+                }
         val snapshot = input.snapshot()
         // Tab swaps keyboard/mouse ownership between UI widgets and the viewport.
         // If focus leaves the viewport mid-stroke, the stroke is committed first.
         if (snapshot.wasPressed(Key.Tab)) {
-            state.inputFocus = when (state.inputFocus) {
-                TerrainEditorInputFocus.Ui -> TerrainEditorInputFocus.Viewport
-                TerrainEditorInputFocus.Viewport -> TerrainEditorInputFocus.Ui
-            }
+            state.inputFocus =
+                when (state.inputFocus) {
+                    TerrainEditorInputFocus.Ui -> TerrainEditorInputFocus.Viewport
+                    TerrainEditorInputFocus.Viewport -> TerrainEditorInputFocus.Ui
+                }
             if (state.inputFocus == TerrainEditorInputFocus.Ui && brushActive) {
                 finishBrushStroke()
             }
@@ -128,18 +138,19 @@ class TerrainEditorSystem(
         updateBrushBindings(snapshot, keyboardAvailable, mouseAvailable)
         syncRendererStateFromControls(terrainRenderer)
         // Mouse hover is only meaningful when the viewport can consume the mouse.
-        hoveredHit = if (!mouseAvailable) {
-            null
-        } else {
-            TerrainRaycaster.pickTerrain(
-                screenPosition = snapshot.mousePosition,
-                viewportSize = snapshot.viewportSize,
-                cameraTransform = cameraTransform,
-                camera = camera,
-                terrainTransform = terrainTransform,
-                terrain = terrain.data,
-            )
-        }
+        hoveredHit =
+            if (!mouseAvailable) {
+                null
+            } else {
+                TerrainRaycaster.pickTerrain(
+                    screenPosition = snapshot.mousePosition,
+                    viewportSize = snapshot.viewportSize,
+                    cameraTransform = cameraTransform,
+                    camera = camera,
+                    terrainTransform = terrainTransform,
+                    terrain = terrain.data,
+                )
+            }
         state.hoveredTerrainPosition = hoveredHit?.worldPosition?.let(::formatPosition) ?: "none"
 
         // Treat both Down and Move as a continuous pressed stroke so painting can
@@ -174,18 +185,19 @@ class TerrainEditorSystem(
                 activePatchBuilder = TerrainEditPatchBuilder(buildPatchLabel())
             }
 
-            val stroke = TerrainBrushStroke(
-                localX = hit.localX,
-                localZ = hit.localZ,
-                radius = state.brushRadius,
-                strength = state.brushStrength,
-                falloff = state.brushFalloff,
-                mode = state.brushMode,
-                deltaSeconds = dt,
-                flattenHeight = flattenHeight,
-                targetLayerId = state.selectedLayerId,
-                layerWeightDeltaSign = if (state.brushMode == TerrainBrushMode.PaintLayer) activeLayerPaintSign else 1f,
-            )
+            val stroke =
+                TerrainBrushStroke(
+                    localX = hit.localX,
+                    localZ = hit.localZ,
+                    radius = state.brushRadius,
+                    strength = state.brushStrength,
+                    falloff = state.brushFalloff,
+                    mode = state.brushMode,
+                    deltaSeconds = dt,
+                    flattenHeight = flattenHeight,
+                    targetLayerId = state.selectedLayerId,
+                    layerWeightDeltaSign = if (state.brushMode == TerrainBrushMode.PaintLayer) activeLayerPaintSign else 1f,
+                )
 
             if (TerrainBrushApplier.apply(terrain.data, stroke, activePatchBuilder)) {
                 markPreviewDirty(terrain)
@@ -218,11 +230,12 @@ class TerrainEditorSystem(
             val angle = (segment.toFloat() / segments.toFloat()) * (PI.toFloat() * 2f)
             val localX = hit.localX + cos(angle) * state.brushRadius
             val localZ = hit.localZ + sin(angle) * state.brushRadius
-            val worldPoint = Vec3(
-                terrainTransform.position.x + localX,
-                terrainTransform.position.y + terrain.data.sampleHeight(localX, localZ) + 0.03f,
-                terrainTransform.position.z + localZ,
-            )
+            val worldPoint =
+                Vec3(
+                    terrainTransform.position.x + localX,
+                    terrainTransform.position.y + terrain.data.sampleHeight(localX, localZ) + 0.03f,
+                    terrainTransform.position.z + localZ,
+                )
             previous?.let {
                 world.renderCommands.submit(DrawLine(it, worldPoint, lineColor))
             }
@@ -282,17 +295,18 @@ class TerrainEditorSystem(
         // Rebuild the editor-facing layer list from terrain data every frame so
         // UI widgets always reflect the current terrain ordering and metadata.
         val layers = terrain.data.allLayers()
-        state.layers = layers.mapIndexed { index, layer ->
-            TerrainLayerOption(
-                id = layer.id,
-                name = layer.name,
-                materialId = layer.materialId,
-                color = layer.color,
-                visible = layer.visible,
-                tiling = layer.tiling,
-                index = index,
-            )
-        }
+        state.layers =
+            layers.mapIndexed { index, layer ->
+                TerrainLayerOption(
+                    id = layer.id,
+                    name = layer.name,
+                    materialId = layer.materialId,
+                    color = layer.color,
+                    visible = layer.visible,
+                    tiling = layer.tiling,
+                    index = index,
+                )
+            }
         state.vertices = renderer.vertexCount
         state.triangles = renderer.triangleCount
         state.terrainSize = "${terrain.data.width} x ${terrain.data.height}"
@@ -384,8 +398,9 @@ class TerrainEditorSystem(
         // Support both Ctrl+Y and Ctrl+Shift+Z for redo to match common editor
         // conventions on different platforms.
         if (!commandHandled && keyboardAvailable && controlDown) {
-            val redoPressed = snapshot.wasPressed(Key.Y) ||
-                (shiftDown && snapshot.wasPressed(Key.Z))
+            val redoPressed =
+                snapshot.wasPressed(Key.Y) ||
+                    (shiftDown && snapshot.wasPressed(Key.Z))
             val undoPressed = !shiftDown && snapshot.wasPressed(Key.Z)
             if (redoPressed) {
                 finishBrushStroke()
@@ -434,9 +449,10 @@ class TerrainEditorSystem(
             TerrainBrushMode.Flatten -> "Flatten to ${"%.2f".format(flattenHeight ?: 0f)}"
             TerrainBrushMode.Smooth -> "Smooth terrain"
             TerrainBrushMode.PaintLayer -> {
-                val layerLabel = state.layers.firstOrNull { it.id == state.selectedLayerId }?.name
-                    ?: state.selectedLayerId?.toString()
-                    ?: "none"
+                val layerLabel =
+                    state.layers.firstOrNull { it.id == state.selectedLayerId }?.name
+                        ?: state.selectedLayerId?.toString()
+                        ?: "none"
                 if (activeLayerPaintSign < 0f) "Erase layer: $layerLabel" else "Paint layer: $layerLabel"
             }
         }
@@ -445,11 +461,12 @@ class TerrainEditorSystem(
      * Pushes display mode toggles from editor state into the terrain renderer.
      */
     private fun syncRendererStateFromControls(renderer: TerrainRendererComponent) {
-        val expectedMode = if (state.wireframeEnabled) {
-            TerrainDisplayMode.Wireframe
-        } else {
-            TerrainDisplayMode.Solid
-        }
+        val expectedMode =
+            if (state.wireframeEnabled) {
+                TerrainDisplayMode.Wireframe
+            } else {
+                TerrainDisplayMode.Solid
+            }
         if (renderer.displayMode != expectedMode) {
             renderer.setDisplayMode(expectedMode)
         }
@@ -480,7 +497,7 @@ class TerrainEditorSystem(
             logger.info(TAG) {
                 "Creating terrain from generator='${activeGenerator().id}' resolution=${state.terrainResolution} spacing=${
                     "%.2f".format(
-                        state.vertexSpacing
+                        state.vertexSpacing,
                     )
                 }"
             }
@@ -499,15 +516,17 @@ class TerrainEditorSystem(
             finishBrushStroke()
             editHistory.clear()
             val nextIndex = terrain.data.allLayers().size + 1
-            val material = state.terrainMaterials.firstOrNull()
-                ?: throw IllegalStateException("Cannot add terrain layer: terrain material library is empty.")
-            val layer = terrain.data.addLayer(
-                name = "Layer $nextIndex",
-                materialId = material.id,
-                color = material.fallbackColor,
-                visible = true,
-                tiling = material.defaultTiling,
-            )
+            val material =
+                state.terrainMaterials.firstOrNull()
+                    ?: throw IllegalStateException("Cannot add terrain layer: terrain material library is empty.")
+            val layer =
+                terrain.data.addLayer(
+                    name = "Layer $nextIndex",
+                    materialId = material.id,
+                    color = material.fallbackColor,
+                    visible = true,
+                    tiling = material.defaultTiling,
+                )
             state.selectedLayerId = layer.id
             markPreviewDirty(terrain)
             state.layerMessage = "Added layer: ${layer.name}"
@@ -563,7 +582,7 @@ class TerrainEditorSystem(
             logger.info(TAG) {
                 "Regenerating terrain with generator='${activeGenerator().id}' resolution=${state.terrainResolution} spacing=${
                     "%.2f".format(
-                        state.vertexSpacing
+                        state.vertexSpacing,
                     )
                 }"
             }
@@ -636,7 +655,9 @@ class TerrainEditorSystem(
                 state.persistenceError = false
                 hoveredHit = null
                 resetBrushState()
-                logger.info(TAG) { "Load terrain completed path='${state.terrainFilePath}' name='${descriptor.name}' (${loaded.describeTerrain()})" }
+                logger.info(
+                    TAG,
+                ) { "Load terrain completed path='${state.terrainFilePath}' name='${descriptor.name}' (${loaded.describeTerrain()})" }
             } catch (error: Exception) {
                 state.persistenceMessage = "Load failed: ${error.message}"
                 state.persistenceError = true
@@ -662,37 +683,41 @@ class TerrainEditorSystem(
             "Regenerate start generator='${generator.id}' target=${state.terrainResolution}x${state.terrainResolution} " +
                 "spacing=${"%.2f".format(state.vertexSpacing)} preservedLayers=${currentLayers.size}"
         }
-        val regenerated = TerrainData(
-            width = state.terrainResolution,
-            height = state.terrainResolution,
-            vertexSpacing = state.vertexSpacing,
-        )
+        val regenerated =
+            TerrainData(
+                width = state.terrainResolution,
+                height = state.terrainResolution,
+                vertexSpacing = state.vertexSpacing,
+            )
 
         // Recreate layers in the new terrain so generator output can reuse the
         // same logical material stack as the previous terrain.
         currentLayers.forEachIndexed { index, layer ->
-            val restored = regenerated.addLayer(
-                name = layer.name,
-                texture = layer.texture,
-                materialId = layer.materialId,
-                color = layer.color,
-                visible = layer.visible,
-                tiling = layer.tiling,
-            )
+            val restored =
+                regenerated.addLayer(
+                    name = layer.name,
+                    texture = layer.texture,
+                    materialId = layer.materialId,
+                    color = layer.color,
+                    visible = layer.visible,
+                    tiling = layer.tiling,
+                )
             if (state.selectedLayerId == layer.id || (state.selectedLayerId == null && index == 0)) {
                 state.selectedLayerId = restored.id
             }
         }
         if (regenerated.allLayers().isEmpty()) {
-            val material = preferredBaseMaterial()
-                ?: state.terrainMaterials.firstOrNull()
-                ?: throw IllegalStateException("Cannot regenerate terrain: terrain material library is empty.")
-            val baseLayer = regenerated.addLayer(
-                name = "Base Layer",
-                materialId = material.id,
-                color = material.fallbackColor,
-                tiling = material.defaultTiling,
-            )
+            val material =
+                preferredBaseMaterial()
+                    ?: state.terrainMaterials.firstOrNull()
+                    ?: throw IllegalStateException("Cannot regenerate terrain: terrain material library is empty.")
+            val baseLayer =
+                regenerated.addLayer(
+                    name = "Base Layer",
+                    materialId = material.id,
+                    color = material.fallbackColor,
+                    tiling = material.defaultTiling,
+                )
             state.selectedLayerId = baseLayer.id
         }
 
@@ -822,12 +847,13 @@ class TerrainEditorSystem(
         val material = materialId?.let(terrainMaterialsById::get)
         val changed = assignTerrainLayerMaterial(terrainData, layerId, materialId, material)
         if (material != null) {
-            state.selectedLayerColor = floatArrayOf(
-                material.fallbackColor.r,
-                material.fallbackColor.g,
-                material.fallbackColor.b,
-                material.fallbackColor.a,
-            )
+            state.selectedLayerColor =
+                floatArrayOf(
+                    material.fallbackColor.r,
+                    material.fallbackColor.g,
+                    material.fallbackColor.b,
+                    material.fallbackColor.a,
+                )
             state.selectedLayerTiling = material.defaultTiling
             state.materialMessage = "Assigned material: ${material.name}"
         } else if (materialId != null) {
@@ -841,8 +867,7 @@ class TerrainEditorSystem(
     /**
      * Formats a hovered terrain position for UI/debug display.
      */
-    private fun formatPosition(position: Vec3): String =
-        "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
+    private fun formatPosition(position: Vec3): String = "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
     /**
      * Resolves whether the current layer paint stroke should add or erase weight.
@@ -875,25 +900,29 @@ class TerrainEditorSystem(
  * [RuntimeTerrainMeshSystem] instead so they do not depend on Terrain Editor UI
  * state or brush workflow callbacks.
  */
-class TerrainEditorMeshSyncSystem(
-    private val materialColorResolver: (String?) -> TerrainLayerColorDescriptor? = { null },
-    private val blendModeProvider: () -> TerrainLayerBlendMode = { TerrainLayerBlendMode.WeightedAverage },
-    private val layerColorPreviewProvider: () -> Boolean = { true },
-    private val previewModeProvider: () -> TerrainPreviewMode = {
+class TerrainEditorMeshSyncBindings {
+    var materialColorResolver: (String?) -> TerrainLayerColorDescriptor? = { null }
+    var blendModeProvider: () -> TerrainLayerBlendMode = { TerrainLayerBlendMode.WeightedAverage }
+    var layerColorPreviewProvider: () -> Boolean = { true }
+    var previewModeProvider: () -> TerrainPreviewMode = {
         if (layerColorPreviewProvider()) TerrainPreviewMode.MaterialColor else TerrainPreviewMode.LayerColor
-    },
-    private val materialPreviewResolutionProvider: () -> Int = { 512 },
-    private val materialPreviewDirtyProvider: () -> Boolean = { false },
-    private val selectedLayerIdProvider: () -> Int? = { null },
-    private val materialPreviewStatusSink: (String) -> Unit = {},
-    private val previewBakeStatsSink: (Float, TerrainPreviewTextureCacheStats) -> Unit = { _, _ -> },
-    private val materialPreviewCleanSink: () -> Unit = {},
-    private val materialPreviewExportRequestedProvider: () -> Boolean = { false },
-    private val materialPreviewExportPathProvider: () -> String = { "terrains/material_preview.png" },
-    private val materialPreviewExportCompleteSink: (String) -> Unit = {},
-    private val brushActiveProvider: () -> Boolean = { false },
-    private val strokeMeshRebuildIntervalMs: Double = STROKE_MESH_REBUILD_INTERVAL_MS,
-    private val nowNanos: () -> Long = java.lang.System::nanoTime,
+    }
+    var materialPreviewResolutionProvider: () -> Int = { 512 }
+    var materialPreviewDirtyProvider: () -> Boolean = { false }
+    var selectedLayerIdProvider: () -> Int? = { null }
+    var materialPreviewStatusSink: (String) -> Unit = {}
+    var previewBakeStatsSink: (Float, TerrainPreviewTextureCacheStats) -> Unit = { _, _ -> }
+    var materialPreviewCleanSink: () -> Unit = {}
+    var materialPreviewExportRequestedProvider: () -> Boolean = { false }
+    var materialPreviewExportPathProvider: () -> String = { "terrains/material_preview.png" }
+    var materialPreviewExportCompleteSink: (String) -> Unit = {}
+    var brushActiveProvider: () -> Boolean = { false }
+    var strokeMeshRebuildIntervalMs: Double = STROKE_MESH_REBUILD_INTERVAL_MS
+    var nowNanos: () -> Long = java.lang.System::nanoTime
+}
+
+class TerrainEditorMeshSyncSystem(
+    private val bindings: TerrainEditorMeshSyncBindings = TerrainEditorMeshSyncBindings(),
     materialLibrary: TerrainMaterialLibrary? = null,
     logger: Logger? = null,
 ) : System() {
@@ -906,24 +935,30 @@ class TerrainEditorMeshSyncSystem(
      * The early-return gate skips expensive work unless geometry, preview mode,
      * preview resolution, or preview export state changed.
      */
-    override fun update(world: SceneWorld, dt: Float) {
-        val brushActive = brushActiveProvider()
-        val now = nowNanos()
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
+        val brushActive = bindings.brushActiveProvider()
+        val now = bindings.nowNanos()
         world.query<TerrainDataComponent, TerrainRendererComponent>().forEach { entity ->
             val terrain = entity.get<TerrainDataComponent>() ?: return@forEach
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
-            val previewMode = previewModeProvider()
-            val previewResolution = materialPreviewResolutionProvider().coerceIn(1, MAX_MATERIAL_PREVIEW_RESOLUTION)
-            val exportRequested = materialPreviewExportRequestedProvider()
+            val previewMode = bindings.previewModeProvider()
+            val previewResolution = bindings.materialPreviewResolutionProvider().coerceIn(1, MAX_MATERIAL_PREVIEW_RESOLUTION)
+            val exportRequested = bindings.materialPreviewExportRequestedProvider()
             val previewResolutionChanged =
                 previewMode.usesTexturePreview() &&
                     renderer.previewResolution != previewResolution
             if (
-                !terrain.dirty &&
-                !materialPreviewDirtyProvider() &&
-                !exportRequested &&
-                renderer.previewMode == previewMode &&
-                !previewResolutionChanged
+                shouldSkipMeshSync(
+                    terrainDirty = terrain.dirty,
+                    previewDirty = bindings.materialPreviewDirtyProvider(),
+                    exportRequested = exportRequested,
+                    rendererPreviewMode = renderer.previewMode,
+                    previewMode = previewMode,
+                    previewResolutionChanged = previewResolutionChanged,
+                )
             ) {
                 return@forEach
             }
@@ -935,37 +970,41 @@ class TerrainEditorMeshSyncSystem(
             // preview bake entirely; the dirty flags survive across frames so
             // the next non-stroke frame produces the final, accurate mesh and
             // preview texture.
-            val withinStrokeThrottleWindow = brushActive &&
-                lastMeshRebuildNanos != 0L &&
-                (now - lastMeshRebuildNanos) / 1_000_000.0 < strokeMeshRebuildIntervalMs &&
-                renderer.previewMode == previewMode &&
-                !previewResolutionChanged &&
-                !exportRequested
+            val withinStrokeThrottleWindow =
+                brushActive &&
+                    lastMeshRebuildNanos != 0L &&
+                    (now - lastMeshRebuildNanos) / 1_000_000.0 < bindings.strokeMeshRebuildIntervalMs &&
+                    renderer.previewMode == previewMode &&
+                    !previewResolutionChanged &&
+                    !exportRequested
             if (withinStrokeThrottleWindow) {
                 return@forEach
             }
 
             // Mesh colors and texture previews are driven by the selected preview
             // mode, so the mesh build and preview bake must use the same mode.
-            val blendMode = blendModeProvider()
-            val mesh = TerrainMeshBuilder.build(
-                data = terrain.data,
-                materialColorResolver = when (previewMode) {
-                    TerrainPreviewMode.LayerColor -> { _: String? -> null }
-                    TerrainPreviewMode.MaterialColor,
-                    TerrainPreviewMode.MaterialTexture,
-                    TerrainPreviewMode.SelectedLayerMask,
-                        -> materialColorResolver
-                },
-                blendMode = blendMode,
-                enableLayerColorPreview = !previewMode.usesTexturePreview() && layerColorPreviewProvider(),
-            )
+            val blendMode = bindings.blendModeProvider()
+            val mesh =
+                TerrainMeshBuilder.build(
+                    data = terrain.data,
+                    materialColorResolver =
+                        when (previewMode) {
+                            TerrainPreviewMode.LayerColor -> { _: String? -> null }
+                            TerrainPreviewMode.MaterialColor,
+                            TerrainPreviewMode.MaterialTexture,
+                            TerrainPreviewMode.SelectedLayerMask,
+                                -> bindings.materialColorResolver
+                        },
+                    blendMode = blendMode,
+                    enableLayerColorPreview = !previewMode.usesTexturePreview() && bindings.layerColorPreviewProvider(),
+                )
             renderer.meshRevision += 1L
-            renderer.model = DynamicModel(
-                id = renderer.modelId,
-                mesh = mesh.toDynamicMesh(),
-                revision = renderer.meshRevision,
-            )
+            renderer.model =
+                DynamicModel(
+                    id = renderer.modelId,
+                    mesh = mesh.toDynamicMesh(),
+                    revision = renderer.meshRevision,
+                )
             renderer.vertexCount = mesh.vertexCount
             renderer.triangleCount = mesh.triangleCount
             renderer.previewMode = previewMode
@@ -983,7 +1022,7 @@ class TerrainEditorMeshSyncSystem(
                 previewMode = previewMode,
                 resolution = previewResolution,
                 blendMode = blendMode,
-                selectedLayerId = selectedLayerIdProvider(),
+                selectedLayerId = bindings.selectedLayerIdProvider(),
             )
             if (exportRequested) {
                 exportMaterialPreviewPng(
@@ -991,13 +1030,26 @@ class TerrainEditorMeshSyncSystem(
                     previewMode,
                     previewResolution,
                     blendMode,
-                    selectedLayerIdProvider()
+                    bindings.selectedLayerIdProvider(),
                 )
             }
             terrain.clearDirty()
 
             // TODO: Replace the full rebuild with chunked/partial uploads once terrain chunks exist.
         }
+    }
+
+    private fun shouldSkipMeshSync(
+        terrainDirty: Boolean,
+        previewDirty: Boolean,
+        exportRequested: Boolean,
+        rendererPreviewMode: TerrainPreviewMode,
+        previewMode: TerrainPreviewMode,
+        previewResolutionChanged: Boolean,
+    ): Boolean {
+        val noPendingChanges = !terrainDirty && !previewDirty
+        val previewConfigUnchanged = rendererPreviewMode == previewMode && !previewResolutionChanged
+        return noPendingChanges && !exportRequested && previewConfigUnchanged
     }
 
     /**
@@ -1018,7 +1070,7 @@ class TerrainEditorMeshSyncSystem(
         if (!previewMode.usesTexturePreview()) {
             renderer.replacePreviewDiffuseTexture(null)
             renderer.previewResolution = 0
-            materialPreviewCleanSink()
+            bindings.materialPreviewCleanSink()
             return
         }
 
@@ -1026,40 +1078,43 @@ class TerrainEditorMeshSyncSystem(
         if (baker == null) {
             renderer.replacePreviewDiffuseTexture(null)
             renderer.previewResolution = 0
-            materialPreviewStatusSink("Material preview failed: material library unavailable")
-            materialPreviewCleanSink()
+            bindings.materialPreviewStatusSink("Material preview failed: material library unavailable")
+            bindings.materialPreviewCleanSink()
             return
         }
 
         try {
             val startNs = java.lang.System.nanoTime()
-            val pixmap = when (previewMode) {
-                TerrainPreviewMode.MaterialTexture -> baker.bakePixmap(terrain, resolution, blendMode)
-                TerrainPreviewMode.SelectedLayerMask -> baker.bakeSelectedLayerMaskPixmap(
-                    terrain,
-                    selectedLayerId,
-                    resolution
-                )
+            val pixmap =
+                when (previewMode) {
+                    TerrainPreviewMode.MaterialTexture -> baker.bakePixmap(terrain, resolution, blendMode)
+                    TerrainPreviewMode.SelectedLayerMask ->
+                        baker.bakeSelectedLayerMaskPixmap(
+                            terrain,
+                            selectedLayerId,
+                            resolution,
+                        )
 
-                TerrainPreviewMode.LayerColor,
-                TerrainPreviewMode.MaterialColor,
-                    -> error("Unsupported texture preview mode: $previewMode")
-            }
+                    TerrainPreviewMode.LayerColor,
+                    TerrainPreviewMode.MaterialColor,
+                        -> error("Unsupported texture preview mode: $previewMode")
+                }
             val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
-            previewBakeStatsSink(elapsedMs, baker.cacheStats())
-            val texture = try {
-                runtimeTerrainPreviewTexture(
-                    renderer = renderer,
-                    pixmap = pixmap,
-                    previewMode = previewMode,
-                    resolution = resolution,
-                )
-            } finally {
-                pixmap.dispose()
-            }
+            bindings.previewBakeStatsSink(elapsedMs, baker.cacheStats())
+            val texture =
+                try {
+                    runtimeTerrainPreviewTexture(
+                        renderer = renderer,
+                        pixmap = pixmap,
+                        previewMode = previewMode,
+                        resolution = resolution,
+                    )
+                } finally {
+                    pixmap.dispose()
+                }
             renderer.replacePreviewDiffuseTexture(texture)
             renderer.previewResolution = resolution
-            materialPreviewStatusSink(
+            bindings.materialPreviewStatusSink(
                 when (previewMode) {
                     TerrainPreviewMode.MaterialTexture -> "Material preview baked: ${resolution}x$resolution"
                     TerrainPreviewMode.SelectedLayerMask -> "Selected layer mask baked: ${resolution}x$resolution"
@@ -1071,9 +1126,9 @@ class TerrainEditorMeshSyncSystem(
         } catch (error: Exception) {
             renderer.replacePreviewDiffuseTexture(null)
             renderer.previewResolution = 0
-            materialPreviewStatusSink("Material preview failed: ${error.message ?: error::class.simpleName}")
+            bindings.materialPreviewStatusSink("Material preview failed: ${error.message ?: error::class.simpleName}")
         } finally {
-            materialPreviewCleanSink()
+            bindings.materialPreviewCleanSink()
         }
     }
 
@@ -1089,38 +1144,41 @@ class TerrainEditorMeshSyncSystem(
     ) {
         val baker = materialPreviewBaker
         if (baker == null) {
-            materialPreviewExportCompleteSink("Material preview export failed: material library unavailable")
+            bindings.materialPreviewExportCompleteSink("Material preview export failed: material library unavailable")
             return
         }
         if (!previewMode.usesTexturePreview()) {
-            materialPreviewExportCompleteSink("Material preview export failed: select Material Texture or Selected Layer Mask")
+            bindings.materialPreviewExportCompleteSink("Material preview export failed: select Material Texture or Selected Layer Mask")
             return
         }
 
         try {
             val startNs = java.lang.System.nanoTime()
-            val pixmap = when (previewMode) {
-                TerrainPreviewMode.MaterialTexture -> baker.bakePixmap(terrain, resolution, blendMode)
-                TerrainPreviewMode.SelectedLayerMask -> baker.bakeSelectedLayerMaskPixmap(
-                    terrain,
-                    selectedLayerId,
-                    resolution
-                )
+            val pixmap =
+                when (previewMode) {
+                    TerrainPreviewMode.MaterialTexture -> baker.bakePixmap(terrain, resolution, blendMode)
+                    TerrainPreviewMode.SelectedLayerMask ->
+                        baker.bakeSelectedLayerMaskPixmap(
+                            terrain,
+                            selectedLayerId,
+                            resolution,
+                        )
 
-                TerrainPreviewMode.LayerColor,
-                TerrainPreviewMode.MaterialColor,
-                    -> error("Unsupported texture preview mode: $previewMode")
-            }
+                    TerrainPreviewMode.LayerColor,
+                    TerrainPreviewMode.MaterialColor,
+                        -> error("Unsupported texture preview mode: $previewMode")
+                }
             val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
-            previewBakeStatsSink(elapsedMs, baker.cacheStats())
-            val path = try {
-                baker.writePng(pixmap, materialPreviewExportPathProvider())
-            } finally {
-                pixmap.dispose()
-            }
-            materialPreviewExportCompleteSink("Material preview exported: $path")
+            bindings.previewBakeStatsSink(elapsedMs, baker.cacheStats())
+            val path =
+                try {
+                    baker.writePng(pixmap, bindings.materialPreviewExportPathProvider())
+                } finally {
+                    pixmap.dispose()
+                }
+            bindings.materialPreviewExportCompleteSink("Material preview exported: $path")
         } catch (error: Exception) {
-            materialPreviewExportCompleteSink("Material preview export failed: ${error.message ?: error::class.simpleName}")
+            bindings.materialPreviewExportCompleteSink("Material preview export failed: ${error.message ?: error::class.simpleName}")
         }
     }
 
@@ -1140,7 +1198,10 @@ class TerrainAssetSyncSystem(
 ) : System() {
     private val sync = TerrainAssetRuntimeSync(logger)
 
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         sync.update(world)
     }
 }
@@ -1152,9 +1213,10 @@ class TerrainAssetRuntimeSync(
     private val logger: Logger? = null,
 ) {
     private val terrainPersistence = TerrainPersistence(logger)
-    private val materialLibrary = TerrainMaterialLibrary(logger).also { library ->
-        library.load("materials/terrain_materials.json")
-    }
+    private val materialLibrary =
+        TerrainMaterialLibrary(logger).also { library ->
+            library.load("materials/terrain_materials.json")
+        }
     private val bakeService = TerrainMaterialBakeService(materialLibrary, logger)
     private val failedPaths = mutableSetOf<String>()
 
@@ -1162,7 +1224,10 @@ class TerrainAssetRuntimeSync(
         world.query<TransformComponent, TerrainComponent>().forEach { entity ->
             if (!entity.active) return@forEach
             val component = entity.get<TerrainComponent>() ?: return@forEach
-            val path = component.terrain.path.trim().replace('\\', '/')
+            val path =
+                component.terrain.path
+                    .trim()
+                    .replace('\\', '/')
             if (path.isBlank()) return@forEach
             val renderer = entity.get<TerrainRendererComponent>()
             val previewMode = sceneTerrainPreviewMode(component.previewMode)
@@ -1174,44 +1239,50 @@ class TerrainAssetRuntimeSync(
             try {
                 val data = terrainPersistence.load(path)
                 val usesTexturePreview = previewMode == TerrainPreviewMode.MaterialTexture
-                val mesh = TerrainMeshBuilder.build(
-                    data = data,
-                    materialColorResolver = { null },
-                    blendMode = TerrainLayerBlendMode.OrderedAlpha,
-                    enableLayerColorPreview = !usesTexturePreview,
-                )
-                val nextRenderer = renderer ?: TerrainRendererComponent(
-                    modelId = modelId(path),
-                    material = Material(),
-                ).also(entity::add)
+                val mesh =
+                    TerrainMeshBuilder.build(
+                        data = data,
+                        materialColorResolver = { null },
+                        blendMode = TerrainLayerBlendMode.OrderedAlpha,
+                        enableLayerColorPreview = !usesTexturePreview,
+                    )
+                val nextRenderer =
+                    renderer ?: TerrainRendererComponent(
+                        modelId = modelId(path),
+                        material = Material(),
+                    ).also(entity::add)
                 nextRenderer.modelId = modelId(path)
                 nextRenderer.meshRevision += 1L
-                nextRenderer.model = DynamicModel(
-                    id = nextRenderer.modelId,
-                    mesh = mesh.toDynamicMesh(),
-                    revision = nextRenderer.meshRevision,
-                )
+                nextRenderer.model =
+                    DynamicModel(
+                        id = nextRenderer.modelId,
+                        mesh = mesh.toDynamicMesh(),
+                        revision = nextRenderer.meshRevision,
+                    )
                 nextRenderer.vertexCount = mesh.vertexCount
                 nextRenderer.triangleCount = mesh.triangleCount
                 nextRenderer.previewMode = previewMode
                 nextRenderer.previewResolution = if (usesTexturePreview) bakedTextureResolution else 0
                 if (usesTexturePreview) {
-                    val texture = bakeService.bakeFinalSplatTexture(
-                        terrain = data,
-                        resolution = bakedTextureResolution,
-                        textureId = "runtime:scene-terrain-preview:${nextRenderer.modelId}",
-                        revision = nextRenderer.meshRevision * 31L + bakedTextureResolution,
-                        blendMode = TerrainLayerBlendMode.OrderedAlpha,
-                    )
+                    val texture =
+                        bakeService.bakeFinalSplatTexture(
+                            terrain = data,
+                            resolution = bakedTextureResolution,
+                            textureId = "runtime:scene-terrain-preview:${nextRenderer.modelId}",
+                            revision = nextRenderer.meshRevision * 31L + bakedTextureResolution,
+                            blendMode = TerrainLayerBlendMode.OrderedAlpha,
+                        )
                     nextRenderer.replacePreviewDiffuseTexture(texture)
-                    nextRenderer.material = Material(
-                        baseColor = Color.white(),
-                        diffuseTextureRef = MaterialTextureRef(
-                            id = texture.id,
-                            channel = "diffuse",
-                            uvChannel = 0,
-                        ),
-                    )
+                    nextRenderer.material =
+                        Material(
+                            baseColor = Color.white(),
+                            diffuseTextureRef =
+                                MaterialTextureRef(
+                                    id = texture.id,
+                                    channel = "diffuse",
+                                    uvChannel = 0,
+                                ),
+                        )
                 } else {
                     nextRenderer.replacePreviewDiffuseTexture(null)
                     nextRenderer.material = Material()
@@ -1251,8 +1322,7 @@ class TerrainAssetRuntimeSync(
             TerrainPreviewMode.LayerColor
         }
 
-    private fun modelId(path: String): String =
-        "terrain_asset_" + path.replace(Regex("[^A-Za-z0-9_\\-]+"), "_")
+    private fun modelId(path: String): String = "terrain_asset_" + path.replace(Regex("[^A-Za-z0-9_\\-]+"), "_")
 
     companion object {
         private const val TAG = "TerrainAssetRuntimeSync"
@@ -1268,7 +1338,10 @@ class TerrainAssetRuntimeSync(
  * to happen without exposing backend texture types to terrain code.
  */
 object TerrainRenderCommands {
-    fun submit(world: SceneWorld, submit: (DrawDynamicModel) -> Unit) {
+    fun submit(
+        world: SceneWorld,
+        submit: (DrawDynamicModel) -> Unit,
+    ) {
         world.query<TransformComponent, TerrainRendererComponent>().forEach { entity ->
             if (!entity.active) return@forEach
             val terrainAsset = entity.get<TerrainComponent>()
@@ -1277,23 +1350,25 @@ object TerrainRenderCommands {
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
             val model = renderer.model ?: return@forEach
             val textureForMaterial = renderer.finalSplatTexture ?: renderer.previewDiffuseTexture
-            val material = if (textureForMaterial != null) {
-                renderer.material.copy(
-                    baseColor = Color.white(),
-                    diffuseTextureRef = MaterialTextureRef(
-                        id = textureForMaterial.id,
-                        channel = "baseColor",
-                        uvChannel = 0,
-                    ),
-                )
-            } else if (model.mesh.colors != null) {
-                renderer.material.copy(
-                    baseColor = Color.white(),
-                    diffuseTextureRef = null,
-                )
-            } else {
-                renderer.material.copy(diffuseTextureRef = null)
-            }
+            val material =
+                if (textureForMaterial != null) {
+                    renderer.material.copy(
+                        baseColor = Color.white(),
+                        diffuseTextureRef =
+                            MaterialTextureRef(
+                                id = textureForMaterial.id,
+                                channel = "baseColor",
+                                uvChannel = 0,
+                            ),
+                    )
+                } else if (model.mesh.colors != null) {
+                    renderer.material.copy(
+                        baseColor = Color.white(),
+                        diffuseTextureRef = null,
+                    )
+                } else {
+                    renderer.material.copy(diffuseTextureRef = null)
+                }
             submit(
                 DrawDynamicModel(
                     entityId = entity.id,
@@ -1348,7 +1423,10 @@ class TerrainRenderSystem : System() {
      * Material selection is intentionally lightweight here: this system assumes
      * mesh generation and preview baking have already prepared the correct data.
      */
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         TerrainRenderCommands.submit(world, world.renderCommands::submit)
     }
 }
@@ -1373,9 +1451,13 @@ class TerrainCameraControllerSystem(
      * WASD pans along the camera's horizontal forward/right axes, R/F move the
      * camera vertically, and Q/E orbit around the current look-at target.
      */
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         val cameraEntity =
-            world.query<TransformComponent, PerspectiveCameraComponent, TerrainCameraControllerComponent>()
+            world
+                .query<TransformComponent, PerspectiveCameraComponent, TerrainCameraControllerComponent>()
                 .firstOrNull() ?: return
         val transform = cameraEntity.get<TransformComponent>() ?: return
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
@@ -1387,21 +1469,24 @@ class TerrainCameraControllerSystem(
         val forward = horizontalForward(transform.position, lookAt)
         val right = Vec3(-forward.z, 0f, forward.x)
 
-        val panX = when {
-            snapshot.isDown(Key.A) -> -1f
-            snapshot.isDown(Key.D) -> 1f
-            else -> 0f
-        }
-        val panZ = when {
-            snapshot.isDown(Key.W) -> 1f
-            snapshot.isDown(Key.S) -> -1f
-            else -> 0f
-        }
-        val panY = when {
-            snapshot.isDown(Key.R) -> 1f
-            snapshot.isDown(Key.F) -> -1f
-            else -> 0f
-        }
+        val panX =
+            when {
+                snapshot.isDown(Key.A) -> -1f
+                snapshot.isDown(Key.D) -> 1f
+                else -> 0f
+            }
+        val panZ =
+            when {
+                snapshot.isDown(Key.W) -> 1f
+                snapshot.isDown(Key.S) -> -1f
+                else -> 0f
+            }
+        val panY =
+            when {
+                snapshot.isDown(Key.R) -> 1f
+                snapshot.isDown(Key.F) -> -1f
+                else -> 0f
+            }
 
         if (panX != 0f || panY != 0f || panZ != 0f) {
             // Translate both eye and target together so the relative viewing
@@ -1418,11 +1503,12 @@ class TerrainCameraControllerSystem(
             lookAt.z += deltaZ
         }
 
-        val rotationInput = when {
-            snapshot.isDown(Key.Q) -> -1f
-            snapshot.isDown(Key.E) -> 1f
-            else -> 0f
-        }
+        val rotationInput =
+            when {
+                snapshot.isDown(Key.Q) -> -1f
+                snapshot.isDown(Key.E) -> 1f
+                else -> 0f
+            }
 
         if (rotationInput != 0f) {
             rotateAroundLookAt(transform, lookAt, controller.rotationSpeedDegrees * rotationInput * dt)
@@ -1441,8 +1527,9 @@ class TerrainCameraControllerSystem(
         // then reconstruct the position while preserving orbit radius.
         val offsetX = transform.position.x - lookAt.x
         val offsetZ = transform.position.z - lookAt.z
-        val radius = sqrt(offsetX * offsetX + offsetZ * offsetZ)
-            .coerceIn(1e-4f, Float.MAX_VALUE)
+        val radius =
+            sqrt(offsetX * offsetX + offsetZ * offsetZ)
+                .coerceIn(1e-4f, Float.MAX_VALUE)
         val currentAngle = atan2(offsetZ, offsetX)
         val nextAngle = currentAngle + Math.toRadians(deltaDegrees.toDouble()).toFloat()
 
@@ -1453,7 +1540,10 @@ class TerrainCameraControllerSystem(
     /**
      * Computes the XZ movement direction from camera position to look-at target.
      */
-    private fun horizontalForward(position: Vec3, lookAt: Vec3): Vec3 {
+    private fun horizontalForward(
+        position: Vec3,
+        lookAt: Vec3,
+    ): Vec3 {
         val x = lookAt.x - position.x
         val z = lookAt.z - position.z
         val length = sqrt(x * x + z * z)
@@ -1505,18 +1595,21 @@ object TerrainRaycaster {
         // After finding the projected local position, lift the hit onto the real
         // heightfield surface and compute the nearest discrete sample indices.
         val surfaceY = terrainTransform.position.y + terrain.sampleHeight(localX, localZ)
-        val sampleX = (((localX - terrain.minLocalX) / terrain.vertexSpacing).roundToInt())
-            .coerceIn(0, terrain.width - 1)
-        val sampleY = (((localZ - terrain.minLocalZ) / terrain.vertexSpacing).roundToInt())
-            .coerceIn(0, terrain.height - 1)
+        val sampleX =
+            (((localX - terrain.minLocalX) / terrain.vertexSpacing).roundToInt())
+                .coerceIn(0, terrain.width - 1)
+        val sampleY =
+            (((localZ - terrain.minLocalZ) / terrain.vertexSpacing).roundToInt())
+                .coerceIn(0, terrain.height - 1)
 
         // TODO: Replace the temporary plane projection with a real heightfield/triangle ray test.
         return TerrainHit(
-            worldPosition = Vec3(
-                terrainTransform.position.x + localX,
-                surfaceY,
-                terrainTransform.position.z + localZ,
-            ),
+            worldPosition =
+                Vec3(
+                    terrainTransform.position.x + localX,
+                    surfaceY,
+                    terrainTransform.position.z + localZ,
+                ),
             localX = localX,
             localZ = localZ,
             sampleX = sampleX,
@@ -1545,11 +1638,12 @@ object TerrainRaycaster {
         val up = normalize(cross(right, forward))
         val tanHalfFov = tan(Math.toRadians((camera.fieldOfViewDegrees * 0.5f).toDouble())).toFloat()
 
-        val direction = normalize(
-            forward +
-                right * (ndcX * aspect * tanHalfFov) +
-                up * (ndcY * tanHalfFov),
-        )
+        val direction =
+            normalize(
+                forward +
+                    right * (ndcX * aspect * tanHalfFov) +
+                    up * (ndcY * tanHalfFov),
+            )
         return CameraRay(cameraTransform.position.copy(), direction)
     }
 
@@ -1606,7 +1700,10 @@ private operator fun Vec3.plus(other: Vec3): Vec3 = Vec3(x + other.x, y + other.
 private operator fun Vec3.times(scale: Float): Vec3 = Vec3(x * scale, y * scale, z * scale)
 
 /** Computes the cross product used to derive camera right/up basis vectors. */
-private fun cross(a: Vec3, b: Vec3): Vec3 =
+private fun cross(
+    a: Vec3,
+    b: Vec3,
+): Vec3 =
     Vec3(
         x = a.y * b.z - a.z * b.y,
         y = a.z * b.x - a.x * b.z,
@@ -1621,7 +1718,10 @@ private fun normalize(vector: Vec3): Vec3 {
 }
 
 /** Computes 3D Euclidean distance between two points. */
-private fun distance(a: Vec3, b: Vec3): Float {
+private fun distance(
+    a: Vec3,
+    b: Vec3,
+): Float {
     val dx = a.x - b.x
     val dy = a.y - b.y
     val dz = a.z - b.z
@@ -1630,7 +1730,11 @@ private fun distance(a: Vec3, b: Vec3): Float {
 
 /** Produces a compact terrain description for logs and status messages. */
 private fun TerrainData.describeTerrain(): String =
-    "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${allLayers().joinToString { layer -> "${layer.id}:${layer.name}" }}]"
+    "size=${width}x$height spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} [${
+        allLayers().joinToString { layer ->
+            "${layer.id}:${layer.name}"
+        }
+    }]"
 
 /** Converts a blend mode enum into a user-facing label. */
 private fun formatBlendMode(mode: TerrainLayerBlendMode): String =

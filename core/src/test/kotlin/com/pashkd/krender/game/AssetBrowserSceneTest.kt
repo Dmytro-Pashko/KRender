@@ -21,9 +21,9 @@ import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetId
 import com.pashkd.krender.engine.assets.AssetRegistryService
-import com.pashkd.krender.engine.assets.DefaultUiSceneSkinPath
 import com.pashkd.krender.engine.assets.AssetType
-import com.pashkd.krender.engine.ui.scene.UiSceneSerializer
+import com.pashkd.krender.engine.assets.DefaultUiSceneSkinPath
+import com.pashkd.krender.engine.assets.NoOpAssetRegistryService
 import com.pashkd.krender.engine.scene.DefaultSceneFileService
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
@@ -34,10 +34,10 @@ import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.ui.editor.NoOpUiService
 import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
+import com.pashkd.krender.engine.ui.scene.UiSceneSerializer
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
-import com.pashkd.krender.engine.assets.NoOpAssetRegistryService
 import com.pashkd.krender.test.newTestRuntimeUiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -65,16 +65,17 @@ class AssetBrowserSceneTest {
     fun `ui composer asset tool routes UiScene path to editor launcher`() {
         val launcher = RecordingEditorToolLauncher()
         val context = TestToolEngineContext(launcher)
-        val asset = AssetDescriptor(
-            id = AssetId("asset:ui-scene"),
-            name = "woolboy_hud",
-            path = "ui/scenes/woolboy_hud.krui",
-            category = AssetCategory.UI,
-            type = AssetType.UiScene,
-            extension = "krui",
-            sizeBytes = 12L,
-            modifiedAtMillis = 1L,
-        )
+        val asset =
+            AssetDescriptor(
+                id = AssetId("asset:ui-scene"),
+                name = "woolboy_hud",
+                path = "ui/scenes/woolboy_hud.krui",
+                category = AssetCategory.UI,
+                type = AssetType.UiScene,
+                extension = "krui",
+                sizeBytes = 12L,
+                modifiedAtMillis = 1L,
+            )
 
         val tool = UiComposerAssetTool()
 
@@ -105,9 +106,13 @@ private class RecordingEditorToolLauncher : EditorToolLauncher {
     var uiComposerPath: String? = null
 
     override fun launchModelViewer(modelPath: String) = error("not used")
+
     override fun launchAnimationViewer(modelPath: String) = error("not used")
+
     override fun launchTerrainEditor(terrainPath: String) = error("not used")
+
     override fun launchSceneEditorWithScene(scenePath: String) = error("not used")
+
     override fun launchUiComposer(uiScenePath: String) {
         uiComposerPath = uiScenePath
     }
@@ -139,30 +144,51 @@ private class TestToolEngineContext(
 
 private object NoOpAssetService : AssetService {
     override fun queue(asset: AssetRef<*>) = Unit
+
     override fun update(budgetMs: Int): Float = 1f
+
     override fun isLoaded(asset: AssetRef<*>): Boolean = false
+
     override fun <T : Any> get(asset: AssetRef<T>): T = error("not used")
+
     override fun triangleCount(asset: AssetRef<ModelAsset>): Int? = null
+
     override fun unload(asset: AssetRef<*>) = Unit
 }
 
 private object NoOpInputService : InputService {
     override fun beginFrame() = Unit
+
     override fun snapshot(): InputSnapshot = InputSnapshot()
+
     override fun endFrame() = Unit
+
     override fun setCursorCaptured(captured: Boolean) = Unit
+
     override fun isActionPressed(action: Action): Boolean = false
+
     override fun isActionJustPressed(action: Action): Boolean = false
+
     override fun axis(axis: Axis): Float = 0f
 }
 
 private object UnusedTaskService : TaskService {
     override val inFlightJobs: Int = 0
-    override fun launchBackground(name: String, block: suspend CoroutineScope.() -> Unit): Job = error("not used")
+
+    override fun launchBackground(
+        name: String,
+        block: suspend CoroutineScope.() -> Unit,
+    ): Job = error("not used")
+
     override suspend fun <T> onBackground(block: suspend () -> T): T = error("not used")
+
     override suspend fun <T> onIo(block: suspend () -> T): T = error("not used")
+
     override suspend fun <T> onMain(block: suspend () -> T): T = error("not used")
+
     override fun postToMain(block: () -> Unit) = error("not used")
+
     override fun flushMainThreadQueue() = Unit
+
     override fun dispose() = Unit
 }

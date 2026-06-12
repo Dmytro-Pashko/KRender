@@ -17,27 +17,31 @@ object AssetTypeDetector {
             extension == "g3db" || extension == "g3dj" -> AssetTypeDetection(AssetType.GdxModel, AssetCategory.Model)
             extension in textureExtensions -> AssetTypeDetection(AssetType.Texture, AssetCategory.Texture)
             extension == "krskybox" -> AssetTypeDetection(AssetType.Skybox, AssetCategory.Skybox)
-            lowerPath.startsWith("terrains/") && extension == "json" -> AssetTypeDetection(
-                AssetType.Terrain,
-                AssetCategory.Terrain
-            )
+            lowerPath.startsWith("terrains/") && extension == "json" ->
+                AssetTypeDetection(
+                    AssetType.Terrain,
+                    AssetCategory.Terrain,
+                )
 
-            lowerPath.startsWith("ui/skins/") && extension == "json" -> AssetTypeDetection(
-                AssetType.Scene2DSkin,
-                AssetCategory.UI
-            )
+            lowerPath.startsWith("ui/skins/") && extension == "json" ->
+                AssetTypeDetection(
+                    AssetType.Scene2DSkin,
+                    AssetCategory.UI,
+                )
 
             extension == "krui" -> AssetTypeDetection(AssetType.UiScene, AssetCategory.UI)
             extension == "krscene" -> AssetTypeDetection(AssetType.Scene, AssetCategory.Scene)
-            lowerPath.startsWith("scenes/") && extension == "json" -> AssetTypeDetection(
-                AssetType.Scene,
-                AssetCategory.Scene
-            )
+            lowerPath.startsWith("scenes/") && extension == "json" ->
+                AssetTypeDetection(
+                    AssetType.Scene,
+                    AssetCategory.Scene,
+                )
 
-            lowerPath.startsWith("materials/") && extension == "json" -> AssetTypeDetection(
-                AssetType.Material,
-                AssetCategory.Material
-            )
+            lowerPath.startsWith("materials/") && extension == "json" ->
+                AssetTypeDetection(
+                    AssetType.Material,
+                    AssetCategory.Material,
+                )
 
             else -> AssetTypeDetection(AssetType.Unknown, AssetCategory.Other)
         }
@@ -54,5 +58,4 @@ data class AssetTypeDetection(
     val category: AssetCategory,
 )
 
-internal fun normalizePath(path: String): String =
-    path.replace('\\', '/').trim().trimStart('/')
+internal fun normalizePath(path: String): String = path.replace('\\', '/').trim().trimStart('/')

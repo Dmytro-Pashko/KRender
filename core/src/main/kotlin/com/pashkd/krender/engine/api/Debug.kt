@@ -52,22 +52,44 @@ interface Logger {
     fun isEnabled(level: LogLevel): Boolean = true
 
     /** Emits one structured log event. */
-    fun log(level: LogLevel, tag: String, error: Throwable? = null, message: () -> String)
+    fun log(
+        level: LogLevel,
+        tag: String,
+        error: Throwable? = null,
+        message: () -> String,
+    )
 
     /** Emits a trace-level message. */
-    fun trace(tag: String, message: () -> String) = log(LogLevel.Trace, tag, null, message)
+    fun trace(
+        tag: String,
+        message: () -> String,
+    ) = log(LogLevel.Trace, tag, null, message)
 
     /** Emits a debug-level message. */
-    fun debug(tag: String, message: () -> String) = log(LogLevel.Debug, tag, null, message)
+    fun debug(
+        tag: String,
+        message: () -> String,
+    ) = log(LogLevel.Debug, tag, null, message)
 
     /** Emits an info-level message. */
-    fun info(tag: String, message: () -> String) = log(LogLevel.Info, tag, null, message)
+    fun info(
+        tag: String,
+        message: () -> String,
+    ) = log(LogLevel.Info, tag, null, message)
 
     /** Emits a warning-level message. */
-    fun warn(tag: String, error: Throwable? = null, message: () -> String) = log(LogLevel.Warn, tag, error, message)
+    fun warn(
+        tag: String,
+        error: Throwable? = null,
+        message: () -> String,
+    ) = log(LogLevel.Warn, tag, error, message)
 
     /** Emits an error-level message. */
-    fun error(tag: String, error: Throwable? = null, message: () -> String) = log(LogLevel.Error, tag, error, message)
+    fun error(
+        tag: String,
+        error: Throwable? = null,
+        message: () -> String,
+    ) = log(LogLevel.Error, tag, error, message)
 }
 
 /**
@@ -168,10 +190,16 @@ interface RuntimeStatsService {
     fun beginFrame()
 
     /** Finalizes the frame telemetry snapshot. */
-    fun endFrame(deltaSeconds: Float, fixedUpdates: Int)
+    fun endFrame(
+        deltaSeconds: Float,
+        fixedUpdates: Int,
+    )
 
     /** Stores a formatted key/value metric. */
-    fun put(label: String, value: Any?)
+    fun put(
+        label: String,
+        value: Any?,
+    )
 }
 
 /**
@@ -188,7 +216,10 @@ interface ProfilerService {
     fun endFrame(frame: Long)
 
     /** Measures a block and records its elapsed time under the given name. */
-    fun <T> measure(name: String, block: () -> T): T
+    fun <T> measure(
+        name: String,
+        block: () -> T,
+    ): T
 }
 
 /**
@@ -198,7 +229,8 @@ class EngineLogService(
     private val frameProvider: () -> Long = { 0L },
     private val maxEntries: Int = 2_000,
     override var minLevel: LogLevel = LogLevel.Trace,
-) : LogService, Logger {
+) : LogService,
+    Logger {
     private val lock = Any()
     private val entries = ArrayDeque<LogEntry>()
     private val sinks = linkedSetOf<LogSink>()
@@ -214,20 +246,26 @@ class EngineLogService(
     override fun record(entry: LogEntry) {
         if (!isEnabled(entry.level)) return
 
-        val sinkSnapshot = synchronized(lock) {
-            entries += entry
-            while (entries.size > maxEntries) {
-                entries.removeFirst()
+        val sinkSnapshot =
+            synchronized(lock) {
+                entries += entry
+                while (entries.size > maxEntries) {
+                    entries.removeFirst()
+                }
+                sinks.toList()
             }
-            sinks.toList()
-        }
         sinkSnapshot.forEach { sink ->
             sink.write(entry)
         }
     }
 
     /** Builds and records one structured log entry when the level is accepted. */
-    override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) {
+    override fun log(
+        level: LogLevel,
+        tag: String,
+        error: Throwable?,
+        message: () -> String,
+    ) {
         if (!isEnabled(level)) return
         record(
             LogEntry(
@@ -258,9 +296,10 @@ class EngineLogService(
 
     /** Unregisters one sink and disposes it. */
     override fun removeSink(sink: LogSink) {
-        val removed = synchronized(lock) {
-            sinks.remove(sink)
-        }
+        val removed =
+            synchronized(lock) {
+                sinks.remove(sink)
+            }
         if (removed) {
             sink.flush()
             sink.dispose()
@@ -294,14 +333,20 @@ class FrameRuntimeStatsService : RuntimeStatsService {
     }
 
     /** Finalizes the summary snapshot for the current frame. */
-    override fun endFrame(deltaSeconds: Float, fixedUpdates: Int) {
+    override fun endFrame(
+        deltaSeconds: Float,
+        fixedUpdates: Int,
+    ) {
         put("Delta", "${"%.2f".format(deltaSeconds * 1000f)} ms")
         put("Fixed updates", fixedUpdates)
         lastFrame = RuntimeFrameSnapshot(frame, deltaSeconds, fixedUpdates, metrics)
     }
 
     /** Stores one formatted metric value. */
-    override fun put(label: String, value: Any?) {
+    override fun put(
+        label: String,
+        value: Any?,
+    ) {
         values[label] = value.toString()
     }
 }
@@ -328,11 +373,15 @@ class FrameProfilerService : ProfilerService {
     }
 
     /** Measures a block and records its duration as a named phase. */
-    override fun <T> measure(name: String, block: () -> T): T {
+    override fun <T> measure(
+        name: String,
+        block: () -> T,
+    ): T {
         var result: T
-        val elapsed = measureNanoTime {
-            result = block()
-        }
+        val elapsed =
+            measureNanoTime {
+                result = block()
+            }
         timings += PhaseTiming(name, elapsed / 1_000_000f)
         return result
     }

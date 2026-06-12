@@ -27,7 +27,11 @@ data class Vec3(
     var z: Float = 0f,
 ) {
     /** Replaces all three vector components at once. */
-    fun set(x: Float, y: Float, z: Float): Vec3 {
+    fun set(
+        x: Float,
+        y: Float,
+        z: Float,
+    ): Vec3 {
         this.x = x
         this.y = y
         this.z = z

@@ -159,26 +159,29 @@ class UiComposerPreviewCanvasPanel(
         val panelWidth = available.x.coerceAtLeast(1f)
         val panelHeight = available.y.coerceAtLeast(1f)
 
-        state.canvasPanelRect = UiComposerCanvasRect(
-            x = min.x,
-            y = min.y,
-            width = panelWidth,
-            height = panelHeight,
-        )
+        state.canvasPanelRect =
+            UiComposerCanvasRect(
+                x = min.x,
+                y = min.y,
+                width = panelWidth,
+                height = panelHeight,
+            )
 
-        val logical = state.previewResolutionPreset.defaultResolution(
-            customWidth = state.customPreviewWidth,
-            customHeight = state.customPreviewHeight,
-            panelWidth = panelWidth.toInt().coerceAtLeast(1),
-            panelHeight = panelHeight.toInt().coerceAtLeast(1),
-        )
+        val logical =
+            state.previewResolutionPreset.defaultResolution(
+                customWidth = state.customPreviewWidth,
+                customHeight = state.customPreviewHeight,
+                panelWidth = panelWidth.toInt().coerceAtLeast(1),
+                panelHeight = panelHeight.toInt().coerceAtLeast(1),
+            )
         state.previewLogicalWidth = logical.width
         state.previewLogicalHeight = logical.height
-        state.canvasPreviewRect = computePreviewRect(
-            panel = state.canvasPanelRect,
-            logicalWidth = state.previewLogicalWidth,
-            logicalHeight = state.previewLogicalHeight,
-        )
+        state.canvasPreviewRect =
+            computePreviewRect(
+                panel = state.canvasPanelRect,
+                logicalWidth = state.previewLogicalWidth,
+                logicalHeight = state.previewLogicalHeight,
+            )
 
         ImGui.invisibleButton("##ui_composer_preview_canvas_area", ImVec2(panelWidth, panelHeight))
 
@@ -436,7 +439,7 @@ class UiComposerStructurePanel(
             UiSceneNodeType.entries.forEach { type ->
                 if (ImGui.selectable(
                         "${type.name}##ui_composer_add_child_type_${type.name}",
-                        type == selectedAddType
+                        type == selectedAddType,
                     )
                 ) {
                     selectedAddType = type
@@ -730,7 +733,7 @@ class UiComposerInspectorPanel(
             node,
             "tableOrientation",
             node.tableOrientation,
-            UiSceneTableOrientation.entries.toList()
+            UiSceneTableOrientation.entries.toList(),
         ) { orientation ->
             operations.updateSelectedNode { it.copy(tableOrientation = orientation) }
         }
@@ -884,11 +887,12 @@ class UiComposerInspectorPanel(
         missingSuffix: String,
         onChanged: (String?) -> Unit,
     ) {
-        val preview = when {
-            current == null -> nullLabel
-            current in options -> current
-            else -> "$current$missingSuffix"
-        }
+        val preview =
+            when {
+                current == null -> nullLabel
+                current in options -> current
+                else -> "$current$missingSuffix"
+            }
         if (!ImGui.beginCombo("$fieldName##ui_composer_inspector_${node.id}_$fieldName", preview)) return
         if (ImGui.selectable("$nullLabel##ui_composer_${node.id}_${fieldName}_none", current == null)) {
             onChanged(null)
@@ -922,7 +926,7 @@ class UiComposerInspectorPanel(
         values.forEach { value ->
             if (ImGui.selectable(
                     "${value.name}##ui_composer_${node.id}_${fieldName}_${value.name}",
-                    value == current
+                    value == current,
                 )
             ) {
                 onChanged(value)
@@ -949,7 +953,7 @@ class UiComposerInspectorPanel(
         values.forEach { value ->
             if (ImGui.selectable(
                     "${value.name}##ui_composer_${node.id}_${fieldName}_${value.name}",
-                    value == current
+                    value == current,
                 )
             ) {
                 onChanged(value)
@@ -970,9 +974,10 @@ class UiComposerInspectorPanel(
         current: String,
     ): ByteArray {
         val key = "$nodeId:$fieldName"
-        val buffer = editBuffers.getOrPut(key) {
-            ByteArray(TextInputBufferSize).also { created -> writeBuffer(created, current) }
-        }
+        val buffer =
+            editBuffers.getOrPut(key) {
+                ByteArray(TextInputBufferSize).also { created -> writeBuffer(created, current) }
+            }
         return buffer
     }
 
@@ -1071,10 +1076,11 @@ class UiComposerInspectorPanel(
     }
 
     private fun drawBackgroundPreview(drawableName: String) {
-        val handle = state.skinMetadata
-            ?.takeUnless { it.loadError != null }
-            ?.drawablePreviewHandles
-            ?.get(drawableName)
+        val handle =
+            state.skinMetadata
+                ?.takeUnless { it.loadError != null }
+                ?.drawablePreviewHandles
+                ?.get(drawableName)
         if (handle == null) {
             val reason = "Skin drawable '$drawableName' has no atlas region preview handle."
             ImGui.textWrapped("Background preview unavailable: $reason")
@@ -1152,8 +1158,9 @@ class UiComposerInspectorPanel(
                 property("Known styles", styleOptions.joinToString(", ").ifBlank { "<none>" })
                 logPreviewDiagnosticOnce(
                     key = "style:${node.type}:$styleName:missing",
-                    message = "UiComposer actor style preview missing style node='${node.id}' type=${node.type} " +
-                        "style='$styleName' knownStyles=${styleOptions.joinToString(",")}",
+                    message =
+                        "UiComposer actor style preview missing style node='${node.id}' type=${node.type} " +
+                            "style='$styleName' knownStyles=${styleOptions.joinToString(",")}",
                 )
             }
         }
@@ -1186,8 +1193,7 @@ class UiComposerInspectorPanel(
         }
     }
 
-    private fun isBindingPlaceholder(value: String): Boolean =
-        BindingPlaceholderRegex.matches(value)
+    private fun isBindingPlaceholder(value: String): Boolean = BindingPlaceholderRegex.matches(value)
 
     private fun resolvedProgressValue(node: UiSceneNode): Float? {
         val bindingKey = node.valueBinding?.trim().orEmpty()
@@ -1198,8 +1204,7 @@ class UiComposerInspectorPanel(
         }
     }
 
-    private fun textureExists(path: String): Boolean =
-        state.textureOptions.any { option -> option.path == path }
+    private fun textureExists(path: String): Boolean = state.textureOptions.any { option -> option.path == path }
 
     private fun texturePreviewUnavailableReason(path: String): String {
         val registered = textureExists(path)
@@ -1212,8 +1217,7 @@ class UiComposerInspectorPanel(
         }
     }
 
-    private fun previewHandleSize(handle: TexturePreviewHandle): String =
-        "${handle.width} x ${handle.height}"
+    private fun previewHandleSize(handle: TexturePreviewHandle): String = "${handle.width} x ${handle.height}"
 
     private fun runtimeStyleName(node: UiSceneNode): String? {
         val explicitStyle = node.style?.takeIf(String::isNotBlank)
@@ -1244,8 +1248,7 @@ class UiComposerInspectorPanel(
         return metadata.drawables.contains(drawableName)
     }
 
-    private fun buttonPreviewText(text: String): String =
-        text.ifBlank { " " }
+    private fun buttonPreviewText(text: String): String = text.ifBlank { " " }
 
     private fun paddingSummary(node: UiSceneNode): String =
         "L ${node.padding.left}, T ${node.padding.top}, R ${node.padding.right}, B ${node.padding.bottom}"
@@ -1254,11 +1257,12 @@ class UiComposerInspectorPanel(
         document: UiSceneDocument,
         skinMetadata: UiComposerSkinMetadata?,
     ) {
-        val error = when {
-            skinMetadata == null -> "Skin metadata unavailable: '${document.skin}' has not been inspected."
-            skinMetadata.loadError != null -> "Skin metadata unavailable: ${skinMetadata.loadError}"
-            else -> null
-        }
+        val error =
+            when {
+                skinMetadata == null -> "Skin metadata unavailable: '${document.skin}' has not been inspected."
+                skinMetadata.loadError != null -> "Skin metadata unavailable: ${skinMetadata.loadError}"
+                else -> null
+            }
         error?.let { message ->
             ImGui.textWrapped(message)
             ImGui.textWrapped(
@@ -1429,11 +1433,11 @@ class UiComposerInspectorPanel(
     private fun bindingSelectionKey(
         node: UiSceneNode,
         fieldName: String,
-    ): String =
-        "${node.id}:$fieldName"
+    ): String = "${node.id}:$fieldName"
 
     private fun bindingKeys(): List<String> =
-        state.document?.bindings
+        state.document
+            ?.bindings
             ?.map { binding -> binding.key }
             ?.filter(String::isNotBlank)
             ?.sorted()
@@ -1460,8 +1464,14 @@ class UiComposerInspectorPanel(
     }
 
     private fun drawTextureWarning(node: UiSceneNode) {
-        val textureIssue = (state.validationIssues + state.textureValidationIssues)
-            .firstOrNull { issue -> issue.nodeId == node.id && issue.message.contains("texture", ignoreCase = true) }
+        val textureIssue =
+            (state.validationIssues + state.textureValidationIssues)
+                .firstOrNull { issue ->
+                    issue.nodeId == node.id && issue.message.contains(
+                        "texture",
+                        ignoreCase = true
+                    )
+                }
         textureIssue?.let { issue ->
             ImGui.textWrapped(formatValidationIssue(issue))
         }
@@ -1470,11 +1480,12 @@ class UiComposerInspectorPanel(
     private fun drawTexturePicker(node: UiSceneNode) {
         val options = state.textureOptions
         val selected = state.textureOptions.firstOrNull { option -> option.path == node.texture }
-        val preview = when {
-            node.texture == null -> "<none>"
-            selected != null -> textureOptionLabel(selected)
-            else -> "${node.texture} (not in Asset Registry)"
-        }
+        val preview =
+            when {
+                node.texture == null -> "<none>"
+                selected != null -> textureOptionLabel(selected)
+                else -> "${node.texture} (not in Asset Registry)"
+            }
         if (!ImGui.beginCombo("Texture Asset##ui_composer_texture_picker_${node.id}", preview)) return
 
         if (ImGui.selectable("<none>##ui_composer_texture_picker_${node.id}_none", node.texture == null)) {
@@ -1485,7 +1496,7 @@ class UiComposerInspectorPanel(
             val optionLabel = textureOptionLabel(option)
             if (ImGui.selectable(
                     "$optionLabel##ui_composer_texture_picker_${node.id}_${option.path}",
-                    option.path == node.texture
+                    option.path == node.texture,
                 )
             ) {
                 writeBuffer(bufferFor(node.id, "texture (manual)", node.texture.orEmpty()), option.path)
@@ -1657,8 +1668,9 @@ class UiComposerSceneBindingsPanel(
     ): String =
         when (type) {
             UiSceneBindingType.Text -> defaultPreviewPayloadValueFor(key).takeIf(String::isNotBlank).orEmpty()
-            UiSceneBindingType.Number -> defaultPreviewPayloadValueFor(key).takeIf { value -> value.toFloatOrNull() != null }
-                ?: "0"
+            UiSceneBindingType.Number ->
+                defaultPreviewPayloadValueFor(key).takeIf { value -> value.toFloatOrNull() != null }
+                    ?: "0"
 
             UiSceneBindingType.Texture -> defaultPreviewPayloadValueFor(key)
             UiSceneBindingType.Action -> defaultPreviewPayloadValueFor(key).takeIf(String::isNotBlank) ?: "action.todo"
@@ -1681,18 +1693,19 @@ class UiComposerSceneBindingsPanel(
         }
 
         val selected = state.textureOptions.firstOrNull { option -> option.path == binding.defaultValue }
-        val preview = when {
-            binding.defaultValue.isBlank() -> "<none>"
-            selected != null -> textureOptionLabel(selected)
-            else -> "${binding.defaultValue} (not in Asset Registry)"
-        }
+        val preview =
+            when {
+                binding.defaultValue.isBlank() -> "<none>"
+                selected != null -> textureOptionLabel(selected)
+                else -> "${binding.defaultValue} (not in Asset Registry)"
+            }
         if (!ImGui.beginCombo("Texture asset##binding_${payloadInputId(binding.key)}", preview)) return
 
         state.textureOptions.forEach { option ->
             val optionLabel = textureOptionLabel(option)
             if (ImGui.selectable(
                     "$optionLabel##binding_${payloadInputId(binding.key)}_${option.path}",
-                    option.path == binding.defaultValue
+                    option.path == binding.defaultValue,
                 )
             ) {
                 writeBuffer(valueBufferFor(binding), option.path)
@@ -1823,9 +1836,9 @@ class UiComposerDiagnosticsPanel(
         ImGui.textUnformatted(
             "Preview camera offset: x=${formatFloat(state.previewCameraOffsetX)}, y=${
                 formatFloat(
-                    state.previewCameraOffsetY
+                    state.previewCameraOffsetY,
                 )
-            }"
+            }",
         )
         ImGui.textUnformatted("Preview zoom: ${formatPercent(state.previewZoom)}")
         ImGui.textUnformatted("Preview panning: ${if (state.canvasPanning) "yes" else "no"}")
@@ -1861,9 +1874,10 @@ class UiComposerDiagnosticsPanel(
         drawGuideDiagnostics()
         ImGui.separator()
 
-        val issues = state.validationIssues +
-            state.styleValidationIssues +
-            state.textureValidationIssues
+        val issues =
+            state.validationIssues +
+                state.styleValidationIssues +
+                state.textureValidationIssues
         ImGui.textUnformatted("Validation issues: ${issues.size}")
         if (issues.isEmpty() && parseError == null) {
             ImGui.textUnformatted("No validation issues.")
@@ -1906,13 +1920,15 @@ private const val UiComposerInspectorTag = "UiComposerInspectorPanel"
 private fun formatFloat(value: Float): String =
     if (value % 1f == 0f) value.toInt().toString() else "%.3f".format(value).trimEnd('0').trimEnd('.')
 
-private fun formatPercent(value: Float): String =
-    "${(clampPreviewZoom(value) * 100f).toInt()}%"
+private fun formatPercent(value: Float): String = "${(clampPreviewZoom(value) * 100f).toInt()}%"
 
 private fun formatRect(rect: UiComposerCanvasRect): String =
     "x=${formatFloat(rect.x)}, y=${formatFloat(rect.y)}, w=${formatFloat(rect.width)}, h=${formatFloat(rect.height)}"
 
-private fun formatNullablePoint(x: Float?, y: Float?): String =
+private fun formatNullablePoint(
+    x: Float?,
+    y: Float?,
+): String =
     if (x == null || y == null) {
         "<none>"
     } else {
@@ -1960,8 +1976,7 @@ private fun writeBuffer(
     bytes.copyInto(buffer, endIndex = bytes.size.coerceAtMost(buffer.size - 1))
 }
 
-private fun textureOptionLabel(option: UiComposerTextureOption): String =
-    "${option.displayName} - ${option.path}"
+private fun textureOptionLabel(option: UiComposerTextureOption): String = "${option.displayName} - ${option.path}"
 
 private fun payloadInputId(key: String): String =
     key.filter { char -> char.isLetterOrDigit() || char == '_' || char == '-' }.ifBlank { "key" }

@@ -7,10 +7,12 @@ import com.pashkd.krender.engine.assets.assetBrowserTextLine
 import imgui.ImGui
 
 class ModelAssetDetailsRenderer : AssetDetailsRenderer {
-    override fun supports(asset: AssetDescriptor): Boolean =
-        asset.category == AssetCategory.Model
+    override fun supports(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Model
 
-    override fun render(asset: AssetDescriptor, context: AssetDetailsRenderContext) {
+    override fun render(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    ) {
         ImGui.text("Model runtime metadata")
         assetBrowserTextLine("Status: ${context.state.selectedModelStatus}")
         drawModelInfo(context.state.selectedModelInfo)

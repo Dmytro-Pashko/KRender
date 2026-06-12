@@ -45,9 +45,10 @@ class LogsPanel(
         ImGui.separator()
 
         ImGui.beginChild("${panelId}_entries", Vec2(0f, 0f), true)
-        val entries = logs.recentEntries.filter { entry ->
-            entry.level.ordinal >= logs.minLevel.ordinal
-        }
+        val entries =
+            logs.recentEntries.filter { entry ->
+                entry.level.ordinal >= logs.minLevel.ordinal
+            }
         if (entries.isEmpty()) {
             ImGui.text("No logs recorded.")
         } else {

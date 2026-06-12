@@ -15,21 +15,24 @@ object RuntimeUiBindingContract {
         document: UiSceneDocument,
         payload: Map<String, String>,
     ) {
-        val missing = collectBindingReferences(document)
-            .filter { reference -> reference.key !in payload }
-            .groupBy { reference -> reference.key }
+        val missing =
+            collectBindingReferences(document)
+                .filter { reference -> reference.key !in payload }
+                .groupBy { reference -> reference.key }
 
         if (missing.isEmpty()) return
 
-        val details = missing.entries
-            .sortedBy { (key, _) -> key }
-            .joinToString(separator = "; ") { (key, references) ->
-                val locations = references
-                    .joinToString(separator = ", ") { reference ->
-                        "${reference.nodeId}.${reference.fieldName}"
-                    }
-                "$key used by $locations"
-            }
+        val details =
+            missing.entries
+                .sortedBy { (key, _) -> key }
+                .joinToString(separator = "; ") { (key, references) ->
+                    val locations =
+                        references
+                            .joinToString(separator = ", ") { reference ->
+                                "${reference.nodeId}.${reference.fieldName}"
+                            }
+                    "$key used by $locations"
+                }
 
         throw RuntimeUiBindingException(
             "Runtime UI payload is missing required binding values for scene '${document.id}': $details",

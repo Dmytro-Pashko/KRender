@@ -21,7 +21,11 @@ class RuntimeScene(
 
         val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(descriptor, skybox)
         engine.logger.info(TAG) {
-            "RuntimeScene scheduleAssets scene='$scenePath' dependencies=${dependencyGraph.dependencies.joinToString { dependency -> "${dependency.kind}:${dependency.path}:${dependency.requirement}" }}"
+            "RuntimeScene scheduleAssets scene='$scenePath' dependencies=${
+                dependencyGraph.dependencies.joinToString { dependency ->
+                    "${dependency.kind}:${dependency.path}:${dependency.requirement}"
+                }
+            }"
         }
         dependencyGraph.schedulableAssets.forEach(assets::queue)
     }
@@ -37,14 +41,16 @@ class RuntimeScene(
                 "skybox='${descriptor.settings.environment.skyboxAssetPath ?: "<none>"}'"
         }
 
-        val result = RuntimeSceneBuilder(engine).build(
-            world = world,
-            request = RuntimeSceneBuildRequest(
-                scenePath = scenePath,
-                descriptor = descriptor,
-                skybox = skybox,
-            ),
-        )
+        val result =
+            RuntimeSceneBuilder(engine).build(
+                world = world,
+                request =
+                    RuntimeSceneBuildRequest(
+                        scenePath = scenePath,
+                        descriptor = descriptor,
+                        skybox = skybox,
+                    ),
+            )
         engine.logger.info(TAG) {
             "RuntimeScene built scene='$scenePath' activeCameraEntityId=${result.activeCameraEntityId} terrainPrepared=${result.terrainPrepared} " +
                 "skyboxEnabled=${result.skyboxEnabled} validationErrors=${result.validationReport.errors.size} validationWarnings=${result.validationReport.warnings.size}"

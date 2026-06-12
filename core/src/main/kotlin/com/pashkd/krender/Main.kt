@@ -24,32 +24,40 @@ class Main(
         when (requestedScene.lowercase()) {
             "asset-browser" -> AssetBrowserScene()
 
-            "scene-editor" -> SceneEditorScene(
-                scenePath = scenePath,
-                initialSceneName = configuredSceneNameOverride(),
-            )
+            "scene-editor" ->
+                SceneEditorScene(
+                    scenePath = scenePath,
+                    initialSceneName = configuredSceneNameOverride(),
+                )
 
-            "runtime-scene" -> RuntimeScene(
-                scenePath = scenePath ?: throw missingProperty("krender.scene.path", "runtime-scene"),
-            )
+            "runtime-scene" ->
+                RuntimeScene(
+                    scenePath = scenePath ?: throw missingProperty("krender.scene.path", "runtime-scene"),
+                )
 
-            "model-viewer" -> ModelViewerScene(
-                model = selectedModel ?: throw missingProperty("krender.model.path", "model-viewer"),
-            )
+            "model-viewer" ->
+                ModelViewerScene(
+                    model = selectedModel ?: throw missingProperty("krender.model.path", "model-viewer"),
+                )
 
-            "animation-viewer" -> AnimationViewerScene(
-                model = selectedModel ?: throw missingProperty("krender.model.path", "animation-viewer"),
-            )
+            "animation-viewer" ->
+                AnimationViewerScene(
+                    model = selectedModel ?: throw missingProperty("krender.model.path", "animation-viewer"),
+                )
 
-            "terrain-editor", "terrain-generator" -> TerrainEditorScene(
-                terrainFilePath = configuredTerrainFilePath()
-                    ?: throw missingProperty("krender.terrain.path", requestedScene),
-            )
+            "terrain-editor", "terrain-generator" ->
+                TerrainEditorScene(
+                    terrainFilePath =
+                        configuredTerrainFilePath()
+                            ?: throw missingProperty("krender.terrain.path", requestedScene),
+                )
 
-            "ui-composer" -> UiComposerScene(
-                uiScenePath = configuredUiScenePath()
-                    ?: throw missingProperty("krender.ui.scene.path", requestedScene),
-            )
+            "ui-composer" ->
+                UiComposerScene(
+                    uiScenePath =
+                        configuredUiScenePath()
+                            ?: throw missingProperty("krender.ui.scene.path", requestedScene),
+                )
 
             "woolboy_sandbox_scene" -> WoolboySandboxScene()
 
@@ -87,7 +95,10 @@ class Main(
         fun configuredSceneNameOverride(): String? =
             System.getProperty("krender.scene.name")?.takeIf(String::isNotBlank)
 
-        private fun missingProperty(propertyName: String, sceneName: String): IllegalArgumentException =
+        private fun missingProperty(
+            propertyName: String,
+            sceneName: String,
+        ): IllegalArgumentException =
             IllegalArgumentException("Missing required system property '$propertyName' for krender.scene='$sceneName'.")
     }
 }

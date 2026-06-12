@@ -47,11 +47,12 @@ class RuntimeViewportTest {
 
     @Test
     fun `fit keeps full design visible in 4 by 3 with vertical letterbox offsets`() {
-        val viewport = calculateRuntimeViewport(
-            pixelWidth = 1024,
-            pixelHeight = 768,
-            config = RuntimeViewportConfig(scalePolicy = UiScalePolicy.Fit),
-        )
+        val viewport =
+            calculateRuntimeViewport(
+                pixelWidth = 1024,
+                pixelHeight = 768,
+                config = RuntimeViewportConfig(scalePolicy = UiScalePolicy.Fit),
+            )
 
         assertApproximately(1024f / 1920f, viewport.scale)
         assertApproximately(1920f, viewport.logicalWidth)
@@ -62,11 +63,12 @@ class RuntimeViewportTest {
 
     @Test
     fun `fill covers ultrawide window and crops vertically`() {
-        val viewport = calculateRuntimeViewport(
-            pixelWidth = 2560,
-            pixelHeight = 1080,
-            config = RuntimeViewportConfig(scalePolicy = UiScalePolicy.Fill),
-        )
+        val viewport =
+            calculateRuntimeViewport(
+                pixelWidth = 2560,
+                pixelHeight = 1080,
+                config = RuntimeViewportConfig(scalePolicy = UiScalePolicy.Fill),
+            )
 
         assertApproximately(2560f / 1920f, viewport.scale)
         assertApproximately(0f, viewport.offsetX)
@@ -75,11 +77,12 @@ class RuntimeViewportTest {
 
     @Test
     fun `pixel perfect uses physical pixels as logical size`() {
-        val viewport = calculateRuntimeViewport(
-            pixelWidth = 1280,
-            pixelHeight = 720,
-            config = RuntimeViewportConfig(scalePolicy = UiScalePolicy.PixelPerfect),
-        )
+        val viewport =
+            calculateRuntimeViewport(
+                pixelWidth = 1280,
+                pixelHeight = 720,
+                config = RuntimeViewportConfig(scalePolicy = UiScalePolicy.PixelPerfect),
+            )
 
         assertApproximately(1f, viewport.scale)
         assertApproximately(1280f, viewport.logicalWidth)
@@ -88,11 +91,12 @@ class RuntimeViewportTest {
 
     @Test
     fun `coordinate conversion roundtrips through screen space`() {
-        val viewport = calculateRuntimeViewport(
-            pixelWidth = 1024,
-            pixelHeight = 768,
-            config = RuntimeViewportConfig(scalePolicy = UiScalePolicy.Fit),
-        )
+        val viewport =
+            calculateRuntimeViewport(
+                pixelWidth = 1024,
+                pixelHeight = 768,
+                config = RuntimeViewportConfig(scalePolicy = UiScalePolicy.Fit),
+            )
         val logical = Vec2(320f, 180f)
 
         val screen = viewport.logicalToScreen(logical)

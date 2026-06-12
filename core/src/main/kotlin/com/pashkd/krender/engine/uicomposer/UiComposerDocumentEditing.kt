@@ -33,11 +33,12 @@ fun UiSceneNode.updateDescendant(
 ): UiSceneNode {
     if (id == nodeId) return transform(this)
     var changed = false
-    val updatedChildren = children.map { child ->
-        val updated = child.updateDescendant(nodeId, transform)
-        if (updated !== child) changed = true
-        updated
-    }
+    val updatedChildren =
+        children.map { child ->
+            val updated = child.updateDescendant(nodeId, transform)
+            if (updated !== child) changed = true
+            updated
+        }
     return if (changed) copy(children = updatedChildren) else this
 }
 
@@ -48,8 +49,7 @@ fun UiSceneNode.updateDescendant(
  * the tree, add/delete/reorder nodes, edit child structure, edit Skins, or touch
  * runtime UI state.
  */
-fun UiSceneDocument.containsNodeId(id: String): Boolean =
-    findUiSceneNodeById(root, id) != null
+fun UiSceneDocument.containsNodeId(id: String): Boolean = findUiSceneNodeById(root, id) != null
 
 /**
  * Adds [child] under the node identified by [parentId].
@@ -162,8 +162,7 @@ fun UiSceneDocument.wrapNode(
  * mutable tree handle, perform canvas selection, resolve layout, save documents,
  * edit Skins, pick assets, create asset ids, or serialize actors.
  */
-fun UiSceneDocument.parentOf(nodeId: String): UiSceneNode? =
-    root.findParentOf(nodeId)
+fun UiSceneDocument.parentOf(nodeId: String): UiSceneNode? = root.findParentOf(nodeId)
 
 /**
  * Creates an unused node id from [base] for editor-created `.krui` nodes.
@@ -174,18 +173,19 @@ fun UiSceneDocument.parentOf(nodeId: String): UiSceneNode? =
  * assets, edit Skin names, save automatically, solve layout, or serialize actors.
  */
 fun UiSceneDocument.uniqueNodeId(base: String): String {
-    val sanitized = base.trim()
-        .replace(Regex("\\s+"), "_")
-        .map { char ->
-            when {
-                char.isLetterOrDigit() || char == '_' || char == '-' -> char
-                else -> '_'
-            }
-        }
-        .joinToString("")
-        .replace(Regex("_+"), "_")
-        .trim('_')
-        .ifBlank { "node" }
+    val sanitized =
+        base
+            .trim()
+            .replace(Regex("\\s+"), "_")
+            .map { char ->
+                when {
+                    char.isLetterOrDigit() || char == '_' || char == '-' -> char
+                    else -> '_'
+                }
+            }.joinToString("")
+            .replace(Regex("_+"), "_")
+            .trim('_')
+            .ifBlank { "node" }
     if (!containsNodeId(sanitized)) return sanitized
 
     var suffix = 1
@@ -211,12 +211,13 @@ fun createDefaultUiSceneNode(
 ): UiSceneNode =
     when (type) {
         UiSceneNodeType.Stack -> UiSceneNode(id = id, type = type)
-        UiSceneNodeType.Table -> UiSceneNode(
-            id = id,
-            type = type,
-            spacing = 8f,
-            tableOrientation = UiSceneTableOrientation.Vertical,
-        )
+        UiSceneNodeType.Table ->
+            UiSceneNode(
+                id = id,
+                type = type,
+                spacing = 8f,
+                tableOrientation = UiSceneTableOrientation.Vertical,
+            )
 
         UiSceneNodeType.Container -> UiSceneNode(id = id, type = type, align = UiSceneAlign.Center)
         UiSceneNodeType.Label -> UiSceneNode(id = id, type = type, text = "Label")
@@ -232,24 +233,26 @@ private fun UiSceneNode.addChildToDescendant(
 ): UiSceneNode {
     if (id == parentId) return copy(children = children + child)
     var changed = false
-    val updatedChildren = children.map { existing ->
-        // Recurse through children so structure edits work for any hierarchy depth.
-        val updated = existing.addChildToDescendant(parentId, child)
-        if (updated !== existing) changed = true
-        updated
-    }
+    val updatedChildren =
+        children.map { existing ->
+            // Recurse through children so structure edits work for any hierarchy depth.
+            val updated = existing.addChildToDescendant(parentId, child)
+            if (updated !== existing) changed = true
+            updated
+        }
     return if (changed) copy(children = updatedChildren) else this
 }
 
 private fun UiSceneNode.deleteDescendant(nodeId: String): UiSceneNode {
     if (children.none { it.id == nodeId }) {
         var changed = false
-        val updatedChildren = children.map { child ->
-            // Keep walking until a direct parent can remove the target child.
-            val updated = child.deleteDescendant(nodeId)
-            if (updated !== child) changed = true
-            updated
-        }
+        val updatedChildren =
+            children.map { child ->
+                // Keep walking until a direct parent can remove the target child.
+                val updated = child.deleteDescendant(nodeId)
+                if (updated !== child) changed = true
+                updated
+            }
         return if (changed) copy(children = updatedChildren) else this
     }
     return copy(children = children.filterNot { it.id == nodeId })
@@ -267,12 +270,13 @@ private fun UiSceneNode.insertSiblingAfter(
     }
 
     var changed = false
-    val updatedChildren = children.map { child ->
-        // Descend until the target's direct parent is found.
-        val updated = child.insertSiblingAfter(nodeId, sibling)
-        if (updated !== child) changed = true
-        updated
-    }
+    val updatedChildren =
+        children.map { child ->
+            // Descend until the target's direct parent is found.
+            val updated = child.insertSiblingAfter(nodeId, sibling)
+            if (updated !== child) changed = true
+            updated
+        }
     return if (changed) copy(children = updatedChildren) else this
 }
 
@@ -291,12 +295,13 @@ private fun UiSceneNode.moveDescendant(
     }
 
     var changed = false
-    val updatedChildren = children.map { child ->
-        // Moving is local to one sibling list, but the target may be deeply nested.
-        val updated = child.moveDescendant(nodeId, direction)
-        if (updated !== child) changed = true
-        updated
-    }
+    val updatedChildren =
+        children.map { child ->
+            // Moving is local to one sibling list, but the target may be deeply nested.
+            val updated = child.moveDescendant(nodeId, direction)
+            if (updated !== child) changed = true
+            updated
+        }
     return if (changed) copy(children = updatedChildren) else this
 }
 
@@ -313,12 +318,13 @@ private fun UiSceneNode.wrapDescendant(
     }
 
     var changed = false
-    val updatedChildren = children.map { child ->
-        // Wrapping preserves the selected subtree exactly inside the new wrapper.
-        val updated = child.wrapDescendant(nodeId, wrapper)
-        if (updated !== child) changed = true
-        updated
-    }
+    val updatedChildren =
+        children.map { child ->
+            // Wrapping preserves the selected subtree exactly inside the new wrapper.
+            val updated = child.wrapDescendant(nodeId, wrapper)
+            if (updated !== child) changed = true
+            updated
+        }
     return if (changed) copy(children = updatedChildren) else this
 }
 
@@ -352,11 +358,12 @@ private fun UiSceneNode.copyWithUniqueIds(
 ): UiSceneNode {
     val assignedRootId = newRootId.ifBlank { "node" }
     usedIds += assignedRootId
-    val copiedChildren = children.map { child ->
-        // Descendant ids are uniqued to avoid validation errors after subtree duplication.
-        val childId = uniqueIdFromUsed(child.id, usedIds)
-        child.copyWithUniqueIds(childId, usedIds)
-    }
+    val copiedChildren =
+        children.map { child ->
+            // Descendant ids are uniqued to avoid validation errors after subtree duplication.
+            val childId = uniqueIdFromUsed(child.id, usedIds)
+            child.copyWithUniqueIds(childId, usedIds)
+        }
     return copy(id = assignedRootId, children = copiedChildren)
 }
 
@@ -364,13 +371,15 @@ private fun uniqueIdFromUsed(
     base: String,
     usedIds: Set<String>,
 ): String {
-    val sanitized = base.trim()
-        .replace(Regex("\\s+"), "_")
-        .map { char -> if (char.isLetterOrDigit() || char == '_' || char == '-') char else '_' }
-        .joinToString("")
-        .replace(Regex("_+"), "_")
-        .trim('_')
-        .ifBlank { "node" }
+    val sanitized =
+        base
+            .trim()
+            .replace(Regex("\\s+"), "_")
+            .map { char -> if (char.isLetterOrDigit() || char == '_' || char == '-') char else '_' }
+            .joinToString("")
+            .replace(Regex("_+"), "_")
+            .trim('_')
+            .ifBlank { "node" }
     if (sanitized !in usedIds) return sanitized
 
     var suffix = 1

@@ -78,8 +78,8 @@ class ComponentContainer {
         return component
     }
 
+    /** Returns the component stored under the given type, if any. */
     @Suppress("UNCHECKED_CAST")
-        /** Returns the component stored under the given type, if any. */
     fun <T : Component> get(type: KClass<T>): T? = components[type] as? T
 
     /** Returns the component stored under the reified type, if any. */
@@ -134,16 +134,28 @@ abstract class System {
     open fun onAdded(world: SceneWorld) = Unit
 
     /** Invoked during the fixed-step update phase. */
-    open fun fixedUpdate(world: SceneWorld, dt: Float) = Unit
+    open fun fixedUpdate(
+        world: SceneWorld,
+        dt: Float,
+    ) = Unit
 
     /** Invoked during the main variable-step update phase. */
-    open fun update(world: SceneWorld, dt: Float) = Unit
+    open fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) = Unit
 
     /** Invoked during the late-update phase. */
-    open fun lateUpdate(world: SceneWorld, dt: Float) = Unit
+    open fun lateUpdate(
+        world: SceneWorld,
+        dt: Float,
+    ) = Unit
 
     /** Invoked when collecting render commands. */
-    open fun render(world: SceneWorld, alpha: Float) = Unit
+    open fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) = Unit
 
     /** Invoked when collecting debug render commands. */
     open fun debugRender(world: SceneWorld) = Unit
@@ -170,16 +182,28 @@ class SystemPipeline {
     }
 
     /** Runs fixed updates for every registered system. */
-    fun fixedUpdate(world: SceneWorld, dt: Float) = systems.forEach { it.fixedUpdate(world, dt) }
+    fun fixedUpdate(
+        world: SceneWorld,
+        dt: Float,
+    ) = systems.forEach { it.fixedUpdate(world, dt) }
 
     /** Runs variable updates for every registered system. */
-    fun update(world: SceneWorld, dt: Float) = systems.forEach { it.update(world, dt) }
+    fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) = systems.forEach { it.update(world, dt) }
 
     /** Runs late updates for every registered system. */
-    fun lateUpdate(world: SceneWorld, dt: Float) = systems.forEach { it.lateUpdate(world, dt) }
+    fun lateUpdate(
+        world: SceneWorld,
+        dt: Float,
+    ) = systems.forEach { it.lateUpdate(world, dt) }
 
     /** Runs render collection for every registered system. */
-    fun render(world: SceneWorld, alpha: Float) = systems.forEach { it.render(world, alpha) }
+    fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) = systems.forEach { it.render(world, alpha) }
 
     /** Runs debug render collection for every registered system. */
     fun debugRender(world: SceneWorld) = systems.forEach { it.debugRender(world) }
@@ -192,16 +216,26 @@ class SystemPipeline {
  */
 sealed interface WorldCommand {
     /** Adds an entity to the world. */
-    data class AddEntity(val entity: Entity) : WorldCommand
+    data class AddEntity(
+        val entity: Entity,
+    ) : WorldCommand
 
     /** Removes an entity from the world by id. */
-    data class RemoveEntity(val entityId: EntityId) : WorldCommand
+    data class RemoveEntity(
+        val entityId: EntityId,
+    ) : WorldCommand
 
     /** Adds or replaces a component on an entity. */
-    data class AddComponent<T : Component>(val entityId: EntityId, val component: T) : WorldCommand
+    data class AddComponent<T : Component>(
+        val entityId: EntityId,
+        val component: T,
+    ) : WorldCommand
 
     /** Removes a component from an entity by type. */
-    data class RemoveComponent(val entityId: EntityId, val type: KClass<out Component>) : WorldCommand
+    data class RemoveComponent(
+        val entityId: EntityId,
+        val type: KClass<out Component>,
+    ) : WorldCommand
 }
 
 /**
@@ -221,21 +255,28 @@ class CommandBuffer internal constructor() {
     }
 
     /** Queues a component insertion or replacement command. */
-    fun <T : Component> addComponent(entityId: EntityId, component: T) {
+    fun <T : Component> addComponent(
+        entityId: EntityId,
+        component: T,
+    ) {
         commands += WorldCommand.AddComponent(entityId, component)
     }
 
     /** Queues a component removal command. */
-    fun removeComponent(entityId: EntityId, type: KClass<out Component>) {
+    fun removeComponent(
+        entityId: EntityId,
+        type: KClass<out Component>,
+    ) {
         commands += WorldCommand.RemoveComponent(entityId, type)
     }
 
     /** Drains all queued commands into a list snapshot. */
-    fun drain(): List<WorldCommand> = buildList {
-        while (commands.isNotEmpty()) {
-            add(commands.removeFirst())
+    fun drain(): List<WorldCommand> =
+        buildList {
+            while (commands.isNotEmpty()) {
+                add(commands.removeFirst())
+            }
         }
-    }
 
     /** Returns the current command count. */
     fun size(): Int = commands.size
@@ -272,7 +313,10 @@ class SceneWorld {
     }
 
     /** Creates a named entity using a caller-controlled id, advancing future generated ids beyond it. */
-    fun createEntityWithId(id: EntityId, name: String): Entity {
+    fun createEntityWithId(
+        id: EntityId,
+        name: String,
+    ): Entity {
         val entity = Entity(id)
         entity.add(NameComponent(name))
         entity.add(TransformComponent())
@@ -322,18 +366,21 @@ class SceneWorld {
 
     @JvmName("query1")
     /** Returns active entities containing component [A]. */
-    inline fun <reified A : Component> query(): List<Entity> =
-        all().filter { it.active && it.get<A>() != null }
+    inline fun <reified A : Component> query(): List<Entity> = all().filter { it.active && it.get<A>() != null }
 
     @JvmName("query2")
     /** Returns active entities containing components [A] and [B]. */
     inline fun <reified A : Component, reified B : Component> query(): List<Entity> =
-        all().filter { it.active && it.get<A>() != null && it.get<B>() != null }
+        all().filter {
+            it.active && it.get<A>() != null && it.get<B>() != null
+        }
 
     @JvmName("query3")
     /** Returns active entities containing components [A], [B], and [C]. */
     inline fun <reified A : Component, reified B : Component, reified C : Component> query(): List<Entity> =
-        all().filter { it.active && it.get<A>() != null && it.get<B>() != null && it.get<C>() != null }
+        all().filter {
+            it.active && it.get<A>() != null && it.get<B>() != null && it.get<C>() != null
+        }
 
     /** Runs the fixed-step system phase. */
     fun fixedUpdate(dt: Float) {

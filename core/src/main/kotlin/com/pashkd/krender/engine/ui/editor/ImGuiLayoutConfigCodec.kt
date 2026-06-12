@@ -18,8 +18,7 @@ object ImGuiLayoutConfigCodec {
         fallback: ImGuiLayoutConfig,
         logger: Logger,
         source: String = "<layout>",
-    ): ImGuiLayoutConfig =
-        decodeResult(text, fallback, logger, source).config
+    ): ImGuiLayoutConfig = decodeResult(text, fallback, logger, source).config
 
     /**
      * Decodes [text] and reports whether the whole fallback config had to be used.
@@ -83,7 +82,11 @@ object ImGuiLayoutConfigCodec {
     /**
      * Writes [config] to [path], creating parent directories through the project file service.
      */
-    fun save(path: String, config: ImGuiLayoutConfig, files: SceneFileService) {
+    fun save(
+        path: String,
+        config: ImGuiLayoutConfig,
+        files: SceneFileService,
+    ) {
         files.ensureDirectories(path)
         files.writeText(path, encode(config))
     }
@@ -94,17 +97,18 @@ object ImGuiLayoutConfigCodec {
         logger: Logger,
         source: String,
     ): Map<String, ImGuiPanelLayout> {
-        val parsedPanels = fallback.panels.mapValuesTo(linkedMapOf()) { (panelId, fallbackPanel) ->
-            val panelNode = panelsNode.get(panelId)
-            if (panelNode == null || !panelNode.isObject) {
-                logger.warn(TAG) {
-                    "Layout asset '$source' is missing panel '$panelId'. Using fallback layout for that panel."
+        val parsedPanels =
+            fallback.panels.mapValuesTo(linkedMapOf()) { (panelId, fallbackPanel) ->
+                val panelNode = panelsNode.get(panelId)
+                if (panelNode == null || !panelNode.isObject) {
+                    logger.warn(TAG) {
+                        "Layout asset '$source' is missing panel '$panelId'. Using fallback layout for that panel."
+                    }
+                    fallbackPanel
+                } else {
+                    parsePanel(panelId, panelNode, fallbackPanel, logger, source)
                 }
-                fallbackPanel
-            } else {
-                parsePanel(panelId, panelNode, fallbackPanel, logger, source)
             }
-        }
 
         var panelNode = panelsNode.child
         while (panelNode != null) {
@@ -159,7 +163,11 @@ object ImGuiLayoutConfigCodec {
         )
     }
 
-    private fun readFiniteFloat(panelNode: JsonValue, name: String, fallbackValue: Float): Float {
+    private fun readFiniteFloat(
+        panelNode: JsonValue,
+        name: String,
+        fallbackValue: Float,
+    ): Float {
         val value = panelNode.getFloat(name, fallbackValue)
         return if (value.isFinite()) value else fallbackValue
     }

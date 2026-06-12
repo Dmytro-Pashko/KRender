@@ -144,7 +144,7 @@ class AnimationViewerViewportPanel(
         AnimationViewerViewMode.entries.forEach { mode ->
             if (ImGui.selectable(
                     "${viewModeLabel(mode)}##animation_viewer_view_mode_${mode.name}",
-                    state.viewMode == mode
+                    state.viewMode == mode,
                 )
             ) {
                 state.viewMode = mode
@@ -257,7 +257,7 @@ class AnimationViewerSkeletonPanel(
         ImGui.checkbox("Show joints##animation_viewer_show_skeleton_joints", state::showSkeletonJoints)
         ImGui.checkbox(
             "Highlight connected bones##animation_viewer_highlight_connected_bones",
-            state::highlightConnectedBones
+            state::highlightConnectedBones,
         )
         slider(
             "Joint size##animation_viewer_skeleton_joint_size",
@@ -303,7 +303,8 @@ class AnimationViewerSkeletonPanel(
         textLine("Parent: ${parent?.let(::boneDebugSummary) ?: "none"}")
         textLine(
             "Children: ${
-                children.takeIf(List<ModelBoneInfo>::isNotEmpty)
+                children
+                    .takeIf(List<ModelBoneInfo>::isNotEmpty)
                     ?.joinToString { child -> boneDebugSummary(child) } ?: "none"
             }",
         )
@@ -485,14 +486,14 @@ internal fun beginAnimationViewerPanel(
     return expanded
 }
 
-private fun viewModeLabel(mode: AnimationViewerViewMode): String = when (mode) {
-    AnimationViewerViewMode.Model -> "Model"
-    AnimationViewerViewMode.Skeleton -> "Skeleton"
-    AnimationViewerViewMode.ModelAndSkeleton -> "Model + Skeleton"
-}
+private fun viewModeLabel(mode: AnimationViewerViewMode): String =
+    when (mode) {
+        AnimationViewerViewMode.Model -> "Model"
+        AnimationViewerViewMode.Skeleton -> "Skeleton"
+        AnimationViewerViewMode.ModelAndSkeleton -> "Model + Skeleton"
+    }
 
-private fun formatPosition(position: Vec3): String =
-    "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
+private fun formatPosition(position: Vec3): String = "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
 private fun formatSeconds(value: Float): String = "%.3f s".format(value)
 
@@ -503,23 +504,26 @@ private fun boneDisplayName(bone: ModelBoneInfo): String =
 
 private fun boneDebugSummary(bone: ModelBoneInfo): String = "${boneDisplayName(bone)} / index ${bone.index}"
 
-private fun animationPreviewStatusLabel(state: AnimationViewerState): String = when (state.animationPreviewStatus) {
-    AnimationPreviewStatus.Unsupported -> "unsupported"
-    AnimationPreviewStatus.MetadataOnly -> "metadata only"
-    AnimationPreviewStatus.PreviewRequested -> "requested"
-    AnimationPreviewStatus.PreviewAvailable -> "available"
-}
+private fun animationPreviewStatusLabel(state: AnimationViewerState): String =
+    when (state.animationPreviewStatus) {
+        AnimationPreviewStatus.Unsupported -> "unsupported"
+        AnimationPreviewStatus.MetadataOnly -> "metadata only"
+        AnimationPreviewStatus.PreviewRequested -> "requested"
+        AnimationPreviewStatus.PreviewAvailable -> "available"
+    }
 
-private fun skeletonPreviewStatusLabel(state: AnimationViewerState): String = when (state.skeletonPreviewStatus) {
-    SkeletonPreviewStatus.Inactive -> "inactive"
-    SkeletonPreviewStatus.Unsupported -> "unsupported"
-    SkeletonPreviewStatus.MetadataOnly -> "metadata only"
-    SkeletonPreviewStatus.PreviewAvailable -> "available"
-}
+private fun skeletonPreviewStatusLabel(state: AnimationViewerState): String =
+    when (state.skeletonPreviewStatus) {
+        SkeletonPreviewStatus.Inactive -> "inactive"
+        SkeletonPreviewStatus.Unsupported -> "unsupported"
+        SkeletonPreviewStatus.MetadataOnly -> "metadata only"
+        SkeletonPreviewStatus.PreviewAvailable -> "available"
+    }
 
 private fun textLine(text: String) {
     ImGui.textUnformatted(text)
 }
 
-private class FloatHolder(var value: Float)
-
+private class FloatHolder(
+    var value: Float,
+)

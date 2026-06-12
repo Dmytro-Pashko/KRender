@@ -9,14 +9,15 @@ import kotlin.test.assertTrue
 class LogsPanelTest {
     @Test
     fun `log panel display line is capped for very large entries`() {
-        val entry = LogEntry(
-            level = LogLevel.Info,
-            tag = "LongLog",
-            message = "x".repeat(25_000),
-            frame = 1L,
-            threadName = "test",
-            timestampMillis = 0L,
-        )
+        val entry =
+            LogEntry(
+                level = LogLevel.Info,
+                tag = "LongLog",
+                message = "x".repeat(25_000),
+                frame = 1L,
+                threadName = "test",
+                timestampMillis = 0L,
+            )
 
         val formatted = formatLogEntryForPanel(entry)
 

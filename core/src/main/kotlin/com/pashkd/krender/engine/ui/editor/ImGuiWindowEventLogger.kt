@@ -16,15 +16,19 @@ class ImGuiWindowEventLogger(
     /**
      * Samples the current ImGui window rect and emits a log when it changes.
      */
-    fun observe(panelId: String, title: String) {
+    fun observe(
+        panelId: String,
+        title: String,
+    ) {
         val position = ImGui.windowPos
         val size = ImGui.windowSize
-        val snapshot = PanelRect(
-            x = position.x,
-            y = position.y,
-            width = size.x,
-            height = size.y,
-        )
+        val snapshot =
+            PanelRect(
+                x = position.x,
+                y = position.y,
+                width = size.x,
+                height = size.y,
+            )
 
         val tracked = panels.getOrPut(panelId) { TrackedPanel(title = title) }
         tracked.title = title
@@ -91,8 +95,7 @@ class ImGuiWindowEventLogger(
         /**
          * Formats the rect for debug logging.
          */
-        fun describe(): String =
-            "position=(${format(x)}, ${format(y)}), size=(${format(width)}, ${format(height)})"
+        fun describe(): String = "position=(${format(x)}, ${format(y)}), size=(${format(width)}, ${format(height)})"
     }
 
     companion object {
@@ -100,8 +103,10 @@ class ImGuiWindowEventLogger(
         private const val STABLE_FRAME_THRESHOLD = 1
         private const val EPSILON = 0.5f
 
-        private fun approximatelyEqual(left: Float, right: Float): Boolean =
-            abs(left - right) <= EPSILON
+        private fun approximatelyEqual(
+            left: Float,
+            right: Float,
+        ): Boolean = abs(left - right) <= EPSILON
 
         private fun format(value: Float): String = "%.1f".format(value)
     }

@@ -47,16 +47,12 @@ enum class TerrainLayerPaintMode {
 data class TerrainBrush(
     /** Brush radius in terrain-local units. */
     var radius: Float = 3f,
-
     /** Base intensity of the brush effect per second. */
     var strength: Float = 4f,
-
     /** Edge softness exponent used by [TerrainBrushApplier.brushEffect]. */
     var falloff: Float = 1f,
-
     /** Currently selected brush operation. */
     var mode: TerrainBrushMode = TerrainBrushMode.Raise,
-
     /** Layer to paint when [mode] is [TerrainBrushMode.PaintLayer]. */
     var targetLayerId: Int? = null,
 )
@@ -71,31 +67,22 @@ data class TerrainBrush(
 data class TerrainBrushStroke(
     /** Brush center X coordinate in terrain-local space. */
     val localX: Float,
-
     /** Brush center Z coordinate in terrain-local space. */
     val localZ: Float,
-
     /** Brush radius in terrain-local units. */
     val radius: Float,
-
     /** Base intensity used by all brush calculations. */
     val strength: Float,
-
     /** Falloff exponent: 1 is linear, larger values sharpen the edge. */
     val falloff: Float,
-
     /** Operation to apply for this stroke. */
     val mode: TerrainBrushMode,
-
     /** Time slice represented by this stroke, used for frame-rate-independent editing. */
     val deltaSeconds: Float,
-
     /** Target level used only by [TerrainBrushMode.Flatten]. */
     val flattenHeight: Float? = null,
-
     /** Target layer used only by [TerrainBrushMode.PaintLayer]. */
     val targetLayerId: Int? = null,
-
     /** +1 to add weight, -1 to erase weight when painting layers. */
     val layerWeightDeltaSign: Float = 1f,
 )
@@ -127,23 +114,28 @@ object TerrainBrushApplier {
 
         // First reduce work to the rectangle that can possibly intersect the circular brush.
         // The later distance test trims this coarse region down to the actual brush shape.
-        val minX = sampleMin(stroke.localX, stroke.radius, data.minLocalX, data.vertexSpacing)
-            .coerceIn(0, data.width - 1)
-        val maxX = sampleMax(stroke.localX, stroke.radius, data.minLocalX, data.vertexSpacing)
-            .coerceIn(0, data.width - 1)
-        val minY = sampleMin(stroke.localZ, stroke.radius, data.minLocalZ, data.vertexSpacing)
-            .coerceIn(0, data.height - 1)
-        val maxY = sampleMax(stroke.localZ, stroke.radius, data.minLocalZ, data.vertexSpacing)
-            .coerceIn(0, data.height - 1)
+        val minX =
+            sampleMin(stroke.localX, stroke.radius, data.minLocalX, data.vertexSpacing)
+                .coerceIn(0, data.width - 1)
+        val maxX =
+            sampleMax(stroke.localX, stroke.radius, data.minLocalX, data.vertexSpacing)
+                .coerceIn(0, data.width - 1)
+        val minY =
+            sampleMin(stroke.localZ, stroke.radius, data.minLocalZ, data.vertexSpacing)
+                .coerceIn(0, data.height - 1)
+        val maxY =
+            sampleMax(stroke.localZ, stroke.radius, data.minLocalZ, data.vertexSpacing)
+                .coerceIn(0, data.height - 1)
 
         // Smoothing must read from a frozen copy of the source heights for the whole stroke.
         // Without this snapshot, earlier writes in the loop would bias later samples and create
         // directional artifacts.
-        val smoothHeights = if (stroke.mode == TerrainBrushMode.Smooth) {
-            captureSmoothHeightSnapshot(data, minX, maxX, minY, maxY)
-        } else {
-            null
-        }
+        val smoothHeights =
+            if (stroke.mode == TerrainBrushMode.Smooth) {
+                captureSmoothHeightSnapshot(data, minX, maxX, minY, maxY)
+            } else {
+                null
+            }
 
         // This flag lets callers skip downstream work such as mesh rebuilds when
         // the stroke ends up producing no actual value changes.
@@ -185,29 +177,30 @@ object TerrainBrushApplier {
                         val oldHeight = data.getHeight(x, y)
                         // Height modes either add/subtract directly or interpolate toward a
                         // target value so that strength behaves like a blend factor per stroke.
-                        val newHeight = when (stroke.mode) {
-                            TerrainBrushMode.Raise -> oldHeight + stroke.strength * effect * stroke.deltaSeconds
-                            TerrainBrushMode.Lower -> oldHeight - stroke.strength * effect * stroke.deltaSeconds
-                            TerrainBrushMode.Flatten -> {
-                                val target = stroke.flattenHeight ?: oldHeight
-                                lerp(
-                                    oldHeight,
-                                    target,
-                                    (stroke.strength * effect * stroke.deltaSeconds).coerceIn(0f, 1f)
-                                )
-                            }
+                        val newHeight =
+                            when (stroke.mode) {
+                                TerrainBrushMode.Raise -> oldHeight + stroke.strength * effect * stroke.deltaSeconds
+                                TerrainBrushMode.Lower -> oldHeight - stroke.strength * effect * stroke.deltaSeconds
+                                TerrainBrushMode.Flatten -> {
+                                    val target = stroke.flattenHeight ?: oldHeight
+                                    lerp(
+                                        oldHeight,
+                                        target,
+                                        (stroke.strength * effect * stroke.deltaSeconds).coerceIn(0f, 1f),
+                                    )
+                                }
 
-                            TerrainBrushMode.Smooth -> {
-                                val average = sampleAverageHeight(data, x, y, smoothHeights)
-                                lerp(
-                                    oldHeight,
-                                    average,
-                                    (stroke.strength * effect * stroke.deltaSeconds).coerceIn(0f, 1f)
-                                )
-                            }
+                                TerrainBrushMode.Smooth -> {
+                                    val average = sampleAverageHeight(data, x, y, smoothHeights)
+                                    lerp(
+                                        oldHeight,
+                                        average,
+                                        (stroke.strength * effect * stroke.deltaSeconds).coerceIn(0f, 1f),
+                                    )
+                                }
 
-                            TerrainBrushMode.PaintLayer -> oldHeight
-                        }
+                                TerrainBrushMode.PaintLayer -> oldHeight
+                            }
 
                         if (oldHeight != newHeight) {
                             data.setHeight(x, y, newHeight)
@@ -293,18 +286,18 @@ object TerrainBrushApplier {
     private data class SmoothHeightSnapshot(
         /** Inclusive minimum X index covered by [values]. */
         val minX: Int,
-
         /** Inclusive minimum Y index covered by [values]. */
         val minY: Int,
-
         /** Number of columns in the snapshot grid. */
         val width: Int,
-
         /** Height values laid out in row-major order. */
         val values: FloatArray,
     ) {
         /** Reads a height from the snapshot using terrain sample coordinates. */
-        fun get(x: Int, y: Int): Float = values[(y - minY) * width + (x - minX)]
+        fun get(
+            x: Int,
+            y: Int,
+        ): Float = values[(y - minY) * width + (x - minX)]
     }
 
     /**
@@ -313,7 +306,11 @@ object TerrainBrushApplier {
      * Returned values are in the `[0, 1]` range, where 1 means full influence at
      * the brush center and 0 means no effect at or beyond the radius.
      */
-    private fun brushEffect(distance: Float, radius: Float, falloff: Float): Float {
+    private fun brushEffect(
+        distance: Float,
+        radius: Float,
+        falloff: Float,
+    ): Float {
         if (radius <= 0f) return 0f
         // Map the sample to a linear 0..1 influence, then raise it to a power. A larger falloff
         // keeps the center strong while making the edge drop off more sharply.
@@ -324,14 +321,22 @@ object TerrainBrushApplier {
     /**
      * Converts the minimum brush extent from local space into a terrain sample index.
      */
-    private fun sampleMin(position: Float, radius: Float, min: Float, spacing: Float): Int =
-        floor(((position - radius) - min) / spacing).toInt()
+    private fun sampleMin(
+        position: Float,
+        radius: Float,
+        min: Float,
+        spacing: Float,
+    ): Int = floor(((position - radius) - min) / spacing).toInt()
 
     /**
      * Converts the maximum brush extent from local space into a terrain sample index.
      */
-    private fun sampleMax(position: Float, radius: Float, min: Float, spacing: Float): Int =
-        floor(((position + radius) - min) / spacing).toInt()
+    private fun sampleMax(
+        position: Float,
+        radius: Float,
+        min: Float,
+        spacing: Float,
+    ): Int = floor(((position + radius) - min) / spacing).toInt()
 
     /**
      * Returns the Euclidean distance between two points in the terrain plane.
@@ -339,7 +344,12 @@ object TerrainBrushApplier {
      * The brush works in X/Z space, so the helper names the second coordinate
      * generically as `y` even though callers pass terrain Z values.
      */
-    private fun distance(x0: Float, y0: Float, x1: Float, y1: Float): Float {
+    private fun distance(
+        x0: Float,
+        y0: Float,
+        x1: Float,
+        y1: Float,
+    ): Float {
         val dx = x0 - x1
         val dy = y0 - y1
         return sqrt(dx * dx + dy * dy)
@@ -348,5 +358,9 @@ object TerrainBrushApplier {
     /**
      * Linear interpolation between [a] and [b] by factor [t].
      */
-    private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t
+    private fun lerp(
+        a: Float,
+        b: Float,
+        t: Float,
+    ): Float = a + (b - a) * t
 }

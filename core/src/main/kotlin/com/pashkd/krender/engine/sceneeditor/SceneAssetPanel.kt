@@ -62,32 +62,30 @@ class SceneAssetBrowserModel(
         errorMessage = null
         state.statusMessage = "Scanning assets ($reason)..."
         tasks.launchBackground("scene-asset-panel-scan") {
-            val snapshot = try {
-                registry.scanSnapshot()
-            } catch (error: Exception) {
-                logger.error(TAG, error) { "Scene asset scan failed: ${error.message}" }
-                tasks.postToMain {
-                    scanInFlight = false
-                    isScanning = false
-                    errorMessage = "Asset scan failed: ${error.message}"
-                    state.statusMessage = errorMessage.orEmpty()
+            val snapshot =
+                try {
+                    registry.scanSnapshot()
+                } catch (error: Exception) {
+                    logger.error(TAG, error) { "Scene asset scan failed: ${error.message}" }
+                    tasks.postToMain {
+                        scanInFlight = false
+                        isScanning = false
+                        errorMessage = "Asset scan failed: ${error.message}"
+                        state.statusMessage = errorMessage.orEmpty()
+                    }
+                    return@launchBackground
                 }
-                return@launchBackground
-            }
             tasks.postToMain {
                 applyScanResult(snapshot)
             }
         }
     }
 
-    fun modelAssets(): List<AssetDescriptor> =
-        assets.filter { asset -> asset.category == AssetCategory.Model }
+    fun modelAssets(): List<AssetDescriptor> = assets.filter { asset -> asset.category == AssetCategory.Model }
 
-    fun terrainAssets(): List<AssetDescriptor> =
-        assets.filter { asset -> asset.category == AssetCategory.Terrain }
+    fun terrainAssets(): List<AssetDescriptor> = assets.filter { asset -> asset.category == AssetCategory.Terrain }
 
-    fun skyboxAssets(): List<AssetDescriptor> =
-        assets.filter { asset -> asset.category == AssetCategory.Skybox }
+    fun skyboxAssets(): List<AssetDescriptor> = assets.filter { asset -> asset.category == AssetCategory.Skybox }
 
     fun filteredModelAssets(): List<AssetDescriptor> {
         val query = state.searchQuery.trim().lowercase()
@@ -97,8 +95,7 @@ class SceneAssetBrowserModel(
                 query.isBlank() ||
                     asset.name.lowercase().contains(query) ||
                     asset.path.lowercase().contains(query)
-            }
-            .sortedWith(compareBy<AssetDescriptor> { it.name.lowercase() }.thenBy { it.path.lowercase() })
+            }.sortedWith(compareBy<AssetDescriptor> { it.name.lowercase() }.thenBy { it.path.lowercase() })
             .toList()
     }
 
@@ -110,8 +107,7 @@ class SceneAssetBrowserModel(
                 query.isBlank() ||
                     asset.name.lowercase().contains(query) ||
                     asset.path.lowercase().contains(query)
-            }
-            .sortedWith(compareBy<AssetDescriptor> { it.name.lowercase() }.thenBy { it.path.lowercase() })
+            }.sortedWith(compareBy<AssetDescriptor> { it.name.lowercase() }.thenBy { it.path.lowercase() })
             .toList()
     }
 
@@ -123,8 +119,7 @@ class SceneAssetBrowserModel(
                 query.isBlank() ||
                     asset.name.lowercase().contains(query) ||
                     asset.path.lowercase().contains(query)
-            }
-            .sortedWith(compareBy<AssetDescriptor> { it.name.lowercase() }.thenBy { it.path.lowercase() })
+            }.sortedWith(compareBy<AssetDescriptor> { it.name.lowercase() }.thenBy { it.path.lowercase() })
             .toList()
     }
 
@@ -149,7 +144,10 @@ class SceneAssetBrowserModel(
 class SceneAssetBrowserSystem(
     private val model: SceneAssetBrowserModel,
 ) : System() {
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         model.update()
     }
 }
@@ -493,27 +491,34 @@ class SceneAssetPanel(
             else -> null
         }
 
-    private fun selectedModelName(): String =
-        selectedAssetName(AssetCategory.Model, selectedModelPath())
+    private fun selectedModelName(): String = selectedAssetName(AssetCategory.Model, selectedModelPath())
 
-    private fun selectedTerrainName(): String =
-        selectedAssetName(AssetCategory.Terrain, selectedTerrainPath())
+    private fun selectedTerrainName(): String = selectedAssetName(AssetCategory.Terrain, selectedTerrainPath())
 
-    private fun selectedSkyboxName(): String =
-        selectedAssetName(AssetCategory.Skybox, selectedSkyboxPath())
+    private fun selectedSkyboxName(): String = selectedAssetName(AssetCategory.Skybox, selectedSkyboxPath())
 
-    private fun selectedAssetName(category: AssetCategory, path: String?): String {
+    private fun selectedAssetName(
+        category: AssetCategory,
+        path: String?,
+    ): String {
         val assetPath = path ?: return "<none>"
-        val asset = when (category) {
-            AssetCategory.Model -> assetBrowser.modelAssets().firstOrNull { descriptor -> descriptor.path == assetPath }
-            AssetCategory.Terrain -> assetBrowser.terrainAssets()
-                .firstOrNull { descriptor -> descriptor.path == assetPath }
+        val asset =
+            when (category) {
+                AssetCategory.Model -> assetBrowser.modelAssets()
+                    .firstOrNull { descriptor -> descriptor.path == assetPath }
 
-            AssetCategory.Skybox -> assetBrowser.skyboxAssets()
-                .firstOrNull { descriptor -> descriptor.path == assetPath }
+                AssetCategory.Terrain ->
+                    assetBrowser
+                        .terrainAssets()
+                        .firstOrNull { descriptor -> descriptor.path == assetPath }
 
-            else -> null
-        }
+                AssetCategory.Skybox ->
+                    assetBrowser
+                        .skyboxAssets()
+                        .firstOrNull { descriptor -> descriptor.path == assetPath }
+
+                else -> null
+            }
         return asset?.name?.takeIf(String::isNotBlank) ?: assetNameFromPath(assetPath)
     }
 

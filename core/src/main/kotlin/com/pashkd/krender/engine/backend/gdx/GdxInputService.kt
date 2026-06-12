@@ -9,7 +9,9 @@ import com.pashkd.krender.engine.ui.editor.UiCaptureState
 /**
  * LibGDX-backed input service that snapshots keyboard, mouse, pointer, and UI capture state.
  */
-class GdxInputService : InputService, InputProcessor {
+class GdxInputService :
+    InputService,
+    InputProcessor {
     private val keysDown = mutableSetOf<Key>()
     private val pressedThisFrame = mutableSetOf<Key>()
     private val releasedThisFrame = mutableSetOf<Key>()
@@ -18,13 +20,14 @@ class GdxInputService : InputService, InputProcessor {
     private val mouseButtonsReleasedThisFrame = mutableSetOf<MouseButton>()
     private val pointers = mutableMapOf<Int, PointerState>()
     private val processors = mutableListOf<InputProcessor>()
-    private val actions = mapOf(
-        Action("MoveLeft") to setOf(Key.A),
-        Action("MoveRight") to setOf(Key.D),
-        Action("MoveForward") to setOf(Key.W),
-        Action("MoveBackward") to setOf(Key.S),
-        Action("Jump") to setOf(Key.Space),
-    )
+    private val actions =
+        mapOf(
+            Action("MoveLeft") to setOf(Key.A),
+            Action("MoveRight") to setOf(Key.D),
+            Action("MoveForward") to setOf(Key.W),
+            Action("MoveBackward") to setOf(Key.S),
+            Action("Jump") to setOf(Key.Space),
+        )
 
     private var currentSnapshot = InputSnapshot()
     private var uiCaptureProvider: () -> UiCaptureState = { UiCaptureState() }
@@ -40,21 +43,22 @@ class GdxInputService : InputService, InputProcessor {
     /** Captures the current raw input state into the frame snapshot. */
     override fun beginFrame() {
         val uiCapture = uiCaptureProvider()
-        currentSnapshot = InputSnapshot(
-            keysDown = keysDown.toSet(),
-            keysPressedThisFrame = pressedThisFrame.toSet(),
-            keysReleasedThisFrame = releasedThisFrame.toSet(),
-            mouseButtonsDown = mouseButtonsDown.toSet(),
-            mouseButtonsPressedThisFrame = mouseButtonsPressedThisFrame.toSet(),
-            mouseButtonsReleasedThisFrame = mouseButtonsReleasedThisFrame.toSet(),
-            mousePosition = Vec2(mouseX.toFloat(), mouseY.toFloat()),
-            mouseDelta = Vec2(mouseDeltaX, mouseDeltaY),
-            scrollDelta = scrollDelta,
-            pointers = pointers.values.toList(),
-            viewportSize = Vec2(Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat()),
-            uiCapturesMouse = uiCapture.mouse,
-            uiCapturesKeyboard = uiCapture.keyboard,
-        )
+        currentSnapshot =
+            InputSnapshot(
+                keysDown = keysDown.toSet(),
+                keysPressedThisFrame = pressedThisFrame.toSet(),
+                keysReleasedThisFrame = releasedThisFrame.toSet(),
+                mouseButtonsDown = mouseButtonsDown.toSet(),
+                mouseButtonsPressedThisFrame = mouseButtonsPressedThisFrame.toSet(),
+                mouseButtonsReleasedThisFrame = mouseButtonsReleasedThisFrame.toSet(),
+                mousePosition = Vec2(mouseX.toFloat(), mouseY.toFloat()),
+                mouseDelta = Vec2(mouseDeltaX, mouseDeltaY),
+                scrollDelta = scrollDelta,
+                pointers = pointers.values.toList(),
+                viewportSize = Vec2(Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat()),
+                uiCapturesMouse = uiCapture.mouse,
+                uiCapturesKeyboard = uiCapture.keyboard,
+            )
         keepCursorInsideWindow()
     }
 
@@ -99,11 +103,12 @@ class GdxInputService : InputService, InputProcessor {
         actions[action]?.any { it in currentSnapshot.keysPressedThisFrame } == true
 
     /** Resolves named digital axes from the current snapshot. */
-    override fun axis(axis: Axis): Float = when (axis.name) {
-        "Horizontal" -> currentSnapshot.booleanAxis(Key.A, Key.D)
-        "Vertical" -> currentSnapshot.booleanAxis(Key.S, Key.W)
-        else -> 0f
-    }
+    override fun axis(axis: Axis): Float =
+        when (axis.name) {
+            "Horizontal" -> currentSnapshot.booleanAxis(Key.A, Key.D)
+            "Vertical" -> currentSnapshot.booleanAxis(Key.S, Key.W)
+            else -> 0f
+        }
 
     /** Registers an additional LibGDX input processor for mirrored callbacks. */
     fun addProcessor(processor: InputProcessor) {
@@ -141,7 +146,10 @@ class GdxInputService : InputService, InputProcessor {
     }
 
     /** Updates mouse position and delta, ignoring synthetic warp events when needed. */
-    override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
+    override fun mouseMoved(
+        screenX: Int,
+        screenY: Int,
+    ): Boolean {
         if (screenX == ignoredWarpX && screenY == ignoredWarpY) {
             ignoredWarpX = null
             ignoredWarpY = null
@@ -158,7 +166,11 @@ class GdxInputService : InputService, InputProcessor {
     }
 
     /** Treats a dragged pointer as both mouse movement and pointer motion. */
-    override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
+    override fun touchDragged(
+        screenX: Int,
+        screenY: Int,
+        pointer: Int,
+    ): Boolean {
         mouseMoved(screenX, screenY)
         pointers[pointer] = PointerState(pointer, PointerPhase.Move, Vec2(screenX.toFloat(), screenY.toFloat()))
         processors.forEach { it.touchDragged(screenX, screenY, pointer) }
@@ -166,7 +178,12 @@ class GdxInputService : InputService, InputProcessor {
     }
 
     /** Starts a tracked pointer interaction. */
-    override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+    override fun touchDown(
+        screenX: Int,
+        screenY: Int,
+        pointer: Int,
+        button: Int,
+    ): Boolean {
         mouseMoved(screenX, screenY)
         val mouseButton = mapMouseButton(button)
         if (mouseButton !in mouseButtonsDown) {
@@ -179,7 +196,12 @@ class GdxInputService : InputService, InputProcessor {
     }
 
     /** Ends a tracked pointer interaction. */
-    override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+    override fun touchUp(
+        screenX: Int,
+        screenY: Int,
+        pointer: Int,
+        button: Int,
+    ): Boolean {
         mouseMoved(screenX, screenY)
         val mouseButton = mapMouseButton(button)
         mouseButtonsDown -= mouseButton
@@ -190,7 +212,12 @@ class GdxInputService : InputService, InputProcessor {
     }
 
     /** Marks a tracked pointer as cancelled. */
-    override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+    override fun touchCancelled(
+        screenX: Int,
+        screenY: Int,
+        pointer: Int,
+        button: Int,
+    ): Boolean {
         mouseMoved(screenX, screenY)
         val mouseButton = mapMouseButton(button)
         mouseButtonsDown -= mouseButton
@@ -201,7 +228,10 @@ class GdxInputService : InputService, InputProcessor {
     }
 
     /** Accumulates scroll input for the current frame. */
-    override fun scrolled(amountX: Float, amountY: Float): Boolean {
+    override fun scrolled(
+        amountX: Float,
+        amountY: Float,
+    ): Boolean {
         scrollDelta += amountY
         processors.forEach { it.scrolled(amountX, amountY) }
         return false
@@ -214,48 +244,53 @@ class GdxInputService : InputService, InputProcessor {
     }
 
     /** Maps LibGDX key codes to engine key enums. */
-    private fun mapKey(keycode: Int): Key = when (keycode) {
-        Input.Keys.W -> Key.W
-        Input.Keys.A -> Key.A
-        Input.Keys.S -> Key.S
-        Input.Keys.D -> Key.D
-        Input.Keys.G -> Key.G
-        Input.Keys.R -> Key.R
-        Input.Keys.F -> Key.F
-        Input.Keys.Y -> Key.Y
-        Input.Keys.Z -> Key.Z
-        Input.Keys.Q -> Key.Q
-        Input.Keys.E -> Key.E
-        Input.Keys.F1 -> Key.F1
-        Input.Keys.F2 -> Key.F2
-        Input.Keys.F3 -> Key.F3
-        Input.Keys.F4 -> Key.F4
-        Input.Keys.F5 -> Key.F5
-        Input.Keys.GRAVE -> Key.Backtick
-        Input.Keys.SPACE -> Key.Space
-        Input.Keys.ESCAPE -> Key.Escape
-        Input.Keys.TAB -> Key.Tab
-        Input.Keys.SHIFT_LEFT -> Key.ShiftLeft
-        Input.Keys.SHIFT_RIGHT -> Key.ShiftRight
-        Input.Keys.CONTROL_LEFT -> Key.ControlLeft
-        Input.Keys.CONTROL_RIGHT -> Key.ControlRight
-        Input.Keys.ALT_LEFT -> Key.AltLeft
-        Input.Keys.ALT_RIGHT -> Key.AltRight
-        else -> Key.Unknown
-    }
+    private fun mapKey(keycode: Int): Key =
+        when (keycode) {
+            Input.Keys.W -> Key.W
+            Input.Keys.A -> Key.A
+            Input.Keys.S -> Key.S
+            Input.Keys.D -> Key.D
+            Input.Keys.G -> Key.G
+            Input.Keys.R -> Key.R
+            Input.Keys.F -> Key.F
+            Input.Keys.Y -> Key.Y
+            Input.Keys.Z -> Key.Z
+            Input.Keys.Q -> Key.Q
+            Input.Keys.E -> Key.E
+            Input.Keys.F1 -> Key.F1
+            Input.Keys.F2 -> Key.F2
+            Input.Keys.F3 -> Key.F3
+            Input.Keys.F4 -> Key.F4
+            Input.Keys.F5 -> Key.F5
+            Input.Keys.GRAVE -> Key.Backtick
+            Input.Keys.SPACE -> Key.Space
+            Input.Keys.ESCAPE -> Key.Escape
+            Input.Keys.TAB -> Key.Tab
+            Input.Keys.SHIFT_LEFT -> Key.ShiftLeft
+            Input.Keys.SHIFT_RIGHT -> Key.ShiftRight
+            Input.Keys.CONTROL_LEFT -> Key.ControlLeft
+            Input.Keys.CONTROL_RIGHT -> Key.ControlRight
+            Input.Keys.ALT_LEFT -> Key.AltLeft
+            Input.Keys.ALT_RIGHT -> Key.AltRight
+            else -> Key.Unknown
+        }
 
     /** Maps LibGDX mouse button codes into normalized engine buttons. */
-    private fun mapMouseButton(button: Int): MouseButton = when (button) {
-        Input.Buttons.LEFT -> MouseButton.Left
-        Input.Buttons.RIGHT -> MouseButton.Right
-        Input.Buttons.MIDDLE -> MouseButton.Middle
-        Input.Buttons.BACK -> MouseButton.Back
-        Input.Buttons.FORWARD -> MouseButton.Forward
-        else -> MouseButton.Unknown
-    }
+    private fun mapMouseButton(button: Int): MouseButton =
+        when (button) {
+            Input.Buttons.LEFT -> MouseButton.Left
+            Input.Buttons.RIGHT -> MouseButton.Right
+            Input.Buttons.MIDDLE -> MouseButton.Middle
+            Input.Buttons.BACK -> MouseButton.Back
+            Input.Buttons.FORWARD -> MouseButton.Forward
+            else -> MouseButton.Unknown
+        }
 
     /** Converts two digital keys into a -1..1 axis value. */
-    private fun InputSnapshot.booleanAxis(negative: Key, positive: Key): Float {
+    private fun InputSnapshot.booleanAxis(
+        negative: Key,
+        positive: Key,
+    ): Float {
         val left = if (isDown(negative)) 1f else 0f
         val right = if (isDown(positive)) 1f else 0f
         return right - left

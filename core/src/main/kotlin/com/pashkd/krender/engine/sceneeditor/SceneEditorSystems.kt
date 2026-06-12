@@ -20,7 +20,10 @@ import kotlin.math.tan
 class SceneEditorViewportGuideSystem(
     private val state: SceneEditorState,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         val halfExtentCells = state.gridHalfExtentCells.coerceAtLeast(1)
         val cellSize = state.gridCellSize.coerceAtLeast(MinCellSize)
         if (state.showGrid) {
@@ -47,7 +50,10 @@ class SceneEditorViewportGuideSystem(
 class SceneEditorDocumentRenderSystem(
     private val document: SceneEditorDocument,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         document.world.all().forEach { entity ->
             if (!entity.active || entity.get<EditorOnlyComponent>() != null) return@forEach
             val transform = entity.get<TransformComponent>() ?: return@forEach
@@ -79,18 +85,22 @@ class SceneEditorEnvironmentRenderSystem(
     private var cachedSkybox: SkyboxAssetDescriptor? = null
     private var failedSkyboxPath: String? = null
 
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         val settings = document.descriptor?.settings ?: return
         val skybox = resolveSkybox(settings.environment.skyboxAssetPath)
         world.renderCommands.submit(
             ApplyEnvironment(
-                skyboxTexture = skybox?.texturePath?.let { texturePath ->
-                    MaterialTextureRef(
-                        id = texturePath,
-                        channel = "skybox",
-                        uvChannel = 0,
-                    )
-                },
+                skyboxTexture =
+                    skybox?.texturePath?.let { texturePath ->
+                        MaterialTextureRef(
+                            id = texturePath,
+                            channel = "skybox",
+                            uvChannel = 0,
+                        )
+                    },
                 showSkybox = settings.environment.showSkybox,
                 ambientColor = settings.lighting.ambientColor.copy(),
                 ambientIntensity = settings.lighting.ambientIntensity,
@@ -100,11 +110,12 @@ class SceneEditorEnvironmentRenderSystem(
     }
 
     private fun resolveSkybox(path: String?): SkyboxAssetDescriptor? {
-        val normalizedPath = path
-            ?.trim()
-            ?.replace('\\', '/')
-            ?.takeIf(String::isNotBlank)
-            ?.takeUnless { value -> value.equals("null", ignoreCase = true) }
+        val normalizedPath =
+            path
+                ?.trim()
+                ?.replace('\\', '/')
+                ?.takeIf(String::isNotBlank)
+                ?.takeUnless { value -> value.equals("null", ignoreCase = true) }
         if (normalizedPath == null) {
             cachedSkyboxPath = null
             cachedSkybox = null
@@ -143,7 +154,10 @@ class SceneEditorBoundingBoxSystem(
     private val state: SceneEditorState,
     private val boundsProvider: SceneEditorBoundsProvider = SceneEditorBoundsProvider(),
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         drawSelectedBoundingBox(world)
     }
 
@@ -167,20 +181,21 @@ class SceneEditorBoundingBoxSystem(
 
     companion object {
         private val BoundingBoxColor = Color(1f, 0.85f, 0.1f, 1f)
-        private val BoxEdges = listOf(
-            0 to 1,
-            1 to 2,
-            2 to 3,
-            3 to 0,
-            4 to 5,
-            5 to 6,
-            6 to 7,
-            7 to 4,
-            0 to 4,
-            1 to 5,
-            2 to 6,
-            3 to 7,
-        )
+        private val BoxEdges =
+            listOf(
+                0 to 1,
+                1 to 2,
+                2 to 3,
+                3 to 0,
+                4 to 5,
+                5 to 6,
+                6 to 7,
+                7 to 4,
+                0 to 4,
+                1 to 5,
+                2 to 6,
+                3 to 7,
+            )
     }
 }
 
@@ -193,7 +208,10 @@ class SceneEditorDocumentTerrainSyncSystem(
 ) : System() {
     private val terrainSync = TerrainAssetRuntimeSync(logger)
 
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         terrainSync.update(document.world)
     }
 }
@@ -211,7 +229,10 @@ class SceneEditorLightSyncSystem(
     private val document: SceneEditorDocument,
     private val logger: Logger,
 ) : System() {
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         syncAmbientLight(world)
         syncSceneLights(world)
     }
@@ -220,12 +241,13 @@ class SceneEditorLightSyncSystem(
         val settings = document.descriptor?.settings
         val ambientColor = settings?.lighting?.ambientColor?.copy() ?: defaultAmbientLightColor()
         val ambientIntensity = settings?.lighting?.ambientIntensity ?: DefaultAmbientLightIntensity
-        val ambient = world.all().firstOrNull { entity ->
-            entity.get<SceneEditorAmbientLightComponent>() != null
-        } ?: world.createEntity("Scene Ambient (Editor Light)").also { entity ->
-            entity.add(EditorOnlyComponent())
-            entity.add(SceneEditorAmbientLightComponent())
-        }
+        val ambient =
+            world.all().firstOrNull { entity ->
+                entity.get<SceneEditorAmbientLightComponent>() != null
+            } ?: world.createEntity("Scene Ambient (Editor Light)").also { entity ->
+                entity.add(EditorOnlyComponent())
+                entity.add(SceneEditorAmbientLightComponent())
+            }
 
         ambient.active = true
         ambient.add(
@@ -238,35 +260,38 @@ class SceneEditorLightSyncSystem(
     }
 
     private fun syncSceneLights(world: SceneWorld) {
-        val sourceLights = document.world.all()
-            .filter { entity -> entity.active && entity.get<EditorOnlyComponent>() == null }
-            .mapNotNull { entity ->
-                val transform = entity.get<TransformComponent>() ?: return@mapNotNull null
-                val light = entity.get<LightComponent>() ?: return@mapNotNull null
-                if (light.type != LightType.Directional && light.type != LightType.Point) {
-                    logger.debug(TAG) { "Ignoring unsupported scene light type ${light.type} entityId=${entity.id}" }
-                    return@mapNotNull null
+        val sourceLights =
+            document.world
+                .all()
+                .filter { entity -> entity.active && entity.get<EditorOnlyComponent>() == null }
+                .mapNotNull { entity ->
+                    val transform = entity.get<TransformComponent>() ?: return@mapNotNull null
+                    val light = entity.get<LightComponent>() ?: return@mapNotNull null
+                    if (light.type != LightType.Directional && light.type != LightType.Point) {
+                        logger.debug(TAG) { "Ignoring unsupported scene light type ${light.type} entityId=${entity.id}" }
+                        return@mapNotNull null
+                    }
+                    Triple(entity, transform, light)
                 }
-                Triple(entity, transform, light)
-            }
 
         val desiredIds = sourceLights.map { (entity, _, _) -> entity.id }.toSet()
-        world.all()
+        world
+            .all()
             .filter { entity ->
                 val mirror = entity.get<SceneEditorMirroredLightComponent>() ?: return@filter false
                 mirror.sourceEntityId !in desiredIds
-            }
-            .forEach { stale ->
+            }.forEach { stale ->
                 world.removeEntity(stale.id)
             }
 
         sourceLights.forEach { (source, sourceTransform, sourceLight) ->
-            val mirrored = world.all().firstOrNull { entity ->
-                entity.get<SceneEditorMirroredLightComponent>()?.sourceEntityId == source.id
-            } ?: world.createEntity("${source.name} (Editor Light)").also { entity ->
-                entity.add(EditorOnlyComponent())
-                entity.add(SceneEditorMirroredLightComponent(sourceEntityId = source.id))
-            }
+            val mirrored =
+                world.all().firstOrNull { entity ->
+                    entity.get<SceneEditorMirroredLightComponent>()?.sourceEntityId == source.id
+                } ?: world.createEntity("${source.name} (Editor Light)").also { entity ->
+                    entity.add(EditorOnlyComponent())
+                    entity.add(SceneEditorMirroredLightComponent(sourceEntityId = source.id))
+                }
 
             mirrored.active = source.active
             mirrored.transform.position.set(
@@ -310,12 +335,17 @@ class SceneEditorSelectionSystem(
     private val logger: Logger,
     private val boundsProvider: SceneEditorBoundsProvider = SceneEditorBoundsProvider(),
 ) : System() {
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         val snapshot = input.snapshot()
         if (!shouldProcessSelection(snapshot)) return
 
-        val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent, EditorViewportCameraComponent>()
-            .firstOrNull() ?: return
+        val cameraEntity =
+            world
+                .query<TransformComponent, PerspectiveCameraComponent, EditorViewportCameraComponent>()
+                .firstOrNull() ?: return
         val cameraTransform = cameraEntity.get<TransformComponent>() ?: return
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
         val viewport = selectionViewport(snapshot) ?: return
@@ -334,7 +364,10 @@ class SceneEditorSelectionSystem(
         logger.info(TAG) { "Selected scene entity id=${selected.id} name='${selected.name}' from viewport" }
     }
 
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         val selected = state.selectedEntityId?.let(document.world::getEntity) ?: return
         if (selected.get<LightComponent>() != null) return
         val transform = selected.get<TransformComponent>() ?: return
@@ -375,10 +408,11 @@ class SceneEditorSelectionSystem(
         }
 
         val viewportOrigin = state.viewportOrigin
-        val localPosition = Vec2(
-            snapshot.mousePosition.x - viewportOrigin.x,
-            snapshot.mousePosition.y - viewportOrigin.y,
-        )
+        val localPosition =
+            Vec2(
+                snapshot.mousePosition.x - viewportOrigin.x,
+                snapshot.mousePosition.y - viewportOrigin.y,
+            )
         if (
             localPosition.x < 0f ||
             localPosition.y < 0f ||
@@ -401,10 +435,11 @@ class SceneEditorSelectionSystem(
         document.world.all().forEach { entity ->
             if (!entity.active || entity.get<EditorOnlyComponent>() != null) return@forEach
             val transform = entity.get<TransformComponent>() ?: return@forEach
-            val candidateDistance = boundsProvider.boundsFor(entity)?.let { bounds ->
-                val corners = transformedBoundsCorners(bounds, transform)
-                rayWorldAabbHitDistance(ray, corners)
-            } ?: fallbackPickDistance(ray, transform)
+            val candidateDistance =
+                boundsProvider.boundsFor(entity)?.let { bounds ->
+                    val corners = transformedBoundsCorners(bounds, transform)
+                    rayWorldAabbHitDistance(ray, corners)
+                } ?: fallbackPickDistance(ray, transform)
 
             if (candidateDistance != null && candidateDistance < bestCandidateDistance) {
                 picked = entity
@@ -415,7 +450,10 @@ class SceneEditorSelectionSystem(
         return picked
     }
 
-    private fun fallbackPickDistance(ray: CameraRay, transform: TransformComponent): Float? {
+    private fun fallbackPickDistance(
+        ray: CameraRay,
+        transform: TransformComponent,
+    ): Float? {
         val toEntity = transform.position - ray.origin
         val depth = dot(toEntity, ray.direction)
         if (depth < 0f) return null
@@ -424,7 +462,10 @@ class SceneEditorSelectionSystem(
         return if (distance <= PickRadius) depth else null
     }
 
-    private fun rayWorldAabbHitDistance(ray: CameraRay, corners: List<Vec3>): Float? {
+    private fun rayWorldAabbHitDistance(
+        ray: CameraRay,
+        corners: List<Vec3>,
+    ): Float? {
         if (corners.isEmpty()) return null
         var minX = corners.first().x
         var minY = corners.first().y
@@ -443,7 +484,13 @@ class SceneEditorSelectionSystem(
 
         var tMin = 0f
         var tMax = Float.MAX_VALUE
-        fun intersectAxis(origin: Float, direction: Float, min: Float, max: Float): Boolean {
+
+        fun intersectAxis(
+            origin: Float,
+            direction: Float,
+            min: Float,
+            max: Float,
+        ): Boolean {
             if (kotlin.math.abs(direction) <= 1e-6f) {
                 return origin in min..max
             }
@@ -482,11 +529,12 @@ class SceneEditorSelectionSystem(
         val up = normalize(cross(right, forward))
         val tanHalfFov = tan(Math.toRadians((camera.fieldOfViewDegrees * 0.5f).toDouble())).toFloat()
 
-        val direction = normalize(
-            forward +
-                right * (ndcX * aspect * tanHalfFov) +
-                up * (ndcY * tanHalfFov),
-        )
+        val direction =
+            normalize(
+                forward +
+                    right * (ndcX * aspect * tanHalfFov) +
+                    up * (ndcY * tanHalfFov),
+            )
         return CameraRay(cameraTransform.position.copy(), direction)
     }
 
@@ -509,7 +557,10 @@ class SceneEditorSelectionSystem(
         )
     }
 
-    private fun distanceFromRay(ray: CameraRay, point: Vec3): Float {
+    private fun distanceFromRay(
+        ray: CameraRay,
+        point: Vec3,
+    ): Float {
         val toPoint = point - ray.origin
         val depth = dot(toPoint, ray.direction)
         val closestPoint = ray.origin + ray.direction * depth
@@ -538,7 +589,10 @@ class SceneEditorLightGizmoSystem(
     private val document: SceneEditorDocument,
     private val state: SceneEditorState,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         val selected = state.selectedEntityId?.let(document.world::getEntity) ?: return
         val transform = selected.get<TransformComponent>() ?: return
         val light = selected.get<LightComponent>() ?: return
@@ -559,7 +613,10 @@ class SceneEditorLightGizmoSystem(
         }
     }
 
-    private fun drawCross(world: SceneWorld, position: Vec3) {
+    private fun drawCross(
+        world: SceneWorld,
+        position: Vec3,
+    ) {
         world.renderCommands.submit(
             DrawLine(
                 from = Vec3(position.x - LightMarkerSize, position.y, position.z),
@@ -590,10 +647,15 @@ class SceneEditorLightGizmoSystem(
     }
 }
 
-private fun dot(a: Vec3, b: Vec3): Float =
-    a.x * b.x + a.y * b.y + a.z * b.z
+private fun dot(
+    a: Vec3,
+    b: Vec3,
+): Float = a.x * b.x + a.y * b.y + a.z * b.z
 
-private fun cross(a: Vec3, b: Vec3): Vec3 =
+private fun cross(
+    a: Vec3,
+    b: Vec3,
+): Vec3 =
     Vec3(
         x = a.y * b.z - a.z * b.y,
         y = a.z * b.x - a.x * b.z,
@@ -606,7 +668,10 @@ private fun normalize(vector: Vec3): Vec3 {
     return Vec3(vector.x / length, vector.y / length, vector.z / length)
 }
 
-private fun distance(a: Vec3, b: Vec3): Float {
+private fun distance(
+    a: Vec3,
+    b: Vec3,
+): Float {
     val dx = a.x - b.x
     val dy = a.y - b.y
     val dz = a.z - b.z

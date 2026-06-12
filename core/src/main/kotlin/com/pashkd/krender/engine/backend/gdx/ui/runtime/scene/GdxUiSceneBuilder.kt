@@ -90,16 +90,17 @@ class GdxUiSceneBuilder(
         isRoot: Boolean,
         onActorBuilt: ((UiSceneNode, Actor) -> Unit)?,
     ): Actor {
-        val actor = when (node.type) {
-            UiSceneNodeType.Stack -> buildStack(node, skin, payload, actionHandler, isRoot, onActorBuilt)
-            UiSceneNodeType.Table -> buildTable(node, skin, payload, actionHandler, isRoot, onActorBuilt)
-            UiSceneNodeType.Container -> buildContainer(node, skin, payload, actionHandler, isRoot, onActorBuilt)
-            UiSceneNodeType.Label -> buildLabel(node, skin, payload)
-            UiSceneNodeType.TextButton -> buildTextButton(node, skin, payload, actionHandler)
-            UiSceneNodeType.ProgressBar -> buildProgressBar(node, skin, payload)
-            UiSceneNodeType.Image -> buildImage(node, payload)
-            UiSceneNodeType.Space -> Actor()
-        }
+        val actor =
+            when (node.type) {
+                UiSceneNodeType.Stack -> buildStack(node, skin, payload, actionHandler, isRoot, onActorBuilt)
+                UiSceneNodeType.Table -> buildTable(node, skin, payload, actionHandler, isRoot, onActorBuilt)
+                UiSceneNodeType.Container -> buildContainer(node, skin, payload, actionHandler, isRoot, onActorBuilt)
+                UiSceneNodeType.Label -> buildLabel(node, skin, payload)
+                UiSceneNodeType.TextButton -> buildTextButton(node, skin, payload, actionHandler)
+                UiSceneNodeType.ProgressBar -> buildProgressBar(node, skin, payload)
+                UiSceneNodeType.Image -> buildImage(node, payload)
+                UiSceneNodeType.Space -> Actor()
+            }
         actor.isVisible = node.visible
         applyActorSize(actor, node)
         onActorBuilt?.invoke(node, actor)
@@ -156,37 +157,39 @@ class GdxUiSceneBuilder(
         isRoot: Boolean,
         onActorBuilt: ((UiSceneNode, Actor) -> Unit)?,
     ): Container<Actor> {
-        val content = when {
-            node.children.isEmpty() -> Table()
-            node.children.size == 1 -> buildNode(
-                node.children.first(),
-                skin,
-                payload,
-                actionHandler,
-                isRoot = false,
-                onActorBuilt = onActorBuilt
-            )
+        val content =
+            when {
+                node.children.isEmpty() -> Table()
+                node.children.size == 1 ->
+                    buildNode(
+                        node.children.first(),
+                        skin,
+                        payload,
+                        actionHandler,
+                        isRoot = false,
+                        onActorBuilt = onActorBuilt,
+                    )
 
-            else -> {
-                // MVP fallback:
-                // Scene2D Container is a single-child widget. `.krui` is editor-authored,
-                // so invalid/multi-child containers may happen while building early tools.
-                // Instead of dropping children, we wrap them in a Stack so the document still
-                // previews/renders. The validator should warn about suspicious structures;
-                // future UI Composer should either prevent this or explicitly insert a Stack.
-                logger.warn(TAG) {
-                    "Container '${node.id}' has ${node.children.size} children; wrapping them in a Stack for `.krui` MVP."
+                else -> {
+                    // MVP fallback:
+                    // Scene2D Container is a single-child widget. `.krui` is editor-authored,
+                    // so invalid/multi-child containers may happen while building early tools.
+                    // Instead of dropping children, we wrap them in a Stack so the document still
+                    // previews/renders. The validator should warn about suspicious structures;
+                    // future UI Composer should either prevent this or explicitly insert a Stack.
+                    logger.warn(TAG) {
+                        "Container '${node.id}' has ${node.children.size} children; wrapping them in a Stack for `.krui` MVP."
+                    }
+                    buildStack(
+                        node.copy(type = UiSceneNodeType.Stack),
+                        skin,
+                        payload,
+                        actionHandler,
+                        isRoot = false,
+                        onActorBuilt = onActorBuilt,
+                    )
                 }
-                buildStack(
-                    node.copy(type = UiSceneNodeType.Stack),
-                    skin,
-                    payload,
-                    actionHandler,
-                    isRoot = false,
-                    onActorBuilt = onActorBuilt
-                )
             }
-        }
 
         return Container<Actor>().apply {
             setFillParent(isRoot)
@@ -222,14 +225,16 @@ class GdxUiSceneBuilder(
         actionHandler: RuntimeUiActionHandler?,
     ): TextButton {
         val text = UiSceneBindings.bindText(node.text ?: "", payload)
-        val button = if (node.style.isNullOrBlank()) {
-            TextButton(text, skin)
-        } else {
-            TextButton(text, skin, node.style)
-        }
-        val action = node.action
-            ?.let { UiSceneBindings.bindText(it, payload) }
-            ?.takeIf(String::isNotBlank)
+        val button =
+            if (node.style.isNullOrBlank()) {
+                TextButton(text, skin)
+            } else {
+                TextButton(text, skin, node.style)
+            }
+        val action =
+            node.action
+                ?.let { UiSceneBindings.bindText(it, payload) }
+                ?.takeIf(String::isNotBlank)
         if (action != null) {
             button.addListener(
                 object : ClickListener() {
@@ -258,17 +263,19 @@ class GdxUiSceneBuilder(
             "ProgressBar '${node.id}' must have positive step, but step=${node.step}."
         }
         val styleName = node.style?.takeIf(String::isNotBlank) ?: DefaultProgressStyle
-        val progressBar = ProgressBar(
-            node.min,
-            node.max,
-            node.step,
-            false,
-            skin.get(styleName, ProgressBar.ProgressBarStyle::class.java),
-        )
+        val progressBar =
+            ProgressBar(
+                node.min,
+                node.max,
+                node.step,
+                false,
+                skin.get(styleName, ProgressBar.ProgressBarStyle::class.java),
+            )
         val fallback = node.value ?: node.min
-        progressBar.value = UiSceneBindings
-            .boundFloat(node.valueBinding, payload, fallback)
-            .coerceIn(node.min, node.max)
+        progressBar.value =
+            UiSceneBindings
+                .boundFloat(node.valueBinding, payload, fallback)
+                .coerceIn(node.min, node.max)
         return progressBar
     }
 
@@ -276,9 +283,10 @@ class GdxUiSceneBuilder(
         node: UiSceneNode,
         payload: Map<String, String>,
     ): Image {
-        val texturePath = node.texture
-            ?.let { UiSceneBindings.bindText(it, payload) }
-            ?.takeIf(String::isNotBlank)
+        val texturePath =
+            node.texture
+                ?.let { UiSceneBindings.bindText(it, payload) }
+                ?.takeIf(String::isNotBlank)
         if (texturePath == null) {
             logger.warn(TAG) { "Image '${node.id}' has no texture path; using an empty Actor-sized Image." }
             return Image()

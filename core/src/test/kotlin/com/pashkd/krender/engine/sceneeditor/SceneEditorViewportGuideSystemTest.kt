@@ -10,10 +10,11 @@ import kotlin.test.assertIs
 class SceneEditorViewportGuideSystemTest {
     @Test
     fun `submits grid and axes from editor state`() {
-        val state = SceneEditorState(
-            gridHalfExtentCells = 32,
-            gridCellSize = 0.5f,
-        )
+        val state =
+            SceneEditorState(
+                gridHalfExtentCells = 32,
+                gridCellSize = 0.5f,
+            )
         val world = SceneWorld()
         world.systems.add(SceneEditorViewportGuideSystem(state))
 

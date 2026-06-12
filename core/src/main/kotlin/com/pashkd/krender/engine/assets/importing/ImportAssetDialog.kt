@@ -148,11 +148,12 @@ class ImportAssetDialog(
 
     private fun finishImport(plan: AssetImportPlan) {
         val result = importService.importAssets(plan)
-        state.statusMessage = when {
-            result.imported.isNotEmpty() -> "Imported ${result.imported.size} asset(s)."
-            result.errors.isNotEmpty() -> result.errors.first()
-            else -> "No supported assets imported."
-        }
+        state.statusMessage =
+            when {
+                result.imported.isNotEmpty() -> "Imported ${result.imported.size} asset(s)."
+                result.errors.isNotEmpty() -> result.errors.first()
+                else -> "No supported assets imported."
+            }
         state.errorMessage = result.errors.firstOrNull()
         state.importPlan = null
         state.pendingImportPlan = null
@@ -168,10 +169,11 @@ class ImportAssetDialog(
 
     private fun drawOverwriteConfirmDialog() {
         if (!state.showImportOverwriteConfirmDialog) return
-        val plan = state.pendingImportPlan ?: run {
-            state.showImportOverwriteConfirmDialog = false
-            return
-        }
+        val plan =
+            state.pendingImportPlan ?: run {
+                state.showImportOverwriteConfirmDialog = false
+                return
+            }
         val entry = plan.supportedEntries.firstOrNull(AssetImportEntry::mainTargetExists) ?: return
         ImGui.openPopup("Overwrite Existing Asset?##${panelId}_import_overwrite")
         ImGui.setNextWindowSize(Vec2(520f, 210f), Cond.Always)

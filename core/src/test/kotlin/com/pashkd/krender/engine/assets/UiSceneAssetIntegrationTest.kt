@@ -40,12 +40,13 @@ class UiSceneAssetIntegrationTest {
         val sceneDir = baseDir.resolve("ui/scenes").createDirectories()
         sceneDir.resolve("broken.krui").writeText("{", StandardCharsets.UTF_8)
 
-        val registry = LocalAssetRegistryService(
-            logger = logger,
-            importers = AssetImporterRegistry.withDefaults(logger),
-            baseDirectory = baseDir.toFile(),
-            rootPaths = listOf("ui"),
-        )
+        val registry =
+            LocalAssetRegistryService(
+                logger = logger,
+                importers = AssetImporterRegistry.withDefaults(logger),
+                baseDirectory = baseDir.toFile(),
+                rootPaths = listOf("ui"),
+            )
 
         val snapshot = registry.scanSnapshot()
         val asset = snapshot.assets.singleOrNull { descriptor -> descriptor.path == "ui/scenes/broken.krui" }

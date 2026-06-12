@@ -31,11 +31,12 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
 
     override val config: SceneConfig = SceneConfigPresets.RuntimeGame16By9
 
-    override val requiredAssets: List<AssetPack> = listOf(
-        object : AssetPack {
-            override val assets: List<AssetRef<*>> = listOf(woolboyModel)
-        },
-    )
+    override val requiredAssets: List<AssetPack> =
+        listOf(
+            object : AssetPack {
+                override val assets: List<AssetRef<*>> = listOf(woolboyModel)
+            },
+        )
 
     /**
      * Queues both the gameplay-only Woolboy model and dependencies referenced
@@ -47,7 +48,11 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
         val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(descriptor, resolvedSkybox = null)
         engine.logger.info(TAG) {
             "WoolboySandboxScene scheduleAssets scene='$SceneAssetPath' model='$WoolboyModelPath' " +
-                "dependencies=${dependencyGraph.dependencies.joinToString { dependency -> "${dependency.kind}:${dependency.path}:${dependency.requirement}" }}"
+                "dependencies=${
+                    dependencyGraph.dependencies.joinToString { dependency ->
+                        "${dependency.kind}:${dependency.path}:${dependency.requirement}"
+                    }
+                }"
         }
         super.scheduleAssets(assets)
         dependencyGraph.schedulableAssets.forEach(assets::queue)
@@ -144,10 +149,11 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
      * entity is used as a safe fallback so the playable scene can still render.
      */
     private fun markAuthoredCameraActive(descriptor: SceneDescriptor) {
-        val camera = descriptor.settings.activeCameraEntityId
-            ?.let(world::getEntity)
-            ?.takeIf { entity -> entity.get<PerspectiveCameraComponent>() != null }
-            ?: world.query<PerspectiveCameraComponent>().firstOrNull()
+        val camera =
+            descriptor.settings.activeCameraEntityId
+                ?.let(world::getEntity)
+                ?.takeIf { entity -> entity.get<PerspectiveCameraComponent>() != null }
+                ?: world.query<PerspectiveCameraComponent>().firstOrNull()
         camera?.add(ActiveCameraComponent())
         engine.logger.info(TAG) {
             "Woolboy authored scene loaded path='$SceneAssetPath' terrainEntityId=${descriptor.settings.activeTerrainEntityId ?: "<none>"} " +
@@ -161,7 +167,10 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
         return SceneSerializer.decode(engine.sceneFiles.readText(SceneAssetPath))
     }
 
-    private fun addSystem(name: String, system: System) {
+    private fun addSystem(
+        name: String,
+        system: System,
+    ) {
         world.systems.add(system)
         engine.logger.info(TAG) { "Woolboy system added name='$name'" }
     }

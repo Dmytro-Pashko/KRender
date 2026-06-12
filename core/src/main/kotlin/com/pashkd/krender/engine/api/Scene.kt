@@ -109,7 +109,10 @@ abstract class Scene(
     open fun overlayRender() = Unit
 
     /** Handles surface resize events. */
-    open fun resize(width: Int, height: Int) = Unit
+    open fun resize(
+        width: Int,
+        height: Int,
+    ) = Unit
 
     /** Runs when the scene leaves the top of the stack. */
     open fun hide() = Unit
@@ -125,10 +128,14 @@ abstract class Scene(
  */
 sealed interface SceneOp {
     /** Replaces the full scene stack with one scene. */
-    data class Replace(val scene: Scene) : SceneOp
+    data class Replace(
+        val scene: Scene,
+    ) : SceneOp
 
     /** Pushes a scene on top of the existing stack. */
-    data class Push(val scene: Scene) : SceneOp
+    data class Push(
+        val scene: Scene,
+    ) : SceneOp
 
     /** Pops the current top scene. */
     data object Pop : SceneOp
@@ -197,7 +204,10 @@ class SceneManager {
     }
 
     /** Propagates resize events to all scenes on the stack. */
-    fun resize(width: Int, height: Int) {
+    fun resize(
+        width: Int,
+        height: Int,
+    ) {
         stack.forEach { it.resize(width, height) }
     }
 
@@ -215,7 +225,10 @@ class SceneManager {
      * advanced asynchronously by the game loop, so assets may still be loading
      * after [Scene.show] returns; scenes must tolerate "not loaded yet".
      */
-    private fun activateScene(scene: Scene, context: EngineContext) {
+    private fun activateScene(
+        scene: Scene,
+        context: EngineContext,
+    ) {
         scene.attach(context)
         scene.setState(SceneState.Loading)
         scene.scheduleAssets(context.assets)
@@ -239,7 +252,10 @@ class SceneManager {
      * path. Backends that do not emit a platform resize callback rely on the
      * runtime to call [EngineRuntime.resize] after transitions.
      */
-    private fun applySceneConfig(scene: Scene, context: EngineContext) {
+    private fun applySceneConfig(
+        scene: Scene,
+        context: EngineContext,
+    ) {
         context.logger.info(TAG) {
             "Applying scene config id='${scene.id}' " +
                 "window=${scene.config.window.mode} ${scene.config.window.resolution.width}x${scene.config.window.resolution.height} " +

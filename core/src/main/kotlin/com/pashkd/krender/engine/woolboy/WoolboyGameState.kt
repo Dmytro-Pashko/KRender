@@ -28,7 +28,6 @@ data class WoolboyGameState(
     var gameStarted: Boolean = false,
     /** Normalized loading progress shown by the loading screen. */
     var loadingProgress: Float = 0f,
-
     /** Maximum player health shown in the gameplay HUD. */
     var maxHealth: Int = 100,
     /** Current player health shown in the gameplay HUD. */

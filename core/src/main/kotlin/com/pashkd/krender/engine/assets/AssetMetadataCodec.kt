@@ -53,15 +53,19 @@ object AssetMetadataCodec {
         val parsed = JsonParser(text).parseValue()
 
         @Suppress("UNCHECKED_CAST")
-        val root = parsed as? Map<String, Any?>
-            ?: throw AssetMetadataDecodeException("root must be a JSON object")
+        val root =
+            parsed as? Map<String, Any?>
+                ?: throw AssetMetadataDecodeException("root must be a JSON object")
 
-        val id = root["id"] as? String
-            ?: throw AssetMetadataDecodeException("missing required field 'id'")
-        val type = root["type"] as? String
-            ?: throw AssetMetadataDecodeException("missing required field 'type'")
-        val category = root["category"] as? String
-            ?: throw AssetMetadataDecodeException("missing required field 'category'")
+        val id =
+            root["id"] as? String
+                ?: throw AssetMetadataDecodeException("missing required field 'id'")
+        val type =
+            root["type"] as? String
+                ?: throw AssetMetadataDecodeException("missing required field 'type'")
+        val category =
+            root["category"] as? String
+                ?: throw AssetMetadataDecodeException("missing required field 'category'")
         val displayName = root["displayName"] as? String ?: ""
         val tags = (root["tags"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
         val importerId = root["importerId"] as? String
@@ -85,7 +89,10 @@ object AssetMetadataCodec {
     private fun encodeStringArray(values: List<String>): String =
         values.joinToString(prefix = "[", postfix = "]") { jsonString(it) }
 
-    private fun encodeValue(value: Any?, indent: String): String =
+    private fun encodeValue(
+        value: Any?,
+        indent: String,
+    ): String =
         when (value) {
             null -> "null"
             is Boolean -> value.toString()
@@ -122,11 +129,12 @@ object AssetMetadataCodec {
                     '\t' -> append("\\t")
                     '\b' -> append("\\b")
                     '\u000C' -> append("\\f")
-                    else -> if (ch.code < 0x20) {
-                        append("\\u%04x".format(ch.code))
-                    } else {
-                        append(ch)
-                    }
+                    else ->
+                        if (ch.code < 0x20) {
+                            append("\\u%04x".format(ch.code))
+                        } else {
+                            append(ch)
+                        }
                 }
             }
             append('"')
@@ -136,7 +144,9 @@ object AssetMetadataCodec {
 /**
  * Raised when a `.krmeta` payload cannot be parsed structurally.
  */
-class AssetMetadataDecodeException(message: String) : RuntimeException(message)
+class AssetMetadataDecodeException(
+    message: String,
+) : RuntimeException(message)
 
 /**
  * Minimal recursive-descent JSON parser.
@@ -144,7 +154,9 @@ class AssetMetadataDecodeException(message: String) : RuntimeException(message)
  * Supports objects, arrays, strings, numbers, booleans and null.
  * Comments are not supported.
  */
-private class JsonParser(private val text: String) {
+private class JsonParser(
+    private val text: String,
+) {
     private var index = 0
 
     fun parseValue(): Any? {
@@ -178,11 +190,13 @@ private class JsonParser(private val text: String) {
             skipWhitespace()
             when (peek()) {
                 ',' -> {
-                    index += 1; continue
+                    index += 1
+                    continue
                 }
 
                 '}' -> {
-                    index += 1; return map
+                    index += 1
+                    return map
                 }
 
                 else -> fail("expected ',' or '}' in object")
@@ -203,11 +217,13 @@ private class JsonParser(private val text: String) {
             skipWhitespace()
             when (peek()) {
                 ',' -> {
-                    index += 1; continue
+                    index += 1
+                    continue
                 }
 
                 ']' -> {
-                    index += 1; return list
+                    index += 1
+                    return list
                 }
 
                 else -> fail("expected ',' or ']' in array")
@@ -268,17 +284,20 @@ private class JsonParser(private val text: String) {
 
     private fun parseBoolean(): Boolean {
         if (text.startsWith("true", index)) {
-            index += 4; return true
+            index += 4
+            return true
         }
         if (text.startsWith("false", index)) {
-            index += 5; return false
+            index += 5
+            return false
         }
         fail("expected boolean")
     }
 
     private fun parseNull(): Any? {
         if (text.startsWith("null", index)) {
-            index += 4; return null
+            index += 4
+            return null
         }
         fail("expected null")
     }
@@ -295,6 +314,5 @@ private class JsonParser(private val text: String) {
         while (index < text.length && text[index].isWhitespace()) index += 1
     }
 
-    private fun fail(message: String): Nothing =
-        throw AssetMetadataDecodeException("$message at position $index")
+    private fun fail(message: String): Nothing = throw AssetMetadataDecodeException("$message at position $index")
 }

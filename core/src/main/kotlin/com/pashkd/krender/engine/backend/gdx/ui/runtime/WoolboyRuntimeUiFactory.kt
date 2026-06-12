@@ -28,12 +28,13 @@ internal class WoolboyRuntimeUiFactory(
         private const val TAG = "WoolboyRuntimeUiFactory"
     }
 
-    private val screenScenePaths = mapOf(
-        "woolboy.loading" to "ui/scenes/woolboy_loading.krui",
-        "woolboy.main_menu" to "ui/scenes/woolboy_main_menu.krui",
-        "woolboy.hud" to "ui/scenes/woolboy_hud.krui",
-        "woolboy.final_results" to "ui/scenes/woolboy_final_results.krui",
-    )
+    private val screenScenePaths =
+        mapOf(
+            "woolboy.loading" to "ui/scenes/woolboy_loading.krui",
+            "woolboy.main_menu" to "ui/scenes/woolboy_main_menu.krui",
+            "woolboy.hud" to "ui/scenes/woolboy_hud.krui",
+            "woolboy.final_results" to "ui/scenes/woolboy_final_results.krui",
+        )
     private val serializer = UiSceneSerializer()
     private val validator = UiSceneValidator()
     private val builder = GdxUiSceneBuilder(logger)

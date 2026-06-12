@@ -49,10 +49,11 @@ class UiComposerScene(
         preview = GdxUiScenePreview(engine.logger)
         skinMetadataReader = GdxUiComposerSkinMetadataReader(engine.logger)
         textureOptionsProvider = UiComposerTextureOptionsProvider(engine.assetRegistry)
-        val layoutConfig = ImGuiLayoutConfigLoader(
-            assetPath = UiComposerUiLayoutDefaults.assetPath,
-            fallback = UiComposerUiLayoutDefaults.config,
-        ).load(engine.logger)
+        val layoutConfig =
+            ImGuiLayoutConfigLoader(
+                assetPath = UiComposerUiLayoutDefaults.assetPath,
+                fallback = UiComposerUiLayoutDefaults.config,
+            ).load(engine.logger)
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         operations = UiComposerOperations(composerState, engine, layoutTracker)
 
@@ -113,7 +114,10 @@ class UiComposerScene(
     /**
      * Keeps the Scene2D preview viewport matched to the editor tool window.
      */
-    override fun resize(width: Int, height: Int) {
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) {
         if (::preview.isInitialized) {
             preview.resize(width, height)
         }
@@ -152,11 +156,12 @@ class UiComposerScene(
             return
         }
         refreshSkinMetadata()
-        val status = if (discardedUnsavedChanges) {
-            "Reloaded document; unsaved changes were discarded."
-        } else {
-            "Document reloaded."
-        }
+        val status =
+            if (discardedUnsavedChanges) {
+                "Reloaded document; unsaved changes were discarded."
+            } else {
+                "Document reloaded."
+            }
         composerState.statusMessage = status
         rebuildPreviewOnly(statusOnSuccess = status)
     }
@@ -174,10 +179,11 @@ class UiComposerScene(
                 hoveredNodeId = composerState.hoveredNodeId,
             )
             composerState.selectedActorInfo = preview.actorInfo(composerState.selectedNodeId)
-            composerState.guideSnapshot = preview.guideSnapshot(
-                selectedNodeId = composerState.selectedNodeId,
-                hoveredNodeId = composerState.hoveredNodeId,
-            )
+            composerState.guideSnapshot =
+                preview.guideSnapshot(
+                    selectedNodeId = composerState.selectedNodeId,
+                    hoveredNodeId = composerState.hoveredNodeId,
+                )
             composerState.parseError = null
             composerState.statusMessage = statusOnSuccess
         } catch (error: Exception) {
@@ -193,13 +199,14 @@ class UiComposerScene(
     }
 
     private fun refreshSkinMetadata() {
-        val document = composerState.document ?: run {
-            composerState.skinMetadata = null
-            composerState.styleValidationIssues = emptyList()
-            composerState.bindingValidationIssues = emptyList()
-            composerState.missingBindingKeys = emptyList()
-            return
-        }
+        val document =
+            composerState.document ?: run {
+                composerState.skinMetadata = null
+                composerState.styleValidationIssues = emptyList()
+                composerState.bindingValidationIssues = emptyList()
+                composerState.missingBindingKeys = emptyList()
+                return
+            }
         composerState.skinMetadata = skinMetadataReader.read(document.skin)
         refreshUiComposerValidationBuckets(composerState, document)
     }
@@ -233,11 +240,12 @@ class UiComposerScene(
     }
 
     private fun refreshBindingDiagnostics() {
-        val document = composerState.document ?: run {
-            composerState.bindingValidationIssues = emptyList()
-            composerState.missingBindingKeys = emptyList()
-            return
-        }
+        val document =
+            composerState.document ?: run {
+                composerState.bindingValidationIssues = emptyList()
+                composerState.missingBindingKeys = emptyList()
+                return
+            }
         refreshUiComposerValidationBuckets(composerState, document)
     }
 
@@ -248,22 +256,22 @@ class UiComposerScene(
             addPanel(
                 uiSystem,
                 "Toolbar",
-                UiComposerToolbarPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger)
+                UiComposerToolbarPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger),
             )
             addPanel(
                 uiSystem,
                 "PreviewCanvas",
-                UiComposerPreviewCanvasPanel(composerState, layoutConfig, layoutTracker, panelEventLogger)
+                UiComposerPreviewCanvasPanel(composerState, layoutConfig, layoutTracker, panelEventLogger),
             )
             addPanel(
                 uiSystem,
                 "Hierarchy",
-                UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger)
+                UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger),
             )
             addPanel(
                 uiSystem,
                 "Structure",
-                UiComposerStructurePanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger)
+                UiComposerStructurePanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger),
             )
             addPanel(
                 uiSystem,
@@ -282,12 +290,12 @@ class UiComposerScene(
             addPanel(
                 uiSystem,
                 "SceneBindings",
-                UiComposerSceneBindingsPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger)
+                UiComposerSceneBindingsPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger),
             )
             addPanel(
                 uiSystem,
                 "Diagnostics",
-                UiComposerDiagnosticsPanel(composerState, layoutConfig, layoutTracker, panelEventLogger)
+                UiComposerDiagnosticsPanel(composerState, layoutConfig, layoutTracker, panelEventLogger),
             )
             addPanel(
                 uiSystem,
@@ -304,7 +312,11 @@ class UiComposerScene(
         }
     }
 
-    private fun addPanel(uiSystem: UiSystem, name: String, panel: UiPanel) {
+    private fun addPanel(
+        uiSystem: UiSystem,
+        name: String,
+        panel: UiPanel,
+    ) {
         uiSystem.addPanel(
             UiPanel {
                 try {
@@ -328,7 +340,10 @@ private class UiComposerPreviewUpdateSystem(
     private val state: UiComposerState,
     private val preview: GdxUiScenePreview,
 ) : System() {
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         val rect = state.canvasPreviewRect
         if (rect.isValid) {
             preview.setCanvasViewport(
@@ -368,10 +383,11 @@ private class UiComposerPreviewUpdateSystem(
         )
         preview.update(dt)
         state.selectedActorInfo = preview.actorInfo(state.selectedNodeId)
-        state.guideSnapshot = preview.guideSnapshot(
-            selectedNodeId = state.selectedNodeId,
-            hoveredNodeId = state.hoveredNodeId,
-        )
+        state.guideSnapshot =
+            preview.guideSnapshot(
+                selectedNodeId = state.selectedNodeId,
+                hoveredNodeId = state.hoveredNodeId,
+            )
     }
 }
 
@@ -393,7 +409,10 @@ private class UiComposerCanvasInteractionSystem(
     private val preview: GdxUiScenePreview,
     private val input: InputService,
 ) : System() {
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         val snapshot = input.snapshot()
         val previewRect = state.canvasPreviewRect
         if (!previewRect.isValid) {
@@ -435,16 +454,18 @@ private class UiComposerCanvasInteractionSystem(
         val panning = controlDown && snapshot.isMouseDown(MouseButton.Left)
         state.canvasPanning = panning
         if (panning) {
-            val worldPerPixelX = previewWorldUnitsPerScreenPixel(
-                logicalSize = state.previewLogicalWidth,
-                screenSize = previewRect.width,
-                zoom = state.previewZoom,
-            )
-            val worldPerPixelY = previewWorldUnitsPerScreenPixel(
-                logicalSize = state.previewLogicalHeight,
-                screenSize = previewRect.height,
-                zoom = state.previewZoom,
-            )
+            val worldPerPixelX =
+                previewWorldUnitsPerScreenPixel(
+                    logicalSize = state.previewLogicalWidth,
+                    screenSize = previewRect.width,
+                    zoom = state.previewZoom,
+                )
+            val worldPerPixelY =
+                previewWorldUnitsPerScreenPixel(
+                    logicalSize = state.previewLogicalHeight,
+                    screenSize = previewRect.height,
+                    zoom = state.previewZoom,
+                )
             state.previewCameraOffsetX -= snapshot.mouseDelta.x * worldPerPixelX
             state.previewCameraOffsetY += snapshot.mouseDelta.y * worldPerPixelY
             updateWorldMouse(localX, localY, previewRect)
@@ -459,10 +480,11 @@ private class UiComposerCanvasInteractionSystem(
             return
         }
 
-        val hit = preview.hitTestLocal(
-            localX = localX.toInt(),
-            localY = localY.toInt(),
-        )
+        val hit =
+            preview.hitTestLocal(
+                localX = localX.toInt(),
+                localY = localY.toInt(),
+            )
         state.hoveredNodeId = hit?.nodeId
         state.canvasStatusMessage = hit?.let { "Hovered '${it.nodeId}'." } ?: "No preview actor hovered."
 

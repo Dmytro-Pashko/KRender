@@ -32,10 +32,11 @@ class SceneEditorBoundingBoxSystemTest {
     @Test
     fun `draws selected bounding box from provided actual model bounds`() {
         val model = AssetRef.model("models/actual.glb")
-        val actualBounds = SceneEditorLocalBounds(
-            min = Vec3(-2f, -1f, -3f),
-            max = Vec3(2f, 1f, 3f),
-        )
+        val actualBounds =
+            SceneEditorLocalBounds(
+                min = Vec3(-2f, -1f, -3f),
+                max = Vec3(2f, 1f, 3f),
+            )
         val document = SceneEditorDocument(SceneWorld())
         val target = document.world.createEntity("Target")
         target.add(ModelComponent(model))
@@ -60,10 +61,11 @@ class SceneEditorBoundingBoxSystemTest {
         val document = SceneEditorDocument(SceneWorld())
         val target = document.world.createEntity("Target")
         target.add(ModelComponent(AssetRef.model("models/target.glb")))
-        val state = SceneEditorState(
-            selectedEntityId = target.id,
-            showSelectedBoundingBox = false,
-        )
+        val state =
+            SceneEditorState(
+                selectedEntityId = target.id,
+                showSelectedBoundingBox = false,
+            )
         val world = SceneWorld()
         world.systems.add(SceneEditorBoundingBoxSystem(document, state))
 
@@ -94,14 +96,16 @@ class SceneEditorBoundingBoxSystemTest {
 
     @Test
     fun `transformed bounds corners apply position and scale`() {
-        val transform = TransformComponent(
-            position = Vec3(10f, 20f, 30f),
-            scale = Vec3(2f, 3f, 4f),
-        )
-        val corners = transformedBoundsCorners(
-            SceneEditorLocalBounds(Vec3(-1f, -1f, -1f), Vec3(1f, 1f, 1f)),
-            transform,
-        )
+        val transform =
+            TransformComponent(
+                position = Vec3(10f, 20f, 30f),
+                scale = Vec3(2f, 3f, 4f),
+            )
+        val corners =
+            transformedBoundsCorners(
+                SceneEditorLocalBounds(Vec3(-1f, -1f, -1f), Vec3(1f, 1f, 1f)),
+                transform,
+            )
 
         assertEquals(Vec3(8f, 17f, 26f), corners[0])
         assertEquals(Vec3(12f, 23f, 34f), corners[6])
@@ -112,7 +116,6 @@ class SceneEditorBoundingBoxSystemTest {
     ) : ModelBoundsService {
         private val boundsByPath = entries.toMap()
 
-        override fun boundsFor(model: AssetRef<ModelAsset>): SceneEditorLocalBounds? =
-            boundsByPath[model.path]
+        override fun boundsFor(model: AssetRef<ModelAsset>): SceneEditorLocalBounds? = boundsByPath[model.path]
     }
 }

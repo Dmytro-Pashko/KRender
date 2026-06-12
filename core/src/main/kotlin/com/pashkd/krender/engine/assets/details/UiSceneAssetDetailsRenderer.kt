@@ -10,7 +10,10 @@ class UiSceneAssetDetailsRenderer : AssetDetailsRenderer {
     override fun supports(asset: AssetDescriptor): Boolean =
         asset.category == AssetCategory.UI && asset.type == AssetType.UiScene
 
-    override fun render(asset: AssetDescriptor, context: AssetDetailsRenderContext) {
+    override fun render(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    ) {
         ImGui.text("Metadata")
         assetBrowserTextLine("Document ID: ${asset.metadata["uiSceneDocumentId"] ?: "unknown"}")
         assetBrowserTextLine("Skin: ${asset.metadata["uiSceneSkinPath"] ?: "unknown"}")

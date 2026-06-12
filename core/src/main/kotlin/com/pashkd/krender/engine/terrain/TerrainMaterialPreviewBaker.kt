@@ -169,9 +169,10 @@ class TerrainMaterialPreviewBaker(
     fun cacheStats(): TerrainPreviewTextureCacheStats =
         TerrainPreviewTextureCacheStats(
             textureCount = texturePixmapCache.size,
-            approximateMemoryBytes = texturePixmapCache.values.sumOf { pixmap ->
-                pixmap.width.toLong() * pixmap.height.toLong() * 4L
-            },
+            approximateMemoryBytes =
+                texturePixmapCache.values.sumOf { pixmap ->
+                    pixmap.width.toLong() * pixmap.height.toLong() * 4L
+                },
         )
 
     /**
@@ -188,15 +189,17 @@ class TerrainMaterialPreviewBaker(
     ): TerrainLayerColorDescriptor {
         // Preview layers are gathered as color/weight pairs first, then blended
         // by the same logical mode selected in the editor.
-        val samples = terrain.allLayers()
-            .filter { it.visible }
-            .map { layer ->
-                TerrainMaterialPreviewLayerSample(
-                    color = sampleLayerTextureColor(layer, u, v),
-                    weight = terrain.sampleLayerWeight(layer.id, localX, localZ),
-                    visible = true,
-                )
-            }
+        val samples =
+            terrain
+                .allLayers()
+                .filter { it.visible }
+                .map { layer ->
+                    TerrainMaterialPreviewLayerSample(
+                        color = sampleLayerTextureColor(layer, u, v),
+                        weight = terrain.sampleLayerWeight(layer.id, localX, localZ),
+                        visible = true,
+                    )
+                }
         return TerrainMaterialPreviewColorBlender.blend(samples, blendMode, BASE_FALLBACK_COLOR)
     }
 
@@ -225,19 +228,18 @@ class TerrainMaterialPreviewBaker(
      *
      * Returns `null` when the material has no texture path or loading fails.
      */
-    private fun loadMaterialPixmap(
-        material: TerrainMaterialDescriptor,
-    ): Pixmap? {
+    private fun loadMaterialPixmap(material: TerrainMaterialDescriptor): Pixmap? {
         val path = material.albedoTexture.trim()
         if (path.isBlank()) return null
         texturePixmapCache[path]?.let { return it }
 
-        val pixmap = try {
-            Pixmap(Gdx.files.internal(path))
-        } catch (error: Exception) {
-            logger?.warn(TAG, error) { "Failed to load terrain preview texture '$path': ${error.message}" }
-            null
-        }
+        val pixmap =
+            try {
+                Pixmap(Gdx.files.internal(path))
+            } catch (error: Exception) {
+                logger?.warn(TAG, error) { "Failed to load terrain preview texture '$path': ${error.message}" }
+                null
+            }
         if (pixmap != null) {
             texturePixmapCache[path] = pixmap
         }
@@ -254,10 +256,14 @@ class TerrainMaterialPreviewBaker(
     ): TerrainLayerColorDescriptor {
         // UVs are clamped to protect against tiny floating-point overshoot, then
         // converted into integer texel coordinates.
-        val x = (u.coerceIn(0f, 1f) * (pixmap.width - 1).coerceAtLeast(0)).roundToInt()
-            .coerceIn(0, pixmap.width - 1)
-        val y = (v.coerceIn(0f, 1f) * (pixmap.height - 1).coerceAtLeast(0)).roundToInt()
-            .coerceIn(0, pixmap.height - 1)
+        val x =
+            (u.coerceIn(0f, 1f) * (pixmap.width - 1).coerceAtLeast(0))
+                .roundToInt()
+                .coerceIn(0, pixmap.width - 1)
+        val y =
+            (v.coerceIn(0f, 1f) * (pixmap.height - 1).coerceAtLeast(0))
+                .roundToInt()
+                .coerceIn(0, pixmap.height - 1)
         val rgba = pixmap.getPixel(x, y)
         return TerrainLayerColorDescriptor(
             r = ((rgba ushr 24) and 0xff) / 255f,
@@ -268,8 +274,7 @@ class TerrainMaterialPreviewBaker(
     }
 
     /** Returns the baked preview fallback color defined by the material itself. */
-    private fun fallbackColor(material: TerrainMaterialDescriptor): TerrainLayerColorDescriptor =
-        material.fallbackColor
+    private fun fallbackColor(material: TerrainMaterialDescriptor): TerrainLayerColorDescriptor = material.fallbackColor
 
     /** Ensures preview export paths are non-empty and end with `.png`. */
     private fun normalizePngPath(filePath: String): String {
@@ -302,7 +307,6 @@ class TerrainMaterialPreviewBaker(
 data class TerrainPreviewTextureCacheStats(
     /** Number of distinct texture paths currently cached as pixmaps. */
     val textureCount: Int,
-
     /** Approximate total cache size in bytes assuming RGBA8888 storage. */
     val approximateMemoryBytes: Long,
 )
@@ -313,10 +317,8 @@ data class TerrainPreviewTextureCacheStats(
 internal data class TerrainMaterialPreviewLayerSample(
     /** Sampled layer color after texture lookup or fallback resolution. */
     val color: TerrainLayerColorDescriptor,
-
     /** Layer influence at the current terrain sample position. */
     val weight: Float,
-
     /** Whether the layer should participate in preview blending. */
     val visible: Boolean = true,
 )

@@ -11,11 +11,12 @@ object NodeIdUniquenessValidator : UiSceneValidationRule {
         val issues = mutableListOf<UiSceneValidationIssue>()
         context.nodes.forEach { node ->
             if (node.id.isBlank()) {
-                issues += error(
-                    code = UiSceneValidationCode.BlankNodeId,
-                    message = "Node id must not be blank.",
-                    fieldName = "id",
-                )
+                issues +=
+                    error(
+                        code = UiSceneValidationCode.BlankNodeId,
+                        message = "Node id must not be blank.",
+                        fieldName = "id",
+                    )
             }
         }
         context.nodesById
@@ -24,12 +25,13 @@ object NodeIdUniquenessValidator : UiSceneValidationRule {
             .keys
             .sorted()
             .forEach { duplicateId ->
-                issues += error(
-                    code = UiSceneValidationCode.DuplicateNodeId,
-                    message = "Node id '$duplicateId' is duplicated within this document.",
-                    nodeId = duplicateId,
-                    fieldName = "id",
-                )
+                issues +=
+                    error(
+                        code = UiSceneValidationCode.DuplicateNodeId,
+                        message = "Node id '$duplicateId' is duplicated within this document.",
+                        nodeId = duplicateId,
+                        fieldName = "id",
+                    )
             }
         return issues
     }

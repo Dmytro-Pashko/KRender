@@ -16,7 +16,10 @@ interface AssetTool {
     fun canOpen(asset: AssetDescriptor): Boolean = asset.category in supportedCategories
 
     /** Opens [asset] using engine [context]. */
-    fun open(asset: AssetDescriptor, context: EngineContext)
+    fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    )
 }
 
 /**
@@ -35,8 +38,7 @@ class AssetToolRegistry(
     }
 
     /** Returns every tool that can open [asset]. */
-    fun toolsFor(asset: AssetDescriptor): List<AssetTool> =
-        tools.filter { it.canOpen(asset) }
+    fun toolsFor(asset: AssetDescriptor): List<AssetTool> = tools.filter { it.canOpen(asset) }
 
     /** Returns the default tool for [asset], or null when none can open it. */
     fun defaultToolFor(asset: AssetDescriptor): AssetTool? = toolsFor(asset).firstOrNull { it.defaultAction }

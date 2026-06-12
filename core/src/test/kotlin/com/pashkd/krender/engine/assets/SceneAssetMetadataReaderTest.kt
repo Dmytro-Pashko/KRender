@@ -45,73 +45,82 @@ class SceneAssetMetadataReaderTest {
                 SceneDescriptor(
                     id = "scene:test",
                     name = "Test Scene",
-                    entities = listOf(
-                        EntityDescriptor(
-                            id = 1L,
-                            name = "Main Camera",
-                            active = true,
-                            components = listOf(
-                                transform("-5.0,1.0,2.0"),
-                                ComponentDescriptor(SceneComponentTypes.Camera, mapOf("fieldOfViewDegrees" to "67.0")),
-                            ),
-                        ),
-                        EntityDescriptor(
-                            id = 2L,
-                            name = "Sun",
-                            active = true,
-                            components = listOf(
-                                transform("1.0,4.0,-1.0"),
-                                ComponentDescriptor(SceneComponentTypes.Light, mapOf("type" to "Directional")),
-                            ),
-                        ),
-                        EntityDescriptor(
-                            id = 3L,
-                            name = "Lamp",
-                            active = false,
-                            components = listOf(
-                                transform("3.0,2.0,6.0"),
-                                ComponentDescriptor(SceneComponentTypes.Light, mapOf("type" to "Point")),
-                            ),
-                        ),
-                        EntityDescriptor(
-                            id = 4L,
-                            name = "Building",
-                            active = true,
-                            components = listOf(
-                                transform("4.0,0.0,8.0"),
-                                ComponentDescriptor(SceneComponentTypes.Model, mapOf("model" to "model/building.glb")),
-                            ),
-                        ),
-                        EntityDescriptor(
-                            id = 5L,
-                            name = "Terrain",
-                            active = true,
-                            parentId = 4L,
-                            components = listOf(
-                                transform("0.0,0.0,0.0"),
-                                ComponentDescriptor(
-                                    SceneComponentTypes.Terrain,
-                                    mapOf(
-                                        "terrain" to "terrains/test_terrain.json",
-                                        "bakedTextureResolution" to "2048",
+                    entities =
+                        listOf(
+                            EntityDescriptor(
+                                id = 1L,
+                                name = "Main Camera",
+                                active = true,
+                                components =
+                                    listOf(
+                                        transform("-5.0,1.0,2.0"),
+                                        ComponentDescriptor(SceneComponentTypes.Camera, mapOf("fieldOfViewDegrees" to "67.0")),
                                     ),
-                                ),
+                            ),
+                            EntityDescriptor(
+                                id = 2L,
+                                name = "Sun",
+                                active = true,
+                                components =
+                                    listOf(
+                                        transform("1.0,4.0,-1.0"),
+                                        ComponentDescriptor(SceneComponentTypes.Light, mapOf("type" to "Directional")),
+                                    ),
+                            ),
+                            EntityDescriptor(
+                                id = 3L,
+                                name = "Lamp",
+                                active = false,
+                                components =
+                                    listOf(
+                                        transform("3.0,2.0,6.0"),
+                                        ComponentDescriptor(SceneComponentTypes.Light, mapOf("type" to "Point")),
+                                    ),
+                            ),
+                            EntityDescriptor(
+                                id = 4L,
+                                name = "Building",
+                                active = true,
+                                components =
+                                    listOf(
+                                        transform("4.0,0.0,8.0"),
+                                        ComponentDescriptor(SceneComponentTypes.Model, mapOf("model" to "model/building.glb")),
+                                    ),
+                            ),
+                            EntityDescriptor(
+                                id = 5L,
+                                name = "Terrain",
+                                active = true,
+                                parentId = 4L,
+                                components =
+                                    listOf(
+                                        transform("0.0,0.0,0.0"),
+                                        ComponentDescriptor(
+                                            SceneComponentTypes.Terrain,
+                                            mapOf(
+                                                "terrain" to "terrains/test_terrain.json",
+                                                "bakedTextureResolution" to "2048",
+                                            ),
+                                        ),
+                                    ),
                             ),
                         ),
-                    ),
-                    settings = SceneSettingsDescriptor(
-                        activeCameraEntityId = 1L,
-                        activeTerrainEntityId = 5L,
-                        lighting = SceneLightingDescriptor(ambientIntensity = 0.35f),
-                        environment = SceneEnvironmentDescriptor(
-                            skyboxAssetPath = "skyboxes/test.krskybox",
-                            showSkybox = true,
-                            environmentIntensity = 1.5f,
+                    settings =
+                        SceneSettingsDescriptor(
+                            activeCameraEntityId = 1L,
+                            activeTerrainEntityId = 5L,
+                            lighting = SceneLightingDescriptor(ambientIntensity = 0.35f),
+                            environment =
+                                SceneEnvironmentDescriptor(
+                                    skyboxAssetPath = "skyboxes/test.krskybox",
+                                    showSkybox = true,
+                                    environmentIntensity = 1.5f,
+                                ),
+                            terrain =
+                                SceneTerrainSettingsDescriptor(
+                                    materialLibraryPath = "materials/terrain_materials.json",
+                                ),
                         ),
-                        terrain = SceneTerrainSettingsDescriptor(
-                            materialLibraryPath = "materials/terrain_materials.json",
-                        ),
-                    ),
                 ),
             ),
             StandardCharsets.UTF_8,
@@ -150,31 +159,35 @@ class SceneAssetMetadataReaderTest {
 
     @Test
     fun `omits terrain detail fields when active terrain metadata cannot be resolved`() {
-        val descriptor = SceneDescriptor(
-            id = "scene:no-terrain-file",
-            name = "No Terrain File",
-            entities = listOf(
-                EntityDescriptor(
-                    id = 10L,
-                    name = "Terrain",
-                    components = listOf(
-                        ComponentDescriptor(
-                            SceneComponentTypes.Terrain,
-                            mapOf(
-                                "terrain" to "terrains/missing.json",
-                                "bakedTextureResolution" to "1024",
-                            ),
+        val descriptor =
+            SceneDescriptor(
+                id = "scene:no-terrain-file",
+                name = "No Terrain File",
+                entities =
+                    listOf(
+                        EntityDescriptor(
+                            id = 10L,
+                            name = "Terrain",
+                            components =
+                                listOf(
+                                    ComponentDescriptor(
+                                        SceneComponentTypes.Terrain,
+                                        mapOf(
+                                            "terrain" to "terrains/missing.json",
+                                            "bakedTextureResolution" to "1024",
+                                        ),
+                                    ),
+                                ),
                         ),
                     ),
-                ),
-            ),
-            settings = SceneSettingsDescriptor(activeTerrainEntityId = 10L),
-        )
+                settings = SceneSettingsDescriptor(activeTerrainEntityId = 10L),
+            )
 
-        val metadata = SceneAssetMetadataReader.fromDescriptor(
-            descriptor = descriptor,
-            baseDirectory = Files.createTempDirectory("scene-asset-metadata-empty").toFile(),
-        )
+        val metadata =
+            SceneAssetMetadataReader.fromDescriptor(
+                descriptor = descriptor,
+                baseDirectory = Files.createTempDirectory("scene-asset-metadata-empty").toFile(),
+            )
 
         assertEquals("Terrain", metadata.activeTerrainName)
         assertEquals("terrains/missing.json", metadata.activeTerrainPath)
@@ -194,4 +207,3 @@ class SceneAssetMetadataReaderTest {
             ),
         )
 }
-

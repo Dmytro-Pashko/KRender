@@ -11,8 +11,7 @@ import kotlinx.serialization.json.*
 internal fun JsonObject.requiredString(
     name: String,
     documentName: String,
-): String =
-    stringOrNull(name) ?: throw IllegalArgumentException("$documentName is missing required field '$name'")
+): String = stringOrNull(name) ?: throw IllegalArgumentException("$documentName is missing required field '$name'")
 
 /**
  * Reads a required long field from a KRender JSON object.
@@ -20,8 +19,7 @@ internal fun JsonObject.requiredString(
 internal fun JsonObject.requiredLong(
     name: String,
     documentName: String,
-): Long =
-    longOrNull(name) ?: throw IllegalArgumentException("$documentName field '$name' must be a number")
+): Long = longOrNull(name) ?: throw IllegalArgumentException("$documentName field '$name' must be a number")
 
 /**
  * Reads an optional string while treating JSON null-like text as absent.
@@ -37,14 +35,12 @@ internal fun JsonObject.stringOrNull(name: String): String? {
 internal fun JsonObject.stringOrDefault(
     name: String,
     defaultValue: String,
-): String =
-    stringOrNull(name) ?: defaultValue
+): String = stringOrNull(name) ?: defaultValue
 
 /**
  * Reads an optional long field.
  */
-internal fun JsonObject.longOrNull(name: String): Long? =
-    (this[name] as? JsonPrimitive)?.longOrNull
+internal fun JsonObject.longOrNull(name: String): Long? = (this[name] as? JsonPrimitive)?.longOrNull
 
 /**
  * Reads an int field or returns [defaultValue] when absent or invalid.
@@ -52,14 +48,12 @@ internal fun JsonObject.longOrNull(name: String): Long? =
 internal fun JsonObject.intOrDefault(
     name: String,
     defaultValue: Int,
-): Int =
-    (this[name] as? JsonPrimitive)?.content?.toIntOrNull() ?: defaultValue
+): Int = (this[name] as? JsonPrimitive)?.content?.toIntOrNull() ?: defaultValue
 
 /**
  * Reads an optional float field.
  */
-internal fun JsonObject.floatOrNull(name: String): Float? =
-    (this[name] as? JsonPrimitive)?.floatOrNull
+internal fun JsonObject.floatOrNull(name: String): Float? = (this[name] as? JsonPrimitive)?.floatOrNull
 
 /**
  * Reads a float field or returns [defaultValue] when absent or invalid.
@@ -67,8 +61,7 @@ internal fun JsonObject.floatOrNull(name: String): Float? =
 internal fun JsonObject.floatOrDefault(
     name: String,
     defaultValue: Float,
-): Float =
-    floatOrNull(name) ?: defaultValue
+): Float = floatOrNull(name) ?: defaultValue
 
 /**
  * Reads a boolean field or returns [defaultValue] when absent or invalid.
@@ -76,8 +69,7 @@ internal fun JsonObject.floatOrDefault(
 internal fun JsonObject.booleanOrDefault(
     name: String,
     defaultValue: Boolean,
-): Boolean =
-    (this[name] as? JsonPrimitive)?.booleanOrNull ?: defaultValue
+): Boolean = (this[name] as? JsonPrimitive)?.booleanOrNull ?: defaultValue
 
 /**
  * Reads a required enum by stable enum name.
@@ -113,8 +105,7 @@ internal fun <T : Enum<T>> JsonObject.enumOrDefault(
     documentName: String,
     defaultValue: T,
     parser: (String) -> T,
-): T =
-    enumOrNull(name, documentName, parser) ?: defaultValue
+): T = enumOrNull(name, documentName, parser) ?: defaultValue
 
 /**
  * Writes a string field only when it is present.
@@ -172,8 +163,7 @@ internal fun JsonObjectBuilder.putIfNonDefault(
 /**
  * Normalizes project-relative asset paths stored in KRender JSON documents.
  */
-internal fun normalizedProjectPath(raw: String): String =
-    raw.trim().replace('\\', '/')
+internal fun normalizedProjectPath(raw: String): String = raw.trim().replace('\\', '/')
 
 /**
  * Normalizes an optional project-relative path and treats blanks/null-like values as absent.

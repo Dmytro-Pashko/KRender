@@ -172,7 +172,6 @@ data class UiSceneSpacing(
         fun zero(): UiSceneSpacing = UiSceneSpacing()
 
         /** Creates uniform padding in the `.krui` shared spacing model. */
-        fun all(value: Float): UiSceneSpacing =
-            UiSceneSpacing(value, value, value, value)
+        fun all(value: Float): UiSceneSpacing = UiSceneSpacing(value, value, value, value)
     }
 }

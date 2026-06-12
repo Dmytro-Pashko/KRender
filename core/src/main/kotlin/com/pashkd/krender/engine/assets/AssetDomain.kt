@@ -4,7 +4,9 @@ package com.pashkd.krender.engine.assets
  * Stable unique asset identifier stored in sidecar metadata.
  */
 @JvmInline
-value class AssetId(val value: String)
+value class AssetId(
+    val value: String,
+)
 
 /**
  * High-level asset grouping used for browser filters and sorting.

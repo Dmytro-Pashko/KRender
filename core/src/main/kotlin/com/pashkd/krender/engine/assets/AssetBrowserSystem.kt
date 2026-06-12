@@ -20,7 +20,10 @@ class AssetBrowserSystem(
     private var queuedModelPath: String? = null
     private var queuedTexturePath: String? = null
 
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         if (!initialScanRequested) {
             initialScanRequested = true
             requestScan(reason = "initial")
@@ -38,8 +41,7 @@ class AssetBrowserSystem(
     }
 
     /** Returns the currently selected asset descriptor, if any. */
-    fun selectedAsset(): AssetDescriptor? =
-        state.selectedAssetId?.let(registry::findById)
+    fun selectedAsset(): AssetDescriptor? = state.selectedAssetId?.let(registry::findById)
 
     private fun requestScan(reason: String) {
         if (scanInFlight) {
@@ -50,17 +52,18 @@ class AssetBrowserSystem(
         state.isScanning = true
         state.statusMessage = "Scanning assets ($reason)..."
         tasks.launchBackground("asset-browser-scan") {
-            val snapshot = try {
-                registry.scanSnapshot()
-            } catch (error: Exception) {
-                logger.error(TAG, error) { "Background scan failed: ${error.message}" }
-                tasks.postToMain {
-                    scanInFlight = false
-                    state.isScanning = false
-                    state.errorMessage = "Asset scan failed: ${error.message}"
+            val snapshot =
+                try {
+                    registry.scanSnapshot()
+                } catch (error: Exception) {
+                    logger.error(TAG, error) { "Background scan failed: ${error.message}" }
+                    tasks.postToMain {
+                        scanInFlight = false
+                        state.isScanning = false
+                        state.errorMessage = "Asset scan failed: ${error.message}"
+                    }
+                    return@launchBackground
                 }
-                return@launchBackground
-            }
             tasks.postToMain {
                 applyScanResult(snapshot)
             }
@@ -81,26 +84,40 @@ class AssetBrowserSystem(
     private fun applyFilteringAndSorting() {
         val query = state.searchQuery.trim().lowercase()
         val selectedCategory = state.selectedCategory
-        val filtered = state.assets
-            .asSequence()
-            .filter { asset -> selectedCategory == null || asset.category == selectedCategory }
-            .filter { asset ->
-                query.isBlank() ||
-                    asset.name.lowercase().contains(query) ||
-                    asset.path.lowercase().contains(query) ||
-                    asset.type.name.lowercase().contains(query) ||
-                    asset.category.displayName.lowercase().contains(query) ||
-                    asset.tags.any { tag -> tag.lowercase().contains(query) }
-            }
-            .toList()
+        val filtered =
+            state.assets
+                .asSequence()
+                .filter { asset -> selectedCategory == null || asset.category == selectedCategory }
+                .filter { asset ->
+                    query.isBlank() ||
+                        asset.name.lowercase().contains(query) ||
+                        asset.path.lowercase().contains(query) ||
+                        asset.type.name
+                            .lowercase()
+                            .contains(query) ||
+                        asset.category.displayName
+                            .lowercase()
+                            .contains(query) ||
+                        asset.tags.any { tag -> tag.lowercase().contains(query) }
+                }.toList()
 
-        state.filteredAssets = when (state.sortMode) {
-            AssetSortMode.NameAsc -> filtered.sortedBy { it.name.lowercase() }
-            AssetSortMode.NameDesc -> filtered.sortedByDescending { it.name.lowercase() }
-            AssetSortMode.TypeAsc -> filtered.sortedWith(compareBy<AssetDescriptor> { it.type.name }.thenBy { it.name.lowercase() })
-            AssetSortMode.ModifiedDesc -> filtered.sortedWith(compareByDescending<AssetDescriptor> { it.modifiedAtMillis }.thenBy { it.name.lowercase() })
-            AssetSortMode.SizeDesc -> filtered.sortedWith(compareByDescending<AssetDescriptor> { it.sizeBytes }.thenBy { it.name.lowercase() })
-        }
+        state.filteredAssets =
+            when (state.sortMode) {
+                AssetSortMode.NameAsc -> filtered.sortedBy { it.name.lowercase() }
+                AssetSortMode.NameDesc -> filtered.sortedByDescending { it.name.lowercase() }
+                AssetSortMode.TypeAsc -> filtered.sortedWith(compareBy<AssetDescriptor> { it.type.name }.thenBy { it.name.lowercase() })
+                AssetSortMode.ModifiedDesc ->
+                    filtered.sortedWith(
+                        compareByDescending<AssetDescriptor> {
+                            it.modifiedAtMillis
+                        }.thenBy { it.name.lowercase() },
+                    )
+
+                AssetSortMode.SizeDesc ->
+                    filtered.sortedWith(
+                        compareByDescending<AssetDescriptor> { it.sizeBytes }.thenBy { it.name.lowercase() },
+                    )
+            }
 
         val selectedAssetId = state.selectedAssetId
         if (selectedAssetId != null && state.assets.none { it.id == selectedAssetId }) {
@@ -126,11 +143,12 @@ class AssetBrowserSystem(
         }
 
         val loaded = assets.isLoaded(modelRef)
-        state.selectedModelStatus = if (loaded) {
-            "Loaded"
-        } else {
-            "Loading ${"%.0f".format(assets.progress() * 100f)}%"
-        }
+        state.selectedModelStatus =
+            if (loaded) {
+                "Loaded"
+            } else {
+                "Loading ${"%.0f".format(assets.progress() * 100f)}%"
+            }
         state.selectedModelInfo = if (loaded) assets.modelInfo(modelRef) else null
     }
 

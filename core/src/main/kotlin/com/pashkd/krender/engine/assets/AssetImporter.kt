@@ -41,12 +41,10 @@ class AssetImporterRegistry(
     fun all(): List<AssetImporter> = importers.toList()
 
     /** Returns the first importer that claims [path], or null. */
-    fun resolve(path: String): AssetImporter? =
-        importers.firstOrNull { it.canImport(path) }
+    fun resolve(path: String): AssetImporter? = importers.firstOrNull { it.canImport(path) }
 
     /** Returns importers whose output category matches [category]. */
-    fun byCategory(category: AssetCategory): List<AssetImporter> =
-        importers.filter { it.outputCategory == category }
+    fun byCategory(category: AssetCategory): List<AssetImporter> = importers.filter { it.outputCategory == category }
 
     companion object {
         private const val TAG = "AssetImporterRegistry"
@@ -69,11 +67,9 @@ class AssetImporterRegistry(
     }
 }
 
-private fun normalizedExtension(path: String): String =
-    path.substringAfterLast('.', "").lowercase()
+private fun normalizedExtension(path: String): String = path.substringAfterLast('.', "").lowercase()
 
-private fun normalizedLower(path: String): String =
-    path.replace('\\', '/').lowercase()
+private fun normalizedLower(path: String): String = path.replace('\\', '/').lowercase()
 
 /**
  * glTF / GLB binary models.

@@ -23,8 +23,9 @@ data class AssetImportPlan(
         get() = entries.filter(AssetImportEntry::supported)
 
     val requiresOverwriteConfirmation: Boolean
-        get() = collisionPolicy == AssetImportCollisionPolicy.Overwrite &&
-            supportedEntries.any(AssetImportEntry::mainTargetExists)
+        get() =
+            collisionPolicy == AssetImportCollisionPolicy.Overwrite &&
+                supportedEntries.any(AssetImportEntry::mainTargetExists)
 }
 
 /**

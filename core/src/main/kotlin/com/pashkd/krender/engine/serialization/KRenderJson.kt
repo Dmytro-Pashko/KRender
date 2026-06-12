@@ -11,10 +11,11 @@ import kotlinx.serialization.json.Json
  */
 object KRenderJson {
     /** Pretty JSON config used for `.krscene`, `.krskybox`, `.krui`, and future formats. */
-    val Pretty: Json = Json {
-        prettyPrint = true
-        prettyPrintIndent = "  "
-        ignoreUnknownKeys = true
-        explicitNulls = false
-    }
+    val Pretty: Json =
+        Json {
+            prettyPrint = true
+            prettyPrintIndent = "  "
+            ignoreUnknownKeys = true
+            explicitNulls = false
+        }
 }

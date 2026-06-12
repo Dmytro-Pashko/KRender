@@ -34,7 +34,10 @@ class ModelViewerSystem(
     /**
      * Updates render toggles, status text, metadata, and queued scene actions.
      */
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         frameIndex += 1
         try {
             updateInternal(world, dt)
@@ -47,7 +50,10 @@ class ModelViewerSystem(
         }
     }
 
-    private fun updateInternal(world: SceneWorld, dt: Float) {
+    private fun updateInternal(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         if (frameIndex == 1L) {
             logger.debug(TAG) {
                 "ModelViewer first update dt=${"%.4f".format(dt)} model='${state.model.path}' entities=${world.all().size}"
@@ -75,23 +81,26 @@ class ModelViewerSystem(
     private fun syncStatus(world: SceneWorld) {
         state.assetProgress = assets.progress()
         state.assetLoaded = assets.isLoaded(state.model)
-        state.loadingStatus = when {
-            state.assetLoaded -> "Loaded"
-            else -> "Loading ${"%.0f".format(state.assetProgress * 100f)}%"
-        }
+        state.loadingStatus =
+            when {
+                state.assetLoaded -> "Loaded"
+                else -> "Loading ${"%.0f".format(state.assetProgress * 100f)}%"
+            }
         state.modelInfo = if (state.assetLoaded) assets.modelInfo(state.model) else null
-        state.errorMessage = if (state.assetLoaded && state.modelInfo == null) {
-            "Model metadata is unavailable for this asset."
-        } else {
-            null
-        }
+        state.errorMessage =
+            if (state.assetLoaded && state.modelInfo == null) {
+                "Model metadata is unavailable for this asset."
+            } else {
+                null
+            }
         logStatusChanges()
 
         val wireframe = state.displayMode == ModelViewerDisplayMode.Wireframe
         val wireframeOverlay = state.displayMode == ModelViewerDisplayMode.ShadedWireframe
-        val modelComponent = state.modelEntityId
-            ?.let(world::getEntity)
-            ?.get<ModelComponent>()
+        val modelComponent =
+            state.modelEntityId
+                ?.let(world::getEntity)
+                ?.get<ModelComponent>()
         if (modelComponent == null) {
             if (!missingModelEntityLogged) {
                 logger.warn(TAG) {
@@ -105,10 +114,11 @@ class ModelViewerSystem(
             modelComponent.material.wireframe != wireframe ||
             modelComponent.material.wireframeOverlay != wireframeOverlay
         ) {
-            modelComponent.material = modelComponent.material.copy(
-                wireframe = wireframe,
-                wireframeOverlay = wireframeOverlay,
-            )
+            modelComponent.material =
+                modelComponent.material.copy(
+                    wireframe = wireframe,
+                    wireframeOverlay = wireframeOverlay,
+                )
             if (lastDisplayMode != state.displayMode) {
                 logger.info(TAG) {
                     "ModelViewer material display mode applied mode=${state.displayMode} " +
@@ -152,9 +162,10 @@ class ModelViewerSystem(
         val info = state.modelInfo ?: return
         state.selectedMeshPartIndex = state.selectedMeshPartIndex?.takeIf { it in info.meshParts.indices }
         state.selectedMaterialIndex = state.selectedMaterialIndex?.takeIf { it in info.materials.indices }
-        val textureChannels = info.materials
-            .flatMap { material -> material.textureSlots }
-            .mapTo(linkedSetOf()) { slot -> slot.channel }
+        val textureChannels =
+            info.materials
+                .flatMap { material -> material.textureSlots }
+                .mapTo(linkedSetOf()) { slot -> slot.channel }
         state.selectedTextureChannel = state.selectedTextureChannel?.takeIf { channel -> channel in textureChannels }
     }
 
@@ -174,12 +185,13 @@ class ModelViewerSystem(
 
         val selectedMaterialIndex = state.selectedMaterialIndex.takeIf { state.debugSelectedMaterialOnly }
         if (isModelViewerTextureDebugMode(effectiveDebugMode)) {
-            val channels = matchingModelViewerTextureSlots(
-                state.modelInfo,
-                effectiveDebugMode,
-                selectedMaterialIndex,
-                selectedTextureChannel = null,
-            ).map { slot -> slot.channel }.distinct()
+            val channels =
+                matchingModelViewerTextureSlots(
+                    state.modelInfo,
+                    effectiveDebugMode,
+                    selectedMaterialIndex,
+                    selectedTextureChannel = null,
+                ).map { slot -> slot.channel }.distinct()
             if (channels.isNotEmpty() && state.selectedTextureChannel !in channels) {
                 state.selectedTextureChannel = channels.first()
             }
@@ -228,8 +240,9 @@ class ModelViewerSystem(
         return when (mode) {
             MaterialDebugMode.Roughness,
             MaterialDebugMode.Metallic,
-                -> "$material has no metallicRoughnessTexture. " +
-                "Roughness and metallic are usually stored in the same metallicRoughnessTexture."
+                ->
+                "$material has no metallicRoughnessTexture. " +
+                    "Roughness and metallic are usually stored in the same metallicRoughnessTexture."
 
             MaterialDebugMode.MetallicRoughnessPacked ->
                 "$material has no metallicRoughnessTexture."
@@ -330,8 +343,7 @@ class ModelViewerSystem(
 
 private fun Int.floorMod(divisor: Int): Int = ((this % divisor) + divisor) % divisor
 
-private fun String.isGltfPath(): Boolean =
-    endsWith(".gltf", ignoreCase = true) || endsWith(".glb", ignoreCase = true)
+private fun String.isGltfPath(): Boolean = endsWith(".gltf", ignoreCase = true) || endsWith(".glb", ignoreCase = true)
 
 /**
  * Emits ModelViewer viewport guide draw commands from runtime display state.
@@ -339,7 +351,10 @@ private fun String.isGltfPath(): Boolean =
 class ModelViewerViewportGuideSystem(
     private val state: ModelViewerState,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         val halfExtentCells = state.gridHalfExtentCells.coerceAtLeast(1)
         val cellSize = state.gridCellSize.coerceAtLeast(MinCellSize)
         if (state.showGrid) {
@@ -366,13 +381,17 @@ class ModelViewerViewportGuideSystem(
 class ModelViewerModelRenderSystem(
     private val state: ModelViewerState,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         val entity = state.modelEntityId?.let(world::getEntity) ?: return
         val model = entity.get<ModelComponent>() ?: return
         val transform = entity.get<TransformComponent>() ?: return
-        val visibleMeshPartIndices = state.selectedMeshPartIndex
-            ?.takeIf { state.isolateSelectedMeshPart }
-            ?.let(::setOf)
+        val visibleMeshPartIndices =
+            state.selectedMeshPartIndex
+                ?.takeIf { state.isolateSelectedMeshPart }
+                ?.let(::setOf)
 
         val debugView = state.materialDebugView()
         world.renderCommands.submit(
@@ -395,21 +414,24 @@ class ModelViewerModelRenderSystem(
         return MaterialDebugView(
             mode = mode,
             selectedMaterialIndex = selectedMaterial,
-            selectedMaterialId = selectedMaterial?.let { index ->
-                modelInfo?.materials?.firstOrNull { material -> material.index == index }?.id
-            },
+            selectedMaterialId =
+                selectedMaterial?.let { index ->
+                    modelInfo?.materials?.firstOrNull { material -> material.index == index }?.id
+                },
             selectedTextureChannel = selectedTextureChannel,
-            textureRefs = resolvedModelViewerDebugTextureRefs(
-                info = modelInfo,
-                mode = mode,
-                selectedMaterialIndex = selectedMaterial,
-                selectedTextureChannel = selectedTextureChannel,
-            ),
-            uvCheckerTexture = MaterialTextureRef(
-                id = uvCheckerTexturePath,
-                channel = "uvChecker",
-                uvChannel = uvCheckerUvChannel,
-            ),
+            textureRefs =
+                resolvedModelViewerDebugTextureRefs(
+                    info = modelInfo,
+                    mode = mode,
+                    selectedMaterialIndex = selectedMaterial,
+                    selectedTextureChannel = selectedTextureChannel,
+                ),
+            uvCheckerTexture =
+                MaterialTextureRef(
+                    id = uvCheckerTexturePath,
+                    channel = "uvChecker",
+                    uvChannel = uvCheckerUvChannel,
+                ),
             uvChannel = uvCheckerUvChannel,
             uvScale = uvCheckerScale.coerceAtLeast(MinUvCheckerScale),
             culling = debugCullingMode,
@@ -422,11 +444,12 @@ class ModelViewerModelRenderSystem(
             enabled = debugView?.active != true,
             exposure = pbrExposure.coerceAtLeast(0f),
             showSkybox = pbrShowSkybox,
-            skyboxTexture = MaterialTextureRef(
-                id = pbrSkyboxTexturePath,
-                channel = "skybox",
-                uvChannel = 0,
-            ),
+            skyboxTexture =
+                MaterialTextureRef(
+                    id = pbrSkyboxTexturePath,
+                    channel = "skybox",
+                    uvChannel = 0,
+                ),
             environmentIntensity = pbrEnvironmentIntensity.coerceAtLeast(0f),
             directionalLightEnabled = pbrDirectionalLightEnabled,
             directionalLightYawDegrees = pbrDirectionalLightYawDegrees,
@@ -446,7 +469,10 @@ class ModelViewerBoundingBoxSystem(
     private val state: ModelViewerState,
     private val assets: AssetService,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         if (!state.showBoundingBox || !state.assetLoaded) return
         val entity = state.modelEntityId?.let(world::getEntity) ?: return
         val transform = entity.get<TransformComponent>() ?: return
@@ -465,19 +491,20 @@ class ModelViewerBoundingBoxSystem(
 
     companion object {
         private val BoundingBoxColor = Color(1f, 0.85f, 0.1f, 1f)
-        private val BoxEdges = listOf(
-            0 to 1,
-            1 to 2,
-            2 to 3,
-            3 to 0,
-            4 to 5,
-            5 to 6,
-            6 to 7,
-            7 to 4,
-            0 to 4,
-            1 to 5,
-            2 to 6,
-            3 to 7,
-        )
+        private val BoxEdges =
+            listOf(
+                0 to 1,
+                1 to 2,
+                2 to 3,
+                3 to 0,
+                4 to 5,
+                5 to 6,
+                6 to 7,
+                7 to 4,
+                0 to 4,
+                1 to 5,
+                2 to 6,
+                3 to 7,
+            )
     }
 }

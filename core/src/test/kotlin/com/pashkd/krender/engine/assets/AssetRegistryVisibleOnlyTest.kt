@@ -109,7 +109,11 @@ class AssetRegistryVisibleOnlyTest {
         )
     }
 
-    private fun assertDetection(path: String, type: AssetType, category: AssetCategory) {
+    private fun assertDetection(
+        path: String,
+        type: AssetType,
+        category: AssetCategory,
+    ) {
         val detection = AssetTypeDetector.detect(path)
 
         assertEquals(type, detection.type)

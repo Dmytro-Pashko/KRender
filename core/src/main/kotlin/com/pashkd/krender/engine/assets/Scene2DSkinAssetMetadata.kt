@@ -28,28 +28,29 @@ data class Scene2DSkinAssetMetadata(
     val windowStyleCount: Int = 0,
     val rawStyleClassCount: Int = 0,
 ) {
-    fun toMetadataMap(): Map<String, String> = buildMap {
-        put("skinStatus", status)
-        parseError?.let { put("skinParseError", it) }
-        put("skinColorCount", colorCount.toString())
-        put("skinDrawableCount", drawableCount.toString())
-        put("skinTextureRegionCount", textureRegionCount.toString())
-        put("skinLabelStyleCount", labelStyleCount.toString())
-        put("skinTextButtonStyleCount", textButtonStyleCount.toString())
-        put("skinProgressBarStyleCount", progressBarStyleCount.toString())
-        put("skinImageButtonStyleCount", imageButtonStyleCount.toString())
-        put("skinCheckBoxStyleCount", checkBoxStyleCount.toString())
-        put("skinTextFieldStyleCount", textFieldStyleCount.toString())
-        put("skinScrollPaneStyleCount", scrollPaneStyleCount.toString())
-        put("skinSelectBoxStyleCount", selectBoxStyleCount.toString())
-        put("skinWindowStyleCount", windowStyleCount.toString())
-        put("skinStyleClassCount", rawStyleClassCount.toString())
-        put(
-            "skinPreview",
-            "colors=$colorCount, drawables=$drawableCount, " +
-                "labelStyles=$labelStyleCount, textButtonStyles=$textButtonStyleCount",
-        )
-    }
+    fun toMetadataMap(): Map<String, String> =
+        buildMap {
+            put("skinStatus", status)
+            parseError?.let { put("skinParseError", it) }
+            put("skinColorCount", colorCount.toString())
+            put("skinDrawableCount", drawableCount.toString())
+            put("skinTextureRegionCount", textureRegionCount.toString())
+            put("skinLabelStyleCount", labelStyleCount.toString())
+            put("skinTextButtonStyleCount", textButtonStyleCount.toString())
+            put("skinProgressBarStyleCount", progressBarStyleCount.toString())
+            put("skinImageButtonStyleCount", imageButtonStyleCount.toString())
+            put("skinCheckBoxStyleCount", checkBoxStyleCount.toString())
+            put("skinTextFieldStyleCount", textFieldStyleCount.toString())
+            put("skinScrollPaneStyleCount", scrollPaneStyleCount.toString())
+            put("skinSelectBoxStyleCount", selectBoxStyleCount.toString())
+            put("skinWindowStyleCount", windowStyleCount.toString())
+            put("skinStyleClassCount", rawStyleClassCount.toString())
+            put(
+                "skinPreview",
+                "colors=$colorCount, drawables=$drawableCount, " +
+                    "labelStyles=$labelStyleCount, textButtonStyles=$textButtonStyleCount",
+            )
+        }
 }
 
 /**
@@ -58,11 +59,12 @@ data class Scene2DSkinAssetMetadata(
 object Scene2DSkinAssetMetadataReader {
     fun read(file: File): Scene2DSkinAssetMetadata =
         try {
-            val root = KRenderJson.Pretty.parseToJsonElement(file.readText(StandardCharsets.UTF_8)) as? JsonObject
-                ?: return Scene2DSkinAssetMetadata(
-                    status = ParseErrorStatus,
-                    parseError = "Scene2D Skin root must be a JSON object",
-                )
+            val root =
+                KRenderJson.Pretty.parseToJsonElement(file.readText(StandardCharsets.UTF_8)) as? JsonObject
+                    ?: return Scene2DSkinAssetMetadata(
+                        status = ParseErrorStatus,
+                        parseError = "Scene2D Skin root must be a JSON object",
+                    )
 
             Scene2DSkinAssetMetadata(
                 status = OkStatus,
@@ -97,54 +99,66 @@ object Scene2DSkinAssetMetadataReader {
 }
 
 private object SkinClassAliases {
-    val color = setOf(
-        "Color",
-        "com.badlogic.gdx.graphics.Color",
-    )
-    val drawable = setOf(
-        "Drawable",
-        "TintedDrawable",
-        "com.badlogic.gdx.scenes.scene2d.utils.Drawable",
-        "com.badlogic.gdx.scenes.scene2d.ui.Skin\$TintedDrawable",
-    )
-    val textureRegion = setOf(
-        "TextureRegion",
-        "com.badlogic.gdx.graphics.g2d.TextureRegion",
-    )
-    val labelStyle = setOf(
-        "LabelStyle",
-        "com.badlogic.gdx.scenes.scene2d.ui.Label\$LabelStyle",
-    )
-    val textButtonStyle = setOf(
-        "TextButtonStyle",
-        "com.badlogic.gdx.scenes.scene2d.ui.TextButton\$TextButtonStyle",
-    )
-    val progressBarStyle = setOf(
-        "ProgressBarStyle",
-        "com.badlogic.gdx.scenes.scene2d.ui.ProgressBar\$ProgressBarStyle",
-    )
-    val imageButtonStyle = setOf(
-        "ImageButtonStyle",
-        "com.badlogic.gdx.scenes.scene2d.ui.ImageButton\$ImageButtonStyle",
-    )
-    val checkBoxStyle = setOf(
-        "CheckBoxStyle",
-        "com.badlogic.gdx.scenes.scene2d.ui.CheckBox\$CheckBoxStyle",
-    )
-    val textFieldStyle = setOf(
-        "TextFieldStyle",
-        "com.badlogic.gdx.scenes.scene2d.ui.TextField\$TextFieldStyle",
-    )
-    val scrollPaneStyle = setOf(
-        "ScrollPaneStyle",
-        "com.badlogic.gdx.scenes.scene2d.ui.ScrollPane\$ScrollPaneStyle",
-    )
-    val selectBoxStyle = setOf(
-        "SelectBoxStyle",
-        "com.badlogic.gdx.scenes.scene2d.ui.SelectBox\$SelectBoxStyle",
-    )
-    val windowStyle = setOf(
-        "WindowStyle",
-        "com.badlogic.gdx.scenes.scene2d.ui.Window\$WindowStyle",
-    )
+    val color =
+        setOf(
+            "Color",
+            "com.badlogic.gdx.graphics.Color",
+        )
+    val drawable =
+        setOf(
+            "Drawable",
+            "TintedDrawable",
+            "com.badlogic.gdx.scenes.scene2d.utils.Drawable",
+            "com.badlogic.gdx.scenes.scene2d.ui.Skin\$TintedDrawable",
+        )
+    val textureRegion =
+        setOf(
+            "TextureRegion",
+            "com.badlogic.gdx.graphics.g2d.TextureRegion",
+        )
+    val labelStyle =
+        setOf(
+            "LabelStyle",
+            "com.badlogic.gdx.scenes.scene2d.ui.Label\$LabelStyle",
+        )
+    val textButtonStyle =
+        setOf(
+            "TextButtonStyle",
+            "com.badlogic.gdx.scenes.scene2d.ui.TextButton\$TextButtonStyle",
+        )
+    val progressBarStyle =
+        setOf(
+            "ProgressBarStyle",
+            "com.badlogic.gdx.scenes.scene2d.ui.ProgressBar\$ProgressBarStyle",
+        )
+    val imageButtonStyle =
+        setOf(
+            "ImageButtonStyle",
+            "com.badlogic.gdx.scenes.scene2d.ui.ImageButton\$ImageButtonStyle",
+        )
+    val checkBoxStyle =
+        setOf(
+            "CheckBoxStyle",
+            "com.badlogic.gdx.scenes.scene2d.ui.CheckBox\$CheckBoxStyle",
+        )
+    val textFieldStyle =
+        setOf(
+            "TextFieldStyle",
+            "com.badlogic.gdx.scenes.scene2d.ui.TextField\$TextFieldStyle",
+        )
+    val scrollPaneStyle =
+        setOf(
+            "ScrollPaneStyle",
+            "com.badlogic.gdx.scenes.scene2d.ui.ScrollPane\$ScrollPaneStyle",
+        )
+    val selectBoxStyle =
+        setOf(
+            "SelectBoxStyle",
+            "com.badlogic.gdx.scenes.scene2d.ui.SelectBox\$SelectBoxStyle",
+        )
+    val windowStyle =
+        setOf(
+            "WindowStyle",
+            "com.badlogic.gdx.scenes.scene2d.ui.Window\$WindowStyle",
+        )
 }

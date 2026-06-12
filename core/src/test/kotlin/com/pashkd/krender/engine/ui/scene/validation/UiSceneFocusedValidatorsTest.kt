@@ -14,16 +14,17 @@ import kotlin.test.assertTrue
 internal class DocumentMetadataValidatorTest {
     @Test
     fun `reports invalid document metadata`() {
-        val issues = DocumentMetadataValidator.validate(
-            context(
-                document(
-                    schemaVersion = 2,
-                    id = "",
-                    skin = "",
-                    root = node("root", UiSceneNodeType.Label),
+        val issues =
+            DocumentMetadataValidator.validate(
+                context(
+                    document(
+                        schemaVersion = 2,
+                        id = "",
+                        skin = "",
+                        root = node("root", UiSceneNodeType.Label),
+                    ),
                 ),
-            ),
-        )
+            )
 
         assertIssue(issues, UiSceneValidationCode.UnsupportedSchemaVersion, UiSceneValidationSeverity.Error)
         assertIssue(issues, UiSceneValidationCode.BlankDocumentId, UiSceneValidationSeverity.Error)
@@ -35,20 +36,23 @@ internal class DocumentMetadataValidatorTest {
 internal class NodeIdUniquenessValidatorTest {
     @Test
     fun `reports blank and duplicate node ids`() {
-        val issues = NodeIdUniquenessValidator.validate(
-            context(
-                document(
-                    root = node(
-                        "root",
-                        children = listOf(
-                            node("", UiSceneNodeType.Space),
-                            node("duplicate", UiSceneNodeType.Space),
-                            node("duplicate", UiSceneNodeType.Space),
-                        ),
+        val issues =
+            NodeIdUniquenessValidator.validate(
+                context(
+                    document(
+                        root =
+                            node(
+                                "root",
+                                children =
+                                    listOf(
+                                        node("", UiSceneNodeType.Space),
+                                        node("duplicate", UiSceneNodeType.Space),
+                                        node("duplicate", UiSceneNodeType.Space),
+                                    ),
+                            ),
                     ),
                 ),
-            ),
-        )
+            )
 
         assertIssue(issues, UiSceneValidationCode.BlankNodeId, UiSceneValidationSeverity.Error, fieldName = "id")
         assertIssue(issues, UiSceneValidationCode.DuplicateNodeId, UiSceneValidationSeverity.Error, nodeId = "duplicate")
@@ -58,21 +62,24 @@ internal class NodeIdUniquenessValidatorTest {
 internal class NodeShapeValidatorTest {
     @Test
     fun `reports unsupported node shapes and invalid progress bars`() {
-        val issues = NodeShapeValidator.validate(
-            context(
-                document(
-                    root = node(
-                        "root",
-                        children = listOf(
-                            node("image", UiSceneNodeType.Image, children = listOf(node("child"))),
-                            node("container", UiSceneNodeType.Container, children = listOf(node("a"), node("b"))),
-                            node("missing", UiSceneNodeType.ProgressBar),
-                            node("bad_range", UiSceneNodeType.ProgressBar, value = 0f, min = 1f, max = 1f, step = 0f),
-                        ),
+        val issues =
+            NodeShapeValidator.validate(
+                context(
+                    document(
+                        root =
+                            node(
+                                "root",
+                                children =
+                                    listOf(
+                                        node("image", UiSceneNodeType.Image, children = listOf(node("child"))),
+                                        node("container", UiSceneNodeType.Container, children = listOf(node("a"), node("b"))),
+                                        node("missing", UiSceneNodeType.ProgressBar),
+                                        node("bad_range", UiSceneNodeType.ProgressBar, value = 0f, min = 1f, max = 1f, step = 0f),
+                                    ),
+                            ),
                     ),
                 ),
-            ),
-        )
+            )
 
         assertIssue(issues, UiSceneValidationCode.LeafNodeHasChildren, UiSceneValidationSeverity.Error, nodeId = "image")
         assertIssue(
@@ -105,20 +112,22 @@ internal class NodeShapeValidatorTest {
 internal class BindingDefinitionValidatorTest {
     @Test
     fun `reports invalid binding definitions`() {
-        val issues = BindingDefinitionValidator.validate(
-            context(
-                document(
-                    bindings = listOf(
-                        UiSceneBindingDefinition("", UiSceneBindingType.Text),
-                        UiSceneBindingDefinition("scores", UiSceneBindingType.Number, "1"),
-                        UiSceneBindingDefinition("scores", UiSceneBindingType.Number, "2"),
-                        UiSceneBindingDefinition("badNumber", UiSceneBindingType.Number, "abc"),
-                        UiSceneBindingDefinition("texture", UiSceneBindingType.Texture, ""),
-                        UiSceneBindingDefinition("action", UiSceneBindingType.Action, ""),
+        val issues =
+            BindingDefinitionValidator.validate(
+                context(
+                    document(
+                        bindings =
+                            listOf(
+                                UiSceneBindingDefinition("", UiSceneBindingType.Text),
+                                UiSceneBindingDefinition("scores", UiSceneBindingType.Number, "1"),
+                                UiSceneBindingDefinition("scores", UiSceneBindingType.Number, "2"),
+                                UiSceneBindingDefinition("badNumber", UiSceneBindingType.Number, "abc"),
+                                UiSceneBindingDefinition("texture", UiSceneBindingType.Texture, ""),
+                                UiSceneBindingDefinition("action", UiSceneBindingType.Action, ""),
+                            ),
                     ),
                 ),
-            ),
-        )
+            )
 
         assertIssue(issues, UiSceneValidationCode.BlankBindingKey, UiSceneValidationSeverity.Error)
         assertIssue(
@@ -151,24 +160,28 @@ internal class BindingDefinitionValidatorTest {
 internal class PlaceholderSyntaxValidatorTest {
     @Test
     fun `accepts valid placeholders and reports malformed placeholders`() {
-        val validIssues = PlaceholderSyntaxValidator.validate(
-            context(document(root = node("label", UiSceneNodeType.Label, text = "Score: {scores}"))),
-        )
+        val validIssues =
+            PlaceholderSyntaxValidator.validate(
+                context(document(root = node("label", UiSceneNodeType.Label, text = "Score: {scores}"))),
+            )
 
-        val malformedIssues = PlaceholderSyntaxValidator.validate(
-            context(
-                document(
-                    root = node(
-                        "root",
-                        children = listOf(
-                            node("blank", UiSceneNodeType.Label, text = "{ }"),
-                            node("missing", UiSceneNodeType.Label, text = "Missing {key"),
-                            node("nested", UiSceneNodeType.Label, text = "{{bad}}"),
-                        ),
+        val malformedIssues =
+            PlaceholderSyntaxValidator.validate(
+                context(
+                    document(
+                        root =
+                            node(
+                                "root",
+                                children =
+                                    listOf(
+                                        node("blank", UiSceneNodeType.Label, text = "{ }"),
+                                        node("missing", UiSceneNodeType.Label, text = "Missing {key"),
+                                        node("nested", UiSceneNodeType.Label, text = "{{bad}}"),
+                                    ),
+                            ),
                     ),
                 ),
-            ),
-        )
+            )
 
         assertTrue(validIssues.isEmpty())
         assertEquals(3, malformedIssues.size)
@@ -182,21 +195,24 @@ internal class PlaceholderSyntaxValidatorTest {
 internal class BindingReferenceValidatorTest {
     @Test
     fun `reports unknown binding keys and accepts known keys`() {
-        val issues = BindingReferenceValidator.validate(
-            context(
-                document(
-                    bindings = listOf(UiSceneBindingDefinition("scores", UiSceneBindingType.Number, "0")),
-                    root = node(
-                        "root",
-                        children = listOf(
-                            node("score_label", UiSceneNodeType.Label, text = "Score: {scores}"),
-                            node("life", UiSceneNodeType.Image, texture = "{life1Texture}"),
-                            node("bar", UiSceneNodeType.ProgressBar, valueBinding = "progress"),
-                        ),
+        val issues =
+            BindingReferenceValidator.validate(
+                context(
+                    document(
+                        bindings = listOf(UiSceneBindingDefinition("scores", UiSceneBindingType.Number, "0")),
+                        root =
+                            node(
+                                "root",
+                                children =
+                                    listOf(
+                                        node("score_label", UiSceneNodeType.Label, text = "Score: {scores}"),
+                                        node("life", UiSceneNodeType.Image, texture = "{life1Texture}"),
+                                        node("bar", UiSceneNodeType.ProgressBar, valueBinding = "progress"),
+                                    ),
+                            ),
                     ),
                 ),
-            ),
-        )
+            )
 
         assertEquals(2, issues.size)
         assertIssue(issues, UiSceneValidationCode.UnknownBindingKey, UiSceneValidationSeverity.Error, bindingKey = "life1Texture")
@@ -208,44 +224,51 @@ internal class BindingReferenceValidatorTest {
 internal class BindingTypeCompatibilityValidatorTest {
     @Test
     fun `reports incompatible binding types by field`() {
-        val bindings = listOf(
-            UiSceneBindingDefinition("number", UiSceneBindingType.Number, "1"),
-            UiSceneBindingDefinition("text", UiSceneBindingType.Text, "Ready"),
-            UiSceneBindingDefinition("texture", UiSceneBindingType.Texture, "textures/a.png"),
-            UiSceneBindingDefinition("action", UiSceneBindingType.Action, "game.start"),
-        )
-        val okIssues = BindingTypeCompatibilityValidator.validate(
-            context(
-                document(
-                    bindings = bindings,
-                    root = node(
-                        "root",
-                        children = listOf(
-                            node("bar", UiSceneNodeType.ProgressBar, valueBinding = "number"),
-                            node("image", UiSceneNodeType.Image, texture = "{texture}"),
-                            node("button", UiSceneNodeType.TextButton, text = "{action}", action = "{action}"),
-                            node("label", UiSceneNodeType.Label, text = "{text} {number}"),
-                        ),
+        val bindings =
+            listOf(
+                UiSceneBindingDefinition("number", UiSceneBindingType.Number, "1"),
+                UiSceneBindingDefinition("text", UiSceneBindingType.Text, "Ready"),
+                UiSceneBindingDefinition("texture", UiSceneBindingType.Texture, "textures/a.png"),
+                UiSceneBindingDefinition("action", UiSceneBindingType.Action, "game.start"),
+            )
+        val okIssues =
+            BindingTypeCompatibilityValidator.validate(
+                context(
+                    document(
+                        bindings = bindings,
+                        root =
+                            node(
+                                "root",
+                                children =
+                                    listOf(
+                                        node("bar", UiSceneNodeType.ProgressBar, valueBinding = "number"),
+                                        node("image", UiSceneNodeType.Image, texture = "{texture}"),
+                                        node("button", UiSceneNodeType.TextButton, text = "{action}", action = "{action}"),
+                                        node("label", UiSceneNodeType.Label, text = "{text} {number}"),
+                                    ),
+                            ),
                     ),
                 ),
-            ),
-        )
-        val badIssues = BindingTypeCompatibilityValidator.validate(
-            context(
-                document(
-                    bindings = bindings,
-                    root = node(
-                        "root",
-                        children = listOf(
-                            node("bar", UiSceneNodeType.ProgressBar, valueBinding = "text"),
-                            node("image", UiSceneNodeType.Image, texture = "{number}"),
-                            node("button", UiSceneNodeType.TextButton, text = "{texture}", action = "{text}"),
-                            node("label", UiSceneNodeType.Label, text = "{texture}"),
-                        ),
+            )
+        val badIssues =
+            BindingTypeCompatibilityValidator.validate(
+                context(
+                    document(
+                        bindings = bindings,
+                        root =
+                            node(
+                                "root",
+                                children =
+                                    listOf(
+                                        node("bar", UiSceneNodeType.ProgressBar, valueBinding = "text"),
+                                        node("image", UiSceneNodeType.Image, texture = "{number}"),
+                                        node("button", UiSceneNodeType.TextButton, text = "{texture}", action = "{text}"),
+                                        node("label", UiSceneNodeType.Label, text = "{texture}"),
+                                    ),
+                            ),
                     ),
                 ),
-            ),
-        )
+            )
 
         assertTrue(okIssues.isEmpty())
         assertIssue(
@@ -282,31 +305,36 @@ internal class BindingTypeCompatibilityValidatorTest {
 internal class StyleReferenceValidatorTest {
     @Test
     fun `reports missing styles backgrounds and skin load errors`() {
-        val metadata = UiSceneSkinValidationMetadata(
-            labelStyles = setOf("title"),
-            textButtonStyles = setOf("default"),
-            progressBarStyles = setOf("default-horizontal"),
-            drawables = setOf("window"),
-        )
-        val issues = StyleReferenceValidator.validate(
-            context(
-                document(
-                    root = node(
-                        "root",
-                        children = listOf(
-                            node("label", UiSceneNodeType.Label, style = "missing"),
-                            node("button", UiSceneNodeType.TextButton, style = "missing"),
-                            node("bar", UiSceneNodeType.ProgressBar, style = "missing", value = 0f),
-                            node("panel", UiSceneNodeType.Container, background = "missing"),
-                        ),
+        val metadata =
+            UiSceneSkinValidationMetadata(
+                labelStyles = setOf("title"),
+                textButtonStyles = setOf("default"),
+                progressBarStyles = setOf("default-horizontal"),
+                drawables = setOf("window"),
+            )
+        val issues =
+            StyleReferenceValidator.validate(
+                context(
+                    document(
+                        root =
+                            node(
+                                "root",
+                                children =
+                                    listOf(
+                                        node("label", UiSceneNodeType.Label, style = "missing"),
+                                        node("button", UiSceneNodeType.TextButton, style = "missing"),
+                                        node("bar", UiSceneNodeType.ProgressBar, style = "missing", value = 0f),
+                                        node("panel", UiSceneNodeType.Container, background = "missing"),
+                                    ),
+                            ),
                     ),
+                    skinMetadata = metadata,
                 ),
-                skinMetadata = metadata,
-            ),
-        )
-        val unavailableIssues = StyleReferenceValidator.validate(
-            context(document(), skinMetadata = UiSceneSkinValidationMetadata(loadError = "missing file")),
-        )
+            )
+        val unavailableIssues =
+            StyleReferenceValidator.validate(
+                context(document(), skinMetadata = UiSceneSkinValidationMetadata(loadError = "missing file")),
+            )
         val skippedIssues = StyleReferenceValidator.validate(context(document(), skinMetadata = null))
 
         assertEquals(4, issues.size)
@@ -325,31 +353,36 @@ internal class StyleReferenceValidatorTest {
 internal class TextureReferenceValidatorTest {
     @Test
     fun `reports missing textures and texture binding defaults`() {
-        val metadata = UiSceneTextureValidationMetadata(
-            texturePaths = setOf("textures/a.png"),
-            nonTextureAssetPaths = setOf("ui/scenes/foo.krui"),
-        )
-        val issues = TextureReferenceValidator.validate(
-            context(
-                document(
-                    bindings = listOf(
-                        UiSceneBindingDefinition("known", UiSceneBindingType.Texture, "textures/a.png"),
-                        UiSceneBindingDefinition("blank", UiSceneBindingType.Texture, ""),
-                        UiSceneBindingDefinition("missing", UiSceneBindingType.Texture, "textures/missing.png"),
+        val metadata =
+            UiSceneTextureValidationMetadata(
+                texturePaths = setOf("textures/a.png"),
+                nonTextureAssetPaths = setOf("ui/scenes/foo.krui"),
+            )
+        val issues =
+            TextureReferenceValidator.validate(
+                context(
+                    document(
+                        bindings =
+                            listOf(
+                                UiSceneBindingDefinition("known", UiSceneBindingType.Texture, "textures/a.png"),
+                                UiSceneBindingDefinition("blank", UiSceneBindingType.Texture, ""),
+                                UiSceneBindingDefinition("missing", UiSceneBindingType.Texture, "textures/missing.png"),
+                            ),
+                        root =
+                            node(
+                                "root",
+                                children =
+                                    listOf(
+                                        node("known", UiSceneNodeType.Image, texture = "textures/a.png"),
+                                        node("missing", UiSceneNodeType.Image, texture = "textures/missing.png"),
+                                        node("bad", UiSceneNodeType.Image, texture = "ui/scenes/foo.krui"),
+                                        node("bound", UiSceneNodeType.Image, texture = "{known}"),
+                                    ),
+                            ),
                     ),
-                    root = node(
-                        "root",
-                        children = listOf(
-                            node("known", UiSceneNodeType.Image, texture = "textures/a.png"),
-                            node("missing", UiSceneNodeType.Image, texture = "textures/missing.png"),
-                            node("bad", UiSceneNodeType.Image, texture = "ui/scenes/foo.krui"),
-                            node("bound", UiSceneNodeType.Image, texture = "{known}"),
-                        ),
-                    ),
+                    textureMetadata = metadata,
                 ),
-                textureMetadata = metadata,
-            ),
-        )
+            )
 
         assertIssue(issues, UiSceneValidationCode.MissingTexture, UiSceneValidationSeverity.Warning, nodeId = "missing")
         assertIssue(issues, UiSceneValidationCode.NonTextureAsset, UiSceneValidationSeverity.Warning, nodeId = "bad")
@@ -367,23 +400,26 @@ internal class TextureReferenceValidatorTest {
 internal class UiSceneValidationPipelineTest {
     @Test
     fun `default pipeline composes document binding style and texture rules`() {
-        val issues = UiSceneValidationPipeline.default().validate(
-            context(
-                document(
-                    id = "",
-                    bindings = listOf(UiSceneBindingDefinition("texture", UiSceneBindingType.Texture, "textures/missing.png")),
-                    root = node(
-                        "root",
-                        children = listOf(
-                            node("label", UiSceneNodeType.Label, text = "{missing}", style = "missing"),
-                            node("image", UiSceneNodeType.Image, texture = "textures/missing.png"),
-                        ),
+        val issues =
+            UiSceneValidationPipeline.default().validate(
+                context(
+                    document(
+                        id = "",
+                        bindings = listOf(UiSceneBindingDefinition("texture", UiSceneBindingType.Texture, "textures/missing.png")),
+                        root =
+                            node(
+                                "root",
+                                children =
+                                    listOf(
+                                        node("label", UiSceneNodeType.Label, text = "{missing}", style = "missing"),
+                                        node("image", UiSceneNodeType.Image, texture = "textures/missing.png"),
+                                    ),
+                            ),
                     ),
+                    skinMetadata = UiSceneSkinValidationMetadata(labelStyles = emptySet()),
+                    textureMetadata = UiSceneTextureValidationMetadata(texturePaths = emptySet()),
                 ),
-                skinMetadata = UiSceneSkinValidationMetadata(labelStyles = emptySet()),
-                textureMetadata = UiSceneTextureValidationMetadata(texturePaths = emptySet()),
-            ),
-        )
+            )
 
         assertIssue(issues, UiSceneValidationCode.BlankDocumentId, UiSceneValidationSeverity.Error)
         assertIssue(issues, UiSceneValidationCode.UnknownBindingKey, UiSceneValidationSeverity.Error, bindingKey = "missing")

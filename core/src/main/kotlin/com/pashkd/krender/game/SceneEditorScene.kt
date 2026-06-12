@@ -29,29 +29,35 @@ class SceneEditorScene(
     override fun show() {
         engine.logger.info(TAG) { "Showing Scene Editor scene path='${scenePath ?: "<memory>"}'" }
         engine.logger.info(TAG) { "Initializing Scene Editor runtime world" }
-        val layoutConfig = ImGuiLayoutConfigLoader(
-            assetPath = SceneEditorUiLayoutDefaults.assetPath,
-            fallback = SceneEditorUiLayoutDefaults.config,
-        ).load(engine.logger)
+        val layoutConfig =
+            ImGuiLayoutConfigLoader(
+                assetPath = SceneEditorUiLayoutDefaults.assetPath,
+                fallback = SceneEditorUiLayoutDefaults.config,
+            ).load(engine.logger)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "SceneEditorUi")
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
 
-        editorState = SceneEditorState(
-            currentScenePath = scenePath,
-            sceneName = initialSceneName ?: scenePath?.substringAfterLast('/')?.substringAfterLast('\\')
-                ?.substringBeforeLast('.')
-                ?.takeIf(String::isNotBlank)
-            ?: SceneEditorState().sceneName,
-        )
+        editorState =
+            SceneEditorState(
+                currentScenePath = scenePath,
+                sceneName =
+                    initialSceneName ?: scenePath
+                        ?.substringAfterLast('/')
+                        ?.substringAfterLast('\\')
+                        ?.substringBeforeLast('.')
+                        ?.takeIf(String::isNotBlank)
+                    ?: SceneEditorState().sceneName,
+            )
         assetPanelState = SceneAssetPanelState()
         document = SceneEditorDocument(world = SceneWorld())
         operations = SceneEditorOperations(document, editorState, engine, layoutTracker)
-        assetBrowser = SceneAssetBrowserModel(
-            registry = engine.assetRegistry,
-            tasks = engine.tasks,
-            logger = engine.logger,
-            state = assetPanelState,
-        )
+        assetBrowser =
+            SceneAssetBrowserModel(
+                registry = engine.assetRegistry,
+                tasks = engine.tasks,
+                logger = engine.logger,
+                state = assetPanelState,
+            )
         engine.logger.info(TAG) { "Initializing Scene Editor document world" }
         operations.createNewScene()
         scenePath?.let { path ->
@@ -71,8 +77,8 @@ class SceneEditorScene(
                 document,
                 editorState,
                 engine.logger,
-                boundsProvider
-            )
+                boundsProvider,
+            ),
         )
         world.systems.add(SceneEditorBoundingBoxSystem(document, editorState, boundsProvider))
         world.systems.add(SceneEditorLightGizmoSystem(document, editorState))
@@ -97,8 +103,8 @@ class SceneEditorScene(
                     operations,
                     layoutConfig,
                     layoutTracker,
-                    panelEventLogger
-                )
+                    panelEventLogger,
+                ),
             )
             uiSystem.addPanel(
                 SceneHierarchyPanel(
@@ -108,8 +114,8 @@ class SceneEditorScene(
                     layoutConfig,
                     layoutTracker,
                     panelEventLogger,
-                    engine.logger
-                )
+                    engine.logger,
+                ),
             )
             uiSystem.addPanel(
                 SceneAssetPanel(
@@ -120,8 +126,8 @@ class SceneEditorScene(
                     engine,
                     layoutConfig,
                     layoutTracker,
-                    panelEventLogger
-                )
+                    panelEventLogger,
+                ),
             )
             uiSystem.addPanel(
                 SceneInspectorPanel(
@@ -132,8 +138,8 @@ class SceneEditorScene(
                     layoutConfig,
                     layoutTracker,
                     panelEventLogger,
-                    engine.logger
-                )
+                    engine.logger,
+                ),
             )
             uiSystem.addPanel(
                 SceneViewportPanel(
@@ -142,8 +148,8 @@ class SceneEditorScene(
                     operations,
                     layoutConfig,
                     layoutTracker,
-                    panelEventLogger
-                )
+                    panelEventLogger,
+                ),
             )
             uiSystem.addPanel(
                 LogsPanel(
@@ -151,8 +157,8 @@ class SceneEditorScene(
                     layoutConfig,
                     panelEventLogger,
                     layoutTracker = layoutTracker,
-                    initialAutoScrollToLatest = true
-                )
+                    initialAutoScrollToLatest = true,
+                ),
             )
         }
 

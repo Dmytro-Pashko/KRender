@@ -12,10 +12,11 @@ class SceneEditorBoundsProviderTest {
     @Test
     fun `returns actual model bounds when model bounds service provides them`() {
         val model = AssetRef.model("models/actual.glb")
-        val actualBounds = SceneEditorLocalBounds(
-            min = Vec3(-2f, -1f, -3f),
-            max = Vec3(2f, 4f, 3f),
-        )
+        val actualBounds =
+            SceneEditorLocalBounds(
+                min = Vec3(-2f, -1f, -3f),
+                max = Vec3(2f, 4f, 3f),
+            )
         val provider = SceneEditorBoundsProvider(FakeModelBoundsService(model.path to actualBounds))
         val entity = SceneWorld().createEntity("Model")
         entity.add(ModelComponent(model))
@@ -43,7 +44,6 @@ class SceneEditorBoundsProviderTest {
     ) : ModelBoundsService {
         private val boundsByPath = entries.toMap()
 
-        override fun boundsFor(model: AssetRef<ModelAsset>): SceneEditorLocalBounds? =
-            boundsByPath[model.path]
+        override fun boundsFor(model: AssetRef<ModelAsset>): SceneEditorLocalBounds? = boundsByPath[model.path]
     }
 }

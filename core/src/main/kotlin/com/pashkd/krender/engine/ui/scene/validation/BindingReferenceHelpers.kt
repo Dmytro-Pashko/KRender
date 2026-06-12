@@ -14,7 +14,8 @@ data class UiSceneBindingReference(
 private val BindingPlaceholderRegex = Regex("""\{([^{}]+)}""")
 
 fun extractBindingPlaceholders(value: String?): Set<String> =
-    value.orEmpty()
+    value
+        .orEmpty()
         .let(BindingPlaceholderRegex::findAll)
         .map { match -> match.groupValues[1].trim() }
         .filter(String::isNotBlank)
@@ -48,12 +49,13 @@ fun collectBindingReferences(document: UiSceneDocument): List<UiSceneBindingRefe
             UiSceneNodeType.ProgressBar -> {
                 val key = node.valueBinding?.trim().orEmpty()
                 if (key.isNotBlank()) {
-                    references += UiSceneBindingReference(
-                        nodeId = node.id,
-                        fieldName = "valueBinding",
-                        key = key,
-                        placeholderSyntax = false,
-                    )
+                    references +=
+                        UiSceneBindingReference(
+                            nodeId = node.id,
+                            fieldName = "valueBinding",
+                            key = key,
+                            placeholderSyntax = false,
+                        )
                 }
             }
 
@@ -89,16 +91,17 @@ fun findMalformedBindingPlaceholders(value: String?): List<String> {
                     malformed += text.substring(index)
                     index = text.length
                 } else {
-                    val rawEnd = if (
-                        index + 1 < text.length &&
-                        text[index + 1] == '{' &&
-                        closeIndex + 1 < text.length &&
-                        text[closeIndex + 1] == '}'
-                    ) {
-                        closeIndex + 2
-                    } else {
-                        closeIndex + 1
-                    }
+                    val rawEnd =
+                        if (
+                            index + 1 < text.length &&
+                            text[index + 1] == '{' &&
+                            closeIndex + 1 < text.length &&
+                            text[closeIndex + 1] == '}'
+                        ) {
+                            closeIndex + 2
+                        } else {
+                            closeIndex + 1
+                        }
                     val raw = text.substring(index, rawEnd)
                     val inner = raw.substring(1, raw.length - 1).trim()
                     if (inner.isBlank() || inner.contains('{') || inner.contains('}')) {
@@ -126,11 +129,12 @@ private fun collectPlaceholderReferences(
     references: MutableList<UiSceneBindingReference>,
 ) {
     extractBindingPlaceholders(value).forEach { key ->
-        references += UiSceneBindingReference(
-            nodeId = node.id,
-            fieldName = fieldName,
-            key = key,
-            placeholderSyntax = true,
-        )
+        references +=
+            UiSceneBindingReference(
+                nodeId = node.id,
+                fieldName = fieldName,
+                key = key,
+                placeholderSyntax = true,
+            )
     }
 }

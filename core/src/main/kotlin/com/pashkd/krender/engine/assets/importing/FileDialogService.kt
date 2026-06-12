@@ -25,21 +25,32 @@ class AwtFileDialogService : FileDialogService {
             val frameClass = Class.forName("java.awt.Frame")
             val fileDialogClass = Class.forName("java.awt.FileDialog")
             val loadMode = fileDialogClass.getField("LOAD").getInt(null)
-            val dialog = fileDialogClass
-                .getConstructor(frameClass, String::class.java, Int::class.javaPrimitiveType)
-                .newInstance(null, "Import Asset", loadMode)
-            val acceptedExtensions = filters.flatMap(FileDialogFilter::extensions)
-                .map { extension -> extension.trim().trimStart('*').trimStart('.').lowercase() }
-                .filter(String::isNotBlank)
-                .toSet()
+            val dialog =
+                fileDialogClass
+                    .getConstructor(frameClass, String::class.java, Int::class.javaPrimitiveType)
+                    .newInstance(null, "Import Asset", loadMode)
+            val acceptedExtensions =
+                filters
+                    .flatMap(FileDialogFilter::extensions)
+                    .map { extension ->
+                        extension
+                            .trim()
+                            .trimStart('*')
+                            .trimStart('.')
+                            .lowercase()
+                    }.filter(String::isNotBlank)
+                    .toSet()
             if (acceptedExtensions.isNotEmpty()) {
-                val filenameFilter = FilenameFilter { _, name ->
-                    name.substringAfterLast('.', "").lowercase() in acceptedExtensions
-                }
-                fileDialogClass.getMethod("setFilenameFilter", FilenameFilter::class.java)
+                val filenameFilter =
+                    FilenameFilter { _, name ->
+                        name.substringAfterLast('.', "").lowercase() in acceptedExtensions
+                    }
+                fileDialogClass
+                    .getMethod("setFilenameFilter", FilenameFilter::class.java)
                     .invoke(dialog, filenameFilter)
             }
-            fileDialogClass.getMethod("setVisible", Boolean::class.javaPrimitiveType)
+            fileDialogClass
+                .getMethod("setVisible", Boolean::class.javaPrimitiveType)
                 .invoke(dialog, true)
             val file = fileDialogClass.getMethod("getFile").invoke(dialog) as? String ?: return null
             val directory = fileDialogClass.getMethod("getDirectory").invoke(dialog) as? String ?: ""
@@ -47,9 +58,10 @@ class AwtFileDialogService : FileDialogService {
         }.getOrNull()
 }
 
-val AssetImportFileDialogFilters = listOf(
-    FileDialogFilter("All supported assets", listOf("png", "jpg", "jpeg", "webp", "glb", "json")),
-    FileDialogFilter("Textures", listOf("png", "jpg", "jpeg", "webp")),
-    FileDialogFilter("Binary model", listOf("glb")),
-    FileDialogFilter("Scene2D Skin", listOf("json")),
-)
+val AssetImportFileDialogFilters =
+    listOf(
+        FileDialogFilter("All supported assets", listOf("png", "jpg", "jpeg", "webp", "glb", "json")),
+        FileDialogFilter("Textures", listOf("png", "jpg", "jpeg", "webp")),
+        FileDialogFilter("Binary model", listOf("glb")),
+        FileDialogFilter("Scene2D Skin", listOf("json")),
+    )

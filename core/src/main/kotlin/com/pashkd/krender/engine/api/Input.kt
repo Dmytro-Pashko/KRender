@@ -139,10 +139,14 @@ data class PointerState(
 )
 
 /** Identifies a named digital input action. */
-data class Action(val name: String)
+data class Action(
+    val name: String,
+)
 
 /** Identifies a named analog input axis. */
-data class Axis(val name: String)
+data class Axis(
+    val name: String,
+)
 
 /**
  * Immutable snapshot of all normalized input state for one frame.

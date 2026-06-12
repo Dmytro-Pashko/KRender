@@ -1,3 +1,5 @@
+import io.gitlab.arturbosch.detekt.Detekt
+import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 buildscript {
@@ -11,8 +13,33 @@ buildscript {
   dependencies {
     classpath "com.android.tools.build:gradle:8.9.3"
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-
+    classpath "io.gitlab.arturbosch.detekt:detekt-gradle-plugin:$detektVersion"
+    classpath "org.jlleitschuh.gradle:ktlint-gradle:$ktlintGradleVersion"
   }
+}
+
+apply plugin: 'io.gitlab.arturbosch.detekt'
+apply plugin: 'org.jlleitschuh.gradle.ktlint'
+
+def staticAnalysisExcludes = [
+  "**/build/**",
+  "**/.gradle/**",
+  "**/generated/**",
+]
+def detektSources = files(
+  fileTree(rootDir) {
+    include "core/src/**/*.kt"
+    include "lwjgl3/src/**/*.kt"
+    include "android/src/**/*.kt"
+    include "**/*.kts"
+    staticAnalysisExcludes.each { exclude it }
+  },
+)
+
+repositories {
+  mavenCentral()
+  mavenLocal()
+  maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
 }
 
 allprojects {
@@ -26,6 +53,57 @@ allprojects {
       testOutputDir = file('build/classes/java/test')
     }
   }
+}
+
+ktlint {
+  ignoreFailures = false
+  outputToConsole = true
+  filter {
+    include("**/src/**/*.kt")
+    include("**/*.kts")
+    staticAnalysisExcludes.each { exclude(it) }
+  }
+  kotlinScriptAdditionalPaths {
+    include fileTree(rootDir) {
+      include "**/*.kts"
+      staticAnalysisExcludes.each { exclude it }
+    }
+  }
+}
+
+detekt {
+  toolVersion = detektVersion
+  source = detektSources
+  config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+  baseline = file("$rootDir/config/detekt/baseline.xml")
+  buildUponDefaultConfig = true
+  allRules = false
+  parallel = true
+  ignoreFailures = false
+  basePath = rootDir
+}
+
+tasks.withType(Detekt).configureEach {
+  setSource(detektSources)
+  include("**/*.kt", "**/*.kts")
+  staticAnalysisExcludes.each { exclude(it) }
+  reports {
+    html.required.set(true)
+    md.required.set(true)
+    xml.required.set(true)
+    sarif.required.set(true)
+    html.outputLocation.set(file("$rootDir/build/reports/detekt/${name}.html"))
+    md.outputLocation.set(file("$rootDir/build/reports/detekt/${name}.md"))
+    xml.outputLocation.set(file("$rootDir/build/reports/detekt/${name}.xml"))
+    sarif.outputLocation.set(file("$rootDir/build/reports/detekt/${name}.sarif"))
+  }
+}
+
+tasks.withType(DetektCreateBaselineTask).configureEach {
+  setSource(detektSources)
+  include("**/*.kt", "**/*.kts")
+  staticAnalysisExcludes.each { exclude(it) }
+  baseline.set(file("$rootDir/config/detekt/baseline.xml"))
 }
 
 configure(subprojects - project(':android')) {
@@ -62,6 +140,8 @@ configure(subprojects - project(':android')) {
 }
 
 subprojects {
+  apply plugin: 'org.jlleitschuh.gradle.ktlint'
+
   version = "$projectVersion"
   ext.appName = 'KRender'
   repositories {
@@ -72,6 +152,24 @@ subprojects {
     maven { url = 'https://raw.githubusercontent.com/kotlin-graphics/mary/master' }
     maven { url = 'https://jitpack.io' }
   }
+
+  ktlint {
+    ignoreFailures = false
+    outputToConsole = true
+    filter {
+      include("**/src/**/*.kt")
+      include("**/*.kts")
+      staticAnalysisExcludes.each { exclude(it) }
+    }
+  }
 }
 
 eclipse.project.name = 'KRender' + '-parent'
+
+tasks.register('staticAnalysis') {
+  group = 'verification'
+  description = 'Runs KRender static analysis checks and generates reports.'
+  dependsOn ':ktlintCheck'
+  dependsOn subprojects.collect { "${it.path}:ktlintCheck" }
+  dependsOn 'detekt'
+}

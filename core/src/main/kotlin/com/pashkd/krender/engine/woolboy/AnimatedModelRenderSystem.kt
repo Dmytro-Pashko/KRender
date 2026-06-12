@@ -12,7 +12,10 @@ import com.pashkd.krender.engine.render3d.ModelComponent
  * Emits model draw commands with optional backend-neutral animation playback.
  */
 class AnimatedModelRenderSystem : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         world.query<TransformComponent, ModelComponent>().forEach { entity ->
             val transform = entity.get<TransformComponent>() ?: return@forEach
             val model = entity.get<ModelComponent>() ?: return@forEach

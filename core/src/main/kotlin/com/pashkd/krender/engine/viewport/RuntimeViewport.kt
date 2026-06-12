@@ -120,12 +120,13 @@ fun calculateRuntimeViewport(
 
     val scaleX = width.toFloat() / designWidth
     val scaleY = height.toFloat() / designHeight
-    val scale = when (config.scalePolicy) {
-        UiScalePolicy.ScaleByHeight -> scaleY
-        UiScalePolicy.Fit -> minOf(scaleX, scaleY)
-        UiScalePolicy.Fill -> maxOf(scaleX, scaleY)
-        UiScalePolicy.PixelPerfect -> 1f
-    }.coerceAtLeast(MinScale)
+    val scale =
+        when (config.scalePolicy) {
+            UiScalePolicy.ScaleByHeight -> scaleY
+            UiScalePolicy.Fit -> minOf(scaleX, scaleY)
+            UiScalePolicy.Fill -> maxOf(scaleX, scaleY)
+            UiScalePolicy.PixelPerfect -> 1f
+        }.coerceAtLeast(MinScale)
 
     val logicalWidth: Float
     val logicalHeight: Float

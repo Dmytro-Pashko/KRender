@@ -26,9 +26,16 @@ object TerrainMetadataReader {
         return TerrainAssetMetadata(width, height, layerCount)
     }
 
-    private fun readInt(text: String, name: String): Int? {
+    private fun readInt(
+        text: String,
+        name: String,
+    ): Int? {
         val pattern = Regex("\"${Regex.escape(name)}\"\\s*:\\s*(\\d+)")
-        return pattern.find(text)?.groupValues?.get(1)?.toIntOrNull()
+        return pattern
+            .find(text)
+            ?.groupValues
+            ?.get(1)
+            ?.toIntOrNull()
     }
 
     private fun readLayerCount(text: String): Int {
@@ -36,7 +43,10 @@ object TerrainMetadataReader {
         return Regex("\"id\"\\s*:").findAll(layersBody).count()
     }
 
-    private fun readArrayBody(text: String, name: String): String? {
+    private fun readArrayBody(
+        text: String,
+        name: String,
+    ): String? {
         val keyMatch = Regex("\"${Regex.escape(name)}\"\\s*:").find(text) ?: return null
         var index = keyMatch.range.last + 1
         while (index < text.length && text[index].isWhitespace()) {
@@ -68,4 +78,3 @@ object TerrainMetadataReader {
         return null
     }
 }
-

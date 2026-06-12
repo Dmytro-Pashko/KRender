@@ -10,9 +10,10 @@ import imgui.ImGui
 class ImGuiLayoutRuntimeTracker(
     private val baseConfig: ImGuiLayoutConfig,
 ) {
-    private val currentPanels = linkedMapOf<String, ImGuiPanelLayout>().apply {
-        putAll(baseConfig.panels)
-    }
+    private val currentPanels =
+        linkedMapOf<String, ImGuiPanelLayout>().apply {
+            putAll(baseConfig.panels)
+        }
     private var pendingRestorePanels: LinkedHashMap<String, ImGuiPanelLayout>? = null
 
     /**
@@ -29,20 +30,20 @@ class ImGuiLayoutRuntimeTracker(
         }
 
         val existing = currentPanels[panelId] ?: baseConfig.panels[panelId]
-        currentPanels[panelId] = ImGuiPanelLayout(
-            title = existing?.title ?: panelId,
-            x = position.x,
-            y = position.y,
-            width = size.x,
-            height = size.y,
-        )
+        currentPanels[panelId] =
+            ImGuiPanelLayout(
+                title = existing?.title ?: panelId,
+                x = position.x,
+                y = position.y,
+                width = size.x,
+                height = size.y,
+            )
     }
 
     /**
      * Returns the latest known layout for all tracked panels.
      */
-    fun currentConfig(): ImGuiLayoutConfig =
-        ImGuiLayoutConfig(panels = LinkedHashMap(currentPanels))
+    fun currentConfig(): ImGuiLayoutConfig = ImGuiLayoutConfig(panels = LinkedHashMap(currentPanels))
 
     /**
      * Queues [config] to be force-applied once as panels are next drawn.
@@ -69,7 +70,10 @@ class ImGuiLayoutRuntimeTracker(
 /**
  * Applies an ImGui panel layout with the requested condition.
  */
-fun applyImGuiPanelLayout(layout: ImGuiPanelLayout, condition: Cond = Cond.FirstUseEver) {
+fun applyImGuiPanelLayout(
+    layout: ImGuiPanelLayout,
+    condition: Cond = Cond.FirstUseEver,
+) {
     ImGui.setNextWindowPos(Vec2(layout.x, layout.y), condition, Vec2())
     ImGui.setNextWindowSize(Vec2(layout.width, layout.height), condition)
 }
@@ -93,4 +97,7 @@ fun beginImGuiPanel(
 /**
  * Builds a stable ImGui window name from visible title plus hidden panel id.
  */
-fun imGuiPanelWindowName(title: String, id: String): String = "$title###$id"
+fun imGuiPanelWindowName(
+    title: String,
+    id: String,
+): String = "$title###$id"

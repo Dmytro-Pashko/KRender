@@ -2,8 +2,8 @@ package com.pashkd.krender.lwjgl3
 
 import com.pashkd.krender.engine.api.Logger
 import java.io.File
-import java.lang.management.ManagementFactory
 import java.lang.ProcessBuilder.Redirect
+import java.lang.management.ManagementFactory
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
@@ -19,7 +19,10 @@ internal class Lwjgl3JvmProcessLauncher(
     private val logger: Logger,
     private val tag: String,
 ) {
-    fun launch(properties: Map<String, String>, failureMessage: String) {
+    fun launch(
+        properties: Map<String, String>,
+        failureMessage: String,
+    ) {
         val command = buildCommand(properties)
         val logFile = childProcessLogFile(properties)
         logger.info(tag) { "Launch command: ${command.joinToString(" ")}" }
@@ -27,11 +30,12 @@ internal class Lwjgl3JvmProcessLauncher(
         try {
             writeLaunchHeader(logFile, command)
             val startedAt = System.nanoTime()
-            val process = ProcessBuilder(command)
-                .directory(File(System.getProperty("user.dir")))
-                .redirectErrorStream(true)
-                .redirectOutput(Redirect.appendTo(logFile.toFile()))
-                .start()
+            val process =
+                ProcessBuilder(command)
+                    .directory(File(System.getProperty("user.dir")))
+                    .redirectErrorStream(true)
+                    .redirectOutput(Redirect.appendTo(logFile.toFile()))
+                    .start()
             logger.info(tag) { "Child process started pid=${process.pid()} log='${logFile.toAbsolutePath()}'" }
             watchProcess(process, startedAt, logFile)
         } catch (error: Exception) {
@@ -52,18 +56,22 @@ internal class Lwjgl3JvmProcessLauncher(
 
     private fun childProcessLogFile(properties: Map<String, String>): Path {
         val scene = properties["krender.scene"] ?: "tool"
-        val path = properties["krender.model.path"]
-            ?: properties["krender.terrain.path"]
-            ?: properties["krender.scene.path"]
-            ?: "session"
+        val path =
+            properties["krender.model.path"]
+                ?: properties["krender.terrain.path"]
+                ?: properties["krender.scene.path"]
+                ?: "session"
         val timestamp = FILE_NAME_FORMATTER.format(Instant.now().atZone(ZoneId.systemDefault()))
-        val fileName = "${timestamp}-${sanitize(scene)}-${sanitize(path)}.log"
+        val fileName = "$timestamp-${sanitize(scene)}-${sanitize(path)}.log"
         val directory = Path.of("logs", "editor-tools")
         Files.createDirectories(directory)
         return directory.resolve(fileName)
     }
 
-    private fun writeLaunchHeader(logFile: Path, command: List<String>) {
+    private fun writeLaunchHeader(
+        logFile: Path,
+        command: List<String>,
+    ) {
         Files.writeString(
             logFile,
             buildString {
@@ -81,7 +89,11 @@ internal class Lwjgl3JvmProcessLauncher(
         )
     }
 
-    private fun watchProcess(process: Process, startedAt: Long, logFile: Path) {
+    private fun watchProcess(
+        process: Process,
+        startedAt: Long,
+        logFile: Path,
+    ) {
         Thread({
             val exitCode = process.waitFor()
             val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000L
@@ -105,16 +117,18 @@ internal class Lwjgl3JvmProcessLauncher(
     }
 
     private fun filteredJvmArguments(): List<String> =
-        ManagementFactory.getRuntimeMXBean()
+        ManagementFactory
+            .getRuntimeMXBean()
             .inputArguments
             .filterNot { argument -> filteredSystemPropertyPrefixes.any(argument::startsWith) }
 
     private fun javaExecutable(): String {
-        val executable = if (System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
-            "java.exe"
-        } else {
-            "java"
-        }
+        val executable =
+            if (System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
+                "java.exe"
+            } else {
+                "java"
+            }
         return File(File(System.getProperty("java.home"), "bin"), executable).path
     }
 
@@ -123,16 +137,18 @@ internal class Lwjgl3JvmProcessLauncher(
         private const val QuickExitThresholdMs = 5_000L
         private val FILE_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")
 
-        private val filteredSystemPropertyPrefixes = listOf(
-            "-Dkrender.scene=",
-            "-Dkrender.scene.path=",
-            "-Dkrender.model=",
-            "-Dkrender.model.path=",
-            "-Dkrender.terrain.path=",
-        )
+        private val filteredSystemPropertyPrefixes =
+            listOf(
+                "-Dkrender.scene=",
+                "-Dkrender.scene.path=",
+                "-Dkrender.model=",
+                "-Dkrender.model.path=",
+                "-Dkrender.terrain.path=",
+            )
 
         private fun sanitize(value: String): String =
-            value.replace(Regex("[^A-Za-z0-9._-]+"), "_")
+            value
+                .replace(Regex("[^A-Za-z0-9._-]+"), "_")
                 .trim('_')
                 .take(80)
                 .ifBlank { "value" }

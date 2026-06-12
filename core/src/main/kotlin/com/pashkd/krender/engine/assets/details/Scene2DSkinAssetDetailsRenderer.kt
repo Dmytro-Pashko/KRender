@@ -6,10 +6,12 @@ import com.pashkd.krender.engine.assets.assetBrowserTextLine
 import imgui.ImGui
 
 class Scene2DSkinAssetDetailsRenderer : AssetDetailsRenderer {
-    override fun supports(asset: AssetDescriptor): Boolean =
-        asset.type == AssetType.Scene2DSkin
+    override fun supports(asset: AssetDescriptor): Boolean = asset.type == AssetType.Scene2DSkin
 
-    override fun render(asset: AssetDescriptor, context: AssetDetailsRenderContext) {
+    override fun render(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    ) {
         ImGui.text("Metadata")
         assetBrowserTextLine("Status: ${asset.metadata["skinStatus"] ?: "unknown"}")
         asset.metadata["skinParseError"]?.let { error -> assetBrowserTextLine("Parse error: $error") }

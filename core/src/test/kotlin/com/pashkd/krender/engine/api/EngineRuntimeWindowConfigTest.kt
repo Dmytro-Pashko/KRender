@@ -27,10 +27,11 @@ class EngineRuntimeWindowConfigTest {
     fun `start applies initial scene window and viewport config immediately`() {
         val backend = FakeEngineBackend(initialWindowState = WindowState(pixelWidth = 800, pixelHeight = 600))
         val runtime = EngineRuntime(backend)
-        val scene = TestScene(
-            id = "asset_browser",
-            config = SceneConfigPresets.EditorTool,
-        )
+        val scene =
+            TestScene(
+                id = "asset_browser",
+                config = SceneConfigPresets.EditorTool,
+            )
 
         runtime.start(scene)
 
@@ -49,10 +50,11 @@ class EngineRuntimeWindowConfigTest {
         val backend = FakeEngineBackend(initialWindowState = WindowState(pixelWidth = 800, pixelHeight = 600))
         val runtime = EngineRuntime(backend)
         val runtimeScene = TestScene(id = "runtime_scene", config = SceneConfigPresets.RuntimeGame16By9)
-        val assetBrowserScene = TestScene(
-            id = "asset_browser",
-            config = SceneConfigPresets.EditorTool,
-        )
+        val assetBrowserScene =
+            TestScene(
+                id = "asset_browser",
+                config = SceneConfigPresets.EditorTool,
+            )
 
         runtime.start(runtimeScene)
         runtime.scenes.push(assetBrowserScene)
@@ -84,7 +86,10 @@ private class TestScene(
         showCallCount += 1
     }
 
-    override fun resize(width: Int, height: Int) {
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) {
         resizeCalls += width to height
     }
 }
@@ -92,55 +97,91 @@ private class TestScene(
 private class FakeEngineBackend(
     initialWindowState: WindowState = WindowState(),
 ) : EngineBackend {
-    override val input: InputService = object : InputService {
-        override fun beginFrame() = Unit
-        override fun snapshot(): InputSnapshot = InputSnapshot()
-        override fun endFrame() = Unit
-        override fun setCursorCaptured(captured: Boolean) = Unit
-        override fun isActionPressed(action: Action): Boolean = false
-        override fun isActionJustPressed(action: Action): Boolean = false
-        override fun axis(axis: Axis): Float = 0f
-    }
+    override val input: InputService =
+        object : InputService {
+            override fun beginFrame() = Unit
+
+            override fun snapshot(): InputSnapshot = InputSnapshot()
+
+            override fun endFrame() = Unit
+
+            override fun setCursorCaptured(captured: Boolean) = Unit
+
+            override fun isActionPressed(action: Action): Boolean = false
+
+            override fun isActionJustPressed(action: Action): Boolean = false
+
+            override fun axis(axis: Axis): Float = 0f
+        }
     override val ui: UiService = NoOpUiService()
     override val runtimeUi = NoOpRuntimeUiBackend()
-    override val assets: AssetService = object : AssetService {
-        override fun queue(asset: AssetRef<*>) = Unit
-        override fun update(budgetMs: Int): Float = 1f
-        override fun isLoaded(asset: AssetRef<*>): Boolean = true
-        override fun <T : Any> get(asset: AssetRef<T>): T = error("unused")
-        override fun unload(asset: AssetRef<*>) = Unit
-    }
+    override val assets: AssetService =
+        object : AssetService {
+            override fun queue(asset: AssetRef<*>) = Unit
+
+            override fun update(budgetMs: Int): Float = 1f
+
+            override fun isLoaded(asset: AssetRef<*>): Boolean = true
+
+            override fun <T : Any> get(asset: AssetRef<T>): T = error("unused")
+
+            override fun unload(asset: AssetRef<*>) = Unit
+        }
     override val assetRegistry: AssetRegistryService =
         LocalAssetRegistryService(EngineLogService(), AssetImporterRegistry.withDefaults(EngineLogService()))
-    override val sceneFiles: SceneFileService = object : SceneFileService {
-        override fun writeText(path: String, text: String) = Unit
-        override fun readText(path: String): String = error("unused")
-        override fun ensureDirectories(path: String) = Unit
-        override fun exists(path: String): Boolean = false
-    }
+    override val sceneFiles: SceneFileService =
+        object : SceneFileService {
+            override fun writeText(
+                path: String,
+                text: String,
+            ) = Unit
+
+            override fun readText(path: String): String = error("unused")
+
+            override fun ensureDirectories(path: String) = Unit
+
+            override fun exists(path: String): Boolean = false
+        }
     override val runtimeLauncher: RuntimeWindowLauncher = UnsupportedRuntimeWindowLauncher
     override val editorToolLauncher: EditorToolLauncher = UnsupportedEditorToolLauncher
     override val logger: Logger = EngineLogService()
     override val logs: LogService = logger as LogService
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
     override val profiler: ProfilerService = FrameProfilerService()
-    override val tasks: TaskService = object : TaskService {
-        override val inFlightJobs: Int = 0
-        override fun launchBackground(name: String, block: suspend CoroutineScope.() -> Unit): Job = Job()
-        override suspend fun <T> onBackground(block: suspend () -> T): T = block()
-        override suspend fun <T> onIo(block: suspend () -> T): T = block()
-        override suspend fun <T> onMain(block: suspend () -> T): T = block()
-        override fun postToMain(block: () -> Unit) = block()
-        override fun flushMainThreadQueue() = Unit
-        override fun dispose() = Unit
-    }
+    override val tasks: TaskService =
+        object : TaskService {
+            override val inFlightJobs: Int = 0
+
+            override fun launchBackground(
+                name: String,
+                block: suspend CoroutineScope.() -> Unit,
+            ): Job = Job()
+
+            override suspend fun <T> onBackground(block: suspend () -> T): T = block()
+
+            override suspend fun <T> onIo(block: suspend () -> T): T = block()
+
+            override suspend fun <T> onMain(block: suspend () -> T): T = block()
+
+            override fun postToMain(block: () -> Unit) = block()
+
+            override fun flushMainThreadQueue() = Unit
+
+            override fun dispose() = Unit
+        }
     override val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory? = null
     override val window: WindowService = InMemoryWindowService(initialWindowState)
-    override val renderer: Renderer = object : Renderer {
-        override fun render(context: RenderContext) = Unit
-        override fun resize(width: Int, height: Int) = Unit
-        override fun dispose() = Unit
-    }
+    override val renderer: Renderer =
+        object : Renderer {
+            override fun render(context: RenderContext) = Unit
+
+            override fun resize(
+                width: Int,
+                height: Int,
+            ) = Unit
+
+            override fun dispose() = Unit
+        }
 
     override fun requestExit() = Unit
 }

@@ -13,22 +13,16 @@ import kotlin.math.sqrt
 data class EditorViewportCameraState(
     /** Current editor camera world-space position. */
     var position: Vec3 = Vec3(0f, 2f, 6f),
-
     /** Current editor camera euler rotation in degrees. */
     var eulerDegrees: Vec3 = Vec3(-10f, 180f, 0f),
-
     /** Base free-camera movement speed in world units per second. */
     var speed: Float = 6f,
-
     /** Mouse-look sensitivity in degrees per pixel. */
     var sensitivity: Float = 0.18f,
-
     /** True while right mouse is actively driving viewport camera navigation. */
     var navigating: Boolean = false,
-
     /** Runtime-only request to move the camera entity on the next camera-system update. */
     var pendingPosition: Vec3? = null,
-
     /** Runtime-only request to rotate the camera entity on the next camera-system update. */
     var pendingEulerDegrees: Vec3? = null,
 )
@@ -39,10 +33,8 @@ data class EditorViewportCameraState(
 data class EditorViewportState(
     /** True when the viewport panel is hovered or focused and can claim camera input. */
     var focused: Boolean = false,
-
     /** Top-left viewport panel position in screen pixels. */
     var origin: Vec2 = Vec2.zero(),
-
     /** Viewport panel size in screen pixels. */
     var size: Vec2 = Vec2.zero(),
 )
@@ -60,9 +52,14 @@ class EditorViewportCameraSystem(
     private val cameraState: EditorViewportCameraState,
     private val viewportState: EditorViewportState,
 ) : System() {
-    override fun update(world: SceneWorld, dt: Float) {
-        val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent, EditorViewportCameraComponent>()
-            .firstOrNull() ?: return
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
+        val cameraEntity =
+            world
+                .query<TransformComponent, PerspectiveCameraComponent, EditorViewportCameraComponent>()
+                .firstOrNull() ?: return
         val transform = cameraEntity.get<TransformComponent>() ?: return
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
         val snapshot = input.snapshot()
@@ -83,8 +80,9 @@ class EditorViewportCameraSystem(
 
         if (navigating && (snapshot.mouseDelta.x != 0f || snapshot.mouseDelta.y != 0f)) {
             transform.eulerDegrees.y -= snapshot.mouseDelta.x * cameraState.sensitivity
-            transform.eulerDegrees.x = (transform.eulerDegrees.x - snapshot.mouseDelta.y * cameraState.sensitivity)
-                .coerceIn(MinPitchDegrees, MaxPitchDegrees)
+            transform.eulerDegrees.x =
+                (transform.eulerDegrees.x - snapshot.mouseDelta.y * cameraState.sensitivity)
+                    .coerceIn(MinPitchDegrees, MaxPitchDegrees)
         }
 
         val keyboardAvailable = navigating || viewportState.focused || !snapshot.uiCapturesKeyboard
@@ -134,16 +132,18 @@ class EditorViewportCameraSystem(
 
         val pitch = Math.toRadians(transform.eulerDegrees.x.toDouble())
         val yaw = Math.toRadians(transform.eulerDegrees.y.toDouble())
-        val forward = Vec3(
-            x = (sin(yaw) * cos(pitch)).toFloat(),
-            y = sin(pitch).toFloat(),
-            z = (cos(yaw) * cos(pitch)).toFloat(),
-        )
-        val right = Vec3(
-            x = -cos(yaw).toFloat(),
-            y = 0f,
-            z = sin(yaw).toFloat(),
-        )
+        val forward =
+            Vec3(
+                x = (sin(yaw) * cos(pitch)).toFloat(),
+                y = sin(pitch).toFloat(),
+                z = (cos(yaw) * cos(pitch)).toFloat(),
+            )
+        val right =
+            Vec3(
+                x = -cos(yaw).toFloat(),
+                y = 0f,
+                z = sin(yaw).toFloat(),
+            )
         val speed = cameraState.speed * if (snapshot.isShiftDown()) ShiftSpeedMultiplier else 1f
         val distance = speed * dt
 
@@ -152,8 +152,7 @@ class EditorViewportCameraSystem(
         transform.position.z += (forward.z * moveZ + right.z * moveX) * distance
     }
 
-    private fun InputSnapshot.isShiftDown(): Boolean =
-        isDown(Key.ShiftLeft) || isDown(Key.ShiftRight)
+    private fun InputSnapshot.isShiftDown(): Boolean = isDown(Key.ShiftLeft) || isDown(Key.ShiftRight)
 
     companion object {
         private const val MinPitchDegrees = -89f

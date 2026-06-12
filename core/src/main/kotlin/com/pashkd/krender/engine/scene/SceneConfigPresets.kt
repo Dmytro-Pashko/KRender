@@ -15,54 +15,66 @@ import com.pashkd.krender.engine.window.WindowResolution
  */
 object SceneConfigPresets {
     /** Default runtime and gameplay presentation preset. */
-    val RuntimeGame16By9 = SceneConfig(
-        viewport = RuntimeViewportConfig(
-            designWidth = 1920f,
-            designHeight = 1080f,
-            scalePolicy = UiScalePolicy.ScaleByHeight,
-        ),
-        window = RuntimeWindowConfig(
-            resolution = WindowResolution(width = 1920, height = 1080),
-            mode = WindowMode.Windowed,
-        ),
-    )
+    val RuntimeGame16By9 =
+        SceneConfig(
+            viewport =
+                RuntimeViewportConfig(
+                    designWidth = 1920f,
+                    designHeight = 1080f,
+                    scalePolicy = UiScalePolicy.ScaleByHeight,
+                ),
+            window =
+                RuntimeWindowConfig(
+                    resolution = WindowResolution(width = 1920, height = 1080),
+                    mode = WindowMode.Windowed,
+                ),
+        )
 
     /** Shared editor and viewer preset with extra vertical space for panels. */
-    val EditorTool = SceneConfig(
-        viewport = RuntimeViewportConfig(
-            designWidth = 1920f,
-            designHeight = 1080f,
-            scalePolicy = UiScalePolicy.ScaleByHeight,
-        ),
-        window = RuntimeWindowConfig(
-            resolution = WindowResolution(width = 1920, height = 1280),
-            mode = WindowMode.Windowed,
-        ),
-    )
+    val EditorTool =
+        SceneConfig(
+            viewport =
+                RuntimeViewportConfig(
+                    designWidth = 1920f,
+                    designHeight = 1080f,
+                    scalePolicy = UiScalePolicy.ScaleByHeight,
+                ),
+            window =
+                RuntimeWindowConfig(
+                    resolution = WindowResolution(width = 1920, height = 1280),
+                    mode = WindowMode.Windowed,
+                ),
+        )
 
     /** Current Asset Browser preset. Kept separate for future divergence. */
-    val AssetBrowser = SceneConfig(
-        viewport = RuntimeViewportConfig(
-            designWidth = 1920f,
-            designHeight = 1080f,
-            scalePolicy = UiScalePolicy.ScaleByHeight,
-        ),
-        window = RuntimeWindowConfig(
-            resolution = WindowResolution(width = 1800, height = 1100),
-            mode = WindowMode.Windowed,
-        ),
-    )
+    val AssetBrowser =
+        SceneConfig(
+            viewport =
+                RuntimeViewportConfig(
+                    designWidth = 1920f,
+                    designHeight = 1080f,
+                    scalePolicy = UiScalePolicy.ScaleByHeight,
+                ),
+            window =
+                RuntimeWindowConfig(
+                    resolution = WindowResolution(width = 1800, height = 1100),
+                    mode = WindowMode.Windowed,
+                ),
+        )
 
     /** Current Asset Browser preset. Kept separate for future divergence. */
-    val UiComposer = SceneConfig(
-        viewport = RuntimeViewportConfig(
-            designWidth = 1920f,
-            designHeight = 1080f,
-            scalePolicy = UiScalePolicy.ScaleByHeight,
-        ),
-        window = RuntimeWindowConfig(
-            resolution = WindowResolution(width = 2138, height = 1335),
-            mode = WindowMode.Windowed,
-        ),
-    )
+    val UiComposer =
+        SceneConfig(
+            viewport =
+                RuntimeViewportConfig(
+                    designWidth = 1920f,
+                    designHeight = 1080f,
+                    scalePolicy = UiScalePolicy.ScaleByHeight,
+                ),
+            window =
+                RuntimeWindowConfig(
+                    resolution = WindowResolution(width = 2138, height = 1335),
+                    mode = WindowMode.Windowed,
+                ),
+        )
 }

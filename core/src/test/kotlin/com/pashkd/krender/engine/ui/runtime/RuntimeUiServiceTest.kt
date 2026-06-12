@@ -51,7 +51,14 @@ class RuntimeUiServiceTest {
         service.setLayer(RuntimeUiLayers.Hud, screen("hud-2"))
 
         assertEquals(3, backend.syncedLayers.size)
-        assertEquals("hud-2", backend.syncedLayers.last().first { it.layer == RuntimeUiLayers.Hud }.screen?.id)
+        assertEquals(
+            "hud-2",
+            backend.syncedLayers
+                .last()
+                .first { it.layer == RuntimeUiLayers.Hud }
+                .screen
+                ?.id,
+        )
     }
 
     @Test
@@ -107,9 +114,10 @@ class RuntimeUiServiceTest {
 
     @Test
     fun `setActionHandler accepts null`() {
-        val backend = FakeRuntimeUiBackend().apply {
-            currentActionHandler = RuntimeUiActionHandler { }
-        }
+        val backend =
+            FakeRuntimeUiBackend().apply {
+                currentActionHandler = RuntimeUiActionHandler { }
+            }
         val service = RuntimeUiService(backend, NoOpLogger())
 
         service.setActionHandler(null)
@@ -144,7 +152,10 @@ class RuntimeUiServiceTest {
             renderCalls += 1
         }
 
-        override fun resize(width: Int, height: Int) {
+        override fun resize(
+            width: Int,
+            height: Int,
+        ) {
             resizes += width to height
         }
 
@@ -158,6 +169,11 @@ class RuntimeUiServiceTest {
     }
 
     private class NoOpLogger : Logger {
-        override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) = Unit
+        override fun log(
+            level: LogLevel,
+            tag: String,
+            error: Throwable?,
+            message: () -> String,
+        ) = Unit
     }
 }

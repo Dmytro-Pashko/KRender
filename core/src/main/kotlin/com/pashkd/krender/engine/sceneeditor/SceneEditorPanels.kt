@@ -219,16 +219,18 @@ class SceneHierarchyPanel(
             ImGui.text("No entities.")
         } else {
             entities.forEach { entity ->
-                val activeCameraMarker = if (entity.id == document.descriptor?.settings?.activeCameraEntityId) {
-                    " [Active Camera]"
-                } else {
-                    ""
-                }
-                val activeTerrainMarker = if (entity.id == document.descriptor?.settings?.activeTerrainEntityId) {
-                    " [Active Terrain]"
-                } else {
-                    ""
-                }
+                val activeCameraMarker =
+                    if (entity.id == document.descriptor?.settings?.activeCameraEntityId) {
+                        " [Active Camera]"
+                    } else {
+                        ""
+                    }
+                val activeTerrainMarker =
+                    if (entity.id == document.descriptor?.settings?.activeTerrainEntityId) {
+                        " [Active Terrain]"
+                    } else {
+                        ""
+                    }
                 val activeMarker = if (entity.active) "" else " (inactive)"
                 val label =
                     "${entity.name}$activeCameraMarker$activeTerrainMarker$activeMarker##scene_entity_${entity.id}"
@@ -339,16 +341,18 @@ class SceneHierarchyPanel(
 
     private fun selectedEditableEntity(): Entity? {
         val selectedId = state.selectedEntityId ?: return null
-        return document.world.getEntity(selectedId)
+        return document.world
+            .getEntity(selectedId)
             ?.takeUnless { entity -> entity.get<EditorOnlyComponent>() != null }
     }
 
     private fun visibleSceneEntities(): List<Entity> {
         val allEntities = document.world.all()
-        val filteredIds = allEntities
-            .filter { entity -> entity.get<EditorOnlyComponent>() != null }
-            .map(Entity::id)
-            .toSet()
+        val filteredIds =
+            allEntities
+                .filter { entity -> entity.get<EditorOnlyComponent>() != null }
+                .map(Entity::id)
+                .toSet()
         if (filteredIds.isNotEmpty() && filteredIds != lastFilteredEditorOnlyIds) {
             logger.debug(TAG) { "Filtering editor-only entities from hierarchy: ${filteredIds.joinToString()}" }
         }
@@ -706,7 +710,10 @@ class SceneInspectorPanel(
         }
     }
 
-    private fun drawCamera(entity: Entity, camera: PerspectiveCameraComponent) {
+    private fun drawCamera(
+        entity: Entity,
+        camera: PerspectiveCameraComponent,
+    ) {
         ImGui.text("Camera")
         if (document.descriptor?.settings?.activeCameraEntityId == entity.id) {
             ImGui.text("Active Camera")
@@ -755,7 +762,10 @@ class SceneInspectorPanel(
         }
     }
 
-    private fun drawLight(entity: Entity, light: LightComponent) {
+    private fun drawLight(
+        entity: Entity,
+        light: LightComponent,
+    ) {
         ImGui.text("Light")
         drawLightTypeSelector(entity, light)
 
@@ -815,7 +825,10 @@ class SceneInspectorPanel(
         }
     }
 
-    private fun drawLightTypeSelector(entity: Entity, light: LightComponent) {
+    private fun drawLightTypeSelector(
+        entity: Entity,
+        light: LightComponent,
+    ) {
         if (!ImGui.beginCombo("Type##scene_inspector_light_type", light.type.name)) return
 
         listOf(LightType.Directional, LightType.Point).forEach { type ->
@@ -837,10 +850,11 @@ class SceneInspectorPanel(
             return
         }
 
-        val transformRequired = entity.get<PerspectiveCameraComponent>() != null ||
-            entity.get<LightComponent>() != null ||
-            entity.get<ModelComponent>() != null ||
-            entity.get<TerrainComponent>() != null
+        val transformRequired =
+            entity.get<PerspectiveCameraComponent>() != null ||
+                entity.get<LightComponent>() != null ||
+                entity.get<ModelComponent>() != null ||
+                entity.get<TerrainComponent>() != null
         ImGui.beginDisabled(transformRequired)
         with(dsl) {
             button("Remove TransformComponent##scene_inspector_components_remove_transform") {
@@ -853,7 +867,10 @@ class SceneInspectorPanel(
         }
     }
 
-    private fun drawVec3Editor(label: String, value: Vec3): Boolean {
+    private fun drawVec3Editor(
+        label: String,
+        value: Vec3,
+    ): Boolean {
         transformBuffer[0] = value.x
         transformBuffer[1] = value.y
         transformBuffer[2] = value.z
@@ -978,8 +995,7 @@ class SceneViewportPanel(
     }
 }
 
-private fun formatPosition(position: Vec3): String =
-    "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
+private fun formatPosition(position: Vec3): String = "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
 internal fun beginSceneEditorPanel(
     panelId: String,
@@ -1005,14 +1021,20 @@ private fun formatTextureResolution(resolution: Int): String =
         resolution.toString()
     }
 
-internal fun writeBuffer(buffer: ByteArray, value: String) {
+internal fun writeBuffer(
+    buffer: ByteArray,
+    value: String,
+) {
     buffer.fill(0)
     val bytes = value.toByteArray(StandardCharsets.UTF_8)
     val length = minOf(bytes.size, buffer.size - 1)
     bytes.copyInto(buffer, endIndex = length)
 }
 
-internal fun safeInputText(label: String, buffer: ByteArray): Boolean =
+internal fun safeInputText(
+    label: String,
+    buffer: ByteArray,
+): Boolean =
     try {
         ImGui.inputText(label, buffer)
     } catch (_: ArrayIndexOutOfBoundsException) {

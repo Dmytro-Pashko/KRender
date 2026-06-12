@@ -7,10 +7,12 @@ import imgui.ImGui
 import imgui.dsl
 
 class SceneAssetDetailsRenderer : AssetDetailsRenderer {
-    override fun supports(asset: AssetDescriptor): Boolean =
-        asset.category == AssetCategory.Scene
+    override fun supports(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Scene
 
-    override fun render(asset: AssetDescriptor, context: AssetDetailsRenderContext) {
+    override fun render(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    ) {
         ImGui.text("Metadata")
         assetBrowserTextLine("Scene Name: ${asset.metadata["sceneName"] ?: asset.name}")
         assetBrowserTextLine("Schema: ${asset.metadata["sceneSchemaVersion"] ?: "unknown"}")
@@ -69,7 +71,10 @@ class SceneAssetDetailsRenderer : AssetDetailsRenderer {
         )
     }
 
-    private fun drawSceneActions(asset: AssetDescriptor, context: AssetDetailsRenderContext) {
+    private fun drawSceneActions(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    ) {
         val sceneTools = context.operations.toolsFor(asset)
         if (sceneTools.isEmpty()) return
 

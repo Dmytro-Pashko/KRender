@@ -140,7 +140,7 @@ class ModelViewerViewportPanel(
             ModelViewerRendererMode.entries.forEach { mode ->
                 if (ImGui.selectable(
                         "${rendererModeLabel(mode)}##model_viewer_renderer_$mode",
-                        state.rendererMode == mode
+                        state.rendererMode == mode,
                     )
                 ) {
                     state.rendererMode = mode
@@ -237,11 +237,12 @@ class ModelViewerInfoPanel(
         val min = info.boundsMin
         val max = info.boundsMax
         if (min != null && max != null) {
-            val center = Vec3(
-                (min.x + max.x) * 0.5f,
-                (min.y + max.y) * 0.5f,
-                (min.z + max.z) * 0.5f,
-            )
+            val center =
+                Vec3(
+                    (min.x + max.x) * 0.5f,
+                    (min.y + max.y) * 0.5f,
+                    (min.z + max.z) * 0.5f,
+                )
             val pivotOffset = Vec3(-center.x, -center.y, -center.z)
             textLine("Min: ${formatPosition(min)}")
             textLine("Max: ${formatPosition(max)}")
@@ -251,10 +252,10 @@ class ModelViewerInfoPanel(
                         Vec3(
                             max.x - min.x,
                             max.y - min.y,
-                            max.z - min.z
-                        )
+                            max.z - min.z,
+                        ),
                     )
-                }"
+                }",
             )
             textLine("Center: ${formatPosition(center)}")
             textLine("Pivot offset from center: ${formatPosition(pivotOffset)}")
@@ -265,24 +266,25 @@ class ModelViewerInfoPanel(
 
     private fun drawWarnings(info: ModelAssetInfo) {
         val textureSlots = info.materials.flatMap { material -> material.textureSlots }
-        val warnings = buildList {
-            if (info.uvChannels.isEmpty()) add("No UV channels.")
-            if (info.materialCount <= 0) add("No materials.")
-            if (textureSlots.isEmpty()) add("No texture slots.")
-            if (textureSlots.isNotEmpty() && info.uvChannels.isEmpty()) add("Texture slots exist but no UV channels were found.")
-            if (
-                textureSlots.any { slot -> slot.channel == "normal" } &&
-                info.vertexChannels.none { channel -> channel.equals("Tangent", ignoreCase = true) }
-            ) {
-                add("Normal texture exists but no tangent vertex channel was found.")
+        val warnings =
+            buildList {
+                if (info.uvChannels.isEmpty()) add("No UV channels.")
+                if (info.materialCount <= 0) add("No materials.")
+                if (textureSlots.isEmpty()) add("No texture slots.")
+                if (textureSlots.isNotEmpty() && info.uvChannels.isEmpty()) add("Texture slots exist but no UV channels were found.")
+                if (
+                    textureSlots.any { slot -> slot.channel == "normal" } &&
+                    info.vertexChannels.none { channel -> channel.equals("Tangent", ignoreCase = true) }
+                ) {
+                    add("Normal texture exists but no tangent vertex channel was found.")
+                }
+                if (info.triangleCount >= HighTriangleWarningThreshold) add("High triangle count.")
+                if (info.boundsMin == null || info.boundsMax == null || info.size == null) add("Bounds are missing.")
+                if (info.size != null && info.size.isNearZero()) add("Model has zero or near-zero size.")
+                if (info.meshParts.any { part -> part.materialId == null && part.materialIndex == null }) {
+                    add("One or more mesh parts have no material assignment.")
+                }
             }
-            if (info.triangleCount >= HighTriangleWarningThreshold) add("High triangle count.")
-            if (info.boundsMin == null || info.boundsMax == null || info.size == null) add("Bounds are missing.")
-            if (info.size != null && info.size.isNearZero()) add("Model has zero or near-zero size.")
-            if (info.meshParts.any { part -> part.materialId == null && part.materialIndex == null }) {
-                add("One or more mesh parts have no material assignment.")
-            }
-        }
         if (warnings.isEmpty()) return
 
         ImGui.separator()
@@ -295,8 +297,7 @@ class ModelViewerInfoPanel(
         private const val NearZeroSize = 0.0001f
     }
 
-    private fun Vec3.isNearZero(): Boolean =
-        x <= NearZeroSize || y <= NearZeroSize || z <= NearZeroSize
+    private fun Vec3.isNearZero(): Boolean = x <= NearZeroSize || y <= NearZeroSize || z <= NearZeroSize
 }
 
 /**
@@ -329,7 +330,7 @@ class ModelViewerMeshPartsPanel(
         }
         ImGui.checkbox(
             "Filter list by selected material##model_viewer_filter_mesh_parts_material",
-            state::filterMeshPartsBySelectedMaterial
+            state::filterMeshPartsBySelectedMaterial,
         )
         if (state.filterMeshPartsBySelectedMaterial && state.selectedMaterialIndex == null) {
             ImGui.text("Select a material to filter mesh parts.")
@@ -351,7 +352,7 @@ class ModelViewerMeshPartsPanel(
             val label = "#${part.index} ${part.partId ?: part.meshId ?: part.nodeName ?: "Mesh Part"}"
             if (ImGui.selectable(
                     "$label##model_viewer_mesh_part_${part.index}",
-                    state.selectedMeshPartIndex == part.index
+                    state.selectedMeshPartIndex == part.index,
                 )
             ) {
                 state.selectedMeshPartIndex = part.index
@@ -412,7 +413,7 @@ class ModelViewerMaterialsPanel(
             val label = "#${material.index} ${material.id ?: "Material"}"
             if (ImGui.selectable(
                     "$label##model_viewer_material_${material.index}",
-                    state.selectedMaterialIndex == material.index
+                    state.selectedMaterialIndex == material.index,
                 )
             ) {
                 state.selectedMaterialIndex = material.index
@@ -441,16 +442,17 @@ class ModelViewerMaterialsPanel(
                         color.r,
                         color.g,
                         color.b,
-                        color.a
+                        color.a,
                     )
                 } ?: "unknown"
-            }")
+            }",
+        )
         textLine("Opacity: ${material.opacity?.let { "%.2f".format(it) } ?: "unknown"}")
         textLine("Usage count: ${usedBy.size}")
         textLine(
             "Used by mesh parts: ${
                 usedBy.ifEmpty { emptyList() }.joinToString(", ") { part -> "#${part.index}" }.ifBlank { "none" }
-            }"
+            }",
         )
         ImGui.separator()
         ImGui.text("Texture slots")
@@ -471,7 +473,6 @@ class ModelViewerMaterialsPanel(
         textLine("UV: ${slot.uvChannel ?: "unknown"}")
         textLine("Material: #${slot.materialIndex} ${slot.materialId ?: "unknown"}")
     }
-
 }
 
 /**
@@ -512,13 +513,14 @@ class ModelViewerTextureChannelsPanel(
             return
         }
 
-        val channels = slots
-            .map { slot -> slot.channel }
-            .distinct()
-            .sortedWith(
-                compareBy<String> { channel -> textureChannelSortKey(channel) }
-                    .thenBy(String.CASE_INSENSITIVE_ORDER) { channel -> channel },
-            )
+        val channels =
+            slots
+                .map { slot -> slot.channel }
+                .distinct()
+                .sortedWith(
+                    compareBy<String> { channel -> textureChannelSortKey(channel) }
+                        .thenBy(String.CASE_INSENSITIVE_ORDER) { channel -> channel },
+                )
 
         if (state.selectedTextureChannel !in channels) {
             state.selectedTextureChannel = channels.firstOrNull()
@@ -530,7 +532,7 @@ class ModelViewerTextureChannelsPanel(
             val selected = state.selectedTextureChannel == channel
             if (ImGui.selectable(
                     "${textureChannelLabel(channel)}: $count slots##model_viewer_texture_channel_$channel",
-                    selected
+                    selected,
                 )
             ) {
                 state.selectedTextureChannel = channel
@@ -594,7 +596,7 @@ class ModelViewerTextureChannelsPanel(
         DebugCullingMode.entries.forEach { mode ->
             if (ImGui.selectable(
                     "${debugCullingLabel(mode)}##model_viewer_debug_culling_$mode",
-                    state.debugCullingMode == mode
+                    state.debugCullingMode == mode,
                 )
             ) {
                 state.debugCullingMode = mode
@@ -610,9 +612,10 @@ class ModelViewerTextureChannelsPanel(
             return
         }
         val selectedMaterial = state.selectedMaterialIndex.takeIf { state.debugSelectedMaterialOnly }
-        val channels = matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex = selectedMaterial)
-            .map { slot -> slot.channel }
-            .distinct()
+        val channels =
+            matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex = selectedMaterial)
+                .map { slot -> slot.channel }
+                .distinct()
         if (channels.isEmpty()) {
             textLine("Texture Channel: unavailable")
             return
@@ -623,13 +626,15 @@ class ModelViewerTextureChannelsPanel(
         val current = state.selectedTextureChannel ?: channels.first()
         if (!ImGui.beginCombo(
                 "Texture Channel##model_viewer_debug_texture_channel",
-                textureChannelLabel(current)
+                textureChannelLabel(current),
             )
-        ) return
+        ) {
+            return
+        }
         channels.forEach { channel ->
             if (ImGui.selectable(
                     "${textureChannelLabel(channel)}##model_viewer_debug_channel_$channel",
-                    current == channel
+                    current == channel,
                 )
             ) {
                 state.selectedTextureChannel = channel
@@ -661,9 +666,10 @@ class ModelViewerTextureChannelsPanel(
     }
 
     private fun drawUvCheckerTextureCombo() {
-        val current = UV_CHECKER_TEXTURE_OPTIONS.firstOrNull { option ->
-            option.texturePath == state.uvCheckerTexturePath
-        } ?: UV_CHECKER_TEXTURE_OPTIONS.first { option -> option.texturePath == DEFAULT_UV_CHECKER_TEXTURE }
+        val current =
+            UV_CHECKER_TEXTURE_OPTIONS.firstOrNull { option ->
+                option.texturePath == state.uvCheckerTexturePath
+            } ?: UV_CHECKER_TEXTURE_OPTIONS.first { option -> option.texturePath == DEFAULT_UV_CHECKER_TEXTURE }
         if (state.uvCheckerTexturePath !in UV_CHECKER_TEXTURE_OPTIONS.map { option -> option.texturePath }) {
             state.uvCheckerTexturePath = current.texturePath
         }
@@ -671,7 +677,7 @@ class ModelViewerTextureChannelsPanel(
         UV_CHECKER_TEXTURE_OPTIONS.forEach { option ->
             if (ImGui.selectable(
                     "${option.resolution}##model_viewer_uv_checker_texture_${option.resolution}",
-                    current == option
+                    current == option,
                 )
             ) {
                 state.uvCheckerTexturePath = option.texturePath
@@ -681,10 +687,13 @@ class ModelViewerTextureChannelsPanel(
     }
 
     private fun drawUvChannelCombo(info: ModelAssetInfo?) {
-        val channels = info?.uvChannels.orEmpty()
-            .mapNotNull(::uvChannelIndex)
-            .distinct()
-            .sorted()
+        val channels =
+            info
+                ?.uvChannels
+                .orEmpty()
+                .mapNotNull(::uvChannelIndex)
+                .distinct()
+                .sorted()
         if (channels.isEmpty()) {
             state.uvCheckerUvChannel = 0
             if (ImGui.beginCombo("UV Channel##model_viewer_uv_checker_channel", "None")) {
@@ -702,7 +711,7 @@ class ModelViewerTextureChannelsPanel(
             val label = "UV$channel"
             if (ImGui.selectable(
                     "$label##model_viewer_uv_checker_channel_$channel",
-                    state.uvCheckerUvChannel == channel
+                    state.uvCheckerUvChannel == channel,
                 )
             ) {
                 state.uvCheckerUvChannel = channel
@@ -734,16 +743,17 @@ class ModelViewerTextureChannelsPanel(
         info: ModelAssetInfo?,
         slots: List<ModelTextureSlotInfo>,
     ) {
-        val warnings = buildList {
-            if (info != null && info.materialCount <= 0) add("No materials.")
-            if (info != null && info.uvChannels.isEmpty()) add("No UV channels.")
-            if (info != null && slots.isNotEmpty() && info.uvChannels.isEmpty()) {
-                add("Texture slots exist but no UV channels were found.")
+        val warnings =
+            buildList {
+                if (info != null && info.materialCount <= 0) add("No materials.")
+                if (info != null && info.uvChannels.isEmpty()) add("No UV channels.")
+                if (info != null && slots.isNotEmpty() && info.uvChannels.isEmpty()) {
+                    add("Texture slots exist but no UV channels were found.")
+                }
+                if (slots.any { slot -> slot.texturePath.isNullOrBlank() }) {
+                    add("One or more texture slots have no stable texture path or id.")
+                }
             }
-            if (slots.any { slot -> slot.texturePath.isNullOrBlank() }) {
-                add("One or more texture slots have no stable texture path or id.")
-            }
-        }
         if (warnings.isEmpty()) return
 
         ImGui.separator()
@@ -800,8 +810,7 @@ private fun matchingMaterialIndexForPart(
 private fun meshPartsUsingMaterial(
     material: ModelMaterialInfo,
     meshParts: List<ModelMeshPartInfo>,
-): List<ModelMeshPartInfo> =
-    meshParts.filter { part -> meshPartUsesMaterial(part, material) }
+): List<ModelMeshPartInfo> = meshParts.filter { part -> meshPartUsesMaterial(part, material) }
 
 private fun meshPartUsesMaterial(
     part: ModelMeshPartInfo,
@@ -824,14 +833,11 @@ internal fun beginModelViewerPanel(
     return expanded
 }
 
-private fun formatPosition(position: Vec3): String =
-    "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
+private fun formatPosition(position: Vec3): String = "%.2f, %.2f, %.2f".format(position.x, position.y, position.z)
 
-private fun formatSize(size: Vec3): String =
-    "%.2f x %.2f x %.2f".format(size.x, size.y, size.z)
+private fun formatSize(size: Vec3): String = "%.2f x %.2f x %.2f".format(size.x, size.y, size.z)
 
-private fun formatList(values: List<String>): String =
-    values.ifEmpty { listOf("none") }.joinToString(", ")
+private fun formatList(values: List<String>): String = values.ifEmpty { listOf("none") }.joinToString(", ")
 
 private fun uvChannelIndex(channel: String): Int? {
     val trimmed = channel.trim()
@@ -842,59 +848,68 @@ private fun uvChannelIndex(channel: String): Int? {
     }
 }
 
-private fun textureChannelLabel(channel: String): String = when (channel) {
-    "baseColor", "diffuse" -> "Base Color / Diffuse"
-    "normal" -> "Normal"
-    "emissive" -> "Emissive"
-    "occlusion" -> "Occlusion"
-    "metallicRoughness" -> "Metallic/Roughness Packed"
-    "alpha" -> "Alpha"
-    "unknown" -> "Unknown"
-    else -> channel.replaceFirstChar { char -> char.uppercaseChar() }
-}
+private fun textureChannelLabel(channel: String): String =
+    when (channel) {
+        "baseColor", "diffuse" -> "Base Color / Diffuse"
+        "normal" -> "Normal"
+        "emissive" -> "Emissive"
+        "occlusion" -> "Occlusion"
+        "metallicRoughness" -> "Metallic/Roughness Packed"
+        "alpha" -> "Alpha"
+        "unknown" -> "Unknown"
+        else -> channel.replaceFirstChar { char -> char.uppercaseChar() }
+    }
 
-private fun textureChannelSortKey(channel: String): Int = when (channel) {
-    "baseColor", "diffuse" -> 0
-    "normal" -> 1
-    "emissive" -> 2
-    "occlusion" -> 3
-    "metallicRoughness" -> 4
-    "alpha" -> 5
-    "unknown" -> 100
-    else -> 50
-}
+private fun textureChannelSortKey(channel: String): Int =
+    when (channel) {
+        "baseColor", "diffuse" -> 0
+        "normal" -> 1
+        "emissive" -> 2
+        "occlusion" -> 3
+        "metallicRoughness" -> 4
+        "alpha" -> 5
+        "unknown" -> 100
+        else -> 50
+    }
 
-private fun debugModeLabel(mode: MaterialDebugMode): String = when (mode) {
-    MaterialDebugMode.None -> "None"
-    MaterialDebugMode.BaseColor -> "Base Color"
-    MaterialDebugMode.Normal -> "Normal"
-    MaterialDebugMode.Emission -> "Emission"
-    MaterialDebugMode.Roughness -> "Roughness"
-    MaterialDebugMode.Metallic -> "Metallic"
-    MaterialDebugMode.MetallicRoughnessPacked -> "Metallic/Roughness Packed"
-    MaterialDebugMode.Occlusion -> "Occlusion"
-    MaterialDebugMode.Alpha -> "Alpha"
-    MaterialDebugMode.UvChecker -> "UV Checker"
-}
+private fun debugModeLabel(mode: MaterialDebugMode): String =
+    when (mode) {
+        MaterialDebugMode.None -> "None"
+        MaterialDebugMode.BaseColor -> "Base Color"
+        MaterialDebugMode.Normal -> "Normal"
+        MaterialDebugMode.Emission -> "Emission"
+        MaterialDebugMode.Roughness -> "Roughness"
+        MaterialDebugMode.Metallic -> "Metallic"
+        MaterialDebugMode.MetallicRoughnessPacked -> "Metallic/Roughness Packed"
+        MaterialDebugMode.Occlusion -> "Occlusion"
+        MaterialDebugMode.Alpha -> "Alpha"
+        MaterialDebugMode.UvChecker -> "UV Checker"
+    }
 
-private fun debugModeAvailable(info: ModelAssetInfo?, mode: MaterialDebugMode): Boolean = when {
-    mode == MaterialDebugMode.None -> true
-    mode == MaterialDebugMode.UvChecker -> info?.uvChannels?.isNotEmpty() != false
-    isModelViewerTextureDebugMode(mode) ->
-        hasModelViewerTextureChannel(info, mode, selectedMaterialIndex = null)
+private fun debugModeAvailable(
+    info: ModelAssetInfo?,
+    mode: MaterialDebugMode,
+): Boolean =
+    when {
+        mode == MaterialDebugMode.None -> true
+        mode == MaterialDebugMode.UvChecker -> info?.uvChannels?.isNotEmpty() != false
+        isModelViewerTextureDebugMode(mode) ->
+            hasModelViewerTextureChannel(info, mode, selectedMaterialIndex = null)
 
-    else -> true
-}
+        else -> true
+    }
 
-private fun debugCullingLabel(mode: DebugCullingMode): String = when (mode) {
-    DebugCullingMode.Backface -> "Backface"
-    DebugCullingMode.DoubleSided -> "Double-sided"
-}
+private fun debugCullingLabel(mode: DebugCullingMode): String =
+    when (mode) {
+        DebugCullingMode.Backface -> "Backface"
+        DebugCullingMode.DoubleSided -> "Double-sided"
+    }
 
-private fun rendererModeLabel(mode: ModelViewerRendererMode): String = when (mode) {
-    ModelViewerRendererMode.LibGdx -> "LibGDX (default)"
-    ModelViewerRendererMode.Pbr -> "PBR"
-}
+private fun rendererModeLabel(mode: ModelViewerRendererMode): String =
+    when (mode) {
+        ModelViewerRendererMode.LibGdx -> "LibGDX (default)"
+        ModelViewerRendererMode.Pbr -> "PBR"
+    }
 
 private fun drawTextureSlotPreview(
     assets: AssetService,

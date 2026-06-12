@@ -90,11 +90,12 @@ object TerrainMeshBuilder {
     ): TerrainMeshBuildResult {
         val mesh = build(data = terrain, enableLayerColorPreview = false)
         return TerrainMeshBuildResult(
-            model = DynamicModel(
-                id = modelId,
-                mesh = mesh.toDynamicMesh(),
-                revision = revision,
-            ),
+            model =
+                DynamicModel(
+                    id = modelId,
+                    mesh = mesh.toDynamicMesh(),
+                    revision = revision,
+                ),
             vertexCount = mesh.vertexCount,
             triangleCount = mesh.triangleCount,
         )
@@ -113,11 +114,12 @@ object TerrainMeshBuilder {
         val positions = FloatArray(vertexCount * 3)
         val normals = FloatArray(vertexCount * 3)
         val uvs = FloatArray(vertexCount * 2)
-        val colors = if (enableLayerColorPreview) {
-            buildLayerColors(data, materialColorResolver, blendMode)
-        } else {
-            null
-        }
+        val colors =
+            if (enableLayerColorPreview) {
+                buildLayerColors(data, materialColorResolver, blendMode)
+            } else {
+                null
+            }
         val indices = IntArray((data.width - 1) * (data.height - 1) * 6)
 
         var vertexOffset = 0
@@ -195,13 +197,14 @@ object TerrainMeshBuilder {
         blendMode: TerrainLayerBlendMode,
     ): TerrainLayerColorDescriptor =
         when (blendMode) {
-            TerrainLayerBlendMode.WeightedAverage -> weightedAverageColor(
-                data,
-                visibleLayers,
-                x,
-                y,
-                materialColorResolver
-            )
+            TerrainLayerBlendMode.WeightedAverage ->
+                weightedAverageColor(
+                    data,
+                    visibleLayers,
+                    x,
+                    y,
+                    materialColorResolver,
+                )
 
             TerrainLayerBlendMode.OrderedAlpha -> orderedAlphaColor(data, visibleLayers, x, y, materialColorResolver)
             TerrainLayerBlendMode.MaxWeight -> maxWeightColor(data, visibleLayers, x, y, materialColorResolver)
@@ -394,7 +397,10 @@ object TerrainMeshBuilder {
         buffer[base + 2] += z
     }
 
-    private fun normalizeVector(buffer: FloatArray, vertexIndex: Int) {
+    private fun normalizeVector(
+        buffer: FloatArray,
+        vertexIndex: Int,
+    ) {
         val base = vertexIndex * 3
         val x = buffer[base]
         val y = buffer[base + 1]

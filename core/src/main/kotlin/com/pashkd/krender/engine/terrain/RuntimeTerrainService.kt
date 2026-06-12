@@ -79,11 +79,15 @@ class RuntimeTerrainService(
         descriptor: SceneDescriptor,
     ): RuntimeTerrainSetupResult {
         val entity = RuntimeSceneValidator.requireActiveTerrain(world, descriptor)
-        val terrainComponent = entity.get<TerrainComponent>()
-            ?: throw IllegalStateException(
-                "Runtime scene activeTerrainEntityId=${descriptor.settings.activeTerrainEntityId} does not reference an entity with TerrainComponent.",
-            )
-        val terrainPath = terrainComponent.terrain.path.trim().replace('\\', '/')
+        val terrainComponent =
+            entity.get<TerrainComponent>()
+                ?: throw IllegalStateException(
+                    "Runtime scene activeTerrainEntityId=${descriptor.settings.activeTerrainEntityId} does not reference an entity with TerrainComponent.",
+                )
+        val terrainPath =
+            terrainComponent.terrain.path
+                .trim()
+                .replace('\\', '/')
         val finalSplatResolution = terrainComponent.bakedTextureResolution
         if (finalSplatResolution !in 2..8192) {
             throw IllegalStateException(
@@ -91,32 +95,36 @@ class RuntimeTerrainService(
             )
         }
 
-        val terrainData = try {
-            terrainLoader.load(terrainPath)
-        } catch (error: Exception) {
-            throw IllegalStateException(
-                "Failed to load runtime terrain entityId=${entity.id} path='$terrainPath': ${error.message}",
-                error,
-            )
-        }
+        val terrainData =
+            try {
+                terrainLoader.load(terrainPath)
+            } catch (error: Exception) {
+                throw IllegalStateException(
+                    "Failed to load runtime terrain entityId=${entity.id} path='$terrainPath': ${error.message}",
+                    error,
+                )
+            }
 
         val modelId = "runtime_terrain_${entity.id}_${terrainData.width}x${terrainData.height}"
-        val finalTextureId = runtimeTerrainFinalSplatTextureId(
-            entityId = entity.id,
-            modelId = modelId,
-        )
+        val finalTextureId =
+            runtimeTerrainFinalSplatTextureId(
+                entityId = entity.id,
+                modelId = modelId,
+            )
         entity.add(TerrainDataComponent(terrainData))
         entity.add(
             TerrainRendererComponent(
                 modelId = modelId,
-                material = Material(
-                    baseColor = Color.white(),
-                    diffuseTextureRef = MaterialTextureRef(
-                        id = finalTextureId,
-                        channel = "baseColor",
-                        uvChannel = 0,
+                material =
+                    Material(
+                        baseColor = Color.white(),
+                        diffuseTextureRef =
+                            MaterialTextureRef(
+                                id = finalTextureId,
+                                channel = "baseColor",
+                                uvChannel = 0,
+                            ),
                     ),
-                ),
                 finalSplatResolution = finalSplatResolution,
             ),
         )

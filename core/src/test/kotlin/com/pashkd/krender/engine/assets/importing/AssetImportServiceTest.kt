@@ -32,14 +32,24 @@ class AssetImportServiceTest {
         ImportAssetDialogState.selectSourcePath(state, fixture.service, source.toString())
 
         assertEquals(source.toString(), state.importSourcePath)
-        assertEquals("textures/albedo.png", state.importPlan?.entries?.single()?.targetPath)
+        assertEquals(
+            "textures/albedo.png",
+            state.importPlan
+                ?.entries
+                ?.single()
+                ?.targetPath,
+        )
         assertTrue(ImportAssetDialogState.canImport(state))
     }
 
     @Test
     fun `selecting uiskin source path derives import name from package directory`() {
         val fixture = fixture()
-        val skinDir = fixture.sourceDir.resolve("commodore64").resolve("skin").createDirectories()
+        val skinDir =
+            fixture.sourceDir
+                .resolve("commodore64")
+                .resolve("skin")
+                .createDirectories()
         val source = skinDir.resolve("uiskin.json")
         source.writeText(libgdxSkinJson(), StandardCharsets.UTF_8)
         val state = AssetBrowserState()
@@ -47,7 +57,13 @@ class AssetImportServiceTest {
         ImportAssetDialogState.selectSourcePath(state, fixture.service, source.toString())
 
         assertEquals("commodore64", state.importName)
-        assertEquals("ui/skins/commodore64/uiskin.json", state.importPlan?.entries?.single()?.targetPath)
+        assertEquals(
+            "ui/skins/commodore64/uiskin.json",
+            state.importPlan
+                ?.entries
+                ?.single()
+                ?.targetPath,
+        )
     }
 
     @Test
@@ -70,7 +86,12 @@ class AssetImportServiceTest {
 
         ImportAssetDialogState.selectSourcePath(state, fixture.service, source.toString())
 
-        assertFalse(state.importPlan?.entries?.single()?.supported ?: true)
+        assertFalse(
+            state.importPlan
+                ?.entries
+                ?.single()
+                ?.supported ?: true,
+        )
         assertFalse(ImportAssetDialogState.canImport(state))
     }
 
@@ -84,10 +105,25 @@ class AssetImportServiceTest {
         val result = fixture.service.importAssets(plan)
 
         assertTrue(result.errors.isEmpty())
-        assertTrue(plan.entries.single().dependencies.isEmpty())
+        assertTrue(
+            plan.entries
+                .single()
+                .dependencies
+                .isEmpty(),
+        )
         assertEquals(listOf("textures/albedo.png"), result.imported.map { it.targetPath })
-        assertTrue(fixture.baseDir.resolve("textures/albedo.png").toFile().exists())
-        assertTrue(fixture.baseDir.resolve("textures/albedo.png.krmeta").toFile().exists())
+        assertTrue(
+            fixture.baseDir
+                .resolve("textures/albedo.png")
+                .toFile()
+                .exists(),
+        )
+        assertTrue(
+            fixture.baseDir
+                .resolve("textures/albedo.png.krmeta")
+                .toFile()
+                .exists(),
+        )
 
         val descriptor = fixture.registry.assets.singleOrNull { asset -> asset.path == "textures/albedo.png" }
         assertNotNull(descriptor)
@@ -105,10 +141,25 @@ class AssetImportServiceTest {
         val result = fixture.service.importAssets(plan)
 
         assertTrue(result.errors.isEmpty())
-        assertTrue(plan.entries.single().dependencies.isEmpty())
+        assertTrue(
+            plan.entries
+                .single()
+                .dependencies
+                .isEmpty(),
+        )
         assertEquals(listOf("model/prop.glb"), result.imported.map { it.targetPath })
-        assertTrue(fixture.baseDir.resolve("model/prop.glb").toFile().exists())
-        assertTrue(fixture.baseDir.resolve("model/prop.glb.krmeta").toFile().exists())
+        assertTrue(
+            fixture.baseDir
+                .resolve("model/prop.glb")
+                .toFile()
+                .exists(),
+        )
+        assertTrue(
+            fixture.baseDir
+                .resolve("model/prop.glb.krmeta")
+                .toFile()
+                .exists(),
+        )
 
         val descriptor = fixture.registry.assets.singleOrNull { asset -> asset.path == "model/prop.glb" }
         assertNotNull(descriptor)
@@ -135,10 +186,30 @@ class AssetImportServiceTest {
         assertEquals("OBJ import is not supported. Use .glb.", objPlan.entries.single().status)
         assertTrue(gltfResult.imported.isEmpty())
         assertTrue(objResult.imported.isEmpty())
-        assertFalse(fixture.baseDir.resolve("model/prop.gltf").toFile().exists())
-        assertFalse(fixture.baseDir.resolve("model/prop.obj").toFile().exists())
-        assertFalse(fixture.baseDir.resolve("model/prop.gltf.krmeta").toFile().exists())
-        assertFalse(fixture.baseDir.resolve("model/prop.obj.krmeta").toFile().exists())
+        assertFalse(
+            fixture.baseDir
+                .resolve("model/prop.gltf")
+                .toFile()
+                .exists(),
+        )
+        assertFalse(
+            fixture.baseDir
+                .resolve("model/prop.obj")
+                .toFile()
+                .exists(),
+        )
+        assertFalse(
+            fixture.baseDir
+                .resolve("model/prop.gltf.krmeta")
+                .toFile()
+                .exists(),
+        )
+        assertFalse(
+            fixture.baseDir
+                .resolve("model/prop.obj.krmeta")
+                .toFile()
+                .exists(),
+        )
     }
 
     @Test
@@ -153,7 +224,12 @@ class AssetImportServiceTest {
         assertFalse(plan.entries.single().supported)
         assertTrue(result.imported.isEmpty())
         assertTrue(result.skipped.isNotEmpty())
-        assertFalse(fixture.baseDir.resolve("assets/notes.txt.krmeta").toFile().exists())
+        assertFalse(
+            fixture.baseDir
+                .resolve("assets/notes.txt.krmeta")
+                .toFile()
+                .exists(),
+        )
         assertTrue(fixture.registry.assets.isEmpty())
     }
 
@@ -170,8 +246,18 @@ class AssetImportServiceTest {
 
         assertEquals("textures/albedo_2.png", plan.entries.single().targetPath)
         assertTrue(result.errors.isEmpty())
-        assertTrue(fixture.baseDir.resolve("textures/albedo_2.png").toFile().exists())
-        assertTrue(fixture.baseDir.resolve("textures/albedo_2.png.krmeta").toFile().exists())
+        assertTrue(
+            fixture.baseDir
+                .resolve("textures/albedo_2.png")
+                .toFile()
+                .exists(),
+        )
+        assertTrue(
+            fixture.baseDir
+                .resolve("textures/albedo_2.png.krmeta")
+                .toFile()
+                .exists(),
+        )
     }
 
     @Test
@@ -189,7 +275,12 @@ class AssetImportServiceTest {
         assertEquals("Skipped because target exists.", plan.entries.single().status)
         assertTrue(result.imported.isEmpty())
         assertTrue(result.skipped.isNotEmpty())
-        assertFalse(fixture.baseDir.resolve("textures/albedo.png.krmeta").toFile().exists())
+        assertFalse(
+            fixture.baseDir
+                .resolve("textures/albedo.png.krmeta")
+                .toFile()
+                .exists(),
+        )
     }
 
     @Test
@@ -215,7 +306,12 @@ class AssetImportServiceTest {
 
         assertTrue(result.errors.isEmpty())
         assertTrue(target.readBytes().contentEquals(pngBytes()))
-        assertTrue(fixture.baseDir.resolve("textures/albedo.png.krmeta").toFile().exists())
+        assertTrue(
+            fixture.baseDir
+                .resolve("textures/albedo.png.krmeta")
+                .toFile()
+                .exists(),
+        )
     }
 
     @Test
@@ -234,14 +330,38 @@ class AssetImportServiceTest {
         assertEquals(listOf("ui/skins/skin/skin.json"), result.imported.map { it.targetPath })
         assertEquals(
             setOf("ui/skins/skin/skin.atlas", "ui/skins/skin/skin.png", "ui/skins/skin/skin.fnt"),
-            plan.entries.single().dependencies.map { dependency -> dependency.targetPath }.toSet(),
+            plan.entries
+                .single()
+                .dependencies
+                .map { dependency -> dependency.targetPath }
+                .toSet(),
         )
         val imported = fixture.baseDir.resolve("ui/skins/skin/skin.json")
         assertTrue(imported.toFile().exists())
-        assertTrue(fixture.baseDir.resolve("ui/skins/skin/skin.json.krmeta").toFile().exists())
-        assertTrue(fixture.baseDir.resolve("ui/skins/skin/skin.atlas").toFile().exists())
-        assertTrue(fixture.baseDir.resolve("ui/skins/skin/skin.png").toFile().exists())
-        assertTrue(fixture.baseDir.resolve("ui/skins/skin/skin.fnt").toFile().exists())
+        assertTrue(
+            fixture.baseDir
+                .resolve("ui/skins/skin/skin.json.krmeta")
+                .toFile()
+                .exists(),
+        )
+        assertTrue(
+            fixture.baseDir
+                .resolve("ui/skins/skin/skin.atlas")
+                .toFile()
+                .exists(),
+        )
+        assertTrue(
+            fixture.baseDir
+                .resolve("ui/skins/skin/skin.png")
+                .toFile()
+                .exists(),
+        )
+        assertTrue(
+            fixture.baseDir
+                .resolve("ui/skins/skin/skin.fnt")
+                .toFile()
+                .exists(),
+        )
 
         val metadata = Scene2DSkinAssetMetadataReader.read(imported.toFile()).toMetadataMap()
         assertEquals("ok", metadata["skinStatus"])
@@ -269,13 +389,42 @@ class AssetImportServiceTest {
                 "ui/skins/Commodore64/uiskin.png",
                 "ui/skins/Commodore64/commodore-64.fnt",
             ),
-            plan.entries.single().dependencies.map { dependency -> dependency.targetPath }.toSet(),
+            plan.entries
+                .single()
+                .dependencies
+                .map { dependency -> dependency.targetPath }
+                .toSet(),
         )
-        assertTrue(fixture.baseDir.resolve("ui/skins/Commodore64/uiskin.json").toFile().exists())
-        assertTrue(fixture.baseDir.resolve("ui/skins/Commodore64/uiskin.json.krmeta").toFile().exists())
-        assertTrue(fixture.baseDir.resolve("ui/skins/Commodore64/uiskin.atlas").toFile().exists())
-        assertTrue(fixture.baseDir.resolve("ui/skins/Commodore64/uiskin.png").toFile().exists())
-        assertTrue(fixture.baseDir.resolve("ui/skins/Commodore64/commodore-64.fnt").toFile().exists())
+        assertTrue(
+            fixture.baseDir
+                .resolve("ui/skins/Commodore64/uiskin.json")
+                .toFile()
+                .exists(),
+        )
+        assertTrue(
+            fixture.baseDir
+                .resolve("ui/skins/Commodore64/uiskin.json.krmeta")
+                .toFile()
+                .exists(),
+        )
+        assertTrue(
+            fixture.baseDir
+                .resolve("ui/skins/Commodore64/uiskin.atlas")
+                .toFile()
+                .exists(),
+        )
+        assertTrue(
+            fixture.baseDir
+                .resolve("ui/skins/Commodore64/uiskin.png")
+                .toFile()
+                .exists(),
+        )
+        assertTrue(
+            fixture.baseDir
+                .resolve("ui/skins/Commodore64/commodore-64.fnt")
+                .toFile()
+                .exists(),
+        )
     }
 
     @Test
@@ -315,12 +464,13 @@ class AssetImportServiceTest {
         val baseDir = Files.createTempDirectory("krender-import-assets")
         val sourceDir = Files.createTempDirectory("krender import source")
         val importers = AssetImporterRegistry.withDefaults(logger)
-        val registry = LocalAssetRegistryService(
-            logger = logger,
-            importers = importers,
-            baseDirectory = baseDir.toFile(),
-            rootPaths = listOf("model", "textures", "ui/skins", "assets"),
-        )
+        val registry =
+            LocalAssetRegistryService(
+                logger = logger,
+                importers = importers,
+                baseDirectory = baseDir.toFile(),
+                rootPaths = listOf("model", "textures", "ui/skins", "assets"),
+            )
         return ImportFixture(
             baseDir = baseDir,
             sourceDir = sourceDir,

@@ -14,7 +14,10 @@ class EventBus {
     private val subscribers = mutableMapOf<KClass<out Event>, MutableList<(Event) -> Unit>>()
 
     /** Registers a handler for the given event type. */
-    fun <T : Event> subscribe(type: KClass<T>, handler: (T) -> Unit): Subscription {
+    fun <T : Event> subscribe(
+        type: KClass<T>,
+        handler: (T) -> Unit,
+    ): Subscription {
         val handlers = subscribers.getOrPut(type) { mutableListOf() }
 
         @Suppress("UNCHECKED_CAST")
@@ -26,8 +29,7 @@ class EventBus {
     }
 
     /** Registers a handler using a reified event type. */
-    inline fun <reified T : Event> subscribe(noinline handler: (T) -> Unit): Subscription =
-        subscribe(T::class, handler)
+    inline fun <reified T : Event> subscribe(noinline handler: (T) -> Unit): Subscription = subscribe(T::class, handler)
 
     /** Publishes one event to subscribers of its exact runtime type. */
     fun publish(event: Event) {

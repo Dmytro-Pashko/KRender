@@ -20,7 +20,10 @@ class GdxTaskService : TaskService {
         get() = jobs.count { it.isActive }
 
     /** Launches a tracked background coroutine. */
-    override fun launchBackground(name: String, block: suspend CoroutineScope.() -> Unit): Job {
+    override fun launchBackground(
+        name: String,
+        block: suspend CoroutineScope.() -> Unit,
+    ): Job {
         val launched = backgroundScope.launch(block = block)
         jobs += launched
         launched.invokeOnCompletion { jobs -= launched }
@@ -56,7 +59,10 @@ class GdxTaskService : TaskService {
 /** Coroutine dispatcher that posts work onto the LibGDX application thread. */
 class RenderThreadDispatcher : CoroutineDispatcher() {
     /** Schedules the runnable through LibGDX's `postRunnable` callback queue. */
-    override fun dispatch(context: CoroutineContext, block: Runnable) {
+    override fun dispatch(
+        context: CoroutineContext,
+        block: Runnable,
+    ) {
         Gdx.app.postRunnable(block)
     }
 }

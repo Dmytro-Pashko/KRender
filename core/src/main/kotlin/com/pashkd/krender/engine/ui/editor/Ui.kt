@@ -10,7 +10,6 @@ import com.pashkd.krender.engine.api.TexturePreviewHandle
 data class UiCaptureState(
     /** True when the UI is actively consuming mouse input. */
     val mouse: Boolean = false,
-
     /** True when the UI is actively consuming keyboard input. */
     val keyboard: Boolean = false,
 )
@@ -32,10 +31,17 @@ interface UiContext {
     fun render()
 
     /** Informs the UI backend about viewport size changes. */
-    fun resize(width: Int, height: Int)
+    fun resize(
+        width: Int,
+        height: Int,
+    )
 
     /** Draws an opaque backend texture preview at the requested UI size. */
-    fun drawTexturePreview(handle: TexturePreviewHandle, width: Float, height: Float): Boolean = false
+    fun drawTexturePreview(
+        handle: TexturePreviewHandle,
+        width: Float,
+        height: Float,
+    ): Boolean = false
 
     /** Releases all resources owned by the UI backend. */
     fun dispose()
@@ -58,7 +64,10 @@ class NoOpUiService : UiService {
 
     override fun render() = Unit
 
-    override fun resize(width: Int, height: Int) = Unit
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) = Unit
 
     override fun dispose() = Unit
 }
@@ -91,7 +100,10 @@ class UiSystem(
     }
 
     /** Draws all registered panels inside the active UI frame. */
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         panels.forEach(UiPanel::draw)
     }
 }

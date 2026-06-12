@@ -54,18 +54,22 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
-    private fun launch(scene: String, pathProperty: Pair<String, String>, failureMessage: String) {
+    private fun launch(
+        scene: String,
+        pathProperty: Pair<String, String>,
+        failureMessage: String,
+    ) {
         processLauncher.launch(
-            properties = linkedMapOf(
-                "krender.scene" to scene,
-                pathProperty,
-            ),
+            properties =
+                linkedMapOf(
+                    "krender.scene" to scene,
+                    pathProperty,
+                ),
             failureMessage = failureMessage,
         )
     }
 
-    private fun normalizePath(path: String): String =
-        path.trim().replace('\\', '/')
+    private fun normalizePath(path: String): String = path.trim().replace('\\', '/')
 
     companion object {
         private const val TAG = "EditorToolLauncher"

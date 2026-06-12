@@ -57,23 +57,26 @@ class ModelViewerOperations(
         }
 
         val scale = state.modelScale.coerceAtLeast(MinScale)
-        val center = Vec3(
-            x = ((bounds.min.x + bounds.max.x) * 0.5f) * scale,
-            y = ((bounds.min.y + bounds.max.y) * 0.5f) * scale,
-            z = ((bounds.min.z + bounds.max.z) * 0.5f) * scale,
-        )
-        val size = Vec3(
-            x = (bounds.max.x - bounds.min.x) * scale,
-            y = (bounds.max.y - bounds.min.y) * scale,
-            z = (bounds.max.z - bounds.min.z) * scale,
-        )
+        val center =
+            Vec3(
+                x = ((bounds.min.x + bounds.max.x) * 0.5f) * scale,
+                y = ((bounds.min.y + bounds.max.y) * 0.5f) * scale,
+                z = ((bounds.min.z + bounds.max.z) * 0.5f) * scale,
+            )
+        val size =
+            Vec3(
+                x = (bounds.max.x - bounds.min.x) * scale,
+                y = (bounds.max.y - bounds.min.y) * scale,
+                z = (bounds.max.z - bounds.min.z) * scale,
+            )
         val radius = sqrt(size.x * size.x + size.y * size.y + size.z * size.z) * 0.5f
         val distance = max(radius * FrameDistanceMultiplier, MinFrameDistance)
-        val position = Vec3(
-            x = center.x,
-            y = center.y + max(size.y * FrameHeightOffsetRatio, MinFrameHeightOffset),
-            z = center.z + distance,
-        )
+        val position =
+            Vec3(
+                x = center.x,
+                y = center.y + max(size.y * FrameHeightOffsetRatio, MinFrameHeightOffset),
+                z = center.z + distance,
+            )
         val eulerDegrees = Vec3(-10f, 180f, 0f)
 
         state.camera.pendingPosition = position

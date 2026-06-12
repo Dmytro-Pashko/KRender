@@ -41,39 +41,40 @@ data class SceneAssetMetadata(
     val validationWarningCount: Int,
     val validationIssuePreview: List<String>,
 ) {
-    fun toMetadataMap(): Map<String, String> = buildMap {
-        put("sceneName", sceneName)
-        put("sceneSchemaVersion", schemaVersion.toString())
-        put("sceneEntityCount", entityCount.toString())
-        put("sceneActiveEntityCount", activeEntityCount.toString())
-        put("sceneInactiveEntityCount", inactiveEntityCount.toString())
-        put("sceneRootEntityCount", rootEntityCount.toString())
-        put("sceneCameraCount", cameraCount.toString())
-        put("sceneLightCount", lightCount.toString())
-        put("sceneDirectionalLightCount", directionalLightCount.toString())
-        put("scenePointLightCount", pointLightCount.toString())
-        put("sceneModelCount", modelCount.toString())
-        put("sceneTerrainCount", terrainCount.toString())
-        sceneBounds?.let { put("sceneBounds", it.formatted()) }
-        activeCameraName?.let { put("sceneActiveCameraName", it) }
-        activeTerrainName?.let { put("sceneActiveTerrainName", it) }
-        activeTerrainPath?.let { put("sceneActiveTerrainPath", it) }
-        activeTerrainSize?.let { put("sceneTerrainSize", it) }
-        activeTerrainLayerCount?.let { put("sceneTerrainLayerCount", it.toString()) }
-        activeTerrainBakedResolution?.let { put("sceneTerrainBakedResolution", it.toString()) }
-        skyboxPath?.let { put("sceneSkyboxPath", it) }
-        put("sceneSkyboxVisible", showSkybox.toString())
-        put("sceneEnvironmentIntensity", formatSceneDecimal(environmentIntensity))
-        put("sceneAmbientIntensity", formatSceneDecimal(ambientIntensity))
-        put("sceneTerrainMaterialLibraryPath", terrainMaterialLibraryPath)
-        put("sceneDependencyCount", dependencyCount.toString())
-        put("sceneMissingDependencyCount", missingDependencyCount.toString())
-        put("sceneValidationErrorCount", validationErrorCount.toString())
-        put("sceneValidationWarningCount", validationWarningCount.toString())
-        if (validationIssuePreview.isNotEmpty()) {
-            put("sceneValidationIssuePreview", validationIssuePreview.joinToString(" | "))
+    fun toMetadataMap(): Map<String, String> =
+        buildMap {
+            put("sceneName", sceneName)
+            put("sceneSchemaVersion", schemaVersion.toString())
+            put("sceneEntityCount", entityCount.toString())
+            put("sceneActiveEntityCount", activeEntityCount.toString())
+            put("sceneInactiveEntityCount", inactiveEntityCount.toString())
+            put("sceneRootEntityCount", rootEntityCount.toString())
+            put("sceneCameraCount", cameraCount.toString())
+            put("sceneLightCount", lightCount.toString())
+            put("sceneDirectionalLightCount", directionalLightCount.toString())
+            put("scenePointLightCount", pointLightCount.toString())
+            put("sceneModelCount", modelCount.toString())
+            put("sceneTerrainCount", terrainCount.toString())
+            sceneBounds?.let { put("sceneBounds", it.formatted()) }
+            activeCameraName?.let { put("sceneActiveCameraName", it) }
+            activeTerrainName?.let { put("sceneActiveTerrainName", it) }
+            activeTerrainPath?.let { put("sceneActiveTerrainPath", it) }
+            activeTerrainSize?.let { put("sceneTerrainSize", it) }
+            activeTerrainLayerCount?.let { put("sceneTerrainLayerCount", it.toString()) }
+            activeTerrainBakedResolution?.let { put("sceneTerrainBakedResolution", it.toString()) }
+            skyboxPath?.let { put("sceneSkyboxPath", it) }
+            put("sceneSkyboxVisible", showSkybox.toString())
+            put("sceneEnvironmentIntensity", formatSceneDecimal(environmentIntensity))
+            put("sceneAmbientIntensity", formatSceneDecimal(ambientIntensity))
+            put("sceneTerrainMaterialLibraryPath", terrainMaterialLibraryPath)
+            put("sceneDependencyCount", dependencyCount.toString())
+            put("sceneMissingDependencyCount", missingDependencyCount.toString())
+            put("sceneValidationErrorCount", validationErrorCount.toString())
+            put("sceneValidationWarningCount", validationWarningCount.toString())
+            if (validationIssuePreview.isNotEmpty()) {
+                put("sceneValidationIssuePreview", validationIssuePreview.joinToString(" | "))
+            }
         }
-    }
 }
 
 data class SceneAssetBounds(
@@ -81,49 +82,58 @@ data class SceneAssetBounds(
     val height: Float,
     val depth: Float,
 ) {
-    fun formatted(): String =
-        String.format(Locale.US, "%.2f x %.2f x %.2f", width, height, depth)
+    fun formatted(): String = String.format(Locale.US, "%.2f x %.2f x %.2f", width, height, depth)
 }
 
-private fun formatSceneDecimal(value: Float): String =
-    String.format(Locale.US, "%.2f", value)
+private fun formatSceneDecimal(value: Float): String = String.format(Locale.US, "%.2f", value)
 
 /**
  * Reads scene metadata without loading the runtime world.
  */
 object SceneAssetMetadataReader {
-    fun read(file: File, baseDirectory: File): SceneAssetMetadata {
+    fun read(
+        file: File,
+        baseDirectory: File,
+    ): SceneAssetMetadata {
         val descriptor = SceneSerializer.decode(file.readText(StandardCharsets.UTF_8))
         return fromDescriptor(descriptor, baseDirectory)
     }
 
-    internal fun fromDescriptor(descriptor: SceneDescriptor, baseDirectory: File): SceneAssetMetadata {
+    internal fun fromDescriptor(
+        descriptor: SceneDescriptor,
+        baseDirectory: File,
+    ): SceneAssetMetadata {
         val sceneFiles = DirectorySceneFileService(baseDirectory)
-        val resolvedSkybox = RuntimeSceneValidator.skyboxPath(descriptor)
-            ?.let { path ->
-                runCatching {
-                    SkyboxAssetService(
-                        sceneFiles,
-                        MetadataLogger
-                    ).loadRequired(path)
-                }.getOrNull()
-            }
+        val resolvedSkybox =
+            RuntimeSceneValidator
+                .skyboxPath(descriptor)
+                ?.let { path ->
+                    runCatching {
+                        SkyboxAssetService(
+                            sceneFiles,
+                            MetadataLogger,
+                        ).loadRequired(path)
+                    }.getOrNull()
+                }
         val dependencyGraph = SceneDependencyCollector(sceneFiles).collect(descriptor, resolvedSkybox)
         val validationReport = RuntimeSceneValidator.validate(descriptor, dependencyGraph)
         val entities = descriptor.entities
         val lightEntities = entities.filter { entity -> entity.hasComponent(SceneComponentTypes.Light) }
-        val activeTerrainEntity = descriptor.settings.activeTerrainEntityId?.let { id ->
-            entities.firstOrNull { entity -> entity.id == id }
-        }
-        val activeTerrainPath = activeTerrainEntity
-            ?.component(SceneComponentTypes.Terrain)
-            ?.properties
-            ?.get("terrain")
-            ?.normalizeAssetPath()
-        val activeTerrainMetadata = activeTerrainPath
-            ?.let { path -> resolveSceneFile(baseDirectory, path) }
-            ?.takeIf(File::isFile)
-            ?.let(TerrainMetadataReader::read)
+        val activeTerrainEntity =
+            descriptor.settings.activeTerrainEntityId?.let { id ->
+                entities.firstOrNull { entity -> entity.id == id }
+            }
+        val activeTerrainPath =
+            activeTerrainEntity
+                ?.component(SceneComponentTypes.Terrain)
+                ?.properties
+                ?.get("terrain")
+                ?.normalizeAssetPath()
+        val activeTerrainMetadata =
+            activeTerrainPath
+                ?.let { path -> resolveSceneFile(baseDirectory, path) }
+                ?.takeIf(File::isFile)
+                ?.let(TerrainMetadataReader::read)
         val sceneBounds = calculateBounds(entities)
 
         return SceneAssetMetadata(
@@ -135,34 +145,50 @@ object SceneAssetMetadataReader {
             rootEntityCount = entities.count { entity -> entity.parentId == null },
             cameraCount = entities.count { entity -> entity.hasComponent(SceneComponentTypes.Camera) },
             lightCount = lightEntities.size,
-            directionalLightCount = lightEntities.count { entity ->
-                entity.component(SceneComponentTypes.Light)?.properties?.get("type")
-                    .equals("Directional", ignoreCase = true)
-            },
-            pointLightCount = lightEntities.count { entity ->
-                entity.component(SceneComponentTypes.Light)?.properties?.get("type").equals("Point", ignoreCase = true)
-            },
+            directionalLightCount =
+                lightEntities.count { entity ->
+                    entity
+                        .component(SceneComponentTypes.Light)
+                        ?.properties
+                        ?.get("type")
+                        .equals("Directional", ignoreCase = true)
+                },
+            pointLightCount =
+                lightEntities.count { entity ->
+                    entity
+                        .component(SceneComponentTypes.Light)
+                        ?.properties
+                        ?.get("type")
+                        .equals("Point", ignoreCase = true)
+                },
             modelCount = entities.count { entity -> entity.hasComponent(SceneComponentTypes.Model) },
             terrainCount = entities.count { entity -> entity.hasComponent(SceneComponentTypes.Terrain) },
             sceneBounds = sceneBounds,
-            activeCameraName = descriptor.settings.activeCameraEntityId?.let { id ->
-                entities.firstOrNull { entity -> entity.id == id }?.name
-            },
+            activeCameraName =
+                descriptor.settings.activeCameraEntityId?.let { id ->
+                    entities.firstOrNull { entity -> entity.id == id }?.name
+                },
             activeTerrainName = activeTerrainEntity?.name,
             activeTerrainPath = activeTerrainPath,
             activeTerrainSize = activeTerrainMetadata?.size,
             activeTerrainLayerCount = activeTerrainMetadata?.layerCount,
-            activeTerrainBakedResolution = activeTerrainEntity
-                ?.component(SceneComponentTypes.Terrain)
-                ?.properties
-                ?.get("bakedTextureResolution")
-                ?.trim()
-                ?.toIntOrNull(),
-            skyboxPath = descriptor.settings.environment.skyboxAssetPath?.normalizeAssetPath(),
+            activeTerrainBakedResolution =
+                activeTerrainEntity
+                    ?.component(SceneComponentTypes.Terrain)
+                    ?.properties
+                    ?.get("bakedTextureResolution")
+                    ?.trim()
+                    ?.toIntOrNull(),
+            skyboxPath =
+                descriptor.settings.environment.skyboxAssetPath
+                    ?.normalizeAssetPath(),
             showSkybox = descriptor.settings.environment.showSkybox,
             environmentIntensity = descriptor.settings.environment.environmentIntensity,
             ambientIntensity = descriptor.settings.lighting.ambientIntensity,
-            terrainMaterialLibraryPath = descriptor.settings.terrain.materialLibraryPath.normalizeAssetPath().orEmpty(),
+            terrainMaterialLibraryPath =
+                descriptor.settings.terrain.materialLibraryPath
+                    .normalizeAssetPath()
+                    .orEmpty(),
             dependencyCount = dependencyGraph.dependencies.size,
             missingDependencyCount = dependencyGraph.missing.size,
             validationErrorCount = validationReport.errors.size,
@@ -171,18 +197,23 @@ object SceneAssetMetadataReader {
         )
     }
 
-    private fun resolveSceneFile(baseDirectory: File, path: String): File {
+    private fun resolveSceneFile(
+        baseDirectory: File,
+        path: String,
+    ): File {
         val direct = File(path)
         return if (direct.isAbsolute) direct else File(baseDirectory, path)
     }
 
     private fun calculateBounds(entities: List<EntityDescriptor>): SceneAssetBounds? {
-        val positions = entities.mapNotNull { entity ->
-            entity.component(SceneComponentTypes.Transform)
-                ?.properties
-                ?.get("position")
-                ?.parseVec3()
-        }
+        val positions =
+            entities.mapNotNull { entity ->
+                entity
+                    .component(SceneComponentTypes.Transform)
+                    ?.properties
+                    ?.get("position")
+                    ?.parseVec3()
+            }
         if (positions.isEmpty()) return null
 
         var minX = positions.first().first
@@ -227,20 +258,21 @@ object SceneAssetMetadataReader {
             ?.replace('\\', '/')
             ?.takeIf(String::isNotBlank)
             ?.takeUnless { value -> value.equals("null", ignoreCase = true) }
-
 }
 
 private class DirectorySceneFileService(
     private val baseDirectory: File,
 ) : SceneFileService {
-    override fun writeText(path: String, text: String) {
+    override fun writeText(
+        path: String,
+        text: String,
+    ) {
         val file = resolve(path)
         file.parentFile?.mkdirs()
         file.writeText(text, StandardCharsets.UTF_8)
     }
 
-    override fun readText(path: String): String =
-        resolve(path).readText(StandardCharsets.UTF_8)
+    override fun readText(path: String): String = resolve(path).readText(StandardCharsets.UTF_8)
 
     override fun ensureDirectories(path: String) {
         resolve(path).parentFile?.mkdirs()
@@ -258,6 +290,10 @@ private class DirectorySceneFileService(
 }
 
 private object MetadataLogger : Logger {
-    override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) = Unit
+    override fun log(
+        level: LogLevel,
+        tag: String,
+        error: Throwable?,
+        message: () -> String,
+    ) = Unit
 }
-

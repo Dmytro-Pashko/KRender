@@ -18,16 +18,19 @@ class SceneEditorLightSyncSystemTest {
     @Test
     fun `mirrors scene ambient settings and only directional and point entity lights into the editor runtime world`() {
         val document = SceneEditorDocument(SceneWorld())
-        document.descriptor = SceneDescriptor(
-            id = "scene:test",
-            name = "Test Scene",
-            settings = SceneSettingsDescriptor(
-                lighting = SceneLightingDescriptor(
-                    ambientColor = Color(0.2f, 0.3f, 0.4f, 1f),
-                    ambientIntensity = 0.75f,
-                ),
-            ),
-        )
+        document.descriptor =
+            SceneDescriptor(
+                id = "scene:test",
+                name = "Test Scene",
+                settings =
+                    SceneSettingsDescriptor(
+                        lighting =
+                            SceneLightingDescriptor(
+                                ambientColor = Color(0.2f, 0.3f, 0.4f, 1f),
+                                ambientIntensity = 0.75f,
+                            ),
+                    ),
+            )
 
         val directional = document.world.createEntity("Sun")
         directional.get<TransformComponent>()?.position?.set(1f, 2f, 3f)
@@ -54,8 +57,10 @@ class SceneEditorLightSyncSystemTest {
         runtimeWorld.update(dt = 0f)
         runtimeWorld.flushCommands()
 
-        val mirroredLights = runtimeWorld.all()
-            .mapNotNull { entity -> entity.get<LightComponent>() }
+        val mirroredLights =
+            runtimeWorld
+                .all()
+                .mapNotNull { entity -> entity.get<LightComponent>() }
 
         assertEquals(2, mirroredLights.size)
         assertNotNull(mirroredLights.firstOrNull { it.type == LightType.Directional })
@@ -72,6 +77,11 @@ class SceneEditorLightSyncSystemTest {
     }
 
     private object NoopLogger : Logger {
-        override fun log(level: LogLevel, tag: String, error: Throwable?, message: () -> String) = Unit
+        override fun log(
+            level: LogLevel,
+            tag: String,
+            error: Throwable?,
+            message: () -> String,
+        ) = Unit
     }
 }

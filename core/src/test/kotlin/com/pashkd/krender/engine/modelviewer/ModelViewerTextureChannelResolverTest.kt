@@ -11,28 +11,32 @@ import kotlin.test.assertEquals
 class ModelViewerTextureChannelResolverTest {
     @Test
     fun `resolves roughness and metallic from metallic roughness slot with channel swizzles`() {
-        val info = modelInfo(
-            textureSlot(channel = "metallicRoughness", texturePath = "textures/mr.png", uvChannel = "TEXCOORD_1"),
-        )
+        val info =
+            modelInfo(
+                textureSlot(channel = "metallicRoughness", texturePath = "textures/mr.png", uvChannel = "TEXCOORD_1"),
+            )
 
-        val roughness = resolvedModelViewerDebugTextureRefs(
-            info = info,
-            mode = MaterialDebugMode.Roughness,
-            selectedMaterialIndex = null,
-            selectedTextureChannel = null,
-        ).single()
-        val metallic = resolvedModelViewerDebugTextureRefs(
-            info = info,
-            mode = MaterialDebugMode.Metallic,
-            selectedMaterialIndex = null,
-            selectedTextureChannel = null,
-        ).single()
-        val packed = resolvedModelViewerDebugTextureRefs(
-            info = info,
-            mode = MaterialDebugMode.MetallicRoughnessPacked,
-            selectedMaterialIndex = null,
-            selectedTextureChannel = null,
-        ).single()
+        val roughness =
+            resolvedModelViewerDebugTextureRefs(
+                info = info,
+                mode = MaterialDebugMode.Roughness,
+                selectedMaterialIndex = null,
+                selectedTextureChannel = null,
+            ).single()
+        val metallic =
+            resolvedModelViewerDebugTextureRefs(
+                info = info,
+                mode = MaterialDebugMode.Metallic,
+                selectedMaterialIndex = null,
+                selectedTextureChannel = null,
+            ).single()
+        val packed =
+            resolvedModelViewerDebugTextureRefs(
+                info = info,
+                mode = MaterialDebugMode.MetallicRoughnessPacked,
+                selectedMaterialIndex = null,
+                selectedTextureChannel = null,
+            ).single()
 
         assertEquals(TextureDebugComponent.G, roughness.component)
         assertEquals(TextureDebugComponent.B, metallic.component)
@@ -43,23 +47,26 @@ class ModelViewerTextureChannelResolverTest {
 
     @Test
     fun `resolves scalar occlusion and alpha components`() {
-        val info = modelInfo(
-            textureSlot(channel = "occlusion", texturePath = "textures/ao.png"),
-            textureSlot(channel = "baseColor", texturePath = "textures/base.png"),
-        )
+        val info =
+            modelInfo(
+                textureSlot(channel = "occlusion", texturePath = "textures/ao.png"),
+                textureSlot(channel = "baseColor", texturePath = "textures/base.png"),
+            )
 
-        val occlusion = resolvedModelViewerDebugTextureRefs(
-            info = info,
-            mode = MaterialDebugMode.Occlusion,
-            selectedMaterialIndex = null,
-            selectedTextureChannel = null,
-        ).single()
-        val alpha = resolvedModelViewerDebugTextureRefs(
-            info = info,
-            mode = MaterialDebugMode.Alpha,
-            selectedMaterialIndex = null,
-            selectedTextureChannel = null,
-        ).single()
+        val occlusion =
+            resolvedModelViewerDebugTextureRefs(
+                info = info,
+                mode = MaterialDebugMode.Occlusion,
+                selectedMaterialIndex = null,
+                selectedTextureChannel = null,
+            ).single()
+        val alpha =
+            resolvedModelViewerDebugTextureRefs(
+                info = info,
+                mode = MaterialDebugMode.Alpha,
+                selectedMaterialIndex = null,
+                selectedTextureChannel = null,
+            ).single()
 
         assertEquals(TextureDebugComponent.R, occlusion.component)
         assertEquals(TextureDebugComponent.A, alpha.component)
@@ -100,17 +107,18 @@ class ModelViewerTextureChannelResolverTest {
             boneWeightChannelCount = 0,
             animationCount = 0,
             animationNames = emptyList(),
-            materials = listOf(
-                ModelMaterialInfo(
-                    index = 0,
-                    id = "material",
-                    diffuseTexture = null,
-                    normalTexture = null,
-                    emissiveTexture = null,
-                    textureSlots = slots.toList(),
-                    baseColor = null,
-                    opacity = null,
+            materials =
+                listOf(
+                    ModelMaterialInfo(
+                        index = 0,
+                        id = "material",
+                        diffuseTexture = null,
+                        normalTexture = null,
+                        emissiveTexture = null,
+                        textureSlots = slots.toList(),
+                        baseColor = null,
+                        opacity = null,
+                    ),
                 ),
-            ),
         )
 }

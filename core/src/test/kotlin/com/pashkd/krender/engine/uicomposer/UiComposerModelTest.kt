@@ -6,10 +6,10 @@ import com.pashkd.krender.engine.assets.AssetId
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.AssetRegistrySnapshot
 import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
 import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneAlign
 import com.pashkd.krender.engine.ui.scene.UiSceneNode
 import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
 import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
@@ -23,19 +23,22 @@ import kotlin.test.assertTrue
 internal class UiComposerModelTest {
     @Test
     internal fun `finds nested node by id`() {
-        val root = UiSceneNode(
-            id = "root",
-            type = UiSceneNodeType.Stack,
-            children = listOf(
-                UiSceneNode(
-                    id = "panel",
-                    type = UiSceneNodeType.Table,
-                    children = listOf(
-                        UiSceneNode(id = "health_label", type = UiSceneNodeType.Label, text = "{healthLabel}"),
+        val root =
+            UiSceneNode(
+                id = "root",
+                type = UiSceneNodeType.Stack,
+                children =
+                    listOf(
+                        UiSceneNode(
+                            id = "panel",
+                            type = UiSceneNodeType.Table,
+                            children =
+                                listOf(
+                                    UiSceneNode(id = "health_label", type = UiSceneNodeType.Label, text = "{healthLabel}"),
+                                ),
+                        ),
                     ),
-                ),
-            ),
-        )
+            )
 
         assertEquals("health_label", findUiSceneNodeById(root, "health_label")?.id)
         assertNull(findUiSceneNodeById(root, "missing"))
@@ -43,12 +46,13 @@ internal class UiComposerModelTest {
 
     @Test
     internal fun `preview payload is built from document bindings`() {
-        val payload = previewPayloadFromBindings(
-            listOf(
-                UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading..."),
-                UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.65"),
-            ),
-        )
+        val payload =
+            previewPayloadFromBindings(
+                listOf(
+                    UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading..."),
+                    UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.65"),
+                ),
+            )
 
         assertEquals(mapOf("title" to "Loading...", "progress" to "0.65"), payload)
     }
@@ -81,11 +85,12 @@ internal class UiComposerModelTest {
 
     @Test
     internal fun `hovered node can be cleared independently from selected node`() {
-        val state = UiComposerState(
-            uiScenePath = "ok.krui",
-            selectedNodeId = "selected",
-            hoveredNodeId = "hovered",
-        )
+        val state =
+            UiComposerState(
+                uiScenePath = "ok.krui",
+                selectedNodeId = "selected",
+                hoveredNodeId = "hovered",
+            )
 
         state.hoveredNodeId = null
 
@@ -108,7 +113,8 @@ internal class UiComposerModelTest {
 
     @Test
     internal fun `loader preserves valid document and validation result`() {
-        val documentJson = """
+        val documentJson =
+            """
             {
               "schemaVersion": 1,
               "id": "test",
@@ -122,7 +128,7 @@ internal class UiComposerModelTest {
                 "children": []
               }
             }
-        """.trimIndent()
+            """.trimIndent()
         val state = UiComposerState(uiScenePath = "ok.krui")
         val loader = UiComposerDocumentLoader(readText = { documentJson })
 
@@ -138,22 +144,23 @@ internal class UiComposerModelTest {
     @Test
     internal fun `loader preserves selection when node still exists`() {
         val state = UiComposerState(uiScenePath = "ok.krui", selectedNodeId = "child")
-        val loader = UiComposerDocumentLoader(readText = {
-            """
-            {
-              "schemaVersion": 1,
-              "id": "test",
-              "skin": "ui/skins/craftacular-ui.json",
-              "root": {
-                "id": "root",
-                "type": "Stack",
-                "children": [
-                  { "id": "child", "type": "Space" }
-                ]
-              }
-            }
-            """.trimIndent()
-        })
+        val loader =
+            UiComposerDocumentLoader(readText = {
+                """
+                {
+                  "schemaVersion": 1,
+                  "id": "test",
+                  "skin": "ui/skins/craftacular-ui.json",
+                  "root": {
+                    "id": "root",
+                    "type": "Stack",
+                    "children": [
+                      { "id": "child", "type": "Space" }
+                    ]
+                  }
+                }
+                """.trimIndent()
+            })
 
         loader.reload(state)
 
@@ -163,20 +170,21 @@ internal class UiComposerModelTest {
     @Test
     internal fun `loader clears selection when node disappears`() {
         val state = UiComposerState(uiScenePath = "ok.krui", selectedNodeId = "missing")
-        val loader = UiComposerDocumentLoader(readText = {
-            """
-            {
-              "schemaVersion": 1,
-              "id": "test",
-              "skin": "ui/skins/craftacular-ui.json",
-              "root": {
-                "id": "root",
-                "type": "Stack",
-                "children": []
-              }
-            }
-            """.trimIndent()
-        })
+        val loader =
+            UiComposerDocumentLoader(readText = {
+                """
+                {
+                  "schemaVersion": 1,
+                  "id": "test",
+                  "skin": "ui/skins/craftacular-ui.json",
+                  "root": {
+                    "id": "root",
+                    "type": "Stack",
+                    "children": []
+                  }
+                }
+                """.trimIndent()
+            })
 
         loader.reload(state)
 
@@ -188,10 +196,11 @@ internal class UiComposerModelTest {
         val state = UiComposerState(uiScenePath = "ok.krui")
         state.previewPayload["title"] = "Changed"
         state.previewPayload["progress"] = "0.10"
-        val bindings = listOf(
-            UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading..."),
-            UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.65"),
-        )
+        val bindings =
+            listOf(
+                UiSceneBindingDefinition("title", UiSceneBindingType.Text, "Loading..."),
+                UiSceneBindingDefinition("progress", UiSceneBindingType.Number, "0.65"),
+            )
 
         state.previewPayload.clear()
         state.previewPayload.putAll(previewPayloadFromBindings(bindings))
@@ -201,41 +210,43 @@ internal class UiComposerModelTest {
 
     @Test
     internal fun `texture option provider returns sorted texture descriptors only`() {
-        val provider = UiComposerTextureOptionsProvider(
-            assets = FakeAssetRegistry(
-                listOf(
-                    descriptor(
-                        id = "asset:heart",
-                        name = "Heart",
-                        path = "textures/woolboy/hud_heart_full.png",
-                        category = AssetCategory.Texture,
-                        type = AssetType.Texture,
+        val provider =
+            UiComposerTextureOptionsProvider(
+                assets =
+                    FakeAssetRegistry(
+                        listOf(
+                            descriptor(
+                                id = "asset:heart",
+                                name = "Heart",
+                                path = "textures/woolboy/hud_heart_full.png",
+                                category = AssetCategory.Texture,
+                                type = AssetType.Texture,
+                            ),
+                            descriptor(
+                                id = "asset:scene",
+                                name = "Scene",
+                                path = "ui/scenes/hud.krui",
+                                category = AssetCategory.UI,
+                                type = AssetType.UiScene,
+                            ),
+                            descriptor(
+                                id = "asset:broken",
+                                name = "Broken",
+                                path = "textures/broken.bin",
+                                category = AssetCategory.Texture,
+                                type = AssetType.Unknown,
+                            ),
+                            descriptor(
+                                id = "asset:alpha",
+                                name = "Alpha",
+                                path = "textures/alpha.png",
+                                category = AssetCategory.Texture,
+                                type = AssetType.Texture,
+                                metadata = mapOf("displayName" to "Alpha Texture"),
+                            ),
+                        ),
                     ),
-                    descriptor(
-                        id = "asset:scene",
-                        name = "Scene",
-                        path = "ui/scenes/hud.krui",
-                        category = AssetCategory.UI,
-                        type = AssetType.UiScene,
-                    ),
-                    descriptor(
-                        id = "asset:broken",
-                        name = "Broken",
-                        path = "textures/broken.bin",
-                        category = AssetCategory.Texture,
-                        type = AssetType.Unknown,
-                    ),
-                    descriptor(
-                        id = "asset:alpha",
-                        name = "Alpha",
-                        path = "textures/alpha.png",
-                        category = AssetCategory.Texture,
-                        type = AssetType.Texture,
-                        metadata = mapOf("displayName" to "Alpha Texture"),
-                    ),
-                ),
-            ),
-        )
+            )
 
         val options = provider.listTextureOptions()
 
@@ -246,22 +257,26 @@ internal class UiComposerModelTest {
 
     @Test
     internal fun `texture validation warns for Image path missing from registry`() {
-        val document = UiSceneDocument(
-            id = "textures",
-            skin = "ui/skins/craftacular-ui.json",
-            root = UiSceneNode(
-                id = "root",
-                type = UiSceneNodeType.Stack,
-                children = listOf(
-                    UiSceneNode(id = "heart", type = UiSceneNodeType.Image, texture = "textures/missing.png"),
-                ),
-            ),
-        )
+        val document =
+            UiSceneDocument(
+                id = "textures",
+                skin = "ui/skins/craftacular-ui.json",
+                root =
+                    UiSceneNode(
+                        id = "root",
+                        type = UiSceneNodeType.Stack,
+                        children =
+                            listOf(
+                                UiSceneNode(id = "heart", type = UiSceneNodeType.Image, texture = "textures/missing.png"),
+                            ),
+                    ),
+            )
 
-        val issues = validateTextureReferences(
-            document = document,
-            textureOptions = listOf(UiComposerTextureOption("Known", "textures/known.png")),
-        )
+        val issues =
+            validateTextureReferences(
+                document = document,
+                textureOptions = listOf(UiComposerTextureOption("Known", "textures/known.png")),
+            )
 
         assertEquals(1, issues.size)
         assertEquals("heart", issues.single().nodeId)
@@ -270,23 +285,27 @@ internal class UiComposerModelTest {
 
     @Test
     internal fun `texture validation warns when path resolves to non texture asset`() {
-        val document = UiSceneDocument(
-            id = "textures",
-            skin = "ui/skins/craftacular-ui.json",
-            root = UiSceneNode(
-                id = "root",
-                type = UiSceneNodeType.Stack,
-                children = listOf(
-                    UiSceneNode(id = "bad", type = UiSceneNodeType.Image, texture = "ui/scenes/hud.krui"),
-                ),
-            ),
-        )
+        val document =
+            UiSceneDocument(
+                id = "textures",
+                skin = "ui/skins/craftacular-ui.json",
+                root =
+                    UiSceneNode(
+                        id = "root",
+                        type = UiSceneNodeType.Stack,
+                        children =
+                            listOf(
+                                UiSceneNode(id = "bad", type = UiSceneNodeType.Image, texture = "ui/scenes/hud.krui"),
+                            ),
+                    ),
+            )
 
-        val issues = validateTextureReferences(
-            document = document,
-            textureOptions = emptyList(),
-            assetTypeByPath = mapOf("ui/scenes/hud.krui" to AssetType.UiScene),
-        )
+        val issues =
+            validateTextureReferences(
+                document = document,
+                textureOptions = emptyList(),
+                assetTypeByPath = mapOf("ui/scenes/hud.krui" to AssetType.UiScene),
+            )
 
         assertEquals(1, issues.size)
         assertTrue(issues.single().message.contains("not Texture"))
@@ -294,44 +313,52 @@ internal class UiComposerModelTest {
 
     @Test
     internal fun `texture validation accepts known texture option`() {
-        val document = UiSceneDocument(
-            id = "textures",
-            skin = "ui/skins/craftacular-ui.json",
-            root = UiSceneNode(
-                id = "root",
-                type = UiSceneNodeType.Stack,
-                children = listOf(
-                    UiSceneNode(id = "heart", type = UiSceneNodeType.Image, texture = "textures/heart.png"),
-                ),
-            ),
-        )
+        val document =
+            UiSceneDocument(
+                id = "textures",
+                skin = "ui/skins/craftacular-ui.json",
+                root =
+                    UiSceneNode(
+                        id = "root",
+                        type = UiSceneNodeType.Stack,
+                        children =
+                            listOf(
+                                UiSceneNode(id = "heart", type = UiSceneNodeType.Image, texture = "textures/heart.png"),
+                            ),
+                    ),
+            )
 
-        val issues = validateTextureReferences(
-            document = document,
-            textureOptions = listOf(UiComposerTextureOption("Heart", "textures/heart.png")),
-        )
+        val issues =
+            validateTextureReferences(
+                document = document,
+                textureOptions = listOf(UiComposerTextureOption("Heart", "textures/heart.png")),
+            )
 
         assertTrue(issues.isEmpty())
     }
 
     @Test
     internal fun `texture validation leaves bound Image textures to binding diagnostics`() {
-        val document = UiSceneDocument(
-            id = "textures",
-            skin = "ui/skins/craftacular-ui.json",
-            root = UiSceneNode(
-                id = "root",
-                type = UiSceneNodeType.Stack,
-                children = listOf(
-                    UiSceneNode(id = "heart", type = UiSceneNodeType.Image, texture = "{life1Texture}"),
-                ),
-            ),
-        )
+        val document =
+            UiSceneDocument(
+                id = "textures",
+                skin = "ui/skins/craftacular-ui.json",
+                root =
+                    UiSceneNode(
+                        id = "root",
+                        type = UiSceneNodeType.Stack,
+                        children =
+                            listOf(
+                                UiSceneNode(id = "heart", type = UiSceneNodeType.Image, texture = "{life1Texture}"),
+                            ),
+                    ),
+            )
 
-        val issues = validateTextureReferences(
-            document = document,
-            textureOptions = emptyList(),
-        )
+        val issues =
+            validateTextureReferences(
+                document = document,
+                textureOptions = emptyList(),
+            )
 
         assertTrue(issues.isEmpty())
     }
@@ -340,9 +367,10 @@ internal class UiComposerModelTest {
     internal fun `updateNode replaces selected node by id`() {
         val document = editableDocument()
 
-        val updated = document.updateNode("label") { node ->
-            node.copy(text = "Edited")
-        }
+        val updated =
+            document.updateNode("label") { node ->
+                node.copy(text = "Edited")
+            }
 
         assertEquals("Edited", findUiSceneNodeById(updated.root, "label")?.text)
         assertEquals("Original", findUiSceneNodeById(document.root, "label")?.text)
@@ -352,9 +380,10 @@ internal class UiComposerModelTest {
     internal fun `updateNode leaves document unchanged when node id is missing`() {
         val document = editableDocument()
 
-        val updated = document.updateNode("missing") { node ->
-            node.copy(text = "Edited")
-        }
+        val updated =
+            document.updateNode("missing") { node ->
+                node.copy(text = "Edited")
+            }
 
         assertEquals(document, updated)
     }
@@ -363,9 +392,10 @@ internal class UiComposerModelTest {
     internal fun `updateNode can rename selected node id`() {
         val document = editableDocument()
 
-        val updated = document.updateNode("label") { node ->
-            node.copy(id = "renamed_label")
-        }
+        val updated =
+            document.updateNode("label") { node ->
+                node.copy(id = "renamed_label")
+            }
 
         assertNull(findUiSceneNodeById(updated.root, "label"))
         assertEquals("Original", findUiSceneNodeById(updated.root, "renamed_label")?.text)
@@ -376,9 +406,10 @@ internal class UiComposerModelTest {
     internal fun `updateNode can change Table orientation`() {
         val document = editableDocument()
 
-        val updated = document.updateNode("panel") { node ->
-            node.copy(tableOrientation = UiSceneTableOrientation.Horizontal)
-        }
+        val updated =
+            document.updateNode("panel") { node ->
+                node.copy(tableOrientation = UiSceneTableOrientation.Horizontal)
+            }
 
         assertEquals(
             UiSceneTableOrientation.Horizontal,
@@ -390,10 +421,11 @@ internal class UiComposerModelTest {
     internal fun `addChildNode adds child to selected parent`() {
         val document = editableDocument()
 
-        val updated = document.addChildNode(
-            parentId = "panel",
-            child = UiSceneNode(id = "button", type = UiSceneNodeType.TextButton, text = "Button"),
-        )
+        val updated =
+            document.addChildNode(
+                parentId = "panel",
+                child = UiSceneNode(id = "button", type = UiSceneNodeType.TextButton, text = "Button"),
+            )
 
         assertEquals("button", findUiSceneNodeById(updated.root, "button")?.id)
         assertNull(findUiSceneNodeById(document.root, "button"))
@@ -403,10 +435,11 @@ internal class UiComposerModelTest {
     internal fun `addChildNode does not add to missing parent`() {
         val document = editableDocument()
 
-        val updated = document.addChildNode(
-            parentId = "missing",
-            child = UiSceneNode(id = "button", type = UiSceneNodeType.TextButton, text = "Button"),
-        )
+        val updated =
+            document.addChildNode(
+                parentId = "missing",
+                child = UiSceneNode(id = "button", type = UiSceneNodeType.TextButton, text = "Button"),
+            )
 
         assertEquals(document, updated)
         assertNull(findUiSceneNodeById(updated.root, "button"))
@@ -476,10 +509,11 @@ internal class UiComposerModelTest {
     internal fun `wrapNode wraps selected node in wrapper`() {
         val document = editableDocument()
 
-        val updated = document.wrapNode(
-            nodeId = "label",
-            wrapper = UiSceneNode(id = "container", type = UiSceneNodeType.Container),
-        )
+        val updated =
+            document.wrapNode(
+                nodeId = "label",
+                wrapper = UiSceneNode(id = "container", type = UiSceneNodeType.Container),
+            )
 
         val wrapper = findUiSceneNodeById(updated.root, "container")
         assertNotNull(wrapper)
@@ -492,10 +526,11 @@ internal class UiComposerModelTest {
     internal fun `wrapNode does not wrap root`() {
         val document = editableDocument()
 
-        val updated = document.wrapNode(
-            nodeId = "root",
-            wrapper = UiSceneNode(id = "container", type = UiSceneNodeType.Container),
-        )
+        val updated =
+            document.wrapNode(
+                nodeId = "root",
+                wrapper = UiSceneNode(id = "container", type = UiSceneNodeType.Container),
+            )
 
         assertEquals(document, updated)
         assertFalse(updated.containsNodeId("container"))
@@ -531,40 +566,46 @@ internal class UiComposerModelTest {
         UiSceneDocument(
             id = "editable",
             skin = "ui/skins/craftacular-ui.json",
-            root = UiSceneNode(
-                id = "root",
-                type = UiSceneNodeType.Stack,
-                children = listOf(
-                    UiSceneNode(
-                        id = "panel",
-                        type = UiSceneNodeType.Table,
-                        children = listOf(
-                            UiSceneNode(id = "label", type = UiSceneNodeType.Label, text = "Original"),
+            root =
+                UiSceneNode(
+                    id = "root",
+                    type = UiSceneNodeType.Stack,
+                    children =
+                        listOf(
+                            UiSceneNode(
+                                id = "panel",
+                                type = UiSceneNodeType.Table,
+                                children =
+                                    listOf(
+                                        UiSceneNode(id = "label", type = UiSceneNodeType.Label, text = "Original"),
+                                    ),
+                            ),
                         ),
-                    ),
                 ),
-            ),
         )
 
     private fun siblingDocument(): UiSceneDocument =
         UiSceneDocument(
             id = "siblings",
             skin = "ui/skins/craftacular-ui.json",
-            root = UiSceneNode(
-                id = "root",
-                type = UiSceneNodeType.Stack,
-                children = listOf(
-                    UiSceneNode(
-                        id = "panel",
-                        type = UiSceneNodeType.Table,
-                        children = listOf(
-                            UiSceneNode(id = "first", type = UiSceneNodeType.Label, text = "First"),
-                            UiSceneNode(id = "second", type = UiSceneNodeType.Label, text = "Second"),
-                            UiSceneNode(id = "third", type = UiSceneNodeType.Label, text = "Third"),
+            root =
+                UiSceneNode(
+                    id = "root",
+                    type = UiSceneNodeType.Stack,
+                    children =
+                        listOf(
+                            UiSceneNode(
+                                id = "panel",
+                                type = UiSceneNodeType.Table,
+                                children =
+                                    listOf(
+                                        UiSceneNode(id = "first", type = UiSceneNodeType.Label, text = "First"),
+                                        UiSceneNode(id = "second", type = UiSceneNodeType.Label, text = "Second"),
+                                        UiSceneNode(id = "third", type = UiSceneNodeType.Label, text = "Third"),
+                                    ),
+                            ),
                         ),
-                    ),
                 ),
-            ),
         )
 
     private fun descriptor(
@@ -591,19 +632,15 @@ internal class UiComposerModelTest {
 private class FakeAssetRegistry(
     override val assets: List<AssetDescriptor>,
 ) : AssetRegistryService {
-    override fun scanSnapshot(): AssetRegistrySnapshot =
-        AssetRegistrySnapshot(assets, scannedAtMillis = 0L, durationMillis = 0L, errors = emptyList())
+    override fun scanSnapshot(): AssetRegistrySnapshot = AssetRegistrySnapshot(assets, scannedAtMillis = 0L, durationMillis = 0L, errors = emptyList())
 
     override fun applySnapshot(snapshot: AssetRegistrySnapshot) = Unit
 
-    override fun findById(id: AssetId): AssetDescriptor? =
-        assets.firstOrNull { asset -> asset.id == id }
+    override fun findById(id: AssetId): AssetDescriptor? = assets.firstOrNull { asset -> asset.id == id }
 
-    override fun findByPath(path: String): AssetDescriptor? =
-        assets.firstOrNull { asset -> asset.path == path }
+    override fun findByPath(path: String): AssetDescriptor? = assets.firstOrNull { asset -> asset.path == path }
 
-    override fun byCategory(category: AssetCategory): List<AssetDescriptor> =
-        assets.filter { asset -> asset.category == category }
+    override fun byCategory(category: AssetCategory): List<AssetDescriptor> = assets.filter { asset -> asset.category == category }
 
     override fun baseDir(): java.io.File = java.io.File(".")
 }

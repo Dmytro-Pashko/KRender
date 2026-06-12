@@ -48,7 +48,8 @@ class UiComposerTextureOptionsProvider(
      * registry context for future phases.
      */
     fun listTextureOptions(): List<UiComposerTextureOption> =
-        assets.byCategory(AssetCategory.Texture)
+        assets
+            .byCategory(AssetCategory.Texture)
             .asSequence()
             .filter { descriptor -> descriptor.type == AssetType.Texture }
             .map { descriptor ->
@@ -57,8 +58,7 @@ class UiComposerTextureOptionsProvider(
                     path = descriptor.path,
                     assetId = descriptor.id.value,
                 )
-            }
-            .filter { option -> option.path.isNotBlank() }
+            }.filter { option -> option.path.isNotBlank() }
             .distinctBy { option -> option.path }
             .sortedWith(compareBy<UiComposerTextureOption> { it.displayName.lowercase() }.thenBy { it.path.lowercase() })
             .toList()
@@ -89,10 +89,11 @@ fun textureValidationMetadata(
     assetTypeByPath: Map<String, AssetType> = emptyMap(),
 ): UiSceneTextureValidationMetadata {
     val texturePaths = textureOptions.mapTo(mutableSetOf()) { option -> normalizeTexturePath(option.path) }
-    val nonTextureAssetPaths = assetTypeByPath
-        .filterValues { assetType -> assetType != AssetType.Texture }
-        .keys
-        .mapTo(mutableSetOf(), ::normalizeTexturePath)
+    val nonTextureAssetPaths =
+        assetTypeByPath
+            .filterValues { assetType -> assetType != AssetType.Texture }
+            .keys
+            .mapTo(mutableSetOf(), ::normalizeTexturePath)
     return UiSceneTextureValidationMetadata(
         texturePaths = texturePaths,
         nonTextureAssetPaths = nonTextureAssetPaths,

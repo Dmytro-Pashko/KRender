@@ -43,64 +43,74 @@ object UiComposerUiLayoutDefaults {
     /** Project-relative path where UiComposer ImGui panel layout is loaded and persisted. */
     const val assetPath = "ui/ui_composer_layout.json"
 
-    val config = ImGuiLayoutConfig(
-        panels = mapOf(
-            UiComposerPanelIds.Toolbar to ImGuiPanelLayout(
-                title = "UI Composer Toolbar",
-                x = 16f,
-                y = 16f,
-                width = 720f,
-                height = 104f,
-            ),
-            UiComposerPanelIds.PreviewCanvas to ImGuiPanelLayout(
-                title = "Preview Canvas",
-                x = 360f,
-                y = 72f,
-                width = 960f,
-                height = 720f,
-            ),
-            UiComposerPanelIds.Hierarchy to ImGuiPanelLayout(
-                title = "UI Scene Hierarchy",
-                x = 16f,
-                y = 136f,
-                width = 320f,
-                height = 352f,
-            ),
-            UiComposerPanelIds.Structure to ImGuiPanelLayout(
-                title = "UI Structure",
-                x = 16f,
-                y = 504f,
-                width = 320f,
-                height = 240f,
-            ),
-            UiComposerPanelIds.Inspector to ImGuiPanelLayout(
-                title = "UI Scene Inspector",
-                x = 928f,
-                y = 136f,
-                width = 320f,
-                height = 472f,
-            ),
-            UiComposerPanelIds.SceneBindings to ImGuiPanelLayout(
-                title = "UI Scene Bindings",
-                x = 928f,
-                y = 624f,
-                width = 320f,
-                height = 240f,
-            ),
-            UiComposerPanelIds.Diagnostics to ImGuiPanelLayout(
-                title = "UI Scene info",
-                x = 352f,
-                y = 640f,
-                width = 896f,
-                height = 224f,
-            ),
-            UiComposerPanelIds.Logs to ImGuiPanelLayout(
-                title = "Runtime Logs",
-                x = 16f,
-                y = 624f,
-                width = 320f,
-                height = 240f,
-            ),
-        ),
-    )
+    val config =
+        ImGuiLayoutConfig(
+            panels =
+                mapOf(
+                    UiComposerPanelIds.Toolbar to
+                        ImGuiPanelLayout(
+                            title = "UI Composer Toolbar",
+                            x = 16f,
+                            y = 16f,
+                            width = 720f,
+                            height = 104f,
+                        ),
+                    UiComposerPanelIds.PreviewCanvas to
+                        ImGuiPanelLayout(
+                            title = "Preview Canvas",
+                            x = 360f,
+                            y = 72f,
+                            width = 960f,
+                            height = 720f,
+                        ),
+                    UiComposerPanelIds.Hierarchy to
+                        ImGuiPanelLayout(
+                            title = "UI Scene Hierarchy",
+                            x = 16f,
+                            y = 136f,
+                            width = 320f,
+                            height = 352f,
+                        ),
+                    UiComposerPanelIds.Structure to
+                        ImGuiPanelLayout(
+                            title = "UI Structure",
+                            x = 16f,
+                            y = 504f,
+                            width = 320f,
+                            height = 240f,
+                        ),
+                    UiComposerPanelIds.Inspector to
+                        ImGuiPanelLayout(
+                            title = "UI Scene Inspector",
+                            x = 928f,
+                            y = 136f,
+                            width = 320f,
+                            height = 472f,
+                        ),
+                    UiComposerPanelIds.SceneBindings to
+                        ImGuiPanelLayout(
+                            title = "UI Scene Bindings",
+                            x = 928f,
+                            y = 624f,
+                            width = 320f,
+                            height = 240f,
+                        ),
+                    UiComposerPanelIds.Diagnostics to
+                        ImGuiPanelLayout(
+                            title = "UI Scene info",
+                            x = 352f,
+                            y = 640f,
+                            width = 896f,
+                            height = 224f,
+                        ),
+                    UiComposerPanelIds.Logs to
+                        ImGuiPanelLayout(
+                            title = "Runtime Logs",
+                            x = 16f,
+                            y = 624f,
+                            width = 320f,
+                            height = 240f,
+                        ),
+                ),
+        )
 }

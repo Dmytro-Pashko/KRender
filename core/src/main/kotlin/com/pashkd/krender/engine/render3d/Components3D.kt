@@ -56,7 +56,10 @@ data class LightComponent(
 ) : Component
 
 class ModelRenderSystem : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         world.query<TransformComponent, ModelComponent>().forEach { entity ->
             val model = entity.get<ModelComponent>() ?: return@forEach
             val transform = entity.get<TransformComponent>() ?: return@forEach
@@ -76,7 +79,10 @@ class WorldGridSystem(
     private val halfExtentCells: Int = 20,
     private val cellSize: Float = 1f,
 ) : System() {
-    override fun render(world: SceneWorld, alpha: Float) {
+    override fun render(
+        world: SceneWorld,
+        alpha: Float,
+    ) {
         world.renderCommands.submit(
             DrawWorldGrid(
                 halfExtentCells = halfExtentCells,

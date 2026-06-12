@@ -24,42 +24,50 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
         existingDescriptor: SceneDescriptor? = null,
         includeEntity: (Entity) -> Boolean = { true },
     ): SceneDescriptor {
-        val entities = world.all()
-            .filter(includeEntity)
-            .filterNot { entity -> entity.get<LightComponent>()?.type == LightType.Ambient }
-            .map(::toEntityDescriptor)
+        val entities =
+            world
+                .all()
+                .filter(includeEntity)
+                .filterNot { entity -> entity.get<LightComponent>()?.type == LightType.Ambient }
+                .map(::toEntityDescriptor)
         val existingSettings = existingDescriptor?.settings
-        val activeCameraEntityId = existingSettings
-            ?.activeCameraEntityId
-            ?.takeIf { id -> entities.any { it.id == id } }
-            ?: world.all()
-                .firstOrNull { entity -> includeEntity(entity) && entity.get<PerspectiveCameraComponent>() != null }
-                ?.id
-        val activeTerrainEntityId = existingSettings
-            ?.activeTerrainEntityId
-            ?.takeIf { id -> entities.any { it.id == id && it.hasComponent(SceneComponentTypes.Terrain) } }
-            ?: if (existingSettings == null) {
-                world.all()
-                    .firstOrNull { entity -> includeEntity(entity) && entity.get<TerrainComponent>() != null }
+        val activeCameraEntityId =
+            existingSettings
+                ?.activeCameraEntityId
+                ?.takeIf { id -> entities.any { it.id == id } }
+                ?: world
+                    .all()
+                    .firstOrNull { entity -> includeEntity(entity) && entity.get<PerspectiveCameraComponent>() != null }
                     ?.id
-            } else {
-                null
-            }
+        val activeTerrainEntityId =
+            existingSettings
+                ?.activeTerrainEntityId
+                ?.takeIf { id -> entities.any { it.id == id && it.hasComponent(SceneComponentTypes.Terrain) } }
+                ?: if (existingSettings == null) {
+                    world
+                        .all()
+                        .firstOrNull { entity -> includeEntity(entity) && entity.get<TerrainComponent>() != null }
+                        ?.id
+                } else {
+                    null
+                }
 
         return SceneDescriptor(
             schemaVersion = SceneDescriptor.CurrentSchemaVersion,
             id = existingDescriptor?.id ?: generateSceneId(),
             name = sceneName,
             entities = entities,
-            settings = SceneSettingsDescriptor(
-                activeCameraEntityId = activeCameraEntityId,
-                activeTerrainEntityId = activeTerrainEntityId,
-                lighting = existingSettings?.lighting?.copy(
-                    ambientColor = existingSettings.lighting.ambientColor.copy(),
-                ) ?: SceneLightingDescriptor(),
-                environment = existingSettings?.environment ?: SceneEnvironmentDescriptor(),
-                terrain = existingSettings?.terrain ?: SceneTerrainSettingsDescriptor(),
-            ),
+            settings =
+                SceneSettingsDescriptor(
+                    activeCameraEntityId = activeCameraEntityId,
+                    activeTerrainEntityId = activeTerrainEntityId,
+                    lighting =
+                        existingSettings?.lighting?.copy(
+                            ambientColor = existingSettings.lighting.ambientColor.copy(),
+                        ) ?: SceneLightingDescriptor(),
+                    environment = existingSettings?.environment ?: SceneEnvironmentDescriptor(),
+                    terrain = existingSettings?.terrain ?: SceneTerrainSettingsDescriptor(),
+                ),
         )
     }
 
@@ -67,8 +75,9 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
         json.encodeToString(JsonObject.serializer(), value.toJsonObject())
 
     override fun decode(json: String): SceneDescriptor {
-        val root = this.json.parseToJsonElement(json) as? JsonObject
-            ?: throw IllegalArgumentException("Scene descriptor root must be a JSON object")
+        val root =
+            this.json.parseToJsonElement(json) as? JsonObject
+                ?: throw IllegalArgumentException("Scene descriptor root must be a JSON object")
         return SceneDescriptor(
             schemaVersion = root.intOrDefault("schemaVersion", SceneDescriptor.CurrentSchemaVersion),
             id = root.requiredString("id", DocumentName),
@@ -97,58 +106,72 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
 
     private fun toComponentDescriptor(component: Component): ComponentDescriptor? =
         when (component) {
-            is NameComponent -> ComponentDescriptor(
-                type = SceneComponentTypes.Name,
-                properties = mapOf("name" to component.name),
-            )
+            is NameComponent ->
+                ComponentDescriptor(
+                    type = SceneComponentTypes.Name,
+                    properties = mapOf("name" to component.name),
+                )
 
-            is TransformComponent -> ComponentDescriptor(
-                type = SceneComponentTypes.Transform,
-                properties = mapOf(
-                    "position" to component.position.csv(),
-                    "rotation" to component.eulerDegrees.csv(),
-                    "scale" to component.scale.csv(),
-                ),
-            )
+            is TransformComponent ->
+                ComponentDescriptor(
+                    type = SceneComponentTypes.Transform,
+                    properties =
+                        mapOf(
+                            "position" to component.position.csv(),
+                            "rotation" to component.eulerDegrees.csv(),
+                            "scale" to component.scale.csv(),
+                        ),
+                )
 
-            is ParentComponent -> ComponentDescriptor(
-                type = SceneComponentTypes.Parent,
-                properties = mapOf("parentId" to component.parentId.toString()),
-            )
+            is ParentComponent ->
+                ComponentDescriptor(
+                    type = SceneComponentTypes.Parent,
+                    properties = mapOf("parentId" to component.parentId.toString()),
+                )
 
-            is PerspectiveCameraComponent -> ComponentDescriptor(
-                type = SceneComponentTypes.Camera,
-                properties = mapOf(
-                    "fieldOfViewDegrees" to component.fieldOfViewDegrees.toString(),
-                    "near" to component.near.toString(),
-                    "far" to component.far.toString(),
-                ),
-            )
+            is PerspectiveCameraComponent ->
+                ComponentDescriptor(
+                    type = SceneComponentTypes.Camera,
+                    properties =
+                        mapOf(
+                            "fieldOfViewDegrees" to component.fieldOfViewDegrees.toString(),
+                            "near" to component.near.toString(),
+                            "far" to component.far.toString(),
+                        ),
+                )
 
-            is LightComponent -> ComponentDescriptor(
-                type = SceneComponentTypes.Light,
-                properties = mapOf(
-                    "type" to component.type.name,
-                    "intensity" to component.intensity.toString(),
-                    "color" to component.color.csv(),
-                    "direction" to component.direction.csv(),
-                ),
-            )
+            is LightComponent ->
+                ComponentDescriptor(
+                    type = SceneComponentTypes.Light,
+                    properties =
+                        mapOf(
+                            "type" to component.type.name,
+                            "intensity" to component.intensity.toString(),
+                            "color" to component.color.csv(),
+                            "direction" to component.direction.csv(),
+                        ),
+                )
 
-            is ModelComponent -> ComponentDescriptor(
-                type = SceneComponentTypes.Model,
-                properties = mapOf("model" to component.model.path),
-            )
+            is ModelComponent ->
+                ComponentDescriptor(
+                    type = SceneComponentTypes.Model,
+                    properties = mapOf("model" to component.model.path),
+                )
 
-            is TerrainComponent -> ComponentDescriptor(
-                type = SceneComponentTypes.Terrain,
-                properties = mapOf(
-                    "terrain" to component.terrain.path.trim().replace('\\', '/'),
-                    "visible" to component.visible.toString(),
-                    "previewMode" to component.previewMode.name,
-                    "bakedTextureResolution" to component.bakedTextureResolution.toString(),
-                ),
-            )
+            is TerrainComponent ->
+                ComponentDescriptor(
+                    type = SceneComponentTypes.Terrain,
+                    properties =
+                        mapOf(
+                            "terrain" to
+                                component.terrain.path
+                                    .trim()
+                                    .replace('\\', '/'),
+                            "visible" to component.visible.toString(),
+                            "previewMode" to component.previewMode.name,
+                            "bakedTextureResolution" to component.bakedTextureResolution.toString(),
+                        ),
+                )
 
             else -> null
         }
@@ -156,8 +179,9 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
     private fun readEntities(entitiesNode: JsonElement?): List<EntityDescriptor> {
         val entities = entitiesNode as? JsonArray ?: return emptyList()
         return entities.mapIndexed { index, entityNode ->
-            val entityObject = entityNode as? JsonObject
-                ?: throw IllegalArgumentException("Scene entity at index $index must be a JSON object")
+            val entityObject =
+                entityNode as? JsonObject
+                    ?: throw IllegalArgumentException("Scene entity at index $index must be a JSON object")
             val entityId = entityObject.requiredLong("id", DocumentName)
             EntityDescriptor(
                 id = entityId,
@@ -172,8 +196,9 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
     private fun readComponents(componentsNode: JsonElement?): List<ComponentDescriptor> {
         val components = componentsNode as? JsonArray ?: return emptyList()
         return components.mapIndexed { index, componentNode ->
-            val componentObject = componentNode as? JsonObject
-                ?: throw IllegalArgumentException("Scene component at index $index must be a JSON object")
+            val componentObject =
+                componentNode as? JsonObject
+                    ?: throw IllegalArgumentException("Scene component at index $index must be a JSON object")
             ComponentDescriptor(
                 type = componentObject.stringOrDefault("type", ""),
                 properties = readProperties(componentObject["properties"]),
@@ -191,37 +216,42 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
     private fun readSettings(settingsNode: JsonElement?): SceneSettingsDescriptor {
         val settings = settingsNode as? JsonObject ?: return SceneSettingsDescriptor()
         val lightingNode = settings["lighting"] as? JsonObject
-        val lighting = if (lightingNode != null) {
-            SceneLightingDescriptor(
-                ambientColor = parseColor(lightingNode.stringOrNull("ambientColor"), defaultAmbientLightColor()),
-                ambientIntensity = lightingNode.floatOrDefault("ambientIntensity", DefaultAmbientLightIntensity),
-            )
-        } else {
-            SceneLightingDescriptor(
-                ambientColor = parseColor(settings.stringOrNull("ambientLightColor"), defaultAmbientLightColor()),
-                ambientIntensity = settings.floatOrDefault("ambientLightIntensity", DefaultAmbientLightIntensity),
-            )
-        }
+        val lighting =
+            if (lightingNode != null) {
+                SceneLightingDescriptor(
+                    ambientColor = parseColor(lightingNode.stringOrNull("ambientColor"), defaultAmbientLightColor()),
+                    ambientIntensity = lightingNode.floatOrDefault("ambientIntensity", DefaultAmbientLightIntensity),
+                )
+            } else {
+                SceneLightingDescriptor(
+                    ambientColor = parseColor(settings.stringOrNull("ambientLightColor"), defaultAmbientLightColor()),
+                    ambientIntensity = settings.floatOrDefault("ambientLightIntensity", DefaultAmbientLightIntensity),
+                )
+            }
 
         val environmentNode = settings["environment"] as? JsonObject
-        val environment = if (environmentNode != null) {
-            SceneEnvironmentDescriptor(
-                skyboxAssetPath = normalizedOptionalProjectPath(environmentNode.stringOrNull("skyboxAssetPath")),
-                showSkybox = environmentNode.booleanOrDefault("showSkybox", true),
-                environmentIntensity = environmentNode.floatOrDefault("environmentIntensity", 1f).coerceAtLeast(0f),
-            )
-        } else {
-            SceneEnvironmentDescriptor()
-        }
+        val environment =
+            if (environmentNode != null) {
+                SceneEnvironmentDescriptor(
+                    skyboxAssetPath = normalizedOptionalProjectPath(environmentNode.stringOrNull("skyboxAssetPath")),
+                    showSkybox = environmentNode.booleanOrDefault("showSkybox", true),
+                    environmentIntensity = environmentNode.floatOrDefault("environmentIntensity", 1f).coerceAtLeast(0f),
+                )
+            } else {
+                SceneEnvironmentDescriptor()
+            }
 
         val terrainNode = settings["terrain"] as? JsonObject
-        val terrain = SceneTerrainSettingsDescriptor(
-            materialLibraryPath = terrainNode?.stringOrNull("materialLibraryPath")
-                ?.trim()
-                ?.replace('\\', '/')
-                ?.takeIf(String::isNotBlank)
-                ?: DefaultTerrainMaterialLibraryPath,
-        )
+        val terrain =
+            SceneTerrainSettingsDescriptor(
+                materialLibraryPath =
+                    terrainNode
+                        ?.stringOrNull("materialLibraryPath")
+                        ?.trim()
+                        ?.replace('\\', '/')
+                        ?.takeIf(String::isNotBlank)
+                        ?: DefaultTerrainMaterialLibraryPath,
+            )
 
         return SceneSettingsDescriptor(
             activeCameraEntityId = settings.longOrNull("activeCameraEntityId"),
@@ -309,7 +339,10 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
     private fun EntityDescriptor.hasComponent(type: String): Boolean =
         components.any { component -> component.type == type }
 
-    private fun parseColor(raw: String?, defaultValue: Color): Color {
+    private fun parseColor(
+        raw: String?,
+        defaultValue: Color,
+    ): Color {
         val values = raw?.split(',')?.map { it.trim().toFloatOrNull() }
         if (values != null && values.size >= 3 && values.take(3).all { it != null }) {
             return Color(
@@ -321,7 +354,6 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
         }
         return defaultValue
     }
-
 }
 
 /**
@@ -351,29 +383,33 @@ object SceneDeserializer {
     ) {
         descriptor.components.forEach { component ->
             when (component.type) {
-                SceneComponentTypes.Name -> entity.add(
-                    NameComponent(component.properties["name"] ?: descriptor.name),
-                )
+                SceneComponentTypes.Name ->
+                    entity.add(
+                        NameComponent(component.properties["name"] ?: descriptor.name),
+                    )
 
                 SceneComponentTypes.Transform -> entity.add(readTransform(component, entity.id, logger))
 
-                SceneComponentTypes.Parent -> readLong(
-                    raw = component.properties["parentId"],
-                    defaultValue = descriptor.parentId,
-                    context = "${SceneComponentTypes.Parent}.parentId",
-                    entityId = entity.id,
-                    logger = logger,
-                )?.let { parentId -> entity.add(ParentComponent(parentId)) }
+                SceneComponentTypes.Parent ->
+                    readLong(
+                        raw = component.properties["parentId"],
+                        defaultValue = descriptor.parentId,
+                        context = "${SceneComponentTypes.Parent}.parentId",
+                        entityId = entity.id,
+                        logger = logger,
+                    )?.let { parentId -> entity.add(ParentComponent(parentId)) }
 
                 SceneComponentTypes.Camera -> entity.add(readCamera(component, entity.id, logger))
 
                 SceneComponentTypes.Light -> entity.add(readLight(component, entity.id, logger))
 
-                SceneComponentTypes.Model -> readModel(component, entity.id, logger)
-                    ?.let(entity::add)
+                SceneComponentTypes.Model ->
+                    readModel(component, entity.id, logger)
+                        ?.let(entity::add)
 
-                SceneComponentTypes.Terrain -> readTerrain(component, entity.id, logger)
-                    ?.let(entity::add)
+                SceneComponentTypes.Terrain ->
+                    readTerrain(component, entity.id, logger)
+                        ?.let(entity::add)
             }
         }
     }
@@ -384,27 +420,30 @@ object SceneDeserializer {
         logger: Logger?,
     ): TransformComponent =
         TransformComponent(
-            position = readVec3(
-                component.properties["position"],
-                Vec3.zero(),
-                "${SceneComponentTypes.Transform}.position",
-                entityId,
-                logger
-            ),
-            eulerDegrees = readVec3(
-                component.properties["rotation"],
-                Vec3.zero(),
-                "${SceneComponentTypes.Transform}.rotation",
-                entityId,
-                logger
-            ),
-            scale = readVec3(
-                component.properties["scale"],
-                Vec3.one(),
-                "${SceneComponentTypes.Transform}.scale",
-                entityId,
-                logger
-            ),
+            position =
+                readVec3(
+                    component.properties["position"],
+                    Vec3.zero(),
+                    "${SceneComponentTypes.Transform}.position",
+                    entityId,
+                    logger,
+                ),
+            eulerDegrees =
+                readVec3(
+                    component.properties["rotation"],
+                    Vec3.zero(),
+                    "${SceneComponentTypes.Transform}.rotation",
+                    entityId,
+                    logger,
+                ),
+            scale =
+                readVec3(
+                    component.properties["scale"],
+                    Vec3.one(),
+                    "${SceneComponentTypes.Transform}.scale",
+                    entityId,
+                    logger,
+                ),
         )
 
     private fun readCamera(
@@ -413,27 +452,30 @@ object SceneDeserializer {
         logger: Logger?,
     ): PerspectiveCameraComponent =
         PerspectiveCameraComponent(
-            fieldOfViewDegrees = readFloat(
-                component.properties["fieldOfViewDegrees"],
-                PerspectiveCameraComponent().fieldOfViewDegrees,
-                "${SceneComponentTypes.Camera}.fieldOfViewDegrees",
-                entityId,
-                logger,
-            ),
-            near = readFloat(
-                component.properties["near"],
-                PerspectiveCameraComponent().near,
-                "${SceneComponentTypes.Camera}.near",
-                entityId,
-                logger,
-            ),
-            far = readFloat(
-                component.properties["far"],
-                PerspectiveCameraComponent().far,
-                "${SceneComponentTypes.Camera}.far",
-                entityId,
-                logger,
-            ),
+            fieldOfViewDegrees =
+                readFloat(
+                    component.properties["fieldOfViewDegrees"],
+                    PerspectiveCameraComponent().fieldOfViewDegrees,
+                    "${SceneComponentTypes.Camera}.fieldOfViewDegrees",
+                    entityId,
+                    logger,
+                ),
+            near =
+                readFloat(
+                    component.properties["near"],
+                    PerspectiveCameraComponent().near,
+                    "${SceneComponentTypes.Camera}.near",
+                    entityId,
+                    logger,
+                ),
+            far =
+                readFloat(
+                    component.properties["far"],
+                    PerspectiveCameraComponent().far,
+                    "${SceneComponentTypes.Camera}.far",
+                    entityId,
+                    logger,
+                ),
         )
 
     private fun readLight(
@@ -443,27 +485,30 @@ object SceneDeserializer {
     ): LightComponent =
         LightComponent(
             type = readLightType(component.properties["type"], LightType.Directional, entityId, logger),
-            intensity = readFloat(
-                component.properties["intensity"],
-                1f,
-                "${SceneComponentTypes.Light}.intensity",
-                entityId,
-                logger
-            ),
-            color = readColor(
-                component.properties["color"],
-                Color.white(),
-                "${SceneComponentTypes.Light}.color",
-                entityId,
-                logger
-            ),
-            direction = readVec3(
-                component.properties["direction"],
-                Vec3(-1f, -0.8f, -0.2f),
-                "${SceneComponentTypes.Light}.direction",
-                entityId,
-                logger,
-            ),
+            intensity =
+                readFloat(
+                    component.properties["intensity"],
+                    1f,
+                    "${SceneComponentTypes.Light}.intensity",
+                    entityId,
+                    logger,
+                ),
+            color =
+                readColor(
+                    component.properties["color"],
+                    Color.white(),
+                    "${SceneComponentTypes.Light}.color",
+                    entityId,
+                    logger,
+                ),
+            direction =
+                readVec3(
+                    component.properties["direction"],
+                    Vec3(-1f, -0.8f, -0.2f),
+                    "${SceneComponentTypes.Light}.direction",
+                    entityId,
+                    logger,
+                ),
         )
 
     private fun readModel(
@@ -486,18 +531,21 @@ object SceneDeserializer {
     ): TerrainComponent? {
         val path = component.properties["terrain"]?.trim()?.replace('\\', '/') ?: ""
         if (path.isBlank()) {
-            logger?.warn(TAG) { "Invalid ${SceneComponentTypes.Terrain}.terrain for entityId=$entityId value='<missing>'; skipping component" }
+            logger?.warn(
+                TAG,
+            ) { "Invalid ${SceneComponentTypes.Terrain}.terrain for entityId=$entityId value='<missing>'; skipping component" }
             return null
         }
         val visible = component.properties["visible"]?.trim()?.toBooleanStrictOrNull() ?: true
         val previewMode = readTerrainPreviewMode(component.properties["previewMode"], entityId, logger)
-        val bakedTextureResolution = readInt(
-            component.properties["bakedTextureResolution"],
-            defaultValue = 8192,
-            context = "${SceneComponentTypes.Terrain}.bakedTextureResolution",
-            entityId = entityId,
-            logger = logger,
-        ).coerceIn(2, 8192)
+        val bakedTextureResolution =
+            readInt(
+                component.properties["bakedTextureResolution"],
+                defaultValue = 8192,
+                context = "${SceneComponentTypes.Terrain}.bakedTextureResolution",
+                entityId = entityId,
+                logger = logger,
+            ).coerceIn(2, 8192)
         return TerrainComponent(
             terrain = AssetRef.terrain(path),
             visible = visible,
@@ -597,10 +645,11 @@ object SceneDeserializer {
         entityId: Long,
         logger: Logger?,
     ): TerrainPreviewMode {
-        val value = TerrainPreviewMode.entries.firstOrNull { mode ->
-            mode.name.equals(raw, ignoreCase = true) ||
-                (mode == TerrainPreviewMode.MaterialTexture && raw.equals("TexturePreview", ignoreCase = true))
-        }
+        val value =
+            TerrainPreviewMode.entries.firstOrNull { mode ->
+                mode.name.equals(raw, ignoreCase = true) ||
+                    (mode == TerrainPreviewMode.MaterialTexture && raw.equals("TexturePreview", ignoreCase = true))
+            }
         return when (value) {
             TerrainPreviewMode.MaterialTexture -> TerrainPreviewMode.MaterialTexture
             TerrainPreviewMode.LayerColor -> TerrainPreviewMode.LayerColor

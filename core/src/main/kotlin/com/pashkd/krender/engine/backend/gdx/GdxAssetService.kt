@@ -113,7 +113,10 @@ class GdxAssetService(
         }
     }
 
-    private fun missingAsset(type: String, path: String): IllegalArgumentException {
+    private fun missingAsset(
+        type: String,
+        path: String,
+    ): IllegalArgumentException {
         val message = "Asset not found type=$type path='$path'"
         logger?.error(GDX_ASSET_SERVICE_TAG) { message }
         return IllegalArgumentException(message)
@@ -186,9 +189,10 @@ class GdxAssetService(
                     }
                 }
 
-                else -> gdxModel(asset)?.let { model ->
-                    buildModelInfo(asset.path, model, sceneAsset = null)
-                } ?: emptyModelInfo(asset.path, modelFormat(asset.path))
+                else ->
+                    gdxModel(asset)?.let { model ->
+                        buildModelInfo(asset.path, model, sceneAsset = null)
+                    } ?: emptyModelInfo(asset.path, modelFormat(asset.path))
             }
         }
     }
@@ -196,10 +200,11 @@ class GdxAssetService(
     override fun modelSkeleton(asset: AssetRef<ModelAsset>): ModelSkeletonInfo? {
         if (asset.isPrimitive || !isLoaded(asset)) return null
         modelSkeletons[asset.path]?.let { return it }
-        val model = when {
-            asset.isGltf() -> gltfScene(asset)?.scene?.model
-            else -> gdxModel(asset)
-        } ?: return null
+        val model =
+            when {
+                asset.isGltf() -> gltfScene(asset)?.scene?.model
+                else -> gdxModel(asset)
+            } ?: return null
         val skeleton = buildModelSkeletonInfo(model) ?: return null
         modelSkeletons[asset.path] = skeleton
         return skeleton
@@ -221,9 +226,10 @@ class GdxAssetService(
     /** Returns an opaque handle for a loaded model texture or standalone texture asset. */
     override fun texturePreviewHandle(texturePathOrId: String): TexturePreviewHandle? {
         val key = texturePathOrId.takeIf(String::isNotBlank) ?: return null
-        val texture = texturePreviewRegistry[key]
-            ?: loadedTextureAsset(key)
-            ?: return null
+        val texture =
+            texturePreviewRegistry[key]
+                ?: loadedTextureAsset(key)
+                ?: return null
         return TexturePreviewHandle(
             id = texture.textureObjectHandle,
             width = texture.width,
@@ -238,10 +244,11 @@ class GdxAssetService(
         if (asset.isPrimitive || !isLoaded(asset)) return null
         modelBoundsCache[asset.path]?.let { return it }
 
-        val model = when {
-            asset.isGltf() -> gltfScene(asset)?.scene?.model
-            else -> gdxModel(asset)
-        } ?: return null
+        val model =
+            when {
+                asset.isGltf() -> gltfScene(asset)?.scene?.model
+                else -> gdxModel(asset)
+            } ?: return null
 
         val bounds = calculateModelBounds(asset.path, model) ?: return null
         modelBoundsCache[asset.path] = bounds
@@ -284,21 +291,21 @@ class GdxAssetService(
     }
 
     /** Returns a loaded standalone LibGDX texture asset. */
-    fun gdxTexture(asset: AssetRef<TextureAsset>): Texture? =
-        loadedTextureAsset(asset.path)
+    fun gdxTexture(asset: AssetRef<TextureAsset>): Texture? = loadedTextureAsset(asset.path)
 
     /** Returns a loaded standalone or model-registered LibGDX texture by path or stable id. */
     fun textureByPathOrId(pathOrId: String): Texture? {
-        val texture = runtimeTextures[pathOrId]?.texture
-            ?: texturePreviewRegistry[pathOrId]
-            ?: loadedTextureAsset(pathOrId)
+        val texture =
+            runtimeTextures[pathOrId]?.texture
+                ?: texturePreviewRegistry[pathOrId]
+                ?: loadedTextureAsset(pathOrId)
         if (texture == null && warnedTextureBindings.add(pathOrId)) {
             logger?.warn(GDX_ASSET_SERVICE_TAG) {
                 "Texture binding unresolved id='$pathOrId' runtime=${pathOrId in runtimeTextures} " +
                     "preview=${pathOrId in texturePreviewRegistry} assetLoaded=${
                         manager.isLoaded(
                             pathOrId,
-                            Texture::class.java
+                            Texture::class.java,
                         )
                     }"
             }
@@ -323,10 +330,11 @@ class GdxAssetService(
                     pixmap.drawPixel(x, y, texture.rgba8888[offset++])
                 }
             }
-            val uploaded = Texture(pixmap).also { gdxTexture ->
-                gdxTexture.setFilter(texture.minFilter.gdx(), texture.magFilter.gdx())
-                gdxTexture.setWrap(texture.uWrap.gdx(), texture.vWrap.gdx())
-            }
+            val uploaded =
+                Texture(pixmap).also { gdxTexture ->
+                    gdxTexture.setFilter(texture.minFilter.gdx(), texture.magFilter.gdx())
+                    gdxTexture.setWrap(texture.uWrap.gdx(), texture.vWrap.gdx())
+                }
             existing?.texture?.dispose()
             runtimeTextures[texture.id] = RuntimeTextureEntry(texture.revision, uploaded)
             texturePreviewRegistry[texture.id] = uploaded
@@ -354,13 +362,14 @@ class GdxAssetService(
     private fun logLoadedAssets() {
         requested.forEach { path ->
             if (path in loggedLoaded) return@forEach
-            val loaded = when {
-                manager.isLoaded(path, SceneAsset::class.java) -> "gltf-scene"
-                manager.isLoaded(path, Model::class.java) -> "model"
-                manager.isLoaded(path, Texture::class.java) -> "texture"
-                path in shaderSources -> "shader"
-                else -> null
-            }
+            val loaded =
+                when {
+                    manager.isLoaded(path, SceneAsset::class.java) -> "gltf-scene"
+                    manager.isLoaded(path, Model::class.java) -> "model"
+                    manager.isLoaded(path, Texture::class.java) -> "texture"
+                    path in shaderSources -> "shader"
+                    else -> null
+                }
             if (loaded != null) {
                 loggedLoaded += path
                 logger?.info(GDX_ASSET_SERVICE_TAG) { "Asset loaded type=$loaded path='$path'" }
@@ -388,10 +397,11 @@ class GdxAssetService(
             if (path in modelBoundsCache) return@forEach
             val asset = AssetRef.model(path)
             if (!isLoaded(asset)) return@forEach
-            val model = when {
-                asset.isGltf() -> gltfScene(asset)?.scene?.model
-                else -> gdxModel(asset)
-            } ?: return@forEach
+            val model =
+                when {
+                    asset.isGltf() -> gltfScene(asset)?.scene?.model
+                    else -> gdxModel(asset)
+                } ?: return@forEach
             calculateModelBounds(path, model)?.let { bounds -> modelBoundsCache[path] = bounds }
         }
     }
@@ -399,20 +409,26 @@ class GdxAssetService(
     /**
      * Extracts render-relevant metadata from the loaded model and optional glTF scene asset.
      */
-    private fun buildModelInfo(path: String, model: Model, sceneAsset: SceneAsset?): ModelAssetInfo {
+    private fun buildModelInfo(
+        path: String,
+        model: Model,
+        sceneAsset: SceneAsset?,
+    ): ModelAssetInfo {
         val nodes = collectNodes(model.nodes)
         val nodeParts = nodes.flatMap(::nodePartsOf)
         val bounds = modelBoundsCache[path] ?: calculateModelBounds(path, model)?.also { modelBoundsCache[path] = it }
         val attributeSummary = collectVertexAttributeSummary(model.meshes)
         val registeredTexturePreviewKeys = linkedSetOf<String>()
-        val materialInfos = buildMaterialInfos(model.materials) { key, texture ->
-            texturePreviewRegistry[key] = texture
-            registeredTexturePreviewKeys += key
-        }
+        val materialInfos =
+            buildMaterialInfos(model.materials) { key, texture ->
+                texturePreviewRegistry[key] = texture
+                registeredTexturePreviewKeys += key
+            }
         modelTexturePreviewKeys[path] = registeredTexturePreviewKeys
         val textureSlots = materialInfos.flatMap { material -> material.textureSlots }
-        val textureChannels = textureSlots
-            .mapTo(linkedSetOf()) { slot -> slot.channel }
+        val textureChannels =
+            textureSlots
+                .mapTo(linkedSetOf()) { slot -> slot.channel }
         val textures = linkedSetOf<Texture>()
         var maxBonesPerPart = 0
 
@@ -428,14 +444,15 @@ class GdxAssetService(
             maxBonesPerPart = maxOf(maxBonesPerPart, part.bones?.size ?: 0)
         }
 
-        val animations = model.animations.mapNotNull { animation ->
-            animation.id?.takeIf(String::isNotBlank)?.let { id ->
-                ModelAnimationInfo(
-                    name = id,
-                    durationSeconds = animation.duration.takeIf { duration -> duration > 0f },
-                )
+        val animations =
+            model.animations.mapNotNull { animation ->
+                animation.id?.takeIf(String::isNotBlank)?.let { id ->
+                    ModelAnimationInfo(
+                        name = id,
+                        durationSeconds = animation.duration.takeIf { duration -> duration > 0f },
+                    )
+                }
             }
-        }
         val textureCount = sceneAsset?.textures?.size ?: textures.size
         return ModelAssetInfo(
             path = path,
@@ -468,30 +485,34 @@ class GdxAssetService(
     /**
      * Returns a safe empty metadata snapshot when a backend model cannot be inspected.
      */
-    private fun emptyModelInfo(path: String, format: String): ModelAssetInfo = ModelAssetInfo(
-        path = path,
-        format = format,
-        nodeCount = 0,
-        meshCount = 0,
-        meshPartCount = 0,
-        materialCount = 0,
-        vertexCount = 0,
-        triangleCount = 0,
-        size = null,
-        boundsMin = null,
-        boundsMax = null,
-        vertexChannels = emptyList(),
-        uvChannels = emptyList(),
-        textureChannels = emptyList(),
-        textureCount = 0,
-        textureSlotCount = 0,
-        hasSkeleton = false,
-        boneCount = 0,
-        boneWeightChannelCount = 0,
-        animations = emptyList(),
-        animationCount = 0,
-        animationNames = emptyList(),
-    )
+    private fun emptyModelInfo(
+        path: String,
+        format: String,
+    ): ModelAssetInfo =
+        ModelAssetInfo(
+            path = path,
+            format = format,
+            nodeCount = 0,
+            meshCount = 0,
+            meshPartCount = 0,
+            materialCount = 0,
+            vertexCount = 0,
+            triangleCount = 0,
+            size = null,
+            boundsMin = null,
+            boundsMax = null,
+            vertexChannels = emptyList(),
+            uvChannels = emptyList(),
+            textureChannels = emptyList(),
+            textureCount = 0,
+            textureSlotCount = 0,
+            hasSkeleton = false,
+            boneCount = 0,
+            boneWeightChannelCount = 0,
+            animations = emptyList(),
+            animationCount = 0,
+            animationNames = emptyList(),
+        )
 
     private fun buildModelSkeletonInfo(model: Model): ModelSkeletonInfo? {
         if (!supportsSkeletonSampling(model)) return null
@@ -500,13 +521,14 @@ class GdxAssetService(
         val indexByNode = mutableMapOf<Node, Int>()
         nodes.forEachIndexed { index, node -> indexByNode[node] = index }
         return ModelSkeletonInfo(
-            bones = nodes.mapIndexed { index, node ->
-                ModelBoneInfo(
-                    index = index,
-                    name = node.id?.takeIf(String::isNotBlank),
-                    parentIndex = node.parent?.let(indexByNode::get),
-                )
-            },
+            bones =
+                nodes.mapIndexed { index, node ->
+                    ModelBoneInfo(
+                        index = index,
+                        name = node.id?.takeIf(String::isNotBlank),
+                        parentIndex = node.parent?.let(indexByNode::get),
+                    )
+                },
         )
     }
 
@@ -539,9 +561,10 @@ class GdxAssetService(
         val sceneAsset = gltfScene(asset) ?: return emptyList()
         val model = sceneAsset.scene.model
         if (!supportsSkeletonSampling(model)) return emptyList()
-        val scene = poseSampledGltfScenes.getOrPut(asset.path) {
-            GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
-        }
+        val scene =
+            poseSampledGltfScenes.getOrPut(asset.path) {
+                GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
+            }
         sampleAnimationPose(scene.modelInstance, scene.animationController, animationName, timeSeconds, loop)
         return extractBonePoses(scene.modelInstance.nodes)
     }
@@ -563,11 +586,12 @@ class GdxAssetService(
             controller.update(0f)
             return
         }
-        val animation = instance.getAnimation(animationName) ?: run {
-            controller.setAnimation(null as String?)
-            controller.update(0f)
-            return
-        }
+        val animation =
+            instance.getAnimation(animationName) ?: run {
+                controller.setAnimation(null as String?)
+                controller.update(0f)
+                return
+            }
         controller.setAnimation(animationName, if (loop) -1 else 1, 1f, null)
         controller.current?.time = normalizedAnimationTime(animation, timeSeconds, loop)
         controller.update(0f)
@@ -592,8 +616,11 @@ class GdxAssetService(
     /**
      * Calculates the asset-local model bounds once from LibGDX model data.
      */
-    private fun calculateModelBounds(path: String, model: Model): ModelAssetBounds? {
-        return try {
+    private fun calculateModelBounds(
+        path: String,
+        model: Model,
+    ): ModelAssetBounds? =
+        try {
             val bounds = BoundingBox()
             ModelInstance(model).calculateBoundingBox(bounds)
             if (!bounds.isValid) {
@@ -608,11 +635,9 @@ class GdxAssetService(
             Gdx.app.error("GdxAssetService", "Failed to calculate model bounds for '$path'", error)
             null
         }
-    }
 
     /** Returns the dimensions of a cached model bounds box. */
-    private fun ModelAssetBounds.size(): Vec3 =
-        Vec3(max.x - min.x, max.y - min.y, max.z - min.z)
+    private fun ModelAssetBounds.size(): Vec3 = Vec3(max.x - min.x, max.y - min.y, max.z - min.z)
 }
 
 /**
@@ -649,11 +674,12 @@ internal fun collectNodes(nodes: Array<Node>): List<Node> {
 /**
  * Returns every node part attached to the given node.
  */
-private fun nodePartsOf(node: Node): List<NodePart> = buildList {
-    for (part in node.parts) {
-        add(part)
+private fun nodePartsOf(node: Node): List<NodePart> =
+    buildList {
+        for (part in node.parts) {
+            add(part)
+        }
     }
-}
 
 /**
  * Builds read-only mesh-part metadata for model inspection UI.
@@ -661,29 +687,30 @@ private fun nodePartsOf(node: Node): List<NodePart> = buildList {
 private fun buildMeshPartInfos(
     nodes: List<Node>,
     materials: Array<com.badlogic.gdx.graphics.g3d.Material>,
-): List<ModelMeshPartInfo> = buildList {
-    var index = 0
-    nodes.forEach { node ->
-        for (part in node.parts) {
-            val meshPart = part.meshPart
-            val materialIndex = part.material?.let { material -> materialIndexOf(materials, material) }
-            add(
-                ModelMeshPartInfo(
-                    index = index,
-                    nodeName = node.id?.takeIf(String::isNotBlank),
-                    meshId = meshPart?.mesh?.toString(),
-                    partId = meshPart?.id?.takeIf(String::isNotBlank),
-                    materialId = part.material?.id?.takeIf(String::isNotBlank),
-                    materialIndex = materialIndex,
-                    primitiveType = meshPart?.primitiveType?.let(::primitiveTypeLabel),
-                    vertexCount = meshPart?.mesh?.numVertices,
-                    triangleCount = meshPart?.let(::countTrianglesInMeshPart),
-                ),
-            )
-            index += 1
+): List<ModelMeshPartInfo> =
+    buildList {
+        var index = 0
+        nodes.forEach { node ->
+            for (part in node.parts) {
+                val meshPart = part.meshPart
+                val materialIndex = part.material?.let { material -> materialIndexOf(materials, material) }
+                add(
+                    ModelMeshPartInfo(
+                        index = index,
+                        nodeName = node.id?.takeIf(String::isNotBlank),
+                        meshId = meshPart?.mesh?.toString(),
+                        partId = meshPart?.id?.takeIf(String::isNotBlank),
+                        materialId = part.material?.id?.takeIf(String::isNotBlank),
+                        materialIndex = materialIndex,
+                        primitiveType = meshPart?.primitiveType?.let(::primitiveTypeLabel),
+                        vertexCount = meshPart?.mesh?.numVertices,
+                        triangleCount = meshPart?.let(::countTrianglesInMeshPart),
+                    ),
+                )
+                index += 1
+            }
         }
     }
-}
 
 /**
  * Builds read-only material metadata for model inspection UI.
@@ -691,24 +718,25 @@ private fun buildMeshPartInfos(
 private fun buildMaterialInfos(
     materials: Array<com.badlogic.gdx.graphics.g3d.Material>,
     registerTexturePreview: (String, Texture) -> Unit = { _, _ -> },
-): List<ModelMaterialInfo> = buildList {
-    materials.forEachIndexed { index, material ->
-        val diffuseColor = (material.get(ColorAttribute.Diffuse) as? ColorAttribute)?.color
-        val materialId = material.id?.takeIf(String::isNotBlank)
-        add(
-            ModelMaterialInfo(
-                index = index,
-                id = materialId,
-                diffuseTexture = material.textureLabel(TextureAttribute.Diffuse),
-                normalTexture = material.textureLabel(TextureAttribute.Normal),
-                emissiveTexture = material.textureLabel(TextureAttribute.Emissive),
-                textureSlots = materialTextureSlots(material, index, materialId, registerTexturePreview),
-                baseColor = diffuseColor?.let { color -> Color(color.r, color.g, color.b, color.a) },
-                opacity = diffuseColor?.a,
-            ),
-        )
+): List<ModelMaterialInfo> =
+    buildList {
+        materials.forEachIndexed { index, material ->
+            val diffuseColor = (material.get(ColorAttribute.Diffuse) as? ColorAttribute)?.color
+            val materialId = material.id?.takeIf(String::isNotBlank)
+            add(
+                ModelMaterialInfo(
+                    index = index,
+                    id = materialId,
+                    diffuseTexture = material.textureLabel(TextureAttribute.Diffuse),
+                    normalTexture = material.textureLabel(TextureAttribute.Normal),
+                    emissiveTexture = material.textureLabel(TextureAttribute.Emissive),
+                    textureSlots = materialTextureSlots(material, index, materialId, registerTexturePreview),
+                    baseColor = diffuseColor?.let { color -> Color(color.r, color.g, color.b, color.a) },
+                    opacity = diffuseColor?.a,
+                ),
+            )
+        }
     }
-}
 
 private fun com.badlogic.gdx.graphics.g3d.Material.textureLabel(type: Long): String? =
     ((get(type) as? TextureAttribute)?.textureDescription?.texture)?.let(::textureIdentifier)
@@ -718,58 +746,62 @@ private fun materialTextureSlots(
     materialIndex: Int,
     materialId: String?,
     registerTexturePreview: (String, Texture) -> Unit,
-): List<ModelTextureSlotInfo> = buildList {
-    for (attribute in material) {
-        if (attribute is TextureAttribute) {
-            val texture = attribute.textureDescription.texture
-            val texturePath = textureIdentifier(texture)
-            if (texturePath != null) {
-                registerTexturePreview(texturePath, texture)
+): List<ModelTextureSlotInfo> =
+    buildList {
+        for (attribute in material) {
+            if (attribute is TextureAttribute) {
+                val texture = attribute.textureDescription.texture
+                val texturePath = textureIdentifier(texture)
+                if (texturePath != null) {
+                    registerTexturePreview(texturePath, texture)
+                }
+                add(
+                    ModelTextureSlotInfo(
+                        channel = normalizeTextureChannel(attribute),
+                        texturePath = texturePath,
+                        uvChannel = attribute.uvIndex.takeIf { uvIndex -> uvIndex >= 0 }
+                            ?.let { uvIndex -> "UV$uvIndex" },
+                        materialIndex = materialIndex,
+                        materialId = materialId,
+                    ),
+                )
             }
-            add(
-                ModelTextureSlotInfo(
-                    channel = normalizeTextureChannel(attribute),
-                    texturePath = texturePath,
-                    uvChannel = attribute.uvIndex.takeIf { uvIndex -> uvIndex >= 0 }?.let { uvIndex -> "UV$uvIndex" },
-                    materialIndex = materialIndex,
-                    materialId = materialId,
-                ),
-            )
         }
     }
-}
 
-private fun normalizeTextureChannel(attribute: TextureAttribute): String = when (attribute.type) {
-    PBRTextureAttribute.BaseColorTexture -> "baseColor"
-    TextureAttribute.Diffuse -> "diffuse"
-    PBRTextureAttribute.NormalTexture,
-    TextureAttribute.Normal,
-    TextureAttribute.Bump,
-        -> "normal"
+private fun normalizeTextureChannel(attribute: TextureAttribute): String =
+    when (attribute.type) {
+        PBRTextureAttribute.BaseColorTexture -> "baseColor"
+        TextureAttribute.Diffuse -> "diffuse"
+        PBRTextureAttribute.NormalTexture,
+        TextureAttribute.Normal,
+        TextureAttribute.Bump,
+            -> "normal"
 
-    PBRTextureAttribute.EmissiveTexture,
-    TextureAttribute.Emissive,
-        -> "emissive"
+        PBRTextureAttribute.EmissiveTexture,
+        TextureAttribute.Emissive,
+            -> "emissive"
 
-    PBRTextureAttribute.OcclusionTexture -> "occlusion"
-    PBRTextureAttribute.MetallicRoughnessTexture -> "metallicRoughness"
-    else -> {
-        val alias = Attribute.getAttributeAlias(attribute.type)?.takeIf(String::isNotBlank)
-        normalizeTextureAlias(alias)
+        PBRTextureAttribute.OcclusionTexture -> "occlusion"
+        PBRTextureAttribute.MetallicRoughnessTexture -> "metallicRoughness"
+        else -> {
+            val alias = Attribute.getAttributeAlias(attribute.type)?.takeIf(String::isNotBlank)
+            normalizeTextureAlias(alias)
+        }
     }
-}
 
-private fun normalizeTextureAlias(alias: String?): String = when (alias?.lowercase()) {
-    "basecolortexture", "basecolor", "diffusetexture" -> "baseColor"
-    "diffuse" -> "diffuse"
-    "normaltexture", "normal", "bump" -> "normal"
-    "emissivetexture", "emissive" -> "emissive"
-    "occlusiontexture", "occlusion", "ambient" -> "occlusion"
-    "metallicroughnesstexture", "metallicroughness" -> "metallicRoughness"
-    "alphatexture", "alpha", "opacity" -> "alpha"
-    null -> "unknown"
-    else -> alias
-}
+private fun normalizeTextureAlias(alias: String?): String =
+    when (alias?.lowercase()) {
+        "basecolortexture", "basecolor", "diffusetexture" -> "baseColor"
+        "diffuse" -> "diffuse"
+        "normaltexture", "normal", "bump" -> "normal"
+        "emissivetexture", "emissive" -> "emissive"
+        "occlusiontexture", "occlusion", "ambient" -> "occlusion"
+        "metallicroughnesstexture", "metallicroughness" -> "metallicRoughness"
+        "alphatexture", "alpha", "opacity" -> "alpha"
+        null -> "unknown"
+        else -> alias
+    }
 
 private fun textureIdentifier(texture: Texture): String? {
     val fileTextureData = texture.textureData as? FileTextureData
@@ -787,7 +819,8 @@ internal fun materialIndexOf(
         if (candidate === material) return index
     }
     val materialId = material.id?.takeIf(String::isNotBlank) ?: return null
-    return materials.indexOfFirst { candidate -> candidate.id == materialId }
+    return materials
+        .indexOfFirst { candidate -> candidate.id == materialId }
         .takeIf { index -> index >= 0 }
 }
 
@@ -833,33 +866,35 @@ private fun collectVertexAttributeSummary(meshes: Array<Mesh>): VertexAttributeS
 /**
  * Formats the asset path extension as a readable model-format label.
  */
-private fun modelFormat(path: String): String = when {
-    path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true) -> "glTF"
-    path.endsWith(".obj", ignoreCase = true) -> "OBJ"
-    path.endsWith(".g3dj", ignoreCase = true) -> "G3DJ"
-    path.endsWith(".g3db", ignoreCase = true) -> "G3DB"
-    else -> "Model"
-}
+private fun modelFormat(path: String): String =
+    when {
+        path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true) -> "glTF"
+        path.endsWith(".obj", ignoreCase = true) -> "OBJ"
+        path.endsWith(".g3dj", ignoreCase = true) -> "G3DJ"
+        path.endsWith(".g3db", ignoreCase = true) -> "G3DB"
+        else -> "Model"
+    }
 
 private const val GDX_ASSET_SERVICE_TAG = "GdxAssetService"
 
 /** Returns the total triangle count across all mesh parts in the model. */
-private fun countTrianglesInModel(model: Model): Int =
-    model.meshParts.sumOf(::countTrianglesInMeshPart)
+private fun countTrianglesInModel(model: Model): Int = model.meshParts.sumOf(::countTrianglesInMeshPart)
 
 /** Converts a mesh part's primitive topology into triangle count. */
-private fun countTrianglesInMeshPart(meshPart: MeshPart): Int = when (meshPart.primitiveType) {
-    GL20.GL_TRIANGLES -> meshPart.size / 3
-    GL20.GL_TRIANGLE_STRIP, GL20.GL_TRIANGLE_FAN -> (meshPart.size - 2).coerceAtLeast(0)
-    else -> 0
-}
+private fun countTrianglesInMeshPart(meshPart: MeshPart): Int =
+    when (meshPart.primitiveType) {
+        GL20.GL_TRIANGLES -> meshPart.size / 3
+        GL20.GL_TRIANGLE_STRIP, GL20.GL_TRIANGLE_FAN -> (meshPart.size - 2).coerceAtLeast(0)
+        else -> 0
+    }
 
-private fun primitiveTypeLabel(primitiveType: Int): String = when (primitiveType) {
-    GL20.GL_TRIANGLES -> "TRIANGLES"
-    GL20.GL_TRIANGLE_STRIP -> "TRIANGLE_STRIP"
-    GL20.GL_TRIANGLE_FAN -> "TRIANGLE_FAN"
-    GL20.GL_LINES -> "LINES"
-    GL20.GL_LINE_STRIP -> "LINE_STRIP"
-    GL20.GL_POINTS -> "POINTS"
-    else -> "GL_$primitiveType"
-}
+private fun primitiveTypeLabel(primitiveType: Int): String =
+    when (primitiveType) {
+        GL20.GL_TRIANGLES -> "TRIANGLES"
+        GL20.GL_TRIANGLE_STRIP -> "TRIANGLE_STRIP"
+        GL20.GL_TRIANGLE_FAN -> "TRIANGLE_FAN"
+        GL20.GL_LINES -> "LINES"
+        GL20.GL_LINE_STRIP -> "LINE_STRIP"
+        GL20.GL_POINTS -> "POINTS"
+        else -> "GL_$primitiveType"
+    }

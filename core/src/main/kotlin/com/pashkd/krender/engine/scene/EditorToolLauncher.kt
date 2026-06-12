@@ -5,8 +5,11 @@ package com.pashkd.krender.engine.scene
  */
 interface EditorToolLauncher {
     fun launchModelViewer(modelPath: String)
+
     fun launchAnimationViewer(modelPath: String)
+
     fun launchTerrainEditor(terrainPath: String)
+
     fun launchSceneEditorWithScene(scenePath: String)
 
     /**
@@ -44,6 +47,5 @@ object UnsupportedEditorToolLauncher : EditorToolLauncher {
         unsupported()
     }
 
-    private fun unsupported(): Nothing =
-        error("Editor tool launching is not supported by this backend.")
+    private fun unsupported(): Nothing = error("Editor tool launching is not supported by this backend.")
 }

@@ -384,7 +384,10 @@ data class UiComposerCanvasRect(
 ) {
     val isValid: Boolean get() = width > 1f && height > 1f
 
-    fun contains(screenX: Float, screenY: Float): Boolean =
+    fun contains(
+        screenX: Float,
+        screenY: Float,
+    ): Boolean =
         screenX >= x &&
             screenY >= y &&
             screenX <= x + width &&

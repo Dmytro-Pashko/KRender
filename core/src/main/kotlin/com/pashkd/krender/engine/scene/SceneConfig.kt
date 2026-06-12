@@ -22,13 +22,15 @@ import com.pashkd.krender.engine.window.WindowResolution
  * ignore, or adapt them depending on platform capabilities.
  */
 data class SceneConfig(
-    val viewport: RuntimeViewportConfig = RuntimeViewportConfig(
-        designWidth = 1920f,
-        designHeight = 1080f,
-        scalePolicy = UiScalePolicy.ScaleByHeight,
-    ),
-    val window: RuntimeWindowConfig = RuntimeWindowConfig(
-        resolution = WindowResolution(width = 1920, height = 1080),
-        mode = WindowMode.Windowed,
-    ),
+    val viewport: RuntimeViewportConfig =
+        RuntimeViewportConfig(
+            designWidth = 1920f,
+            designHeight = 1080f,
+            scalePolicy = UiScalePolicy.ScaleByHeight,
+        ),
+    val window: RuntimeWindowConfig =
+        RuntimeWindowConfig(
+            resolution = WindowResolution(width = 1920, height = 1080),
+            mode = WindowMode.Windowed,
+        ),
 )

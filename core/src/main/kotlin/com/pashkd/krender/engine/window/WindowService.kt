@@ -97,11 +97,12 @@ open class InMemoryWindowService(
 
     override fun apply(config: RuntimeWindowConfig): WindowState {
         val resolution = config.resolution.coerceAtLeast()
-        state = WindowState(
-            pixelWidth = resolution.width,
-            pixelHeight = resolution.height,
-            mode = config.mode,
-        )
+        state =
+            WindowState(
+                pixelWidth = resolution.width,
+                pixelHeight = resolution.height,
+                mode = config.mode,
+            )
         return state
     }
 }

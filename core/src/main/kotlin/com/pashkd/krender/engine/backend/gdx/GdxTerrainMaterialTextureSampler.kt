@@ -26,10 +26,14 @@ class GdxTerrainMaterialTextureSampler(
         v: Float,
     ): TerrainLayerColorDescriptor? {
         val pixmap = loadPixmap(material.albedoTexture) ?: return null
-        val x = (u.coerceIn(0f, 1f) * (pixmap.width - 1).coerceAtLeast(0)).roundToInt()
-            .coerceIn(0, pixmap.width - 1)
-        val y = (v.coerceIn(0f, 1f) * (pixmap.height - 1).coerceAtLeast(0)).roundToInt()
-            .coerceIn(0, pixmap.height - 1)
+        val x =
+            (u.coerceIn(0f, 1f) * (pixmap.width - 1).coerceAtLeast(0))
+                .roundToInt()
+                .coerceIn(0, pixmap.width - 1)
+        val y =
+            (v.coerceIn(0f, 1f) * (pixmap.height - 1).coerceAtLeast(0))
+                .roundToInt()
+                .coerceIn(0, pixmap.height - 1)
         val rgba = pixmap.getPixel(x, y)
         return TerrainLayerColorDescriptor(
             r = ((rgba ushr 24) and 0xff) / 255f,
@@ -62,15 +66,16 @@ class GdxTerrainMaterialTextureSampler(
             return null
         }
 
-        val pixmap = try {
-            Pixmap(files.internal(normalizedPath))
-        } catch (error: Exception) {
-            failedPaths += normalizedPath
-            logger?.warn(TAG, error) {
-                "Failed to load terrain runtime texture '$normalizedPath': ${error.message}"
+        val pixmap =
+            try {
+                Pixmap(files.internal(normalizedPath))
+            } catch (error: Exception) {
+                failedPaths += normalizedPath
+                logger?.warn(TAG, error) {
+                    "Failed to load terrain runtime texture '$normalizedPath': ${error.message}"
+                }
+                null
             }
-            null
-        }
         if (pixmap != null) {
             pixmaps[normalizedPath] = pixmap
         }
@@ -81,4 +86,3 @@ class GdxTerrainMaterialTextureSampler(
         private const val TAG = "GdxTerrainMaterialSampler"
     }
 }
-

@@ -13,7 +13,9 @@ const val RUNTIME_TERRAIN_FINAL_SPLAT_TEXTURE_ID = "runtime:terrain:final_splat"
  */
 interface TerrainRuntimePersistence {
     fun existsReadable(filePath: String): Boolean
+
     fun readableSource(filePath: String): String
+
     fun loadDescriptor(filePath: String): TerrainFileDescriptor
 }
 
@@ -67,15 +69,13 @@ class TerrainRuntimeFactory(
     private val logger: Logger,
     private val persistence: TerrainRuntimePersistence,
 ) {
-    fun load(
-        terrainFilePath: String,
-    ): TerrainData {
+    fun load(terrainFilePath: String): TerrainData {
         val candidates = terrainPathCandidates(terrainFilePath)
         logger.info(TAG) {
             "Runtime terrain source candidates requested='$terrainFilePath' " +
                 candidates.joinToString(
                     prefix = "[",
-                    postfix = "]"
+                    postfix = "]",
                 ) { path -> "$path:${persistence.readableSource(path)}" }
         }
         val readablePath = candidates.firstOrNull(persistence::existsReadable)
@@ -163,17 +163,18 @@ class TerrainMaterialBakeService(
                     val localX = terrain.minLocalX + u * terrain.worldWidth
                     // Sample and blend the visible terrain layers at this terrain
                     // position, then convert the float color into packed RGBA8888.
-                    val rgba = toRgba8888(
-                        blendFinalColor(
-                            terrain = terrain,
-                            u = u,
-                            v = v,
-                            localX = localX,
-                            localZ = localZ,
-                            blendMode = blendMode,
-                            textureSampler = textureSampler,
-                        ),
-                    )
+                    val rgba =
+                        toRgba8888(
+                            blendFinalColor(
+                                terrain = terrain,
+                                u = u,
+                                v = v,
+                                localX = localX,
+                                localZ = localZ,
+                                blendMode = blendMode,
+                                textureSampler = textureSampler,
+                            ),
+                        )
                     // Write the packed pixel into the linear output buffer.
                     pixels[offset++] = rgba
                     // Keep a small set of distinct sampled colors for diagnostics so
@@ -238,18 +239,20 @@ class TerrainMaterialBakeService(
     ): TerrainLayerColorDescriptor {
         // Build color/weight pairs first so the selected blend mode can operate on
         // a complete snapshot of all visible layers at this terrain location.
-        val samples = terrain.allLayers()
-            .filter { it.visible }
-            .map { layer ->
-                RuntimeTerrainLayerSample(
-                    // Resolve the layer's material color in texture UV space.
-                    color = sampleLayerTextureColor(layer, u, v, textureSampler),
-                    // Resolve how strongly this layer contributes at the same point
-                    // in terrain-local space.
-                    weight = terrain.sampleLayerWeight(layer.id, localX, localZ),
-                    visible = layer.visible,
-                )
-            }
+        val samples =
+            terrain
+                .allLayers()
+                .filter { it.visible }
+                .map { layer ->
+                    RuntimeTerrainLayerSample(
+                        // Resolve the layer's material color in texture UV space.
+                        color = sampleLayerTextureColor(layer, u, v, textureSampler),
+                        // Resolve how strongly this layer contributes at the same point
+                        // in terrain-local space.
+                        weight = terrain.sampleLayerWeight(layer.id, localX, localZ),
+                        visible = layer.visible,
+                    )
+                }
         // Delegate the actual color compositing to the configured runtime blend
         // mode, falling back to a base terrain color when nothing contributes.
         return blendSamples(samples, blendMode, BaseFallbackColor)
@@ -261,10 +264,11 @@ class TerrainMaterialBakeService(
         baseFallbackColor: TerrainLayerColorDescriptor,
     ): TerrainLayerColorDescriptor =
         when (blendMode) {
-            TerrainLayerBlendMode.WeightedAverage -> weightedAverageColor(
-                samples.filter { it.visible },
-                baseFallbackColor
-            )
+            TerrainLayerBlendMode.WeightedAverage ->
+                weightedAverageColor(
+                    samples.filter { it.visible },
+                    baseFallbackColor,
+                )
 
             TerrainLayerBlendMode.OrderedAlpha -> orderedAlphaColor(samples.filter { it.visible }, baseFallbackColor)
             TerrainLayerBlendMode.MaxWeight -> maxWeightColor(samples.filter { it.visible }, baseFallbackColor)
@@ -300,12 +304,13 @@ class TerrainMaterialBakeService(
         samples.forEach { sample ->
             val weight = sample.weight.coerceIn(0f, 1f)
             if (weight <= 0f) return@forEach
-            result = TerrainLayerColorDescriptor(
-                r = result.r + (sample.color.r - result.r) * weight,
-                g = result.g + (sample.color.g - result.g) * weight,
-                b = result.b + (sample.color.b - result.b) * weight,
-                a = result.a + (sample.color.a - result.a) * weight,
-            )
+            result =
+                TerrainLayerColorDescriptor(
+                    r = result.r + (sample.color.r - result.r) * weight,
+                    g = result.g + (sample.color.g - result.g) * weight,
+                    b = result.b + (sample.color.b - result.b) * weight,
+                    a = result.a + (sample.color.a - result.a) * weight,
+                )
         }
         return result
     }
@@ -410,7 +415,6 @@ private data class RuntimeTerrainLayerSample(
     val visible: Boolean,
 )
 
-
 /**
  * Runtime-only terrain mesh and material synchronization.
  *
@@ -447,7 +451,10 @@ class RuntimeTerrainMeshSystem(
         blendMode = blendMode,
     )
 
-    override fun update(world: SceneWorld, dt: Float) {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
         world.query<TransformComponent, TerrainDataComponent, TerrainRendererComponent>().forEach { entity ->
             val terrain = entity.get<TerrainDataComponent>() ?: return@forEach
             val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
@@ -456,42 +463,48 @@ class RuntimeTerrainMeshSystem(
             }
 
             renderer.meshRevision += 1L
-            val mesh = TerrainMeshBuilder.build(
-                terrain = terrain.data,
-                modelId = renderer.modelId,
-                revision = renderer.meshRevision,
-            )
+            val mesh =
+                TerrainMeshBuilder.build(
+                    terrain = terrain.data,
+                    modelId = renderer.modelId,
+                    revision = renderer.meshRevision,
+                )
             renderer.model = mesh.model
             renderer.vertexCount = mesh.vertexCount
             renderer.triangleCount = mesh.triangleCount
-            val requestedFinalSplatResolution = (renderer.finalSplatResolution.takeIf { it > 0 }
-                ?: finalSplatResolution
-                ?: throw IllegalStateException(
-                    "Runtime terrain final splat resolution is missing for modelId='${renderer.modelId}'.",
-                ))
-                .coerceIn(2, MaxRuntimeTerrainSplatResolution)
+            val requestedFinalSplatResolution =
+                (
+                    renderer.finalSplatResolution.takeIf { it > 0 }
+                        ?: finalSplatResolution
+                        ?: throw IllegalStateException(
+                            "Runtime terrain final splat resolution is missing for modelId='${renderer.modelId}'.",
+                        )
+                    ).coerceIn(2, MaxRuntimeTerrainSplatResolution)
             renderer.finalSplatResolution = requestedFinalSplatResolution
 
             var bakeSucceeded = false
             val textureId = finalSplatTextureIdProvider(entity.id, renderer)
             try {
-                val texture = materialBakeService.bakeFinalSplatTexture(
-                    terrain = terrain.data,
-                    resolution = requestedFinalSplatResolution,
-                    textureId = textureId,
-                    revision = renderer.meshRevision,
-                    blendMode = blendMode,
-                )
+                val texture =
+                    materialBakeService.bakeFinalSplatTexture(
+                        terrain = terrain.data,
+                        resolution = requestedFinalSplatResolution,
+                        textureId = textureId,
+                        revision = renderer.meshRevision,
+                        blendMode = blendMode,
+                    )
                 renderer.replaceFinalSplatTexture(texture)
                 renderer.materialRevision += 1L
-                renderer.material = renderer.material.copy(
-                    baseColor = Color.white(),
-                    diffuseTextureRef = MaterialTextureRef(
-                        id = texture.id,
-                        channel = "baseColor",
-                        uvChannel = 0,
-                    ),
-                )
+                renderer.material =
+                    renderer.material.copy(
+                        baseColor = Color.white(),
+                        diffuseTextureRef =
+                            MaterialTextureRef(
+                                id = texture.id,
+                                channel = "baseColor",
+                                uvChannel = 0,
+                            ),
+                    )
                 bakeSucceeded = true
             } catch (error: Exception) {
                 renderer.replaceFinalSplatTexture(null)
@@ -521,7 +534,7 @@ class RuntimeTerrainMeshSystem(
 }
 
 private fun TerrainData.describeRuntimeTerrain(): String =
-    "size=${width}x${height} spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} " +
+    "size=${width}x$height spacing=${"%.2f".format(vertexSpacing)} layers=${allLayers().size} " +
         "[${allLayers().joinToString { layer -> "${layer.id}:${layer.name}:${layer.materialId ?: "<none>"}" }}]"
 
 private fun terrainPathCandidates(path: String): List<String> {
@@ -535,14 +548,15 @@ private fun terrainPathCandidates(path: String): List<String> {
 }
 
 private fun TerrainData.describeLayerWeights(): String =
-    "weights=[" + allLayers().joinToString { layer ->
-        val weights = getLayerWeightMap(layer.id)
-        if (weights == null || weights.isEmpty()) {
-            "${layer.id}:empty"
-        } else {
-            val min = weights.minOrNull() ?: 0f
-            val max = weights.maxOrNull() ?: 0f
-            val avg = weights.average().toFloat()
-            "${layer.id}:min=${"%.3f".format(min)} max=${"%.3f".format(max)} avg=${"%.3f".format(avg)}"
-        }
-    } + "]"
+    "weights=[" +
+        allLayers().joinToString { layer ->
+            val weights = getLayerWeightMap(layer.id)
+            if (weights == null || weights.isEmpty()) {
+                "${layer.id}:empty"
+            } else {
+                val min = weights.minOrNull() ?: 0f
+                val max = weights.maxOrNull() ?: 0f
+                val avg = weights.average().toFloat()
+                "${layer.id}:min=${"%.3f".format(min)} max=${"%.3f".format(max)} avg=${"%.3f".format(avg)}"
+            }
+        } + "]"

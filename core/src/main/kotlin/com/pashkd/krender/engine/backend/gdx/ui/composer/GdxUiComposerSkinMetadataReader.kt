@@ -37,8 +37,7 @@ class GdxUiComposerSkinMetadataReader(
      * backend helper. Unavailable or broken Skin paths return a snapshot with
      * [UiComposerSkinMetadata.loadError] filled instead of crashing UiComposer.
      */
-    fun read(skinPath: String): UiComposerSkinMetadata =
-        metadataCache[skinPath] ?: loadMetadata(skinPath)
+    fun read(skinPath: String): UiComposerSkinMetadata = metadataCache[skinPath] ?: loadMetadata(skinPath)
 
     /**
      * Disposes cached LibGDX Skin instances retained for repeated editor inspection.
@@ -63,9 +62,11 @@ class GdxUiComposerSkinMetadataReader(
                 textButtonStyles = skin.namesFor(TextButton.TextButtonStyle::class.java),
                 progressBarStyles = skin.namesFor(ProgressBar.ProgressBarStyle::class.java),
                 drawables = drawableNames,
-                drawablePreviewHandles = drawableNames.mapNotNull { drawableName ->
-                    skin.previewHandleForRegion(drawableName)?.let { handle -> drawableName to handle }
-                }.toMap(),
+                drawablePreviewHandles =
+                    drawableNames
+                        .mapNotNull { drawableName ->
+                            skin.previewHandleForRegion(drawableName)?.let { handle -> drawableName to handle }
+                        }.toMap(),
             ).also { metadata ->
                 metadataCache[skinPath] = metadata
                 logger.debug(TAG) {
