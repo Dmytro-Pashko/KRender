@@ -1,14 +1,6 @@
 package com.pashkd.krender.engine.animationviewer
 
-import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.EntityId
-import com.pashkd.krender.engine.api.ModelAsset
-import com.pashkd.krender.engine.api.ModelAssetInfo
-import com.pashkd.krender.engine.api.ModelBoneInfo
-import com.pashkd.krender.engine.api.ModelBonePose
-import com.pashkd.krender.engine.api.ModelSkeletonInfo
-import com.pashkd.krender.engine.api.Vec2
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraState
 import com.pashkd.krender.engine.editor.viewport.EditorViewportState
 

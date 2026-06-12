@@ -36,14 +36,17 @@ data class Vec3(
 
     /** Returns the component-wise sum of two vectors. */
     operator fun plus(other: Vec3): Vec3 = Vec3(x + other.x, y + other.y, z + other.z)
+
     /** Returns the component-wise difference of two vectors. */
     operator fun minus(other: Vec3): Vec3 = Vec3(x - other.x, y - other.y, z - other.z)
+
     /** Returns this vector scaled by a scalar factor. */
     operator fun times(scale: Float): Vec3 = Vec3(x * scale, y * scale, z * scale)
 
     companion object {
         /** Returns a zero vector. */
         fun zero(): Vec3 = Vec3()
+
         /** Returns a vector with every component set to one. */
         fun one(): Vec3 = Vec3(1f, 1f, 1f)
     }

@@ -8,37 +8,10 @@ import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.Material
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.terrain.FlatTerrainGenerator
-import com.pashkd.krender.engine.terrain.FractalNoiseGenerator
-import com.pashkd.krender.engine.terrain.PerlinNoiseGenerator
-import com.pashkd.krender.engine.terrain.SimplexNoiseGenerator
-import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
-import com.pashkd.krender.engine.terrain.TerrainCameraControllerSystem
-import com.pashkd.krender.engine.terrain.TerrainDataComponent
-import com.pashkd.krender.engine.terrain.TerrainData
-import com.pashkd.krender.engine.terrain.TerrainEditorBrushPanel
-import com.pashkd.krender.engine.terrain.TerrainEditorControlsPanel
-import com.pashkd.krender.engine.terrain.TerrainEditorLayersPanel
-import com.pashkd.krender.engine.terrain.TerrainEditorStatisticsPanel
-import com.pashkd.krender.engine.terrain.TerrainEditorTerrainPanel
-import com.pashkd.krender.engine.terrain.TerrainEditorUiLayoutDefaults
-import com.pashkd.krender.engine.terrain.TerrainGenerator
-import com.pashkd.krender.engine.terrain.TerrainGeneratorOption
-import com.pashkd.krender.engine.terrain.TerrainMaterialOption
-import com.pashkd.krender.engine.terrain.TerrainEditorState
-import com.pashkd.krender.engine.terrain.TerrainEditorSystem
-import com.pashkd.krender.engine.terrain.TerrainEditorMeshSyncSystem
-import com.pashkd.krender.engine.terrain.TerrainPersistence
-import com.pashkd.krender.engine.terrain.TerrainRenderSystem
-import com.pashkd.krender.engine.terrain.TerrainRendererComponent
-import com.pashkd.krender.engine.terrain.terrainMaterialPreviewExportPath
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.LogsPanel
-import com.pashkd.krender.engine.ui.editor.UiSystem
+import com.pashkd.krender.engine.terrain.*
+import com.pashkd.krender.engine.ui.editor.*
 
 /**
  * Scene that hosts the terrain editor viewport, terrain entity, and editing systems.
@@ -70,7 +43,11 @@ class TerrainEditorScene(
         }
         val initialTerrain = loadInitialTerrainData()
         engine.logger.info(TAG) {
-            "Showing terrain editor path='$terrainFilePath' resolution=${initialTerrain.data.width} spacing=${"%.2f".format(initialTerrain.data.vertexSpacing)} " +
+            "Showing terrain editor path='$terrainFilePath' resolution=${initialTerrain.data.width} spacing=${
+                "%.2f".format(
+                    initialTerrain.data.vertexSpacing
+                )
+            } " +
                 "generators=${terrainGenerators.joinToString { it.id }} materials=${terrainMaterialLibrary.all().size}"
         }
         val layoutConfig = ImGuiLayoutConfigLoader(
@@ -174,7 +151,14 @@ class TerrainEditorScene(
         panelEventLogger: ImGuiWindowEventLogger,
     ): UiSystem =
         UiSystem(engine.ui).also { uiSystem ->
-            uiSystem.addPanel(TerrainEditorStatisticsPanel(engine.runtimeStats, engine.profiler, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(
+                TerrainEditorStatisticsPanel(
+                    engine.runtimeStats,
+                    engine.profiler,
+                    layoutConfig,
+                    panelEventLogger
+                )
+            )
             uiSystem.addPanel(TerrainEditorTerrainPanel(editorState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(TerrainEditorBrushPanel(editorState, layoutConfig, panelEventLogger))
             uiSystem.addPanel(TerrainEditorLayersPanel(editorState, layoutConfig, panelEventLogger))

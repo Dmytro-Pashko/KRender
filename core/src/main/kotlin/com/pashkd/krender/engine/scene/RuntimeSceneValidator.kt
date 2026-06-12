@@ -163,8 +163,9 @@ object RuntimeSceneValidator {
                         entityId = activeTerrain.id,
                     )
                 }
-                val bakedTextureResolution = terrainComponent.properties["bakedTextureResolution"]?.trim()?.toIntOrNull()
-                    ?: DefaultTerrainBakeResolution
+                val bakedTextureResolution =
+                    terrainComponent.properties["bakedTextureResolution"]?.trim()?.toIntOrNull()
+                        ?: DefaultTerrainBakeResolution
                 if (bakedTextureResolution !in 2..8192) {
                     issues += SceneValidationIssue(
                         severity = SceneValidationSeverity.Error,

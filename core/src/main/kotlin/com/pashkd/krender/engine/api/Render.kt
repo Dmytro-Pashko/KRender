@@ -329,8 +329,10 @@ data class RenderContext(
 interface Renderer {
     /** Renders the supplied frame context. */
     fun render(context: RenderContext)
+
     /** Updates backend state for a new surface size. */
     fun resize(width: Int, height: Int)
+
     /** Releases renderer resources. */
     fun dispose()
 }

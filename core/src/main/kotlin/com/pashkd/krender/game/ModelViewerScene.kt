@@ -1,43 +1,13 @@
 package com.pashkd.krender.game
 
-import com.pashkd.krender.engine.api.AssetPack
-import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.AssetService
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.ModelAsset
-import com.pashkd.krender.engine.api.Scene
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
-import com.pashkd.krender.engine.modelviewer.ModelViewerBoundingBoxSystem
-import com.pashkd.krender.engine.modelviewer.DEFAULT_PBR_SKYBOX_TEXTURE
-import com.pashkd.krender.engine.modelviewer.ModelViewerInfoPanel
-import com.pashkd.krender.engine.modelviewer.ModelViewerLoadingPanel
-import com.pashkd.krender.engine.modelviewer.ModelViewerMaterialsPanel
-import com.pashkd.krender.engine.modelviewer.ModelViewerMeshPartsPanel
-import com.pashkd.krender.engine.modelviewer.ModelViewerModelRenderSystem
-import com.pashkd.krender.engine.modelviewer.ModelViewerOperations
-import com.pashkd.krender.engine.modelviewer.ModelViewerState
-import com.pashkd.krender.engine.modelviewer.ModelViewerSystem
-import com.pashkd.krender.engine.modelviewer.ModelViewerTextureChannelsPanel
-import com.pashkd.krender.engine.modelviewer.ModelViewerToolbarPanel
-import com.pashkd.krender.engine.modelviewer.ModelViewerUiLayoutDefaults
-import com.pashkd.krender.engine.modelviewer.ModelViewerViewportGuideSystem
-import com.pashkd.krender.engine.modelviewer.ModelViewerViewportPanel
-import com.pashkd.krender.engine.modelviewer.UV_CHECKER_TEXTURE_OPTIONS
-import com.pashkd.krender.engine.render3d.LightComponent
-import com.pashkd.krender.engine.render3d.LightType
-import com.pashkd.krender.engine.render3d.Material
-import com.pashkd.krender.engine.render3d.ModelComponent
-import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.modelviewer.*
+import com.pashkd.krender.engine.render3d.*
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.LogsPanel
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.UiSystem
+import com.pashkd.krender.engine.ui.editor.*
 
 /**
  * Builds the single-model inspection scene, runtime systems, and ImGui panels.
@@ -53,9 +23,10 @@ class ModelViewerScene(
 
     override val requiredAssets: List<AssetPack> = listOf(
         object : AssetPack {
-            override val assets = listOf(model, AssetRef.texture(DEFAULT_PBR_SKYBOX_TEXTURE)) + UV_CHECKER_TEXTURE_OPTIONS.map { option ->
-                AssetRef.texture(option.texturePath)
-            }
+            override val assets =
+                listOf(model, AssetRef.texture(DEFAULT_PBR_SKYBOX_TEXTURE)) + UV_CHECKER_TEXTURE_OPTIONS.map { option ->
+                    AssetRef.texture(option.texturePath)
+                }
         },
     )
 
@@ -136,7 +107,10 @@ class ModelViewerScene(
         addSystem("ModelViewerViewportGuideSystem", ModelViewerViewportGuideSystem(viewerState))
         addSystem("ModelViewerSystem", createModelViewerSystem())
         addSystem("UiSystem", createUiSystem(layoutConfig, panelEventLogger))
-        addSystem("EditorViewportCameraSystem", EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport))
+        addSystem(
+            "EditorViewportCameraSystem",
+            EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport)
+        )
         addSystem("ModelViewerBoundingBoxSystem", ModelViewerBoundingBoxSystem(viewerState, engine.assets))
         addSystem("ModelViewerModelRenderSystem", ModelViewerModelRenderSystem(viewerState))
     }
@@ -220,7 +194,11 @@ class ModelViewerScene(
             ),
         )
         engine.logger.debug(TAG) {
-            "ModelViewer model entity created id=${modelEntity.id} model='${model.path}' scale=${"%.3f".format(modelScale)}"
+            "ModelViewer model entity created id=${modelEntity.id} model='${model.path}' scale=${
+                "%.3f".format(
+                    modelScale
+                )
+            }"
         }
     }
 
@@ -354,7 +332,7 @@ class ModelViewerScene(
             engine.logger.debug(TAG) { "ModelViewer UI panels registered count=8" }
         }
 
-    private fun addSystem(name: String, system: com.pashkd.krender.engine.api.System) {
+    private fun addSystem(name: String, system: System) {
         world.systems.add(system)
         engine.logger.debug(TAG) { "ModelViewer system added name='$name'" }
     }
@@ -375,7 +353,7 @@ class ModelViewerScene(
         engine.logger.debug(TAG) { "ModelViewer UI panel registered name='$name'" }
     }
 
-    private fun formatVec3(value: com.pashkd.krender.engine.api.Vec3): String =
+    private fun formatVec3(value: Vec3): String =
         "%.3f,%.3f,%.3f".format(value.x, value.y, value.z)
 
     companion object {

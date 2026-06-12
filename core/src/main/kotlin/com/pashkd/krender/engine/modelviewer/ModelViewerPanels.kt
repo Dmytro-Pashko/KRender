@@ -1,25 +1,12 @@
 package com.pashkd.krender.engine.modelviewer
 
-import com.pashkd.krender.engine.api.AssetService
-import com.pashkd.krender.engine.api.DebugCullingMode
-import com.pashkd.krender.engine.api.MaterialDebugMode
-import com.pashkd.krender.engine.api.ModelAssetInfo
-import com.pashkd.krender.engine.api.ModelMaterialInfo
-import com.pashkd.krender.engine.api.ModelMeshPartInfo
-import com.pashkd.krender.engine.api.ModelTextureSlotInfo
-import com.pashkd.krender.engine.api.Vec2
-import com.pashkd.krender.engine.api.Vec3
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.UiService
-import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
-import glm_.vec2.Vec2 as ImVec2
+import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.SliderFlag
 import imgui.api.slider
 import imgui.dsl
+import glm_.vec2.Vec2 as ImVec2
 
 /**
  * Top-level ModelViewer action/status panel.
@@ -151,7 +138,11 @@ class ModelViewerViewportPanel(
         ImGui.text("Renderer")
         if (ImGui.beginCombo("Mode##model_viewer_renderer_mode", rendererModeLabel(state.rendererMode))) {
             ModelViewerRendererMode.entries.forEach { mode ->
-                if (ImGui.selectable("${rendererModeLabel(mode)}##model_viewer_renderer_$mode", state.rendererMode == mode)) {
+                if (ImGui.selectable(
+                        "${rendererModeLabel(mode)}##model_viewer_renderer_$mode",
+                        state.rendererMode == mode
+                    )
+                ) {
                     state.rendererMode = mode
                 }
             }
@@ -254,7 +245,17 @@ class ModelViewerInfoPanel(
             val pivotOffset = Vec3(-center.x, -center.y, -center.z)
             textLine("Min: ${formatPosition(min)}")
             textLine("Max: ${formatPosition(max)}")
-            textLine("Size: ${info.size?.let(::formatSize) ?: formatSize(Vec3(max.x - min.x, max.y - min.y, max.z - min.z))}")
+            textLine(
+                "Size: ${
+                    info.size?.let(::formatSize) ?: formatSize(
+                        Vec3(
+                            max.x - min.x,
+                            max.y - min.y,
+                            max.z - min.z
+                        )
+                    )
+                }"
+            )
             textLine("Center: ${formatPosition(center)}")
             textLine("Pivot offset from center: ${formatPosition(pivotOffset)}")
         } else {
@@ -326,25 +327,33 @@ class ModelViewerMeshPartsPanel(
         if (state.isolateSelectedMeshPart && state.selectedMeshPartIndex == null) {
             ImGui.text("Select a mesh part to isolate.")
         }
-        ImGui.checkbox("Filter list by selected material##model_viewer_filter_mesh_parts_material", state::filterMeshPartsBySelectedMaterial)
+        ImGui.checkbox(
+            "Filter list by selected material##model_viewer_filter_mesh_parts_material",
+            state::filterMeshPartsBySelectedMaterial
+        )
         if (state.filterMeshPartsBySelectedMaterial && state.selectedMaterialIndex == null) {
             ImGui.text("Select a material to filter mesh parts.")
         }
 
-        val visibleMeshParts = if (state.filterMeshPartsBySelectedMaterial && state.selectedMaterialIndex != null && info != null) {
-            val selectedMaterial = info.materials.getOrNull(state.selectedMaterialIndex ?: -1)
-            if (selectedMaterial != null) {
-                meshParts.filter { part -> meshPartUsesMaterial(part, selectedMaterial) }
+        val visibleMeshParts =
+            if (state.filterMeshPartsBySelectedMaterial && state.selectedMaterialIndex != null && info != null) {
+                val selectedMaterial = info.materials.getOrNull(state.selectedMaterialIndex ?: -1)
+                if (selectedMaterial != null) {
+                    meshParts.filter { part -> meshPartUsesMaterial(part, selectedMaterial) }
+                } else {
+                    meshParts
+                }
             } else {
                 meshParts
             }
-        } else {
-            meshParts
-        }
 
         visibleMeshParts.forEach { part ->
             val label = "#${part.index} ${part.partId ?: part.meshId ?: part.nodeName ?: "Mesh Part"}"
-            if (ImGui.selectable("$label##model_viewer_mesh_part_${part.index}", state.selectedMeshPartIndex == part.index)) {
+            if (ImGui.selectable(
+                    "$label##model_viewer_mesh_part_${part.index}",
+                    state.selectedMeshPartIndex == part.index
+                )
+            ) {
                 state.selectedMeshPartIndex = part.index
                 if (info != null) {
                     matchingMaterialIndexForPart(part, info.materials)?.let { materialIndex ->
@@ -401,7 +410,11 @@ class ModelViewerMaterialsPanel(
 
         materials.forEach { material ->
             val label = "#${material.index} ${material.id ?: "Material"}"
-            if (ImGui.selectable("$label##model_viewer_material_${material.index}", state.selectedMaterialIndex == material.index)) {
+            if (ImGui.selectable(
+                    "$label##model_viewer_material_${material.index}",
+                    state.selectedMaterialIndex == material.index
+                )
+            ) {
                 state.selectedMaterialIndex = material.index
             }
         }
@@ -421,10 +434,24 @@ class ModelViewerMaterialsPanel(
         ImGui.text("Selected material")
         textLine("Index: ${material.index}")
         textLine("Id: ${material.id ?: "unknown"}")
-        textLine("Base color: ${material.baseColor?.let { color -> "%.2f, %.2f, %.2f, %.2f".format(color.r, color.g, color.b, color.a) } ?: "unknown"}")
+        textLine(
+            "Base color: ${
+                material.baseColor?.let { color ->
+                    "%.2f, %.2f, %.2f, %.2f".format(
+                        color.r,
+                        color.g,
+                        color.b,
+                        color.a
+                    )
+                } ?: "unknown"
+            }")
         textLine("Opacity: ${material.opacity?.let { "%.2f".format(it) } ?: "unknown"}")
         textLine("Usage count: ${usedBy.size}")
-        textLine("Used by mesh parts: ${usedBy.ifEmpty { emptyList() }.joinToString(", ") { part -> "#${part.index}" }.ifBlank { "none" }}")
+        textLine(
+            "Used by mesh parts: ${
+                usedBy.ifEmpty { emptyList() }.joinToString(", ") { part -> "#${part.index}" }.ifBlank { "none" }
+            }"
+        )
         ImGui.separator()
         ImGui.text("Texture slots")
         if (material.textureSlots.isEmpty()) {
@@ -459,7 +486,8 @@ class ModelViewerTextureChannelsPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        val expanded = beginModelViewerPanel(ModelViewerPanelIds.TextureChannels, layoutConfig, layoutTracker, eventLogger)
+        val expanded =
+            beginModelViewerPanel(ModelViewerPanelIds.TextureChannels, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -500,7 +528,11 @@ class ModelViewerTextureChannelsPanel(
         channels.forEach { channel ->
             val count = slots.count { slot -> slot.channel == channel }
             val selected = state.selectedTextureChannel == channel
-            if (ImGui.selectable("${textureChannelLabel(channel)}: $count slots##model_viewer_texture_channel_$channel", selected)) {
+            if (ImGui.selectable(
+                    "${textureChannelLabel(channel)}: $count slots##model_viewer_texture_channel_$channel",
+                    selected
+                )
+            ) {
                 state.selectedTextureChannel = channel
             }
         }
@@ -560,7 +592,11 @@ class ModelViewerTextureChannelsPanel(
     private fun drawDebugCullingCombo() {
         if (!ImGui.beginCombo("Culling##model_viewer_debug_culling", debugCullingLabel(state.debugCullingMode))) return
         DebugCullingMode.entries.forEach { mode ->
-            if (ImGui.selectable("${debugCullingLabel(mode)}##model_viewer_debug_culling_$mode", state.debugCullingMode == mode)) {
+            if (ImGui.selectable(
+                    "${debugCullingLabel(mode)}##model_viewer_debug_culling_$mode",
+                    state.debugCullingMode == mode
+                )
+            ) {
                 state.debugCullingMode = mode
             }
         }
@@ -585,9 +621,17 @@ class ModelViewerTextureChannelsPanel(
             state.selectedTextureChannel = channels.first()
         }
         val current = state.selectedTextureChannel ?: channels.first()
-        if (!ImGui.beginCombo("Texture Channel##model_viewer_debug_texture_channel", textureChannelLabel(current))) return
+        if (!ImGui.beginCombo(
+                "Texture Channel##model_viewer_debug_texture_channel",
+                textureChannelLabel(current)
+            )
+        ) return
         channels.forEach { channel ->
-            if (ImGui.selectable("${textureChannelLabel(channel)}##model_viewer_debug_channel_$channel", current == channel)) {
+            if (ImGui.selectable(
+                    "${textureChannelLabel(channel)}##model_viewer_debug_channel_$channel",
+                    current == channel
+                )
+            ) {
                 state.selectedTextureChannel = channel
             }
         }
@@ -610,7 +654,7 @@ class ModelViewerTextureChannelsPanel(
         if (info != null && info.uvChannels.isNotEmpty() && uvLabel !in info.uvChannels) {
             textLine("Warning: model does not report $uvLabel.")
         }
-        val checkerRef = com.pashkd.krender.engine.api.AssetRef.texture(state.uvCheckerTexturePath)
+        val checkerRef = AssetRef.texture(state.uvCheckerTexturePath)
         if (!assets.isLoaded(checkerRef)) {
             textLine("Warning: checker texture is missing or not loaded.")
         }
@@ -625,7 +669,11 @@ class ModelViewerTextureChannelsPanel(
         }
         if (!ImGui.beginCombo("Checker Texture##model_viewer_uv_checker_texture", current.resolution.toString())) return
         UV_CHECKER_TEXTURE_OPTIONS.forEach { option ->
-            if (ImGui.selectable("${option.resolution}##model_viewer_uv_checker_texture_${option.resolution}", current == option)) {
+            if (ImGui.selectable(
+                    "${option.resolution}##model_viewer_uv_checker_texture_${option.resolution}",
+                    current == option
+                )
+            ) {
                 state.uvCheckerTexturePath = option.texturePath
             }
         }
@@ -652,7 +700,11 @@ class ModelViewerTextureChannelsPanel(
         if (!ImGui.beginCombo("UV Channel##model_viewer_uv_checker_channel", currentLabel)) return
         channels.forEach { channel ->
             val label = "UV$channel"
-            if (ImGui.selectable("$label##model_viewer_uv_checker_channel_$channel", state.uvCheckerUvChannel == channel)) {
+            if (ImGui.selectable(
+                    "$label##model_viewer_uv_checker_channel_$channel",
+                    state.uvCheckerUvChannel == channel
+                )
+            ) {
                 state.uvCheckerUvChannel = channel
             }
         }
@@ -830,6 +882,7 @@ private fun debugModeAvailable(info: ModelAssetInfo?, mode: MaterialDebugMode): 
     mode == MaterialDebugMode.UvChecker -> info?.uvChannels?.isNotEmpty() != false
     isModelViewerTextureDebugMode(mode) ->
         hasModelViewerTextureChannel(info, mode, selectedMaterialIndex = null)
+
     else -> true
 }
 

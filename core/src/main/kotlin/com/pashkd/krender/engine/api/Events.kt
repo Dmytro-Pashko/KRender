@@ -16,6 +16,7 @@ class EventBus {
     /** Registers a handler for the given event type. */
     fun <T : Event> subscribe(type: KClass<T>, handler: (T) -> Unit): Subscription {
         val handlers = subscribers.getOrPut(type) { mutableListOf() }
+
         @Suppress("UNCHECKED_CAST")
         val wrapped: (Event) -> Unit = { event -> handler(event as T) }
         handlers += wrapped

@@ -1,10 +1,6 @@
 package com.pashkd.krender.engine.woolboy
 
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.InputService
-import com.pashkd.krender.engine.api.Key
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.System
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiActionHandler
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiLayers
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiScreen
@@ -70,6 +66,7 @@ class WoolboyUiControllerSystem(
             "woolboy.settings" -> logger.info(TAG) {
                 "Settings action requested, not implemented yet."
             }
+
             "woolboy.exit" -> requestExit()
             else -> logger.warn(TAG) { "Unknown Woolboy UI action '$action'" }
         }

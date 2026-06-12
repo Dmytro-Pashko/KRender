@@ -1,149 +1,60 @@
 package com.pashkd.krender.engine.backend.gdx
 
-import com.badlogic.gdx.ApplicationAdapter
-import com.badlogic.gdx.Application.ApplicationType
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input
-import com.badlogic.gdx.InputProcessor
-import com.badlogic.gdx.assets.AssetManager
-import com.badlogic.gdx.graphics.Camera
-import com.badlogic.gdx.graphics.Cubemap
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.Mesh
-import com.badlogic.gdx.graphics.PerspectiveCamera
-import com.badlogic.gdx.graphics.Pixmap
-import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.VertexAttribute
-import com.badlogic.gdx.graphics.VertexAttributes
-import com.badlogic.gdx.graphics.g3d.Environment
-import com.badlogic.gdx.graphics.g3d.Model
-import com.badlogic.gdx.graphics.g3d.ModelBatch
-import com.badlogic.gdx.graphics.g3d.ModelInstance
-import com.badlogic.gdx.graphics.g3d.Renderable
-import com.badlogic.gdx.graphics.g3d.model.Animation
-import com.badlogic.gdx.graphics.g3d.Attribute
+import com.badlogic.gdx.graphics.*
+import com.badlogic.gdx.graphics.g3d.*
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.environment.PointLight
-import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader
+import com.badlogic.gdx.graphics.g3d.model.Animation
 import com.badlogic.gdx.graphics.g3d.model.MeshPart
 import com.badlogic.gdx.graphics.g3d.model.Node
 import com.badlogic.gdx.graphics.g3d.model.NodePart
-import com.badlogic.gdx.graphics.g3d.loader.ObjLoader
 import com.badlogic.gdx.graphics.g3d.shaders.DefaultShader
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController
 import com.badlogic.gdx.graphics.g3d.utils.DefaultShaderProvider
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
-import com.badlogic.gdx.graphics.glutils.FileTextureData
 import com.badlogic.gdx.graphics.glutils.PixmapTextureData
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector3
-import com.badlogic.gdx.math.collision.BoundingBox
 import com.badlogic.gdx.utils.Array
-import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.Pool
-import com.badlogic.gdx.utils.UBJsonReader
-import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.AnimationPlaybackView
 import com.pashkd.krender.engine.api.ApplyEnvironment
 import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.AssetService
-import com.pashkd.krender.engine.api.Axis
-import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawLine
 import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.DrawWorldAxes
 import com.pashkd.krender.engine.api.DrawWorldGrid
-import com.pashkd.krender.engine.api.EngineLogService
-import com.pashkd.krender.engine.api.EngineBackend
-import com.pashkd.krender.engine.api.EngineRuntime
-import com.pashkd.krender.engine.api.FrameProfilerService
-import com.pashkd.krender.engine.api.FrameRuntimeStatsService
-import com.pashkd.krender.engine.api.InputService
-import com.pashkd.krender.engine.api.InputSnapshot
-import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.MainThreadTaskQueue
 import com.pashkd.krender.engine.api.MaterialDebugMode
-import com.pashkd.krender.engine.api.ModelAsset
-import com.pashkd.krender.engine.api.ModelAnimationInfo
-import com.pashkd.krender.engine.api.ModelAssetBounds
-import com.pashkd.krender.engine.api.ModelAssetInfo
-import com.pashkd.krender.engine.api.ModelBoneInfo
-import com.pashkd.krender.engine.api.ModelBonePose
-import com.pashkd.krender.engine.api.ModelMaterialInfo
-import com.pashkd.krender.engine.api.ModelMeshPartInfo
-import com.pashkd.krender.engine.api.ModelSkeletonInfo
-import com.pashkd.krender.engine.api.ModelTextureSlotInfo
-import com.pashkd.krender.engine.api.MouseButton
-import com.pashkd.krender.engine.api.PointerPhase
-import com.pashkd.krender.engine.api.PointerState
 import com.pashkd.krender.engine.api.RenderContext
 import com.pashkd.krender.engine.api.Renderer
-import com.pashkd.krender.engine.api.RuntimeTextureData
 import com.pashkd.krender.engine.api.RuntimeTextureFilter
 import com.pashkd.krender.engine.api.RuntimeTextureWrap
-import com.pashkd.krender.engine.api.Scene
-import com.pashkd.krender.engine.api.ShaderAsset
-import com.pashkd.krender.engine.api.TaskService
-import com.pashkd.krender.engine.api.TerrainAsset
-import com.pashkd.krender.engine.api.TextureAsset
 import com.pashkd.krender.engine.api.TextureDebugComponent
-import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.ProfilerService
-import com.pashkd.krender.engine.api.RuntimeStatsService
-import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
-import com.pashkd.krender.engine.backend.gdx.scene.GdxSceneFileService
-import com.pashkd.krender.engine.backend.gdx.ui.runtime.GdxRuntimeUiBackend
-import com.pashkd.krender.engine.backend.gdx.ui.runtime.WoolboyRuntimeUiFactory
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.ui.runtime.RuntimeUiBackend
 import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
-import com.pashkd.krender.engine.scene.SceneFileService
-import com.pashkd.krender.engine.scene.EditorToolLauncher
-import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
-import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
-import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
-import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
-import com.pashkd.krender.engine.ui.editor.NoOpUiService
-import com.pashkd.krender.engine.ui.editor.UiCaptureState
-import com.pashkd.krender.engine.ui.editor.UiService
-import com.pashkd.krender.engine.window.RuntimeWindowConfig
-import com.pashkd.krender.engine.window.WindowMode
-import com.pashkd.krender.engine.window.WindowService
-import com.pashkd.krender.engine.window.WindowState
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import net.mgsx.gltf.loaders.glb.GLBAssetLoader
-import net.mgsx.gltf.loaders.gltf.GLTFAssetLoader
+import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute
 import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
-import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute
-import net.mgsx.gltf.scene3d.scene.Scene as GltfScene
-import net.mgsx.gltf.scene3d.scene.SceneAsset
-import net.mgsx.gltf.scene3d.scene.SceneManager as GltfSceneManager
 import net.mgsx.gltf.scene3d.scene.SceneSkybox
 import net.mgsx.gltf.scene3d.shaders.PBRShaderProvider
-import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute
-import net.mgsx.gltf.scene3d.utils.MaterialConverter
 import net.mgsx.gltf.scene3d.utils.IBLBuilder
-import kotlin.coroutines.CoroutineContext
+import net.mgsx.gltf.scene3d.utils.MaterialConverter
+import java.lang.System
 import kotlin.math.cos
 import kotlin.math.sin
+import net.mgsx.gltf.scene3d.scene.Scene as GltfScene
+import net.mgsx.gltf.scene3d.scene.SceneManager as GltfSceneManager
 
 /**
  * LibGDX renderer that draws static models, dynamic meshes, wireframes, and lines.
@@ -152,7 +63,8 @@ class GdxRenderer3D(
     private val assets: GdxAssetService,
     private val logger: Logger,
 ) : Renderer {
-    private val maxShaderBones = systemInt("krender.gl.maxBones", default = DefaultMaxShaderBones).coerceAtLeast(MinShaderBones)
+    private val maxShaderBones =
+        systemInt("krender.gl.maxBones", default = DefaultMaxShaderBones).coerceAtLeast(MinShaderBones)
     private val modelBatch = ModelBatch(
         DefaultShaderProvider(
             DefaultShader.Config().apply {
@@ -164,6 +76,7 @@ class GdxRenderer3D(
     private val modelViewerDebugRenderer = GdxModelViewerDebugRenderer(assets, logger)
     private val pbrPreviewRenderer = GdxGltfPbrPreviewRenderer(assets, logger)
     private val skyboxRenderer = GdxSkyboxRenderer(assets, logger)
+
     // Per-entity render caches used only by the renderer. These stay separate from
     // GdxAssetService pose-sampling caches so animation preview and skeleton sampling do
     // not leak state across different entities or into asset-level debug sampling.
@@ -229,6 +142,7 @@ class GdxRenderer3D(
                         }
                     }
                 }
+
                 is DrawDynamicModel -> {
                     if (command.material.wireframe) {
                         wireframeDynamicCommands += command
@@ -239,6 +153,7 @@ class GdxRenderer3D(
                         }
                     }
                 }
+
                 else -> Unit
             }
         }
@@ -413,7 +328,7 @@ class GdxRenderer3D(
 
     /** Applies engine material color and optional diffuse texture to a LibGDX material. */
     private fun applyMaterialAttributes(
-        gdxMaterial: com.badlogic.gdx.graphics.g3d.Material,
+        gdxMaterial: Material,
         material: com.pashkd.krender.engine.render3d.Material,
     ) {
         gdxMaterial.set(
@@ -547,7 +462,7 @@ class GdxRenderer3D(
         cacheKey: ModelCacheKey,
         preview: AnimationPlaybackView?,
     ) {
-        if (instance.animations.isEmpty()) return
+        if (instance.animations.isEmpty) return
         val controller = animationControllers.getOrPut(cacheKey) { AnimationController(instance) }
         applyAnimationPreview(instance, controller, preview)
     }
@@ -561,7 +476,7 @@ class GdxRenderer3D(
         controller: AnimationController?,
         preview: AnimationPlaybackView?,
     ) {
-        if (controller == null || instance.animations.isEmpty()) return
+        if (controller == null || instance.animations.isEmpty) return
         val animationName = preview?.animationName
         if (animationName.isNullOrBlank()) {
             controller.setAnimation(null as String?)
@@ -666,7 +581,7 @@ class GdxRenderer3D(
             mesh.setIndices(meshData.indices.map(Int::toShort).toShortArray())
         }
 
-        val material = com.badlogic.gdx.graphics.g3d.Material(
+        val material = Material(
             ColorAttribute.createDiffuse(1f, 1f, 1f, 1f),
         )
         val partSize = if (canUseIndices) meshData.indices.size else vertexBuffer.size / vertexStride
@@ -801,8 +716,24 @@ class GdxRenderer3D(
         }
 
         fun appendEdge(localA: Int, localB: Int) {
-            appendWireframeVertex(vertices, vertexData, vertexStride, positionOffset, vertexIndex(localA), transform, color)
-            appendWireframeVertex(vertices, vertexData, vertexStride, positionOffset, vertexIndex(localB), transform, color)
+            appendWireframeVertex(
+                vertices,
+                vertexData,
+                vertexStride,
+                positionOffset,
+                vertexIndex(localA),
+                transform,
+                color
+            )
+            appendWireframeVertex(
+                vertices,
+                vertexData,
+                vertexStride,
+                positionOffset,
+                vertexIndex(localB),
+                transform,
+                color
+            )
         }
 
         when (meshPart.primitiveType) {
@@ -866,9 +797,12 @@ class GdxRenderer3D(
 
     /** Builds a LibGDX perspective camera from the active scene camera components. */
     private fun cameraFor(context: RenderContext): PerspectiveCamera {
-        val activeCameraEntity = context.scene.world.query<TransformComponent, PerspectiveCameraComponent, ActiveCameraComponent>()
-            .firstOrNull()
-        val cameraEntity = activeCameraEntity ?: context.scene.world.query<TransformComponent, PerspectiveCameraComponent>().firstOrNull()
+        val activeCameraEntity =
+            context.scene.world.query<TransformComponent, PerspectiveCameraComponent, ActiveCameraComponent>()
+                .firstOrNull()
+        val cameraEntity =
+            activeCameraEntity ?: context.scene.world.query<TransformComponent, PerspectiveCameraComponent>()
+                .firstOrNull()
         val cameraTransform = cameraEntity?.get<TransformComponent>()
         val cameraComponent = cameraEntity?.get<PerspectiveCameraComponent>()
         val camera = PerspectiveCamera(
@@ -973,7 +907,7 @@ class GdxRenderer3D(
             1f,
             1f,
             1f,
-            com.badlogic.gdx.graphics.g3d.Material(ColorAttribute.createDiffuse(0.1f, 0.62f, 0.82f, 1f)),
+            Material(ColorAttribute.createDiffuse(0.1f, 0.62f, 0.82f, 1f)),
             (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal).toLong(),
         )
     }
@@ -1033,7 +967,7 @@ private class GdxSkyboxRenderer(
             ?: return
         val entry = entryFor(texturePath) ?: return
         val intensity = command.environmentIntensity.coerceAtLeast(0f)
-        entry.skybox.getColor().set(intensity, intensity, intensity, 1f)
+        entry.skybox.color.set(intensity, intensity, intensity, 1f)
         entry.skybox.update(camera, Gdx.graphics.deltaTime)
 
         Gdx.gl.glDepthMask(false)
@@ -1180,11 +1114,19 @@ private class GdxGltfPbrPreviewRenderer(
         val direction = pbrLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
         val intensity = (settings.environmentIntensity * settings.exposure).coerceAtLeast(0f)
         entry.manager.environment.clear()
-        entry.manager.environment.set(ColorAttribute(ColorAttribute.AmbientLight, 0.08f * intensity, 0.09f * intensity, 0.1f * intensity, 1f))
+        entry.manager.environment.set(
+            ColorAttribute(
+                ColorAttribute.AmbientLight,
+                0.08f * intensity,
+                0.09f * intensity,
+                0.1f * intensity,
+                1f
+            )
+        )
         if (settings.directionalLightEnabled) {
             entry.manager.environment.add(
                 DirectionalLightEx().set(
-                    com.badlogic.gdx.graphics.Color.WHITE,
+                    Color.WHITE,
                     direction,
                     intensity.coerceAtLeast(0.01f),
                 ),
@@ -1208,7 +1150,7 @@ private class GdxGltfPbrPreviewRenderer(
             if (iblAvailable) {
                 entry.irradianceMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(map)) }
                 entry.radianceMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createSpecularEnv(map)) }
-                entry.manager.setSkyBox(entry.skybox)
+                entry.manager.skyBox = entry.skybox
             }
         }
     }
@@ -1249,7 +1191,7 @@ private class GdxGltfPbrPreviewRenderer(
         )
         if (environmentKey == nextKey) return iblAvailable
         disposeEnvironment()
-        val light = DirectionalLightEx().set(com.badlogic.gdx.graphics.Color.WHITE, direction, intensity)
+        val light = DirectionalLightEx().set(Color.WHITE, direction, intensity)
         val builder = IBLBuilder.createOutdoor(light)
         try {
             envMap = builder.buildEnvMap(64)
@@ -1402,12 +1344,14 @@ private fun cubemapLayoutFor(width: Int, height: Int): CubemapLayout {
                 faces = (0 until CUBEMAP_FACE_COUNT).map { index -> CubemapFaceRegion(index, 0) },
             )
         }
+
         height == width * CUBEMAP_FACE_COUNT -> {
             CubemapLayout(
                 faceSize = width,
                 faces = (0 until CUBEMAP_FACE_COUNT).map { index -> CubemapFaceRegion(0, index) },
             )
         }
+
         width % 4 == 0 && height % 3 == 0 && width / 4 == height / 3 -> {
             // Standard horizontal cross:
             //       +Y
@@ -1426,6 +1370,7 @@ private fun cubemapLayoutFor(width: Int, height: Int): CubemapLayout {
                 ),
             )
         }
+
         width % 3 == 0 && height % 4 == 0 && width / 3 == height / 4 -> {
             // Standard vertical cross:
             //    +Y
@@ -1445,6 +1390,7 @@ private fun cubemapLayoutFor(width: Int, height: Int): CubemapLayout {
                 ),
             )
         }
+
         else -> error(
             "Unsupported cubemap texture layout ${width}x$height. " +
                 "Expected 6x1 strip, 1x6 strip, 4x3 cross, or 3x4 cross.",
@@ -1520,6 +1466,7 @@ private class GdxModelViewerDebugRenderer(
                 Gdx.gl.glEnable(GL20.GL_CULL_FACE)
                 Gdx.gl.glCullFace(GL20.GL_BACK)
             }
+
             com.pashkd.krender.engine.api.DebugCullingMode.DoubleSided -> {
                 Gdx.gl.glDisable(GL20.GL_CULL_FACE)
             }
@@ -1613,7 +1560,7 @@ private class GdxModelViewerDebugRenderer(
     private fun renderFallback(
         renderable: Renderable,
         camera: Camera,
-        color: com.badlogic.gdx.graphics.Color,
+        color: Color,
     ) {
         val shader = fallbackShader ?: return
         shader.bind()
@@ -1624,7 +1571,7 @@ private class GdxModelViewerDebugRenderer(
     }
 
     private fun textureRefFor(
-        material: com.badlogic.gdx.graphics.g3d.Material,
+        material: Material,
         materialIndex: Int?,
         debugView: com.pashkd.krender.engine.api.MaterialDebugView,
     ): com.pashkd.krender.engine.api.MaterialDebugTextureRef? =
@@ -1635,7 +1582,7 @@ private class GdxModelViewerDebugRenderer(
             ?: debugView.textureRefs.firstOrNull { ref -> ref.materialIndex == null && ref.materialId == null }
 
     private fun matchesSelectedMaterial(
-        material: com.badlogic.gdx.graphics.g3d.Material,
+        material: Material,
         materialIndex: Int?,
         debugView: com.pashkd.krender.engine.api.MaterialDebugView,
     ): Boolean {
@@ -1723,10 +1670,10 @@ private class GdxModelViewerDebugRenderer(
     companion object {
         private const val TAG = "GdxModelViewerDebugRenderer"
         private const val MIN_UV_SCALE = 0.01f
-        private val FallbackMissingTexture = com.badlogic.gdx.graphics.Color(1f, 0.15f, 0.65f, 1f)
-        private val FallbackMissingUv = com.badlogic.gdx.graphics.Color(1f, 0.72f, 0.1f, 1f)
-        private val FallbackShaderError = com.badlogic.gdx.graphics.Color(1f, 0f, 0f, 1f)
-        private val FallbackUnselectedMaterial = com.badlogic.gdx.graphics.Color(0.28f, 0.28f, 0.3f, 1f)
+        private val FallbackMissingTexture = Color(1f, 0.15f, 0.65f, 1f)
+        private val FallbackMissingUv = Color(1f, 0.72f, 0.1f, 1f)
+        private val FallbackShaderError = Color(1f, 0f, 0f, 1f)
+        private val FallbackUnselectedMaterial = Color(0.28f, 0.28f, 0.3f, 1f)
     }
 }
 
@@ -1873,9 +1820,24 @@ class GdxLineShaderRenderer {
     /** Appends RGB world axes centered at the origin. */
     private fun appendAxes(vertices: MutableList<Float>, command: DrawWorldAxes) {
         val length = command.length.coerceAtLeast(1f)
-        appendLine(vertices, Vec3(-length, 0f, 0f), Vec3(length, 0f, 0f), com.pashkd.krender.engine.api.Color(1f, 0f, 0f, 1f))
-        appendLine(vertices, Vec3(0f, -length, 0f), Vec3(0f, length, 0f), com.pashkd.krender.engine.api.Color(0f, 1f, 0f, 1f))
-        appendLine(vertices, Vec3(0f, 0f, -length), Vec3(0f, 0f, length), com.pashkd.krender.engine.api.Color(0f, 0.35f, 1f, 1f))
+        appendLine(
+            vertices,
+            Vec3(-length, 0f, 0f),
+            Vec3(length, 0f, 0f),
+            com.pashkd.krender.engine.api.Color(1f, 0f, 0f, 1f)
+        )
+        appendLine(
+            vertices,
+            Vec3(0f, -length, 0f),
+            Vec3(0f, length, 0f),
+            com.pashkd.krender.engine.api.Color(0f, 1f, 0f, 1f)
+        )
+        appendLine(
+            vertices,
+            Vec3(0f, 0f, -length),
+            Vec3(0f, 0f, length),
+            com.pashkd.krender.engine.api.Color(0f, 0.35f, 1f, 1f)
+        )
     }
 
     /** Appends one colored line segment. */

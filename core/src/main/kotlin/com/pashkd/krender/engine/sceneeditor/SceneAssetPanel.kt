@@ -1,10 +1,6 @@
 package com.pashkd.krender.engine.sceneeditor
 
-import com.pashkd.krender.engine.api.EngineContext
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.TaskService
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetRegistryService
@@ -227,9 +223,11 @@ class SceneAssetPanel(
                     }
                 }
             }
+
             visibleModels.isEmpty() -> {
                 ImGui.text("No model assets match the current search.")
             }
+
             else -> visibleModels.forEach(::drawAssetRow)
         }
         ImGui.endChild()
@@ -250,9 +248,11 @@ class SceneAssetPanel(
                     }
                 }
             }
+
             visibleTerrains.isEmpty() -> {
                 ImGui.text("No terrain assets match the current search.")
             }
+
             else -> visibleTerrains.forEach(::drawAssetRow)
         }
         ImGui.endChild()
@@ -273,9 +273,11 @@ class SceneAssetPanel(
                     }
                 }
             }
+
             visibleSkyboxes.isEmpty() -> {
                 ImGui.text("No skybox assets match the current search.")
             }
+
             else -> visibleSkyboxes.forEach(::drawAssetRow)
         }
         ImGui.endChild()
@@ -377,14 +379,17 @@ class SceneAssetPanel(
                 editorState.modelPlacementError = null
                 panelState.statusMessage = "Selected model: ${asset.path}"
             }
+
             AssetCategory.Terrain -> {
                 editorState.terrainPlacementPath = asset.path
                 editorState.terrainPlacementError = null
                 panelState.statusMessage = "Selected terrain: ${asset.path}"
             }
+
             AssetCategory.Skybox -> {
                 panelState.statusMessage = "Selected skybox: ${asset.path}"
             }
+
             else -> {
                 panelState.statusMessage = "Selected asset: ${asset.path}"
             }
@@ -501,8 +506,12 @@ class SceneAssetPanel(
         val assetPath = path ?: return "<none>"
         val asset = when (category) {
             AssetCategory.Model -> assetBrowser.modelAssets().firstOrNull { descriptor -> descriptor.path == assetPath }
-            AssetCategory.Terrain -> assetBrowser.terrainAssets().firstOrNull { descriptor -> descriptor.path == assetPath }
-            AssetCategory.Skybox -> assetBrowser.skyboxAssets().firstOrNull { descriptor -> descriptor.path == assetPath }
+            AssetCategory.Terrain -> assetBrowser.terrainAssets()
+                .firstOrNull { descriptor -> descriptor.path == assetPath }
+
+            AssetCategory.Skybox -> assetBrowser.skyboxAssets()
+                .firstOrNull { descriptor -> descriptor.path == assetPath }
+
             else -> null
         }
         return asset?.name?.takeIf(String::isNotBlank) ?: assetNameFromPath(assetPath)

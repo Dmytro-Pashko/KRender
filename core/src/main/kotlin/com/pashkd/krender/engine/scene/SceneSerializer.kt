@@ -1,43 +1,15 @@
 package com.pashkd.krender.engine.scene
 
-import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.Component
-import com.pashkd.krender.engine.api.Entity
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.NameComponent
-import com.pashkd.krender.engine.api.ParentComponent
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.serialization.KRenderJson
-import com.pashkd.krender.engine.serialization.KRenderSerializer
-import com.pashkd.krender.engine.serialization.booleanOrDefault
-import com.pashkd.krender.engine.serialization.floatOrDefault
-import com.pashkd.krender.engine.serialization.intOrDefault
-import com.pashkd.krender.engine.serialization.longOrNull
-import com.pashkd.krender.engine.serialization.normalizedOptionalProjectPath
-import com.pashkd.krender.engine.serialization.requiredLong
-import com.pashkd.krender.engine.serialization.requiredString
-import com.pashkd.krender.engine.serialization.stringOrDefault
-import com.pashkd.krender.engine.serialization.stringOrNull
+import com.pashkd.krender.engine.serialization.*
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
-import java.util.UUID
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.*
+import java.util.*
 
 /**
  * Converts runtime scene worlds to and from the `.krscene` descriptor format.
@@ -412,9 +384,27 @@ object SceneDeserializer {
         logger: Logger?,
     ): TransformComponent =
         TransformComponent(
-            position = readVec3(component.properties["position"], Vec3.zero(), "${SceneComponentTypes.Transform}.position", entityId, logger),
-            eulerDegrees = readVec3(component.properties["rotation"], Vec3.zero(), "${SceneComponentTypes.Transform}.rotation", entityId, logger),
-            scale = readVec3(component.properties["scale"], Vec3.one(), "${SceneComponentTypes.Transform}.scale", entityId, logger),
+            position = readVec3(
+                component.properties["position"],
+                Vec3.zero(),
+                "${SceneComponentTypes.Transform}.position",
+                entityId,
+                logger
+            ),
+            eulerDegrees = readVec3(
+                component.properties["rotation"],
+                Vec3.zero(),
+                "${SceneComponentTypes.Transform}.rotation",
+                entityId,
+                logger
+            ),
+            scale = readVec3(
+                component.properties["scale"],
+                Vec3.one(),
+                "${SceneComponentTypes.Transform}.scale",
+                entityId,
+                logger
+            ),
         )
 
     private fun readCamera(
@@ -453,8 +443,20 @@ object SceneDeserializer {
     ): LightComponent =
         LightComponent(
             type = readLightType(component.properties["type"], LightType.Directional, entityId, logger),
-            intensity = readFloat(component.properties["intensity"], 1f, "${SceneComponentTypes.Light}.intensity", entityId, logger),
-            color = readColor(component.properties["color"], Color.white(), "${SceneComponentTypes.Light}.color", entityId, logger),
+            intensity = readFloat(
+                component.properties["intensity"],
+                1f,
+                "${SceneComponentTypes.Light}.intensity",
+                entityId,
+                logger
+            ),
+            color = readColor(
+                component.properties["color"],
+                Color.white(),
+                "${SceneComponentTypes.Light}.color",
+                entityId,
+                logger
+            ),
             direction = readVec3(
                 component.properties["direction"],
                 Vec3(-1f, -0.8f, -0.2f),
@@ -605,7 +607,7 @@ object SceneDeserializer {
             TerrainPreviewMode.MaterialColor,
             TerrainPreviewMode.SelectedLayerMask,
             null,
-            -> {
+                -> {
                 if (raw != null) {
                     warnParse(raw, "${SceneComponentTypes.Terrain}.previewMode", entityId, logger)
                 }

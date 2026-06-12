@@ -1,15 +1,6 @@
 package com.pashkd.krender.engine.assets.creation
 
-import com.pashkd.krender.engine.assets.AssetBrowserOperationsHandler
-import com.pashkd.krender.engine.assets.AssetBrowserState
-import com.pashkd.krender.engine.assets.CreatableAssetKind
-import com.pashkd.krender.engine.assets.createAssetDefaultParams
-import com.pashkd.krender.engine.assets.createAssetRelativePath
-import com.pashkd.krender.engine.assets.discoveredScene2DSkinAssets
-import com.pashkd.krender.engine.assets.withSyncedDefaults
-import com.pashkd.krender.engine.assets.assetBrowserReadBuffer
-import com.pashkd.krender.engine.assets.assetBrowserTextLine
-import com.pashkd.krender.engine.assets.assetBrowserWriteBuffer
+import com.pashkd.krender.engine.assets.*
 import glm_.vec2.Vec2
 import imgui.Cond
 import imgui.ImGui

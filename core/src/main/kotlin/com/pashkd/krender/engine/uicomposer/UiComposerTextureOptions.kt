@@ -4,8 +4,8 @@ import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneValidator
 import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
+import com.pashkd.krender.engine.ui.scene.UiSceneValidator
 import com.pashkd.krender.engine.ui.scene.validation.UiSceneTextureValidationMetadata
 import com.pashkd.krender.engine.ui.scene.validation.normalizeTexturePath
 

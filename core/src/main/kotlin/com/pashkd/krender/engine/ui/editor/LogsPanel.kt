@@ -91,8 +91,9 @@ class LogsPanel(
 }
 
 internal fun formatLogEntryForPanel(entry: LogEntry): String {
-    val line = "${TIMESTAMP_FORMATTER.format(Instant.ofEpochMilli(entry.timestampMillis).atZone(ZoneId.systemDefault()))} " +
-        "[${entry.level}] [${entry.tag}] ${entry.message}"
+    val line =
+        "${TIMESTAMP_FORMATTER.format(Instant.ofEpochMilli(entry.timestampMillis).atZone(ZoneId.systemDefault()))} " +
+            "[${entry.level}] [${entry.tag}] ${entry.message}"
     return if (line.length <= LogsPanel.MaxDisplayedEntryLength) {
         line
     } else {

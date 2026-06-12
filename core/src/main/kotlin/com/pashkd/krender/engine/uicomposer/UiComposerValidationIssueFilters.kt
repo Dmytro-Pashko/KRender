@@ -46,7 +46,12 @@ fun formatValidationIssue(issue: UiSceneValidationIssue): String {
     val scope = when {
         issue.nodeId != null && issue.fieldName != null -> "${issue.nodeId}.${issue.fieldName}"
         issue.nodeId != null -> issue.nodeId
-        issue.bindingKey != null && issue.fieldName != null -> "${issue.bindingKey}.${issue.fieldName.substringAfterLast('.')}"
+        issue.bindingKey != null && issue.fieldName != null -> "${issue.bindingKey}.${
+            issue.fieldName.substringAfterLast(
+                '.'
+            )
+        }"
+
         issue.bindingKey != null -> issue.bindingKey
         issue.fieldName != null -> issue.fieldName
         else -> "document"

@@ -1,8 +1,8 @@
 package com.pashkd.krender.engine.uicomposer
 
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneValidator
 import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
+import com.pashkd.krender.engine.ui.scene.UiSceneValidator
 import com.pashkd.krender.engine.ui.scene.validation.UiSceneSkinValidationMetadata
 
 /**

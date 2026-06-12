@@ -3,14 +3,11 @@ package com.pashkd.krender.game
 import com.pashkd.krender.engine.animation.AnimationComponent
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.*
-import com.pashkd.krender.engine.scene.SceneConfig
-import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.scene.SceneDependencyCollector
-import com.pashkd.krender.engine.scene.SceneDescriptor
-import com.pashkd.krender.engine.scene.SceneSerializer
+import com.pashkd.krender.engine.scene.*
 import com.pashkd.krender.engine.terrain.TerrainAssetSyncSystem
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.woolboy.*
+import com.pashkd.krender.game.WoolboySandboxScene.Companion.SceneAssetPath
 
 /**
  * Lightweight playable sandbox for validating Woolboy movement and clip switching.
@@ -164,7 +161,7 @@ class WoolboySandboxScene : Scene("woolboy_sandbox_scene") {
         return SceneSerializer.decode(engine.sceneFiles.readText(SceneAssetPath))
     }
 
-    private fun addSystem(name: String, system: com.pashkd.krender.engine.api.System) {
+    private fun addSystem(name: String, system: System) {
         world.systems.add(system)
         engine.logger.info(TAG) { "Woolboy system added name='$name'" }
     }

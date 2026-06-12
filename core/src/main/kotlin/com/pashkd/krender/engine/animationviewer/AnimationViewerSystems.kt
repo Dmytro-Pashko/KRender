@@ -1,20 +1,10 @@
 package com.pashkd.krender.engine.animationviewer
 
-import com.pashkd.krender.engine.api.AnimationPlaybackView
-import com.pashkd.krender.engine.api.AssetService
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.DrawLine
-import com.pashkd.krender.engine.api.DrawModel
-import com.pashkd.krender.engine.api.DrawWorldAxes
-import com.pashkd.krender.engine.api.DrawWorldGrid
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.math.transformLocalPoint
-import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
+import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.sceneeditor.SceneEditorLocalBounds
 import com.pashkd.krender.engine.sceneeditor.transformedBoundsCorners
 
@@ -99,7 +89,11 @@ class AnimationViewerSystem(
         applyWireframeMaterial(world)
         if (lastAssetLoaded != state.assetLoaded) {
             logger.info(TAG) {
-                "AnimationViewer asset status model='${state.model.path}' loaded=${state.assetLoaded} progress=${"%.3f".format(state.assetProgress)}"
+                "AnimationViewer asset status model='${state.model.path}' loaded=${state.assetLoaded} progress=${
+                    "%.3f".format(
+                        state.assetProgress
+                    )
+                }"
             }
             lastAssetLoaded = state.assetLoaded
         }
@@ -256,12 +250,13 @@ class AnimationViewerSystem(
         state.animationWarning = when {
             state.selectedAnimationName != null && !state.hasKnownSelectedAnimationDuration ->
                 "Unknown animation duration. Preview is limited to 10.000 s."
+
             else -> null
         }
         state.skeletonWarning = when (state.skeletonPreviewStatus) {
             SkeletonPreviewStatus.Inactive,
             SkeletonPreviewStatus.PreviewAvailable,
-            -> null
+                -> null
 
             SkeletonPreviewStatus.Unsupported -> "Skeleton metadata is unavailable for this model/backend."
             SkeletonPreviewStatus.MetadataOnly -> "Skeleton pose preview is unavailable for this model/backend."
@@ -321,7 +316,11 @@ class AnimationViewerSystem(
         }
         if (lastPlaying != state.isPlaying) {
             logger.info(TAG) {
-                "AnimationViewer playing=${state.isPlaying} animation='${state.selectedAnimationName}' time=${"%.3f".format(state.currentTimeSeconds)}"
+                "AnimationViewer playing=${state.isPlaying} animation='${state.selectedAnimationName}' time=${
+                    "%.3f".format(
+                        state.currentTimeSeconds
+                    )
+                }"
             }
             lastPlaying = state.isPlaying
         }
@@ -488,7 +487,13 @@ class AnimationViewerSkeletonRenderSystem(
                 DrawLine(
                     from = transformLocalPoint(parent.worldPosition, transform),
                     to = transformLocalPoint(pose.worldPosition, transform),
-                    color = lineColor(parent.boneIndex, pose.boneIndex, hoveredBoneIndex, selectedBoneIndex, connectedBoneIndices),
+                    color = lineColor(
+                        parent.boneIndex,
+                        pose.boneIndex,
+                        hoveredBoneIndex,
+                        selectedBoneIndex,
+                        connectedBoneIndices
+                    ),
                 ),
             )
         }
@@ -526,20 +531,20 @@ class AnimationViewerSkeletonRenderSystem(
     private fun submitJoint(
         world: SceneWorld,
         transform: TransformComponent,
-        position: com.pashkd.krender.engine.api.Vec3,
+        position: Vec3,
         size: Float,
         color: Color,
     ) {
-        submitJointAxis(world, transform, position, com.pashkd.krender.engine.api.Vec3(size, 0f, 0f), color)
-        submitJointAxis(world, transform, position, com.pashkd.krender.engine.api.Vec3(0f, size, 0f), color)
-        submitJointAxis(world, transform, position, com.pashkd.krender.engine.api.Vec3(0f, 0f, size), color)
+        submitJointAxis(world, transform, position, Vec3(size, 0f, 0f), color)
+        submitJointAxis(world, transform, position, Vec3(0f, size, 0f), color)
+        submitJointAxis(world, transform, position, Vec3(0f, 0f, size), color)
     }
 
     private fun submitJointAxis(
         world: SceneWorld,
         transform: TransformComponent,
-        position: com.pashkd.krender.engine.api.Vec3,
-        axisOffset: com.pashkd.krender.engine.api.Vec3,
+        position: Vec3,
+        axisOffset: Vec3,
         color: Color,
     ) {
         world.renderCommands.submit(

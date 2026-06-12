@@ -1,43 +1,12 @@
 package com.pashkd.krender.game
 
-import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.InputService
-import com.pashkd.krender.engine.api.EngineContext
-import com.pashkd.krender.engine.api.Key
-import com.pashkd.krender.engine.api.MouseButton
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.Scene
-import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.AssetService
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiComposerSkinMetadataReader
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiScenePreview
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.uicomposer.UiComposerDiagnosticsPanel
-import com.pashkd.krender.engine.uicomposer.UiComposerCanvasRect
-import com.pashkd.krender.engine.uicomposer.UiComposerDocumentLoader
-import com.pashkd.krender.engine.uicomposer.UiComposerHierarchyPanel
-import com.pashkd.krender.engine.uicomposer.UiComposerInspectorPanel
-import com.pashkd.krender.engine.uicomposer.UiComposerOperations
-import com.pashkd.krender.engine.uicomposer.UiComposerPanelIds
-import com.pashkd.krender.engine.uicomposer.UiComposerPreviewCanvasPanel
-import com.pashkd.krender.engine.uicomposer.UiComposerSceneBindingsPanel
-import com.pashkd.krender.engine.uicomposer.UiComposerState
-import com.pashkd.krender.engine.uicomposer.UiComposerStructurePanel
-import com.pashkd.krender.engine.uicomposer.UiComposerToolbarPanel
-import com.pashkd.krender.engine.uicomposer.UiComposerTextureOptionsProvider
-import com.pashkd.krender.engine.uicomposer.UiComposerUiLayoutDefaults
-import com.pashkd.krender.engine.uicomposer.UiComposerGuideSnapshot
-import com.pashkd.krender.engine.uicomposer.UiComposerVisualGuideOptions
-import com.pashkd.krender.engine.uicomposer.clampPreviewZoom
-import com.pashkd.krender.engine.uicomposer.previewWorldUnitsPerScreenPixel
-import com.pashkd.krender.engine.uicomposer.refreshUiComposerValidationBuckets
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.LogsPanel
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.UiSystem
+import com.pashkd.krender.engine.ui.editor.*
+import com.pashkd.krender.engine.uicomposer.*
 import kotlin.math.pow
 
 /**
@@ -245,7 +214,8 @@ class UiComposerScene(
             composerState.textureOptions.forEach { option ->
                 engine.assets.queue(AssetRef.texture(option.path))
             }
-            composerState.textureAssetTypesByPath = engine.assetRegistry.assets.associate { asset -> asset.path to asset.type }
+            composerState.textureAssetTypesByPath =
+                engine.assetRegistry.assets.associate { asset -> asset.path to asset.type }
             composerState.document?.let { document ->
                 refreshUiComposerValidationBuckets(composerState, document)
             }
@@ -275,10 +245,26 @@ class UiComposerScene(
         val layoutConfig = layoutTracker.currentConfig()
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "UiComposerUi")
         return UiSystem(engine.ui).also { uiSystem ->
-            addPanel(uiSystem, "Toolbar", UiComposerToolbarPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
-            addPanel(uiSystem, "PreviewCanvas", UiComposerPreviewCanvasPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
-            addPanel(uiSystem, "Hierarchy", UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
-            addPanel(uiSystem, "Structure", UiComposerStructurePanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
+            addPanel(
+                uiSystem,
+                "Toolbar",
+                UiComposerToolbarPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger)
+            )
+            addPanel(
+                uiSystem,
+                "PreviewCanvas",
+                UiComposerPreviewCanvasPanel(composerState, layoutConfig, layoutTracker, panelEventLogger)
+            )
+            addPanel(
+                uiSystem,
+                "Hierarchy",
+                UiComposerHierarchyPanel(composerState, layoutConfig, layoutTracker, panelEventLogger)
+            )
+            addPanel(
+                uiSystem,
+                "Structure",
+                UiComposerStructurePanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger)
+            )
             addPanel(
                 uiSystem,
                 "Inspector",
@@ -293,8 +279,16 @@ class UiComposerScene(
                     panelEventLogger,
                 ),
             )
-            addPanel(uiSystem, "SceneBindings", UiComposerSceneBindingsPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger))
-            addPanel(uiSystem, "Diagnostics", UiComposerDiagnosticsPanel(composerState, layoutConfig, layoutTracker, panelEventLogger))
+            addPanel(
+                uiSystem,
+                "SceneBindings",
+                UiComposerSceneBindingsPanel(composerState, operations, layoutConfig, layoutTracker, panelEventLogger)
+            )
+            addPanel(
+                uiSystem,
+                "Diagnostics",
+                UiComposerDiagnosticsPanel(composerState, layoutConfig, layoutTracker, panelEventLogger)
+            )
             addPanel(
                 uiSystem,
                 "Logs",

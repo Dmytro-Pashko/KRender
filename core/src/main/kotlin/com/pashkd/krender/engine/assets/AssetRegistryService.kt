@@ -3,7 +3,7 @@ package com.pashkd.krender.engine.assets
 import com.pashkd.krender.engine.api.Logger
 import java.io.File
 import java.nio.charset.StandardCharsets
-import java.util.UUID
+import java.util.*
 
 /**
  * Immutable result of a registry scan, suitable for posting from a background thread.
@@ -142,7 +142,8 @@ class LocalAssetRegistryService(
         val extension = file.extension.lowercase()
         val displayName = document.displayName.takeIf(String::isNotBlank) ?: file.nameWithoutExtension
         val type = enumValueOrNull<AssetType>(document.type)?.takeUnless { it == AssetType.Unknown } ?: detection.type
-        val category = enumValueOrNull<AssetCategory>(document.category)?.takeUnless { it == AssetCategory.Other } ?: detection.category
+        val category = enumValueOrNull<AssetCategory>(document.category)?.takeUnless { it == AssetCategory.Other }
+            ?: detection.category
         val descriptorMetadata = buildMap<String, String> {
             put("displayName", displayName)
             put("sourcePath", path)

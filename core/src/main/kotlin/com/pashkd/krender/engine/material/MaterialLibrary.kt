@@ -4,11 +4,7 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.scene.DefaultSceneFileService
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.terrain.TerrainLayerColorDescriptor
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.floatOrNull
+import kotlinx.serialization.json.*
 
 data class TerrainMaterialDescriptor(
     val id: String,
@@ -38,7 +34,10 @@ class TerrainMaterialLibrary(
             logger?.error(TAG, error) {
                 "Failed to load terrain material library '$normalizedPath': ${error.message}"
             }
-            throw IllegalStateException("Terrain material library '$normalizedPath' could not be loaded: ${error.message}", error)
+            throw IllegalStateException(
+                "Terrain material library '$normalizedPath' could not be loaded: ${error.message}",
+                error
+            )
         }
     }
 
@@ -67,7 +66,7 @@ class TerrainMaterialLibrary(
         return loaded
     }
 
-    private fun readMaterials(node: kotlinx.serialization.json.JsonElement?): List<TerrainMaterialDescriptor> {
+    private fun readMaterials(node: JsonElement?): List<TerrainMaterialDescriptor> {
         val materials = node as? JsonArray
             ?: throw IllegalArgumentException("Terrain material library is missing required field 'materials'")
         return materials.mapIndexed { index, materialNode ->

@@ -1,7 +1,7 @@
 package com.pashkd.krender.engine.api
 
 import com.pashkd.krender.engine.scene.SceneConfig
-import java.util.ArrayDeque
+import java.util.*
 
 /**
  * Tracks the lifecycle phase of a scene while it is managed by [SceneManager].
@@ -9,16 +9,22 @@ import java.util.ArrayDeque
 enum class SceneState {
     /** Scene object exists but has not been attached yet. */
     New,
+
     /** Scene has been attached and is queuing its required assets. */
     Loading,
+
     /** Scene has scheduled its assets and is ready to be shown. */
     Ready,
+
     /** Scene is currently active on the top of the stack. */
     Active,
+
     /** Scene remains on the stack but is not active. */
     Paused,
+
     /** Scene is being torn down. */
     Disposing,
+
     /** Scene has finished disposal. */
     Disposed,
 }
@@ -31,8 +37,10 @@ abstract class Scene(
 ) {
     /** ECS world owned by this scene. */
     val world: SceneWorld = SceneWorld()
+
     /** Asset packs that should be queued before the scene is shown. */
     open val requiredAssets: List<AssetPack> = emptyList()
+
     /** Scene-level viewport and physical window preferences. */
     open val config: SceneConfig = SceneConfig()
 
@@ -73,16 +81,22 @@ abstract class Scene(
      * not assume any required asset is available here.
      */
     open fun show() = Unit
+
     /** Runs fixed-step scene logic. */
     open fun fixedUpdate(dt: Float) = world.fixedUpdate(dt)
+
     /** Runs variable-step scene logic. */
     open fun update(dt: Float) = world.update(dt)
+
     /** Runs late-step scene logic. */
     open fun lateUpdate(dt: Float) = world.lateUpdate(dt)
+
     /** Collects render commands for the scene. */
     open fun render(alpha: Float) = world.render(alpha)
+
     /** Collects debug render commands for the scene. */
     open fun debugRender() = world.debugRender()
+
     /**
      * Renders backend-owned scene overlays after the main renderer has submitted the frame.
      *
@@ -93,10 +107,13 @@ abstract class Scene(
      * full Scene2D actor serialization.
      */
     open fun overlayRender() = Unit
+
     /** Handles surface resize events. */
     open fun resize(width: Int, height: Int) = Unit
+
     /** Runs when the scene leaves the top of the stack. */
     open fun hide() = Unit
+
     /** Releases scene resources and flushes deferred world mutations. */
     open fun dispose() {
         world.flushCommands()
@@ -109,8 +126,10 @@ abstract class Scene(
 sealed interface SceneOp {
     /** Replaces the full scene stack with one scene. */
     data class Replace(val scene: Scene) : SceneOp
+
     /** Pushes a scene on top of the existing stack. */
     data class Push(val scene: Scene) : SceneOp
+
     /** Pops the current top scene. */
     data object Pop : SceneOp
 }

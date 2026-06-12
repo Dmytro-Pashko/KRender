@@ -1,18 +1,6 @@
 package com.pashkd.krender.engine.render3d
 
-import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.Component
-import com.pashkd.krender.engine.api.DrawModel
-import com.pashkd.krender.engine.api.DrawWorldAxes
-import com.pashkd.krender.engine.api.DrawWorldGrid
-import com.pashkd.krender.engine.api.MaterialTextureRef
-import com.pashkd.krender.engine.api.ModelAsset
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.ShaderAsset
-import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.api.*
 
 data class PerspectiveCameraComponent(
     var fieldOfViewDegrees: Float = 67f,

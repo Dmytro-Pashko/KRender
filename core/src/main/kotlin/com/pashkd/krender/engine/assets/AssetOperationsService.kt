@@ -5,7 +5,7 @@ import java.awt.Desktop
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-import java.util.UUID
+import java.util.*
 
 /**
  * Mode used by [AssetOperationsService.delete].
@@ -13,6 +13,7 @@ import java.util.UUID
 enum class DeleteMode {
     /** Delete file and `.krmeta` permanently from disk. */
     Permanent,
+
     /** Move file and `.krmeta` to a sibling `.trash/` directory. */
     Trash,
 }
@@ -206,6 +207,7 @@ class LocalAssetOperationsService(
                         asset.path
                     }
                 }
+
                 else -> {
                     deleteSingleAsset(source, mode)
                     asset.path
@@ -268,6 +270,7 @@ class LocalAssetOperationsService(
                 deletePath(source)
                 deleteIfExists(sourceMeta)
             }
+
             DeleteMode.Trash -> {
                 val trashDir = resolveTargetDirectory(".trash")
                     ?: error("trash directory is outside asset root")

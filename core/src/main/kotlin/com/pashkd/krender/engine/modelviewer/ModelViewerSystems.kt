@@ -1,24 +1,6 @@
 package com.pashkd.krender.engine.modelviewer
 
-import com.pashkd.krender.engine.api.AssetService
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.DrawLine
-import com.pashkd.krender.engine.api.DrawModel
-import com.pashkd.krender.engine.api.DrawWorldAxes
-import com.pashkd.krender.engine.api.DrawWorldGrid
-import com.pashkd.krender.engine.api.InputService
-import com.pashkd.krender.engine.api.Key
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.MaterialDebugMode
-import com.pashkd.krender.engine.api.MaterialDebugView
-import com.pashkd.krender.engine.api.MaterialTextureRef
-import com.pashkd.krender.engine.api.ModelAssetInfo
-import com.pashkd.krender.engine.api.PbrPreviewView
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.sceneeditor.SceneEditorLocalBounds
 import com.pashkd.krender.engine.sceneeditor.transformedBoundsCorners
@@ -221,8 +203,10 @@ class ModelViewerSystem(
             mode == MaterialDebugMode.None -> null
             mode == MaterialDebugMode.UvChecker && info.uvChannels.isEmpty() ->
                 "ModelViewer debug warning: model has no UV channels for UV checker."
+
             mode == MaterialDebugMode.UvChecker && !assets.isLoaded(AssetRef.texture(state.uvCheckerTexturePath)) ->
                 "ModelViewer debug warning: UV checker texture '${state.uvCheckerTexturePath}' is missing or not loaded."
+
             isModelViewerTextureDebugMode(mode) &&
                 resolvedModelViewerDebugTextureRefs(
                     info = info,
@@ -231,6 +215,7 @@ class ModelViewerSystem(
                     selectedTextureChannel = state.selectedTextureChannel,
                 ).isEmpty() ->
                 missingTextureWarning(mode, selectedMaterialIndex)
+
             else -> null
         }
     }
@@ -243,23 +228,30 @@ class ModelViewerSystem(
         return when (mode) {
             MaterialDebugMode.Roughness,
             MaterialDebugMode.Metallic,
-            -> "$material has no metallicRoughnessTexture. " +
+                -> "$material has no metallicRoughnessTexture. " +
                 "Roughness and metallic are usually stored in the same metallicRoughnessTexture."
+
             MaterialDebugMode.MetallicRoughnessPacked ->
                 "$material has no metallicRoughnessTexture."
+
             MaterialDebugMode.BaseColor ->
                 "$material has no baseColorTexture."
+
             MaterialDebugMode.Normal ->
                 "$material has no normalTexture."
+
             MaterialDebugMode.Emission ->
                 "$material has no emissiveTexture."
+
             MaterialDebugMode.Occlusion ->
                 "$material has no occlusionTexture."
+
             MaterialDebugMode.Alpha ->
                 "$material has no alpha-capable texture."
+
             MaterialDebugMode.None,
             MaterialDebugMode.UvChecker,
-            -> "Texture channel $mode is unavailable for $material."
+                -> "Texture channel $mode is unavailable for $material."
         }
     }
 
@@ -268,10 +260,13 @@ class ModelViewerSystem(
         return when {
             !state.model.path.isGltfPath() ->
                 "PBR preview is currently available only for glTF/glb models."
+
             state.pbrShowSkybox && !assets.isLoaded(AssetRef.texture(state.pbrSkyboxTexturePath)) ->
                 "PBR preview skybox texture '${state.pbrSkyboxTexturePath}' is missing or not loaded."
+
             state.assetLoaded && state.modelInfo == null ->
                 "PBR preview unavailable: model metadata is unavailable."
+
             else -> null
         }
     }

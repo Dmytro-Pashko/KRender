@@ -1,11 +1,6 @@
 package com.pashkd.krender.engine.terrain
 
-import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.Component
-import com.pashkd.krender.engine.api.DynamicModel
-import com.pashkd.krender.engine.api.RuntimeTextureData
-import com.pashkd.krender.engine.api.TerrainAsset
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.Material
 
 /**

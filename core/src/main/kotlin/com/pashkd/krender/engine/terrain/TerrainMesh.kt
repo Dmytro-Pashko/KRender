@@ -195,7 +195,14 @@ object TerrainMeshBuilder {
         blendMode: TerrainLayerBlendMode,
     ): TerrainLayerColorDescriptor =
         when (blendMode) {
-            TerrainLayerBlendMode.WeightedAverage -> weightedAverageColor(data, visibleLayers, x, y, materialColorResolver)
+            TerrainLayerBlendMode.WeightedAverage -> weightedAverageColor(
+                data,
+                visibleLayers,
+                x,
+                y,
+                materialColorResolver
+            )
+
             TerrainLayerBlendMode.OrderedAlpha -> orderedAlphaColor(data, visibleLayers, x, y, materialColorResolver)
             TerrainLayerBlendMode.MaxWeight -> maxWeightColor(data, visibleLayers, x, y, materialColorResolver)
         }
@@ -265,7 +272,7 @@ object TerrainMeshBuilder {
         layer: TerrainLayer,
         materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
     ): TerrainLayerColorDescriptor =
-        // Layer Color preview may pass resolver = { null }.
+    // Layer Color preview may pass resolver = { null }.
         // Material Color preview passes resolver from TerrainMaterialLibrary.
         materialColorResolver(layer.materialId) ?: layer.color
 

@@ -1,7 +1,7 @@
 package com.pashkd.krender.engine.uicomposer
 
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import java.util.ArrayDeque
+import java.util.*
 
 /**
  * One undo/redo snapshot for UiComposer document editing.

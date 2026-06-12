@@ -1,20 +1,9 @@
 package com.pashkd.krender.engine.woolboy
 
-import com.pashkd.krender.engine.api.InputService
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.MouseButton
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import kotlin.math.PI
-import kotlin.math.asin
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
+import kotlin.math.*
 
 /**
  * Third-person orbit camera for the Woolboy sandbox.

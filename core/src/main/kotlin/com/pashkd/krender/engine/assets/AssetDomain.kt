@@ -18,6 +18,7 @@ enum class AssetCategory(
     Skybox("Skybox", 2),
     Material("Material", 3),
     Terrain("Terrain", 4),
+
     /**
      * UI document category used by asset indexing and browser filters for KRender-native `.krui` UiScene files.
      *
@@ -40,6 +41,7 @@ enum class AssetType {
     Texture,
     Skybox,
     Terrain,
+
     /**
      * KRender-native Scene2D UI scene document stored as `.krui`.
      *
@@ -49,6 +51,7 @@ enum class AssetType {
      * and asset-id references are intentionally deferred.
      */
     UiScene,
+
     /**
      * LibGDX Scene2D Skin JSON descriptor used by `.krui` UI scenes and future Skin tooling.
      *

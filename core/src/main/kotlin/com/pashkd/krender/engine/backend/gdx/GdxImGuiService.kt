@@ -9,13 +9,8 @@ import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.ui.editor.UiCaptureState
 import com.pashkd.krender.engine.ui.editor.UiService
 import glm_.vec2.Vec2
-import imgui.ConfigFlag
-import imgui.ImGui
+import imgui.*
 import imgui.ImGui.image
-import imgui.Key
-import imgui.MouseButton
-import imgui.MouseSource
-import imgui.div
 import imgui.classes.Context
 import imgui.impl.gl.ImplGL3
 

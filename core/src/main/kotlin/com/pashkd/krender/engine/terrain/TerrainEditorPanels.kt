@@ -364,7 +364,11 @@ class TerrainEditorLayersPanel(
     }
 
     private fun formatLayerRow(layer: TerrainLayerOption): String =
-        "#${layer.index + 1} ${layer.name}:RGBA(${formatColorChannel(layer.color.r)},${formatColorChannel(layer.color.g)},${formatColorChannel(layer.color.b)},${formatColorChannel(layer.color.a)})|T:${formatTiling(layer.tiling)}|Color"
+        "#${layer.index + 1} ${layer.name}:RGBA(${formatColorChannel(layer.color.r)},${formatColorChannel(layer.color.g)},${
+            formatColorChannel(
+                layer.color.b
+            )
+        },${formatColorChannel(layer.color.a)})|T:${formatTiling(layer.tiling)}|Color"
 
     private fun drawMaterialSelector() {
         ImGui.separator()
@@ -429,7 +433,11 @@ class TerrainEditorLayersPanel(
         }
 
         state.terrainMaterials.forEachIndexed { index, material ->
-            if (ImGui.selectable("${material.name}##terrain_material_${material.id}", index == state.selectedLayerMaterialIndex)) {
+            if (ImGui.selectable(
+                    "${material.name}##terrain_material_${material.id}",
+                    index == state.selectedLayerMaterialIndex
+                )
+            ) {
                 state.selectedLayerMaterialIndex = index
                 state.selectedLayerMaterialId = material.id
                 state.selectedLayerColor = floatArrayOf(
@@ -614,7 +622,8 @@ class TerrainEditorControlsPanel(
     private fun previewModeButton(label: String, mode: TerrainPreviewMode) {
         if (ImGui.selectable("$label##terrain_preview_$mode", state.terrainPreviewMode == mode)) {
             state.terrainPreviewMode = mode
-            state.showLayerColorPreview = mode == TerrainPreviewMode.LayerColor || mode == TerrainPreviewMode.MaterialColor
+            state.showLayerColorPreview =
+                mode == TerrainPreviewMode.LayerColor || mode == TerrainPreviewMode.MaterialColor
             state.previewSettingsChanged = true
             state.materialPreviewDirty = true
         }
@@ -626,7 +635,8 @@ class TerrainEditorControlsPanel(
             ImGui.beginDisabled(true)
         }
         val label = formatPreviewResolution(resolution)
-        val clicked = ImGui.smallButton("${if (selected) "[$label]" else label}##terrain_preview_resolution_$resolution")
+        val clicked =
+            ImGui.smallButton("${if (selected) "[$label]" else label}##terrain_preview_resolution_$resolution")
         if (selected) {
             ImGui.endDisabled()
         }

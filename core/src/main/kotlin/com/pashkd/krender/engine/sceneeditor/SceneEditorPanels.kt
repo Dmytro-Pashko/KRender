@@ -1,12 +1,6 @@
 package com.pashkd.krender.engine.sceneeditor
 
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.Entity
-import com.pashkd.krender.engine.api.EntityId
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.Vec2
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
@@ -16,18 +10,14 @@ import com.pashkd.krender.engine.scene.SceneEnvironmentDescriptor
 import com.pashkd.krender.engine.scene.defaultAmbientLightColor
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
-import glm_.vec2.Vec2 as ImVec2
+import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.SliderFlag
-import imgui.api.slider
 import imgui.api.colorEdit4
+import imgui.api.slider
 import imgui.dsl
 import java.nio.charset.StandardCharsets
+import glm_.vec2.Vec2 as ImVec2
 
 /**
  * Top-level scene editor action/status panel.
@@ -240,7 +230,8 @@ class SceneHierarchyPanel(
                     ""
                 }
                 val activeMarker = if (entity.active) "" else " (inactive)"
-                val label = "${entity.name}$activeCameraMarker$activeTerrainMarker$activeMarker##scene_entity_${entity.id}"
+                val label =
+                    "${entity.name}$activeCameraMarker$activeTerrainMarker$activeMarker##scene_entity_${entity.id}"
                 if (ImGui.selectable(label, state.selectedEntityId == entity.id)) {
                     state.selectedEntityId = entity.id
                     state.statusMessage = "Selected ${entity.name}."

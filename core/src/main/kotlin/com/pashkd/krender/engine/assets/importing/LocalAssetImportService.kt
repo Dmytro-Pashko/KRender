@@ -1,19 +1,12 @@
 package com.pashkd.krender.engine.assets.importing
 
 import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.assets.AssetCategory
-import com.pashkd.krender.engine.assets.AssetImporterRegistry
-import com.pashkd.krender.engine.assets.AssetMetadataCodec
-import com.pashkd.krender.engine.assets.AssetMetadataDocument
-import com.pashkd.krender.engine.assets.AssetType
-import com.pashkd.krender.engine.assets.AssetRegistryService
-import com.pashkd.krender.engine.assets.Scene2DSkinAssetMetadataReader
-import com.pashkd.krender.engine.assets.normalizePath
+import com.pashkd.krender.engine.assets.*
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import java.util.UUID
+import java.util.*
 
 /**
  * Local filesystem asset import service.
@@ -154,6 +147,7 @@ class LocalAssetImportService(
             status = when {
                 collisionPolicy == AssetImportCollisionPolicy.Overwrite && targetInfo.exists ->
                     "Ready to overwrite existing asset."
+
                 targetInfo.exists -> "Ready to import with collision handling."
                 else -> "Ready to import."
             },
@@ -167,6 +161,7 @@ class LocalAssetImportService(
             extension == "glb" -> "model"
             extension == "json" && isScene2DSkin(source) ->
                 normalizePath("ui/skins/${skinDirectoryName(source, importName)}")
+
             else -> return null
         }
         val targetPath = normalizePath("$directory/${sanitizeFileName(source.name)}")
@@ -194,19 +189,20 @@ class LocalAssetImportService(
     private fun isScene2DSkin(source: File): Boolean {
         val metadata = Scene2DSkinAssetMetadataReader.read(source)
         if (metadata.status == "ok" && (
-            metadata.colorCount > 0 ||
-            metadata.drawableCount > 0 ||
-            metadata.textureRegionCount > 0 ||
-            metadata.labelStyleCount > 0 ||
-            metadata.textButtonStyleCount > 0 ||
-            metadata.progressBarStyleCount > 0 ||
-            metadata.imageButtonStyleCount > 0 ||
-            metadata.checkBoxStyleCount > 0 ||
-            metadata.textFieldStyleCount > 0 ||
-            metadata.scrollPaneStyleCount > 0 ||
-            metadata.selectBoxStyleCount > 0 ||
-            metadata.windowStyleCount > 0
-        )) {
+                metadata.colorCount > 0 ||
+                    metadata.drawableCount > 0 ||
+                    metadata.textureRegionCount > 0 ||
+                    metadata.labelStyleCount > 0 ||
+                    metadata.textButtonStyleCount > 0 ||
+                    metadata.progressBarStyleCount > 0 ||
+                    metadata.imageButtonStyleCount > 0 ||
+                    metadata.checkBoxStyleCount > 0 ||
+                    metadata.textFieldStyleCount > 0 ||
+                    metadata.scrollPaneStyleCount > 0 ||
+                    metadata.selectBoxStyleCount > 0 ||
+                    metadata.windowStyleCount > 0
+                )
+        ) {
             return true
         }
         return looksLikeScene2DSkin(source)

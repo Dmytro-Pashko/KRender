@@ -4,24 +4,12 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TexturePreviewHandle
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.UiService
-import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
-import com.pashkd.krender.engine.ui.scene.UiSceneAlign
-import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
-import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
-import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
-import com.pashkd.krender.engine.ui.scene.UiSceneScaling
-import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
+import com.pashkd.krender.engine.ui.editor.*
+import com.pashkd.krender.engine.ui.scene.*
 import imgui.ImGui
 import imgui.dsl
-import glm_.vec2.Vec2 as ImVec2
 import java.nio.charset.StandardCharsets
+import glm_.vec2.Vec2 as ImVec2
 
 /**
  * Toolbar panel for the UiComposer preview and `.krui` save/reload workflow.
@@ -446,7 +434,11 @@ class UiComposerStructurePanel(
         // A compact combo keeps creation type selection local to the structure panel.
         if (ImGui.beginCombo("Child Type##ui_composer_add_child_type", selectedAddType.name)) {
             UiSceneNodeType.entries.forEach { type ->
-                if (ImGui.selectable("${type.name}##ui_composer_add_child_type_${type.name}", type == selectedAddType)) {
+                if (ImGui.selectable(
+                        "${type.name}##ui_composer_add_child_type_${type.name}",
+                        type == selectedAddType
+                    )
+                ) {
                     selectedAddType = type
                 }
             }
@@ -734,7 +726,12 @@ class UiComposerInspectorPanel(
     }
 
     private fun drawTableLayoutEditor(node: UiSceneNode) {
-        editableEnum(node, "tableOrientation", node.tableOrientation, UiSceneTableOrientation.entries.toList()) { orientation ->
+        editableEnum(
+            node,
+            "tableOrientation",
+            node.tableOrientation,
+            UiSceneTableOrientation.entries.toList()
+        ) { orientation ->
             operations.updateSelectedNode { it.copy(tableOrientation = orientation) }
         }
         drawPaddingEditor(node)
@@ -923,7 +920,11 @@ class UiComposerInspectorPanel(
         drawFieldTooltip(tooltip)
         if (!opened) return
         values.forEach { value ->
-            if (ImGui.selectable("${value.name}##ui_composer_${node.id}_${fieldName}_${value.name}", value == current)) {
+            if (ImGui.selectable(
+                    "${value.name}##ui_composer_${node.id}_${fieldName}_${value.name}",
+                    value == current
+                )
+            ) {
                 onChanged(value)
             }
         }
@@ -946,7 +947,11 @@ class UiComposerInspectorPanel(
             onChanged(null)
         }
         values.forEach { value ->
-            if (ImGui.selectable("${value.name}##ui_composer_${node.id}_${fieldName}_${value.name}", value == current)) {
+            if (ImGui.selectable(
+                    "${value.name}##ui_composer_${node.id}_${fieldName}_${value.name}",
+                    value == current
+                )
+            ) {
                 onChanged(value)
             }
         }
@@ -995,6 +1000,7 @@ class UiComposerInspectorPanel(
             UiSceneNodeType.Stack,
             UiSceneNodeType.Table,
                 -> drawContainerPreview(node)
+
             UiSceneNodeType.Label,
             UiSceneNodeType.TextButton,
             UiSceneNodeType.ProgressBar,
@@ -1011,10 +1017,12 @@ class UiComposerInspectorPanel(
                 ImGui.textUnformatted("No texture")
                 return
             }
+
             resolvedPath.isNullOrBlank() && isBindingPlaceholder(rawTexture) -> {
                 ImGui.textUnformatted("Texture binding has no preview value")
                 return
             }
+
             resolvedPath.isNullOrBlank() -> {
                 ImGui.textUnformatted("No texture")
                 return
@@ -1123,6 +1131,7 @@ class UiComposerInspectorPanel(
                     message = "UiComposer actor style preview unavailable node='${node.id}' type=${node.type}: $reason",
                 )
             }
+
             state.skinMetadata?.loadError != null -> {
                 val reason = state.skinMetadata?.loadError.orEmpty()
                 ImGui.textWrapped("Style metadata unavailable: $reason")
@@ -1131,11 +1140,13 @@ class UiComposerInspectorPanel(
                     message = "UiComposer actor style preview unavailable node='${node.id}' type=${node.type}: $reason",
                 )
             }
+
             styleOptions == null -> ImGui.textUnformatted("Style preview not applicable.")
             styleOptions.contains(styleName) -> {
                 property("Style status", "found")
                 property("Known styles", styleOptions.joinToString(", "))
             }
+
             else -> {
                 property("Style status", "missing from Skin")
                 property("Known styles", styleOptions.joinToString(", ").ifBlank { "<none>" })
@@ -1472,7 +1483,11 @@ class UiComposerInspectorPanel(
         }
         options.forEach { option ->
             val optionLabel = textureOptionLabel(option)
-            if (ImGui.selectable("$optionLabel##ui_composer_texture_picker_${node.id}_${option.path}", option.path == node.texture)) {
+            if (ImGui.selectable(
+                    "$optionLabel##ui_composer_texture_picker_${node.id}_${option.path}",
+                    option.path == node.texture
+                )
+            ) {
                 writeBuffer(bufferFor(node.id, "texture (manual)", node.texture.orEmpty()), option.path)
                 operations.updateSelectedNode { it.copy(texture = option.path) }
             }
@@ -1642,7 +1657,9 @@ class UiComposerSceneBindingsPanel(
     ): String =
         when (type) {
             UiSceneBindingType.Text -> defaultPreviewPayloadValueFor(key).takeIf(String::isNotBlank).orEmpty()
-            UiSceneBindingType.Number -> defaultPreviewPayloadValueFor(key).takeIf { value -> value.toFloatOrNull() != null } ?: "0"
+            UiSceneBindingType.Number -> defaultPreviewPayloadValueFor(key).takeIf { value -> value.toFloatOrNull() != null }
+                ?: "0"
+
             UiSceneBindingType.Texture -> defaultPreviewPayloadValueFor(key)
             UiSceneBindingType.Action -> defaultPreviewPayloadValueFor(key).takeIf(String::isNotBlank) ?: "action.todo"
         }
@@ -1673,7 +1690,11 @@ class UiComposerSceneBindingsPanel(
 
         state.textureOptions.forEach { option ->
             val optionLabel = textureOptionLabel(option)
-            if (ImGui.selectable("$optionLabel##binding_${payloadInputId(binding.key)}_${option.path}", option.path == binding.defaultValue)) {
+            if (ImGui.selectable(
+                    "$optionLabel##binding_${payloadInputId(binding.key)}_${option.path}",
+                    option.path == binding.defaultValue
+                )
+            ) {
                 writeBuffer(valueBufferFor(binding), option.path)
                 operations.updateBindingDefaultValue(binding.key, option.path)
             }
@@ -1799,7 +1820,13 @@ class UiComposerDiagnosticsPanel(
         ImGui.textUnformatted("Hovered node: ${state.hoveredNodeId ?: "<none>"}")
         ImGui.textUnformatted("Resolution preset: ${state.previewResolutionPreset.name}")
         ImGui.textUnformatted("Resolution: ${state.previewLogicalWidth} x ${state.previewLogicalHeight}")
-        ImGui.textUnformatted("Preview camera offset: x=${formatFloat(state.previewCameraOffsetX)}, y=${formatFloat(state.previewCameraOffsetY)}")
+        ImGui.textUnformatted(
+            "Preview camera offset: x=${formatFloat(state.previewCameraOffsetX)}, y=${
+                formatFloat(
+                    state.previewCameraOffsetY
+                )
+            }"
+        )
         ImGui.textUnformatted("Preview zoom: ${formatPercent(state.previewZoom)}")
         ImGui.textUnformatted("Preview panning: ${if (state.canvasPanning) "yes" else "no"}")
         ImGui.textUnformatted("Canvas panel rect: ${formatRect(state.canvasPanelRect)}")

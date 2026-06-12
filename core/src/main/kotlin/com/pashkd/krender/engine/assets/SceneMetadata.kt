@@ -2,17 +2,10 @@ package com.pashkd.krender.engine.assets
 
 import com.pashkd.krender.engine.api.LogLevel
 import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.scene.EntityDescriptor
-import com.pashkd.krender.engine.scene.RuntimeSceneValidator
-import com.pashkd.krender.engine.scene.SceneDependencyCollector
-import com.pashkd.krender.engine.scene.SceneComponentTypes
-import com.pashkd.krender.engine.scene.SceneDescriptor
-import com.pashkd.krender.engine.scene.SceneFileService
-import com.pashkd.krender.engine.scene.SceneSerializer
-import com.pashkd.krender.engine.scene.SkyboxAssetService
+import com.pashkd.krender.engine.scene.*
 import java.io.File
 import java.nio.charset.StandardCharsets
-import java.util.Locale
+import java.util.*
 
 /**
  * Lightweight scene metadata extracted from a `.krscene` file for the asset browser.
@@ -107,7 +100,14 @@ object SceneAssetMetadataReader {
     internal fun fromDescriptor(descriptor: SceneDescriptor, baseDirectory: File): SceneAssetMetadata {
         val sceneFiles = DirectorySceneFileService(baseDirectory)
         val resolvedSkybox = RuntimeSceneValidator.skyboxPath(descriptor)
-            ?.let { path -> runCatching { SkyboxAssetService(sceneFiles, MetadataLogger).loadRequired(path) }.getOrNull() }
+            ?.let { path ->
+                runCatching {
+                    SkyboxAssetService(
+                        sceneFiles,
+                        MetadataLogger
+                    ).loadRequired(path)
+                }.getOrNull()
+            }
         val dependencyGraph = SceneDependencyCollector(sceneFiles).collect(descriptor, resolvedSkybox)
         val validationReport = RuntimeSceneValidator.validate(descriptor, dependencyGraph)
         val entities = descriptor.entities
@@ -136,7 +136,8 @@ object SceneAssetMetadataReader {
             cameraCount = entities.count { entity -> entity.hasComponent(SceneComponentTypes.Camera) },
             lightCount = lightEntities.size,
             directionalLightCount = lightEntities.count { entity ->
-                entity.component(SceneComponentTypes.Light)?.properties?.get("type").equals("Directional", ignoreCase = true)
+                entity.component(SceneComponentTypes.Light)?.properties?.get("type")
+                    .equals("Directional", ignoreCase = true)
             },
             pointLightCount = lightEntities.count { entity ->
                 entity.component(SceneComponentTypes.Light)?.properties?.get("type").equals("Point", ignoreCase = true)

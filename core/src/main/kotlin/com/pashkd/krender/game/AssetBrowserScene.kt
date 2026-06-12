@@ -3,43 +3,16 @@ package com.pashkd.krender.game
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.Scene
-import com.pashkd.krender.engine.assets.AssetBrowserOperationsHandler
-import com.pashkd.krender.engine.assets.AssetBrowserPanel
-import com.pashkd.krender.engine.assets.AssetBrowserState
-import com.pashkd.krender.engine.assets.AssetBrowserSystem
-import com.pashkd.krender.engine.assets.AssetBrowserUiOperations
-import com.pashkd.krender.engine.assets.AssetBrowserUiLayoutDefaults
-import com.pashkd.krender.engine.assets.AssetCategory
-import com.pashkd.krender.engine.assets.AssetControlsPanel
-import com.pashkd.krender.engine.assets.AssetDescriptor
-import com.pashkd.krender.engine.assets.AssetDetailsPanel
-import com.pashkd.krender.engine.assets.AssetImporterRegistry
-import com.pashkd.krender.engine.assets.AssetOperationsService
-import com.pashkd.krender.engine.assets.AssetTool
-import com.pashkd.krender.engine.assets.AssetToolDescriptor
-import com.pashkd.krender.engine.assets.AssetToolRegistry
-import com.pashkd.krender.engine.assets.AssetType
-import com.pashkd.krender.engine.assets.canOpenWithTools
-import com.pashkd.krender.engine.assets.CreateAssetDraft
-import com.pashkd.krender.engine.assets.CreateAssetRequest
-import com.pashkd.krender.engine.assets.DefaultUiSceneSkinPath
-import com.pashkd.krender.engine.assets.AssetRegistryService
-import com.pashkd.krender.engine.assets.LocalAssetOperationsService
-import com.pashkd.krender.engine.assets.importing.AwtFileDialogService
+import com.pashkd.krender.engine.assets.*
 import com.pashkd.krender.engine.assets.importing.AssetImportService
+import com.pashkd.krender.engine.assets.importing.AwtFileDialogService
 import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.assets.importing.LocalAssetImportService
-import com.pashkd.krender.engine.assets.normalizedUiSceneSkinPath
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainPersistence
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.LogsPanel
-import com.pashkd.krender.engine.ui.editor.UiSystem
+import com.pashkd.krender.engine.ui.editor.*
 
 /**
  * Main editor tool scene for browsing, inspecting, and opening engine assets.
@@ -119,7 +92,15 @@ class AssetBrowserScene : Scene("asset_browser") {
         )
         val uiOperations = AssetBrowserUiOperations(browserState, engine, layoutTracker)
         return UiSystem(engine.ui).also { uiSystem ->
-            uiSystem.addPanel(AssetControlsPanel(browserState, uiOperations, layoutConfig, layoutTracker, panelEventLogger))
+            uiSystem.addPanel(
+                AssetControlsPanel(
+                    browserState,
+                    uiOperations,
+                    layoutConfig,
+                    layoutTracker,
+                    panelEventLogger
+                )
+            )
             uiSystem.addPanel(
                 AssetBrowserPanel(
                     state = browserState,
@@ -202,14 +183,14 @@ private class SceneOperationsHandler(
     override fun create(draft: CreateAssetDraft) {
         consumeResult(
             operations.create(
-            CreateAssetRequest(
-                name = draft.name,
-                type = draft.kind.type,
-                category = draft.kind.category,
-                targetDirectory = draft.kind.targetDirectory,
-                extension = draft.kind.extension,
-                initialContent = defaultContent(draft),
-            ),
+                CreateAssetRequest(
+                    name = draft.name,
+                    type = draft.kind.type,
+                    category = draft.kind.category,
+                    targetDirectory = draft.kind.targetDirectory,
+                    extension = draft.kind.extension,
+                    initialContent = defaultContent(draft),
+                ),
             ),
         )
     }
@@ -266,6 +247,7 @@ private class SceneOperationsHandler(
                 draft.name,
                 normalizedUiSceneSkinPath(draft.uiSceneSkinPath),
             ).toByteArray()
+
             AssetType.Terrain -> defaultTerrainContent(draft.name).toByteArray()
             AssetType.Scene -> defaultSceneContent().toByteArray()
             else -> ByteArray(0)
@@ -282,13 +264,14 @@ private class SceneOperationsHandler(
         }
         """.trimIndent() + "\n"
 
-    private fun consumeResult(result: com.pashkd.krender.engine.assets.AssetOperationResult) {
+    private fun consumeResult(result: AssetOperationResult) {
         when (result) {
-            is com.pashkd.krender.engine.assets.AssetOperationResult.Success -> {
+            is AssetOperationResult.Success -> {
                 state.statusMessage = result.message
                 state.errorMessage = null
             }
-            is com.pashkd.krender.engine.assets.AssetOperationResult.Failure -> {
+
+            is AssetOperationResult.Failure -> {
                 state.errorMessage = result.message
                 state.statusMessage = result.message
             }

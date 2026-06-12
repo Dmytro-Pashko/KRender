@@ -4,10 +4,10 @@ import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.SceneFileService
-import com.pashkd.krender.engine.ui.runtime.RuntimeUiBackend
-import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.editor.UiService
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiBackend
+import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportConfig
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.WindowService
@@ -167,7 +167,7 @@ class GameLoop(
             // available to the input snapshot consumed by all systems below.
             backend.ui.beginFrame(delta)
             backend.input.beginFrame()
-            val inputSnapshot = backend.input.snapshot()
+            backend.input.snapshot()
             backend.profiler.measure("tasks.flush") {
                 backend.tasks.flushMainThreadQueue()
             }

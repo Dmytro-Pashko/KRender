@@ -1,27 +1,7 @@
 package com.pashkd.krender.engine.ui.scene
 
-import com.pashkd.krender.engine.serialization.KRenderJson
-import com.pashkd.krender.engine.serialization.KRenderSerializer
-import com.pashkd.krender.engine.serialization.booleanOrDefault
-import com.pashkd.krender.engine.serialization.enumOrDefault
-import com.pashkd.krender.engine.serialization.enumOrNull
-import com.pashkd.krender.engine.serialization.floatOrDefault
-import com.pashkd.krender.engine.serialization.floatOrNull
-import com.pashkd.krender.engine.serialization.intOrDefault
-import com.pashkd.krender.engine.serialization.normalizedProjectPath
-import com.pashkd.krender.engine.serialization.putIfNonDefault
-import com.pashkd.krender.engine.serialization.putIfNotNull
-import com.pashkd.krender.engine.serialization.requiredEnum
-import com.pashkd.krender.engine.serialization.requiredString
-import com.pashkd.krender.engine.serialization.stringOrDefault
-import com.pashkd.krender.engine.serialization.stringOrNull
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonObjectBuilder
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
+import com.pashkd.krender.engine.serialization.*
+import kotlinx.serialization.json.*
 
 /**
  * JSON codec for the shared `.krui` document format.
@@ -116,7 +96,12 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
                 ?: throw IllegalArgumentException("UI scene binding 'bindings[$index]' must be a JSON object")
             UiSceneBindingDefinition(
                 key = binding.requiredString("key", DocumentName).trim(),
-                type = binding.enumOrDefault("type", DocumentName, UiSceneBindingType.Text, UiSceneBindingType::valueOf),
+                type = binding.enumOrDefault(
+                    "type",
+                    DocumentName,
+                    UiSceneBindingType.Text,
+                    UiSceneBindingType::valueOf
+                ),
                 defaultValue = binding.stringOrDefault("defaultValue", ""),
             )
         }

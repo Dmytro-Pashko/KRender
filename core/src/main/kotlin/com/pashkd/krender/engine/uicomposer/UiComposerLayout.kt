@@ -15,6 +15,7 @@ object UiComposerPanelIds {
     const val Toolbar = "uiComposerToolbar"
     const val PreviewCanvas = "uiComposerPreviewCanvas"
     const val Hierarchy = "uiComposerHierarchy"
+
     /**
      * Panel id for hierarchy-driven structure editing controls.
      *

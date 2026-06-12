@@ -4,15 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.ui.Cell
-import com.badlogic.gdx.scenes.scene2d.ui.Container
-import com.badlogic.gdx.scenes.scene2d.ui.Image
-import com.badlogic.gdx.scenes.scene2d.ui.Label
-import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
-import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.badlogic.gdx.scenes.scene2d.ui.Stack
-import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Disposable
@@ -20,14 +12,7 @@ import com.badlogic.gdx.utils.Scaling
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiActionHandler
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiBindingContract
-import com.pashkd.krender.engine.ui.scene.UiSceneAlign
-import com.pashkd.krender.engine.ui.scene.UiSceneBindings
-import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
-import com.pashkd.krender.engine.ui.scene.UiSceneScaling
-import com.pashkd.krender.engine.ui.scene.UiSceneSpacing
-import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
+import com.pashkd.krender.engine.ui.scene.*
 
 /**
  * Builds LibGDX Scene2D actors from shared `.krui` documents.
@@ -149,7 +134,8 @@ class GdxUiSceneBuilder(
             applyPadding(node.padding)
             applyBackground(node, skin)
             node.children.forEachIndexed { index, child ->
-                val childActor = buildNode(child, skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
+                val childActor =
+                    buildNode(child, skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
                 val cell = add(childActor).applyNodeSize(child)
                 // Table orientation is intentionally limited to vertical rows or one horizontal row.
                 // Per-cell config, wrapping, expand/fill, and grid/flex layout are out of scope.
@@ -172,7 +158,15 @@ class GdxUiSceneBuilder(
     ): Container<Actor> {
         val content = when {
             node.children.isEmpty() -> Table()
-            node.children.size == 1 -> buildNode(node.children.first(), skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
+            node.children.size == 1 -> buildNode(
+                node.children.first(),
+                skin,
+                payload,
+                actionHandler,
+                isRoot = false,
+                onActorBuilt = onActorBuilt
+            )
+
             else -> {
                 // MVP fallback:
                 // Scene2D Container is a single-child widget. `.krui` is editor-authored,
@@ -183,13 +177,20 @@ class GdxUiSceneBuilder(
                 logger.warn(TAG) {
                     "Container '${node.id}' has ${node.children.size} children; wrapping them in a Stack for `.krui` MVP."
                 }
-                buildStack(node.copy(type = UiSceneNodeType.Stack), skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
+                buildStack(
+                    node.copy(type = UiSceneNodeType.Stack),
+                    skin,
+                    payload,
+                    actionHandler,
+                    isRoot = false,
+                    onActorBuilt = onActorBuilt
+                )
             }
         }
 
         return Container<Actor>().apply {
             setFillParent(isRoot)
-            setActor(content)
+            actor = content
             node.align?.let { align(toGdxAlign(it)) }
             applyPadding(node.padding)
             applyBackground(node, skin)

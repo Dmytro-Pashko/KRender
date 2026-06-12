@@ -1,10 +1,6 @@
 package com.pashkd.krender.engine.assets
 
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.dsl
 

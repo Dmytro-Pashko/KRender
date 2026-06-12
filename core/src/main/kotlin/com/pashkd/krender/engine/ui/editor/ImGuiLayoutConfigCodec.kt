@@ -4,7 +4,7 @@ import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.JsonValue
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.scene.SceneFileService
-import java.util.Locale
+import java.util.*
 
 /**
  * Encodes and decodes the shared ImGui layout JSON format used by assets/ui layout files.
@@ -144,7 +144,7 @@ object ImGuiLayoutConfigCodec {
         panelNode: JsonValue,
         logger: Logger,
         source: String,
-    ): ImGuiPanelLayout? {
+    ): ImGuiPanelLayout {
         val title = panelNode.getString("title", panelId).takeUnless(String::isBlank) ?: panelId
         val x = readFiniteFloat(panelNode, "x", 0f)
         val y = readFiniteFloat(panelNode, "y", 0f)

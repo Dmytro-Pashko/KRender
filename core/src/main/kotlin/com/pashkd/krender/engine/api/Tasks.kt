@@ -20,14 +20,19 @@ interface TaskService {
 
     /** Runs a suspend block on the background dispatcher. */
     suspend fun <T> onBackground(block: suspend () -> T): T
+
     /** Runs a suspend block on the IO-oriented dispatcher. */
     suspend fun <T> onIo(block: suspend () -> T): T
+
     /** Runs a suspend block on the main or render-thread dispatcher. */
     suspend fun <T> onMain(block: suspend () -> T): T
+
     /** Queues a callback for later execution on the main thread. */
     fun postToMain(block: () -> Unit)
+
     /** Executes queued main-thread callbacks immediately. */
     fun flushMainThreadQueue()
+
     /** Releases task-system resources and cancels active jobs. */
     fun dispose()
 }

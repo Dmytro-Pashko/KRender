@@ -3,14 +3,7 @@ package com.pashkd.krender.engine.terrain
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.scene.DefaultSceneFileService
 import com.pashkd.krender.engine.scene.SceneFileService
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.floatOrNull
+import kotlinx.serialization.json.*
 
 /**
  * Versioned terrain asset file wrapper.
@@ -160,7 +153,7 @@ class TerrainPersistence(
             layers = readLayers(node["layers"]),
         )
 
-    private fun readLayers(node: kotlinx.serialization.json.JsonElement?): List<TerrainLayerDescriptor> {
+    private fun readLayers(node: JsonElement?): List<TerrainLayerDescriptor> {
         val layers = node as? JsonArray ?: return emptyList()
         return layers.mapIndexed { index, layerNode ->
             val layer = layerNode as? JsonObject

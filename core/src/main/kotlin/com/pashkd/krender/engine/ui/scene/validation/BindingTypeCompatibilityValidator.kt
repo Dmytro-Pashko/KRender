@@ -1,12 +1,6 @@
 package com.pashkd.krender.engine.ui.scene.validation
 
-import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
-import com.pashkd.krender.engine.ui.scene.UiSceneValidationCode
-import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
-import com.pashkd.krender.engine.ui.scene.error
-import com.pashkd.krender.engine.ui.scene.warning
+import com.pashkd.krender.engine.ui.scene.*
 
 object BindingTypeCompatibilityValidator : UiSceneValidationRule {
     override val id: String = "BindingTypeCompatibilityValidator"
@@ -67,7 +61,13 @@ object BindingTypeCompatibilityValidator : UiSceneValidationRule {
                                 messagePrefix = "TextButton.action binding must reference Action binding",
                             )
 
-                            "text" -> validateTextCompatibleType(node, reference.fieldName, reference.key, context, issues)
+                            "text" -> validateTextCompatibleType(
+                                node,
+                                reference.fieldName,
+                                reference.key,
+                                context,
+                                issues
+                            )
                         }
                     }
             }

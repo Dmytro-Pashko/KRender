@@ -1,41 +1,13 @@
 package com.pashkd.krender.game
 
-import com.pashkd.krender.engine.animationviewer.AnimationViewerAnimationsPanel
-import com.pashkd.krender.engine.animationviewer.AnimationViewerBoundingBoxSystem
-import com.pashkd.krender.engine.animationviewer.AnimationViewerLoadingPanel
-import com.pashkd.krender.engine.animationviewer.AnimationViewerModelRenderSystem
-import com.pashkd.krender.engine.animationviewer.AnimationViewerOperations
-import com.pashkd.krender.engine.animationviewer.AnimationViewerPlaybackPanel
-import com.pashkd.krender.engine.animationviewer.AnimationViewerSkeletonPanel
-import com.pashkd.krender.engine.animationviewer.AnimationViewerSkeletonRenderSystem
-import com.pashkd.krender.engine.animationviewer.AnimationViewerState
-import com.pashkd.krender.engine.animationviewer.AnimationViewerSystem
-import com.pashkd.krender.engine.animationviewer.AnimationViewerToolbarPanel
-import com.pashkd.krender.engine.animationviewer.AnimationViewerUiLayoutDefaults
-import com.pashkd.krender.engine.animationviewer.AnimationViewerViewportGuideSystem
-import com.pashkd.krender.engine.animationviewer.AnimationViewerViewportPanel
-import com.pashkd.krender.engine.api.AssetPack
-import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.AssetService
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.ModelAsset
-import com.pashkd.krender.engine.api.Scene
+import com.pashkd.krender.engine.animationviewer.*
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
-import com.pashkd.krender.engine.render3d.LightComponent
-import com.pashkd.krender.engine.render3d.LightType
-import com.pashkd.krender.engine.render3d.Material
-import com.pashkd.krender.engine.render3d.ModelComponent
-import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.render3d.*
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.LogsPanel
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.UiSystem
+import com.pashkd.krender.engine.ui.editor.*
 
 /**
  * Builds the single-model animation inspection scene, runtime systems, and ImGui panels.
@@ -116,7 +88,10 @@ class AnimationViewerScene(
         addSystem("AnimationViewerViewportGuideSystem", AnimationViewerViewportGuideSystem(viewerState))
         addSystem("AnimationViewerSystem", createAnimationViewerSystem())
         addSystem("UiSystem", createUiSystem(layoutConfig, panelEventLogger))
-        addSystem("EditorViewportCameraSystem", EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport))
+        addSystem(
+            "EditorViewportCameraSystem",
+            EditorViewportCameraSystem(engine.input, viewerState.camera, viewerState.viewport)
+        )
         addSystem("AnimationViewerBoundingBoxSystem", AnimationViewerBoundingBoxSystem(viewerState, engine.assets))
         addSystem("AnimationViewerModelRenderSystem", AnimationViewerModelRenderSystem(viewerState))
         addSystem("AnimationViewerSkeletonRenderSystem", AnimationViewerSkeletonRenderSystem(viewerState))
@@ -184,7 +159,11 @@ class AnimationViewerScene(
             ),
         )
         engine.logger.debug(TAG) {
-            "AnimationViewer model entity created id=${modelEntity.id} model='${model.path}' scale=${"%.3f".format(modelScale)}"
+            "AnimationViewer model entity created id=${modelEntity.id} model='${model.path}' scale=${
+                "%.3f".format(
+                    modelScale
+                )
+            }"
         }
     }
 
@@ -209,7 +188,11 @@ class AnimationViewerScene(
             ),
         )
         engine.logger.debug(TAG) {
-            "AnimationViewer camera created id=${camera.id} position=${formatVec3(camera.transform.position)} euler=${formatVec3(camera.transform.eulerDegrees)}"
+            "AnimationViewer camera created id=${camera.id} position=${formatVec3(camera.transform.position)} euler=${
+                formatVec3(
+                    camera.transform.eulerDegrees
+                )
+            }"
         }
     }
 
@@ -224,7 +207,11 @@ class AnimationViewerScene(
             ),
         )
         engine.logger.debug(TAG) {
-            "AnimationViewer ambient light created id=${ambient.id} color=0.55,0.58,0.64 intensity=${"%.2f".format(viewerState.ambientLightIntensity)}"
+            "AnimationViewer ambient light created id=${ambient.id} color=0.55,0.58,0.64 intensity=${
+                "%.2f".format(
+                    viewerState.ambientLightIntensity
+                )
+            }"
         }
     }
 
@@ -286,7 +273,7 @@ class AnimationViewerScene(
             engine.logger.debug(TAG) { "AnimationViewer UI panels registered count=7" }
         }
 
-    private fun addSystem(name: String, system: com.pashkd.krender.engine.api.System) {
+    private fun addSystem(name: String, system: System) {
         world.systems.add(system)
         engine.logger.debug(TAG) { "AnimationViewer system added name='$name'" }
     }
@@ -307,7 +294,7 @@ class AnimationViewerScene(
         engine.logger.debug(TAG) { "AnimationViewer UI panel registered name='$name'" }
     }
 
-    private fun formatVec3(value: com.pashkd.krender.engine.api.Vec3): String =
+    private fun formatVec3(value: Vec3): String =
         "%.3f,%.3f,%.3f".format(value.x, value.y, value.z)
 
     companion object {

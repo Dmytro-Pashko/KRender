@@ -51,6 +51,7 @@ object AssetMetadataCodec {
      */
     fun decode(text: String): AssetMetadataDocument {
         val parsed = JsonParser(text).parseValue()
+
         @Suppress("UNCHECKED_CAST")
         val root = parsed as? Map<String, Any?>
             ?: throw AssetMetadataDecodeException("root must be a JSON object")
@@ -65,6 +66,7 @@ object AssetMetadataCodec {
         val tags = (root["tags"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
         val importerId = root["importerId"] as? String
         val schemaVersion = (root["schemaVersion"] as? Number)?.toInt() ?: 1
+
         @Suppress("UNCHECKED_CAST")
         val importSettings = (root["importSettings"] as? Map<String, Any?>) ?: emptyMap()
 
@@ -104,6 +106,7 @@ object AssetMetadataCodec {
                     }
                 }
             }
+
             else -> jsonString(value.toString())
         }
 
@@ -174,8 +177,14 @@ private class JsonParser(private val text: String) {
             map[key] = value
             skipWhitespace()
             when (peek()) {
-                ',' -> { index += 1; continue }
-                '}' -> { index += 1; return map }
+                ',' -> {
+                    index += 1; continue
+                }
+
+                '}' -> {
+                    index += 1; return map
+                }
+
                 else -> fail("expected ',' or '}' in object")
             }
         }
@@ -193,8 +202,14 @@ private class JsonParser(private val text: String) {
             list += parseValue()
             skipWhitespace()
             when (peek()) {
-                ',' -> { index += 1; continue }
-                ']' -> { index += 1; return list }
+                ',' -> {
+                    index += 1; continue
+                }
+
+                ']' -> {
+                    index += 1; return list
+                }
+
                 else -> fail("expected ',' or ']' in array")
             }
         }
@@ -221,6 +236,7 @@ private class JsonParser(private val text: String) {
                         index += 4
                         sb.append(hex.toInt(16).toChar())
                     }
+
                     else -> fail("bad escape '\\$esc'")
                 }
             } else {
@@ -251,13 +267,19 @@ private class JsonParser(private val text: String) {
     }
 
     private fun parseBoolean(): Boolean {
-        if (text.startsWith("true", index)) { index += 4; return true }
-        if (text.startsWith("false", index)) { index += 5; return false }
+        if (text.startsWith("true", index)) {
+            index += 4; return true
+        }
+        if (text.startsWith("false", index)) {
+            index += 5; return false
+        }
         fail("expected boolean")
     }
 
     private fun parseNull(): Any? {
-        if (text.startsWith("null", index)) { index += 4; return null }
+        if (text.startsWith("null", index)) {
+            index += 4; return null
+        }
         fail("expected null")
     }
 

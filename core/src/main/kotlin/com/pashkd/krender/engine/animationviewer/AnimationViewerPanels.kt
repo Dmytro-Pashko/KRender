@@ -4,17 +4,13 @@ import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.ModelBoneInfo
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
-import glm_.vec2.Vec2 as ImVec2
+import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.SliderFlag
 import imgui.api.slider
 import imgui.dsl
 import kotlin.math.max
+import glm_.vec2.Vec2 as ImVec2
 
 /**
  * Top-level Animation Viewer action/status panel.
@@ -27,7 +23,8 @@ class AnimationViewerToolbarPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        val expanded = beginAnimationViewerPanel(AnimationViewerPanelIds.Toolbar, layoutConfig, layoutTracker, eventLogger)
+        val expanded =
+            beginAnimationViewerPanel(AnimationViewerPanelIds.Toolbar, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -75,7 +72,8 @@ class AnimationViewerViewportPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        val expanded = beginAnimationViewerPanel(AnimationViewerPanelIds.Viewport, layoutConfig, layoutTracker, eventLogger)
+        val expanded =
+            beginAnimationViewerPanel(AnimationViewerPanelIds.Viewport, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             state.viewportFocused = false
             ImGui.end()
@@ -144,7 +142,11 @@ class AnimationViewerViewportPanel(
     private fun drawViewModeCombo() {
         if (!ImGui.beginCombo("View Mode##animation_viewer_view_mode", viewModeLabel(state.viewMode))) return
         AnimationViewerViewMode.entries.forEach { mode ->
-            if (ImGui.selectable("${viewModeLabel(mode)}##animation_viewer_view_mode_${mode.name}", state.viewMode == mode)) {
+            if (ImGui.selectable(
+                    "${viewModeLabel(mode)}##animation_viewer_view_mode_${mode.name}",
+                    state.viewMode == mode
+                )
+            ) {
                 state.viewMode = mode
             }
         }
@@ -172,7 +174,8 @@ class AnimationViewerAnimationsPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        val expanded = beginAnimationViewerPanel(AnimationViewerPanelIds.Animations, layoutConfig, layoutTracker, eventLogger)
+        val expanded =
+            beginAnimationViewerPanel(AnimationViewerPanelIds.Animations, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -190,7 +193,8 @@ class AnimationViewerAnimationsPanel(
 
         state.animationNames.forEachIndexed { index, animationName ->
             val selected = state.selectedAnimationIndex == index
-            val duration = info?.animations?.firstOrNull { animation -> animation.name == animationName }?.durationSeconds
+            val duration =
+                info?.animations?.firstOrNull { animation -> animation.name == animationName }?.durationSeconds
             val suffix = duration?.let { " (${formatSeconds(it)})" }.orEmpty()
             if (ImGui.selectable("$animationName$suffix##animation_viewer_anim_$index", selected)) {
                 operations.selectAnimation(index)
@@ -232,7 +236,8 @@ class AnimationViewerSkeletonPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        val expanded = beginAnimationViewerPanel(AnimationViewerPanelIds.Skeleton, layoutConfig, layoutTracker, eventLogger)
+        val expanded =
+            beginAnimationViewerPanel(AnimationViewerPanelIds.Skeleton, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             state.hoveredBoneIndex = null
             ImGui.end()
@@ -250,7 +255,10 @@ class AnimationViewerSkeletonPanel(
 
         ImGui.separator()
         ImGui.checkbox("Show joints##animation_viewer_show_skeleton_joints", state::showSkeletonJoints)
-        ImGui.checkbox("Highlight connected bones##animation_viewer_highlight_connected_bones", state::highlightConnectedBones)
+        ImGui.checkbox(
+            "Highlight connected bones##animation_viewer_highlight_connected_bones",
+            state::highlightConnectedBones
+        )
         slider(
             "Joint size##animation_viewer_skeleton_joint_size",
             state::skeletonJointSize,
@@ -294,7 +302,10 @@ class AnimationViewerSkeletonPanel(
         textLine("Name: ${boneDisplayName(selectedBone)}")
         textLine("Parent: ${parent?.let(::boneDebugSummary) ?: "none"}")
         textLine(
-            "Children: ${children.takeIf(List<ModelBoneInfo>::isNotEmpty)?.joinToString { child -> boneDebugSummary(child) } ?: "none"}",
+            "Children: ${
+                children.takeIf(List<ModelBoneInfo>::isNotEmpty)
+                    ?.joinToString { child -> boneDebugSummary(child) } ?: "none"
+            }",
         )
         textLine("Pose: ${pose?.worldPosition?.let(::formatPosition) ?: "unavailable"}")
     }
@@ -348,7 +359,8 @@ class AnimationViewerPlaybackPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        val expanded = beginAnimationViewerPanel(AnimationViewerPanelIds.Playback, layoutConfig, layoutTracker, eventLogger)
+        val expanded =
+            beginAnimationViewerPanel(AnimationViewerPanelIds.Playback, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -445,7 +457,8 @@ class AnimationViewerLoadingPanel(
     override fun draw() {
         if (!state.isLoadingModel) return
 
-        val expanded = beginAnimationViewerPanel(AnimationViewerPanelIds.Loading, layoutConfig, layoutTracker, eventLogger)
+        val expanded =
+            beginAnimationViewerPanel(AnimationViewerPanelIds.Loading, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -485,7 +498,8 @@ private fun formatSeconds(value: Float): String = "%.3f s".format(value)
 
 private fun availabilityLabel(available: Boolean): String = if (available) "available" else "unavailable"
 
-private fun boneDisplayName(bone: ModelBoneInfo): String = bone.name?.takeIf(String::isNotBlank) ?: "Bone #${bone.index}"
+private fun boneDisplayName(bone: ModelBoneInfo): String =
+    bone.name?.takeIf(String::isNotBlank) ?: "Bone #${bone.index}"
 
 private fun boneDebugSummary(bone: ModelBoneInfo): String = "${boneDisplayName(bone)} / index ${bone.index}"
 

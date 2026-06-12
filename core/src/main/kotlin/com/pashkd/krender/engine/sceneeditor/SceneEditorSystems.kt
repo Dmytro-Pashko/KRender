@@ -1,32 +1,12 @@
 package com.pashkd.krender.engine.sceneeditor
 
-import com.pashkd.krender.engine.api.ApplyEnvironment
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.DrawModel
-import com.pashkd.krender.engine.api.DrawLine
-import com.pashkd.krender.engine.api.DrawWorldAxes
-import com.pashkd.krender.engine.api.DrawWorldGrid
-import com.pashkd.krender.engine.api.Entity
-import com.pashkd.krender.engine.api.InputService
-import com.pashkd.krender.engine.api.InputSnapshot
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.MouseButton
-import com.pashkd.krender.engine.api.MaterialTextureRef
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.Vec2
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
-import com.pashkd.krender.engine.scene.SceneFileService
-import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
-import com.pashkd.krender.engine.scene.SkyboxAssetService
-import com.pashkd.krender.engine.scene.defaultAmbientLightColor
+import com.pashkd.krender.engine.scene.*
 import com.pashkd.krender.engine.terrain.TerrainAssetRuntimeSync
 import com.pashkd.krender.engine.terrain.TerrainRenderCommands
 import kotlin.math.cos
@@ -220,9 +200,9 @@ class SceneEditorDocumentTerrainSyncSystem(
 
 class SceneEditorMirroredLightComponent(
     val sourceEntityId: Long,
-) : com.pashkd.krender.engine.api.Component
+) : Component
 
-class SceneEditorAmbientLightComponent : com.pashkd.krender.engine.api.Component
+class SceneEditorAmbientLightComponent : Component
 
 /**
  * Mirrors scene-document lights into the editor runtime world so the viewport renderer uses scene lighting.

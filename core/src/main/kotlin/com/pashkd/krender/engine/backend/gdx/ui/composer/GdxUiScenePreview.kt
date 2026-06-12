@@ -16,6 +16,10 @@ import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.backend.gdx.ui.runtime.scene.GdxUiSceneBuilder
+import com.pashkd.krender.engine.ui.scene.UiSceneDocument
+import com.pashkd.krender.engine.ui.scene.UiSceneNode
+import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
+import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
 import com.pashkd.krender.engine.uicomposer.UiComposerActorPreviewInfo
 import com.pashkd.krender.engine.uicomposer.UiComposerCanvasHit
 import com.pashkd.krender.engine.uicomposer.UiComposerGuideBounds
@@ -25,10 +29,6 @@ import com.pashkd.krender.engine.uicomposer.UiComposerVisualGuideOptions
 import com.pashkd.krender.engine.uicomposer.clampPreviewZoom
 import com.pashkd.krender.engine.uicomposer.computeAlignmentAnchor
 import com.pashkd.krender.engine.uicomposer.computePaddingInnerRect
-import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
-import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
 import kotlin.math.abs
 
 /**
@@ -260,12 +260,12 @@ class GdxUiScenePreview(
         this.highlightHovered = highlightHovered
         this.hoveredNodeId = hoveredNodeId
         clearActorDebug(stage.root)
-        stage.setDebugAll(showBounds)
+        stage.isDebugAll = showBounds
         if (highlightSelected) {
-            actorsByNodeId[selectedNodeId]?.setDebug(true)
+            actorsByNodeId[selectedNodeId]?.debug = true
         }
         if (highlightHovered) {
-            actorsByNodeId[hoveredNodeId]?.setDebug(true)
+            actorsByNodeId[hoveredNodeId]?.debug = true
         }
     }
 
@@ -494,6 +494,7 @@ class GdxUiScenePreview(
                 guideShapeRenderer.line(startX, startY - 12f, startX - 5f, startY - 5f)
                 guideShapeRenderer.line(startX, startY - 12f, startX + 5f, startY - 5f)
             }
+
             UiSceneTableOrientation.Horizontal -> {
                 guideShapeRenderer.line(startX, startY, startX + 24f, startY)
                 guideShapeRenderer.line(startX + 24f, startY, startX + 17f, startY + 5f)
@@ -605,7 +606,7 @@ class GdxUiScenePreview(
         Color(0.78f, 0.68f, 1f, (0.70f - index * 0.08f).coerceAtLeast(0.32f))
 
     private fun clearActorDebug(actor: Actor) {
-        actor.setDebug(false)
+        actor.debug = false
         // Scene2D debug flags live on each actor, so recursively reset children before reapplying.
         (actor as? Group)?.children?.forEach { child -> clearActorDebug(child) }
     }

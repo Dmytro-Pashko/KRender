@@ -6,22 +6,8 @@ import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.ModelRenderSystem
 import com.pashkd.krender.engine.render3d.RuntimeEnvironmentFactory
 import com.pashkd.krender.engine.render3d.RuntimeEnvironmentSystem
-import com.pashkd.krender.engine.scene.RuntimeSceneValidator
-import com.pashkd.krender.engine.scene.RuntimeTerrainMaterialLibraryService
-import com.pashkd.krender.engine.scene.SceneDependencyCollector
-import com.pashkd.krender.engine.scene.SceneDescriptor
-import com.pashkd.krender.engine.scene.SceneSerializer
-import com.pashkd.krender.engine.scene.SceneValidationReport
-import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
-import com.pashkd.krender.engine.terrain.RuntimeTerrainMeshSystem
-import com.pashkd.krender.engine.terrain.RuntimeTerrainService
-import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
-import com.pashkd.krender.engine.terrain.TerrainCameraControllerSystem
-import com.pashkd.krender.engine.terrain.TerrainMaterialBakeService
-import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
-import com.pashkd.krender.engine.terrain.TerrainPersistence
-import com.pashkd.krender.engine.terrain.TerrainRenderSystem
-import com.pashkd.krender.engine.terrain.TerrainRuntimeLoader
+import com.pashkd.krender.engine.scene.*
+import com.pashkd.krender.engine.terrain.*
 
 data class RuntimeSceneBuildRequest(
     val scenePath: String,
@@ -61,9 +47,10 @@ class RuntimeSceneBuilder(
         var terrainPrepared = false
         var materialBakeService: TerrainMaterialBakeService? = null
         if (request.descriptor.settings.activeTerrainEntityId != null) {
-            val terrainMaterialLibrary = RuntimeTerrainMaterialLibraryService(engine.sceneFiles, engine.logger).loadRequired(
-                request.descriptor.settings.terrain.materialLibraryPath,
-            )
+            val terrainMaterialLibrary =
+                RuntimeTerrainMaterialLibraryService(engine.sceneFiles, engine.logger).loadRequired(
+                    request.descriptor.settings.terrain.materialLibraryPath,
+                )
             materialBakeService = TerrainMaterialBakeService(
                 materialLibrary = terrainMaterialLibrary,
                 logger = engine.logger,

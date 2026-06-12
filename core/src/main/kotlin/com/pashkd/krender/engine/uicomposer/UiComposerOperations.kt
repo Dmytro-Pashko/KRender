@@ -3,13 +3,7 @@ package com.pashkd.krender.engine.uicomposer
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
-import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
-import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
-import com.pashkd.krender.engine.ui.scene.UiSceneSerializer
-import com.pashkd.krender.engine.ui.scene.UiSceneValidator
+import com.pashkd.krender.engine.ui.scene.*
 
 /**
  * UI Composer editor operations for panel layout persistence and basic `.krui` editing.
@@ -491,7 +485,7 @@ class UiComposerOperations(
         state.document = newDocument
         state.selectedNodeId = selectNodeId?.invoke(newDocument)
             ?: oldSelectedNodeId?.takeIf { id -> findUiSceneNodeById(newDocument.root, id) != null }
-            ?: newDocument.root.id
+                ?: newDocument.root.id
 
         afterDocumentChanged(newDocument)
         state.statusMessage = description

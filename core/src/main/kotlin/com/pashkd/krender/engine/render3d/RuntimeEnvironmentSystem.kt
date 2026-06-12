@@ -1,10 +1,6 @@
 package com.pashkd.krender.engine.render3d
 
-import com.pashkd.krender.engine.api.ApplyEnvironment
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.MaterialTextureRef
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.System
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
 import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
 

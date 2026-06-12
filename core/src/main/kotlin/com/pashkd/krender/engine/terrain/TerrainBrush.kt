@@ -169,8 +169,9 @@ object TerrainBrushApplier {
                         // Layer painting integrates weight over time, then clamps to the valid
                         // [0, 1] range expected by terrain layer blending.
                         val oldWeight = data.getLayerWeight(layerId, x, y)
-                        val newWeight = (oldWeight + stroke.strength * effect * stroke.deltaSeconds * stroke.layerWeightDeltaSign)
-                            .coerceIn(0f, 1f)
+                        val newWeight =
+                            (oldWeight + stroke.strength * effect * stroke.deltaSeconds * stroke.layerWeightDeltaSign)
+                                .coerceIn(0f, 1f)
                         if (oldWeight != newWeight) {
                             data.setLayerWeight(layerId, x, y, newWeight)
                             // Record only the delta so undo/redo systems can reconstruct the edit
@@ -189,12 +190,20 @@ object TerrainBrushApplier {
                             TerrainBrushMode.Lower -> oldHeight - stroke.strength * effect * stroke.deltaSeconds
                             TerrainBrushMode.Flatten -> {
                                 val target = stroke.flattenHeight ?: oldHeight
-                                lerp(oldHeight, target, (stroke.strength * effect * stroke.deltaSeconds).coerceIn(0f, 1f))
+                                lerp(
+                                    oldHeight,
+                                    target,
+                                    (stroke.strength * effect * stroke.deltaSeconds).coerceIn(0f, 1f)
+                                )
                             }
 
                             TerrainBrushMode.Smooth -> {
                                 val average = sampleAverageHeight(data, x, y, smoothHeights)
-                                lerp(oldHeight, average, (stroke.strength * effect * stroke.deltaSeconds).coerceIn(0f, 1f))
+                                lerp(
+                                    oldHeight,
+                                    average,
+                                    (stroke.strength * effect * stroke.deltaSeconds).coerceIn(0f, 1f)
+                                )
                             }
 
                             TerrainBrushMode.PaintLayer -> oldHeight

@@ -8,12 +8,16 @@ import kotlin.system.measureNanoTime
 enum class LogLevel {
     /** Fine-grained diagnostic output for deep tracing. */
     Trace,
+
     /** Developer-focused diagnostic output. */
     Debug,
+
     /** General runtime information. */
     Info,
+
     /** Recoverable issue or suspicious state. */
     Warn,
+
     /** Failure or severe runtime problem. */
     Error,
 }
@@ -52,12 +56,16 @@ interface Logger {
 
     /** Emits a trace-level message. */
     fun trace(tag: String, message: () -> String) = log(LogLevel.Trace, tag, null, message)
+
     /** Emits a debug-level message. */
     fun debug(tag: String, message: () -> String) = log(LogLevel.Debug, tag, null, message)
+
     /** Emits an info-level message. */
     fun info(tag: String, message: () -> String) = log(LogLevel.Info, tag, null, message)
+
     /** Emits a warning-level message. */
     fun warn(tag: String, error: Throwable? = null, message: () -> String) = log(LogLevel.Warn, tag, error, message)
+
     /** Emits an error-level message. */
     fun error(tag: String, error: Throwable? = null, message: () -> String) = log(LogLevel.Error, tag, error, message)
 }
@@ -126,6 +134,7 @@ interface LogSink {
 interface LogService {
     /** Returns recently recorded structured logs. */
     val recentEntries: List<LogEntry>
+
     /** Minimum accepted log level for storage and sinks. */
     var minLevel: LogLevel
 
@@ -148,15 +157,19 @@ interface LogService {
 interface RuntimeStatsService {
     /** Returns the current frame index. */
     val frame: Long
+
     /** Returns the runtime metrics currently collected for this frame. */
     val metrics: List<RuntimeMetric>
+
     /** Returns the most recent completed frame snapshot. */
     val lastCompletedFrame: RuntimeFrameSnapshot?
 
     /** Starts a new telemetry frame and clears per-frame metrics. */
     fun beginFrame()
+
     /** Finalizes the frame telemetry snapshot. */
     fun endFrame(deltaSeconds: Float, fixedUpdates: Int)
+
     /** Stores a formatted key/value metric. */
     fun put(label: String, value: Any?)
 }

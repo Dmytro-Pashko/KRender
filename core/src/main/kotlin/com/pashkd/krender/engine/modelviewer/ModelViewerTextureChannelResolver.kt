@@ -1,11 +1,6 @@
 package com.pashkd.krender.engine.modelviewer
 
-import com.pashkd.krender.engine.api.MaterialDebugMode
-import com.pashkd.krender.engine.api.MaterialDebugTextureRef
-import com.pashkd.krender.engine.api.MaterialTextureRef
-import com.pashkd.krender.engine.api.ModelAssetInfo
-import com.pashkd.krender.engine.api.ModelTextureSlotInfo
-import com.pashkd.krender.engine.api.TextureDebugComponent
+import com.pashkd.krender.engine.api.*
 
 internal fun isModelViewerTextureDebugMode(mode: MaterialDebugMode): Boolean = when (mode) {
     MaterialDebugMode.BaseColor,
@@ -16,11 +11,11 @@ internal fun isModelViewerTextureDebugMode(mode: MaterialDebugMode): Boolean = w
     MaterialDebugMode.MetallicRoughnessPacked,
     MaterialDebugMode.Occlusion,
     MaterialDebugMode.Alpha,
-    -> true
+        -> true
 
     MaterialDebugMode.None,
     MaterialDebugMode.UvChecker,
-    -> false
+        -> false
 }
 
 internal fun matchingModelViewerTextureSlots(
@@ -93,6 +88,7 @@ internal fun modelViewerTextureAliasesFor(mode: MaterialDebugMode): Set<String> 
         "roughnesstexture",
         "orm",
     )
+
     MaterialDebugMode.Metallic -> setOf(
         "metallicroughness",
         "metallicroughnesstexture",
@@ -100,16 +96,18 @@ internal fun modelViewerTextureAliasesFor(mode: MaterialDebugMode): Set<String> 
         "metallictexture",
         "orm",
     )
+
     MaterialDebugMode.MetallicRoughnessPacked -> setOf(
         "metallicroughness",
         "metallicroughnesstexture",
         "orm",
     )
+
     MaterialDebugMode.Occlusion -> setOf("occlusion", "ao", "ambientocclusion")
     MaterialDebugMode.Alpha -> setOf("alpha", "opacity", "alphatexture", "basecolor", "basecolortexture", "diffuse")
     MaterialDebugMode.None,
     MaterialDebugMode.UvChecker,
-    -> emptySet()
+        -> emptySet()
 }
 
 private fun textureDebugComponentFor(mode: MaterialDebugMode): TextureDebugComponent =
@@ -122,11 +120,11 @@ private fun textureDebugComponentFor(mode: MaterialDebugMode): TextureDebugCompo
         MaterialDebugMode.BaseColor,
         MaterialDebugMode.Normal,
         MaterialDebugMode.Emission,
-        -> TextureDebugComponent.RGB
+            -> TextureDebugComponent.RGB
 
         MaterialDebugMode.None,
         MaterialDebugMode.UvChecker,
-        -> TextureDebugComponent.RGB
+            -> TextureDebugComponent.RGB
     }
 
 private fun normalizeModelViewerTextureChannel(channel: String?): String =

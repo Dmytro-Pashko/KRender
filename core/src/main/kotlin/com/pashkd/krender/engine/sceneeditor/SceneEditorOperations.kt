@@ -1,38 +1,19 @@
 package com.pashkd.krender.engine.sceneeditor
 
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.EngineContext
-import com.pashkd.krender.engine.api.Entity
-import com.pashkd.krender.engine.api.EntityId
-import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.NameComponent
-import com.pashkd.krender.engine.api.ParentComponent
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.scene.DefaultAmbientLightIntensity
-import com.pashkd.krender.engine.scene.RuntimeSceneValidator
-import com.pashkd.krender.engine.scene.SceneDependencyCollector
-import com.pashkd.krender.engine.scene.SceneDescriptor
-import com.pashkd.krender.engine.scene.SceneEnvironmentDescriptor
-import com.pashkd.krender.engine.scene.SceneLightingDescriptor
-import com.pashkd.krender.engine.scene.SceneValidationReport
-import com.pashkd.krender.engine.scene.SceneSerializer
-import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
-import com.pashkd.krender.engine.scene.SkyboxAssetService
-import com.pashkd.krender.engine.scene.defaultAmbientLightColor
+import com.pashkd.krender.engine.scene.*
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
-import java.util.UUID
 
 /**
  * Scene Editor UI operations. Keeps panel callbacks out of direct scene mutation details.
@@ -457,7 +438,8 @@ class SceneEditorOperations(
             context.logger.warn(TAG) { "Rejected environment intensity edit value=$intensity" }
             return
         }
-        val current = document.descriptor?.settings?.environment?.environmentIntensity ?: SceneEnvironmentDescriptor().environmentIntensity
+        val current = document.descriptor?.settings?.environment?.environmentIntensity
+            ?: SceneEnvironmentDescriptor().environmentIntensity
         if (current == intensity) return
 
         updateSceneSettings { settings ->
@@ -600,7 +582,10 @@ class SceneEditorOperations(
             context.logger.info(TAG) { "Opened terrain '$normalizedPath' in Terrain Editor" }
         } catch (error: Exception) {
             state.statusMessage = "Failed to open Terrain Editor: ${error.message}"
-            context.logger.error(TAG, error) { "Failed to open terrain '$normalizedPath' in Terrain Editor: ${error.message}" }
+            context.logger.error(
+                TAG,
+                error
+            ) { "Failed to open terrain '$normalizedPath' in Terrain Editor: ${error.message}" }
         }
     }
 
@@ -830,13 +815,21 @@ class SceneEditorOperations(
         updateStatusMessage: Boolean,
     ): SceneValidationReport {
         val resolvedSkybox = RuntimeSceneValidator.skyboxPath(descriptor)
-            ?.let { path -> runCatching { SkyboxAssetService(context.sceneFiles, context.logger).loadRequired(path) }.getOrNull() }
+            ?.let { path ->
+                runCatching {
+                    SkyboxAssetService(
+                        context.sceneFiles,
+                        context.logger
+                    ).loadRequired(path)
+                }.getOrNull()
+            }
         val dependencyGraph = SceneDependencyCollector(context.sceneFiles).collect(descriptor, resolvedSkybox)
         val report = RuntimeSceneValidator.validate(descriptor, dependencyGraph)
         state.validationReport = report
         state.validationDirty = false
         if (updateStatusMessage) {
-            state.statusMessage = "Scene validation completed: ${report.errors.size} errors, ${report.warnings.size} warnings."
+            state.statusMessage =
+                "Scene validation completed: ${report.errors.size} errors, ${report.warnings.size} warnings."
         }
         context.logger.info(TAG) {
             "Scene validation completed scene='${descriptor.name}' errors=${report.errors.size} warnings=${report.warnings.size} dependencies=${dependencyGraph.dependencies.size} missing=${dependencyGraph.missing.size}"

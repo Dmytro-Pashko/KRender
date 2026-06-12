@@ -1,11 +1,6 @@
 package com.pashkd.krender.engine.ui.scene.validation
 
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
-import com.pashkd.krender.engine.ui.scene.UiSceneValidationCode
-import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
-import com.pashkd.krender.engine.ui.scene.error
-import com.pashkd.krender.engine.ui.scene.warning
+import com.pashkd.krender.engine.ui.scene.*
 
 object NodeShapeValidator : UiSceneValidationRule {
     override val id: String = "NodeShapeValidator"

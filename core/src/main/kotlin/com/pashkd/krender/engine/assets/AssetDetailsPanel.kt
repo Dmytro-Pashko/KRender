@@ -1,20 +1,8 @@
 package com.pashkd.krender.engine.assets
 
 import com.pashkd.krender.engine.api.AssetService
-import com.pashkd.krender.engine.assets.details.AssetDetailsRenderContext
-import com.pashkd.krender.engine.assets.details.GenericAssetDetailsRenderer
-import com.pashkd.krender.engine.assets.details.ModelAssetDetailsRenderer
-import com.pashkd.krender.engine.assets.details.Scene2DSkinAssetDetailsRenderer
-import com.pashkd.krender.engine.assets.details.SceneAssetDetailsRenderer
-import com.pashkd.krender.engine.assets.details.TerrainAssetDetailsRenderer
-import com.pashkd.krender.engine.assets.details.TextureAssetDetailsRenderer
-import com.pashkd.krender.engine.assets.details.UiSceneAssetDetailsRenderer
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.UiService
-import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import com.pashkd.krender.engine.assets.details.*
+import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.dsl
 

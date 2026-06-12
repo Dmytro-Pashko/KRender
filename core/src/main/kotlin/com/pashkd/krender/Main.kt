@@ -1,18 +1,11 @@
 package com.pashkd.krender
 
-import com.pashkd.krender.engine.backend.gdx.GdxEngineApplication
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.backend.gdx.GdxEngineApplication
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
-import com.pashkd.krender.game.AnimationViewerScene
-import com.pashkd.krender.game.AssetBrowserScene
-import com.pashkd.krender.game.ModelViewerScene
-import com.pashkd.krender.game.RuntimeScene
-import com.pashkd.krender.game.SceneEditorScene
-import com.pashkd.krender.game.TerrainEditorScene
-import com.pashkd.krender.game.UiComposerScene
-import com.pashkd.krender.game.WoolboySandboxScene
+import com.pashkd.krender.game.*
 
 class Main(
     sceneName: String? = configuredSceneName(),
@@ -77,7 +70,8 @@ class Main(
             System.getProperty("krender.model.path")?.takeIf(String::isNotBlank)
                 ?: System.getProperty("krender.model")?.takeIf(String::isNotBlank)
 
-        fun configuredTerrainFilePath(): String? = System.getProperty("krender.terrain.path")?.takeIf(String::isNotBlank)
+        fun configuredTerrainFilePath(): String? =
+            System.getProperty("krender.terrain.path")?.takeIf(String::isNotBlank)
 
         /**
          * Reads the `.krui` UiScene path passed to the temporary UI Composer route.

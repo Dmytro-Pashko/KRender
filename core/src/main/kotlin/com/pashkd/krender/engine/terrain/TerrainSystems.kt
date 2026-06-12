@@ -1,32 +1,12 @@
 package com.pashkd.krender.engine.terrain
 
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.DrawDynamicModel
-import com.pashkd.krender.engine.api.DrawLine
-import com.pashkd.krender.engine.api.DynamicModel
-import com.pashkd.krender.engine.api.InputService
-import com.pashkd.krender.engine.api.Key
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.MaterialTextureRef
-import com.pashkd.krender.engine.api.PointerPhase
-import com.pashkd.krender.engine.api.RuntimeTextureData
-import com.pashkd.krender.engine.api.RuntimeTextureFilter
-import com.pashkd.krender.engine.api.RuntimeTextureWrap
-import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.Vec2
-import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.material.TerrainMaterialDescriptor
 import com.pashkd.krender.engine.material.TerrainMaterialLibrary
-import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.render3d.Material
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.roundToInt
-import kotlin.math.sin
-import kotlin.math.sqrt
-import kotlin.math.tan
+import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import kotlin.math.*
 
 /**
  * Editor-side terrain workflow controller.
@@ -47,7 +27,9 @@ class TerrainEditorSystem(
     private val input: InputService,
     private val logger: Logger,
     private val state: TerrainEditorState,
-    private val generatorsById: Map<String, TerrainGenerator> = listOf(FlatTerrainGenerator()).associateBy(TerrainGenerator::id),
+    private val generatorsById: Map<String, TerrainGenerator> = listOf(FlatTerrainGenerator()).associateBy(
+        TerrainGenerator::id
+    ),
     private val terrainMaterialsById: Map<String, TerrainMaterialDescriptor> = emptyMap(),
 ) : System() {
     /**
@@ -74,11 +56,12 @@ class TerrainEditorSystem(
      * a drag gesture becomes a single history entry instead of many tiny edits.
      */
     override fun update(world: SceneWorld, dt: Float) {
-        val terrainEntity = world.query<TransformComponent, TerrainDataComponent, TerrainRendererComponent>().firstOrNull()
-            ?: run {
-                resetBrushState()
-                return
-            }
+        val terrainEntity =
+            world.query<TransformComponent, TerrainDataComponent, TerrainRendererComponent>().firstOrNull()
+                ?: run {
+                    resetBrushState()
+                    return
+                }
         val terrain = terrainEntity.get<TerrainDataComponent>()
             ?: run {
                 resetBrushState()
@@ -162,7 +145,8 @@ class TerrainEditorSystem(
         // Treat both Down and Move as a continuous pressed stroke so painting can
         // continue while the pointer is dragged across the terrain.
         val pointerDown = snapshot.pointers.any { it.phase == PointerPhase.Down || it.phase == PointerPhase.Move }
-        val pointerReleased = snapshot.pointers.any { it.phase == PointerPhase.Up || it.phase == PointerPhase.Cancelled }
+        val pointerReleased =
+            snapshot.pointers.any { it.phase == PointerPhase.Up || it.phase == PointerPhase.Cancelled }
 
         if ((pointerReleased || hoveredHit == null) && brushActive) {
             finishBrushStroke()
@@ -270,7 +254,7 @@ class TerrainEditorSystem(
      * radius or strength depending on whether Shift is held.
      */
     private fun updateBrushBindings(
-        snapshot: com.pashkd.krender.engine.api.InputSnapshot,
+        snapshot: InputSnapshot,
         keyboardAvailable: Boolean,
         mouseAvailable: Boolean,
     ) {
@@ -321,7 +305,8 @@ class TerrainEditorSystem(
             state.selectedLayerName = selected.name
             state.selectedLayerMaterialId = selected.materialId ?: ""
             state.selectedLayerMaterialIndex = state.terrainMaterials.indexOfFirst { it.id == selected.materialId }
-            state.selectedLayerColor = floatArrayOf(selected.color.r, selected.color.g, selected.color.b, selected.color.a)
+            state.selectedLayerColor =
+                floatArrayOf(selected.color.r, selected.color.g, selected.color.b, selected.color.a)
             state.selectedLayerVisible = selected.visible
             state.selectedLayerTiling = selected.tiling
             if (selected.materialId != null && state.selectedLayerMaterialIndex < 0) {
@@ -362,7 +347,7 @@ class TerrainEditorSystem(
      */
     private fun processHistoryCommands(
         terrain: TerrainDataComponent,
-        snapshot: com.pashkd.krender.engine.api.InputSnapshot,
+        snapshot: InputSnapshot,
     ) {
         var changed = false
         var commandHandled = false
@@ -484,7 +469,8 @@ class TerrainEditorSystem(
         if (state.previewSettingsChanged) {
             state.previewSettingsChanged = false
             markPreviewDirty(terrain)
-            state.previewMessage = "Preview: ${formatPreviewMode(state.terrainPreviewMode)} / ${formatBlendMode(state.layerBlendMode)}"
+            state.previewMessage =
+                "Preview: ${formatPreviewMode(state.terrainPreviewMode)} / ${formatBlendMode(state.layerBlendMode)}"
         }
 
         if (state.createTerrainRequested) {
@@ -492,7 +478,11 @@ class TerrainEditorSystem(
             finishBrushStroke()
             editHistory.clearAndMarkClean()
             logger.info(TAG) {
-                "Creating terrain from generator='${activeGenerator().id}' resolution=${state.terrainResolution} spacing=${"%.2f".format(state.vertexSpacing)}"
+                "Creating terrain from generator='${activeGenerator().id}' resolution=${state.terrainResolution} spacing=${
+                    "%.2f".format(
+                        state.vertexSpacing
+                    )
+                }"
             }
             regenerateTerrain(terrain, renderer)
             state.persistenceMessage = "Created terrain: ${state.terrainSaveName}"
@@ -531,7 +521,8 @@ class TerrainEditorSystem(
             val selectedIndex = terrain.data.allLayers().indexOfFirst { it.id == selectedLayerId }
             if (selectedLayerId != null && terrain.data.removeLayer(selectedLayerId)) {
                 val remainingLayers = terrain.data.allLayers()
-                state.selectedLayerId = remainingLayers.getOrNull(selectedIndex.coerceIn(0, remainingLayers.lastIndex.coerceAtLeast(0)))?.id
+                state.selectedLayerId =
+                    remainingLayers.getOrNull(selectedIndex.coerceIn(0, remainingLayers.lastIndex.coerceAtLeast(0)))?.id
                 markPreviewDirty(terrain)
                 state.layerMessage = "Removed layer"
             }
@@ -570,7 +561,11 @@ class TerrainEditorSystem(
             finishBrushStroke()
             editHistory.clearAndMarkClean()
             logger.info(TAG) {
-                "Regenerating terrain with generator='${activeGenerator().id}' resolution=${state.terrainResolution} spacing=${"%.2f".format(state.vertexSpacing)}"
+                "Regenerating terrain with generator='${activeGenerator().id}' resolution=${state.terrainResolution} spacing=${
+                    "%.2f".format(
+                        state.vertexSpacing
+                    )
+                }"
             }
             regenerateTerrain(terrain, renderer)
             logger.info(TAG) { "Regenerated terrain (${terrain.data.describeTerrain()})" }
@@ -855,7 +850,7 @@ class TerrainEditorSystem(
      * Alt acts as a temporary erase modifier even when the persistent paint mode
      * is set to add.
      */
-    private fun effectiveLayerPaintSign(snapshot: com.pashkd.krender.engine.api.InputSnapshot): Float {
+    private fun effectiveLayerPaintSign(snapshot: InputSnapshot): Float {
         val altErase = snapshot.isDown(Key.AltLeft) || snapshot.isDown(Key.AltRight)
         return if (state.brushMode == TerrainBrushMode.PaintLayer &&
             (state.layerPaintMode == TerrainLayerPaintMode.Erase || altErase)
@@ -960,7 +955,7 @@ class TerrainEditorMeshSyncSystem(
                     TerrainPreviewMode.MaterialColor,
                     TerrainPreviewMode.MaterialTexture,
                     TerrainPreviewMode.SelectedLayerMask,
-                    -> materialColorResolver
+                        -> materialColorResolver
                 },
                 blendMode = blendMode,
                 enableLayerColorPreview = !previewMode.usesTexturePreview() && layerColorPreviewProvider(),
@@ -991,7 +986,13 @@ class TerrainEditorMeshSyncSystem(
                 selectedLayerId = selectedLayerIdProvider(),
             )
             if (exportRequested) {
-                exportMaterialPreviewPng(terrain.data, previewMode, previewResolution, blendMode, selectedLayerIdProvider())
+                exportMaterialPreviewPng(
+                    terrain.data,
+                    previewMode,
+                    previewResolution,
+                    blendMode,
+                    selectedLayerIdProvider()
+                )
             }
             terrain.clearDirty()
 
@@ -1034,10 +1035,15 @@ class TerrainEditorMeshSyncSystem(
             val startNs = java.lang.System.nanoTime()
             val pixmap = when (previewMode) {
                 TerrainPreviewMode.MaterialTexture -> baker.bakePixmap(terrain, resolution, blendMode)
-                TerrainPreviewMode.SelectedLayerMask -> baker.bakeSelectedLayerMaskPixmap(terrain, selectedLayerId, resolution)
+                TerrainPreviewMode.SelectedLayerMask -> baker.bakeSelectedLayerMaskPixmap(
+                    terrain,
+                    selectedLayerId,
+                    resolution
+                )
+
                 TerrainPreviewMode.LayerColor,
                 TerrainPreviewMode.MaterialColor,
-                -> error("Unsupported texture preview mode: $previewMode")
+                    -> error("Unsupported texture preview mode: $previewMode")
             }
             val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
             previewBakeStatsSink(elapsedMs, baker.cacheStats())
@@ -1059,7 +1065,7 @@ class TerrainEditorMeshSyncSystem(
                     TerrainPreviewMode.SelectedLayerMask -> "Selected layer mask baked: ${resolution}x$resolution"
                     TerrainPreviewMode.LayerColor,
                     TerrainPreviewMode.MaterialColor,
-                    -> ""
+                        -> ""
                 },
             )
         } catch (error: Exception) {
@@ -1095,10 +1101,15 @@ class TerrainEditorMeshSyncSystem(
             val startNs = java.lang.System.nanoTime()
             val pixmap = when (previewMode) {
                 TerrainPreviewMode.MaterialTexture -> baker.bakePixmap(terrain, resolution, blendMode)
-                TerrainPreviewMode.SelectedLayerMask -> baker.bakeSelectedLayerMaskPixmap(terrain, selectedLayerId, resolution)
+                TerrainPreviewMode.SelectedLayerMask -> baker.bakeSelectedLayerMaskPixmap(
+                    terrain,
+                    selectedLayerId,
+                    resolution
+                )
+
                 TerrainPreviewMode.LayerColor,
                 TerrainPreviewMode.MaterialColor,
-                -> error("Unsupported texture preview mode: $previewMode")
+                    -> error("Unsupported texture preview mode: $previewMode")
             }
             val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
             previewBakeStatsSink(elapsedMs, baker.cacheStats())
@@ -1363,8 +1374,9 @@ class TerrainCameraControllerSystem(
      * camera vertically, and Q/E orbit around the current look-at target.
      */
     override fun update(world: SceneWorld, dt: Float) {
-        val cameraEntity = world.query<TransformComponent, PerspectiveCameraComponent, TerrainCameraControllerComponent>()
-            .firstOrNull() ?: return
+        val cameraEntity =
+            world.query<TransformComponent, PerspectiveCameraComponent, TerrainCameraControllerComponent>()
+                .firstOrNull() ?: return
         val transform = cameraEntity.get<TransformComponent>() ?: return
         val camera = cameraEntity.get<PerspectiveCameraComponent>() ?: return
         val controller = cameraEntity.get<TerrainCameraControllerComponent>() ?: return
@@ -1431,7 +1443,7 @@ class TerrainCameraControllerSystem(
         val offsetZ = transform.position.z - lookAt.z
         val radius = sqrt(offsetX * offsetX + offsetZ * offsetZ)
             .coerceIn(1e-4f, Float.MAX_VALUE)
-        val currentAngle = kotlin.math.atan2(offsetZ, offsetX)
+        val currentAngle = atan2(offsetZ, offsetX)
         val nextAngle = currentAngle + Math.toRadians(deltaDegrees.toDouble()).toFloat()
 
         transform.position.x = lookAt.x + cos(nextAngle) * radius
@@ -1477,7 +1489,7 @@ object TerrainRaycaster {
     ): TerrainHit? {
         val ray = rayFromScreen(screenPosition, viewportSize, cameraTransform, camera) ?: return null
         val planeY = terrainTransform.position.y
-        if (kotlin.math.abs(ray.direction.y) <= 1e-5f) return null
+        if (abs(ray.direction.y) <= 1e-5f) return null
 
         // Intersect the view ray with the terrain's base Y plane. The resulting
         // X/Z becomes the sample position used to query terrain height.

@@ -1,15 +1,6 @@
 package com.pashkd.krender.engine.terrain
 
-import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.EntityId
-import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.MaterialTextureRef
-import com.pashkd.krender.engine.api.RuntimeTextureData
-import com.pashkd.krender.engine.api.RuntimeTextureFilter
-import com.pashkd.krender.engine.api.RuntimeTextureWrap
-import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.material.TerrainMaterialDescriptor
 import com.pashkd.krender.engine.material.TerrainMaterialLibrary
 import kotlin.math.floor
@@ -82,7 +73,10 @@ class TerrainRuntimeFactory(
         val candidates = terrainPathCandidates(terrainFilePath)
         logger.info(TAG) {
             "Runtime terrain source candidates requested='$terrainFilePath' " +
-                candidates.joinToString(prefix = "[", postfix = "]") { path -> "$path:${persistence.readableSource(path)}" }
+                candidates.joinToString(
+                    prefix = "[",
+                    postfix = "]"
+                ) { path -> "$path:${persistence.readableSource(path)}" }
         }
         val readablePath = candidates.firstOrNull(persistence::existsReadable)
         if (readablePath != null) {
@@ -197,7 +191,13 @@ class TerrainMaterialBakeService(
             "Baked runtime terrain final splat texture id='$textureId' revision=$revision " +
                 "resolution=${outputResolution}x$outputResolution blendMode=$blendMode " +
                 "sampledDistinctColors=${distinctSampledColors.size.coerceAtMost(MaxLoggedDistinctColors)} " +
-                "layers=${terrain.allLayers().joinToString { layer -> "${layer.id}:${layer.materialId ?: "<none>"}:visible=${layer.visible}:tiling=${"%.2f".format(layer.tiling)}" }}"
+                "layers=${
+                    terrain.allLayers().joinToString { layer ->
+                        "${layer.id}:${layer.materialId ?: "<none>"}:visible=${layer.visible}:tiling=${
+                            "%.2f".format(layer.tiling)
+                        }"
+                    }
+                }"
         }
         // Emit a more explicit warning when the baked output is expected to be
         // visually flat because only one visible layer contributed any color.
@@ -261,7 +261,11 @@ class TerrainMaterialBakeService(
         baseFallbackColor: TerrainLayerColorDescriptor,
     ): TerrainLayerColorDescriptor =
         when (blendMode) {
-            TerrainLayerBlendMode.WeightedAverage -> weightedAverageColor(samples.filter { it.visible }, baseFallbackColor)
+            TerrainLayerBlendMode.WeightedAverage -> weightedAverageColor(
+                samples.filter { it.visible },
+                baseFallbackColor
+            )
+
             TerrainLayerBlendMode.OrderedAlpha -> orderedAlphaColor(samples.filter { it.visible }, baseFallbackColor)
             TerrainLayerBlendMode.MaxWeight -> maxWeightColor(samples.filter { it.visible }, baseFallbackColor)
         }

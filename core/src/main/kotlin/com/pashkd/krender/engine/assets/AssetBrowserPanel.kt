@@ -4,11 +4,7 @@ import com.pashkd.krender.engine.assets.creation.CreateAssetDialog
 import com.pashkd.krender.engine.assets.importing.AssetImportService
 import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.assets.importing.ImportAssetDialog
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import com.pashkd.krender.engine.ui.editor.*
 import glm_.vec2.Vec2
 import imgui.ImGui
 import imgui.MouseButton
@@ -120,7 +116,11 @@ class AssetBrowserPanel(
     }
 
     private fun drawCategoryList() {
-        if (ImGui.selectable("All (${visibleCategoryCount(null)})##${panelId}_cat_all", state.selectedCategory == null)) {
+        if (ImGui.selectable(
+                "All (${visibleCategoryCount(null)})##${panelId}_cat_all",
+                state.selectedCategory == null
+            )
+        ) {
             state.selectedCategory = null
         }
 
@@ -128,7 +128,8 @@ class AssetBrowserPanel(
             .sortedBy(AssetCategory::sortOrder)
             .filter(::categoryAccepted)
             .forEach { category ->
-                val label = "${category.displayName} (${visibleCategoryCount(category)})##${panelId}_cat_${category.name}"
+                val label =
+                    "${category.displayName} (${visibleCategoryCount(category)})##${panelId}_cat_${category.name}"
                 if (ImGui.selectable(label, state.selectedCategory == category)) {
                     state.selectedCategory = category
                 }

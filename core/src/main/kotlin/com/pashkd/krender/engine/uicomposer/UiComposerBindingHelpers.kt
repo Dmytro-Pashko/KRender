@@ -1,16 +1,11 @@
 package com.pashkd.krender.engine.uicomposer
 
-import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
-import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
-import com.pashkd.krender.engine.ui.scene.UiSceneValidationCode
-import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
-import com.pashkd.krender.engine.ui.scene.error
+import com.pashkd.krender.engine.ui.scene.*
 import com.pashkd.krender.engine.ui.scene.validation.UiSceneBindingReference
+import com.pashkd.krender.engine.ui.scene.validation.unknownBindingMessage
 import com.pashkd.krender.engine.ui.scene.validation.bindingKeys as sceneBindingKeys
 import com.pashkd.krender.engine.ui.scene.validation.collectBindingReferences as collectSceneBindingReferences
 import com.pashkd.krender.engine.ui.scene.validation.extractBindingPlaceholders as extractSceneBindingPlaceholders
-import com.pashkd.krender.engine.ui.scene.validation.unknownBindingMessage
 
 typealias UiComposerBindingReference = UiSceneBindingReference
 

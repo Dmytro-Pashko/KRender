@@ -1,13 +1,7 @@
 package com.pashkd.krender.engine.uicomposer
 
 import com.pashkd.krender.engine.assets.AssetType
-import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneAlign
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneSerializer
-import com.pashkd.krender.engine.ui.scene.UiSceneSpacing
-import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
-import com.pashkd.krender.engine.ui.scene.UiSceneValidator
+import com.pashkd.krender.engine.ui.scene.*
 
 /**
  * Editor-only state for the UiComposer preview and selected-node property editor.
@@ -438,16 +432,22 @@ fun UiComposerPreviewResolutionPreset.defaultResolution(
     when (this) {
         UiComposerPreviewResolutionPreset.FitPanel ->
             UiComposerPreviewResolution(panelWidth.coerceAtLeast(1), panelHeight.coerceAtLeast(1))
+
         UiComposerPreviewResolutionPreset.HD_1280x720 ->
             UiComposerPreviewResolution(1280, 720)
+
         UiComposerPreviewResolutionPreset.FullHD_1920x1080 ->
             UiComposerPreviewResolution(1920, 1080)
+
         UiComposerPreviewResolutionPreset.QHD_2560x1440 ->
             UiComposerPreviewResolution(2560, 1440)
+
         UiComposerPreviewResolutionPreset.Ultrawide_3440x1440 ->
             UiComposerPreviewResolution(3440, 1440)
+
         UiComposerPreviewResolutionPreset.XGA_1024x768 ->
             UiComposerPreviewResolution(1024, 768)
+
         UiComposerPreviewResolutionPreset.Custom ->
             UiComposerPreviewResolution(
                 customWidth.coerceAtLeast(1),

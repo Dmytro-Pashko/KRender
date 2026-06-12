@@ -1,6 +1,5 @@
 package com.pashkd.krender.engine.api
 
-import kotlin.jvm.JvmName
 import kotlin.reflect.KClass
 
 /** Stable numeric identifier assigned to each entity. */
@@ -80,7 +79,7 @@ class ComponentContainer {
     }
 
     @Suppress("UNCHECKED_CAST")
-    /** Returns the component stored under the given type, if any. */
+        /** Returns the component stored under the given type, if any. */
     fun <T : Component> get(type: KClass<T>): T? = components[type] as? T
 
     /** Returns the component stored under the reified type, if any. */
@@ -102,6 +101,7 @@ class Entity(
 ) {
     /** Controls whether the entity participates in queries and updates. */
     var active: Boolean = true
+
     /** Back-reference to the owning scene world, when attached. */
     var scene: SceneWorld? = null
 
@@ -115,10 +115,13 @@ class Entity(
 
     /** Adds or replaces a component on this entity. */
     fun <T : Component> add(component: T): T = components.add(component)
+
     /** Returns the component of the requested type, if present. */
     fun <T : Component> get(type: KClass<T>): T? = components.get(type)
+
     /** Returns the component of the reified type, if present. */
     inline fun <reified T : Component> get(): T? = components.get<T>()
+
     /** Removes the component of the requested type, if present. */
     fun remove(type: KClass<out Component>): Component? = components.remove(type)
 }
@@ -129,14 +132,19 @@ class Entity(
 abstract class System {
     /** Invoked when the system is added to a bound world. */
     open fun onAdded(world: SceneWorld) = Unit
+
     /** Invoked during the fixed-step update phase. */
     open fun fixedUpdate(world: SceneWorld, dt: Float) = Unit
+
     /** Invoked during the main variable-step update phase. */
     open fun update(world: SceneWorld, dt: Float) = Unit
+
     /** Invoked during the late-update phase. */
     open fun lateUpdate(world: SceneWorld, dt: Float) = Unit
+
     /** Invoked when collecting render commands. */
     open fun render(world: SceneWorld, alpha: Float) = Unit
+
     /** Invoked when collecting debug render commands. */
     open fun debugRender(world: SceneWorld) = Unit
 }
@@ -163,12 +171,16 @@ class SystemPipeline {
 
     /** Runs fixed updates for every registered system. */
     fun fixedUpdate(world: SceneWorld, dt: Float) = systems.forEach { it.fixedUpdate(world, dt) }
+
     /** Runs variable updates for every registered system. */
     fun update(world: SceneWorld, dt: Float) = systems.forEach { it.update(world, dt) }
+
     /** Runs late updates for every registered system. */
     fun lateUpdate(world: SceneWorld, dt: Float) = systems.forEach { it.lateUpdate(world, dt) }
+
     /** Runs render collection for every registered system. */
     fun render(world: SceneWorld, alpha: Float) = systems.forEach { it.render(world, alpha) }
+
     /** Runs debug render collection for every registered system. */
     fun debugRender(world: SceneWorld) = systems.forEach { it.debugRender(world) }
 }
@@ -181,10 +193,13 @@ class SystemPipeline {
 sealed interface WorldCommand {
     /** Adds an entity to the world. */
     data class AddEntity(val entity: Entity) : WorldCommand
+
     /** Removes an entity from the world by id. */
     data class RemoveEntity(val entityId: EntityId) : WorldCommand
+
     /** Adds or replaces a component on an entity. */
     data class AddComponent<T : Component>(val entityId: EntityId, val component: T) : WorldCommand
+
     /** Removes a component from an entity by type. */
     data class RemoveComponent(val entityId: EntityId, val type: KClass<out Component>) : WorldCommand
 }
@@ -232,8 +247,10 @@ class CommandBuffer internal constructor() {
 class SceneWorld {
     /** Ordered pipeline of systems bound to this world. */
     val systems: SystemPipeline = SystemPipeline()
+
     /** Deferred mutation buffer for entity and component changes. */
     val commands: CommandBuffer = CommandBuffer()
+
     /** Render-command collector populated during render phases. */
     val renderCommands: RenderCommandBuffer = RenderCommandBuffer()
 

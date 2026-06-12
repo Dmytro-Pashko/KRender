@@ -57,7 +57,8 @@ class SceneDependencyCollector(
         val dependencies = linkedMapOf<Pair<SceneDependencyKind, String>, SceneDependency>()
         val warnings = mutableListOf<String>()
         val activeTerrainEntityId = descriptor.settings.activeTerrainEntityId
-        val hasTerrain = descriptor.entities.any { entity -> entity.components.any { component -> component.type == SceneComponentTypes.Terrain } }
+        val hasTerrain =
+            descriptor.entities.any { entity -> entity.components.any { component -> component.type == SceneComponentTypes.Terrain } }
 
         descriptor.entities.forEach { entity ->
             entity.components.forEach { component ->
@@ -101,7 +102,7 @@ class SceneDependencyCollector(
                     SceneComponentTypes.Parent,
                     SceneComponentTypes.Camera,
                     SceneComponentTypes.Light,
-                    -> Unit
+                        -> Unit
 
                     else -> warnings += "Unsupported scene component '${component.type}' on entityId=${entity.id}."
                 }

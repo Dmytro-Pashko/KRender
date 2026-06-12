@@ -1,11 +1,6 @@
 package com.pashkd.krender.engine.sceneeditor
 
-import com.pashkd.krender.engine.api.Entity
-import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.api.AssetService
-import com.pashkd.krender.engine.api.ModelAsset
-import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent

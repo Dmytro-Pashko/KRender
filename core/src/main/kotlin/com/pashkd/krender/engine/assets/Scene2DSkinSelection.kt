@@ -76,11 +76,13 @@ internal fun createAssetDefaultParams(draft: CreateAssetDraft): List<String> =
             "Root: Stack",
             "Schema: 1",
         )
+
         CreatableAssetKind.Terrain -> listOf(
             "Size: 64 x 64",
             "Vertex spacing: 1.0",
             "Layers: 0",
         )
+
         CreatableAssetKind.Scene -> listOf(
             "Schema: 1",
             "Entities: 0",
