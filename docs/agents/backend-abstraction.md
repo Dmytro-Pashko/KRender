@@ -35,7 +35,7 @@
 | `ui` | `GdxImGuiService` on desktop, `NoOpUiService` on Android |
 | `runtimeUi` | `GdxRuntimeUiBackend` (+ `WoolboyRuntimeUiFactory`) |
 | `assets` | `GdxAssetService` (libGDX `AssetManager`) |
-| `assetRegistry` | `LocalAssetRegistryService` (shared project asset registry) |
+| `assetRegistry` | `LocalAssetRegistryService` (desktop), `NoOpAssetRegistryService` (Android) |
 | `sceneFiles` | `GdxSceneFileService` |
 | `tasks` | `GdxTaskService` (coroutines) |
 | `window` | `GdxWindowService` |
@@ -77,6 +77,10 @@ Desktop tools and the runtime player run as **separate JVM processes**, not in-p
 - New platform capability → add a core interface first, then a backend implementation.
 - Editor-only GL work (e.g. terrain `Pixmap` preview baking) stays in editor/backend code and must
   not be required by the runtime path.
-- Enforced guard: `BackendBoundaryTest` (`core` tests) fails the build on any new
-  `import com.badlogic.gdx` outside `engine/backend/gdx/` (pre-existing leaks are allow-listed).
-  Extend it to `net.mgsx.gltf` if that boundary needs the same protection.
+- Enforced guard: `BackendBoundaryTest` (`core` tests) fails the build on violations of four rules:
+  - **Rule A** — `import com.badlogic.gdx` only allowed inside `engine/backend/gdx/`.
+  - **Rule B** — `import net.mgsx.gltf` only allowed inside `engine/backend/gdx/`.
+  - **Rule C** — `engine.api` must not import `engine.backend.gdx`.
+  - **Rule D** — Non-backend files must not import `engine.backend.gdx` (known bootstrap/preview
+    exceptions are allow-listed).
+  Pre-existing leaks are allow-listed per rule. The test reports file path, import line, and rule.

@@ -50,7 +50,6 @@ import net.mgsx.gltf.scene3d.scene.SceneSkybox
 import net.mgsx.gltf.scene3d.shaders.PBRShaderProvider
 import net.mgsx.gltf.scene3d.utils.IBLBuilder
 import net.mgsx.gltf.scene3d.utils.MaterialConverter
-import java.lang.System
 import kotlin.math.cos
 import kotlin.math.sin
 import net.mgsx.gltf.scene3d.scene.Scene as GltfScene

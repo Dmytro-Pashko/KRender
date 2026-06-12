@@ -1,10 +1,12 @@
 package com.pashkd.krender.engine.backend.gdx
 
+import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.assets.AssetImporterRegistry
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.LocalAssetRegistryService
+import com.pashkd.krender.engine.assets.NoOpAssetRegistryService
 import com.pashkd.krender.engine.backend.gdx.scene.GdxSceneFileService
 import com.pashkd.krender.engine.backend.gdx.ui.runtime.GdxRuntimeUiBackend
 import com.pashkd.krender.engine.backend.gdx.ui.runtime.WoolboyRuntimeUiFactory
@@ -43,14 +45,18 @@ class LibGdxBackend(
             listOf(WoolboyRuntimeUiFactory(logger, actionHandlerProvider))
         },
     )
-    override val ui: UiService = if (Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.Android) {
+    override val ui: UiService = if (Gdx.app.type == Application.ApplicationType.Android) {
         NoOpUiService()
     } else {
         GdxImGuiService(input, runtimeStats)
     }
     override val assets: GdxAssetService = GdxAssetService(logger)
     override val assetRegistry: AssetRegistryService =
-        LocalAssetRegistryService(logger, AssetImporterRegistry.withDefaults(logger))
+        if (Gdx.app.type == Application.ApplicationType.Android) {
+            NoOpAssetRegistryService()
+        } else {
+            LocalAssetRegistryService(logger, AssetImporterRegistry.withDefaults(logger))
+        }
     override val sceneFiles: SceneFileService = GdxSceneFileService()
     override val runtimeLauncher: RuntimeWindowLauncher = runtimeWindowLauncherFactory(logger)
     override val editorToolLauncher: EditorToolLauncher = editorToolLauncherFactory(logger)

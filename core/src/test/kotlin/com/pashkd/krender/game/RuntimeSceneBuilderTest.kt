@@ -10,7 +10,7 @@ import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
-import com.pashkd.krender.test.NoOpAssetRegistryService
+import com.pashkd.krender.engine.assets.NoOpAssetRegistryService
 import com.pashkd.krender.test.newTestRuntimeUiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

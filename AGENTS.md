@@ -270,6 +270,7 @@ Per-frame work runs through `SceneWorld` phases: `fixedUpdate` (with `CommandBuf
   and produces immutable `AssetRegistrySnapshot`s on a background thread, applied on the main
   thread. The backend creates one instance and exposes it as `EngineContext.assetRegistry`;
   Asset Browser, Scene Editor, and UI Composer all use `engine.assetRegistry`.
+  On Android (and runtime-only environments), `NoOpAssetRegistryService` is used instead.
 - Disposal: `AssetService.unload` releases backend state. Tools release cursor capture in
   `hide()` and flush world commands in `dispose()`.
 
@@ -358,7 +359,7 @@ are not editor tools but share the same engine primitives.
 | Render impl | `GdxRenderer3D` | `backend/gdx/GdxRenderer3D.kt` | Consumes commands via `ModelBatch`. |
 | Assets | `AssetService`, `AssetRef`, `AssetPack` | `api/Assets.kt` | Typed asset handles + loading. |
 | Assets impl | `GdxAssetService` | `backend/gdx/GdxAssetService.kt` | libGDX `AssetManager` loading + metadata. |
-| Asset registry | `LocalAssetRegistryService` | `assets/AssetRegistryService.kt` | Editor asset scan + `.krmeta`. |
+| Asset registry | `LocalAssetRegistryService` / `NoOpAssetRegistryService` | `assets/AssetRegistryService.kt` | Editor asset scan + `.krmeta` (desktop); no-op (Android). |
 | Tasks | `TaskService` | `api/Tasks.kt` | Background/IO/main dispatch. |
 | Logging | `Logger`, `LogService`, `EngineLogService` | `api/Debug.kt` | Lazy structured logging + sinks. |
 | Diagnostics | `RuntimeStatsService`, `ProfilerService` | `api/Debug.kt` | Per-frame metrics + phase timings. |
@@ -462,8 +463,8 @@ See `docs/agents/logging.md` for detail. Conventions in code:
 - The scene lifecycle is `scheduleAssets` → `show`; if you reintroduce a `load`/`Preparing`
   stage, update `SceneManager`, this guide, and add tests — do not silently change lifecycle
   semantics.
-- The core/backend boundary is enforced by `BackendBoundaryTest`; new `com.badlogic.gdx` imports
-  outside `engine/backend/gdx/` fail the build.
+- The core/backend boundary is enforced by `BackendBoundaryTest` (four rules: LibGDX imports,
+  glTF imports, engine.api→backend, non-backend→backend). New violations fail the build.
 - Run the JVM tests after engine/tool changes (`core:test`); they cover serialization,
   viewport, terrain runtime, scene editor systems, UI scene validation, and more.
 

@@ -334,6 +334,34 @@ class LocalAssetRegistryService(
     }
 }
 
+/**
+ * Lightweight no-op [AssetRegistryService] for environments that do not need editor asset
+ * discovery (e.g. Android, runtime-only desktop). All queries return empty results.
+ */
+class NoOpAssetRegistryService(
+    private val baseDirectory: File = File("."),
+) : AssetRegistryService {
+    override val assets: List<AssetDescriptor> = emptyList()
+
+    override fun scanSnapshot(): AssetRegistrySnapshot =
+        AssetRegistrySnapshot(
+            assets = emptyList(),
+            scannedAtMillis = System.currentTimeMillis(),
+            durationMillis = 0L,
+            errors = emptyList(),
+        )
+
+    override fun applySnapshot(snapshot: AssetRegistrySnapshot) = Unit
+
+    override fun findById(id: AssetId): AssetDescriptor? = null
+
+    override fun findByPath(path: String): AssetDescriptor? = null
+
+    override fun byCategory(category: AssetCategory): List<AssetDescriptor> = emptyList()
+
+    override fun baseDir(): File = baseDirectory
+}
+
 private inline fun <reified T : Enum<T>> enumValueOrNull(name: String): T? =
     enumValues<T>().firstOrNull { it.name.equals(name, ignoreCase = true) }
 

@@ -81,7 +81,9 @@ interface AssetOperationsService {
 }
 
 /**
- * Local filesystem [AssetOperationsService]. Resolves paths through [LocalAssetRegistryService].
+ * Local filesystem [AssetOperationsService].
+ *
+ * Resolves project-relative asset paths through the shared [AssetRegistryService].
  */
 class LocalAssetOperationsService(
     private val registry: AssetRegistryService,

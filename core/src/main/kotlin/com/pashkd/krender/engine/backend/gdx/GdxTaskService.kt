@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx
 import com.pashkd.krender.engine.api.MainThreadTaskQueue
 import com.pashkd.krender.engine.api.TaskService
 import kotlinx.coroutines.*
-import java.lang.Runnable
 import kotlin.coroutines.CoroutineContext
 
 /**

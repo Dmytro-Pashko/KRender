@@ -59,9 +59,11 @@ Core + impl: `core/.../engine/assets/`.
   metadata are read during `describe`.
 
 ### Shared registry
-- `EngineContext.assetRegistry` exposes a single backend-provided `AssetRegistryService`
-  (`LibGdxBackend` creates a `LocalAssetRegistryService`). `AssetBrowserScene`, `SceneEditorScene`,
-  and `UiComposerScene` all use `engine.assetRegistry` instead of constructing their own.
+- `EngineContext.assetRegistry` exposes a single backend-provided `AssetRegistryService`.
+  On desktop, `LibGdxBackend` creates a `LocalAssetRegistryService`; on Android (and
+  runtime-only environments), it uses `NoOpAssetRegistryService` which returns empty results.
+  `AssetBrowserScene`, `SceneEditorScene`, and `UiComposerScene` all use `engine.assetRegistry`
+  instead of constructing their own.
 
 ### Known gaps
 - Full re-walk on every refresh (no incremental/watch).
