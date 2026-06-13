@@ -168,5 +168,9 @@ Thumbs.db
 
 tools/ui/*.jar
 
-/games/*/build/
+### If you have a build directory in your project, you should add it to the ignore list.
+### You can also add specific build directories for each module if needed.
+/games/*/build/*
+/games/build/*
 /apps/*/build/
+/apps/build/*
