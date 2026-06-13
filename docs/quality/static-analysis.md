@@ -1,6 +1,6 @@
 # Static Analysis
 
-KRender now has a root static-analysis workflow for Kotlin formatting, static analysis, and existing JVM verification.
+KRender now has a root static-analysis workflow for Kotlin formatting, static analysis, JVM verification, and unit test coverage reporting for the `core` module.
 
 ## Commands
 
@@ -20,6 +20,7 @@ You can also run the Gradle tasks directly:
 
 ```bash
 ./gradlew ktlintCheck detekt test
+./gradlew unitTestCoverageReport
 ./gradlew ktlintFormat
 ./gradlew staticAnalysis
 ./gradlew check
@@ -30,6 +31,7 @@ You can also run the Gradle tasks directly:
 - `ktlint` checks Kotlin source formatting and style for `**/src/**/*.kt` and repository `.kts` files, excluding `build/`, `.gradle/`, and `generated/`.
 - `detekt` checks Kotlin code quality, complexity, and code smells using `config/detekt/detekt.yml`.
 - `test` runs the existing JVM test suite, including architecture verification such as `BackendBoundaryTest`.
+- `unitTestCoverageReport` runs `core:test` and then generates JaCoCo HTML, XML, and CSV reports for the `core` JVM unit tests.
 
 ## Reports
 
@@ -46,7 +48,16 @@ Primary report outputs:
 - `build/reports/detekt/detekt.xml`
 - `build/reports/detekt/detekt.sarif`
 - `core/build/reports/tests/test/index.html`
+- `build/reports/coverage/unit/html/index.html`
+- `build/reports/coverage/unit/jacoco.xml`
+- `build/reports/coverage/unit/jacoco.csv`
 - `build/reports/static-analysis/logs/*.log`
+
+Coverage details and future policy are documented in:
+
+```text
+docs/quality/test-coverage.md
+```
 
 ## Detekt Baseline
 

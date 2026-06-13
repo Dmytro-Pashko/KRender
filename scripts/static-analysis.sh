@@ -24,9 +24,22 @@ if [[ $# -eq 1 ]]; then
   fi
 fi
 
-GRADLEW="${ROOT_DIR}/gradlew"
-if [[ ! -x "${GRADLEW}" ]]; then
-  chmod +x "${GRADLEW}" 2>/dev/null || true
+to_windows_path() {
+  local path="$1"
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -aw "${path}"
+  elif command -v wslpath >/dev/null 2>&1; then
+    wslpath -w "${path}"
+  else
+    printf '%s\n' "${path}"
+  fi
+}
+
+GRADLEW_SH="${ROOT_DIR}/gradlew"
+GRADLEW_BAT="${ROOT_DIR}/gradlew.bat"
+
+if [[ ! -x "${GRADLEW_SH}" ]]; then
+  chmod +x "${GRADLEW_SH}" 2>/dev/null || true
 fi
 
 declare -A STEP_EXIT_CODES
@@ -65,7 +78,11 @@ status_label() {
   fi
 }
 
-GRADLE_BASE=("${GRADLEW}" "--no-daemon" "--console=plain")
+if command -v cmd.exe >/dev/null 2>&1 && [[ -f "${GRADLEW_BAT}" ]]; then
+  GRADLE_BASE=("cmd.exe" "/c" "$(to_windows_path "${GRADLEW_BAT}")" "--no-daemon" "--console=plain")
+else
+  GRADLE_BASE=("${GRADLEW_SH}" "--no-daemon" "--console=plain")
+fi
 
 if [[ "${MODE}" == "fix" ]]; then
   run_step "format-apply" "${GRADLE_BASE[@]}" ktlintFormat
@@ -73,10 +90,11 @@ fi
 run_step "format-check" "${GRADLE_BASE[@]}" ktlintCheck
 run_step "detekt" "${GRADLE_BASE[@]}" detekt
 run_step "tests" "${GRADLE_BASE[@]}" test
+run_step "coverage" "${GRADLE_BASE[@]}" unitTestCoverageReport
 
 OVERALL="PASS"
 FINAL_EXIT=0
-for step_name in "format-apply" "format-check" "detekt" "tests"; do
+for step_name in "format-apply" "format-check" "detekt" "tests" "coverage"; do
   if [[ "$(status_label "${step_name}")" == "FAIL" ]]; then
     OVERALL="FAIL"
     FINAL_EXIT=1
@@ -89,6 +107,9 @@ DETEKT_MD="build/reports/detekt/detekt.md"
 DETEKT_XML="build/reports/detekt/detekt.xml"
 DETEKT_SARIF="build/reports/detekt/detekt.sarif"
 TEST_REPORT="core/build/reports/tests/test/index.html"
+COVERAGE_HTML="build/reports/coverage/unit/html/index.html"
+COVERAGE_XML="build/reports/coverage/unit/jacoco.xml"
+COVERAGE_CSV="build/reports/coverage/unit/jacoco.csv"
 
 {
   echo "# KRender Static Analysis Report"
@@ -111,6 +132,7 @@ TEST_REPORT="core/build/reports/tests/test/index.html"
   echo "| Formatting / ktlint | $(status_label "format-check") | \`${STEP_COMMANDS[format-check]}\` |"
   echo "| Detekt | $(status_label "detekt") | \`${STEP_COMMANDS[detekt]}\` |"
   echo "| Tests / architecture checks | $(status_label "tests") | \`${STEP_COMMANDS[tests]}\` |"
+  echo "| Coverage / JaCoCo | $(status_label "coverage") | \`${STEP_COMMANDS[coverage]}\` |"
   echo
   echo "## Reports"
   echo
@@ -120,6 +142,9 @@ TEST_REPORT="core/build/reports/tests/test/index.html"
   echo "- Detekt XML: \`${DETEKT_XML}\`"
   echo "- Detekt SARIF: \`${DETEKT_SARIF}\`"
   echo "- Test report: \`${TEST_REPORT}\`"
+  echo "- Coverage HTML: \`${COVERAGE_HTML}\`"
+  echo "- Coverage XML: \`${COVERAGE_XML}\`"
+  echo "- Coverage CSV: \`${COVERAGE_CSV}\`"
   echo
   echo "## Main Problems"
   echo
@@ -134,6 +159,9 @@ TEST_REPORT="core/build/reports/tests/test/index.html"
   if [[ "$(status_label "tests")" == "FAIL" ]]; then
     echo "- Review the test and architecture failures in \`${TEST_REPORT}\`."
   fi
+  if [[ "$(status_label "coverage")" == "FAIL" ]]; then
+    echo "- Coverage report generation failed. Review \`${STEP_LOGS[coverage]}\` and rerun \`./gradlew unitTestCoverageReport\`."
+  fi
   if [[ "${OVERALL}" == "PASS" ]]; then
     echo "- No failing static-analysis steps were detected."
   fi
@@ -142,6 +170,7 @@ TEST_REPORT="core/build/reports/tests/test/index.html"
   echo
   echo "- Run \`./scripts/static-analysis.sh --fix\` for formatting issues."
   echo "- Review the Detekt report before changing the baseline."
+  echo "- Open \`${COVERAGE_HTML}\` for the latest unit test coverage report."
   echo "- Do not add new \`BackendBoundaryTest\` allowlist entries without review."
 } >"${SUMMARY}"
 
@@ -150,5 +179,7 @@ echo "Detekt HTML report: ${ROOT_DIR}/${DETEKT_HTML}"
 echo "Detekt Markdown report: ${ROOT_DIR}/${DETEKT_MD}"
 echo "Detekt SARIF report: ${ROOT_DIR}/${DETEKT_SARIF}"
 echo "Test report: ${ROOT_DIR}/${TEST_REPORT}"
+echo "Coverage HTML report: ${ROOT_DIR}/${COVERAGE_HTML}"
+echo "Coverage XML report: ${ROOT_DIR}/${COVERAGE_XML}"
 
 exit ${FINAL_EXIT}

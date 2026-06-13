@@ -173,3 +173,9 @@ tasks.register('staticAnalysis') {
   dependsOn subprojects.collect { "${it.path}:ktlintCheck" }
   dependsOn 'detekt'
 }
+
+tasks.register('unitTestCoverageReport') {
+  group = 'verification'
+  description = 'Generates the core JVM unit test coverage report.'
+  dependsOn ':core:jacocoTestReport'
+}

@@ -1,4 +1,13 @@
+apply plugin: 'jacoco'
+
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+def coverageExcludes = [
+  "**/generated/**",
+  "**/*Test.*",
+  "**/Main.*",
+  "**/*Launcher.*",
+]
 
 dependencies {
   api "com.badlogicgames.gdx:gdx:$gdxVersion"
@@ -17,4 +26,29 @@ dependencies {
 
 jar {
   duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named('jacocoTestReport') {
+  dependsOn tasks.named('test')
+
+  classDirectories.setFrom(files(
+    fileTree(dir: "$buildDir/classes/kotlin/main", exclude: coverageExcludes),
+    fileTree(dir: "$buildDir/classes/java/main", exclude: coverageExcludes),
+  ))
+  sourceDirectories.setFrom(files('src/main/kotlin', 'src/main/java'))
+  additionalSourceDirs.setFrom(files('src/main/kotlin', 'src/main/java'))
+  executionData.setFrom(fileTree(dir: buildDir, includes: ['jacoco/test.exec']))
+
+  reports {
+    html.required.set(true)
+    html.outputLocation.set(rootProject.layout.buildDirectory.dir('reports/coverage/unit/html'))
+    xml.required.set(true)
+    xml.outputLocation.set(rootProject.layout.buildDirectory.file('reports/coverage/unit/jacoco.xml'))
+    csv.required.set(true)
+    csv.outputLocation.set(rootProject.layout.buildDirectory.file('reports/coverage/unit/jacoco.csv'))
+  }
+
+  onlyIf {
+    executionData.files.any { it.exists() }
+  }
 }
