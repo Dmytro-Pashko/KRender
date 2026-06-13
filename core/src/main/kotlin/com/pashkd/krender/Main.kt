@@ -59,10 +59,8 @@ class Main(
                             ?: throw missingProperty("krender.ui.scene.path", requestedScene),
                 )
 
-            "woolboy_sandbox_scene" -> WoolboySandboxScene()
-
             else -> throw IllegalArgumentException(
-                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, runtime-scene, model-viewer, animation-viewer, terrain-editor, ui-composer, woolboy_sandbox_scene.",
+                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, runtime-scene, model-viewer, animation-viewer, terrain-editor, ui-composer.",
             )
         }
     },

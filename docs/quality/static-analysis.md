@@ -1,6 +1,7 @@
 # Static Analysis
 
 KRender now has a root static-analysis workflow for Kotlin formatting, static analysis, JVM verification, and unit test coverage reporting for the `core` module.
+The source scan now includes nested game/app modules such as `games:woolboy` and `apps:woolboy-desktop` for formatting and Detekt checks.
 
 ## Commands
 
@@ -28,8 +29,8 @@ You can also run the Gradle tasks directly:
 
 ## What Runs
 
-- `ktlint` checks Kotlin source formatting and style for `**/src/**/*.kt` and repository `.kts` files, excluding `build/`, `.gradle/`, and `generated/`.
-- `detekt` checks Kotlin code quality, complexity, and code smells using `config/detekt/detekt.yml`.
+- `ktlint` checks Kotlin source formatting and style for `core`, nested `games/**`, nested `apps/**`, and repository `.kts` files, excluding `build/`, `.gradle/`, and `generated/`.
+- `detekt` checks Kotlin code quality, complexity, and code smells using `config/detekt/detekt.yml` across the same repository source roots.
 - `test` runs the existing JVM test suite, including architecture verification such as `BackendBoundaryTest`.
 - `unitTestCoverageReport` runs `core:test` and then generates JaCoCo HTML, XML, and CSV reports for the `core` JVM unit tests.
 

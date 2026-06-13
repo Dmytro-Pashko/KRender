@@ -9,7 +9,7 @@ import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.assets.NoOpAssetRegistryService
 import com.pashkd.krender.engine.backend.gdx.scene.GdxSceneFileService
 import com.pashkd.krender.engine.backend.gdx.ui.runtime.GdxRuntimeUiBackend
-import com.pashkd.krender.engine.backend.gdx.ui.runtime.WoolboyRuntimeUiFactory
+import com.pashkd.krender.engine.backend.gdx.ui.runtime.RuntimeUiActorFactoryProvider
 import com.pashkd.krender.engine.scene.*
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.editor.NoOpUiService
@@ -23,6 +23,8 @@ import com.pashkd.krender.engine.window.WindowService
 class LibGdxBackend(
     private val runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = { UnsupportedRuntimeWindowLauncher },
     private val editorToolLauncherFactory: (Logger) -> EditorToolLauncher = { UnsupportedEditorToolLauncher },
+    private val runtimeUiActorFactoryProvider: RuntimeUiActorFactoryProvider = RuntimeUiActorFactoryProvider.Empty,
+    private val runtimeUiDefaultSkinPath: String = "ui/skins/default_ui.json",
 ) : EngineBackend {
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
     override val logs: EngineLogService =
@@ -44,9 +46,8 @@ class LibGdxBackend(
         GdxRuntimeUiBackend(
             logger = logger,
             input = input,
-            screenFactoryProvider = { _, actionHandlerProvider ->
-                listOf(WoolboyRuntimeUiFactory(logger, actionHandlerProvider))
-            },
+            defaultSkinPath = runtimeUiDefaultSkinPath,
+            screenFactoryProvider = runtimeUiActorFactoryProvider::create,
         )
     override val ui: UiService =
         if (Gdx.app.type == Application.ApplicationType.Android) {

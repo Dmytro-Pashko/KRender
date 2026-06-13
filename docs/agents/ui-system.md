@@ -36,8 +36,8 @@ Core contract: `core/.../engine/ui/editor/Ui.kt`. Backend: `GdxImGuiService`
 
 Core: `RuntimeUiService` (`core/.../engine/ui/runtime/RuntimeUiService.kt`) wrapping a
 `RuntimeUiBackend`. Backend: `GdxRuntimeUiBackend`
-(`core/.../engine/backend/gdx/ui/runtime/`), with `WoolboyRuntimeUiFactory` providing the sandbox
-screens and `GdxUiSceneBuilder` building Scene2D from `.krui`.
+(`core/.../engine/backend/gdx/ui/runtime/`), with app-provided runtime UI actor factories and
+`GdxUiSceneBuilder` building Scene2D from `.krui`.
 
 - Driven by the loop separately from the editor UI: `runtimeUi.update(delta)` then
   `runtimeUi.render()`.

@@ -20,7 +20,7 @@ Related deep-dive documents (read these before large changes in their area):
 
 ## 1. Project Overview
 
-KRender (the README title is "KRender SDK") is a **Kotlin + libGDX project shaped as a
+KRender SDK is a **Kotlin + libGDX project shaped as a
 small game engine**, not a direct libGDX application. The defining design rule is a
 **backend-neutral engine core** with a separate LibGDX runtime backend, so gameplay,
 scenes, and systems do not spread `Gdx.*` calls through the project.
@@ -35,16 +35,15 @@ first-class products built on the same engine primitives.
 - Async: kotlinx-coroutines `1.10.2`.
 - Root package: `com.pashkd.krender`.
 
-> Note: `README.md` is partially out of date. It still describes a `DemoScene`
-> and a shorter service list. The actual entry scene is `AssetBrowserScene`, and
-> there are more services and tools than the README lists. Trust the code.
+> Keep `README.md` and the docs under `docs/` aligned with the current module layout,
+> scene routing, and standalone-app packaging whenever structure changes.
 
 ---
 
 ## 2. Repository Structure
 
 ```text
-KRender/
+KRender SDK/
 +-- core/                  # Engine API, LibGDX backend, tools, game scenes (the bulk of the code)
 |   +-- src/main/kotlin/com/pashkd/krender/
 |   |   +-- Main.kt                       # Scene-routing entry; selects scene from system properties
@@ -67,10 +66,13 @@ KRender/
 |   |   |   +-- serialization/            # KRender JSON helpers
 |   |   |   +-- viewport/                 # Runtime viewport scaling
 |   |   |   +-- window/                   # Window service abstraction
-|   |   |   +-- woolboy/                  # Gameplay sandbox systems/components
 |   |   |   +-- math/                     # Transform math
 |   |   +-- game/                         # Top-level Scene classes (one per tool + runtime/sandbox)
 |   +-- src/test/kotlin/...               # JVM unit tests (no GL needed)
++-- games/
+|   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
++-- apps/
+|   +-- woolboy-desktop/                  # Standalone Woolboy desktop launcher + executable JAR task
 +-- lwjgl3/                # Desktop launcher (LWJGL3); spawns tool windows as separate JVMs
 +-- android/               # Android launcher (requires Android SDK)
 +-- assets/                # Shared runtime assets (models, textures, terrains, scenes, ui, skyboxes)
@@ -78,8 +80,10 @@ KRender/
 +-- build.gradle, settings.gradle, gradle.properties
 ```
 
-Gradle subprojects (`settings.gradle`): `core`, `lwjgl3`, `android`. The `assets`
-directory is a shared resource folder, not a Gradle module.
+Gradle subprojects (`settings.gradle`): `core`, `lwjgl3`, `android`, `games:woolboy`,
+`apps:woolboy-desktop`. The root `assets` directory remains a shared resource folder for the
+existing editor/runtime app, while the Woolboy app bundles its own curated resources from
+`games/woolboy/src/main/resources/assets/woolboy/`.
 
 ---
 
@@ -336,8 +340,9 @@ terrain with layers, material preview baking, and persistence. → `docs/agents/
 authoring, or save workflows. → `docs/agents/tools/ui-composer.md`
 
 ### Non-tool scenes
-`RuntimeScene` (runtime/player for `.krscene`) and `WoolboySandboxScene` (gameplay sandbox)
-are not editor tools but share the same engine primitives.
+`RuntimeScene` (runtime/player for `.krscene`) is not an editor tool but shares the same engine
+primitives. Woolboy now ships as the separate `games:woolboy` client module and
+`apps:woolboy-desktop` app.
 
 ---
 
@@ -475,7 +480,7 @@ See `docs/agents/logging.md` for detail. Conventions in code:
 - Tests live in `core/src/test/kotlin` and are pure-JVM (no GL context). Examples:
   `RuntimeViewportTest`, `SceneSerializerTest`, `TerrainRuntimePipelineTest`,
   `SceneEditor*SystemTest`, `UiSceneSerializerTest`, `AssetBrowserSceneTest`,
-  `ModelViewerTextureChannelResolverTest`, `WoolboySystemsTest`.
+  `ModelViewerTextureChannelResolverTest`.
 - Prefer adding/adjusting tests in the same package as the code under test.
 - Things requiring a real OpenGL context (renderer, ImGui, texture upload) are **not** unit
   tested — validate those manually by running the relevant scene.

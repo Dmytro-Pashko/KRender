@@ -102,7 +102,7 @@ internal class UiComposerBindingHelpersTest {
 
     @Test
     internal fun `defaultPreviewPayloadValueFor uses editor only heuristics`() {
-        assertEquals("textures/woolboy/hud_heart_full.png", defaultPreviewPayloadValueFor("life1Texture"))
+        assertEquals("textures/default_skybox_studio.png", defaultPreviewPayloadValueFor("life1Texture"))
         assertEquals("action.todo", defaultPreviewPayloadValueFor("primaryButtonAction"))
         assertEquals("0.5", defaultPreviewPayloadValueFor("progress"))
         assertEquals("0", defaultPreviewPayloadValueFor("scores"))

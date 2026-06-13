@@ -1,0 +1,484 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:BindingReferenceHelpers.kt$index + 1 &lt; text.length &amp;&amp; text[index + 1] == '{' &amp;&amp; closeIndex + 1 &lt; text.length &amp;&amp; text[closeIndex + 1] == '}'</ID>
+    <ID>ComplexCondition:GdxInputService.kt$GdxInputService$mouseX &lt;= CURSOR_EDGE_MARGIN || mouseY &lt;= CURSOR_EDGE_MARGIN || mouseX &gt;= width - CURSOR_EDGE_MARGIN || mouseY &gt;= height - CURSOR_EDGE_MARGIN</ID>
+    <ID>ComplexCondition:GdxUiScenePreview.kt$GdxUiScenePreview$visualGuideOptions.showPaddingGuides &amp;&amp; selectedActor != null &amp;&amp; selectedNode != null &amp;&amp; selectedNode.hasMeaningfulPaddingGuide()</ID>
+    <ID>ComplexCondition:ImGuiLayoutRuntimeTracker.kt$ImGuiLayoutRuntimeTracker$!position.x.isFinite() || !position.y.isFinite() || !size.x.isFinite() || !size.y.isFinite()</ID>
+    <ID>ComplexCondition:LocalAssetImportService.kt$LocalAssetImportService$metadata.status == "ok" &amp;&amp; ( metadata.colorCount &gt; 0 || metadata.drawableCount &gt; 0 || metadata.textureRegionCount &gt; 0 || metadata.labelStyleCount &gt; 0 || metadata.textButtonStyleCount &gt; 0 || metadata.progressBarStyleCount &gt; 0 || metadata.imageButtonStyleCount &gt; 0 || metadata.checkBoxStyleCount &gt; 0 || metadata.textFieldStyleCount &gt; 0 || metadata.scrollPaneStyleCount &gt; 0 || metadata.selectBoxStyleCount &gt; 0 || metadata.windowStyleCount &gt; 0 )</ID>
+    <ID>ComplexCondition:SceneEditorSystems.kt$SceneEditorSelectionSystem$localPosition.x &lt; 0f || localPosition.y &lt; 0f || localPosition.x &gt; viewportSize.x || localPosition.y &gt; viewportSize.y</ID>
+    <ID>ComplexCondition:TerrainSystems.kt$TerrainEditorMeshSyncSystem$!terrain.dirty &amp;&amp; !materialPreviewDirtyProvider() &amp;&amp; !exportRequested &amp;&amp; renderer.previewMode == previewMode &amp;&amp; !previewResolutionChanged</ID>
+    <ID>ComplexCondition:WoolboySystems.kt$PlayerControllerSystem$!snapshot.uiCapturesKeyboard &amp;&amp; snapshot.wasPressed(Key.F) &amp;&amp; controller.isGrounded &amp;&amp; !moving</ID>
+    <ID>CyclomaticComplexMethod:AnimationViewerPanels.kt$AnimationViewerPlaybackPanel$override fun draw()</ID>
+    <ID>CyclomaticComplexMethod:AssetBrowserPanel.kt$AssetBrowserPanel$private fun drawAssetContextMenu(asset: AssetDescriptor)</ID>
+    <ID>CyclomaticComplexMethod:AssetMetadataCodec.kt$JsonParser$private fun parseNumber(): Number</ID>
+    <ID>CyclomaticComplexMethod:AssetTypeDetector.kt$AssetTypeDetector$fun detect(path: String): AssetTypeDetection</ID>
+    <ID>CyclomaticComplexMethod:GdxImGuiService.kt$GdxImGuiInputBridge$private fun mapKey(keycode: Int): Key?</ID>
+    <ID>CyclomaticComplexMethod:GdxInputService.kt$GdxInputService$private fun mapKey(keycode: Int): Key</ID>
+    <ID>CyclomaticComplexMethod:GdxRenderer3D.kt$GdxModelViewerDebugRenderer$private fun renderRenderable( renderable: Renderable, instance: ModelInstance, debugView: com.pashkd.krender.engine.api.MaterialDebugView, camera: Camera, )</ID>
+    <ID>CyclomaticComplexMethod:GdxRenderer3D.kt$GdxRenderer3D$override fun render(context: RenderContext)</ID>
+    <ID>CyclomaticComplexMethod:GdxUiScenePreview.kt$GdxUiScenePreview$private fun renderVisualGuides()</ID>
+    <ID>CyclomaticComplexMethod:LocalAssetImportService.kt$LocalAssetImportService$private fun importSpecFor( source: File, importName: String?, ): ImportSpec?</ID>
+    <ID>CyclomaticComplexMethod:ModelViewerPanels.kt$ModelViewerInfoPanel$private fun drawWarnings(info: ModelAssetInfo)</ID>
+    <ID>CyclomaticComplexMethod:ModelViewerPanels.kt$ModelViewerMeshPartsPanel$override fun draw()</ID>
+    <ID>CyclomaticComplexMethod:RuntimeSceneValidator.kt$RuntimeSceneValidator$fun validate( descriptor: SceneDescriptor, dependencyGraph: SceneDependencyGraph, ): SceneValidationReport</ID>
+    <ID>CyclomaticComplexMethod:Scene2DSkinAssetDetailsRenderer.kt$Scene2DSkinAssetDetailsRenderer$override fun render( asset: AssetDescriptor, context: AssetDetailsRenderContext, )</ID>
+    <ID>CyclomaticComplexMethod:SceneAssetCollector.kt$SceneDependencyCollector$fun collect( descriptor: SceneDescriptor, resolvedSkybox: SkyboxAssetDescriptor? = null, ): SceneDependencyGraph</ID>
+    <ID>CyclomaticComplexMethod:SceneAssetDetailsRenderer.kt$SceneAssetDetailsRenderer$override fun render( asset: AssetDescriptor, context: AssetDetailsRenderContext, )</ID>
+    <ID>CyclomaticComplexMethod:StartupHelper.kt$StartupHelper$fun startNewJvm0( isMac: Boolean, inheritIO: Boolean, ): Boolean</ID>
+    <ID>CyclomaticComplexMethod:TerrainBrush.kt$TerrainBrushApplier$fun apply( data: TerrainData, stroke: TerrainBrushStroke, patchBuilder: TerrainEditPatchBuilder? = null, ): Boolean</ID>
+    <ID>CyclomaticComplexMethod:TerrainMetadata.kt$TerrainMetadataReader$private fun readArrayBody( text: String, name: String, ): String?</ID>
+    <ID>CyclomaticComplexMethod:TerrainSystems.kt$TerrainCameraControllerSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>CyclomaticComplexMethod:TerrainSystems.kt$TerrainEditorMeshSyncSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>CyclomaticComplexMethod:TerrainSystems.kt$TerrainEditorSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>CyclomaticComplexMethod:TerrainSystems.kt$TerrainEditorSystem$private fun processHistoryCommands( terrain: TerrainDataComponent, snapshot: InputSnapshot, )</ID>
+    <ID>CyclomaticComplexMethod:TerrainSystems.kt$TerrainEditorSystem$private fun processTerrainCommands( terrain: TerrainDataComponent, renderer: TerrainRendererComponent, )</ID>
+    <ID>CyclomaticComplexMethod:TextureMetadata.kt$TextureMetadataReader$private fun readJpeg(file: File): TextureMetadata?</ID>
+    <ID>CyclomaticComplexMethod:UiComposerPanels.kt$UiComposerStructurePanel$override fun draw()</ID>
+    <ID>CyclomaticComplexMethod:UiComposerPanels.kt$UiComposerToolbarPanel$override fun draw()</ID>
+    <ID>CyclomaticComplexMethod:WoolboySystems.kt$PlayerControllerSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>ForbiddenComment:GdxRenderer3D.kt$GdxModelViewerDebugRenderer$// TODO: carry semantic texture color space through asset loading; scalar debug channels are sampled raw here.</ID>
+    <ID>ForbiddenComment:GdxUiSceneBuilder.kt$GdxUiSceneBuilder$// TODO: Replace this path cache with AssetService-backed loading and explicit lifetime tracking.</ID>
+    <ID>ForbiddenComment:Scene.kt$SceneManager$* Applies scene window and viewport preferences through the engine context. * * Scene activation updates the physical window preference first, then * recalculates the logical viewport from the resulting surface size. The * platform may still emit its own resize callback afterward, so this path * intentionally remains idempotent. * * TODO: renderer and ImGui resize currently follow the main runtime resize * path. Backends that do not emit a platform resize callback rely on the * runtime to call [EngineRuntime.resize] after transitions.</ID>
+    <ID>ForbiddenComment:TerrainGenerators.kt$FractalNoiseGenerator$// TODO: Layer octave-based generation on top of the future noise generators.</ID>
+    <ID>ForbiddenComment:TerrainGenerators.kt$PerlinNoiseGenerator$// TODO: Integrate real noise once the engine gets a shared noise module.</ID>
+    <ID>ForbiddenComment:TerrainGenerators.kt$SimplexNoiseGenerator$// TODO: Integrate simplex noise when generator dependencies land in the engine.</ID>
+    <ID>ForbiddenComment:TerrainMesh.kt$TerrainMeshBuilder$// TODO: Texture splatting using material albedo textures will be implemented later in a terrain shader.</ID>
+    <ID>ForbiddenComment:TerrainSystems.kt$TerrainEditorMeshSyncSystem$// TODO: Replace the full rebuild with chunked/partial uploads once terrain chunks exist.</ID>
+    <ID>ForbiddenComment:TerrainSystems.kt$TerrainRaycaster$// TODO: Replace the temporary plane projection with a real heightfield/triangle ray test.</ID>
+    <ID>LargeClass:AnimationViewerSystemTest.kt$AnimationViewerSystemTest</ID>
+    <ID>LargeClass:GdxRenderer3D.kt$GdxRenderer3D : Renderer</ID>
+    <ID>LargeClass:SceneEditorOperations.kt$SceneEditorOperations</ID>
+    <ID>LargeClass:TerrainSystems.kt$TerrainEditorSystem : System</ID>
+    <ID>LargeClass:UiComposerPanels.kt$UiComposerInspectorPanel : UiPanel</ID>
+    <ID>LongMethod:AnimationViewerPanels.kt$AnimationViewerPlaybackPanel$override fun draw()</ID>
+    <ID>LongMethod:AnimationViewerPanels.kt$AnimationViewerViewportPanel$override fun draw()</ID>
+    <ID>LongMethod:BindingDefinitionValidator.kt$BindingDefinitionValidator$override fun validate(context: UiSceneValidationContext): List&lt;UiSceneValidationIssue&gt;</ID>
+    <ID>LongMethod:BindingTypeCompatibilityValidator.kt$BindingTypeCompatibilityValidator$private fun validateNode( node: UiSceneNode, context: UiSceneValidationContext, ): List&lt;UiSceneValidationIssue&gt;</ID>
+    <ID>LongMethod:EngineRuntime.kt$GameLoop$fun renderFrame(rawDelta: Float)</ID>
+    <ID>LongMethod:GdxAssetService.kt$GdxAssetService$private fun buildModelInfo( path: String, model: Model, sceneAsset: SceneAsset?, ): ModelAssetInfo</ID>
+    <ID>LongMethod:GdxImGuiService.kt$GdxImGuiInputBridge$private fun mapKey(keycode: Int): Key?</ID>
+    <ID>LongMethod:GdxRenderer3D.kt$GdxModelViewerDebugRenderer$private fun renderRenderable( renderable: Renderable, instance: ModelInstance, debugView: com.pashkd.krender.engine.api.MaterialDebugView, camera: Camera, )</ID>
+    <ID>LongMethod:GdxRenderer3D.kt$GdxRenderer3D$override fun render(context: RenderContext)</ID>
+    <ID>LongMethod:GdxRenderer3D.kt$GdxRenderer3D$private fun environmentFor(context: RenderContext): Environment</ID>
+    <ID>LongMethod:GdxUiScenePreview.kt$GdxUiScenePreview$private fun renderVisualGuides()</ID>
+    <ID>LongMethod:LocalAssetImportService.kt$LocalAssetImportService$override fun importAssets(plan: AssetImportPlan): AssetImportResult</ID>
+    <ID>LongMethod:ModelViewerScene.kt$ModelViewerScene$private fun createUiSystem( layoutConfig: ImGuiLayoutConfig, panelEventLogger: ImGuiWindowEventLogger, ): UiSystem</ID>
+    <ID>LongMethod:RuntimeSceneBuilder.kt$RuntimeSceneBuilder$fun build( world: SceneWorld, request: RuntimeSceneBuildRequest, ): RuntimeSceneBuildResult</ID>
+    <ID>LongMethod:RuntimeSceneTest.kt$RuntimeSceneTest$private fun sceneDescriptor( scenePath: String = "scenes/runtime.krscene", activeTerrainEntityId: Long? = 2L, showSkybox: Boolean = true, skyboxAssetPath: String? = "skyboxes/runtime.krskybox", ): SceneDescriptor</ID>
+    <ID>LongMethod:RuntimeSceneValidator.kt$RuntimeSceneValidator$fun validate( descriptor: SceneDescriptor, dependencyGraph: SceneDependencyGraph, ): SceneValidationReport</ID>
+    <ID>LongMethod:RuntimeTerrainService.kt$RuntimeTerrainService$fun prepareActiveTerrain( world: SceneWorld, descriptor: SceneDescriptor, ): RuntimeTerrainSetupResult</ID>
+    <ID>LongMethod:SceneAssetCollector.kt$SceneDependencyCollector$fun collect( descriptor: SceneDescriptor, resolvedSkybox: SkyboxAssetDescriptor? = null, ): SceneDependencyGraph</ID>
+    <ID>LongMethod:SceneAssetCollectorTest.kt$SceneAssetCollectorTest$@Test fun `collects model terrain and skybox dependencies with requirement metadata`()</ID>
+    <ID>LongMethod:SceneAssetMetadataReaderTest.kt$SceneAssetMetadataReaderTest$@Test fun `reads scene summary including terrain environment and bounds`()</ID>
+    <ID>LongMethod:SceneAssetPanel.kt$SceneAssetPanel$private fun drawAssetsList()</ID>
+    <ID>LongMethod:SceneEditorPanels.kt$SceneEditorToolbarPanel$override fun draw()</ID>
+    <ID>LongMethod:SceneEditorPanels.kt$SceneInspectorPanel$private fun drawEntity(entity: Entity)</ID>
+    <ID>LongMethod:SceneEditorPanels.kt$SceneInspectorPanel$private fun drawSceneSettings()</ID>
+    <ID>LongMethod:SceneEditorScene.kt$SceneEditorScene$private fun createUiSystem( layoutConfig: ImGuiLayoutConfig, panelEventLogger: ImGuiWindowEventLogger, ): UiSystem</ID>
+    <ID>LongMethod:SceneMetadata.kt$SceneAssetMetadataReader$internal fun fromDescriptor( descriptor: SceneDescriptor, baseDirectory: File, ): SceneAssetMetadata</ID>
+    <ID>LongMethod:SceneSerializer.kt$SceneSerializer$private fun toComponentDescriptor(component: Component): ComponentDescriptor?</ID>
+    <ID>LongMethod:TerrainBrush.kt$TerrainBrushApplier$fun apply( data: TerrainData, stroke: TerrainBrushStroke, patchBuilder: TerrainEditPatchBuilder? = null, ): Boolean</ID>
+    <ID>LongMethod:TerrainEditorPanels.kt$TerrainEditorControlsPanel$override fun draw()</ID>
+    <ID>LongMethod:TerrainEditorPanels.kt$TerrainEditorLayersPanel$override fun draw()</ID>
+    <ID>LongMethod:TerrainEditorScene.kt$TerrainEditorScene$override fun show()</ID>
+    <ID>LongMethod:TerrainRuntime.kt$RuntimeTerrainMeshSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>LongMethod:TerrainRuntime.kt$TerrainMaterialBakeService$fun bakeFinalSplatTexture( terrain: TerrainData, resolution: Int, textureId: String, revision: Long, blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.OrderedAlpha, ): RuntimeTextureData</ID>
+    <ID>LongMethod:TerrainSystems.kt$TerrainAssetRuntimeSync$fun update(world: SceneWorld)</ID>
+    <ID>LongMethod:TerrainSystems.kt$TerrainEditorMeshSyncSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>LongMethod:TerrainSystems.kt$TerrainEditorMeshSyncSystem$private fun syncMaterialPreviewTexture( renderer: TerrainRendererComponent, terrain: TerrainData, previewMode: TerrainPreviewMode, resolution: Int, blendMode: TerrainLayerBlendMode, selectedLayerId: Int?, )</ID>
+    <ID>LongMethod:TerrainSystems.kt$TerrainEditorSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>LongMethod:TerrainSystems.kt$TerrainEditorSystem$private fun processTerrainCommands( terrain: TerrainDataComponent, renderer: TerrainRendererComponent, )</ID>
+    <ID>LongMethod:UiComposerPanels.kt$UiComposerDiagnosticsPanel$override fun draw()</ID>
+    <ID>LongMethod:UiComposerPanels.kt$UiComposerStructurePanel$override fun draw()</ID>
+    <ID>LongMethod:UiComposerPanels.kt$UiComposerToolbarPanel$override fun draw()</ID>
+    <ID>LongMethod:UiComposerScene.kt$UiComposerCanvasInteractionSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>LongMethod:UiComposerScene.kt$UiComposerScene$private fun createUiSystem(): UiSystem</ID>
+    <ID>LongMethod:UiSceneFocusedValidatorsTest.kt$BindingTypeCompatibilityValidatorTest$@Test fun `reports incompatible binding types by field`()</ID>
+    <ID>LongMethod:WoolboySystems.kt$PlayerControllerSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>LongParameterList:AssetBrowserPanel.kt$AssetBrowserPanel$( private val state: AssetBrowserState, private val onAssetSelected: (AssetDescriptor) -&gt; Unit, private val onAssetActivated: (AssetDescriptor) -&gt; Unit, private val acceptedCategories: Set&lt;AssetCategory&gt;? = null, private val mode: AssetBrowserMode = AssetBrowserMode.Full, private val layoutConfig: ImGuiLayoutConfig, private val layoutTracker: ImGuiLayoutRuntimeTracker? = null, private val eventLogger: ImGuiWindowEventLogger, private val panelId: String = AssetBrowserPanelIds.Browser, private val operations: AssetBrowserOperationsHandler = AssetBrowserOperationsHandler.NoOp, private val importService: AssetImportService, private val fileDialogService: FileDialogService, )</ID>
+    <ID>LongParameterList:GdxUiScenePreview.kt$GdxUiScenePreview$( x: Int, y: Int, width: Int, height: Int, logicalWidth: Int, logicalHeight: Int, cameraOffsetX: Float, cameraOffsetY: Float, previewZoom: Float, )</ID>
+    <ID>LongParameterList:TerrainSystems.kt$TerrainEditorMeshSyncSystem$( private val materialColorResolver: (String?) -&gt; TerrainLayerColorDescriptor? = { null }, private val blendModeProvider: () -&gt; TerrainLayerBlendMode = { TerrainLayerBlendMode.WeightedAverage }, private val layerColorPreviewProvider: () -&gt; Boolean = { true }, private val previewModeProvider: () -&gt; TerrainPreviewMode = { if (layerColorPreviewProvider()) TerrainPreviewMode.MaterialColor else TerrainPreviewMode.LayerColor }, private val materialPreviewResolutionProvider: () -&gt; Int = { 512 }, private val materialPreviewDirtyProvider: () -&gt; Boolean = { false }, private val selectedLayerIdProvider: () -&gt; Int? = { null }, private val materialPreviewStatusSink: (String) -&gt; Unit = {}, private val previewBakeStatsSink: (Float, TerrainPreviewTextureCacheStats) -&gt; Unit = { _, _ -&gt; }, private val materialPreviewCleanSink: () -&gt; Unit = {}, private val materialPreviewExportRequestedProvider: () -&gt; Boolean = { false }, private val materialPreviewExportPathProvider: () -&gt; String = { "terrains/material_preview.png" }, private val materialPreviewExportCompleteSink: (String) -&gt; Unit = {}, private val brushActiveProvider: () -&gt; Boolean = { false }, private val strokeMeshRebuildIntervalMs: Double = STROKE_MESH_REBUILD_INTERVAL_MS, private val nowNanos: () -&gt; Long = java.lang.System::nanoTime, materialLibrary: TerrainMaterialLibrary? = null, logger: Logger? = null, )</ID>
+    <ID>LongParameterList:UiSceneFocusedValidatorsTest.kt$( id: String, type: UiSceneNodeType = UiSceneNodeType.Stack, style: String? = null, background: String? = null, text: String? = null, action: String? = null, texture: String? = null, value: Float? = null, valueBinding: String? = null, min: Float = 0f, max: Float = 1f, step: Float = 0.01f, children: List&lt;UiSceneNode&gt; = emptyList(), )</ID>
+    <ID>LoopWithTooManyJumpStatements:TerrainBrush.kt$TerrainBrushApplier$for</ID>
+    <ID>MatchingDeclarationName:BindingReferenceHelpers.kt$UiSceneBindingReference</ID>
+    <ID>MatchingDeclarationName:SceneEditorComponents.kt$EditorOnlyComponent : Component</ID>
+    <ID>MatchingDeclarationName:WoolboyComponents.kt$PlayerControllerComponent : Component</ID>
+    <ID>NestedBlockDepth:AssetMetadataCodec.kt$JsonParser$private fun parseString(): String</ID>
+    <ID>NestedBlockDepth:BindingReferenceHelpers.kt$fun findMalformedBindingPlaceholders(value: String?): List&lt;String&gt;</ID>
+    <ID>NestedBlockDepth:GdxRenderer3D.kt$GdxRenderer3D$override fun render(context: RenderContext)</ID>
+    <ID>NestedBlockDepth:ImportAssetDialog.kt$ImportAssetDialog$private fun drawPlan()</ID>
+    <ID>NestedBlockDepth:ModelViewerPanels.kt$ModelViewerMeshPartsPanel$override fun draw()</ID>
+    <ID>NestedBlockDepth:RuntimeSceneValidator.kt$RuntimeSceneValidator$fun validate( descriptor: SceneDescriptor, dependencyGraph: SceneDependencyGraph, ): SceneValidationReport</ID>
+    <ID>NestedBlockDepth:SceneAssetCollector.kt$SceneDependencyCollector$fun collect( descriptor: SceneDescriptor, resolvedSkybox: SkyboxAssetDescriptor? = null, ): SceneDependencyGraph</ID>
+    <ID>NestedBlockDepth:TerrainBrush.kt$TerrainBrushApplier$fun apply( data: TerrainData, stroke: TerrainBrushStroke, patchBuilder: TerrainEditPatchBuilder? = null, ): Boolean</ID>
+    <ID>NestedBlockDepth:TerrainRuntime.kt$TerrainMaterialBakeService$fun bakeFinalSplatTexture( terrain: TerrainData, resolution: Int, textureId: String, revision: Long, blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.OrderedAlpha, ): RuntimeTextureData</ID>
+    <ID>PrintStackTrace:StartupHelper.kt$StartupHelper$e</ID>
+    <ID>ReturnCount:AnimationViewerState.kt$AnimationViewerState$fun connectedBoneIndices(): Set&lt;Int&gt;</ID>
+    <ID>ReturnCount:AnimationViewerSystems.kt$AnimationViewerBoundingBoxSystem$override fun render( world: SceneWorld, alpha: Float, )</ID>
+    <ID>ReturnCount:AnimationViewerSystems.kt$AnimationViewerModelRenderSystem$override fun render( world: SceneWorld, alpha: Float, )</ID>
+    <ID>ReturnCount:AnimationViewerSystems.kt$AnimationViewerSkeletonRenderSystem$override fun render( world: SceneWorld, alpha: Float, )</ID>
+    <ID>ReturnCount:AnimationViewerSystems.kt$AnimationViewerSystem$private fun logLoadedModelDetails()</ID>
+    <ID>ReturnCount:AnimationViewerSystems.kt$AnimationViewerSystem$private fun syncSampledSkeletonPose()</ID>
+    <ID>ReturnCount:AnimationViewerSystems.kt$AnimationViewerSystem$private fun updatePlayback(dt: Float)</ID>
+    <ID>ReturnCount:AssetBrowserPanel.kt$AssetBrowserPanel$private fun drawDeleteDialog()</ID>
+    <ID>ReturnCount:AssetBrowserPanel.kt$AssetBrowserPanel$private fun drawRenameDialog()</ID>
+    <ID>ReturnCount:AssetBrowserPanel.kt$AssetBrowserPanel$private fun scene2dSkinFolderPath(asset: AssetDescriptor): String?</ID>
+    <ID>ReturnCount:AssetDetailsPanel.kt$AssetDetailsPanel$override fun draw()</ID>
+    <ID>ReturnCount:AssetOperationsService.kt$LocalAssetOperationsService$override fun create(request: CreateAssetRequest): AssetOperationResult</ID>
+    <ID>ReturnCount:AssetOperationsService.kt$LocalAssetOperationsService$override fun delete( asset: AssetDescriptor, mode: DeleteMode, ): AssetOperationResult</ID>
+    <ID>ReturnCount:AssetOperationsService.kt$LocalAssetOperationsService$override fun duplicate( asset: AssetDescriptor, targetName: String, ): AssetOperationResult</ID>
+    <ID>ReturnCount:AssetOperationsService.kt$LocalAssetOperationsService$override fun rename( asset: AssetDescriptor, newName: String, ): AssetOperationResult</ID>
+    <ID>ReturnCount:AssetOperationsService.kt$LocalAssetOperationsService$override fun reveal(asset: AssetDescriptor): AssetOperationResult</ID>
+    <ID>ReturnCount:AssetOperationsService.kt$LocalAssetOperationsService$private fun scene2DSkinFolderForDelete(source: File): File?</ID>
+    <ID>ReturnCount:AssetRegistryService.kt$LocalAssetRegistryService$private fun terrainMetadata( file: File, category: AssetCategory, ): Map&lt;String, String&gt;</ID>
+    <ID>ReturnCount:AssetRegistryService.kt$LocalAssetRegistryService$private fun textureMetadata( file: File, category: AssetCategory, ): Map&lt;String, String&gt;</ID>
+    <ID>ReturnCount:BindingReferenceHelpers.kt$fun isSingleBindingPlaceholder(value: String?): Boolean</ID>
+    <ID>ReturnCount:EditorViewportCamera.kt$EditorViewportCameraSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>ReturnCount:EngineRuntime.kt$GameLoop$fun renderFrame(rawDelta: Float)</ID>
+    <ID>ReturnCount:GdxAssetService.kt$GdxAssetService$override fun modelBounds(asset: AssetRef&lt;ModelAsset&gt;): ModelAssetBounds?</ID>
+    <ID>ReturnCount:GdxAssetService.kt$GdxAssetService$override fun modelSkeleton(asset: AssetRef&lt;ModelAsset&gt;): ModelSkeletonInfo?</ID>
+    <ID>ReturnCount:GdxAssetService.kt$GdxAssetService$override fun texturePreviewHandle(texturePathOrId: String): TexturePreviewHandle?</ID>
+    <ID>ReturnCount:GdxAssetService.kt$GdxAssetService$private fun buildModelSkeletonInfo(model: Model): ModelSkeletonInfo?</ID>
+    <ID>ReturnCount:GdxAssetService.kt$GdxAssetService$private fun sampleAnimationPose( instance: ModelInstance, controller: AnimationController?, animationName: String?, timeSeconds: Float, loop: Boolean, )</ID>
+    <ID>ReturnCount:GdxAssetService.kt$GdxAssetService$private fun sampleGltfSkeletonPose( asset: AssetRef&lt;ModelAsset&gt;, animationName: String?, timeSeconds: Float, loop: Boolean, ): List&lt;ModelBonePose&gt;</ID>
+    <ID>ReturnCount:GdxAssetService.kt$GdxAssetService$private fun sampleStaticModelSkeletonPose( asset: AssetRef&lt;ModelAsset&gt;, animationName: String?, timeSeconds: Float, loop: Boolean, ): List&lt;ModelBonePose&gt;</ID>
+    <ID>ReturnCount:GdxAssetService.kt$internal fun materialIndexOf( materials: Array&lt;com.badlogic.gdx.graphics.g3d.Material&gt;, material: com.badlogic.gdx.graphics.g3d.Material, ): Int?</ID>
+    <ID>ReturnCount:GdxRenderer3D.kt$GdxGltfPbrPreviewRenderer$fun render( command: DrawModel, camera: Camera, meshPartFilter: (ModelInstance, Set&lt;Int&gt;?) -&gt; Unit, ): Boolean</ID>
+    <ID>ReturnCount:GdxRenderer3D.kt$GdxGltfPbrPreviewRenderer$private fun PbrSceneEntry.ensureIbl( direction: Vector3, intensity: Float, ): Boolean</ID>
+    <ID>ReturnCount:GdxRenderer3D.kt$GdxModelViewerDebugRenderer$private fun matchesSelectedMaterial( material: Material, materialIndex: Int?, debugView: com.pashkd.krender.engine.api.MaterialDebugView, ): Boolean</ID>
+    <ID>ReturnCount:GdxRenderer3D.kt$GdxModelViewerDebugRenderer$private fun renderRenderable( renderable: Renderable, instance: ModelInstance, debugView: com.pashkd.krender.engine.api.MaterialDebugView, camera: Camera, )</ID>
+    <ID>ReturnCount:GdxRenderer3D.kt$GdxRenderer3D$private fun applyAnimationPreview( instance: ModelInstance, controller: AnimationController?, preview: AnimationPlaybackView?, )</ID>
+    <ID>ReturnCount:GdxRenderer3D.kt$GdxRenderer3D$private fun modelInstanceForDebug( command: DrawModel, camera: Camera, ): ModelInstance?</ID>
+    <ID>ReturnCount:GdxRenderer3D.kt$internal fun normalizedAnimationTime( animation: Animation, timeSeconds: Float, loop: Boolean, ): Float</ID>
+    <ID>ReturnCount:GdxTerrainMaterialTextureSampler.kt$GdxTerrainMaterialTextureSampler$private fun loadPixmap(path: String): Pixmap?</ID>
+    <ID>ReturnCount:GdxUiScenePreview.kt$GdxUiScenePreview$fun actorInfo(nodeId: String?): UiComposerActorPreviewInfo?</ID>
+    <ID>ReturnCount:GdxUiScenePreview.kt$GdxUiScenePreview$private fun hitTestStage( stageX: Float, stageY: Float, ): UiComposerCanvasHit?</ID>
+    <ID>ReturnCount:ImGuiWindowEventLogger.kt$ImGuiWindowEventLogger$fun observe( panelId: String, title: String, )</ID>
+    <ID>ReturnCount:ImportAssetDialog.kt$ImportAssetDialog$private fun drawOverwriteConfirmDialog()</ID>
+    <ID>ReturnCount:ImportAssetDialogState.kt$ImportAssetDialogState$fun requestImport(state: AssetBrowserState): AssetImportPlan?</ID>
+    <ID>ReturnCount:LocalAssetImportService.kt$LocalAssetImportService$private fun planEntry( source: File, collisionPolicy: AssetImportCollisionPolicy, importName: String?, ): AssetImportEntry</ID>
+    <ID>ReturnCount:ModelViewerPanels.kt$ModelViewerTextureChannelsPanel$private fun drawDebugTextureChannelCombo(info: ModelAssetInfo?)</ID>
+    <ID>ReturnCount:ModelViewerPanels.kt$private fun drawTextureSlotPreview( assets: AssetService, ui: UiService, slot: ModelTextureSlotInfo, )</ID>
+    <ID>ReturnCount:ModelViewerPanels.kt$private fun matchingMaterialIndexForPart( part: ModelMeshPartInfo, materials: List&lt;ModelMaterialInfo&gt;, ): Int?</ID>
+    <ID>ReturnCount:ModelViewerSystems.kt$ModelViewerBoundingBoxSystem$override fun render( world: SceneWorld, alpha: Float, )</ID>
+    <ID>ReturnCount:ModelViewerSystems.kt$ModelViewerModelRenderSystem$override fun render( world: SceneWorld, alpha: Float, )</ID>
+    <ID>ReturnCount:ModelViewerSystems.kt$ModelViewerSystem$private fun logLoadedModelDetails()</ID>
+    <ID>ReturnCount:RuntimeSceneBuilder.kt$RuntimeSceneBuilder$private fun resolveSkybox(request: RuntimeSceneBuildRequest): SkyboxAssetDescriptor?</ID>
+    <ID>ReturnCount:SceneEditorBounds.kt$SceneEditorBoundsProvider$fun boundsFor(entity: Entity): SceneEditorLocalBounds?</ID>
+    <ID>ReturnCount:SceneEditorBounds.kt$SceneEditorBoundsProvider$private fun terrainMeshBounds(renderer: TerrainRendererComponent): SceneEditorLocalBounds</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun alignLightDirectionToView(entityId: EntityId)</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun removeTransformComponent(entityId: EntityId)</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun renameEntity( entityId: EntityId, newName: String, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setCameraFar( entityId: EntityId, far: Float, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setCameraFov( entityId: EntityId, fov: Float, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setCameraNear( entityId: EntityId, near: Float, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setLightColor( entityId: EntityId, color: Color, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setLightDirection( entityId: EntityId, direction: Vec3, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setLightIntensity( entityId: EntityId, intensity: Float, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setLightType( entityId: EntityId, type: LightType, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setTerrainBakedTextureResolution( entityId: EntityId, resolution: Int, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setTerrainPreviewMode( entityId: EntityId, mode: TerrainPreviewMode, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setTerrainVisible( entityId: EntityId, visible: Boolean, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setTransformPosition( entityId: EntityId, position: Vec3, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setTransformRotation( entityId: EntityId, eulerDegrees: Vec3, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$fun setTransformScale( entityId: EntityId, scale: Vec3, )</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$private fun cameraEntity(entityId: EntityId): Entity?</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$private fun editableEntity(entityId: EntityId): Entity?</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$private fun lightEntity(entityId: EntityId): Entity?</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$private fun normalizedOrNull(vector: Vec3): Vec3?</ID>
+    <ID>ReturnCount:SceneEditorOperations.kt$SceneEditorOperations$private fun terrainEntity(entityId: EntityId): Entity?</ID>
+    <ID>ReturnCount:SceneEditorPanels.kt$SceneInspectorPanel$override fun draw()</ID>
+    <ID>ReturnCount:SceneEditorSystems.kt$SceneEditorBoundingBoxSystem$private fun drawSelectedBoundingBox(world: SceneWorld)</ID>
+    <ID>ReturnCount:SceneEditorSystems.kt$SceneEditorEnvironmentRenderSystem$private fun resolveSkybox(path: String?): SkyboxAssetDescriptor?</ID>
+    <ID>ReturnCount:SceneEditorSystems.kt$SceneEditorLightGizmoSystem$override fun render( world: SceneWorld, alpha: Float, )</ID>
+    <ID>ReturnCount:SceneEditorSystems.kt$SceneEditorSelectionSystem$override fun render( world: SceneWorld, alpha: Float, )</ID>
+    <ID>ReturnCount:SceneEditorSystems.kt$SceneEditorSelectionSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>ReturnCount:SceneEditorSystems.kt$SceneEditorSelectionSystem$private fun rayWorldAabbHitDistance( ray: CameraRay, corners: List&lt;Vec3&gt;, ): Float?</ID>
+    <ID>ReturnCount:SceneEditorSystems.kt$SceneEditorSelectionSystem$private fun selectionViewport(snapshot: InputSnapshot): SelectionViewport?</ID>
+    <ID>ReturnCount:SceneMetadata.kt$SceneAssetMetadataReader$private fun String.parseVec3(): Triple&lt;Float, Float, Float&gt;?</ID>
+    <ID>ReturnCount:ScenePathUtils.kt$ScenePathUtils$fun normalizeScenePath(path: String): String</ID>
+    <ID>ReturnCount:StartupHelper.kt$StartupHelper$@JvmOverloads fun startNewJvmIfRequired(inheritIO: Boolean = true): Boolean</ID>
+    <ID>ReturnCount:StartupHelper.kt$StartupHelper$fun startNewJvm0( isMac: Boolean, inheritIO: Boolean, ): Boolean</ID>
+    <ID>ReturnCount:StyleReferenceValidator.kt$StyleReferenceValidator$override fun validate(context: UiSceneValidationContext): List&lt;UiSceneValidationIssue&gt;</ID>
+    <ID>ReturnCount:TerrainMaterialPreviewBaker.kt$TerrainMaterialPreviewBaker$private fun loadMaterialPixmap(material: TerrainMaterialDescriptor): Pixmap?</ID>
+    <ID>ReturnCount:TerrainMaterialPreviewBaker.kt$TerrainMaterialPreviewBaker$private fun sampleLayerTextureColor( layer: TerrainLayer, u: Float, v: Float, ): TerrainLayerColorDescriptor</ID>
+    <ID>ReturnCount:TerrainMetadata.kt$TerrainMetadataReader$fun read(file: File): TerrainAssetMetadata?</ID>
+    <ID>ReturnCount:TerrainMetadata.kt$TerrainMetadataReader$private fun readArrayBody( text: String, name: String, ): String?</ID>
+    <ID>ReturnCount:TerrainSystems.kt$TerrainCameraControllerSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>ReturnCount:TerrainSystems.kt$TerrainEditorSystem$override fun debugRender(world: SceneWorld)</ID>
+    <ID>ReturnCount:TerrainSystems.kt$TerrainEditorSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>ReturnCount:TerrainSystems.kt$TerrainRaycaster$fun pickTerrain( screenPosition: Vec2, viewportSize: Vec2, cameraTransform: TransformComponent, camera: PerspectiveCameraComponent, terrainTransform: TransformComponent, terrain: TerrainData, ): TerrainHit?</ID>
+    <ID>ReturnCount:TextureMetadata.kt$TextureMetadataReader$private fun hasPngTransparencyChunk(input: RandomAccessFile): Boolean</ID>
+    <ID>ReturnCount:TextureMetadata.kt$TextureMetadataReader$private fun readJpeg(file: File): TextureMetadata?</ID>
+    <ID>ReturnCount:TextureMetadata.kt$TextureMetadataReader$private fun readPng(file: File): TextureMetadata?</ID>
+    <ID>ReturnCount:TextureMetadata.kt$TextureMetadataReader$private fun readWebp(file: File): TextureMetadata?</ID>
+    <ID>ReturnCount:TextureMetadata.kt$TextureMetadataReader$private fun readWebpLossless( input: RandomAccessFile, chunkSize: Int, ): TextureMetadata?</ID>
+    <ID>ReturnCount:TextureMetadata.kt$TextureMetadataReader$private fun readWebpLossy( input: RandomAccessFile, chunkSize: Int, ): TextureMetadata?</ID>
+    <ID>ReturnCount:ThirdPersonCameraFollowSystem.kt$ThirdPersonCameraFollowSystem$override fun lateUpdate( world: SceneWorld, dt: Float, )</ID>
+    <ID>ReturnCount:UiComposerDocumentEditing.kt$fun UiSceneDocument.duplicateNode( nodeId: String, newId: String, ): UiSceneDocument</ID>
+    <ID>ReturnCount:UiComposerDocumentEditing.kt$private fun UiSceneNode.findParentOf(nodeId: String): UiSceneNode?</ID>
+    <ID>ReturnCount:UiComposerDocumentEditing.kt$private fun UiSceneNode.moveDescendant( nodeId: String, direction: Int, ): UiSceneNode</ID>
+    <ID>ReturnCount:UiComposerModel.kt$fun findUiSceneNodeById( node: UiSceneNode, id: String?, ): UiSceneNode?</ID>
+    <ID>ReturnCount:UiComposerOperations.kt$UiComposerOperations$fun addBindingDefinition(binding: UiSceneBindingDefinition)</ID>
+    <ID>ReturnCount:UiComposerOperations.kt$UiComposerOperations$fun addChildToSelected(type: UiSceneNodeType)</ID>
+    <ID>ReturnCount:UiComposerOperations.kt$UiComposerOperations$fun deleteSelectedNode()</ID>
+    <ID>ReturnCount:UiComposerOperations.kt$UiComposerOperations$fun duplicateSelectedNode()</ID>
+    <ID>ReturnCount:UiComposerOperations.kt$UiComposerOperations$fun moveSelectedNodeDown()</ID>
+    <ID>ReturnCount:UiComposerOperations.kt$UiComposerOperations$fun moveSelectedNodeUp()</ID>
+    <ID>ReturnCount:UiComposerOperations.kt$UiComposerOperations$fun renameBindingKey( oldKey: String, newKey: String, )</ID>
+    <ID>ReturnCount:UiComposerOperations.kt$UiComposerOperations$fun updateBindingType( key: String, type: UiSceneBindingType, )</ID>
+    <ID>ReturnCount:UiComposerOperations.kt$UiComposerOperations$fun updateSelectedNode(transform: (UiSceneNode) -&gt; UiSceneNode)</ID>
+    <ID>ReturnCount:UiComposerOperations.kt$UiComposerOperations$fun wrapSelectedNode(wrapperType: UiSceneNodeType)</ID>
+    <ID>ReturnCount:UiComposerPanels.kt$UiComposerInspectorPanel$private fun drawImagePreview(node: UiSceneNode)</ID>
+    <ID>ReturnCount:UiComposerScene.kt$UiComposerCanvasInteractionSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>ReturnCount:WoolboySystems.kt$CharacterAnimationSystem$private fun advanceAnimation( animation: AnimationComponent, durationSeconds: Float?, dt: Float, )</ID>
+    <ID>ReturnCount:WoolboySystems.kt$CharacterAnimationSystem$private fun durationFor( model: ModelComponent, animation: AnimationComponent, ): Float?</ID>
+    <ID>ReturnCount:WoolboySystems.kt$PlayerControllerSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
+    <ID>ReturnCount:WoolboySystems.kt$PlayerControllerSystem$private fun cameraMovementBasis(world: SceneWorld): CameraMovementBasis</ID>
+    <ID>SpreadOperator:GdxRenderer3D.kt$GdxRenderer3D$( true, vertexBuffer.size / vertexStride, if (canUseIndices) meshData.indices.size else 0, *attributes.toTypedArray(), )</ID>
+    <ID>SpreadOperator:LocalAssetImportService.kt$LocalAssetImportService$( source.toPath(), target.toPath(), *mainCopyOptions(plan.collisionPolicy), )</ID>
+    <ID>SpreadOperator:Lwjgl3Launcher.kt$(*(arrayOf(128, 64, 32, 16).map { "libgdx$it.png" }.toTypedArray()))</ID>
+    <ID>ThrowsCount:AssetMetadataCodec.kt$AssetMetadataCodec$fun decode(text: String): AssetMetadataDocument</ID>
+    <ID>ThrowsCount:RuntimeSceneValidator.kt$RuntimeSceneValidator$fun requireActiveCamera( world: SceneWorld, descriptor: SceneDescriptor, ): Entity</ID>
+    <ID>ThrowsCount:RuntimeSceneValidator.kt$RuntimeSceneValidator$fun requireActiveTerrain( world: SceneWorld, descriptor: SceneDescriptor, ): Entity</ID>
+    <ID>ThrowsCount:RuntimeTerrainService.kt$RuntimeTerrainService$fun prepareActiveTerrain( world: SceneWorld, descriptor: SceneDescriptor, ): RuntimeTerrainSetupResult</ID>
+    <ID>TooGenericExceptionCaught:AnimationViewerOperations.kt$AnimationViewerOperations$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:AnimationViewerScene.kt$AnimationViewerScene$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:AnimationViewerSystems.kt$AnimationViewerSystem$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:AssetBrowserScene.kt$AssetBrowserScene$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:AssetBrowserScene.kt$SceneOperationsHandler$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:AssetBrowserSystem.kt$AssetBrowserSystem$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:AssetBrowserUiOperations.kt$AssetBrowserUiOperations$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:AssetOperationsService.kt$LocalAssetOperationsService$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:AssetRegistryService.kt$LocalAssetRegistryService$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:GdxAssetService.kt$GdxAssetService$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GdxRenderer3D.kt$GdxGltfPbrPreviewRenderer$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GdxRenderer3D.kt$GdxRenderer3D$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GdxRenderer3D.kt$GdxSkyboxRenderer$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GdxRenderer3D.kt$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GdxTerrainMaterialTextureSampler.kt$GdxTerrainMaterialTextureSampler$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:GdxUiComposerSkinMetadataReader.kt$GdxUiComposerSkinMetadataReader$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:ImGuiLayoutConfigCodec.kt$ImGuiLayoutConfigCodec$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:Lwjgl3JvmProcessLauncher.kt$Lwjgl3JvmProcessLauncher$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:MaterialLibrary.kt$TerrainMaterialLibrary$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:ModelViewerOperations.kt$ModelViewerOperations$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:ModelViewerScene.kt$ModelViewerScene$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:ModelViewerSystems.kt$ModelViewerSystem$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:RuntimeTerrainService.kt$RuntimeTerrainService$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:Scene2DSkinAssetMetadata.kt$Scene2DSkinAssetMetadataReader$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:SceneAssetPanel.kt$SceneAssetBrowserModel$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:SceneAssetPanel.kt$SceneAssetPanel$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:SceneEditorOperations.kt$SceneEditorOperations$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:SceneEditorSystems.kt$SceneEditorEnvironmentRenderSystem$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:SkyboxAssetService.kt$SkyboxAssetService$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:StartupHelper.kt$StartupHelper$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:TerrainEditorScene.kt$TerrainEditorScene$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:TerrainMaterialPreviewBaker.kt$TerrainMaterialPreviewBaker$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:TerrainRuntime.kt$RuntimeTerrainMeshSystem$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:TerrainRuntime.kt$TerrainMaterialBakeService$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:TerrainRuntime.kt$TerrainRuntimeFactory$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:TerrainSystems.kt$TerrainAssetRuntimeSync$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:TerrainSystems.kt$TerrainEditorMeshSyncSystem$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:TerrainSystems.kt$TerrainEditorSystem$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:UiComposerModel.kt$UiComposerDocumentLoader$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:UiComposerOperations.kt$UiComposerOperations$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:UiComposerScene.kt$UiComposerScene$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:UiSceneAssetMetadata.kt$UiSceneAssetMetadataReader$error: Exception</ID>
+    <ID>TooManyFunctions:AnimationViewerOperations.kt$AnimationViewerOperations</ID>
+    <ID>TooManyFunctions:AnimationViewerScene.kt$AnimationViewerScene : Scene</ID>
+    <ID>TooManyFunctions:AnimationViewerSystems.kt$AnimationViewerSystem : System</ID>
+    <ID>TooManyFunctions:AssetBrowserPanel.kt$AssetBrowserPanel : UiPanel</ID>
+    <ID>TooManyFunctions:AssetMetadataCodec.kt$JsonParser</ID>
+    <ID>TooManyFunctions:AssetOperationsService.kt$LocalAssetOperationsService : AssetOperationsService</ID>
+    <ID>TooManyFunctions:AssetRegistryService.kt$LocalAssetRegistryService : AssetRegistryService</ID>
+    <ID>TooManyFunctions:Assets.kt$AssetService</ID>
+    <ID>TooManyFunctions:Ecs.kt$SceneWorld</ID>
+    <ID>TooManyFunctions:GdxAssetService.kt$GdxAssetService : AssetService</ID>
+    <ID>TooManyFunctions:GdxAssetService.kt$com.pashkd.krender.engine.backend.gdx.GdxAssetService.kt</ID>
+    <ID>TooManyFunctions:GdxImGuiService.kt$GdxImGuiInputBridge : InputProcessor</ID>
+    <ID>TooManyFunctions:GdxInputService.kt$GdxInputService : InputServiceInputProcessor</ID>
+    <ID>TooManyFunctions:GdxRenderer3D.kt$GdxRenderer3D : Renderer</ID>
+    <ID>TooManyFunctions:GdxRenderer3D.kt$com.pashkd.krender.engine.backend.gdx.GdxRenderer3D.kt</ID>
+    <ID>TooManyFunctions:GdxUiSceneBuilder.kt$GdxUiSceneBuilder : Disposable</ID>
+    <ID>TooManyFunctions:GdxUiScenePreview.kt$GdxUiScenePreview : Disposable</ID>
+    <ID>TooManyFunctions:ImGuiLayoutConfigCodec.kt$ImGuiLayoutConfigCodec</ID>
+    <ID>TooManyFunctions:JsonDocumentHelpers.kt$com.pashkd.krender.engine.serialization.JsonDocumentHelpers.kt</ID>
+    <ID>TooManyFunctions:LocalAssetImportService.kt$LocalAssetImportService : AssetImportService</ID>
+    <ID>TooManyFunctions:MaterialLibrary.kt$TerrainMaterialLibrary</ID>
+    <ID>TooManyFunctions:ModelViewerPanels.kt$com.pashkd.krender.engine.modelviewer.ModelViewerPanels.kt</ID>
+    <ID>TooManyFunctions:ModelViewerScene.kt$ModelViewerScene : Scene</ID>
+    <ID>TooManyFunctions:ModelViewerSystems.kt$ModelViewerSystem : System</ID>
+    <ID>TooManyFunctions:Scene.kt$Scene</ID>
+    <ID>TooManyFunctions:SceneAssetPanel.kt$SceneAssetPanel : UiPanel</ID>
+    <ID>TooManyFunctions:SceneEditorOperations.kt$SceneEditorOperations</ID>
+    <ID>TooManyFunctions:SceneEditorPanels.kt$SceneInspectorPanel : UiPanel</ID>
+    <ID>TooManyFunctions:SceneSerializer.kt$SceneDeserializer</ID>
+    <ID>TooManyFunctions:SceneSerializer.kt$SceneSerializer : KRenderSerializer</ID>
+    <ID>TooManyFunctions:TerrainData.kt$TerrainData</ID>
+    <ID>TooManyFunctions:TerrainEditHistory.kt$TerrainEditHistory</ID>
+    <ID>TooManyFunctions:TerrainEditorPanels.kt$com.pashkd.krender.engine.terrain.TerrainEditorPanels.kt</ID>
+    <ID>TooManyFunctions:TerrainMaterialPreviewBaker.kt$TerrainMaterialPreviewBaker</ID>
+    <ID>TooManyFunctions:TerrainMesh.kt$TerrainMeshBuilder</ID>
+    <ID>TooManyFunctions:TerrainPersistence.kt$TerrainPersistence : TerrainRuntimePersistence</ID>
+    <ID>TooManyFunctions:TerrainRuntime.kt$TerrainMaterialBakeService</ID>
+    <ID>TooManyFunctions:TerrainSystems.kt$TerrainEditorSystem : System</ID>
+    <ID>TooManyFunctions:TerrainSystems.kt$com.pashkd.krender.engine.terrain.TerrainSystems.kt</ID>
+    <ID>TooManyFunctions:TextureMetadata.kt$TextureMetadataReader</ID>
+    <ID>TooManyFunctions:UiComposerBindingHelpers.kt$com.pashkd.krender.engine.uicomposer.UiComposerBindingHelpers.kt</ID>
+    <ID>TooManyFunctions:UiComposerDocumentEditing.kt$com.pashkd.krender.engine.uicomposer.UiComposerDocumentEditing.kt</ID>
+    <ID>TooManyFunctions:UiComposerOperations.kt$UiComposerOperations</ID>
+    <ID>TooManyFunctions:UiComposerPanels.kt$UiComposerInspectorPanel : UiPanel</ID>
+    <ID>TooManyFunctions:UiComposerPanels.kt$UiComposerSceneBindingsPanel : UiPanel</ID>
+    <ID>TooManyFunctions:UiComposerPanels.kt$com.pashkd.krender.engine.uicomposer.UiComposerPanels.kt</ID>
+    <ID>TooManyFunctions:UiComposerScene.kt$UiComposerScene : Scene</ID>
+    <ID>TooManyFunctions:UiSceneSerializer.kt$UiSceneSerializer : KRenderSerializer</ID>
+    <ID>TopLevelPropertyNaming:LogsPanel.kt$private const val TruncationSuffix = "..."</ID>
+    <ID>TopLevelPropertyNaming:Lwjgl3Launcher.kt$private const val DefaultForegroundFps = 60</ID>
+    <ID>TopLevelPropertyNaming:Lwjgl3Launcher.kt$private const val DefaultOpenGlTarget = "gl30"</ID>
+    <ID>TopLevelPropertyNaming:Lwjgl3Launcher.kt$private const val DefaultVSyncEnabled = false</ID>
+    <ID>TopLevelPropertyNaming:Lwjgl3Launcher.kt$private const val DefaultWindowHeight = 1080</ID>
+    <ID>TopLevelPropertyNaming:Lwjgl3Launcher.kt$private const val DefaultWindowWidth = 1920</ID>
+    <ID>TopLevelPropertyNaming:ModelViewerPanels.kt$private const val TexturePreviewSize = 100f</ID>
+    <ID>TopLevelPropertyNaming:RuntimeViewport.kt$private const val MinScale = 0.0001f</ID>
+    <ID>TopLevelPropertyNaming:Scene2DSkinSelection.kt$const val DefaultUiSceneSkinPath = "ui/skins/craftacular-ui.json"</ID>
+    <ID>TopLevelPropertyNaming:SceneDescriptors.kt$const val DefaultAmbientLightIntensity: Float = 0.55f</ID>
+    <ID>TopLevelPropertyNaming:SceneDescriptors.kt$const val DefaultTerrainMaterialLibraryPath: String = "materials/terrain_materials.json"</ID>
+    <ID>TopLevelPropertyNaming:UiComposerBindingHelpers.kt$private const val DefaultPreviewTexturePath = "textures/woolboy/hud_heart_full.png"</ID>
+    <ID>TopLevelPropertyNaming:UiComposerModel.kt$const val UiComposerPreviewMaxZoom = 8f</ID>
+    <ID>TopLevelPropertyNaming:UiComposerModel.kt$const val UiComposerPreviewMinZoom = 0.1f</ID>
+    <ID>TopLevelPropertyNaming:UiComposerPanels.kt$private const val ActorPreviewBoxSize = 100f</ID>
+    <ID>TopLevelPropertyNaming:UiComposerPanels.kt$private const val DefaultProgressBarStyle = "default-horizontal"</ID>
+    <ID>TopLevelPropertyNaming:UiComposerPanels.kt$private const val DefaultScene2dStyle = "default"</ID>
+    <ID>TopLevelPropertyNaming:UiComposerPanels.kt$private const val MaxCustomPreviewSize = 8192</ID>
+    <ID>TopLevelPropertyNaming:UiComposerPanels.kt$private const val TextInputBufferSize = 256</ID>
+    <ID>TopLevelPropertyNaming:UiComposerPanels.kt$private const val UiComposerInspectorTag = "UiComposerInspectorPanel"</ID>
+    <ID>TopLevelPropertyNaming:UiComposerPanels.kt$private const val ZoomButtonStep = 1.25f</ID>
+    <ID>UnusedPrivateMember:GdxRenderer3D.kt$private fun normalizeTextureChannel(channel: String?): String</ID>
+    <ID>UnusedPrivateMember:TerrainEditorPanels.kt$private fun formatPaintMode(mode: TerrainLayerPaintMode): String</ID>
+    <ID>UnusedPrivateMember:TerrainEditorScene.kt$TerrainEditorScene$private fun activeGenerator(): TerrainGenerator</ID>
+    <ID>UnusedPrivateMember:TerrainRuntimePipelineTest.kt$TerrainRuntimePipelineTest$private inline fun &lt;T&gt; withGdxFiles( files: Files?, block: () -&gt; T, ): T</ID>
+    <ID>UnusedPrivateMember:UiComposerPanels.kt$UiComposerInspectorPanel$private fun buttonPreviewText(text: String): String</ID>
+    <ID>UnusedPrivateMember:UiComposerPanels.kt$UiComposerInspectorPanel$private fun drawStyleStatus(node: UiSceneNode)</ID>
+    <ID>UnusedPrivateMember:UiComposerPanels.kt$UiComposerInspectorPanel$private fun resolveBindingText(value: String?): String</ID>
+    <ID>UnusedPrivateMember:UiComposerPanels.kt$UiComposerInspectorPanel$private fun resolvedProgressValue(node: UiSceneNode): Float?</ID>
+    <ID>UnusedPrivateProperty:RuntimeTerrainService.kt$RuntimeTerrainService$private val materialBakeService: TerrainMaterialBakeService</ID>
+    <ID>UnusedPrivateProperty:UiComposerPanels.kt$UiComposerInspectorPanel$val exists = drawableExists(background)</ID>
+    <ID>UseCheckOrError:RuntimeSceneValidator.kt$RuntimeSceneValidator$throw IllegalStateException( "Runtime scene activeCameraEntityId=$activeCameraEntityId does not reference an entity with PerspectiveCameraComponent.", )</ID>
+    <ID>UseCheckOrError:RuntimeSceneValidator.kt$RuntimeSceneValidator$throw IllegalStateException( "Runtime scene activeCameraEntityId=$activeCameraEntityId does not reference an existing entity.", )</ID>
+    <ID>UseCheckOrError:RuntimeSceneValidator.kt$RuntimeSceneValidator$throw IllegalStateException( "Runtime scene activeTerrainEntityId=$activeTerrainEntityId does not reference an entity with TerrainComponent.", )</ID>
+    <ID>UseCheckOrError:RuntimeSceneValidator.kt$RuntimeSceneValidator$throw IllegalStateException( "Runtime scene activeTerrainEntityId=$activeTerrainEntityId does not reference an existing entity.", )</ID>
+    <ID>UseCheckOrError:RuntimeSceneValidator.kt$RuntimeSceneValidator$throw IllegalStateException( "Runtime terrain entityId=${entity.id} has invalid bakedTextureResolution=${terrain.bakedTextureResolution}.", )</ID>
+    <ID>UseCheckOrError:RuntimeSceneValidator.kt$RuntimeSceneValidator$throw IllegalStateException("Runtime scene '${descriptor.name}' has no activeCameraEntityId.")</ID>
+    <ID>UseCheckOrError:RuntimeSceneValidator.kt$RuntimeSceneValidator$throw IllegalStateException("Runtime scene '${descriptor.name}' has no activeTerrainEntityId.")</ID>
+    <ID>UseCheckOrError:RuntimeSceneValidator.kt$RuntimeSceneValidator$throw IllegalStateException("Runtime scene '${descriptor.name}' is invalid: $summary")</ID>
+    <ID>UseCheckOrError:RuntimeSceneValidator.kt$RuntimeSceneValidator$throw IllegalStateException("Runtime terrain entityId=${entity.id} has blank terrain asset path.")</ID>
+    <ID>UseCheckOrError:RuntimeTerrainService.kt$RuntimeTerrainService$throw IllegalStateException( "Runtime scene activeTerrainEntityId=${descriptor.settings.activeTerrainEntityId} does not reference an entity with TerrainComponent.", )</ID>
+    <ID>UseCheckOrError:RuntimeTerrainService.kt$RuntimeTerrainService$throw IllegalStateException( "Runtime terrain entityId=${entity.id} has invalid bakedTextureResolution=$finalSplatResolution.", )</ID>
+    <ID>UseCheckOrError:TerrainRuntime.kt$RuntimeTerrainMeshSystem$throw IllegalStateException( "Runtime terrain final splat resolution is missing for modelId='${renderer.modelId}'.", )</ID>
+    <ID>UseCheckOrError:TerrainSystems.kt$TerrainEditorSystem$throw IllegalStateException("Cannot add terrain layer: terrain material library is empty.")</ID>
+    <ID>UseCheckOrError:TerrainSystems.kt$TerrainEditorSystem$throw IllegalStateException("Cannot regenerate terrain: terrain material library is empty.")</ID>
+    <ID>VariableNaming:SceneEditorBounds.kt$SceneEditorBoundsProvider$private val SmallMarkerBounds = SceneEditorLocalBounds( min = Vec3(-0.25f, -0.25f, -0.25f), max = Vec3(0.25f, 0.25f, 0.25f), )</ID>
+    <ID>VariableNaming:SceneEditorBounds.kt$SceneEditorBoundsProvider$private val TerrainFallbackBounds = SceneEditorLocalBounds( min = Vec3(-5f, 0f, -5f), max = Vec3(5f, 0.25f, 5f), )</ID>
+    <ID>VariableNaming:SceneEditorBounds.kt$SceneEditorBoundsProvider$private val UnitModelBounds = SceneEditorLocalBounds( min = Vec3(-0.5f, -0.5f, -0.5f), max = Vec3(0.5f, 0.5f, 0.5f), )</ID>
+    <ID>WildcardImport:AnimationViewerPanels.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:AnimationViewerScene.kt$import com.pashkd.krender.engine.animationviewer.*</ID>
+    <ID>WildcardImport:AnimationViewerScene.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:AnimationViewerScene.kt$import com.pashkd.krender.engine.render3d.*</ID>
+    <ID>WildcardImport:AnimationViewerScene.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:AnimationViewerState.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:AnimationViewerSystems.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:AssetBrowserPanel.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:AssetBrowserScene.kt$import com.pashkd.krender.engine.assets.*</ID>
+    <ID>WildcardImport:AssetBrowserScene.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:AssetBrowserSystem.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:AssetControlsPanel.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:AssetDetailsPanel.kt$import com.pashkd.krender.engine.assets.details.*</ID>
+    <ID>WildcardImport:AssetDetailsPanel.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:BindingDefinitionValidator.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:BindingTypeCompatibilityValidator.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:Components3D.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:CreateAssetDialog.kt$import com.pashkd.krender.engine.assets.*</ID>
+    <ID>WildcardImport:DocumentMetadataValidator.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:EditorViewportCamera.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:GdxAssetService.kt$import com.badlogic.gdx.graphics.*</ID>
+    <ID>WildcardImport:GdxAssetService.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:GdxImGuiService.kt$import imgui.*</ID>
+    <ID>WildcardImport:GdxInputService.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:GdxRenderer3D.kt$import com.badlogic.gdx.graphics.*</ID>
+    <ID>WildcardImport:GdxRenderer3D.kt$import com.badlogic.gdx.graphics.g3d.*</ID>
+    <ID>WildcardImport:GdxTaskService.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:GdxUiSceneBuilder.kt$import com.badlogic.gdx.scenes.scene2d.ui.*</ID>
+    <ID>WildcardImport:GdxUiSceneBuilder.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:JsonDocumentHelpers.kt$import kotlinx.serialization.json.*</ID>
+    <ID>WildcardImport:LibGdxBackend.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:LibGdxBackend.kt$import com.pashkd.krender.engine.scene.*</ID>
+    <ID>WildcardImport:LocalAssetImportService.kt$import com.pashkd.krender.engine.assets.*</ID>
+    <ID>WildcardImport:Main.kt$import com.pashkd.krender.game.*</ID>
+    <ID>WildcardImport:MaterialLibrary.kt$import kotlinx.serialization.json.*</ID>
+    <ID>WildcardImport:ModelViewerPanels.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:ModelViewerPanels.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:ModelViewerScene.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:ModelViewerScene.kt$import com.pashkd.krender.engine.modelviewer.*</ID>
+    <ID>WildcardImport:ModelViewerScene.kt$import com.pashkd.krender.engine.render3d.*</ID>
+    <ID>WildcardImport:ModelViewerScene.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:ModelViewerState.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:ModelViewerSystems.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:ModelViewerTextureChannelResolver.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:NodeShapeValidator.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:PlaceholderSyntaxValidator.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:RuntimeEnvironmentSystem.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:RuntimeScene.kt$import com.pashkd.krender.engine.scene.*</ID>
+    <ID>WildcardImport:RuntimeSceneBuilder.kt$import com.pashkd.krender.engine.scene.*</ID>
+    <ID>WildcardImport:RuntimeSceneBuilder.kt$import com.pashkd.krender.engine.terrain.*</ID>
+    <ID>WildcardImport:RuntimeSceneBuilderTest.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:RuntimeSceneBuilderTest.kt$import com.pashkd.krender.engine.scene.*</ID>
+    <ID>WildcardImport:RuntimeSceneTest.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:RuntimeSceneTest.kt$import com.pashkd.krender.engine.scene.*</ID>
+    <ID>WildcardImport:SceneAssetPanel.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:SceneEditorBounds.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:SceneEditorOperations.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:SceneEditorOperations.kt$import com.pashkd.krender.engine.scene.*</ID>
+    <ID>WildcardImport:SceneEditorPanels.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:SceneEditorPanels.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:SceneEditorScene.kt$import com.pashkd.krender.engine.sceneeditor.*</ID>
+    <ID>WildcardImport:SceneEditorScene.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:SceneEditorSystems.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:SceneEditorSystems.kt$import com.pashkd.krender.engine.scene.*</ID>
+    <ID>WildcardImport:SceneMetadata.kt$import com.pashkd.krender.engine.scene.*</ID>
+    <ID>WildcardImport:SceneSerializer.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:SceneSerializer.kt$import com.pashkd.krender.engine.serialization.*</ID>
+    <ID>WildcardImport:SceneSerializer.kt$import kotlinx.serialization.json.*</ID>
+    <ID>WildcardImport:SkyboxAssetSerializer.kt$import com.pashkd.krender.engine.serialization.*</ID>
+    <ID>WildcardImport:StyleReferenceValidator.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:TerrainComponents.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:TerrainEditorScene.kt$import com.pashkd.krender.engine.terrain.*</ID>
+    <ID>WildcardImport:TerrainEditorScene.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:TerrainPersistence.kt$import kotlinx.serialization.json.*</ID>
+    <ID>WildcardImport:TerrainRuntime.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:TerrainSystems.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:TerrainSystems.kt$import kotlin.math.*</ID>
+    <ID>WildcardImport:TextureReferenceValidator.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:ThirdPersonCameraFollowSystem.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:ThirdPersonCameraFollowSystem.kt$import kotlin.math.*</ID>
+    <ID>WildcardImport:UiComposerBindingHelpers.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:UiComposerDocumentEditing.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:UiComposerModel.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:UiComposerOperations.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:UiComposerPanels.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:UiComposerPanels.kt$import com.pashkd.krender.engine.ui.scene.*</ID>
+    <ID>WildcardImport:UiComposerScene.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:UiComposerScene.kt$import com.pashkd.krender.engine.ui.editor.*</ID>
+    <ID>WildcardImport:UiComposerScene.kt$import com.pashkd.krender.engine.uicomposer.*</ID>
+    <ID>WildcardImport:UiSceneSerializer.kt$import com.pashkd.krender.engine.serialization.*</ID>
+    <ID>WildcardImport:UiSceneSerializer.kt$import kotlinx.serialization.json.*</ID>
+    <ID>WildcardImport:WoolboySandboxScene.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:WoolboySandboxScene.kt$import com.pashkd.krender.engine.render3d.*</ID>
+    <ID>WildcardImport:WoolboySandboxScene.kt$import com.pashkd.krender.engine.scene.*</ID>
+    <ID>WildcardImport:WoolboySandboxScene.kt$import com.pashkd.krender.engine.woolboy.*</ID>
+    <ID>WildcardImport:WoolboySystems.kt$import com.pashkd.krender.engine.api.*</ID>
+    <ID>WildcardImport:WoolboySystems.kt$import kotlin.math.*</ID>
+    <ID>WildcardImport:WoolboyUiControllerSystem.kt$import com.pashkd.krender.engine.api.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

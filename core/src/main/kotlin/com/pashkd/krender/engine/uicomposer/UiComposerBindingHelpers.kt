@@ -21,7 +21,7 @@ data class UiComposerMissingBindingKey(
     val fields: Set<String>,
 )
 
-private const val DefaultPreviewTexturePath = "textures/woolboy/hud_heart_full.png"
+private const val DefaultPreviewTexturePath = "textures/default_skybox_studio.png"
 
 /**
  * Extracts `{key}` placeholders from text-like `.krui` fields.

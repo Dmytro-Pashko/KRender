@@ -12,16 +12,10 @@ class AssetBrowserUiOperations(
     private val context: EngineContext,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
 ) {
-    fun playWoolboyScene() {
-        try {
-            context.runtimeLauncher.launchScene(WoolboySandboxSceneId)
-            state.statusMessage = "Playing Woolboy scene."
-            context.logger.info(TAG) { "Launching playable Woolboy sandbox scene id='$WoolboySandboxSceneId'" }
-        } catch (error: Exception) {
-            state.statusMessage = "Play Woolboy scene failed: ${error.message}"
-            context.logger.error(TAG, error) {
-                "Failed to launch playable Woolboy sandbox scene id='$WoolboySandboxSceneId': ${error.message}"
-            }
+    fun showWoolboyAppInfo() {
+        state.statusMessage = "Woolboy is now a separate desktop app. Build :apps:woolboy-desktop:woolboyJar to run it."
+        context.logger.info(TAG) {
+            "Woolboy demo launch moved to standalone module path=':apps:woolboy-desktop' task='woolboyJar'"
         }
     }
 
@@ -51,6 +45,5 @@ class AssetBrowserUiOperations(
 
     companion object {
         private const val TAG = "AssetBrowserUiOperations"
-        private const val WoolboySandboxSceneId = "woolboy_sandbox_scene"
     }
 }

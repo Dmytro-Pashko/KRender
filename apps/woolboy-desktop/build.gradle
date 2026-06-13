@@ -1,0 +1,78 @@
+buildscript {
+  repositories {
+    gradlePluginPortal()
+  }
+  dependencies {
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+  }
+}
+
+plugins {
+  id 'application'
+  id 'org.jetbrains.kotlin.jvm'
+}
+
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_11
+  targetCompatibility = JavaVersion.VERSION_11
+}
+
+kotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+
+application {
+  mainClass = 'com.pashkd.krender.woolboy.app.WoolboyDesktopLauncher'
+  applicationName = 'woolboy-demo'
+}
+
+sourceSets {
+  main {
+    resources {
+      srcDir project(':games:woolboy').file('src/main/resources')
+    }
+  }
+}
+
+dependencies {
+  implementation project(':core')
+  implementation project(':games:woolboy')
+  implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+  implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+
+  constraints {
+    implementation("org.lwjgl:lwjgl:$lwjgl3Version")
+    implementation("org.lwjgl:lwjgl-glfw:$lwjgl3Version")
+    implementation("org.lwjgl:lwjgl-jemalloc:$lwjgl3Version")
+    implementation("org.lwjgl:lwjgl-openal:$lwjgl3Version")
+    implementation("org.lwjgl:lwjgl-opengl:$lwjgl3Version")
+    implementation("org.lwjgl:lwjgl-stb:$lwjgl3Version")
+  }
+}
+
+tasks.register('woolboyJar', Jar) {
+  group = 'build'
+  description = 'Builds the standalone Woolboy demo executable JAR with bundled game assets.'
+  archiveFileName.set('woolboy-demo.jar')
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  dependsOn tasks.named('classes')
+  dependsOn configurations.runtimeClasspath
+  from(sourceSets.main.output)
+  from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+  exclude('META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA')
+  manifest {
+    attributes(
+      'Main-Class': application.mainClass.get(),
+      'Enable-Native-Access': 'ALL-UNNAMED',
+      'Multi-Release': 'true',
+    )
+  }
+  doLast {
+    file(archiveFile).setExecutable(true, false)
+  }
+}
+
+tasks.named('build') {
+  dependsOn tasks.named('woolboyJar')
+}
+

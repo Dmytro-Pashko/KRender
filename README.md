@@ -1,14 +1,14 @@
-# KRender
+# KRender SDK
 
-KRender is a small Kotlin game engine and toolset for experimenting with game-engine architecture, rendering, assets,
-scenes, and editor tools.
+KRender SDK is a Kotlin + libGDX engine workspace built around a backend-neutral core, a LibGDX runtime backend, and a
+set of standalone editor tools for assets, models, animations, terrain, scenes, and UI documents.
 
 ## Overview
 
-KRender is a minimal game-engine project written in Kotlin.
+KRender SDK is a small game-engine project written in Kotlin.
 
 The main idea is to provide a lightweight runtime where different scenes can be created, loaded, edited, and rendered
-using a small set of reusable engine systems and services.
+using a reusable set of engine systems and services while keeping the engine core separate from the platform backend.
 
 The project is focused on:
 
@@ -18,8 +18,9 @@ The project is focused on:
 - keeping the engine core small, modular, and backend-independent;
 - supporting indie-style development where tools can grow together with the engine.
 
-KRender provides a simple runtime, an ECS-style scene model, a desktop backend, and a set of editor tools for working
-with assets, models, terrains, and scenes.
+KRender provides a scene-based runtime, an ECS-style world model, a LibGDX backend, shared asset pipelines, and a set
+of editor tools built on the same engine primitives. The repository now also contains a standalone Woolboy client split
+into dedicated `games/` and `apps/` modules so the engine/SDK and a sample client application stay clearly separated.
 
 ## Key Features
 
@@ -40,6 +41,59 @@ with assets, models, terrains, and scenes.
 - **Terrain Editor** for creating, editing, previewing, saving, and loading terrain data.
 - **Scene Editor** for building scenes with models, terrains, transforms, cameras, lights, selection, gizmos, and
   runtime preview.
+- **UI Composer** placeholder route for opening `.krui` UI scene assets and preview-focused workflows.
+
+## Repository Structure
+
+```text
+KRender SDK/
++-- core/                  # Engine API, LibGDX backend adapter, editor tools, runtime scenes, tests
+|   +-- src/main/kotlin/com/pashkd/krender/
+|   |   +-- Main.kt                       # Scene-routing entry; defaults to Asset Browser
+|   |   +-- engine/
+|   |   |   +-- api/                      # Backend-neutral runtime API
+|   |   |   +-- backend/gdx/              # LibGDX backend; owns all Gdx.* and OpenGL access
+|   |   |   +-- assets/                   # Asset Browser logic, asset registry, import/export helpers
+|   |   |   +-- animationviewer/          # Animation Viewer internals
+|   |   |   +-- modelviewer/              # Model Viewer internals
+|   |   |   +-- render3d/                 # 3D components, environment, render systems
+|   |   |   +-- scene/                    # Scene config, serialization, file and launcher services
+|   |   |   +-- sceneeditor/              # Scene Editor internals
+|   |   |   +-- terrain/                  # Terrain editor + terrain runtime/persistence
+|   |   |   +-- uicomposer/               # UI Composer placeholder internals
+|   |   |   +-- ui/editor/                # ImGui editor UI
+|   |   |   +-- ui/runtime/               # Scene2D runtime UI service
+|   |   |   +-- ui/scene/                 # `.krui` model, serializer, validators
+|   |   +-- game/                         # Top-level Scene classes (tools + runtime player)
+|   +-- src/test/kotlin/...               # Pure JVM unit tests
++-- games/
+|   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
++-- apps/
+|   +-- woolboy-desktop/                  # Standalone Woolboy desktop launcher + executable JAR task
++-- lwjgl3/                # Main desktop launcher for KRender tools/runtime
++-- android/               # Android launcher (requires Android SDK to build)
++-- assets/                # Shared assets for the main editor/runtime application
++-- docs/                  # Architecture notes, tool docs, app docs, screenshots, quality docs
+```
+
+Gradle subprojects currently loaded by `settings.gradle`:
+
+- `core`
+- `lwjgl3`
+- `android`
+- `games:woolboy`
+- `apps:woolboy-desktop`
+
+The root `assets/` directory remains the shared asset tree for the editor/runtime app. Woolboy ships its own curated
+runtime content from `games/woolboy/src/main/resources/assets/woolboy/`.
+
+The intended dependency direction is:
+
+```text
+games:woolboy -> core
+apps:woolboy-desktop -> games:woolboy
+apps:woolboy-desktop -> core + desktop backend libraries
+```
 
 ## Architecture
 
@@ -93,8 +147,8 @@ context instead of directly constructing backend services.
 | `System`                 | Behavior unit with `onAdded`, `fixedUpdate`, `update`, `lateUpdate`, `render`, and `debugRender`.                                                                                | `engine/api/Ecs.kt`                                           |
 | `AssetService`           | Schedules, updates, checks, inspects, previews, and unloads typed assets.                                                                                                        | `engine/api/Assets.kt`, `engine/backend/gdx/LibGdxBackend.kt` |
 | `InputService`           | Frame-stable normalized input snapshots and cursor capture.                                                                                                                      | `engine/api/Input.kt`, `engine/backend/gdx/LibGdxBackend.kt`  |
-| `UiService` / `UiSystem` | ImGui frame lifecycle, capture state, panel drawing, and texture preview drawing.                                                                                                | `engine/ui/Ui.kt`, `engine/backend/gdx/GdxImGuiService.kt`    |
-| `Logger` / `LogService`  | Structured log entries, levels, history, sinks, and panels.                                                                                                                      | `engine/api/Debug.kt`, `engine/ui/LogsPanel.kt`               |
+| `UiService` / `UiSystem` | ImGui frame lifecycle, capture state, panel drawing, and texture preview drawing.                                                                                                | `engine/ui/editor/Ui.kt`, `engine/backend/gdx/GdxImGuiService.kt`    |
+| `Logger` / `LogService`  | Structured log entries, levels, history, sinks, and panels.                                                                                                                      | `engine/api/Debug.kt`, `engine/ui/editor/LogsPanel.kt`               |
 | `TaskService`            | Coroutine-based background, IO, main/render queue, and in-flight job tracking.                                                                                                   | `engine/api/Tasks.kt`, `engine/backend/gdx/LibGdxBackend.kt`  |
 | `Renderer`               | Backend render submission for collected `RenderCommand` instances.                                                                                                               | `engine/api/Render.kt`, `engine/backend/gdx/LibGdxBackend.kt` |
 | `SceneSerializer`        | Encodes and decodes `.krscene` scene descriptors and applies them to `SceneWorld`.                                                                                               | `engine/scene/SceneSerializer.kt`                             |
@@ -128,22 +182,30 @@ deltas with `EngineConfig.maxFrameDeltaSeconds` and runs a fixed-step accumulato
 
 Current frame order:
 
-1. Process input and capture the current input state.
-2. Execute pending main-thread tasks.
-3. Advance asset loading.
-4. Apply pending scene transitions.
-5. Run fixed updates if required.
-6. Run the main scene update.
-7. Run late update logic.
-8. Collect render commands from the active scene and systems.
-9. Submit the render context to the backend renderer.
-10. Present the rendered frame.
+1. Begin runtime stats and profiler collection for the frame.
+2. Begin the ImGui frame.
+3. Process input and capture the current input state.
+4. Execute pending main-thread tasks.
+5. Advance asset loading.
+6. Apply pending scene transitions and resize if needed.
+7. Run fixed updates if required.
+8. Run the main scene update.
+9. Run late update logic.
+10. Update runtime UI.
+11. End the ImGui frame.
+12. Collect render and debug render commands from the active scene.
+13. Submit the render context to the backend renderer.
+14. Run scene overlay rendering.
+15. Render runtime UI, then render editor UI.
 
 Simplified pseudocode:
 
 ```kotlin
+backend.runtimeStats.beginFrame()
+backend.profiler.beginFrame(frame)
 backend.ui.beginFrame(delta)
 backend.input.beginFrame()
+backend.input.snapshot()
 backend.tasks.flushMainThreadQueue()
 backend.assets.update()
 
@@ -157,6 +219,7 @@ while (accumulator >= fixedStep) {
 
 scene.update(delta)
 scene.lateUpdate(delta)
+runtime.runtimeUi.update(delta)
 
 backend.ui.endFrame()
 scene.render(alpha)
@@ -166,7 +229,12 @@ backend.renderer.render(
     RenderContext(scene, alpha, delta, scene.world.renderCommands.snapshot())
 )
 
+scene.overlayRender()
+runtime.runtimeUi.render()
+backend.ui.render()
 backend.input.endFrame()
+backend.runtimeStats.endFrame(delta, fixedUpdates)
+backend.profiler.endFrame(frame)
 ```
 
 ## Tools
@@ -211,7 +279,7 @@ Features:
   JSON, its `.krmeta`, and dependency files in that direct skin folder are removed together. Rename and duplicate are
   currently disabled for Scene2D Skin assets to avoid partial folder operations.
 - Keeps layout controls in the Asset Browser Controls panel, including Create Asset, Import Asset, Export Asset
-  placeholder, Persist UI, Reset UI, and Play Woolboy Scene MVP.
+  placeholder, Persist UI, Reset UI, and a shortcut explaining that Woolboy now ships as a separate standalone app.
 
 Import workflow:
 
@@ -387,6 +455,64 @@ Screenshots:
 ![Scene Editor terrain inactive](docs/screenshot/scene-editor_terrain_inactive.png)
 ![Scene Editor zero ambient](docs/screenshot/scene-editor_zero_ambient.png)
 
+### UI Composer
+
+UI Composer is currently a deliberately scoped placeholder route for opening `.krui` UI scene assets.
+
+Current scope:
+
+- Opens `.krui` assets routed from Asset Browser.
+- Focuses on document inspection and preview-oriented workflows.
+- Uses the shared `.krui` model and validation pipeline.
+
+Current limitations:
+
+- No full editing workflow yet.
+- No drag/drop scene editing.
+- No Skin authoring workflow.
+- No save pipeline beyond the currently supported document paths.
+
+### Runtime Scene
+
+`RuntimeScene` is the non-tool player route for `.krscene` files. It uses the same engine runtime and backend-neutral
+scene data model as the editor tools, but launches the saved scene as a runtime/player experience instead of an editor.
+
+## Standalone Apps
+
+### Woolboy desktop app
+
+Woolboy is now packaged as a **standalone client application** on top of KRender SDK instead of an in-core sandbox
+scene.
+
+Module split:
+
+- `core` — KRender engine / SDK
+- `games:woolboy` — Woolboy gameplay/client module
+- `apps:woolboy-desktop` — executable desktop app and fat-JAR task
+
+Woolboy runtime assets live in:
+
+```text
+games/woolboy/src/main/resources/assets/woolboy/
+```
+
+Build the executable JAR:
+
+```powershell
+Set-Location "D:\Projects\KRender SDK"
+.\gradlew.bat :apps:woolboy-desktop:woolboyJar
+```
+
+Run it:
+
+```powershell
+Set-Location "D:\Projects\KRender SDK"
+java -jar apps/woolboy-desktop/build/libs/woolboy-demo.jar
+```
+
+The Woolboy app bundles its curated `assets/woolboy` runtime content inside the JAR and does not require
+`-Dkrender.scene=...`. See `docs/apps/woolboy.md` for the app-specific layout and build notes.
+
 ## Example: Creating a Scene
 
 This example uses the current `Scene`, `AssetRef`, `SceneWorld`, component, and system APIs.
@@ -520,20 +646,43 @@ engine.logger.error("Runtime", error) { "Failed to load scene: ${error.message}"
 ### Requirements
 
 - JDK 11 or newer for normal development.
-- Android SDK
+- Android SDK for the `android` module / full multi-project builds.
 - IntelliJ IDEA is recommended for Kotlin/Gradle development.
 
 ### Build
 
-On Windows:
+Fast JVM compile check on Windows:
+
+```powershell
+.\gradlew.bat core:compileKotlin lwjgl3:compileKotlin
+```
+
+Run JVM tests:
+
+```powershell
+.\gradlew.bat core:test
+```
+
+Build the standalone Woolboy modules only:
+
+```powershell
+.\gradlew.bat :games:woolboy:build :apps:woolboy-desktop:build
+.\gradlew.bat :apps:woolboy-desktop:woolboyJar
+```
+
+Full workspace build:
 
 ```powershell
 .\gradlew.bat build
 ```
 
+The full workspace build includes the `android` module and may require a configured Android SDK.
+
 On Linux/macOS:
 
 ```bash
+./gradlew core:compileKotlin lwjgl3:compileKotlin
+./gradlew core:test
 ./gradlew build
 ```
 

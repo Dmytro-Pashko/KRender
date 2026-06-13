@@ -218,7 +218,7 @@ internal class UiComposerModelTest {
                             descriptor(
                                 id = "asset:heart",
                                 name = "Heart",
-                                path = "textures/woolboy/hud_heart_full.png",
+                                path = "textures/default_skybox_studio.png",
                                 category = AssetCategory.Texture,
                                 type = AssetType.Texture,
                             ),
@@ -251,7 +251,7 @@ internal class UiComposerModelTest {
         val options = provider.listTextureOptions()
 
         assertEquals(listOf("Alpha Texture", "Heart"), options.map { it.displayName })
-        assertEquals(listOf("textures/alpha.png", "textures/woolboy/hud_heart_full.png"), options.map { it.path })
+        assertEquals(listOf("textures/alpha.png", "textures/default_skybox_studio.png"), options.map { it.path })
         assertEquals("asset:alpha", options.first().assetId)
     }
 

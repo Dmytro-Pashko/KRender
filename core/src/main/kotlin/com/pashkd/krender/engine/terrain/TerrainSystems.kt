@@ -7,6 +7,8 @@ import com.pashkd.krender.engine.render3d.Material
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import kotlin.math.*
 
+private const val DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH = "materials/terrain_materials.json"
+
 /**
  * Editor-side terrain workflow controller.
  *
@@ -1195,8 +1197,9 @@ class TerrainEditorMeshSyncSystem(
  */
 class TerrainAssetSyncSystem(
     private val logger: Logger? = null,
+    materialLibraryPath: String = DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH,
 ) : System() {
-    private val sync = TerrainAssetRuntimeSync(logger)
+    private val sync = TerrainAssetRuntimeSync(logger, materialLibraryPath)
 
     override fun update(
         world: SceneWorld,
@@ -1211,11 +1214,12 @@ class TerrainAssetSyncSystem(
  */
 class TerrainAssetRuntimeSync(
     private val logger: Logger? = null,
+    materialLibraryPath: String = DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH,
 ) {
     private val terrainPersistence = TerrainPersistence(logger)
     private val materialLibrary =
         TerrainMaterialLibrary(logger).also { library ->
-            library.load("materials/terrain_materials.json")
+            library.load(materialLibraryPath)
         }
     private val bakeService = TerrainMaterialBakeService(materialLibrary, logger)
     private val failedPaths = mutableSetOf<String>()

@@ -33,7 +33,7 @@
 |---|---|
 | `input` | `GdxInputService` (also a libGDX `InputProcessor`) |
 | `ui` | `GdxImGuiService` on desktop, `NoOpUiService` on Android |
-| `runtimeUi` | `GdxRuntimeUiBackend` (+ `WoolboyRuntimeUiFactory`) |
+| `runtimeUi` | `GdxRuntimeUiBackend` (+ app-provided `RuntimeUiActorFactoryProvider` implementations) |
 | `assets` | `GdxAssetService` (libGDX `AssetManager`) |
 | `assetRegistry` | `LocalAssetRegistryService` (desktop), `NoOpAssetRegistryService` (Android) |
 | `sceneFiles` | `GdxSceneFileService` |

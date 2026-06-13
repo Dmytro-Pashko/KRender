@@ -22,6 +22,7 @@ import com.pashkd.krender.engine.ui.runtime.RuntimeUiScreen
 class GdxRuntimeUiBackend(
     private val logger: Logger,
     private val input: GdxInputService,
+    defaultSkinPath: String = DefaultSkinPath,
     screenFactoryProvider: (Skin, () -> RuntimeUiActionHandler?) -> List<RuntimeUiActorFactory> = { _, _ ->
         emptyList()
     },
@@ -31,7 +32,7 @@ class GdxRuntimeUiBackend(
         private const val DefaultSkinPath = "ui/skins/default_ui.json"
     }
 
-    private val skin = Skin(Gdx.files.internal(DefaultSkinPath))
+    private val skin = Skin(Gdx.files.internal(defaultSkinPath))
     private val screenFactory =
         CompositeRuntimeUiActorFactory(
             factories = screenFactoryProvider(skin) { actionHandler },

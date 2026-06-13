@@ -5,7 +5,6 @@ import com.pashkd.krender.game.AssetBrowserScene
 import com.pashkd.krender.game.ModelViewerScene
 import com.pashkd.krender.game.SceneEditorScene
 import com.pashkd.krender.game.TerrainEditorScene
-import com.pashkd.krender.game.WoolboySandboxScene
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -40,10 +39,6 @@ class SceneConfigPresetsTest {
         assertEquals(1280, config.window.resolution.height)
     }
 
-    @Test
-    fun `woolboy sandbox uses runtime preset`() {
-        assertEquals(SceneConfigPresets.RuntimeGame16By9, WoolboySandboxScene().config)
-    }
 
     @Test
     fun `editor tool scenes use editor preset`() {

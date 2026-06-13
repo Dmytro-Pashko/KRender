@@ -167,3 +167,6 @@ Thumbs.db
 /assets/imgui.**
 
 tools/ui/*.jar
+
+/games/*/build/
+/apps/*/build/

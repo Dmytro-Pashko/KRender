@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "woolboy_main_menu",
+  "skin": "assets/woolboy/ui/skins/craftacular-ui.json",
+  "bindings": [
+    {
+      "key": "primaryButtonText",
+      "type": "Text",
+      "defaultValue": "Start Game"
+    },
+    {
+      "key": "primaryButtonAction",
+      "type": "Action",
+      "defaultValue": "woolboy.start"
+    }
+  ],
+  "root": {
+    "id": "root",
+    "type": "Stack",
+    "children": [
+      {
+        "id": "menu_container",
+        "type": "Container",
+        "background": "tooltip",
+        "align": "Center",
+        "padding": {
+          "left": 40.0,
+          "top": 40.0,
+          "right": 40.0,
+          "bottom": 40.0
+        },
+        "children": [
+          {
+            "id": "menu_panel",
+            "type": "Table",
+            "background": "window",
+            "align": "Center",
+            "padding": {
+              "left": 32.0,
+              "top": 32.0,
+              "right": 32.0,
+              "bottom": 32.0
+            },
+            "spacing": 24.0,
+            "children": [
+              {
+                "id": "title",
+                "type": "Label",
+                "style": "title",
+                "text": "Woolboy",
+                "align": "Center"
+              },
+              {
+                "id": "primary_button",
+                "type": "TextButton",
+                "style": "default",
+                "text": "{primaryButtonText}",
+                "action": "{primaryButtonAction}",
+                "width": 400.0,
+                "height": 100.0
+              },
+              {
+                "id": "settings_button",
+                "type": "TextButton",
+                "style": "default",
+                "text": "Settings",
+                "action": "woolboy.settings",
+                "width": 400.0,
+                "height": 100.0
+              },
+              {
+                "id": "restart_button",
+                "type": "TextButton",
+                "style": "default",
+                "text": "Restart",
+                "action": "woolboy.restart",
+                "width": 400.0,
+                "height": 100.0
+              },
+              {
+                "id": "exit_button",
+                "type": "TextButton",
+                "style": "default",
+                "text": "Exit",
+                "action": "woolboy.exit",
+                "width": 400.0,
+                "height": 100.0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -24,6 +24,9 @@ The current coverage report targets the `core` module JVM unit tests:
 - sources: `core/src/main/kotlin` and `core/src/main/java`
 - compiled classes: `core/build/classes/kotlin/main` and `core/build/classes/java/main`
 
+This report does **not** currently aggregate coverage from `games:woolboy` or `apps:woolboy-desktop`.
+That matches the current modularization scope: Woolboy gained standalone modules and packaging, but this change does not add a new Woolboy unit-test suite or a separate coverage threshold.
+
 The report excludes generated outputs, test classes, and obvious bootstrap entry points such as `Main` and launcher classes. It does not exclude production engine packages to inflate the baseline.
 
 ## Reports

@@ -57,8 +57,8 @@ class AssetControlsPanel(
         }
         ImGui.sameLine()
         with(dsl) {
-            button("Play Woolboy Scene MVP##${panelId}_play_woolboy") {
-                operations.playWoolboyScene()
+            button("Woolboy App Info##${panelId}_woolboy_app_info") {
+                operations.showWoolboyAppInfo()
             }
         }
 

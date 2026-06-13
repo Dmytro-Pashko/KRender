@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx
 import com.pashkd.krender.engine.api.EngineRuntime
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.Scene
+import com.pashkd.krender.engine.backend.gdx.ui.runtime.RuntimeUiActorFactoryProvider
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
@@ -17,13 +18,21 @@ open class GdxEngineApplication(
     private val initialScene: () -> Scene,
     private val runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = { UnsupportedRuntimeWindowLauncher },
     private val editorToolLauncherFactory: (Logger) -> EditorToolLauncher = { UnsupportedEditorToolLauncher },
+    private val runtimeUiActorFactoryProvider: RuntimeUiActorFactoryProvider = RuntimeUiActorFactoryProvider.Empty,
+    private val runtimeUiDefaultSkinPath: String = "ui/skins/default_ui.json",
 ) : ApplicationAdapter() {
     private lateinit var backend: LibGdxBackend
     private lateinit var runtime: EngineRuntime
 
     /** Creates the backend and starts the initial scene. */
     override fun create() {
-        backend = LibGdxBackend(runtimeWindowLauncherFactory, editorToolLauncherFactory)
+        backend =
+            LibGdxBackend(
+                runtimeWindowLauncherFactory,
+                editorToolLauncherFactory,
+                runtimeUiActorFactoryProvider,
+                runtimeUiDefaultSkinPath,
+            )
         backend.logger.info(TAG) { "OpenGL context: ${Gdx.graphics.glVersion.debugVersionString}" }
         Gdx.input.isCursorCatched = false
         runtime = EngineRuntime(backend)

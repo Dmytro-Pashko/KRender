@@ -47,8 +47,8 @@ Order (from `GameLoop`):
 
 Delta is clamped to `config.maxFrameDeltaSeconds` (default `0.25`); fixed step defaults to `1/60`.
 
-> The README's loop description is close but not exact (it predates `runtimeUi` and the profiler).
-> This list reflects the current `GameLoop`.
+> The README now summarizes the current loop at a high level.
+> This list remains the authoritative phase-by-phase order from `GameLoop`.
 
 ## Scene Lifecycle
 
