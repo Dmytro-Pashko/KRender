@@ -1,13 +1,29 @@
 package com.pashkd.krender.engine.sceneplayer
 
 import com.pashkd.krender.engine.api.EngineContext
+import com.pashkd.krender.engine.api.Entity
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.ModelRenderSystem
+import com.pashkd.krender.engine.render3d.RuntimeEnvironment
 import com.pashkd.krender.engine.render3d.RuntimeEnvironmentFactory
 import com.pashkd.krender.engine.render3d.RuntimeEnvironmentSystem
-import com.pashkd.krender.engine.scene.*
-import com.pashkd.krender.engine.terrain.*
+import com.pashkd.krender.engine.scene.RuntimeSceneValidator
+import com.pashkd.krender.engine.scene.RuntimeTerrainMaterialLibraryService
+import com.pashkd.krender.engine.scene.SceneDependencyCollector
+import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneSerializer
+import com.pashkd.krender.engine.scene.SceneValidationReport
+import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
+import com.pashkd.krender.engine.terrain.RuntimeTerrainMeshSystem
+import com.pashkd.krender.engine.terrain.RuntimeTerrainService
+import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
+import com.pashkd.krender.engine.terrain.TerrainCameraControllerSystem
+import com.pashkd.krender.engine.terrain.TerrainMaterialBakeService
+import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
+import com.pashkd.krender.engine.terrain.TerrainPersistence
+import com.pashkd.krender.engine.terrain.TerrainRenderSystem
+import com.pashkd.krender.engine.terrain.TerrainRuntimeLoader
 
 data class ScenePlayerBuildRequest(
     val scenePath: String,
@@ -45,35 +61,59 @@ class ScenePlayerBuilder(
                 skybox = resolvedSkybox,
             )
 
-        var terrainPrepared = false
-        var materialBakeService: TerrainMaterialBakeService? = null
-        if (request.descriptor.settings.activeTerrainEntityId != null) {
-            val terrainMaterialLibrary =
-                RuntimeTerrainMaterialLibraryService(engine.sceneFiles, engine.logger).loadRequired(
-                    request.descriptor.settings.terrain.materialLibraryPath,
-                )
-            materialBakeService =
-                TerrainMaterialBakeService(
-                    materialLibrary = terrainMaterialLibrary,
-                    logger = engine.logger,
-                    textureSamplerFactory = terrainTextureSamplerFactory,
-                )
-            RuntimeTerrainService(
-                logger = engine.logger,
-                terrainLoader =
-                    TerrainRuntimeLoader(
-                        logger = engine.logger,
-                        persistence = TerrainPersistence(logger = engine.logger, files = engine.sceneFiles),
-                    ),
-                materialBakeService = materialBakeService,
-            ).prepareActiveTerrain(world, request.descriptor)
-            terrainPrepared = true
-            if (activeCamera.get<TerrainCameraControllerComponent>() == null) {
-                activeCamera.add(TerrainCameraControllerComponent())
-            }
-            world.systems.add(TerrainCameraControllerSystem(engine.input))
+        val materialBakeService = prepareTerrain(world, request, activeCamera)
+        val terrainPrepared = materialBakeService != null
+        registerSystems(world, environment, terrainPrepared, materialBakeService)
+
+        return ScenePlayerBuildResult(
+            activeCameraEntityId = activeCamera.id,
+            terrainPrepared = terrainPrepared,
+            skyboxEnabled = environment.showSkybox,
+            validationReport = validationReport,
+        )
+    }
+
+    private fun prepareTerrain(
+        world: SceneWorld,
+        request: ScenePlayerBuildRequest,
+        activeCamera: Entity,
+    ): TerrainMaterialBakeService? {
+        if (request.descriptor.settings.activeTerrainEntityId == null) {
+            return null
         }
 
+        val terrainMaterialLibrary =
+            RuntimeTerrainMaterialLibraryService(engine.sceneFiles, engine.logger).loadRequired(
+                request.descriptor.settings.terrain.materialLibraryPath,
+            )
+        val materialBakeService =
+            TerrainMaterialBakeService(
+                materialLibrary = terrainMaterialLibrary,
+                logger = engine.logger,
+                textureSamplerFactory = terrainTextureSamplerFactory,
+            )
+        RuntimeTerrainService(
+            logger = engine.logger,
+            terrainLoader =
+                TerrainRuntimeLoader(
+                    logger = engine.logger,
+                    persistence = TerrainPersistence(logger = engine.logger, files = engine.sceneFiles),
+                ),
+            materialBakeService = materialBakeService,
+        ).prepareActiveTerrain(world, request.descriptor)
+        if (activeCamera.get<TerrainCameraControllerComponent>() == null) {
+            activeCamera.add(TerrainCameraControllerComponent())
+        }
+        world.systems.add(TerrainCameraControllerSystem(engine.input))
+        return materialBakeService
+    }
+
+    private fun registerSystems(
+        world: SceneWorld,
+        environment: RuntimeEnvironment,
+        terrainPrepared: Boolean,
+        materialBakeService: TerrainMaterialBakeService?,
+    ) {
         world.systems.add(ModelRenderSystem())
         if (terrainPrepared) {
             world.systems.add(TerrainRenderSystem())
@@ -87,32 +127,25 @@ class ScenePlayerBuilder(
                 ),
             )
         }
-
-        return ScenePlayerBuildResult(
-            activeCameraEntityId = activeCamera.id,
-            terrainPrepared = terrainPrepared,
-            skyboxEnabled = environment.showSkybox,
-            validationReport = validationReport,
-        )
     }
 
     private fun resolveSkybox(request: ScenePlayerBuildRequest): SkyboxAssetDescriptor? {
         if (!request.descriptor.settings.environment.showSkybox) {
             return null
         }
-        request.skybox?.let { return it }
-
         val configuredPath = RuntimeSceneValidator.skyboxPath(request.descriptor)
-        if (configuredPath == null) {
-            engine.logger.warn(TAG) {
-                "ScenePlayer skybox disabled scene='${request.scenePath}' because showSkybox=true but no skybox path is configured."
+        return request.skybox ?: run {
+            if (configuredPath == null) {
+                engine.logger.warn(TAG) {
+                    "ScenePlayer skybox disabled scene='${request.scenePath}' because showSkybox=true but no skybox path is configured."
+                }
+            } else {
+                engine.logger.warn(TAG) {
+                    "ScenePlayer skybox disabled scene='${request.scenePath}' because skybox '$configuredPath' could not be resolved."
+                }
             }
-        } else {
-            engine.logger.warn(TAG) {
-                "ScenePlayer skybox disabled scene='${request.scenePath}' because skybox '$configuredPath' could not be resolved."
-            }
+            null
         }
-        return null
     }
 
     private companion object {

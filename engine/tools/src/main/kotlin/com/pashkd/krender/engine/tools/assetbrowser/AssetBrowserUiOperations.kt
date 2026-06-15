@@ -1,7 +1,6 @@
 package com.pashkd.krender.engine.tools.assetbrowser
 
 import com.pashkd.krender.engine.api.EngineContext
-import com.pashkd.krender.engine.assets.*
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 

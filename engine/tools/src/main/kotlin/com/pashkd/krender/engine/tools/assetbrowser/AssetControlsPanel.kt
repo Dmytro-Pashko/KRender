@@ -1,6 +1,5 @@
 package com.pashkd.krender.engine.tools.assetbrowser
 
-import com.pashkd.krender.engine.assets.*
 import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.dsl

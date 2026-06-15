@@ -1,10 +1,36 @@
 package com.pashkd.krender.engine.sceneplayer
 
-import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.api.Action
+import com.pashkd.krender.engine.api.AssetRef
+import com.pashkd.krender.engine.api.AssetService
+import com.pashkd.krender.engine.api.Axis
+import com.pashkd.krender.engine.api.EngineContext
+import com.pashkd.krender.engine.api.EngineLogService
+import com.pashkd.krender.engine.api.EventBus
+import com.pashkd.krender.engine.api.FrameProfilerService
+import com.pashkd.krender.engine.api.FrameRuntimeStatsService
+import com.pashkd.krender.engine.api.InputService
+import com.pashkd.krender.engine.api.InputSnapshot
+import com.pashkd.krender.engine.api.LogService
+import com.pashkd.krender.engine.api.ProfilerService
+import com.pashkd.krender.engine.api.RuntimeStatsService
+import com.pashkd.krender.engine.api.SceneManager
+import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.TaskService
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.NoOpAssetRegistryService
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
-import com.pashkd.krender.engine.scene.*
+import com.pashkd.krender.engine.scene.ComponentDescriptor
+import com.pashkd.krender.engine.scene.EditorToolLauncher
+import com.pashkd.krender.engine.scene.EntityDescriptor
+import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
+import com.pashkd.krender.engine.scene.SceneComponentTypes
+import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneEnvironmentDescriptor
+import com.pashkd.krender.engine.scene.SceneFileService
+import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
+import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
+import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.ui.NoOpUiService
 import com.pashkd.krender.engine.ui.UiService
@@ -74,15 +100,15 @@ private class BuilderTestEngineContext : EngineContext {
     override val scenes: SceneManager = SceneManager()
     override val assets: AssetService =
         object : AssetService {
-            override fun queue(asset: com.pashkd.krender.engine.api.AssetRef<*>) = Unit
+            override fun queue(asset: AssetRef<*>) = Unit
 
             override fun update(budgetMs: Int): Float = 1f
 
-            override fun isLoaded(asset: com.pashkd.krender.engine.api.AssetRef<*>): Boolean = true
+            override fun isLoaded(asset: AssetRef<*>): Boolean = true
 
-            override fun <T : Any> get(asset: com.pashkd.krender.engine.api.AssetRef<T>): T = error("unused")
+            override fun <T : Any> get(asset: AssetRef<T>): T = error("unused")
 
-            override fun unload(asset: com.pashkd.krender.engine.api.AssetRef<*>) = Unit
+            override fun unload(asset: AssetRef<*>) = Unit
         }
     override val assetRegistry: AssetRegistryService = NoOpAssetRegistryService()
     override val sceneFiles: SceneFileService =

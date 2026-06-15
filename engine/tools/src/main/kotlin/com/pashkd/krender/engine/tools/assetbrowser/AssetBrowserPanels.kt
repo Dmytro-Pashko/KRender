@@ -1,6 +1,6 @@
 package com.pashkd.krender.engine.tools.assetbrowser
 
-import com.pashkd.krender.engine.assets.*
+import com.pashkd.krender.engine.assets.AssetDescriptor
 
 /**
  * Identifier + display label for a tool exposed in the "Open With" menu.

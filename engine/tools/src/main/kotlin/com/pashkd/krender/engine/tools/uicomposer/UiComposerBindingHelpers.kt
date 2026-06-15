@@ -1,6 +1,11 @@
 package com.pashkd.krender.engine.tools.uicomposer
 
-import com.pashkd.krender.engine.ui.scene.*
+import com.pashkd.krender.engine.ui.scene.UiSceneBindingDefinition
+import com.pashkd.krender.engine.ui.scene.UiSceneBindingType
+import com.pashkd.krender.engine.ui.scene.UiSceneDocument
+import com.pashkd.krender.engine.ui.scene.UiSceneValidationCode
+import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
+import com.pashkd.krender.engine.ui.scene.error
 import com.pashkd.krender.engine.ui.scene.validation.UiSceneBindingReference
 import com.pashkd.krender.engine.ui.scene.validation.unknownBindingMessage
 import com.pashkd.krender.engine.ui.scene.validation.bindingKeys as sceneBindingKeys
@@ -21,7 +26,7 @@ data class UiComposerMissingBindingKey(
     val fields: Set<String>,
 )
 
-private const val DefaultPreviewTexturePath = "textures/default_skybox_studio.png"
+private const val DEFAULT_PREVIEW_TEXTURE_PATH = "textures/default_skybox_studio.png"
 
 /**
  * Extracts `{key}` placeholders from text-like `.krui` fields.
@@ -110,7 +115,7 @@ fun textureBindingPlaceholder(key: String): String = "{$key}"
  */
 fun defaultPreviewPayloadValueFor(key: String): String =
     when {
-        key.contains("texture", ignoreCase = true) -> DefaultPreviewTexturePath
+        key.contains("texture", ignoreCase = true) -> DEFAULT_PREVIEW_TEXTURE_PATH
         key.contains("action", ignoreCase = true) -> "action.todo"
         key.contains("progress", ignoreCase = true) -> "0.5"
         key.contains("percent", ignoreCase = true) -> "0.5"

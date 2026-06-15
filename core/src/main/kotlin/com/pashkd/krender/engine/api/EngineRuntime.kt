@@ -404,6 +404,3 @@ class EngineRuntime(
         private const val TAG = "EngineRuntime"
     }
 }
-
-/** Convenience alias for the main runtime type. */
-typealias Engine = EngineRuntime

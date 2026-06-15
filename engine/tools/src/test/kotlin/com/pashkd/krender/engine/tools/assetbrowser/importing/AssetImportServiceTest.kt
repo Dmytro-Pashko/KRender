@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.assets.importing
+package com.pashkd.krender.engine.tools.assetbrowser.importing
 
 import com.pashkd.krender.engine.api.EngineLogService
 import com.pashkd.krender.engine.assets.AssetCategory
@@ -6,8 +6,9 @@ import com.pashkd.krender.engine.assets.AssetImporterRegistry
 import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.assets.LocalAssetRegistryService
 import com.pashkd.krender.engine.assets.Scene2DSkinAssetMetadataReader
+import com.pashkd.krender.engine.assets.importing.AssetImportCollisionPolicy
+import com.pashkd.krender.engine.assets.importing.LocalAssetImportService
 import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserState
-import com.pashkd.krender.engine.tools.assetbrowser.importing.ImportAssetDialogState
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util.Base64

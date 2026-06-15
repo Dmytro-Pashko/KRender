@@ -1,10 +1,41 @@
 package com.pashkd.krender.engine.sceneplayer
 
-import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.api.Action
+import com.pashkd.krender.engine.api.AssetRef
+import com.pashkd.krender.engine.api.AssetService
+import com.pashkd.krender.engine.api.Axis
+import com.pashkd.krender.engine.api.EngineContext
+import com.pashkd.krender.engine.api.EngineLogService
+import com.pashkd.krender.engine.api.EventBus
+import com.pashkd.krender.engine.api.FrameProfilerService
+import com.pashkd.krender.engine.api.FrameRuntimeStatsService
+import com.pashkd.krender.engine.api.InputService
+import com.pashkd.krender.engine.api.InputSnapshot
+import com.pashkd.krender.engine.api.LogService
+import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.api.ProfilerService
+import com.pashkd.krender.engine.api.RuntimeStatsService
+import com.pashkd.krender.engine.api.SceneManager
+import com.pashkd.krender.engine.api.TaskService
+import com.pashkd.krender.engine.api.TextureAsset
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.NoOpAssetRegistryService
 import com.pashkd.krender.engine.render3d.LightComponent
-import com.pashkd.krender.engine.scene.*
+import com.pashkd.krender.engine.scene.ComponentDescriptor
+import com.pashkd.krender.engine.scene.DefaultTerrainMaterialLibraryPath
+import com.pashkd.krender.engine.scene.EditorToolLauncher
+import com.pashkd.krender.engine.scene.EntityDescriptor
+import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
+import com.pashkd.krender.engine.scene.SceneComponentTypes
+import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneEnvironmentDescriptor
+import com.pashkd.krender.engine.scene.SceneFileService
+import com.pashkd.krender.engine.scene.SceneSerializer
+import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
+import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
+import com.pashkd.krender.engine.scene.SkyboxAssetSerializer
+import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
+import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainLayerColorDescriptor
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
@@ -143,57 +174,7 @@ class ScenePlayerSceneTest {
         SceneDescriptor(
             id = "scene:${scenePath.substringAfterLast('/').substringBeforeLast('.')}",
             name = "Runtime",
-            entities =
-                buildList {
-                    add(
-                        EntityDescriptor(
-                            id = 1L,
-                            name = "Camera",
-                            components =
-                                listOf(
-                                    ComponentDescriptor(
-                                        type = SceneComponentTypes.Transform,
-                                        properties =
-                                            mapOf(
-                                                "position" to "0,1,6",
-                                                "rotation" to "0,180,0",
-                                                "scale" to "1,1,1",
-                                            ),
-                                    ),
-                                    ComponentDescriptor(
-                                        type = SceneComponentTypes.Camera,
-                                        properties =
-                                            mapOf(
-                                                "fieldOfViewDegrees" to "60",
-                                                "near" to "0.1",
-                                                "far" to "500",
-                                            ),
-                                    ),
-                                ),
-                        ),
-                    )
-                    if (activeTerrainEntityId != null) {
-                        add(
-                            EntityDescriptor(
-                                id = activeTerrainEntityId,
-                                name = "Terrain",
-                                components =
-                                    listOf(
-                                        ComponentDescriptor(
-                                            type = SceneComponentTypes.Terrain,
-                                            properties =
-                                                mapOf(
-                                                    "terrain" to "terrains/runtime_terrain.json",
-                                                    "visible" to "true",
-                                                    "previewMode" to "LayerColor",
-                                                    "bakedTextureResolution" to "512",
-                                                ),
-                                        ),
-                                    ),
-                            ),
-                        )
-                    }
-                },
+            entities = sceneEntities(activeTerrainEntityId),
             settings =
                 SceneSettingsDescriptor(
                     activeCameraEntityId = 1L,
@@ -204,6 +185,60 @@ class ScenePlayerSceneTest {
                             showSkybox = showSkybox,
                             environmentIntensity = 1f,
                         ),
+                ),
+        )
+
+    private fun sceneEntities(activeTerrainEntityId: Long?): List<EntityDescriptor> =
+        buildList {
+            add(cameraEntityDescriptor())
+            if (activeTerrainEntityId != null) {
+                add(terrainEntityDescriptor(activeTerrainEntityId))
+            }
+        }
+
+    private fun cameraEntityDescriptor(): EntityDescriptor =
+        EntityDescriptor(
+            id = 1L,
+            name = "Camera",
+            components =
+                listOf(
+                    ComponentDescriptor(
+                        type = SceneComponentTypes.Transform,
+                        properties =
+                            mapOf(
+                                "position" to "0,1,6",
+                                "rotation" to "0,180,0",
+                                "scale" to "1,1,1",
+                            ),
+                    ),
+                    ComponentDescriptor(
+                        type = SceneComponentTypes.Camera,
+                        properties =
+                            mapOf(
+                                "fieldOfViewDegrees" to "60",
+                                "near" to "0.1",
+                                "far" to "500",
+                            ),
+                    ),
+                ),
+        )
+
+    private fun terrainEntityDescriptor(entityId: Long): EntityDescriptor =
+        EntityDescriptor(
+            id = entityId,
+            name = "Terrain",
+            components =
+                listOf(
+                    ComponentDescriptor(
+                        type = SceneComponentTypes.Terrain,
+                        properties =
+                            mapOf(
+                                "terrain" to "terrains/runtime_terrain.json",
+                                "visible" to "true",
+                                "previewMode" to "LayerColor",
+                                "bakedTextureResolution" to "512",
+                            ),
+                    ),
                 ),
         )
 

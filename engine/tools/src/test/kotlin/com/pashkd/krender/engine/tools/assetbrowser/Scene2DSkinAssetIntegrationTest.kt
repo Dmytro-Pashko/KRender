@@ -1,12 +1,14 @@
-package com.pashkd.krender.engine.assets
+package com.pashkd.krender.engine.tools.assetbrowser
 
 import com.pashkd.krender.engine.api.EngineLogService
-import com.pashkd.krender.engine.tools.assetbrowser.CreatableAssetKind
-import com.pashkd.krender.engine.tools.assetbrowser.CreateAssetDraft
-import com.pashkd.krender.engine.tools.assetbrowser.DefaultUiSceneSkinPath
-import com.pashkd.krender.engine.tools.assetbrowser.createAssetDefaultParams
-import com.pashkd.krender.engine.tools.assetbrowser.createAssetRelativePath
-import com.pashkd.krender.engine.tools.assetbrowser.defaultUiSceneSkinPath
+import com.pashkd.krender.engine.assets.AssetCategory
+import com.pashkd.krender.engine.assets.AssetDescriptor
+import com.pashkd.krender.engine.assets.AssetId
+import com.pashkd.krender.engine.assets.AssetImporterRegistry
+import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.assets.AssetTypeDetector
+import com.pashkd.krender.engine.assets.LocalAssetRegistryService
+import com.pashkd.krender.engine.assets.Scene2DSkinAssetMetadataReader
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import kotlin.io.path.createDirectories

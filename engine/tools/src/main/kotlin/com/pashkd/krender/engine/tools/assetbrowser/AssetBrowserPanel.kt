@@ -1,6 +1,9 @@
 package com.pashkd.krender.engine.tools.assetbrowser
 
-import com.pashkd.krender.engine.assets.*
+import com.pashkd.krender.engine.assets.AssetCategory
+import com.pashkd.krender.engine.assets.AssetDescriptor
+import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.assets.assetCapabilities
 import com.pashkd.krender.engine.assets.importing.AssetImportService
 import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.tools.assetbrowser.creation.CreateAssetDialog

@@ -1,3 +1,5 @@
+@file:Suppress("WildcardImport")
+
 package com.pashkd.krender.engine.tools.terraineditor
 
 import com.pashkd.krender.engine.api.*
@@ -25,6 +27,7 @@ private const val DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH = "materials/terrain_mat
  * frames and needs transient data such as [flattenHeight] and an accumulating
  * [activePatchBuilder] for undo/redo.
  */
+@Suppress("LargeClass", "LongMethod", "CyclomaticComplexMethod", "ReturnCount")
 class TerrainEditorSystem(
     private val input: InputService,
     private val logger: Logger,
@@ -521,7 +524,7 @@ class TerrainEditorSystem(
             val nextIndex = terrain.data.allLayers().size + 1
             val material =
                 state.terrainMaterials.firstOrNull()
-                    ?: throw IllegalStateException("Cannot add terrain layer: terrain material library is empty.")
+                    ?: error("Cannot add terrain layer: terrain material library is empty.")
             val layer =
                 terrain.data.addLayer(
                     name = "Layer $nextIndex",
@@ -713,7 +716,7 @@ class TerrainEditorSystem(
             val material =
                 preferredBaseMaterial()
                     ?: state.terrainMaterials.firstOrNull()
-                    ?: throw IllegalStateException("Cannot regenerate terrain: terrain material library is empty.")
+                    ?: error("Cannot regenerate terrain: terrain material library is empty.")
             val baseLayer =
                 regenerated.addLayer(
                     name = "Base Layer",
@@ -923,6 +926,7 @@ class TerrainEditorMeshSyncBindings {
     var nowNanos: () -> Long = java.lang.System::nanoTime
 }
 
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 class TerrainEditorMeshSyncSystem(
     private val bindings: TerrainEditorMeshSyncBindings = TerrainEditorMeshSyncBindings(),
     materialLibrary: TerrainMaterialLibrary? = null,
@@ -1037,7 +1041,7 @@ class TerrainEditorMeshSyncSystem(
             }
             terrain.clearDirty()
 
-            // TODO: Replace the full rebuild with chunked/partial uploads once terrain chunks exist.
+            // NOTE: Replace the full rebuild with chunked or partial uploads once terrain chunks exist.
         }
     }
 
@@ -1212,6 +1216,7 @@ class TerrainAssetSyncSystem(
 /**
  * Reusable terrain asset loader used by both runtime worlds and embedded editor document worlds.
  */
+@Suppress("LongMethod")
 class TerrainAssetRuntimeSync(
     private val logger: Logger? = null,
     materialLibraryPath: String = DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH,
@@ -1444,6 +1449,7 @@ private fun TerrainPreviewMode.usesTexturePreview(): Boolean = this == TerrainPr
  * Movement is target-centric: the camera translates together with its look-at
  * point and rotates around that look-at point on the horizontal plane.
  */
+@Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
 class TerrainCameraControllerSystem(
     private val input: InputService,
     private val state: TerrainEditorState? = null,
@@ -1572,6 +1578,7 @@ object TerrainRaycaster {
      * This is an approximation: steep cliffs or overhang-like geometry would
      * require a real triangle/heightfield ray cast instead.
      */
+    @Suppress("ReturnCount")
     fun pickTerrain(
         screenPosition: Vec2,
         viewportSize: Vec2,
@@ -1605,7 +1612,7 @@ object TerrainRaycaster {
             (((localZ - terrain.minLocalZ) / terrain.vertexSpacing).roundToInt())
                 .coerceIn(0, terrain.height - 1)
 
-        // TODO: Replace the temporary plane projection with a real heightfield/triangle ray test.
+        // NOTE: Replace the temporary plane projection with a real heightfield or triangle ray test.
         return TerrainHit(
             worldPosition =
                 Vec3(

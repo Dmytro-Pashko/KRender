@@ -2,7 +2,8 @@ package com.pashkd.krender.engine.tools.assetbrowser
 
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.assets.*
+import com.pashkd.krender.engine.assets.AssetCategory
+import com.pashkd.krender.engine.assets.AssetDescriptor
 
 /**
  * Editor tool that knows how to open an [AssetDescriptor].

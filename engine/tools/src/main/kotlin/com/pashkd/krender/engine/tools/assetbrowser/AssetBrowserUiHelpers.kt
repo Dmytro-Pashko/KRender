@@ -1,6 +1,8 @@
 package com.pashkd.krender.engine.tools.assetbrowser
 
-import com.pashkd.krender.engine.assets.*
+import com.pashkd.krender.engine.assets.AssetCategory
+import com.pashkd.krender.engine.assets.AssetDescriptor
+import com.pashkd.krender.engine.assets.AssetType
 import imgui.ImGui
 import java.nio.charset.StandardCharsets
 import java.time.Instant

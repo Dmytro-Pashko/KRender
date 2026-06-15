@@ -2,7 +2,12 @@ package com.pashkd.krender.engine.sceneplayer
 
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Scene
-import com.pashkd.krender.engine.scene.*
+import com.pashkd.krender.engine.scene.RuntimeSceneValidator
+import com.pashkd.krender.engine.scene.SceneDependencyCollector
+import com.pashkd.krender.engine.scene.SceneDescriptor
+import com.pashkd.krender.engine.scene.SceneSerializer
+import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
+import com.pashkd.krender.engine.scene.SkyboxAssetService
 
 /**
  * Runtime-only scene loaded from a `.krscene` descriptor.

@@ -1,7 +1,8 @@
 package com.pashkd.krender.engine.tools.assetbrowser.importing
 
-import com.pashkd.krender.engine.assets.importing.*
-import com.pashkd.krender.engine.tools.assetbrowser.*
+import com.pashkd.krender.engine.assets.importing.AssetImportPlan
+import com.pashkd.krender.engine.assets.importing.AssetImportService
+import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserState
 import java.io.File
 
 object ImportAssetDialogState {
