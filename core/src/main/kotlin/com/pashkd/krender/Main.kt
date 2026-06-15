@@ -6,7 +6,6 @@ import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.backend.gdx.GdxEngineApplication
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
-import com.pashkd.krender.game.AnimationViewerScene
 import com.pashkd.krender.game.AssetBrowserScene
 import com.pashkd.krender.game.RuntimeScene
 import com.pashkd.krender.game.SceneEditorScene
@@ -40,11 +39,6 @@ class Main(
             "runtime-scene" ->
                 RuntimeScene(
                     scenePath = scenePath ?: throw missingProperty("krender.scene.path", "runtime-scene"),
-                )
-
-            "animation-viewer" ->
-                AnimationViewerScene(
-                    model = selectedModel ?: throw missingProperty("krender.model.path", "animation-viewer"),
                 )
 
             "terrain-editor", "terrain-generator" ->

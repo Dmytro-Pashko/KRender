@@ -114,6 +114,6 @@ UV-checker options and the default skybox preview.
 
 ## Related Code Patterns
 
-- Animation Viewer (`core/.../game/AnimationViewerScene.kt`) is structurally almost identical and is the
+- Animation Viewer (`engine/tools/.../animationviewer/AnimationViewerScene.kt`) is structurally almost identical and is the
   best reference for adding skeleton/animation-related features.
 - `EditorViewportCameraSystem` is shared with Animation Viewer and Scene Editor.

@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.animationviewer
+package com.pashkd.krender.engine.tools.animationviewer
 import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService

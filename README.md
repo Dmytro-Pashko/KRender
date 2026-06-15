@@ -54,7 +54,6 @@ KRender SDK/
 |   |   |   +-- api/                      # Backend-neutral runtime API
 |   |   |   +-- backend/gdx/              # LibGDX backend; owns all Gdx.* and OpenGL access
 |   |   |   +-- assets/                   # Asset Browser logic, asset registry, import/export helpers
-|   |   |   +-- animationviewer/          # Animation Viewer internals
 |   |   |   +-- render3d/                 # 3D components, environment, render systems
 |   |   |   +-- scene/                    # Scene config, serialization, file and launcher services
 |   |   |   +-- sceneeditor/              # Scene Editor internals
@@ -66,7 +65,7 @@ KRender SDK/
 |   |   +-- game/                         # Top-level Scene classes (tools + runtime player)
 |   +-- src/test/kotlin/...               # Pure JVM unit tests
 +-- engine/
-|   +-- tools/                            # Editor tool module; currently hosts Model Viewer
+|   +-- tools/                            # Editor tool module; currently hosts Model Viewer and Animation Viewer
 +-- games/
 |   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
 +-- apps/

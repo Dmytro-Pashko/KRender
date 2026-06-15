@@ -53,7 +53,6 @@ KRender SDK/
 |   |   |   +-- animation/                # AnimationComponent
 |   |   |   +-- backend/gdx/              # LibGDX backend adapter (owns all Gdx.* / OpenGL)
 |   |   |   +-- assets/                   # Asset Browser tool + asset registry/metadata/importers
-|   |   |   +-- animationviewer/          # Animation Viewer tool internals
 |   |   |   +-- terrain/                  # Terrain Editor + terrain runtime/mesh/persistence
 |   |   |   +-- sceneeditor/              # Scene Editor tool internals
 |   |   |   +-- uicomposer/               # UI Composer (placeholder) internals
@@ -117,7 +116,7 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 | Module | Responsibility |
 |---|---|
 | `core` | Engine API, LibGDX backend adapter, current editor tools, game scenes, tests. The vast majority of code lives here during the extraction. |
-| `engine:tools` | Editor tool module for migrating tools out of `core`. Model Viewer currently lives here. |
+| `engine:tools` | Editor tool module for migrating tools out of `core`. Model Viewer and Animation Viewer currently live here. |
 | `lwjgl3` | Desktop entry point (`Lwjgl3Launcher`), window config, and the launchers that open tool/runtime windows as **separate JVM processes** (`Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`, `Lwjgl3JvmProcessLauncher`). |
 | `android` | Android launcher (`AndroidLauncher`). Uses `NoOpUiService` (no ImGui). Requires the Android SDK to build. |
 | `assets` | Runtime asset files scanned by the asset registry and loaded by the backend. |
@@ -324,7 +323,7 @@ materials, texture channels, wireframe, material-debug modes, glTF PBR preview, 
 → `docs/agents/tools/model-viewer.md`
 
 ### Animation Viewer
-`game/AnimationViewerScene.kt` (+ `engine/animationviewer/`). Plays model animation clips and
+`engine/tools/.../animationviewer/AnimationViewerScene.kt` (+ sibling files in `engine:tools`). Plays model animation clips and
 visualizes the skeleton/pose. → `docs/agents/tools/animation-viewer.md`
 
 ### Terrain Editor

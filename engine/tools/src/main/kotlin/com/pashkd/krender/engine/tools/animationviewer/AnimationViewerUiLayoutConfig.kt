@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.animationviewer
+package com.pashkd.krender.engine.tools.animationviewer
 
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout

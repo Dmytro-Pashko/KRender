@@ -1,6 +1,5 @@
-package com.pashkd.krender.game
+package com.pashkd.krender.engine.tools.animationviewer
 
-import com.pashkd.krender.engine.animationviewer.*
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem

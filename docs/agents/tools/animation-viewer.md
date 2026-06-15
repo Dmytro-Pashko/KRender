@@ -9,8 +9,8 @@ skeleton/pose. A focused sibling of the Model Viewer dedicated to animation and 
 
 ## Current Implementation
 
-- Scene: `core/.../game/AnimationViewerScene.kt`.
-- Tool internals: `core/.../engine/animationviewer/`.
+- Scene: `engine/tools/.../engine/tools/animationviewer/AnimationViewerScene.kt`.
+- Tool internals: `engine/tools/.../engine/tools/animationviewer/`.
 - Launched as a separate JVM window by `Lwjgl3EditorToolLauncher.launchAnimationViewer(path)`
   (`krender.scene=animation-viewer`, `krender.model.path=<path>`). Not a default action in the
   Asset Browser (it is an "open with" alternative for models).
@@ -19,12 +19,12 @@ skeleton/pose. A focused sibling of the Model Viewer dedicated to animation and 
 
 | File | Responsibility |
 |---|---|
-| `game/AnimationViewerScene.kt` | Builds camera/light/model, systems, and 7 ImGui panels. |
-| `engine/animationviewer/AnimationViewerState.kt` | Viewer state: selected clip, time, play state, speed, loop, skeleton options. |
-| `engine/animationviewer/AnimationViewerSystems.kt` | `AnimationViewerSystem`, `AnimationViewerModelRenderSystem`, `AnimationViewerSkeletonRenderSystem`, `AnimationViewerBoundingBoxSystem`, `AnimationViewerViewportGuideSystem`. |
-| `engine/animationviewer/AnimationViewerOperations.kt` | UI-driven playback/selection actions. |
-| `engine/animationviewer/AnimationViewerPanels.kt` | Panel implementations. |
-| `engine/animationviewer/AnimationViewerUiLayoutConfig.kt` | `AnimationViewerUiLayoutDefaults`. |
+| `engine/tools/animationviewer/AnimationViewerScene.kt` | Builds camera/light/model, systems, and 7 ImGui panels. |
+| `engine/tools/animationviewer/AnimationViewerState.kt` | Viewer state: selected clip, time, play state, speed, loop, skeleton options. |
+| `engine/tools/animationviewer/AnimationViewerSystems.kt` | `AnimationViewerSystem`, `AnimationViewerModelRenderSystem`, `AnimationViewerSkeletonRenderSystem`, `AnimationViewerBoundingBoxSystem`, `AnimationViewerViewportGuideSystem`. |
+| `engine/tools/animationviewer/AnimationViewerOperations.kt` | UI-driven playback/selection actions. |
+| `engine/tools/animationviewer/AnimationViewerPanels.kt` | Panel implementations. |
+| `engine/tools/animationviewer/AnimationViewerUiLayoutConfig.kt` | `AnimationViewerUiLayoutDefaults`. |
 | `engine/animation/AnimationComponent.kt` | Animation component data. |
 
 ## Main Classes
