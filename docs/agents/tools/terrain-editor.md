@@ -1,13 +1,12 @@
 # Terrain Editor — Agent Context
 
-> Read `AGENTS.md` and `docs/terrain-rendering.md` first. This file covers only the Terrain
+> Read `AGENTS.md` first. This file covers only the Terrain
 > Editor tool.
 
 ## Purpose
 
 Generate and brush-edit heightfield terrain: choose a generator, sculpt with brushes, manage
-material layers, preview blended materials, and persist the result to a terrain file. The
-authoritative reference for the rendering side is `docs/terrain-rendering.md`.
+material layers, preview blended materials, and persist the result to a terrain file.
 
 ## Current Implementation
 
@@ -90,7 +89,7 @@ Terrain files (default extension `.json` for terrain via Asset Browser create fl
 
 ## Missing / Incomplete Features
 
-(From `docs/terrain-rendering.md`.) No chunking, LOD, frustum culling, GPU splatting, terrain
+No chunking, LOD, frustum culling, GPU splatting, terrain
 shader, normal/roughness/metallic blending, texture arrays, collision, or streaming. The final
 material is CPU-baked. Suitable for prototype scenes, not large open worlds.
 
@@ -126,6 +125,5 @@ material is CPU-baked. Suitable for prototype scenes, not large open worlds.
 
 ## Related Code Patterns
 
-- Runtime counterpart: `ScenePlayerScene` uses `RuntimeTerrainMeshSystem` + `TerrainRenderSystem`
-  (see `docs/terrain-rendering.md`).
+- Runtime counterpart: `ScenePlayerScene` uses `RuntimeTerrainMeshSystem` + `TerrainRenderSystem`.
 - Dynamic mesh rendering: `DrawDynamicModel` + `RuntimeTextureData` in `api/Render.kt`.

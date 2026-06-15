@@ -10,7 +10,7 @@ engine:scene-player -> core
 
 ## Routes
 
-- `scene-player`
+- `scene-player` preferred route
 - `scene-viewer`
 - `runtime-scene` legacy alias
 
@@ -31,6 +31,8 @@ Legacy alias:
 ```
 
 Paths are relative to the `assets/` working directory unless the current launcher documents otherwise.
+
+`runtime-scene` is kept only as a legacy route alias. The preferred route name for new docs, launchers, and examples is `scene-player`.
 
 ## Validation
 

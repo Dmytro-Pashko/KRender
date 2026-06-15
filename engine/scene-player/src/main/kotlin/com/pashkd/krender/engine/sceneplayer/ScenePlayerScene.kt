@@ -9,7 +9,7 @@ import com.pashkd.krender.engine.scene.*
  */
 class ScenePlayerScene(
     private val scenePath: String,
-) : Scene("runtime_scene") {
+) : Scene("scene_player") {
     private var descriptorCache: SceneDescriptor? = null
     private var skyboxCache: SkyboxAssetDescriptor? = null
 

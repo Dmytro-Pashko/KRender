@@ -63,7 +63,7 @@ KRender SDK/
 +-- lwjgl3/                # Main desktop launcher for KRender tools/runtime
 +-- android/               # Android launcher (requires Android SDK to build)
 +-- assets/                # Shared assets for the main editor/runtime application
-+-- docs/                  # Architecture notes, tool docs, app docs, screenshots, quality docs
++-- docs/                  # Architecture notes, tool docs, screenshots, quality docs
 ```
 
 Gradle subprojects currently loaded by `settings.gradle`:
@@ -270,7 +270,7 @@ java -jar apps/woolboy-desktop/build/libs/woolboy-demo.jar
 ```
 
 The Woolboy app bundles its curated `assets/woolboy` runtime content inside the JAR and does not require
-`-Dkrender.scene=...`. See `docs/apps/woolboy.md` for the app-specific layout and build notes.
+`-Dkrender.scene=...`. See `games/woolboy/woolboy.md` for the app-specific layout and build notes.
 
 ## Example: Creating a Scene
 

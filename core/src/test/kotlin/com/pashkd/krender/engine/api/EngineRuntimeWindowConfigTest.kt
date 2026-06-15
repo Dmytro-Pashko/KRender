@@ -49,7 +49,7 @@ class EngineRuntimeWindowConfigTest {
     fun `pop restores previous scene window config`() {
         val backend = FakeEngineBackend(initialWindowState = WindowState(pixelWidth = 800, pixelHeight = 600))
         val runtime = EngineRuntime(backend)
-        val runtimeScene = TestScene(id = "runtime_scene", config = SceneConfigPresets.RuntimeGame16By9)
+        val runtimeScene = TestScene(id = "scene_player", config = SceneConfigPresets.RuntimeGame16By9)
         val assetBrowserScene =
             TestScene(
                 id = "asset_browser",

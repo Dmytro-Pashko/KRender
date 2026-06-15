@@ -13,7 +13,6 @@ Related deep-dive documents (read these before large changes in their area):
 - `docs/agents/backend-abstraction.md` — the core/backend boundary rules.
 - `docs/agents/logging.md` — logging and diagnostics conventions.
 - `docs/agents/tools/` — one context file per editor tool.
-- `docs/terrain-rendering.md` — existing terrain rendering pipeline notes.
 - `ARCHITECTURE_REVIEW.md` — critical review, risks, and refactoring roadmap.
 
 ---
@@ -74,7 +73,7 @@ KRender SDK/
 +-- lwjgl3/                # Desktop launcher (LWJGL3); spawns tool windows as separate JVMs
 +-- android/               # Android launcher (requires Android SDK)
 +-- assets/                # Shared runtime assets (models, textures, terrains, scenes, ui, skyboxes)
-+-- docs/                  # Documentation + screenshots (terrain-rendering.md, agents/, screenshot/)
++-- docs/                  # Documentation + screenshots (agents/, screenshot/)
 +-- build.gradle, settings.gradle, gradle.properties
 ```
 
@@ -115,7 +114,7 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 |---|---|
 | `core` | Engine/runtime API, LibGDX backend adapter, and shared backend-neutral services such as assets, terrain, scene files, serializers, and `.krui` documents. |
 | `engine:tools` | Editor tool module containing Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, UI Composer, tool routing, and editor-only helpers. |
-| `engine:scene-player` | Runtime/player module containing `ScenePlayerScene`, `ScenePlayerBuilder`, route aliases, and the dedicated `.krscene` playback entry point. |
+| `engine:scene-player` | Runtime/player module containing `ScenePlayerScene`, `ScenePlayerBuilder`, preferred `scene-player` routing plus legacy aliases, and the dedicated `.krscene` playback entry point. |
 | `lwjgl3` | Desktop entry point (`Lwjgl3Launcher`), window config, and the launchers that open tool/runtime windows as **separate JVM processes** (`Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`, `Lwjgl3JvmProcessLauncher`). |
 | `android` | Android launcher (`AndroidLauncher`). Uses `ScenePlayerMain` for `.krscene` playback, uses `NoOpUiService` (no ImGui), and requires the Android SDK to build. |
 | `assets` | Runtime asset files scanned by the asset registry and loaded by the backend. |
@@ -232,7 +231,8 @@ backend-neutral data (`TexturePreviewHandle`, `RuntimeTextureData`, `ModelAssetI
 5. Per-entity render caches (`ModelInstance`, `AnimationController`, glTF scenes) live in the
    renderer and are intentionally separate from `GdxAssetService` pose-sampling caches.
 
-Terrain has its own documented sub-pipeline — see `docs/terrain-rendering.md`.
+Terrain rendering details live in `docs/agents/tools/terrain-editor.md` and the shared runtime code under
+`core/.../engine/terrain/`.
 
 ---
 
@@ -341,8 +341,8 @@ terrain with layers, material preview baking, and persistence. → `docs/agents/
 
 ### Non-tool scenes
 Scene Player (`engine:scene-player/.../ScenePlayerScene.kt`) is not an editor tool. It handles
-`.krscene` playback routes (`scene-player`, `scene-viewer`, and legacy `runtime-scene`) through
-`ScenePlayerModule` and shares the same engine primitives as the tools. Woolboy now ships as the separate `games:woolboy` client module and
+`.krscene` playback through `ScenePlayerModule`, with `scene-player` as the preferred route and
+`scene-viewer` / legacy `runtime-scene` preserved as aliases. It shares the same engine primitives as the tools. Woolboy now ships as the separate `games:woolboy` client module and
 `apps:woolboy-desktop` app.
 
 ---
@@ -351,7 +351,7 @@ Scene Player (`engine:scene-player/.../ScenePlayerScene.kt`) is not an editor to
 
 | Area | Class / Interface | Location | Responsibility |
 |---|---|---|---|
-| Entry (scene player) | `ScenePlayerMain` | `engine/scene-player/.../ScenePlayerMain.kt` | Standalone `.krscene` playback entry point used by Android and available to other launchers. |
+| Entry (scene player) | `ScenePlayerMain` | `engine/scene-player/.../ScenePlayerMain.kt` | Convenience GDX application wrapper used by Android and available to other launchers for direct `.krscene` playback. |
 | Routing (desktop) | `DesktopMain` | `lwjgl3/.../DesktopMain.kt` | Composes `ToolsModule` and `ScenePlayerModule` for desktop scene routing. |
 | Entry (desktop) | `Lwjgl3Launcher` | `lwjgl3/.../Lwjgl3Launcher.kt` | LWJGL3 `main()`, window config. |
 | Backend bootstrap | `GdxEngineApplication` | `backend/gdx/GdxEngineApplication.kt` | libGDX `ApplicationAdapter` that boots runtime. |

@@ -15,7 +15,7 @@ Scene Player is the non-editor runtime/player route for `.krscene` files. It loa
 - Entry point: `engine/scene-player/.../ScenePlayerMain.kt`
 - Desktop composition: `lwjgl3/.../DesktopMain.kt`
 - Supported routes:
-  - `scene-player`
+  - `scene-player` preferred route
   - `scene-viewer`
   - `runtime-scene` legacy alias
 
@@ -26,17 +26,19 @@ Scene Player is the non-editor runtime/player route for `.krscene` files. It loa
 | `engine/scene-player/.../ScenePlayerScene.kt` | Scene lifecycle, dependency scheduling, descriptor loading, runtime build logging. |
 | `engine/scene-player/.../ScenePlayerBuilder.kt` | Applies scene descriptors to the world and wires runtime render/terrain/environment systems. |
 | `engine/scene-player/.../ScenePlayerModule.kt` | Route-to-scene factory for player aliases. |
-| `engine/scene-player/.../ScenePlayerMain.kt` | Standalone playback entry point used by Android and available to other launchers. |
+| `engine/scene-player/.../ScenePlayerMain.kt` | Convenience GDX application wrapper used by Android and available to other launchers. |
 | `core/.../engine/scene/SceneSerializer.kt` | Decodes and applies `.krscene` scene descriptors. |
 | `core/.../engine/scene/RuntimeSceneValidator.kt` | Dependency validation and active-camera / active-terrain requirements. |
 | `core/.../engine/terrain/RuntimeTerrainService.kt` | Runtime terrain preparation for active terrain entities. |
 
 ## Behavior Notes
 
-- Keep playback behavior equivalent to the old `RuntimeScene`.
+- Keep playback behavior equivalent to the previous runtime scene player route.
 - Do not change `.krscene` schema, scene lifecycle, or terrain runtime file format here.
 - `runtime-scene` must remain supported as an alias, but `scene-player` is the preferred route.
+- `runtime-scene` is a route alias only, not the preferred class, module, or internal scene id name.
 - Scene Player is intentionally separate from `engine:tools` so Android can depend on it without pulling editor tooling.
+- The backend-neutral playback logic lives in `ScenePlayerScene`, `ScenePlayerBuilder`, and `ScenePlayerModule`.
 
 ## Validation
 

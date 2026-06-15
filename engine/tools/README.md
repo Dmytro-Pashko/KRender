@@ -295,7 +295,7 @@ Scene Player is the runtime/player route for `.krscene` files. It is not an edit
 
 Route names:
 
-- `scene-player`
+- `scene-player` preferred route
 - `scene-viewer`
 - `runtime-scene` legacy alias
 
@@ -322,5 +322,5 @@ Use these checks after changing tool code:
 
 ```sh
 ./gradlew :core:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :lwjgl3:compileKotlin
-./gradlew :core:test
+./gradlew :core:test :engine:scene-player:test
 ```

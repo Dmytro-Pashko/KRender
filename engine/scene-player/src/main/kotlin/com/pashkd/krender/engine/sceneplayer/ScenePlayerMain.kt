@@ -5,6 +5,13 @@ import com.pashkd.krender.engine.backend.gdx.GdxEngineApplication
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 
+/**
+ * Convenience GDX application wrapper for running Scene Player directly.
+ *
+ * The backend-neutral playback logic lives in [ScenePlayerScene], [ScenePlayerBuilder],
+ * and [ScenePlayerModule]. This class only wires that player route into the existing
+ * [GdxEngineApplication] bootstrap for platforms that want a dedicated player entry point.
+ */
 class ScenePlayerMain(
     sceneName: String? = configuredSceneName(),
     scenePath: String? = configuredScenePath(),
