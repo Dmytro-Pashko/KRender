@@ -166,10 +166,10 @@ Thumbs.db
 /assets/logs/**
 /assets/imgui.**
 
+## Exclude Composer UI Jar file.
 tools/ui/*.jar
 
-### If you have a build directory in your project, you should add it to the ignore list.
-### You can also add specific build directories for each module if needed.
+### Exclude build folders of all modules, including submodules:
 /engine/build/*
 /core/build/*
 /apps/build/*
@@ -179,3 +179,6 @@ tools/ui/*.jar
 /engine/tools/build/*
 /engine/scene-player/build/*
 /lwjgl3/build/*
+/tools/build/*
+/scene-player/build/*
+
