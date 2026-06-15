@@ -69,6 +69,8 @@ KRender SDK/
 |   |   |   +-- math/                     # Transform math
 |   |   +-- game/                         # Top-level Scene classes (one per tool + runtime/sandbox)
 |   +-- src/test/kotlin/...               # JVM unit tests (no GL needed)
++-- engine/
+|   +-- tools/                            # Scaffold module for future editor tool extraction from core
 +-- games/
 |   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
 +-- apps/
@@ -80,8 +82,8 @@ KRender SDK/
 +-- build.gradle, settings.gradle, gradle.properties
 ```
 
-Gradle subprojects (`settings.gradle`): `core`, `lwjgl3`, `android`, `games:woolboy`,
-`apps:woolboy-desktop`. The root `assets` directory remains a shared resource folder for the
+Gradle subprojects (`settings.gradle`): `core`, `engine:tools`, `lwjgl3`, `android`,
+`games:woolboy`, `apps:woolboy-desktop`. The root `assets` directory remains a shared resource folder for the
 existing editor/runtime app, while the Woolboy app bundles its own curated resources from
 `games/woolboy/src/main/resources/assets/woolboy/`.
 
@@ -115,7 +117,8 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 
 | Module | Responsibility |
 |---|---|
-| `core` | Engine API, LibGDX backend adapter, all editor tools, game scenes, tests. The vast majority of code lives here. |
+| `core` | Engine API, LibGDX backend adapter, current editor tools, game scenes, tests. The vast majority of code lives here during the extraction. |
+| `engine:tools` | Scaffold module for migrating editor tools out of `core`. No tool implementation is moved yet. |
 | `lwjgl3` | Desktop entry point (`Lwjgl3Launcher`), window config, and the launchers that open tool/runtime windows as **separate JVM processes** (`Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`, `Lwjgl3JvmProcessLauncher`). |
 | `android` | Android launcher (`AndroidLauncher`). Uses `NoOpUiService` (no ImGui). Requires the Android SDK to build. |
 | `assets` | Runtime asset files scanned by the asset registry and loaded by the backend. |

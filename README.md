@@ -47,7 +47,7 @@ into dedicated `games/` and `apps/` modules so the engine/SDK and a sample clien
 
 ```text
 KRender SDK/
-+-- core/                  # Engine API, LibGDX backend adapter, editor tools, runtime scenes, tests
++-- core/                  # Engine API, LibGDX backend adapter, current editor tools, runtime scenes, tests
 |   +-- src/main/kotlin/com/pashkd/krender/
 |   |   +-- Main.kt                       # Scene-routing entry; defaults to Asset Browser
 |   |   +-- engine/
@@ -66,6 +66,8 @@ KRender SDK/
 |   |   |   +-- ui/scene/                 # `.krui` model, serializer, validators
 |   |   +-- game/                         # Top-level Scene classes (tools + runtime player)
 |   +-- src/test/kotlin/...               # Pure JVM unit tests
++-- engine/
+|   +-- tools/                            # Scaffold for future editor tool module extraction from core
 +-- games/
 |   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
 +-- apps/
@@ -79,6 +81,7 @@ KRender SDK/
 Gradle subprojects currently loaded by `settings.gradle`:
 
 - `core`
+- `engine:tools`
 - `lwjgl3`
 - `android`
 - `games:woolboy`

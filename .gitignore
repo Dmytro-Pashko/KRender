@@ -174,3 +174,4 @@ tools/ui/*.jar
 /games/build/*
 /apps/*/build/
 /apps/build/*
+/engine/tools/build/
