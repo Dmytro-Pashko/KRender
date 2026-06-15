@@ -9,10 +9,15 @@ object ToolsModule {
     fun createScene(
         sceneName: String,
         modelPath: String?,
+        terrainPath: String? = null,
     ): Scene? =
         when (sceneName.lowercase()) {
             "model-viewer" -> ModelViewerScene(modelPath ?: throw missingProperty("krender.model.path", sceneName))
             "animation-viewer" -> AnimationViewerScene(modelPath ?: throw missingProperty("krender.model.path", sceneName))
+            "terrain-editor", "terrain-generator" ->
+                com.pashkd.krender.engine.tools.terraineditor.TerrainEditorScene(
+                    terrainPath ?: throw missingProperty("krender.terrain.path", sceneName),
+                )
             else -> null
         }
 

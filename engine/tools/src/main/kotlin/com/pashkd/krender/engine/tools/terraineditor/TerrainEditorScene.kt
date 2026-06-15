@@ -1,4 +1,4 @@
-package com.pashkd.krender.game
+package com.pashkd.krender.engine.tools.terraineditor
 
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Scene
@@ -10,7 +10,17 @@ import com.pashkd.krender.engine.render3d.Material
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.terrain.*
+import com.pashkd.krender.engine.terrain.FlatTerrainGenerator
+import com.pashkd.krender.engine.terrain.FractalNoiseGenerator
+import com.pashkd.krender.engine.terrain.PerlinNoiseGenerator
+import com.pashkd.krender.engine.terrain.SimplexNoiseGenerator
+import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
+import com.pashkd.krender.engine.terrain.TerrainData
+import com.pashkd.krender.engine.terrain.TerrainDataComponent
+import com.pashkd.krender.engine.terrain.TerrainGenerator
+import com.pashkd.krender.engine.terrain.TerrainPersistence
+import com.pashkd.krender.engine.terrain.TerrainPreviewMode
+import com.pashkd.krender.engine.terrain.TerrainRendererComponent
 import com.pashkd.krender.engine.ui.editor.*
 
 /**
@@ -90,7 +100,11 @@ class TerrainEditorScene(
                 terrainMaterialLibrary.all().associateBy { it.id },
             )
 
-        world.systems.add(TerrainCameraControllerSystem(engine.input, editorState))
+        world.systems.add(
+            com.pashkd.krender.engine.terrain.TerrainCameraControllerSystem(engine.input) {
+                editorState.inputFocus == TerrainEditorInputFocus.Viewport
+            },
+        )
         world.systems.add(editorSystem)
         meshSyncSystem =
             TerrainEditorMeshSyncSystem(
@@ -137,7 +151,7 @@ class TerrainEditorScene(
             )
         world.systems.add(meshSyncSystem)
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
-        world.systems.add(TerrainRenderSystem())
+        world.systems.add(com.pashkd.krender.engine.terrain.TerrainRenderSystem())
 
         createCamera()
         createLights()

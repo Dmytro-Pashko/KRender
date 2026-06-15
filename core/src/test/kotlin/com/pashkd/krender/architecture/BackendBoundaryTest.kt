@@ -167,7 +167,6 @@ class BackendBoundaryTest {
             setOf(
                 "com/pashkd/krender/engine/ui/editor/ImGuiLayoutConfigLoader.kt",
                 "com/pashkd/krender/engine/ui/editor/ImGuiLayoutConfigCodec.kt",
-                "com/pashkd/krender/engine/terrain/TerrainMaterialPreviewBaker.kt",
             )
 
         /**

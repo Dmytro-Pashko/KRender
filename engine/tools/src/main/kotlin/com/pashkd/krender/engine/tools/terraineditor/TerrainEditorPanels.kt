@@ -1,7 +1,12 @@
-package com.pashkd.krender.engine.terrain
+package com.pashkd.krender.engine.tools.terraineditor
 
 import com.pashkd.krender.engine.api.ProfilerService
 import com.pashkd.krender.engine.api.RuntimeStatsService
+import com.pashkd.krender.engine.terrain.TerrainBrushMode
+import com.pashkd.krender.engine.terrain.TerrainLayerBlendMode
+import com.pashkd.krender.engine.terrain.TerrainLayerLimits
+import com.pashkd.krender.engine.terrain.TerrainLayerPaintMode
+import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger

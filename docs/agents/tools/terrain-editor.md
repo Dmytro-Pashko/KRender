@@ -11,8 +11,8 @@ authoritative reference for the rendering side is `docs/terrain-rendering.md`.
 
 ## Current Implementation
 
-- Scene: `core/.../game/TerrainEditorScene.kt`.
-- Tool internals: `core/.../engine/terrain/`.
+- Scene: `engine/tools/.../engine/tools/terraineditor/TerrainEditorScene.kt`.
+- Tool internals: `engine/tools/.../engine/tools/terraineditor/` plus shared runtime terrain infrastructure in `core/.../engine/terrain/`.
 - Launched as a separate JVM window by `Lwjgl3EditorToolLauncher.launchTerrainEditor(path)`
   (`krender.scene=terrain-editor` or `terrain-generator`, `krender.terrain.path=<path>`).
 - Requires an existing terrain file — the scene fails fast if the path is missing/unreadable.
@@ -21,7 +21,7 @@ authoritative reference for the rendering side is `docs/terrain-rendering.md`.
 
 | File | Responsibility |
 |---|---|
-| `game/TerrainEditorScene.kt` | Builds camera/lights/terrain entity, generators, material library, systems, panels. |
+| `engine/tools/terraineditor/TerrainEditorScene.kt` | Builds camera/lights/terrain entity, generators, material library, systems, panels. |
 | `engine/terrain/TerrainData.kt` | Editable heightfield + layers + weights + materials (backend-neutral). |
 | `engine/terrain/TerrainComponents.kt` | `TerrainDataComponent`, `TerrainRendererComponent`, camera controller component. |
 | `engine/terrain/TerrainSystems.kt` | `TerrainEditorSystem`, `TerrainEditorMeshSyncSystem`, `TerrainRenderSystem`, camera controller system. |
@@ -32,7 +32,7 @@ authoritative reference for the rendering side is `docs/terrain-rendering.md`.
 | `engine/terrain/TerrainPersistence.kt` | Encode/decode terrain files + descriptors. |
 | `engine/terrain/TerrainMaterialPreviewBaker.kt` | Editor-only `Pixmap`-based preview bake (allowed in editor). |
 | `engine/terrain/RuntimeTerrainService.kt` | Runtime (non-editor) terrain loading/baking. |
-| `engine/terrain/TerrainEditorPanels.kt`, `TerrainEditorState.kt` | Panels + editor state. |
+| `engine/tools/terraineditor/TerrainEditorPanels.kt`, `TerrainEditorState.kt` | Panels + editor state. |
 
 ## Main Classes
 

@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.terrain
+package com.pashkd.krender.engine.tools.terraineditor
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Pixmap
@@ -6,6 +6,10 @@ import com.badlogic.gdx.graphics.PixmapIO
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.material.TerrainMaterialDescriptor
 import com.pashkd.krender.engine.material.TerrainMaterialLibrary
+import com.pashkd.krender.engine.terrain.TerrainData
+import com.pashkd.krender.engine.terrain.TerrainLayer
+import com.pashkd.krender.engine.terrain.TerrainLayerBlendMode
+import com.pashkd.krender.engine.terrain.TerrainLayerColorDescriptor
 import kotlin.math.floor
 import kotlin.math.roundToInt
 

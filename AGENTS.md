@@ -53,7 +53,7 @@ KRender SDK/
 |   |   |   +-- animation/                # AnimationComponent
 |   |   |   +-- backend/gdx/              # LibGDX backend adapter (owns all Gdx.* / OpenGL)
 |   |   |   +-- assets/                   # Asset Browser tool + asset registry/metadata/importers
-|   |   |   +-- terrain/                  # Terrain Editor + terrain runtime/mesh/persistence
+|   |   |   +-- terrain/                  # Shared terrain runtime/mesh/persistence infrastructure
 |   |   |   +-- sceneeditor/              # Scene Editor tool internals
 |   |   |   +-- uicomposer/               # UI Composer (placeholder) internals
 |   |   |   +-- scene/                    # Scene config, serialization, file/launch services
@@ -116,7 +116,7 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 | Module | Responsibility |
 |---|---|
 | `core` | Engine API, LibGDX backend adapter, current editor tools, game scenes, tests. The vast majority of code lives here during the extraction. |
-| `engine:tools` | Editor tool module for migrating tools out of `core`. Model Viewer and Animation Viewer currently live here. |
+| `engine:tools` | Editor tool module for migrating tools out of `core`. Model Viewer, Animation Viewer, and Terrain Editor currently live here. |
 | `lwjgl3` | Desktop entry point (`Lwjgl3Launcher`), window config, and the launchers that open tool/runtime windows as **separate JVM processes** (`Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`, `Lwjgl3JvmProcessLauncher`). |
 | `android` | Android launcher (`AndroidLauncher`). Uses `NoOpUiService` (no ImGui). Requires the Android SDK to build. |
 | `assets` | Runtime asset files scanned by the asset registry and loaded by the backend. |
@@ -327,7 +327,7 @@ materials, texture channels, wireframe, material-debug modes, glTF PBR preview, 
 visualizes the skeleton/pose. → `docs/agents/tools/animation-viewer.md`
 
 ### Terrain Editor
-`game/TerrainEditorScene.kt` (+ `engine/terrain/`). Generates and brush-edits heightfield
+`engine/tools/.../terraineditor/TerrainEditorScene.kt` (+ sibling editor files in `engine:tools`, shared terrain runtime in `core/.../engine/terrain/`). Generates and brush-edits heightfield
 terrain with layers, material preview baking, and persistence. → `docs/agents/tools/terrain-editor.md`
 
 ### Scene Editor
