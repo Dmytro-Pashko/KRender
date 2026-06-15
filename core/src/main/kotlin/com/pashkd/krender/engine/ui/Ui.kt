@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.ui.editor
+package com.pashkd.krender.engine.ui
 
 import com.pashkd.krender.engine.api.TexturePreviewHandle
 

@@ -5,7 +5,7 @@ import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
-import com.pashkd.krender.engine.ui.editor.UiService
+import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiBackend
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportConfig

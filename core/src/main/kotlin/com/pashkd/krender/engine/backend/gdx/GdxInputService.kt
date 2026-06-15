@@ -4,7 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
 import com.pashkd.krender.engine.api.*
-import com.pashkd.krender.engine.ui.editor.UiCaptureState
+import com.pashkd.krender.engine.ui.UiCaptureState
 
 /**
  * LibGDX-backed input service that snapshots keyboard, mouse, pointer, and UI capture state.

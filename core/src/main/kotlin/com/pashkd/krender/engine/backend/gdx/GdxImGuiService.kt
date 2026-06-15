@@ -6,8 +6,8 @@ import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.graphics.GL20
 import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.TexturePreviewHandle
-import com.pashkd.krender.engine.ui.editor.UiCaptureState
-import com.pashkd.krender.engine.ui.editor.UiService
+import com.pashkd.krender.engine.ui.UiCaptureState
+import com.pashkd.krender.engine.ui.UiService
 import glm_.vec2.Vec2
 import imgui.*
 import imgui.ImGui.image
