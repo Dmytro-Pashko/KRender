@@ -1,4 +1,4 @@
-package com.pashkd.krender.game
+package com.pashkd.krender.engine.sceneplayer
 
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.assets.AssetRegistryService
@@ -19,7 +19,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 
-class RuntimeSceneBuilderTest {
+class ScenePlayerBuilderTest {
     @Test
     fun `builds camera-only runtime scene without terrain or skybox`() {
         val descriptor =
@@ -52,10 +52,10 @@ class RuntimeSceneBuilderTest {
         val world = SceneWorld()
 
         val result =
-            RuntimeSceneBuilder(BuilderTestEngineContext()).build(
+            ScenePlayerBuilder(BuilderTestEngineContext()).build(
                 world = world,
                 request =
-                    RuntimeSceneBuildRequest(
+                    ScenePlayerBuildRequest(
                         scenePath = "scenes/builder.krscene",
                         descriptor = descriptor,
                         skybox = null,

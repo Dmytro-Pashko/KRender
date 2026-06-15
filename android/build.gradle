@@ -79,6 +79,10 @@ dependencies {
     exclude group: 'com.github.kotlin-graphics.imgui'
     exclude group: 'org.lwjgl'
   }
+  implementation(project(':engine:scene-player')) {
+    exclude group: 'com.github.kotlin-graphics.imgui'
+    exclude group: 'org.lwjgl'
+  }
 
   natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
   natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"

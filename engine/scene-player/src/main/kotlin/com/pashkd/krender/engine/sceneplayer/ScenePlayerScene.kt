@@ -1,4 +1,4 @@
-package com.pashkd.krender.game
+package com.pashkd.krender.engine.sceneplayer
 
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Scene
@@ -7,7 +7,7 @@ import com.pashkd.krender.engine.scene.*
 /**
  * Runtime-only scene loaded from a `.krscene` descriptor.
  */
-class RuntimeScene(
+class ScenePlayerScene(
     private val scenePath: String,
 ) : Scene("runtime_scene") {
     private var descriptorCache: SceneDescriptor? = null
@@ -21,7 +21,7 @@ class RuntimeScene(
 
         val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(descriptor, skybox)
         engine.logger.info(TAG) {
-            "RuntimeScene scheduleAssets scene='$scenePath' dependencies=${
+            "ScenePlayer scheduleAssets scene='$scenePath' dependencies=${
                 dependencyGraph.dependencies.joinToString { dependency ->
                     "${dependency.kind}:${dependency.path}:${dependency.requirement}"
                 }
@@ -35,24 +35,24 @@ class RuntimeScene(
         val skybox = skyboxCache ?: resolveSkybox(descriptor).also { skyboxCache = it }
 
         engine.logger.info(TAG) {
-            "RuntimeScene show scene='$scenePath' id='${descriptor.id}' name='${descriptor.name}' entities=${descriptor.entities.size} " +
+            "ScenePlayer show scene='$scenePath' id='${descriptor.id}' name='${descriptor.name}' entities=${descriptor.entities.size} " +
                 "activeCameraEntityId=${descriptor.settings.activeCameraEntityId ?: "<none>"} " +
                 "activeTerrainEntityId=${descriptor.settings.activeTerrainEntityId ?: "<none>"} " +
                 "skybox='${descriptor.settings.environment.skyboxAssetPath ?: "<none>"}'"
         }
 
         val result =
-            RuntimeSceneBuilder(engine).build(
+            ScenePlayerBuilder(engine).build(
                 world = world,
                 request =
-                    RuntimeSceneBuildRequest(
+                    ScenePlayerBuildRequest(
                         scenePath = scenePath,
                         descriptor = descriptor,
                         skybox = skybox,
                     ),
             )
         engine.logger.info(TAG) {
-            "RuntimeScene built scene='$scenePath' activeCameraEntityId=${result.activeCameraEntityId} terrainPrepared=${result.terrainPrepared} " +
+            "ScenePlayer built scene='$scenePath' activeCameraEntityId=${result.activeCameraEntityId} terrainPrepared=${result.terrainPrepared} " +
                 "skyboxEnabled=${result.skyboxEnabled} validationErrors=${result.validationReport.errors.size} validationWarnings=${result.validationReport.warnings.size}"
         }
     }
@@ -71,13 +71,13 @@ class RuntimeScene(
             SkyboxAssetService(engine.sceneFiles, engine.logger).loadRequired(skyboxPath)
         }.getOrElse { error ->
             engine.logger.warn(TAG, error) {
-                "Runtime scene optional skybox '$skyboxPath' could not be loaded: ${error.message}"
+                "ScenePlayer optional skybox '$skyboxPath' could not be loaded: ${error.message}"
             }
             null
         }
     }
 
     companion object {
-        private const val TAG = "RuntimeScene"
+        private const val TAG = "ScenePlayerScene"
     }
 }

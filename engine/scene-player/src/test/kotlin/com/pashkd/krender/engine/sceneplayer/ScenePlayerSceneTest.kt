@@ -1,4 +1,4 @@
-package com.pashkd.krender.game
+package com.pashkd.krender.engine.sceneplayer
 
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.assets.AssetRegistryService
@@ -20,11 +20,11 @@ import kotlinx.coroutines.Job
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
-class RuntimeSceneTest {
+class ScenePlayerSceneTest {
     @Test
     fun `runtime scene with terrain and skybox does not create runtime sun or ambient light`() {
         val assets = TestAssetService()
-        val scene = RuntimeScene("scenes/runtime.krscene")
+        val scene = ScenePlayerScene("scenes/runtime.krscene")
         val context =
             TestEngineContext(
                 assets = assets,
@@ -41,7 +41,7 @@ class RuntimeSceneTest {
     @Test
     fun `runtime scene starts without terrain when active terrain is missing`() {
         val assets = TestAssetService()
-        val scene = RuntimeScene("scenes/runtime_no_terrain.krscene")
+        val scene = ScenePlayerScene("scenes/runtime_no_terrain.krscene")
         val context =
             TestEngineContext(
                 assets = assets,
@@ -64,7 +64,7 @@ class RuntimeSceneTest {
     @Test
     fun `runtime scene starts without skybox when skybox is disabled`() {
         val assets = TestAssetService()
-        val scene = RuntimeScene("scenes/runtime_no_skybox.krscene")
+        val scene = ScenePlayerScene("scenes/runtime_no_skybox.krscene")
         val context =
             TestEngineContext(
                 assets = assets,

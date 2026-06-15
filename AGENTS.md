@@ -44,9 +44,8 @@ first-class products built on the same engine primitives.
 
 ```text
 KRender SDK/
-+-- core/                  # Engine/runtime API, LibGDX backend, shared services, runtime scenes
++-- core/                  # Engine/runtime API, LibGDX backend, shared services
 |   +-- src/main/kotlin/com/pashkd/krender/
-|   |   +-- Main.kt                       # Runtime scene entry; desktop/tool routing lives outside core
 |   |   +-- engine/
 |   |   |   +-- api/                      # Backend-neutral core API (see section 5)
 |   |   |   +-- render3d/                 # 3D components + ModelRenderSystem, environment system
@@ -63,9 +62,10 @@ KRender SDK/
 |   |   |   +-- viewport/                 # Runtime viewport scaling
 |   |   |   +-- window/                   # Window service abstraction
 |   |   |   +-- math/                     # Transform math
-|   |   +-- game/                         # Runtime/player Scene classes
+|   |   +-- game/                         # Shared game-facing helpers that are not standalone tool/player routes
 |   +-- src/test/kotlin/...               # JVM unit tests (no GL needed)
 +-- engine/
+|   +-- scene-player/                     # `.krscene` runtime/player route module
 |   +-- tools/                            # Editor tool module; all development editor tools live here
 +-- games/
 |   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
@@ -78,7 +78,7 @@ KRender SDK/
 +-- build.gradle, settings.gradle, gradle.properties
 ```
 
-Gradle subprojects (`settings.gradle`): `core`, `engine:tools`, `lwjgl3`, `android`,
+Gradle subprojects (`settings.gradle`): `core`, `engine:tools`, `engine:scene-player`, `lwjgl3`, `android`,
 `games:woolboy`, `apps:woolboy-desktop`. The root `assets` directory remains a shared resource folder for the
 existing editor/runtime app, while the Woolboy app bundles its own curated resources from
 `games/woolboy/src/main/resources/assets/woolboy/`.
@@ -113,10 +113,11 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 
 | Module | Responsibility |
 |---|---|
-| `core` | Engine/runtime API, LibGDX backend adapter, runtime/player scene support, and shared backend-neutral services such as assets, terrain, scene files, and `.krui` documents. |
+| `core` | Engine/runtime API, LibGDX backend adapter, and shared backend-neutral services such as assets, terrain, scene files, serializers, and `.krui` documents. |
 | `engine:tools` | Editor tool module containing Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, UI Composer, tool routing, and editor-only helpers. |
+| `engine:scene-player` | Runtime/player module containing `ScenePlayerScene`, `ScenePlayerBuilder`, route aliases, and the dedicated `.krscene` playback entry point. |
 | `lwjgl3` | Desktop entry point (`Lwjgl3Launcher`), window config, and the launchers that open tool/runtime windows as **separate JVM processes** (`Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`, `Lwjgl3JvmProcessLauncher`). |
-| `android` | Android launcher (`AndroidLauncher`). Uses `NoOpUiService` (no ImGui). Requires the Android SDK to build. |
+| `android` | Android launcher (`AndroidLauncher`). Uses `ScenePlayerMain` for `.krscene` playback, uses `NoOpUiService` (no ImGui), and requires the Android SDK to build. |
 | `assets` | Runtime asset files scanned by the asset registry and loaded by the backend. |
 
 ---
@@ -306,6 +307,7 @@ Tools are standalone `Scene`s selected by the desktop/tool layer (`DesktopMain` 
 On desktop they are opened as **separate JVM windows** by `Lwjgl3EditorToolLauncher`
 (via `editorToolLauncher` on `EngineContext`). Inside the Asset Browser, the
 `AssetToolRegistry` maps asset categories to `AssetTool`s that call the launcher.
+Scene playback routes are handled separately by `engine:scene-player` through `ScenePlayerModule`.
 
 Each tool has a dedicated context file under `docs/agents/tools/`. Read it before changing
 that tool.
@@ -338,8 +340,9 @@ terrain with layers, material preview baking, and persistence. → `docs/agents/
 `.krui` UiScene assets for validation-focused preview and inspection workflows. → `docs/agents/tools/ui-composer.md`
 
 ### Non-tool scenes
-`RuntimeScene` (runtime/player for `.krscene`) is not an editor tool but shares the same engine
-primitives. Woolboy now ships as the separate `games:woolboy` client module and
+Scene Player (`engine:scene-player/.../ScenePlayerScene.kt`) is not an editor tool. It handles
+`.krscene` playback routes (`scene-player`, `scene-viewer`, and legacy `runtime-scene`) through
+`ScenePlayerModule` and shares the same engine primitives as the tools. Woolboy now ships as the separate `games:woolboy` client module and
 `apps:woolboy-desktop` app.
 
 ---
@@ -348,7 +351,8 @@ primitives. Woolboy now ships as the separate `games:woolboy` client module and
 
 | Area | Class / Interface | Location | Responsibility |
 |---|---|---|---|
-| Entry | `Main` | `Main.kt` | Routes `krender.scene` system property to a `Scene`. |
+| Entry (scene player) | `ScenePlayerMain` | `engine/scene-player/.../ScenePlayerMain.kt` | Standalone `.krscene` playback entry point used by Android and available to other launchers. |
+| Routing (desktop) | `DesktopMain` | `lwjgl3/.../DesktopMain.kt` | Composes `ToolsModule` and `ScenePlayerModule` for desktop scene routing. |
 | Entry (desktop) | `Lwjgl3Launcher` | `lwjgl3/.../Lwjgl3Launcher.kt` | LWJGL3 `main()`, window config. |
 | Backend bootstrap | `GdxEngineApplication` | `backend/gdx/GdxEngineApplication.kt` | libGDX `ApplicationAdapter` that boots runtime. |
 | Runtime | `EngineRuntime` / `Engine` | `api/EngineRuntime.kt` | Owns scenes + services; implements `EngineContext`. |
@@ -468,8 +472,8 @@ See `docs/agents/logging.md` for detail. Conventions in code:
   semantics.
 - The core/backend boundary is enforced by `BackendBoundaryTest` (four rules: LibGDX imports,
   glTF imports, engine.api→backend, non-backend→backend). New violations fail the build.
-- Run the JVM tests after engine/tool changes (`core:test`); they cover serialization,
-  viewport, terrain runtime, scene editor systems, UI scene validation, and more.
+- Run the JVM tests after engine/tool changes (`core:test`, `engine:scene-player:test`); they cover serialization,
+  viewport, terrain runtime, scene player validation, scene editor systems, UI scene validation, and more.
 
 ---
 
@@ -478,16 +482,17 @@ See `docs/agents/logging.md` for detail. Conventions in code:
 - Tests live in `core/src/test/kotlin` and are pure-JVM (no GL context). Examples:
   `RuntimeViewportTest`, `SceneSerializerTest`, `TerrainRuntimePipelineTest`,
   `SceneEditor*SystemTest`, `UiSceneSerializerTest`, `AssetBrowserSceneTest`,
-  `ModelViewerTextureChannelResolverTest`.
+  `ModelViewerTextureChannelResolverTest`. Scene Player tests live in `engine/scene-player/src/test/kotlin`.
 - Prefer adding/adjusting tests in the same package as the code under test.
 - Things requiring a real OpenGL context (renderer, ImGui, texture upload) are **not** unit
   tested — validate those manually by running the relevant scene.
 - Useful Gradle commands (the README uses `.\gradlew.bat` on Windows; use `./gradlew` on macOS/Linux):
-  - `./gradlew core:compileKotlin lwjgl3:compileKotlin` — fast compile check.
-  - `./gradlew core:test` — run unit tests.
+  - `./gradlew :core:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :lwjgl3:compileKotlin` — fast compile check.
+  - `./gradlew :core:test :engine:scene-player:test` — run unit tests.
   - `./gradlew lwjgl3:run` — run the default scene (Asset Browser).
   - Run a specific tool/scene with system properties, e.g.
-    `-Dkrender.scene=model-viewer -Dkrender.model.path=model/...`.
+    `-Dkrender.scene=model-viewer -Dkrender.model.path=model/...` or
+    `-Dkrender.scene=scene-player -Dkrender.scene.path=scenes/...`.
 
 ---
 
@@ -516,6 +521,6 @@ See `docs/agents/logging.md` for detail. Conventions in code:
 4. Keep components as data and behavior in systems; keep rendering as `RenderCommand`s.
 5. Respect lifecycle: deferred scene transitions, `CommandBuffer` mutations, async asset loading.
 6. Add or update a unit test in `core/src/test/kotlin` when logic is testable without GL.
-7. Compile (`core:compileKotlin lwjgl3:compileKotlin`) and run `core:test`.
+7. Compile (`:core:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :lwjgl3:compileKotlin`) and run `:core:test :engine:scene-player:test`.
 8. If behavior is GL/UI-dependent, run the scene (`lwjgl3:run` with the right system properties).
 9. Update this guide and the relevant `docs/agents/*` file if you changed architecture.

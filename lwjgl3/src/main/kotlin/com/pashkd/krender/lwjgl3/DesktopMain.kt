@@ -2,10 +2,10 @@ package com.pashkd.krender.lwjgl3
 
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.backend.gdx.GdxEngineApplication
+import com.pashkd.krender.engine.sceneplayer.ScenePlayerModule
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.tools.ToolsModule
-import com.pashkd.krender.game.RuntimeScene
 
 class DesktopMain(
     sceneName: String? = configuredSceneName(),
@@ -27,16 +27,12 @@ class DesktopMain(
             scenePath = scenePath,
             sceneNameOverride = configuredSceneNameOverride(),
             uiScenePath = configuredUiScenePath(),
-        ) ?: when (requestedScene.lowercase()) {
-            "runtime-scene" ->
-                RuntimeScene(
-                    scenePath = scenePath ?: throw missingProperty("krender.scene.path", "runtime-scene"),
-                )
-
-            else -> throw IllegalArgumentException(
-                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, runtime-scene, model-viewer, animation-viewer, terrain-editor, ui-composer.",
-            )
-        }
+        ) ?: ScenePlayerModule.createScene(
+            sceneName = requestedScene,
+            scenePath = scenePath,
+        ) ?: throw IllegalArgumentException(
+            "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, scene-player, scene-viewer, runtime-scene, model-viewer, animation-viewer, terrain-editor, ui-composer.",
+        )
     },
     runtimeWindowLauncherFactory = runtimeWindowLauncherFactory,
     editorToolLauncherFactory = editorToolLauncherFactory,
@@ -60,10 +56,5 @@ class DesktopMain(
         fun configuredSceneNameOverride(): String? =
             System.getProperty("krender.scene.name")?.takeIf(String::isNotBlank)
 
-        private fun missingProperty(
-            propertyName: String,
-            sceneName: String,
-        ): IllegalArgumentException =
-            IllegalArgumentException("Missing required system property '$propertyName' for krender.scene='$sceneName'.")
     }
 }

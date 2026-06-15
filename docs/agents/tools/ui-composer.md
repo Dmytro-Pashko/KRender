@@ -129,8 +129,7 @@ a simple toolbar state.
 
 - Replace the local texture registry with a shared engine `AssetRegistryService` on
   `EngineContext`.
-- Update the stale "placeholder" comments across `Main.kt`, `AssetBrowserScene.kt`,
-  `AssetDomain.kt`, and `EditorToolLauncher.kt`.
+- Update stale comments carefully when they misdescribe current UI Composer scope or routing.
 
 ## Related Code Patterns
 

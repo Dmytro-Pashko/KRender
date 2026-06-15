@@ -4,7 +4,7 @@ import android.os.Bundle
 import com.badlogic.gdx.Application
 import com.badlogic.gdx.backends.android.AndroidApplication
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration
-import com.pashkd.krender.Main
+import com.pashkd.krender.engine.sceneplayer.ScenePlayerMain
 
 /** Launches the Android application. */
 class AndroidLauncher : AndroidApplication() {
@@ -12,8 +12,8 @@ class AndroidLauncher : AndroidApplication() {
         super.onCreate(savedInstanceState)
         logLevel = Application.LOG_DEBUG
         initialize(
-            Main(
-                sceneName = "runtime-scene",
+            ScenePlayerMain(
+                sceneName = "scene-player",
                 scenePath = "scenes/Untitled_Scene.krscene",
             ),
             AndroidApplicationConfiguration().apply {

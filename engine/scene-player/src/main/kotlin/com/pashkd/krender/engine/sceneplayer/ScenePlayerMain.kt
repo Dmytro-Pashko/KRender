@@ -1,12 +1,11 @@
-package com.pashkd.krender
+package com.pashkd.krender.engine.sceneplayer
 
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.backend.gdx.GdxEngineApplication
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
-import com.pashkd.krender.game.RuntimeScene
 
-class Main(
+class ScenePlayerMain(
     sceneName: String? = configuredSceneName(),
     scenePath: String? = configuredScenePath(),
     runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = {
@@ -17,32 +16,22 @@ class Main(
     },
 ) : GdxEngineApplication(
     initialScene = {
-        val requestedScene = sceneName?.trim()?.takeIf(String::isNotBlank) ?: RUNTIME_SCENE
-        when (requestedScene.lowercase()) {
-            "runtime-scene" ->
-                RuntimeScene(
-                    scenePath = scenePath ?: throw missingProperty("krender.scene.path", "runtime-scene"),
-                )
-
-            else -> throw IllegalArgumentException(
-                "Unknown krender.scene '$requestedScene'. Supported scenes in core: runtime-scene.",
-            )
-        }
+        val requestedScene = sceneName?.trim()?.takeIf(String::isNotBlank) ?: DEFAULT_SCENE
+        ScenePlayerModule.createScene(
+            sceneName = requestedScene,
+            scenePath = scenePath,
+        ) ?: throw IllegalArgumentException(
+            "Unknown krender.scene '$requestedScene'. Supported scene-player routes: scene-player, scene-viewer, runtime-scene.",
+        )
     },
     runtimeWindowLauncherFactory = runtimeWindowLauncherFactory,
     editorToolLauncherFactory = editorToolLauncherFactory,
 ) {
     companion object {
-        private const val RUNTIME_SCENE = "runtime-scene"
+        private const val DEFAULT_SCENE = "scene-player"
 
         fun configuredSceneName(): String? = System.getProperty("krender.scene")?.takeIf(String::isNotBlank)
 
         fun configuredScenePath(): String? = System.getProperty("krender.scene.path")?.takeIf(String::isNotBlank)
-
-        private fun missingProperty(
-            propertyName: String,
-            sceneName: String,
-        ): IllegalArgumentException =
-            IllegalArgumentException("Missing required system property '$propertyName' for krender.scene='$sceneName'.")
     }
 }

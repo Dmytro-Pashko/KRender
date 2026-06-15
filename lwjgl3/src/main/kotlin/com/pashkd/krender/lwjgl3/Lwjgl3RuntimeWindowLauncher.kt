@@ -15,7 +15,7 @@ class Lwjgl3RuntimeWindowLauncher(
         processLauncher.launch(
             properties =
                 linkedMapOf(
-                    "krender.scene" to "runtime-scene",
+                    "krender.scene" to "scene-player",
                     "krender.scene.path" to scenePath,
                 ),
             failureMessage = "Runtime scene launch failed",

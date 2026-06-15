@@ -67,7 +67,8 @@ Desktop tools and the runtime player run as **separate JVM processes**, not in-p
   `Lwjgl3JvmProcessLauncher`, passing `krender.scene` + a path system property
   (`krender.model.path`, `krender.terrain.path`, `krender.scene.path`, `krender.ui.scene.path`).
 - `Lwjgl3RuntimeWindowLauncher` (implements `RuntimeWindowLauncher`) launches the runtime player.
-- `Main.kt` reads those properties and constructs the matching `Scene`.
+- `DesktopMain` composes `ToolsModule` and `ScenePlayerModule` for desktop routes.
+- `ScenePlayerMain` is the dedicated `.krscene` playback entry point used by Android.
 - Backends that cannot spawn windows use `UnsupportedEditorToolLauncher` /
   `UnsupportedRuntimeWindowLauncher` (which throw).
 

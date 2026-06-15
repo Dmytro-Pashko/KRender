@@ -1,4 +1,4 @@
-package com.pashkd.krender.game
+package com.pashkd.krender.engine.sceneplayer
 
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.SceneWorld
@@ -9,27 +9,27 @@ import com.pashkd.krender.engine.render3d.RuntimeEnvironmentSystem
 import com.pashkd.krender.engine.scene.*
 import com.pashkd.krender.engine.terrain.*
 
-data class RuntimeSceneBuildRequest(
+data class ScenePlayerBuildRequest(
     val scenePath: String,
     val descriptor: SceneDescriptor,
     val skybox: SkyboxAssetDescriptor?,
 )
 
-data class RuntimeSceneBuildResult(
+data class ScenePlayerBuildResult(
     val activeCameraEntityId: Long,
     val terrainPrepared: Boolean,
     val skyboxEnabled: Boolean,
     val validationReport: SceneValidationReport,
 )
 
-class RuntimeSceneBuilder(
+class ScenePlayerBuilder(
     private val engine: EngineContext,
     private val terrainTextureSamplerFactory: TerrainMaterialTextureSamplerFactory? = engine.terrainTextureSamplerFactory,
 ) {
     fun build(
         world: SceneWorld,
-        request: RuntimeSceneBuildRequest,
-    ): RuntimeSceneBuildResult {
+        request: ScenePlayerBuildRequest,
+    ): ScenePlayerBuildResult {
         val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(request.descriptor, request.skybox)
         val validationReport = RuntimeSceneValidator.validate(request.descriptor, dependencyGraph)
         RuntimeSceneValidator.requireValid(request.descriptor, validationReport)
@@ -88,7 +88,7 @@ class RuntimeSceneBuilder(
             )
         }
 
-        return RuntimeSceneBuildResult(
+        return ScenePlayerBuildResult(
             activeCameraEntityId = activeCamera.id,
             terrainPrepared = terrainPrepared,
             skyboxEnabled = environment.showSkybox,
@@ -96,7 +96,7 @@ class RuntimeSceneBuilder(
         )
     }
 
-    private fun resolveSkybox(request: RuntimeSceneBuildRequest): SkyboxAssetDescriptor? {
+    private fun resolveSkybox(request: ScenePlayerBuildRequest): SkyboxAssetDescriptor? {
         if (!request.descriptor.settings.environment.showSkybox) {
             return null
         }
@@ -105,17 +105,17 @@ class RuntimeSceneBuilder(
         val configuredPath = RuntimeSceneValidator.skyboxPath(request.descriptor)
         if (configuredPath == null) {
             engine.logger.warn(TAG) {
-                "Runtime skybox disabled scene='${request.scenePath}' because showSkybox=true but no skybox path is configured."
+                "ScenePlayer skybox disabled scene='${request.scenePath}' because showSkybox=true but no skybox path is configured."
             }
         } else {
             engine.logger.warn(TAG) {
-                "Runtime skybox disabled scene='${request.scenePath}' because skybox '$configuredPath' could not be resolved."
+                "ScenePlayer skybox disabled scene='${request.scenePath}' because skybox '$configuredPath' could not be resolved."
             }
         }
         return null
     }
 
     private companion object {
-        private const val TAG = "RuntimeSceneBuilder"
+        private const val TAG = "ScenePlayerBuilder"
     }
 }

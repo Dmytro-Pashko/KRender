@@ -11,7 +11,7 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 ## Current Implementation
 
 - Scene: `engine/tools/.../assetbrowser/AssetBrowserScene.kt`.
-- Tool internals package: `core/.../engine/assets/`.
+- Tool internals package: `engine/tools/.../assetbrowser/`, with shared asset infrastructure kept in `core/.../engine/assets/`.
 - Desktop startup resolves it through `engine/tools/ToolsModule.kt` and `lwjgl3/.../DesktopMain.kt`
   (`krender.scene` unset → `asset-browser` on desktop).
 - Tool routing uses `AssetToolRegistry`; there is intentionally **no** `when(category)` in the scene.
@@ -21,14 +21,14 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 | File | Responsibility |
 |---|---|
 | `engine/tools/.../assetbrowser/AssetBrowserScene.kt` | Wires registries, services, systems, and panels; defines the `AssetTool` implementations and `SceneOperationsHandler`. |
-| `engine/assets/AssetBrowserSystem.kt` | Drives background scans, filtering/sorting, selected-model metadata sync, activation requests. |
-| `engine/assets/AssetBrowserState.kt` | Mutable UI/runtime state for the browser. |
-| `engine/assets/AssetBrowserPanels.kt` | `AssetControlsPanel`, `AssetBrowserPanel`, `AssetDetailsPanel`. |
-| `engine/assets/AssetBrowserLayout.kt` | `AssetBrowserUiLayoutDefaults` (panel layout config). |
-| `engine/assets/AssetBrowserUiOperations.kt` | UI-side operations helper. |
+| `engine/tools/.../assetbrowser/AssetBrowserSystem.kt` | Drives background scans, filtering/sorting, selected-model metadata sync, activation requests. |
+| `engine/tools/.../assetbrowser/AssetBrowserState.kt` | Mutable UI/runtime state for the browser. |
+| `engine/tools/.../assetbrowser/AssetBrowserPanels.kt` | `AssetControlsPanel`, `AssetBrowserPanel`, `AssetDetailsPanel`. |
+| `engine/tools/.../assetbrowser/AssetBrowserLayout.kt` | `AssetBrowserUiLayoutDefaults` (panel layout config). |
+| `engine/tools/.../assetbrowser/AssetBrowserUiOperations.kt` | UI-side operations helper. |
 | `engine/assets/AssetRegistryService.kt` | `LocalAssetRegistryService` — filesystem scan + `.krmeta`. |
 | `engine/assets/AssetOperationsService.kt` | `LocalAssetOperationsService` — create/rename/duplicate/delete/reveal. |
-| `engine/assets/AssetToolRegistry.kt` | Maps assets to `AssetTool`s; resolves default + "open with" tools. |
+| `engine/tools/.../assetbrowser/AssetToolRegistry.kt` | Maps assets to `AssetTool`s; resolves default + "open with" tools. |
 | `engine/assets/AssetImporter.kt`, `AssetTypeDetector.kt`, `AssetMetadataCodec.kt` | Import + type detection + sidecar codec. |
 | `engine/assets/AssetDomain.kt` | `AssetDescriptor`, `AssetCategory`, `AssetType`, `AssetId`. |
 

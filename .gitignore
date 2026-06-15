@@ -175,3 +175,4 @@ tools/ui/*.jar
 /apps/*/build/
 /apps/build/*
 /engine/tools/build/
+engine/scene-player/build/

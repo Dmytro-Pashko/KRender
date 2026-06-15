@@ -126,6 +126,6 @@ material is CPU-baked. Suitable for prototype scenes, not large open worlds.
 
 ## Related Code Patterns
 
-- Runtime counterpart: `RuntimeScene` uses `RuntimeTerrainMeshSystem` + `TerrainRenderSystem`
+- Runtime counterpart: `ScenePlayerScene` uses `RuntimeTerrainMeshSystem` + `TerrainRenderSystem`
   (see `docs/terrain-rendering.md`).
 - Dynamic mesh rendering: `DrawDynamicModel` + `RuntimeTextureData` in `api/Render.kt`.
