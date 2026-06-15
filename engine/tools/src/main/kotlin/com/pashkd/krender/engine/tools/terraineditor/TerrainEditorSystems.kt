@@ -739,8 +739,7 @@ class TerrainEditorSystem(
     /**
      * Resolves the generator selected in the editor state.
      */
-    private fun activeGenerator(): TerrainGenerator =
-        generatorsById[state.selectedGeneratorId] ?: generatorsById.values.first()
+    private fun activeGenerator(): TerrainGenerator = generatorsById[state.selectedGeneratorId] ?: generatorsById.values.first()
 
     /**
      * Picks a sensible default base material for brand-new terrains.
@@ -996,7 +995,7 @@ class TerrainEditorMeshSyncSystem(
                             TerrainPreviewMode.MaterialColor,
                             TerrainPreviewMode.MaterialTexture,
                             TerrainPreviewMode.SelectedLayerMask,
-                                -> bindings.materialColorResolver
+                            -> bindings.materialColorResolver
                         },
                     blendMode = blendMode,
                     enableLayerColorPreview = !previewMode.usesTexturePreview() && bindings.layerColorPreviewProvider(),
@@ -1100,7 +1099,7 @@ class TerrainEditorMeshSyncSystem(
 
                     TerrainPreviewMode.LayerColor,
                     TerrainPreviewMode.MaterialColor,
-                        -> error("Unsupported texture preview mode: $previewMode")
+                    -> error("Unsupported texture preview mode: $previewMode")
                 }
             val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
             bindings.previewBakeStatsSink(elapsedMs, baker.cacheStats())
@@ -1123,7 +1122,7 @@ class TerrainEditorMeshSyncSystem(
                     TerrainPreviewMode.SelectedLayerMask -> "Selected layer mask baked: ${resolution}x$resolution"
                     TerrainPreviewMode.LayerColor,
                     TerrainPreviewMode.MaterialColor,
-                        -> ""
+                    -> ""
                 },
             )
         } catch (error: Exception) {
@@ -1169,7 +1168,7 @@ class TerrainEditorMeshSyncSystem(
 
                     TerrainPreviewMode.LayerColor,
                     TerrainPreviewMode.MaterialColor,
-                        -> error("Unsupported texture preview mode: $previewMode")
+                    -> error("Unsupported texture preview mode: $previewMode")
                 }
             val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
             bindings.previewBakeStatsSink(elapsedMs, baker.cacheStats())
@@ -1437,8 +1436,7 @@ class TerrainRenderSystem : System() {
 }
 
 /** Returns `true` when the preview mode requires a baked texture image. */
-private fun TerrainPreviewMode.usesTexturePreview(): Boolean =
-    this == TerrainPreviewMode.MaterialTexture || this == TerrainPreviewMode.SelectedLayerMask
+private fun TerrainPreviewMode.usesTexturePreview(): Boolean = this == TerrainPreviewMode.MaterialTexture || this == TerrainPreviewMode.SelectedLayerMask
 
 /**
  * Camera controller for the terrain editor viewport.

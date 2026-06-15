@@ -4,8 +4,8 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TexturePreviewHandle
-import com.pashkd.krender.engine.ui.editor.*
 import com.pashkd.krender.engine.tools.uicomposer.*
+import com.pashkd.krender.engine.ui.editor.*
 import com.pashkd.krender.engine.ui.scene.*
 import imgui.ImGui
 import imgui.dsl
@@ -566,7 +566,7 @@ class UiComposerInspectorPanel(
             UiSceneNodeType.Label,
             UiSceneNodeType.TextButton,
             UiSceneNodeType.ProgressBar,
-                -> {
+            -> {
                 drawSkinPickerWarning(document, skinMetadata)
                 drawStyleEditor(node, skinMetadata)
                 ImGui.separator()
@@ -574,7 +574,7 @@ class UiComposerInspectorPanel(
 
             UiSceneNodeType.Table,
             UiSceneNodeType.Container,
-                -> {
+            -> {
                 drawSkinPickerWarning(document, skinMetadata)
                 drawBackgroundEditor(node, skinMetadata)
                 ImGui.separator()
@@ -583,7 +583,7 @@ class UiComposerInspectorPanel(
             UiSceneNodeType.Stack,
             UiSceneNodeType.Image,
             UiSceneNodeType.Space,
-                -> Unit
+            -> Unit
         }
     }
 
@@ -618,7 +618,7 @@ class UiComposerInspectorPanel(
 
             UiSceneNodeType.Stack,
             UiSceneNodeType.Space,
-                -> Unit
+            -> Unit
         }
     }
 
@@ -1005,13 +1005,13 @@ class UiComposerInspectorPanel(
             UiSceneNodeType.Container,
             UiSceneNodeType.Stack,
             UiSceneNodeType.Table,
-                -> drawContainerPreview(node)
+            -> drawContainerPreview(node)
 
             UiSceneNodeType.Label,
             UiSceneNodeType.TextButton,
             UiSceneNodeType.ProgressBar,
             UiSceneNodeType.Space,
-                -> ImGui.textUnformatted("Preview rendering skipped for ${node.type}.")
+            -> ImGui.textUnformatted("Preview rendering skipped for ${node.type}.")
         }
     }
 
@@ -1231,7 +1231,7 @@ class UiComposerInspectorPanel(
             UiSceneNodeType.Container,
             UiSceneNodeType.Image,
             UiSceneNodeType.Space,
-                -> null
+            -> null
         }
     }
 
@@ -1251,8 +1251,7 @@ class UiComposerInspectorPanel(
 
     private fun buttonPreviewText(text: String): String = text.ifBlank { " " }
 
-    private fun paddingSummary(node: UiSceneNode): String =
-        "L ${node.padding.left}, T ${node.padding.top}, R ${node.padding.right}, B ${node.padding.bottom}"
+    private fun paddingSummary(node: UiSceneNode): String = "L ${node.padding.left}, T ${node.padding.top}, R ${node.padding.right}, B ${node.padding.bottom}"
 
     private fun drawSkinPickerWarning(
         document: UiSceneDocument,
@@ -1468,10 +1467,11 @@ class UiComposerInspectorPanel(
         val textureIssue =
             (state.validationIssues + state.textureValidationIssues)
                 .firstOrNull { issue ->
-                    issue.nodeId == node.id && issue.message.contains(
-                        "texture",
-                        ignoreCase = true
-                    )
+                    issue.nodeId == node.id &&
+                        issue.message.contains(
+                            "texture",
+                            ignoreCase = true,
+                        )
                 }
         textureIssue?.let { issue ->
             ImGui.textWrapped(formatValidationIssue(issue))
@@ -1918,13 +1918,11 @@ private const val DefaultScene2dStyle = "default"
 private const val DefaultProgressBarStyle = "default-horizontal"
 private const val UiComposerInspectorTag = "UiComposerInspectorPanel"
 
-private fun formatFloat(value: Float): String =
-    if (value % 1f == 0f) value.toInt().toString() else "%.3f".format(value).trimEnd('0').trimEnd('.')
+private fun formatFloat(value: Float): String = if (value % 1f == 0f) value.toInt().toString() else "%.3f".format(value).trimEnd('0').trimEnd('.')
 
 private fun formatPercent(value: Float): String = "${(clampPreviewZoom(value) * 100f).toInt()}%"
 
-private fun formatRect(rect: UiComposerCanvasRect): String =
-    "x=${formatFloat(rect.x)}, y=${formatFloat(rect.y)}, w=${formatFloat(rect.width)}, h=${formatFloat(rect.height)}"
+private fun formatRect(rect: UiComposerCanvasRect): String = "x=${formatFloat(rect.x)}, y=${formatFloat(rect.y)}, w=${formatFloat(rect.width)}, h=${formatFloat(rect.height)}"
 
 private fun formatNullablePoint(
     x: Float?,
@@ -1979,13 +1977,11 @@ private fun writeBuffer(
 
 private fun textureOptionLabel(option: UiComposerTextureOption): String = "${option.displayName} - ${option.path}"
 
-private fun payloadInputId(key: String): String =
-    key.filter { char -> char.isLetterOrDigit() || char == '_' || char == '-' }.ifBlank { "key" }
+private fun payloadInputId(key: String): String = key.filter { char -> char.isLetterOrDigit() || char == '_' || char == '-' }.ifBlank { "key" }
 
 private val BindingPlaceholderRegex = Regex("""\{([^{}]+)}""")
 
-private fun UiSceneNodeType.isContainerLike(): Boolean =
-    this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container
+private fun UiSceneNodeType.isContainerLike(): Boolean = this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container
 
 private fun styleOptionsFor(
     nodeType: UiSceneNodeType,
@@ -2001,6 +1997,6 @@ private fun styleOptionsFor(
         UiSceneNodeType.Container,
         UiSceneNodeType.Image,
         UiSceneNodeType.Space,
-            -> null
+        -> null
     }
 }

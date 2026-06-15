@@ -50,7 +50,7 @@ object StyleReferenceValidator : UiSceneValidationRule {
             UiSceneNodeType.Container,
             UiSceneNodeType.Image,
             UiSceneNodeType.Space,
-                -> Unit
+            -> Unit
         }
         val backgroundName = node.background?.takeIf(String::isNotBlank)
         if (backgroundName != null && backgroundName !in metadata.drawables) {

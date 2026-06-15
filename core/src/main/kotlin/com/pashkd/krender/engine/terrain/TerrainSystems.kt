@@ -2,23 +2,18 @@ package com.pashkd.krender.engine.terrain
 
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.DrawDynamicModel
-import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.InputService
 import com.pashkd.krender.engine.api.Key
 import com.pashkd.krender.engine.api.MaterialTextureRef
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.material.TerrainMaterialLibrary
 import com.pashkd.krender.engine.render3d.Material
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import kotlin.math.PI
-import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
-import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 

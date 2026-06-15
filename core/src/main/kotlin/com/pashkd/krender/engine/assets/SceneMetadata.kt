@@ -237,11 +237,9 @@ object SceneAssetMetadataReader {
         )
     }
 
-    private fun EntityDescriptor.hasComponent(type: String): Boolean =
-        components.any { component -> component.type == type }
+    private fun EntityDescriptor.hasComponent(type: String): Boolean = components.any { component -> component.type == type }
 
-    private fun EntityDescriptor.component(type: String) =
-        components.firstOrNull { component -> component.type == type }
+    private fun EntityDescriptor.component(type: String) = components.firstOrNull { component -> component.type == type }
 
     private fun String.parseVec3(): Triple<Float, Float, Float>? {
         val values = split(',').map { value -> value.trim().toFloatOrNull() }

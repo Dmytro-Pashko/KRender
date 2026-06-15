@@ -37,8 +37,7 @@ fun extractBindingPlaceholders(value: String?): Set<String> = extractSceneBindin
  * This is editor-only introspection. It does not mutate the document and does
  * not change runtime binding behavior.
  */
-fun collectBindingReferences(document: UiSceneDocument): List<UiComposerBindingReference> =
-    collectSceneBindingReferences(document)
+fun collectBindingReferences(document: UiSceneDocument): List<UiComposerBindingReference> = collectSceneBindingReferences(document)
 
 /**
  * Validates `.krui` binding references against known document binding keys.

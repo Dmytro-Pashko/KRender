@@ -240,7 +240,7 @@ class ModelViewerSystem(
         return when (mode) {
             MaterialDebugMode.Roughness,
             MaterialDebugMode.Metallic,
-                ->
+            ->
                 "$material has no metallicRoughnessTexture. " +
                     "Roughness and metallic are usually stored in the same metallicRoughnessTexture."
 
@@ -264,7 +264,7 @@ class ModelViewerSystem(
 
             MaterialDebugMode.None,
             MaterialDebugMode.UvChecker,
-                -> "Texture channel $mode is unavailable for $material."
+            -> "Texture channel $mode is unavailable for $material."
         }
     }
 

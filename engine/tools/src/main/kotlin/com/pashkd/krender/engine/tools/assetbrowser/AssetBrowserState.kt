@@ -1,8 +1,7 @@
 package com.pashkd.krender.engine.tools.assetbrowser
 
-import com.pashkd.krender.engine.assets.*
-
 import com.pashkd.krender.engine.api.ModelAssetInfo
+import com.pashkd.krender.engine.assets.*
 import com.pashkd.krender.engine.assets.importing.AssetImportCollisionPolicy
 import com.pashkd.krender.engine.assets.importing.AssetImportPlan
 

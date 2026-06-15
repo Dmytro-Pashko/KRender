@@ -1,9 +1,9 @@
 package com.pashkd.krender.engine.tools.uicomposer
 
 import com.pashkd.krender.engine.api.EngineContext
+import com.pashkd.krender.engine.tools.uicomposer.*
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.tools.uicomposer.*
 import com.pashkd.krender.engine.ui.scene.*
 
 /**
@@ -492,7 +492,7 @@ class UiComposerOperations(
         state.document = newDocument
         state.selectedNodeId = selectNodeId?.invoke(newDocument)
             ?: oldSelectedNodeId?.takeIf { id -> findUiSceneNodeById(newDocument.root, id) != null }
-                ?: newDocument.root.id
+            ?: newDocument.root.id
 
         afterDocumentChanged(newDocument)
         state.statusMessage = description
@@ -553,5 +553,4 @@ private fun UiSceneNodeType.defaultIdBase(): String =
         UiSceneNodeType.Space -> "space"
     }
 
-private fun UiSceneNodeType.isContainerLike(): Boolean =
-    this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container
+private fun UiSceneNodeType.isContainerLike(): Boolean = this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container

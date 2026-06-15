@@ -170,9 +170,12 @@ tools/ui/*.jar
 
 ### If you have a build directory in your project, you should add it to the ignore list.
 ### You can also add specific build directories for each module if needed.
-/games/*/build/*
+/engine/build/*
+/core/build/*
+/apps/build/*
 /games/build/*
 /apps/*/build/
-/apps/build/*
-/engine/tools/build/
-engine/scene-player/build/
+/games/*/build/*
+/engine/tools/build/*
+/engine/scene-player/build/*
+/lwjgl3/build/*

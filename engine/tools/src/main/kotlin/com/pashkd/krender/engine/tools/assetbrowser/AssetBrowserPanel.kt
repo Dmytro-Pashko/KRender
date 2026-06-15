@@ -1,10 +1,9 @@
 package com.pashkd.krender.engine.tools.assetbrowser
 
 import com.pashkd.krender.engine.assets.*
-
-import com.pashkd.krender.engine.tools.assetbrowser.creation.CreateAssetDialog
 import com.pashkd.krender.engine.assets.importing.AssetImportService
 import com.pashkd.krender.engine.assets.importing.FileDialogService
+import com.pashkd.krender.engine.tools.assetbrowser.creation.CreateAssetDialog
 import com.pashkd.krender.engine.tools.assetbrowser.importing.ImportAssetDialog
 import com.pashkd.krender.engine.ui.editor.*
 import glm_.vec2.Vec2
@@ -211,16 +210,14 @@ class AssetBrowserPanel(
         ImGui.endCombo()
     }
 
-    private fun visibleAssets(): List<AssetDescriptor> =
-        state.filteredAssets.filter { asset -> categoryAccepted(asset.category) }
+    private fun visibleAssets(): List<AssetDescriptor> = state.filteredAssets.filter { asset -> categoryAccepted(asset.category) }
 
     private fun visibleCategoryCount(category: AssetCategory?): Int =
         state.assets.count { asset ->
             categoryAccepted(asset.category) && (category == null || asset.category == category)
         }
 
-    private fun categoryAccepted(category: AssetCategory): Boolean =
-        category in SupportedBrowserCategories && (acceptedCategories == null || category in acceptedCategories)
+    private fun categoryAccepted(category: AssetCategory): Boolean = category in SupportedBrowserCategories && (acceptedCategories == null || category in acceptedCategories)
 
     private fun syncSearchBuffer() {
         if (!searchInputActive && assetBrowserReadBuffer(searchBuffer) != state.searchQuery) {

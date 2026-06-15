@@ -275,7 +275,7 @@ object TerrainMeshBuilder {
         layer: TerrainLayer,
         materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
     ): TerrainLayerColorDescriptor =
-    // Layer Color preview may pass resolver = { null }.
+        // Layer Color preview may pass resolver = { null }.
         // Material Color preview passes resolver from TerrainMaterialLibrary.
         materialColorResolver(layer.materialId) ?: layer.color
 

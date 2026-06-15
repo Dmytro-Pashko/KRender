@@ -30,7 +30,7 @@ import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.terrain.TerrainPersistence
-import com.pashkd.krender.engine.ui.editor.NoOpUiService
+import com.pashkd.krender.engine.ui.NoOpUiService
 import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
 import com.pashkd.krender.engine.ui.scene.UiSceneSerializer

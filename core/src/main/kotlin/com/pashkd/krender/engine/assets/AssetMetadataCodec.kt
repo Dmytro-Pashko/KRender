@@ -86,8 +86,7 @@ object AssetMetadataCodec {
         )
     }
 
-    private fun encodeStringArray(values: List<String>): String =
-        values.joinToString(prefix = "[", postfix = "]") { jsonString(it) }
+    private fun encodeStringArray(values: List<String>): String = values.joinToString(prefix = "[", postfix = "]") { jsonString(it) }
 
     private fun encodeValue(
         value: Any?,

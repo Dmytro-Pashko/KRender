@@ -19,7 +19,6 @@ import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainDataComponent
 import com.pashkd.krender.engine.terrain.TerrainGenerator
 import com.pashkd.krender.engine.terrain.TerrainPersistence
-import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 import com.pashkd.krender.engine.terrain.TerrainRendererComponent
 import com.pashkd.krender.engine.ui.editor.*
 
@@ -151,7 +150,10 @@ class TerrainEditorScene(
             )
         world.systems.add(meshSyncSystem)
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
-        world.systems.add(com.pashkd.krender.engine.terrain.TerrainRenderSystem())
+        world.systems.add(
+            com.pashkd.krender.engine.terrain
+                .TerrainRenderSystem(),
+        )
 
         createCamera()
         createLights()
@@ -279,8 +281,7 @@ class TerrainEditorScene(
     /**
      * Resolves the currently selected terrain generator for scene setup.
      */
-    private fun activeGenerator(): TerrainGenerator =
-        terrainGenerators.firstOrNull { it.id == editorState.selectedGeneratorId } ?: terrainGenerators.first()
+    private fun activeGenerator(): TerrainGenerator = terrainGenerators.firstOrNull { it.id == editorState.selectedGeneratorId } ?: terrainGenerators.first()
 
     /**
      * Builds one UI option from a runtime terrain generator.

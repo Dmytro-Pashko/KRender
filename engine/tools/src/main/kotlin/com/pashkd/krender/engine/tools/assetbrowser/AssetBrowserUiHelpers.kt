@@ -1,7 +1,6 @@
 package com.pashkd.krender.engine.tools.assetbrowser
 
 import com.pashkd.krender.engine.assets.*
-
 import imgui.ImGui
 import java.nio.charset.StandardCharsets
 import java.time.Instant
@@ -34,8 +33,7 @@ internal fun assetBrowserFormatByteCount(bytes: Long): String =
         else -> "%.2f MB".format(bytes / (1024f * 1024f))
     }
 
-internal fun assetBrowserFormatTimestamp(millis: Long): String =
-    AssetBrowserTimestampFormatter.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
+internal fun assetBrowserFormatTimestamp(millis: Long): String = AssetBrowserTimestampFormatter.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
 internal fun assetBrowserNormalizePath(path: String): String = path.replace('\\', '/').trim().trimStart('/')
 

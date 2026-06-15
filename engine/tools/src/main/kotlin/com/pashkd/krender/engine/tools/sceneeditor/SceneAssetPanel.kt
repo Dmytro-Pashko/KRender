@@ -504,8 +504,10 @@ class SceneAssetPanel(
         val assetPath = path ?: return "<none>"
         val asset =
             when (category) {
-                AssetCategory.Model -> assetBrowser.modelAssets()
-                    .firstOrNull { descriptor -> descriptor.path == assetPath }
+                AssetCategory.Model ->
+                    assetBrowser
+                        .modelAssets()
+                        .firstOrNull { descriptor -> descriptor.path == assetPath }
 
                 AssetCategory.Terrain ->
                     assetBrowser

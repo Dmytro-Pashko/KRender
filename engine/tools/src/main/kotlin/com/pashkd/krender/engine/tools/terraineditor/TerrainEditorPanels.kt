@@ -648,7 +648,7 @@ class TerrainEditorControlsPanel(
             state.terrainPreviewMode = mode
             state.showLayerColorPreview =
                 mode == TerrainPreviewMode.LayerColor ||
-                    mode == TerrainPreviewMode.MaterialColor
+                mode == TerrainPreviewMode.MaterialColor
             state.previewSettingsChanged = true
             state.materialPreviewDirty = true
         }

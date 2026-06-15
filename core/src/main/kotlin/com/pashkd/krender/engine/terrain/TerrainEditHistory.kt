@@ -294,16 +294,13 @@ class TerrainEditHistory(
      * This is not an exact JVM allocation count; it simply scales by the number
      * of recorded sample changes and constant per-entry size estimates.
      */
-    fun estimatedMemoryBytes(): Long =
-        (undoStack.asSequence() + redoStack.asSequence()).sumOf { it.patch.estimatedMemoryBytes() }
+    fun estimatedMemoryBytes(): Long = (undoStack.asSequence() + redoStack.asSequence()).sumOf { it.patch.estimatedMemoryBytes() }
 
     /** Returns the newest undo entries formatted for UI preview lists. */
-    fun getUndoPreview(limit: Int = 10): List<TerrainEditPatchInfo> =
-        undoStack.reversed().take(limit.coerceAtLeast(0)).map { it.patch.toInfo() }
+    fun getUndoPreview(limit: Int = 10): List<TerrainEditPatchInfo> = undoStack.reversed().take(limit.coerceAtLeast(0)).map { it.patch.toInfo() }
 
     /** Returns the newest redo entries formatted for UI preview lists. */
-    fun getRedoPreview(limit: Int = 10): List<TerrainEditPatchInfo> =
-        redoStack.reversed().take(limit.coerceAtLeast(0)).map { it.patch.toInfo() }
+    fun getRedoPreview(limit: Int = 10): List<TerrainEditPatchInfo> = redoStack.reversed().take(limit.coerceAtLeast(0)).map { it.patch.toInfo() }
 
     /**
      * Undoes entries until the requested visible undo index has been consumed.
@@ -356,8 +353,7 @@ class TerrainEditHistory(
         )
 
     /** Estimates the storage cost of this patch using fixed per-change constants. */
-    private fun TerrainEditPatch.estimatedMemoryBytes(): Long =
-        heightChanges.size * HEIGHT_CHANGE_BYTES + layerWeightChanges.size * LAYER_WEIGHT_CHANGE_BYTES
+    private fun TerrainEditPatch.estimatedMemoryBytes(): Long = heightChanges.size * HEIGHT_CHANGE_BYTES + layerWeightChanges.size * LAYER_WEIGHT_CHANGE_BYTES
 
     /** Returns the next monotonically increasing revision id. */
     private fun nextRevision(): Long = nextRevision++

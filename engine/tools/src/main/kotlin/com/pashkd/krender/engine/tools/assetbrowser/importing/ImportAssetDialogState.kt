@@ -2,7 +2,6 @@ package com.pashkd.krender.engine.tools.assetbrowser.importing
 
 import com.pashkd.krender.engine.assets.importing.*
 import com.pashkd.krender.engine.tools.assetbrowser.*
-
 import java.io.File
 
 object ImportAssetDialogState {
@@ -45,8 +44,7 @@ object ImportAssetDialogState {
 
     fun canImport(state: AssetBrowserState): Boolean = state.importPlan?.supportedEntries?.isNotEmpty() == true
 
-    fun requiresOverwriteConfirmation(state: AssetBrowserState): Boolean =
-        state.importPlan?.requiresOverwriteConfirmation == true
+    fun requiresOverwriteConfirmation(state: AssetBrowserState): Boolean = state.importPlan?.requiresOverwriteConfirmation == true
 
     fun requestImport(state: AssetBrowserState): AssetImportPlan? {
         val plan = state.importPlan ?: return null

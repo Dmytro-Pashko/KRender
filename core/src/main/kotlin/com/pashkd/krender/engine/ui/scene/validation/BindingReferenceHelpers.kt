@@ -63,7 +63,7 @@ fun collectBindingReferences(document: UiSceneDocument): List<UiSceneBindingRefe
             UiSceneNodeType.Table,
             UiSceneNodeType.Container,
             UiSceneNodeType.Space,
-                -> Unit
+            -> Unit
         }
 
         node.children.forEach(::visit)

@@ -211,7 +211,7 @@ class LocalAssetImportService(
                     metadata.scrollPaneStyleCount > 0 ||
                     metadata.selectBoxStyleCount > 0 ||
                     metadata.windowStyleCount > 0
-                )
+            )
         ) {
             return true
         }

@@ -5,8 +5,7 @@ import com.pashkd.krender.engine.ui.scene.*
 object NodeShapeValidator : UiSceneValidationRule {
     override val id: String = "NodeShapeValidator"
 
-    override fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> =
-        context.nodes.flatMap(::validateNode)
+    override fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> = context.nodes.flatMap(::validateNode)
 
     private fun validateNode(node: UiSceneNode): List<UiSceneValidationIssue> {
         val nodeId = node.id.takeIf(String::isNotBlank)

@@ -321,8 +321,7 @@ internal fun defaultUiSceneContent(
         """.trimIndent() + "\n"
 }
 
-private fun normalizeUiSceneSkinPath(path: String): String =
-    path.trim().replace('\\', '/').ifBlank { DefaultUiSceneSkinPath }
+private fun normalizeUiSceneSkinPath(path: String): String = path.trim().replace('\\', '/').ifBlank { DefaultUiSceneSkinPath }
 
 internal fun defaultTerrainContent(name: String): String {
     val terrainName = name.trim().ifBlank { "terrain" }
@@ -419,8 +418,7 @@ class UiComposerAssetTool : AssetTool {
     override val displayName = "Open with UI Composer"
     override val supportedCategories = setOf(AssetCategory.UI)
 
-    override fun canOpen(asset: AssetDescriptor): Boolean =
-        asset.category == AssetCategory.UI && asset.type == AssetType.UiScene
+    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.UI && asset.type == AssetType.UiScene
 
     /**
      * Launches the placeholder composer window for the selected UiScene path.

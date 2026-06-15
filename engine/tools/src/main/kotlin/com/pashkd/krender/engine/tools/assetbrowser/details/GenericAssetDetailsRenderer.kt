@@ -1,8 +1,6 @@
 package com.pashkd.krender.engine.tools.assetbrowser.details
 
 import com.pashkd.krender.engine.assets.*
-import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserState
-
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.tools.assetbrowser.assetBrowserTextLine
 import imgui.ImGui

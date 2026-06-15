@@ -499,8 +499,7 @@ private fun formatSeconds(value: Float): String = "%.3f s".format(value)
 
 private fun availabilityLabel(available: Boolean): String = if (available) "available" else "unavailable"
 
-private fun boneDisplayName(bone: ModelBoneInfo): String =
-    bone.name?.takeIf(String::isNotBlank) ?: "Bone #${bone.index}"
+private fun boneDisplayName(bone: ModelBoneInfo): String = bone.name?.takeIf(String::isNotBlank) ?: "Bone #${bone.index}"
 
 private fun boneDebugSummary(bone: ModelBoneInfo): String = "${boneDisplayName(bone)} / index ${bone.index}"
 

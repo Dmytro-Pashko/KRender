@@ -5,8 +5,7 @@ import com.pashkd.krender.engine.ui.scene.*
 object BindingTypeCompatibilityValidator : UiSceneValidationRule {
     override val id: String = "BindingTypeCompatibilityValidator"
 
-    override fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> =
-        context.nodes.flatMap { node -> validateNode(node, context) }
+    override fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> = context.nodes.flatMap { node -> validateNode(node, context) }
 
     private fun validateNode(
         node: UiSceneNode,
@@ -87,7 +86,7 @@ object BindingTypeCompatibilityValidator : UiSceneValidationRule {
             UiSceneNodeType.Table,
             UiSceneNodeType.Container,
             UiSceneNodeType.Space,
-                -> Unit
+            -> Unit
         }
         return issues
     }

@@ -2,11 +2,11 @@ package com.pashkd.krender.engine.tools.sceneeditor
 
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraComponent
-import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
+import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraComponent
+import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraSystem
 import com.pashkd.krender.engine.ui.editor.*
 
 /**
@@ -45,7 +45,7 @@ class SceneEditorScene(
                         ?.substringAfterLast('\\')
                         ?.substringBeforeLast('.')
                         ?.takeIf(String::isNotBlank)
-                    ?: SceneEditorState().sceneName,
+                        ?: SceneEditorState().sceneName,
             )
         assetPanelState = SceneAssetPanelState()
         document = SceneEditorDocument(world = SceneWorld())

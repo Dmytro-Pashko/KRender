@@ -1,8 +1,7 @@
 package com.pashkd.krender.engine.tools.assetbrowser
 
-import com.pashkd.krender.engine.assets.*
-
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.*
 
 /**
  * Keeps asset browser state synchronized with the registry and runtime asset service.

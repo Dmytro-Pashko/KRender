@@ -95,12 +95,10 @@ class GdxInputService :
     }
 
     /** Returns whether any key bound to the action is currently held. */
-    override fun isActionPressed(action: Action): Boolean =
-        actions[action]?.any { it in currentSnapshot.keysDown } == true
+    override fun isActionPressed(action: Action): Boolean = actions[action]?.any { it in currentSnapshot.keysDown } == true
 
     /** Returns whether any key bound to the action was pressed this frame. */
-    override fun isActionJustPressed(action: Action): Boolean =
-        actions[action]?.any { it in currentSnapshot.keysPressedThisFrame } == true
+    override fun isActionJustPressed(action: Action): Boolean = actions[action]?.any { it in currentSnapshot.keysPressedThisFrame } == true
 
     /** Resolves named digital axes from the current snapshot. */
     override fun axis(axis: Axis): Float =

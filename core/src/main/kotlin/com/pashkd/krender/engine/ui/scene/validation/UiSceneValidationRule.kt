@@ -20,8 +20,7 @@ interface UiSceneValidationRule {
 class UiSceneValidationPipeline(
     private val rules: List<UiSceneValidationRule>,
 ) {
-    fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> =
-        rules.flatMap { rule -> rule.validate(context) }
+    fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> = rules.flatMap { rule -> rule.validate(context) }
 
     companion object {
         fun default(): UiSceneValidationPipeline =

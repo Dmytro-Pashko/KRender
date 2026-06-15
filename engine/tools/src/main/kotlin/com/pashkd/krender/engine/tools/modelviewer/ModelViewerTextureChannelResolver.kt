@@ -12,11 +12,11 @@ internal fun isModelViewerTextureDebugMode(mode: MaterialDebugMode): Boolean =
         MaterialDebugMode.MetallicRoughnessPacked,
         MaterialDebugMode.Occlusion,
         MaterialDebugMode.Alpha,
-            -> true
+        -> true
 
         MaterialDebugMode.None,
         MaterialDebugMode.UvChecker,
-            -> false
+        -> false
     }
 
 internal fun matchingModelViewerTextureSlots(
@@ -114,7 +114,7 @@ internal fun modelViewerTextureAliasesFor(mode: MaterialDebugMode): Set<String> 
         MaterialDebugMode.Alpha -> setOf("alpha", "opacity", "alphatexture", "basecolor", "basecolortexture", "diffuse")
         MaterialDebugMode.None,
         MaterialDebugMode.UvChecker,
-            -> emptySet()
+        -> emptySet()
     }
 
 private fun textureDebugComponentFor(mode: MaterialDebugMode): TextureDebugComponent =
@@ -127,11 +127,11 @@ private fun textureDebugComponentFor(mode: MaterialDebugMode): TextureDebugCompo
         MaterialDebugMode.BaseColor,
         MaterialDebugMode.Normal,
         MaterialDebugMode.Emission,
-            -> TextureDebugComponent.RGB
+        -> TextureDebugComponent.RGB
 
         MaterialDebugMode.None,
         MaterialDebugMode.UvChecker,
-            -> TextureDebugComponent.RGB
+        -> TextureDebugComponent.RGB
     }
 
 private fun normalizeModelViewerTextureChannel(channel: String?): String =

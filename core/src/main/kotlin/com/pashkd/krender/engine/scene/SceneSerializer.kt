@@ -71,8 +71,7 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
         )
     }
 
-    override fun encode(value: SceneDescriptor): String =
-        json.encodeToString(JsonObject.serializer(), value.toJsonObject())
+    override fun encode(value: SceneDescriptor): String = json.encodeToString(JsonObject.serializer(), value.toJsonObject())
 
     override fun decode(json: String): SceneDescriptor {
         val root =
@@ -336,8 +335,7 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
 
     private fun Color.csv(): String = "$r,$g,$b,$a"
 
-    private fun EntityDescriptor.hasComponent(type: String): Boolean =
-        components.any { component -> component.type == type }
+    private fun EntityDescriptor.hasComponent(type: String): Boolean = components.any { component -> component.type == type }
 
     private fun parseColor(
         raw: String?,
@@ -656,7 +654,7 @@ object SceneDeserializer {
             TerrainPreviewMode.MaterialColor,
             TerrainPreviewMode.SelectedLayerMask,
             null,
-                -> {
+            -> {
                 if (raw != null) {
                     warnParse(raw, "${SceneComponentTypes.Terrain}.previewMode", entityId, logger)
                 }

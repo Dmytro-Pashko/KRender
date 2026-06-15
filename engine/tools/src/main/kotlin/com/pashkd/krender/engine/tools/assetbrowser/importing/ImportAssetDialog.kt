@@ -2,7 +2,6 @@ package com.pashkd.krender.engine.tools.assetbrowser.importing
 
 import com.pashkd.krender.engine.assets.importing.*
 import com.pashkd.krender.engine.tools.assetbrowser.*
-
 import glm_.vec2.Vec2
 import imgui.Cond
 import imgui.ImGui
@@ -163,8 +162,7 @@ class ImportAssetDialog(
         ImGui.closeCurrentPopup()
     }
 
-    private fun isJsonSource(): Boolean =
-        state.importSourcePath.substringAfterLast('.', "").equals("json", ignoreCase = true)
+    private fun isJsonSource(): Boolean = state.importSourcePath.substringAfterLast('.', "").equals("json", ignoreCase = true)
 
     private fun drawOverwriteConfirmDialog() {
         if (!state.showImportOverwriteConfirmDialog) return

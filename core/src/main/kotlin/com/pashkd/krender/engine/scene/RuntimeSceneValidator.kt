@@ -345,11 +345,9 @@ object RuntimeSceneValidator {
         descriptor.settings.environment.skyboxAssetPath
             .normalizedValidationPath()
 
-    private fun EntityDescriptor.hasComponent(type: String): Boolean =
-        components.any { component -> component.type == type }
+    private fun EntityDescriptor.hasComponent(type: String): Boolean = components.any { component -> component.type == type }
 
-    private fun EntityDescriptor.component(type: String): ComponentDescriptor? =
-        components.firstOrNull { component -> component.type == type }
+    private fun EntityDescriptor.component(type: String): ComponentDescriptor? = components.firstOrNull { component -> component.type == type }
 
     private val SupportedComponentTypes =
         setOf(

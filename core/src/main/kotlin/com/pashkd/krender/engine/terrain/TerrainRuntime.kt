@@ -479,7 +479,7 @@ class RuntimeTerrainMeshSystem(
                         ?: throw IllegalStateException(
                             "Runtime terrain final splat resolution is missing for modelId='${renderer.modelId}'.",
                         )
-                    ).coerceIn(2, MaxRuntimeTerrainSplatResolution)
+                ).coerceIn(2, MaxRuntimeTerrainSplatResolution)
             renderer.finalSplatResolution = requestedFinalSplatResolution
 
             var bakeSucceeded = false

@@ -20,6 +20,5 @@ object ScenePlayerModule {
     private fun missingProperty(
         propertyName: String,
         sceneName: String,
-    ): IllegalArgumentException =
-        IllegalArgumentException("Missing required system property '$propertyName' for krender.scene='$sceneName'.")
+    ): IllegalArgumentException = IllegalArgumentException("Missing required system property '$propertyName' for krender.scene='$sceneName'.")
 }

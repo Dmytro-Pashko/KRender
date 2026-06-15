@@ -35,5 +35,4 @@ class NoOpRuntimeUiBackend : RuntimeUiBackend {
     override fun dispose() = Unit
 }
 
-fun newTestRuntimeUiService(logger: Logger = NoOpTestLogger): RuntimeUiService =
-    RuntimeUiService(NoOpRuntimeUiBackend(), logger)
+fun newTestRuntimeUiService(logger: Logger = NoOpTestLogger): RuntimeUiService = RuntimeUiService(NoOpRuntimeUiBackend(), logger)

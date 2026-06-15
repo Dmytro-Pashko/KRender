@@ -127,8 +127,7 @@ class LocalAssetRegistryService(
         return descriptors.firstOrNull { it.path == normalized }
     }
 
-    override fun byCategory(category: AssetCategory): List<AssetDescriptor> =
-        descriptors.filter { it.category == category }
+    override fun byCategory(category: AssetCategory): List<AssetDescriptor> = descriptors.filter { it.category == category }
 
     private fun describe(file: File): AssetDescriptor {
         val path = relativeAssetPath(file)
@@ -380,8 +379,6 @@ class NoOpAssetRegistryService(
     override fun baseDir(): File = baseDirectory
 }
 
-private inline fun <reified T : Enum<T>> enumValueOrNull(name: String): T? =
-    enumValues<T>().firstOrNull { it.name.equals(name, ignoreCase = true) }
+private inline fun <reified T : Enum<T>> enumValueOrNull(name: String): T? = enumValues<T>().firstOrNull { it.name.equals(name, ignoreCase = true) }
 
-private fun AssetTypeDetection.canHaveMetadataSidecar(): Boolean =
-    category != AssetCategory.Other && type != AssetType.Unknown
+private fun AssetTypeDetection.canHaveMetadataSidecar(): Boolean = category != AssetCategory.Other && type != AssetType.Unknown

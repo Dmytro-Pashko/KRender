@@ -3,7 +3,6 @@ package com.pashkd.krender.engine.tools.terraineditor
 import com.pashkd.krender.engine.terrain.TerrainBrushMode
 import com.pashkd.krender.engine.terrain.TerrainLayerBlendMode
 import com.pashkd.krender.engine.terrain.TerrainLayerColorDescriptor
-import com.pashkd.krender.engine.terrain.TerrainLayerLimits
 import com.pashkd.krender.engine.terrain.TerrainLayerPaintMode
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
 

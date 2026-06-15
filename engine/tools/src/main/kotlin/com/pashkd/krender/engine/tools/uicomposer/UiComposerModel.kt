@@ -500,8 +500,7 @@ fun computePreviewRect(
 const val UiComposerPreviewMinZoom = 0.1f
 const val UiComposerPreviewMaxZoom = 8f
 
-fun clampPreviewZoom(zoom: Float): Float =
-    zoom.takeIf(Float::isFinite)?.coerceIn(UiComposerPreviewMinZoom, UiComposerPreviewMaxZoom) ?: 1f
+fun clampPreviewZoom(zoom: Float): Float = zoom.takeIf(Float::isFinite)?.coerceIn(UiComposerPreviewMinZoom, UiComposerPreviewMaxZoom) ?: 1f
 
 fun previewWorldUnitsPerScreenPixel(
     logicalSize: Int,

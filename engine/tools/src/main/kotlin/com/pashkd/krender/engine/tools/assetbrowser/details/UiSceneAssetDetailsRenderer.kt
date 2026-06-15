@@ -1,8 +1,6 @@
 package com.pashkd.krender.engine.tools.assetbrowser.details
 
 import com.pashkd.krender.engine.assets.*
-import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserState
-
 import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetType
@@ -10,8 +8,7 @@ import com.pashkd.krender.engine.tools.assetbrowser.assetBrowserTextLine
 import imgui.ImGui
 
 class UiSceneAssetDetailsRenderer : AssetDetailsRenderer {
-    override fun supports(asset: AssetDescriptor): Boolean =
-        asset.category == AssetCategory.UI && asset.type == AssetType.UiScene
+    override fun supports(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.UI && asset.type == AssetType.UiScene
 
     override fun render(
         asset: AssetDescriptor,

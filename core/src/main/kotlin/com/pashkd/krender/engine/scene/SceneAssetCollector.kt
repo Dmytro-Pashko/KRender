@@ -105,7 +105,7 @@ class SceneDependencyCollector(
                     SceneComponentTypes.Parent,
                     SceneComponentTypes.Camera,
                     SceneComponentTypes.Light,
-                        -> Unit
+                    -> Unit
 
                     else -> warnings += "Unsupported scene component '${component.type}' on entityId=${entity.id}."
                 }

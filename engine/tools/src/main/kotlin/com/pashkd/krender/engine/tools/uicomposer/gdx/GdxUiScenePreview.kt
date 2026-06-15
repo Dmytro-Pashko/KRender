@@ -16,10 +16,6 @@ import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.backend.gdx.ui.runtime.scene.GdxUiSceneBuilder
-import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import com.pashkd.krender.engine.ui.scene.UiSceneNode
-import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
-import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
 import com.pashkd.krender.engine.tools.uicomposer.UiComposerActorPreviewInfo
 import com.pashkd.krender.engine.tools.uicomposer.UiComposerCanvasHit
 import com.pashkd.krender.engine.tools.uicomposer.UiComposerGuideBounds
@@ -29,6 +25,10 @@ import com.pashkd.krender.engine.tools.uicomposer.UiComposerVisualGuideOptions
 import com.pashkd.krender.engine.tools.uicomposer.clampPreviewZoom
 import com.pashkd.krender.engine.tools.uicomposer.computeAlignmentAnchor
 import com.pashkd.krender.engine.tools.uicomposer.computePaddingInnerRect
+import com.pashkd.krender.engine.ui.scene.UiSceneDocument
+import com.pashkd.krender.engine.ui.scene.UiSceneNode
+import com.pashkd.krender.engine.ui.scene.UiSceneNodeType
+import com.pashkd.krender.engine.ui.scene.UiSceneTableOrientation
 import kotlin.math.abs
 
 /**
@@ -608,8 +608,7 @@ class GdxUiScenePreview(
         return if (above <= visible.top) above else bounds.top - 6f
     }
 
-    private fun parentGuideColor(index: Int): Color =
-        Color(0.78f, 0.68f, 1f, (0.70f - index * 0.08f).coerceAtLeast(0.32f))
+    private fun parentGuideColor(index: Int): Color = Color(0.78f, 0.68f, 1f, (0.70f - index * 0.08f).coerceAtLeast(0.32f))
 
     private fun clearActorDebug(actor: Actor) {
         actor.debug = false

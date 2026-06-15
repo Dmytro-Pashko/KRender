@@ -274,7 +274,7 @@ class AnimationViewerSystem(
             when (state.skeletonPreviewStatus) {
                 SkeletonPreviewStatus.Inactive,
                 SkeletonPreviewStatus.PreviewAvailable,
-                    -> null
+                -> null
 
                 SkeletonPreviewStatus.Unsupported -> "Skeleton metadata is unavailable for this model/backend."
                 SkeletonPreviewStatus.MetadataOnly -> "Skeleton pose preview is unavailable for this model/backend."
@@ -546,7 +546,7 @@ class AnimationViewerSkeletonRenderSystem(
                 (
                     parentBoneIndex == selectedBoneIndex ||
                         boneIndex in connectedBoneIndices
-                    ) -> ConnectedBoneColor
+                ) -> ConnectedBoneColor
 
             else -> SkeletonColor
         }

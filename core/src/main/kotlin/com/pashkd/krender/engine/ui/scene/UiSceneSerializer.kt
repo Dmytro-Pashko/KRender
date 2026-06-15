@@ -43,8 +43,7 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
      * The output uses enum names as strings and keeps path values normalized to
      * project-relative forward-slash form.
      */
-    override fun encode(document: UiSceneDocument): String =
-        json.encodeToString(JsonObject.serializer(), document.toJsonObject())
+    override fun encode(document: UiSceneDocument): String = json.encodeToString(JsonObject.serializer(), document.toJsonObject())
 
     private fun readNode(
         element: JsonElement?,

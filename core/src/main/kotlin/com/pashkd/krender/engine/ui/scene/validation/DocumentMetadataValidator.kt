@@ -45,5 +45,4 @@ object DocumentMetadataValidator : UiSceneValidationRule {
     }
 }
 
-private fun UiSceneNodeType.isRootContainer(): Boolean =
-    this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container
+private fun UiSceneNodeType.isRootContainer(): Boolean = this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container

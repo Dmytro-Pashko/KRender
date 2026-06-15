@@ -29,14 +29,11 @@ val TextureValidationCodes: Set<UiSceneValidationCode> =
         UiSceneValidationCode.NonTextureAsset,
     )
 
-fun List<UiSceneValidationIssue>.filterBindingIssues(): List<UiSceneValidationIssue> =
-    filter { issue -> issue.code in BindingValidationCodes || issue.bindingKey != null }
+fun List<UiSceneValidationIssue>.filterBindingIssues(): List<UiSceneValidationIssue> = filter { issue -> issue.code in BindingValidationCodes || issue.bindingKey != null }
 
-fun List<UiSceneValidationIssue>.filterStyleIssues(): List<UiSceneValidationIssue> =
-    filter { issue -> issue.code in StyleValidationCodes }
+fun List<UiSceneValidationIssue>.filterStyleIssues(): List<UiSceneValidationIssue> = filter { issue -> issue.code in StyleValidationCodes }
 
-fun List<UiSceneValidationIssue>.filterTextureIssues(): List<UiSceneValidationIssue> =
-    filter { issue -> issue.code in TextureValidationCodes && issue.bindingKey == null }
+fun List<UiSceneValidationIssue>.filterTextureIssues(): List<UiSceneValidationIssue> = filter { issue -> issue.code in TextureValidationCodes && issue.bindingKey == null }
 
 fun List<UiSceneValidationIssue>.filterDocumentAndNodeIssues(): List<UiSceneValidationIssue> =
     filter { issue ->

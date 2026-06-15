@@ -143,7 +143,7 @@ fun calculateRuntimeViewport(
 
         UiScalePolicy.Fit,
         UiScalePolicy.Fill,
-            -> {
+        -> {
             logicalWidth = designWidth
             logicalHeight = designHeight
             val scaledWidth = designWidth * scale

@@ -19,4 +19,3 @@ fun interface RuntimeUiActorFactoryProvider {
         val Empty = RuntimeUiActorFactoryProvider { _, _ -> emptyList() }
     }
 }
-

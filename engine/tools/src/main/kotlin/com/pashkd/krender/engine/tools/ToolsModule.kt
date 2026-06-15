@@ -1,8 +1,8 @@
 package com.pashkd.krender.engine.tools
 
 import com.pashkd.krender.engine.api.Scene
-import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserScene
 import com.pashkd.krender.engine.tools.animationviewer.AnimationViewerScene
+import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserScene
 import com.pashkd.krender.engine.tools.modelviewer.ModelViewerScene
 import com.pashkd.krender.engine.tools.sceneeditor.SceneEditorScene
 import com.pashkd.krender.engine.tools.uicomposer.UiComposerScene
@@ -33,6 +33,5 @@ object ToolsModule {
     private fun missingProperty(
         propertyName: String,
         sceneName: String,
-    ): IllegalArgumentException =
-        IllegalArgumentException("Missing required system property '$propertyName' for krender.scene='$sceneName'.")
+    ): IllegalArgumentException = IllegalArgumentException("Missing required system property '$propertyName' for krender.scene='$sceneName'.")
 }

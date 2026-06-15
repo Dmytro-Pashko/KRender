@@ -22,18 +22,18 @@ class ScenePlayerMain(
         com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
     },
 ) : GdxEngineApplication(
-    initialScene = {
-        val requestedScene = sceneName?.trim()?.takeIf(String::isNotBlank) ?: DEFAULT_SCENE
-        ScenePlayerModule.createScene(
-            sceneName = requestedScene,
-            scenePath = scenePath,
-        ) ?: throw IllegalArgumentException(
-            "Unknown krender.scene '$requestedScene'. Supported scene-player routes: scene-player, scene-viewer, runtime-scene.",
-        )
-    },
-    runtimeWindowLauncherFactory = runtimeWindowLauncherFactory,
-    editorToolLauncherFactory = editorToolLauncherFactory,
-) {
+        initialScene = {
+            val requestedScene = sceneName?.trim()?.takeIf(String::isNotBlank) ?: DEFAULT_SCENE
+            ScenePlayerModule.createScene(
+                sceneName = requestedScene,
+                scenePath = scenePath,
+            ) ?: throw IllegalArgumentException(
+                "Unknown krender.scene '$requestedScene'. Supported scene-player routes: scene-player, scene-viewer, runtime-scene.",
+            )
+        },
+        runtimeWindowLauncherFactory = runtimeWindowLauncherFactory,
+        editorToolLauncherFactory = editorToolLauncherFactory,
+    ) {
     companion object {
         private const val DEFAULT_SCENE = "scene-player"
 

@@ -24,8 +24,7 @@ data class CreateAssetDraft(
     val uiSceneSkinPath: String = DefaultUiSceneSkinPath,
 )
 
-internal fun defaultCreateAssetDraft(assets: List<AssetDescriptor>): CreateAssetDraft =
-    CreateAssetDraft(uiSceneSkinPath = defaultUiSceneSkinPath(assets))
+internal fun defaultCreateAssetDraft(assets: List<AssetDescriptor>): CreateAssetDraft = CreateAssetDraft(uiSceneSkinPath = defaultUiSceneSkinPath(assets))
 
 internal fun discoveredScene2DSkinAssets(assets: List<AssetDescriptor>): List<AssetDescriptor> =
     assets
@@ -39,8 +38,7 @@ internal fun defaultUiSceneSkinPath(assets: List<AssetDescriptor>): String =
         ?: discoveredScene2DSkinAssets(assets).firstOrNull()?.path
         ?: DefaultUiSceneSkinPath
 
-internal fun normalizedUiSceneSkinPath(path: String): String =
-    path.trim().replace('\\', '/').ifBlank { DefaultUiSceneSkinPath }
+internal fun normalizedUiSceneSkinPath(path: String): String = path.trim().replace('\\', '/').ifBlank { DefaultUiSceneSkinPath }
 
 internal fun CreateAssetDraft.withSyncedDefaults(assets: List<AssetDescriptor>): CreateAssetDraft =
     if (kind == CreatableAssetKind.UiScene) {
@@ -57,11 +55,9 @@ internal fun CreateAssetDraft.withSyncedDefaults(assets: List<AssetDescriptor>):
         this
     }
 
-internal fun createAssetRelativePath(draft: CreateAssetDraft): String =
-    assetBrowserNormalizePath("${draft.kind.targetDirectory}/${createAssetBaseName(draft)}.${draft.kind.extension}")
+internal fun createAssetRelativePath(draft: CreateAssetDraft): String = assetBrowserNormalizePath("${draft.kind.targetDirectory}/${createAssetBaseName(draft)}.${draft.kind.extension}")
 
-internal fun createAssetBaseName(draft: CreateAssetDraft): String =
-    sanitizedAssetName(draft.name, defaultAssetBaseName(draft.kind.type, draft.kind.category))
+internal fun createAssetBaseName(draft: CreateAssetDraft): String = sanitizedAssetName(draft.name, defaultAssetBaseName(draft.kind.type, draft.kind.category))
 
 internal fun defaultAssetBaseName(
     type: AssetType,

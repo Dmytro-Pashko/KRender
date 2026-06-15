@@ -5,8 +5,7 @@ import com.pashkd.krender.engine.ui.scene.*
 object PlaceholderSyntaxValidator : UiSceneValidationRule {
     override val id: String = "PlaceholderSyntaxValidator"
 
-    override fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> =
-        context.nodes.flatMap(::validateNode)
+    override fun validate(context: UiSceneValidationContext): List<UiSceneValidationIssue> = context.nodes.flatMap(::validateNode)
 
     private fun validateNode(node: UiSceneNode): List<UiSceneValidationIssue> {
         val fields =
@@ -19,7 +18,7 @@ object PlaceholderSyntaxValidator : UiSceneValidationRule {
                 UiSceneNodeType.Container,
                 UiSceneNodeType.ProgressBar,
                 UiSceneNodeType.Space,
-                    -> emptyList()
+                -> emptyList()
             }
         return fields.flatMap { (fieldName, value) ->
             findMalformedBindingPlaceholders(value).map { raw ->
