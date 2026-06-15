@@ -44,20 +44,18 @@ first-class products built on the same engine primitives.
 
 ```text
 KRender SDK/
-+-- core/                  # Engine API, LibGDX backend, tools, game scenes (the bulk of the code)
++-- core/                  # Engine/runtime API, LibGDX backend, shared services, runtime scenes
 |   +-- src/main/kotlin/com/pashkd/krender/
-|   |   +-- Main.kt                       # Scene-routing entry; selects scene from system properties
+|   |   +-- Main.kt                       # Runtime scene entry; desktop/tool routing lives outside core
 |   |   +-- engine/
 |   |   |   +-- api/                      # Backend-neutral core API (see section 5)
 |   |   |   +-- render3d/                 # 3D components + ModelRenderSystem, environment system
 |   |   |   +-- animation/                # AnimationComponent
 |   |   |   +-- backend/gdx/              # LibGDX backend adapter (owns all Gdx.* / OpenGL)
-|   |   |   +-- assets/                   # Asset Browser tool + asset registry/metadata/importers
+|   |   |   +-- assets/                   # Shared asset registry/metadata/importers/import-export services
 |   |   |   +-- terrain/                  # Shared terrain runtime/mesh/persistence infrastructure
-|   |   |   +-- sceneeditor/              # Shared editor bounds helpers used across tools
-|   |   |   +-- uicomposer/               # Shared UI Composer model/helpers used by the tool + backend preview
 |   |   |   +-- scene/                    # Scene config, serialization, file/launch services
-|   |   |   +-- ui/editor/                # ImGui editor UI primitives (UiService, panels, layout)
+|   |   |   +-- ui/editor/                # Editor UI service contracts and shared ImGui helpers
 |   |   |   +-- ui/runtime/               # Scene2D-style runtime game UI service
 |   |   |   +-- ui/scene/                 # `.krui` UiScene document model + validation
 |   |   |   +-- material/                 # Material + terrain material libraries
@@ -65,10 +63,10 @@ KRender SDK/
 |   |   |   +-- viewport/                 # Runtime viewport scaling
 |   |   |   +-- window/                   # Window service abstraction
 |   |   |   +-- math/                     # Transform math
-|   |   +-- game/                         # Top-level Scene classes (one per tool + runtime/sandbox)
+|   |   +-- game/                         # Runtime/player Scene classes
 |   +-- src/test/kotlin/...               # JVM unit tests (no GL needed)
 +-- engine/
-|   +-- tools/                            # Editor tool module; Model Viewer now lives here
+|   +-- tools/                            # Editor tool module; all development editor tools live here
 +-- games/
 |   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
 +-- apps/
@@ -115,8 +113,8 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 
 | Module | Responsibility |
 |---|---|
-| `core` | Engine API, LibGDX backend adapter, current editor tools, game scenes, tests. The vast majority of code lives here during the extraction. |
-| `engine:tools` | Editor tool module for migrating tools out of `core`. Model Viewer, Animation Viewer, and Terrain Editor currently live here. |
+| `core` | Engine/runtime API, LibGDX backend adapter, runtime/player scene support, and shared backend-neutral services such as assets, terrain, scene files, and `.krui` documents. |
+| `engine:tools` | Editor tool module containing Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, UI Composer, tool routing, and editor-only helpers. |
 | `lwjgl3` | Desktop entry point (`Lwjgl3Launcher`), window config, and the launchers that open tool/runtime windows as **separate JVM processes** (`Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`, `Lwjgl3JvmProcessLauncher`). |
 | `android` | Android launcher (`AndroidLauncher`). Uses `NoOpUiService` (no ImGui). Requires the Android SDK to build. |
 | `assets` | Runtime asset files scanned by the asset registry and loaded by the backend. |
@@ -304,7 +302,7 @@ and render systems. `LogsPanel` is shared across all tools.
 
 ## 11. Tools
 
-Tools are standalone `Scene`s selected by `Main.kt` from the `krender.scene` system property.
+Tools are standalone `Scene`s selected by the desktop/tool layer (`DesktopMain` + `ToolsModule`) from the `krender.scene` system property.
 On desktop they are opened as **separate JVM windows** by `Lwjgl3EditorToolLauncher`
 (via `editorToolLauncher` on `EngineContext`). Inside the Asset Browser, the
 `AssetToolRegistry` maps asset categories to `AssetTool`s that call the launcher.
@@ -313,7 +311,7 @@ Each tool has a dedicated context file under `docs/agents/tools/`. Read it befor
 that tool.
 
 ### Asset Browser
-`game/AssetBrowserScene.kt` (+ `engine/assets/`). Default scene. Scans/indexes project assets,
+`engine/tools/.../assetbrowser/AssetBrowserScene.kt` (+ shared asset infrastructure in `core/.../engine/assets/`). Default desktop tool. Scans/indexes project assets,
 shows model metadata, and launches the right editor per asset via `AssetToolRegistry`.
 → `docs/agents/tools/asset-browser.md`
 
@@ -331,12 +329,12 @@ visualizes the skeleton/pose. → `docs/agents/tools/animation-viewer.md`
 terrain with layers, material preview baking, and persistence. → `docs/agents/tools/terrain-editor.md`
 
 ### Scene Editor
-`engine/tools/.../sceneeditor/SceneEditorScene.kt` (+ sibling editor files in `engine:tools`, shared bounds helpers in `core/.../engine/sceneeditor/`). Composes engine scene documents
+`engine/tools/.../sceneeditor/SceneEditorScene.kt` (+ sibling editor files and bounds helpers in `engine:tools`). Composes engine scene documents
 (`.krscene`): hierarchy, inspector, selection, gizmos, environment, asset panel.
 → `docs/agents/tools/scene-editor.md`
 
 ### UI Composer
-`engine/tools/.../uicomposer/UiComposerScene.kt` (+ scene/layout/panel/operations files in `engine:tools`, shared `.krui` editor model/helpers in `core/.../engine/uicomposer/`). Opens
+`engine/tools/.../uicomposer/UiComposerScene.kt` (+ scene/layout/panel/operations/model helpers and preview adapter in `engine:tools`). Opens
 `.krui` UiScene assets for validation-focused preview and inspection workflows. → `docs/agents/tools/ui-composer.md`
 
 ### Non-tool scenes

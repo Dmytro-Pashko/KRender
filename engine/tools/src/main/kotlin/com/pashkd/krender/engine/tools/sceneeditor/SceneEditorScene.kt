@@ -7,8 +7,6 @@ import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.sceneeditor.AssetServiceModelBoundsService
-import com.pashkd.krender.engine.sceneeditor.SceneEditorBoundsProvider
 import com.pashkd.krender.engine.ui.editor.*
 
 /**

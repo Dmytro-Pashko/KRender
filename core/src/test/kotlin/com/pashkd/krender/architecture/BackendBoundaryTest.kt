@@ -160,14 +160,9 @@ class BackendBoundaryTest {
         const val ENGINE_API_PATH = "com/pashkd/krender/engine/api/"
 
         /**
-         * Pre-existing boundary leaks: LibGDX `Gdx`, `Pixmap`, and JSON utilities used directly
-         * in core packages. These are tolerated tech debt; do not add new entries.
+         * No pre-existing LibGDX leaks outside the backend. Keep this empty.
          */
-        val KNOWN_LIBGDX_VIOLATIONS =
-            setOf(
-                "com/pashkd/krender/engine/ui/editor/ImGuiLayoutConfigLoader.kt",
-                "com/pashkd/krender/engine/ui/editor/ImGuiLayoutConfigCodec.kt",
-            )
+        val KNOWN_LIBGDX_VIOLATIONS = emptySet<String>()
 
         /**
          * No pre-existing glTF leaks outside the backend. Keep this empty.
@@ -175,17 +170,14 @@ class BackendBoundaryTest {
         val KNOWN_GLTF_VIOLATIONS = emptySet<String>()
 
         /**
-         * Pre-existing backend import leaks from non-backend files:
+         * Pre-existing backend import leak from a non-backend file:
          * - `Main.kt` — bootstrap entry point that instantiates `GdxEngineApplication`.
-         * - `UiComposerScene.kt` — uses backend-specific `GdxUiScenePreview` and
-         *   `GdxUiComposerSkinMetadataReader` for live UI composer preview.
          *
          * These should eventually be abstracted behind core interfaces. Do not add new entries.
          */
         val KNOWN_BACKEND_IMPORT_VIOLATIONS =
             setOf(
                 "com/pashkd/krender/Main.kt",
-                "com/pashkd/krender/game/UiComposerScene.kt",
             )
     }
 }

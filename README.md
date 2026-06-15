@@ -47,25 +47,23 @@ into dedicated `games/` and `apps/` modules so the engine/SDK and a sample clien
 
 ```text
 KRender SDK/
-+-- core/                  # Engine API, LibGDX backend adapter, current editor tools, runtime scenes, tests
++-- core/                  # Engine/runtime API, LibGDX backend adapter, shared services, runtime scenes, tests
 |   +-- src/main/kotlin/com/pashkd/krender/
-|   |   +-- Main.kt                       # Scene-routing entry; defaults to Asset Browser
+|   |   +-- Main.kt                       # Runtime scene entry; tool routing lives in the desktop/tools layer
 |   |   +-- engine/
 |   |   |   +-- api/                      # Backend-neutral runtime API
 |   |   |   +-- backend/gdx/              # LibGDX backend; owns all Gdx.* and OpenGL access
-|   |   |   +-- assets/                   # Asset Browser logic, asset registry, import/export helpers
+|   |   |   +-- assets/                   # Shared asset registry, metadata, import/export services
 |   |   |   +-- render3d/                 # 3D components, environment, render systems
 |   |   |   +-- scene/                    # Scene config, serialization, file and launcher services
-|   |   |   +-- sceneeditor/              # Shared editor bounds helpers used across tools
 |   |   |   +-- terrain/                  # Shared terrain runtime/persistence
-|   |   |   +-- uicomposer/               # Shared UI Composer model/helpers used by the tool + backend preview
-|   |   |   +-- ui/editor/                # ImGui editor UI
+|   |   |   +-- ui/editor/                # Editor UI service contracts and shared ImGui helpers
 |   |   |   +-- ui/runtime/               # Scene2D runtime UI service
 |   |   |   +-- ui/scene/                 # `.krui` model, serializer, validators
-|   |   +-- game/                         # Top-level Scene classes (tools + runtime player)
+|   |   +-- game/                         # Runtime/player scene classes
 |   +-- src/test/kotlin/...               # Pure JVM unit tests
 +-- engine/
-|   +-- tools/                            # Editor tool module; currently hosts Model Viewer, Animation Viewer, Terrain Editor, and Scene Editor
+|   +-- tools/                            # Editor tools, tool routing, and editor-only UI/model helpers
 +-- games/
 |   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
 +-- apps/
@@ -91,6 +89,8 @@ runtime content from `games/woolboy/src/main/resources/assets/woolboy/`.
 The intended dependency direction is:
 
 ```text
+engine:tools -> core
+lwjgl3 -> core + engine:tools + desktop backend libraries
 games:woolboy -> core
 apps:woolboy-desktop -> games:woolboy
 apps:woolboy-desktop -> core + desktop backend libraries
@@ -629,7 +629,7 @@ Current types:
 - `LogSink`: sink abstraction.
 - `GdxAppLogSink`: mirrors structured logs to LibGDX application logging.
 - `FileLogSink`: writes session-scoped log files under `logs/` relative to the current working directory.
-- `LogsPanel`: ImGui panel used by Asset Browser, Model Viewer, Terrain Editor, and Scene Editor.
+- `LogsPanel`: ImGui panel used by Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, and UI Composer.
 
 `LibGdxBackend` creates one `EngineLogService`, exposes it as both `logger` and `logs`, and registers the LibGDX and
 file sinks.

@@ -11,19 +11,12 @@ the user inspect/edit selected-node scalar fields, perform hierarchy-driven stru
 save the document, select nodes (via hierarchy or selection-only canvas hit-testing), and pick
 Skin-backed styles/backgrounds and Asset-Registry-backed Image textures.
 
-> **Documentation drift to be aware of:** several older comments (in `Main.kt`,
-> `AssetBrowserScene.kt`, `AssetDomain.kt`, `EditorToolLauncher.kt`) still call this a
-> "placeholder" that does "not render previews / edit / save". Those comments are **stale** —
-> `UiComposerScene`'s own KDoc and implementation show preview rendering, scalar editing,
-> structure editing, undo/redo, and saving are present. Trust `UiComposerScene.kt`.
-
 ## Current Implementation
 
 - Scene: `engine/tools/.../uicomposer/UiComposerScene.kt`.
-- Tool internals moved to `engine/tools/.../uicomposer/` for the scene/layout/panel/operations layer.
-- Shared editor model/helpers remain in `core/.../engine/uicomposer/`.
+- Tool internals live in `engine/tools/.../uicomposer/` for scene/layout/panels/operations/model helpers.
 - Shared `.krui` model + validation: `core/.../engine/ui/scene/`.
-- Backend preview: `core/.../engine/backend/gdx/ui/composer/GdxUiScenePreview.kt`,
+- Tool preview adapter: `engine/tools/.../uicomposer/gdx/GdxUiScenePreview.kt`,
   `GdxUiComposerSkinMetadataReader.kt`.
 - Launched as a separate JVM window via `Lwjgl3EditorToolLauncher.launchUiComposer(path)`
   (`krender.scene=ui-composer`, `krender.ui.scene.path=<path>`).
@@ -33,13 +26,13 @@ Skin-backed styles/backgrounds and Asset-Registry-backed Image textures.
 | File | Responsibility |
 |---|---|
 | `engine/tools/.../uicomposer/UiComposerScene.kt` | Composition; document load/reload, preview rebuild, save, undo/redo, canvas interaction system. |
-| `core/.../engine/uicomposer/UiComposerState.kt` (`UiComposerModel.kt`) | Shared editor document + preview state used by the tool and backend preview. |
+| `engine/tools/.../uicomposer/UiComposerModel.kt` | Editor document + preview state used by the tool and preview adapter. |
 | `engine/tools/.../uicomposer/UiComposerOperations.kt` | Edit/save/undo/redo operations. |
-| `core/.../engine/uicomposer/UiComposerDocumentEditing.kt`, `UiComposerHistory.kt` | Structure editing + history helpers. |
+| `engine/tools/.../uicomposer/UiComposerDocumentEditing.kt`, `UiComposerHistory.kt` | Structure editing + history helpers. |
 | `engine/tools/.../uicomposer/UiComposerPanels.kt` | Toolbar, preview canvas, hierarchy, structure, inspector, scene bindings, diagnostics panels. |
-| `core/.../engine/uicomposer/UiComposerStyleValidation.kt`, `UiComposerBindingHelpers.kt` | Style/binding validation helpers. |
+| `engine/tools/.../uicomposer/UiComposerStyleValidation.kt`, `UiComposerBindingHelpers.kt` | Style/binding validation helpers. |
 | `engine/ui/scene/UiSceneDocument.kt`, `UiSceneSerializer.kt`, `UiSceneValidation.kt` | Shared `.krui` model + validators (also used by runtime UI). |
-| `backend/gdx/ui/composer/GdxUiScenePreview.kt` | Scene2D preview Stage/Skin/overlay (backend). |
+| `engine/tools/.../uicomposer/gdx/GdxUiScenePreview.kt` | Scene2D preview Stage/Skin/overlay for the tool. |
 
 ## Main Classes
 

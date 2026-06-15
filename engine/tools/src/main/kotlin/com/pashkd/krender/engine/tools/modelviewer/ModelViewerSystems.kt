@@ -2,8 +2,8 @@ package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.render3d.ModelComponent
-import com.pashkd.krender.engine.sceneeditor.SceneEditorLocalBounds
-import com.pashkd.krender.engine.sceneeditor.transformedBoundsCorners
+import com.pashkd.krender.engine.tools.sceneeditor.SceneEditorLocalBounds
+import com.pashkd.krender.engine.tools.sceneeditor.transformedBoundsCorners
 
 /**
  * Syncs ModelViewer UI state with assets, render settings, and scene actions.

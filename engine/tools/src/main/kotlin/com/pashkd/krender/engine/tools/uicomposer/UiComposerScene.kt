@@ -1,12 +1,12 @@
 package com.pashkd.krender.engine.tools.uicomposer
 
 import com.pashkd.krender.engine.api.*
-import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiComposerSkinMetadataReader
-import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiScenePreview
+import com.pashkd.krender.engine.tools.uicomposer.gdx.GdxUiComposerSkinMetadataReader
+import com.pashkd.krender.engine.tools.uicomposer.gdx.GdxUiScenePreview
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.ui.editor.*
-import com.pashkd.krender.engine.uicomposer.*
+import com.pashkd.krender.engine.tools.uicomposer.*
 import kotlin.math.pow
 
 /**

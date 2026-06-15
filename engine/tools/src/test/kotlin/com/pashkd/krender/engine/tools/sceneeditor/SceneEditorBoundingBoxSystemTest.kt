@@ -6,9 +6,6 @@ import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.TransformComponent
 import com.pashkd.krender.engine.api.Vec3
-import com.pashkd.krender.engine.sceneeditor.SceneEditorBoundsProvider
-import com.pashkd.krender.engine.sceneeditor.SceneEditorLocalBounds
-import com.pashkd.krender.engine.sceneeditor.transformedBoundsCorners
 import com.pashkd.krender.engine.render3d.ModelComponent
 import kotlin.test.Test
 import kotlin.test.assertEquals

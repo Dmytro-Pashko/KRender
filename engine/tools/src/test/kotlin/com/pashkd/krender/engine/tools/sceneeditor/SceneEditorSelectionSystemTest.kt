@@ -16,8 +16,6 @@ import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.sceneeditor.SceneEditorBoundsProvider
-import com.pashkd.krender.engine.sceneeditor.SceneEditorLocalBounds
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

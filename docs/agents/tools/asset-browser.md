@@ -10,16 +10,17 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 
 ## Current Implementation
 
-- Scene: `core/.../game/AssetBrowserScene.kt`.
+- Scene: `engine/tools/.../assetbrowser/AssetBrowserScene.kt`.
 - Tool internals package: `core/.../engine/assets/`.
-- It is the fallback scene in `Main.kt` (`krender.scene` unset → `asset-browser`).
+- Desktop startup resolves it through `engine/tools/ToolsModule.kt` and `lwjgl3/.../DesktopMain.kt`
+  (`krender.scene` unset → `asset-browser` on desktop).
 - Tool routing uses `AssetToolRegistry`; there is intentionally **no** `when(category)` in the scene.
 
 ## Main Files
 
 | File | Responsibility |
 |---|---|
-| `game/AssetBrowserScene.kt` | Wires registries, services, systems, and panels; defines the `AssetTool` implementations and `SceneOperationsHandler`. |
+| `engine/tools/.../assetbrowser/AssetBrowserScene.kt` | Wires registries, services, systems, and panels; defines the `AssetTool` implementations and `SceneOperationsHandler`. |
 | `engine/assets/AssetBrowserSystem.kt` | Drives background scans, filtering/sorting, selected-model metadata sync, activation requests. |
 | `engine/assets/AssetBrowserState.kt` | Mutable UI/runtime state for the browser. |
 | `engine/assets/AssetBrowserPanels.kt` | `AssetControlsPanel`, `AssetBrowserPanel`, `AssetDetailsPanel`. |

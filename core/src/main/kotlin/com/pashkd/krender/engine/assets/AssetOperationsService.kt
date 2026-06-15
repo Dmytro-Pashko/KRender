@@ -118,14 +118,7 @@ class LocalAssetOperationsService(
     private val skinsRootPath = basePath.resolve(normalizePath("ui/skins")).normalize()
 
     override fun create(request: CreateAssetRequest): AssetOperationResult {
-        require(
-            CreatableAssetKind.entries.any { kind ->
-                kind.type == request.type && kind.category == request.category
-            },
-        ) {
-            "Unsupported asset creation type=${request.type} category=${request.category}"
-        }
-        val baseName = sanitizedAssetName(request.name, defaultAssetBaseName(request.type, request.category))
+        val baseName = sanitizeAssetBaseName(request.name, defaultAssetBaseName(request.type, request.category))
         val ext = request.extension.lowercase().trimStart('.')
         val dir =
             resolveTargetDirectory(request.targetDirectory)
@@ -469,5 +462,21 @@ class LocalAssetOperationsService(
 
     companion object {
         private const val TAG = "LocalAssetOperationsService"
+
+        private fun defaultAssetBaseName(
+            type: AssetType,
+            category: AssetCategory,
+        ): String =
+            when (type) {
+                AssetType.UiScene -> "new_ui_scene"
+                AssetType.Terrain -> "new_terrain"
+                AssetType.Scene -> "new_scene"
+                else -> error("Unsupported asset creation type=$type category=$category")
+            }
+
+        private fun sanitizeAssetBaseName(
+            name: String,
+            fallback: String,
+        ): String = name.trim().replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { fallback }
     }
 }

@@ -5,8 +5,8 @@ import com.pashkd.krender.engine.math.transformLocalPoint
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
-import com.pashkd.krender.engine.sceneeditor.SceneEditorLocalBounds
-import com.pashkd.krender.engine.sceneeditor.transformedBoundsCorners
+import com.pashkd.krender.engine.tools.sceneeditor.SceneEditorLocalBounds
+import com.pashkd.krender.engine.tools.sceneeditor.transformedBoundsCorners
 
 /**
  * Syncs Animation Viewer UI state with assets, playback, render settings, and scene actions.

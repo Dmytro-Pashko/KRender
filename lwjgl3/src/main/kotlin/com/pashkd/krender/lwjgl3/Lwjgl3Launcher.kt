@@ -5,7 +5,6 @@ package com.pashkd.krender.lwjgl3
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import com.badlogic.gdx.graphics.Color
-import com.pashkd.krender.Main
 import java.util.Locale
 
 /** Launches the desktop (LWJGL3) application. */
@@ -16,8 +15,8 @@ fun main(args: Array<String>) {
     }
     logStartup(args)
     Lwjgl3Application(
-        Main(
-            modelPath = args.firstOrNull() ?: Main.configuredModelPath(),
+        DesktopMain(
+            modelPath = args.firstOrNull() ?: DesktopMain.configuredModelPath(),
             runtimeWindowLauncherFactory = { logger -> Lwjgl3RuntimeWindowLauncher(logger) },
             editorToolLauncherFactory = { logger -> Lwjgl3EditorToolLauncher(logger) },
         ),
