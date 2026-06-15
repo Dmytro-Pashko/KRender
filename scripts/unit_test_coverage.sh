@@ -28,8 +28,8 @@ if [[ ! -x "${GRADLEW_SH}" ]]; then
   chmod +x "${GRADLEW_SH}" 2>/dev/null || true
 fi
 
-if command -v cmd.exe >/dev/null 2>&1 && [[ -f "${GRADLEW_BAT}" ]]; then
-  GRADLE_BASE=("cmd.exe" "/c" "$(to_windows_path "${GRADLEW_BAT}")" "--no-daemon" "--console=plain")
+if [[ -f "${GRADLEW_BAT}" && ( "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* ) ]]; then
+  GRADLE_BASE=("${GRADLEW_BAT}" "--no-daemon" "--console=plain")
 else
   GRADLE_BASE=("${GRADLEW_SH}" "--no-daemon" "--console=plain")
 fi
@@ -41,9 +41,9 @@ run_step() {
   local step_name="$1"
   shift
   local log_file="${LOG_DIR}/${step_name}.log"
-  STEP_COMMANDS["${step_name}"]="$*"
-  echo "Running ${step_name}: $*"
-  "$@" >"${log_file}" 2>&1
+  STEP_COMMANDS["${step_name}"]="${GRADLE_BASE[*]} $*"
+  echo "Running ${step_name}: ${STEP_COMMANDS[${step_name}]}"
+  "${GRADLE_BASE[@]}" "$@" >"${log_file}" 2>&1
   local exit_code=$?
   STEP_EXIT_CODES["${step_name}"]=${exit_code}
   if [[ ${exit_code} -eq 0 ]]; then
@@ -65,8 +65,8 @@ status_label() {
   fi
 }
 
-run_step "tests" "${GRADLE_BASE[@]}" :core:test :engine:scene-player:test
-run_step "coverage" "${GRADLE_BASE[@]}" unitTestCoverageReport
+run_step "tests" :core:test :engine:scene-player:test
+run_step "coverage" unitTestCoverageReport
 
 OVERALL="PASS"
 FINAL_EXIT=0

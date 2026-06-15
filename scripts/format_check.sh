@@ -37,8 +37,8 @@ if [[ ! -x "${GRADLEW_SH}" ]]; then
   chmod +x "${GRADLEW_SH}" 2>/dev/null || true
 fi
 
-if command -v cmd.exe >/dev/null 2>&1 && [[ -f "${GRADLEW_BAT}" ]]; then
-  GRADLE_BASE=("cmd.exe" "/c" "$(to_windows_path "${GRADLEW_BAT}")" "--no-daemon" "--console=plain")
+if [[ -f "${GRADLEW_BAT}" && ( "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* ) ]]; then
+  GRADLE_BASE=("${GRADLEW_BAT}" "--no-daemon" "--console=plain")
 else
   GRADLE_BASE=("${GRADLEW_SH}" "--no-daemon" "--console=plain")
 fi
