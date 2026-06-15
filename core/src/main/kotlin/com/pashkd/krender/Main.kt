@@ -8,7 +8,6 @@ import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.game.AssetBrowserScene
 import com.pashkd.krender.game.RuntimeScene
-import com.pashkd.krender.game.SceneEditorScene
 import com.pashkd.krender.game.UiComposerScene
 import java.lang.reflect.InvocationTargetException
 
@@ -26,14 +25,14 @@ class Main(
     initialScene = {
         val requestedScene = sceneName?.trim()?.takeIf(String::isNotBlank) ?: ASSET_BROWSER_SCENE
         val selectedModel = modelPath?.let(AssetRef.Companion::model)
-        createToolsScene(requestedScene, modelPath, configuredTerrainFilePath()) ?: when (requestedScene.lowercase()) {
+        createToolsScene(
+            sceneName = requestedScene,
+            modelPath = modelPath,
+            terrainPath = configuredTerrainFilePath(),
+            scenePath = scenePath,
+            sceneNameOverride = configuredSceneNameOverride(),
+        ) ?: when (requestedScene.lowercase()) {
             "asset-browser" -> AssetBrowserScene()
-
-            "scene-editor" ->
-                SceneEditorScene(
-                    scenePath = scenePath,
-                    initialSceneName = configuredSceneNameOverride(),
-                )
 
             "runtime-scene" ->
                 RuntimeScene(
@@ -85,12 +84,21 @@ class Main(
             sceneName: String,
             modelPath: String?,
             terrainPath: String?,
+            scenePath: String?,
+            sceneNameOverride: String?,
         ): Scene? =
             try {
                 val toolsModuleClass = Class.forName("com.pashkd.krender.engine.tools.ToolsModule")
                 val createSceneMethod =
-                    toolsModuleClass.getMethod("createScene", String::class.java, String::class.java, String::class.java)
-                createSceneMethod.invoke(null, sceneName, modelPath, terrainPath) as Scene?
+                    toolsModuleClass.getMethod(
+                        "createScene",
+                        String::class.java,
+                        String::class.java,
+                        String::class.java,
+                        String::class.java,
+                        String::class.java,
+                    )
+                createSceneMethod.invoke(null, sceneName, modelPath, terrainPath, scenePath, sceneNameOverride) as Scene?
             } catch (_: ClassNotFoundException) {
                 null
             } catch (error: InvocationTargetException) {

@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.sceneeditor
+package com.pashkd.krender.engine.tools.sceneeditor
 
 import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.Vec2

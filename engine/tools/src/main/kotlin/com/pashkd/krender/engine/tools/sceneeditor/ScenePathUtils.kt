@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.sceneeditor
+package com.pashkd.krender.engine.tools.sceneeditor
 
 /**
  * Shared Scene Editor path handling for scene persistence actions.

@@ -1,7 +1,6 @@
 package com.pashkd.krender.engine.scene
 
 import com.pashkd.krender.game.AssetBrowserScene
-import com.pashkd.krender.game.SceneEditorScene
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -40,6 +39,5 @@ class SceneConfigPresetsTest {
     @Test
     fun `editor tool scenes use editor preset`() {
         assertEquals(SceneConfigPresets.AssetBrowser, AssetBrowserScene().config)
-        assertEquals(SceneConfigPresets.EditorTool, SceneEditorScene().config)
     }
 }

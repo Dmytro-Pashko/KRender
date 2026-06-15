@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.sceneeditor
+package com.pashkd.krender.engine.tools.sceneeditor
 
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout

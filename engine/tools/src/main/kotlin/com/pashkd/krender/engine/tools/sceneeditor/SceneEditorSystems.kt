@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.sceneeditor
+package com.pashkd.krender.engine.tools.sceneeditor
 
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
@@ -7,6 +7,8 @@ import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.*
+import com.pashkd.krender.engine.sceneeditor.SceneEditorBoundsProvider
+import com.pashkd.krender.engine.sceneeditor.transformedBoundsCorners
 import com.pashkd.krender.engine.terrain.TerrainAssetRuntimeSync
 import com.pashkd.krender.engine.terrain.TerrainRenderCommands
 import kotlin.math.cos
