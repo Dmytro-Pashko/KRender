@@ -53,7 +53,6 @@ KRender SDK/
 |   |   |   +-- animation/                # AnimationComponent
 |   |   |   +-- backend/gdx/              # LibGDX backend adapter (owns all Gdx.* / OpenGL)
 |   |   |   +-- assets/                   # Asset Browser tool + asset registry/metadata/importers
-|   |   |   +-- modelviewer/              # Model Viewer tool internals
 |   |   |   +-- animationviewer/          # Animation Viewer tool internals
 |   |   |   +-- terrain/                  # Terrain Editor + terrain runtime/mesh/persistence
 |   |   |   +-- sceneeditor/              # Scene Editor tool internals
@@ -70,7 +69,7 @@ KRender SDK/
 |   |   +-- game/                         # Top-level Scene classes (one per tool + runtime/sandbox)
 |   +-- src/test/kotlin/...               # JVM unit tests (no GL needed)
 +-- engine/
-|   +-- tools/                            # Scaffold module for future editor tool extraction from core
+|   +-- tools/                            # Editor tool module; Model Viewer now lives here
 +-- games/
 |   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
 +-- apps/
@@ -118,7 +117,7 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 | Module | Responsibility |
 |---|---|
 | `core` | Engine API, LibGDX backend adapter, current editor tools, game scenes, tests. The vast majority of code lives here during the extraction. |
-| `engine:tools` | Scaffold module for migrating editor tools out of `core`. No tool implementation is moved yet. |
+| `engine:tools` | Editor tool module for migrating tools out of `core`. Model Viewer currently lives here. |
 | `lwjgl3` | Desktop entry point (`Lwjgl3Launcher`), window config, and the launchers that open tool/runtime windows as **separate JVM processes** (`Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`, `Lwjgl3JvmProcessLauncher`). |
 | `android` | Android launcher (`AndroidLauncher`). Uses `NoOpUiService` (no ImGui). Requires the Android SDK to build. |
 | `assets` | Runtime asset files scanned by the asset registry and loaded by the backend. |
@@ -320,7 +319,7 @@ shows model metadata, and launches the right editor per asset via `AssetToolRegi
 → `docs/agents/tools/asset-browser.md`
 
 ### Model Viewer
-`game/ModelViewerScene.kt` (+ `engine/modelviewer/`). Inspects a single model: mesh parts,
+`engine/tools/.../modelviewer/ModelViewerScene.kt` (+ sibling files in `engine:tools`). Inspects a single model: mesh parts,
 materials, texture channels, wireframe, material-debug modes, glTF PBR preview, bounds/grid/axes.
 → `docs/agents/tools/model-viewer.md`
 

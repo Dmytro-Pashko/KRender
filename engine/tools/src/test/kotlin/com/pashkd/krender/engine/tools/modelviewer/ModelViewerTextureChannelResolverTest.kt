@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.modelviewer
+package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.MaterialDebugMode
 import com.pashkd.krender.engine.api.ModelAssetInfo

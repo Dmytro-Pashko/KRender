@@ -11,8 +11,8 @@ and a glTF PBR preview with a skybox.
 
 ## Current Implementation
 
-- Scene: `core/.../game/ModelViewerScene.kt`.
-- Tool internals: `core/.../engine/modelviewer/`.
+- Scene: `engine/tools/.../engine/tools/modelviewer/ModelViewerScene.kt`.
+- Tool internals: `engine/tools/.../engine/tools/modelviewer/`.
 - Launched as a separate JVM window by `Lwjgl3EditorToolLauncher.launchModelViewer(path)`
   (`krender.scene=model-viewer`, `krender.model.path=<path>`).
 
@@ -20,13 +20,13 @@ and a glTF PBR preview with a skybox.
 
 | File | Responsibility |
 |---|---|
-| `game/ModelViewerScene.kt` | Builds camera/light/model entities, systems, and 8 ImGui panels. |
-| `engine/modelviewer/ModelViewerState.kt` | All viewer UI/runtime state (display mode, debug mode, toggles, selection). |
-| `engine/modelviewer/ModelViewerSystems.kt` | `ModelViewerSystem`, `ModelViewerModelRenderSystem`, `ModelViewerBoundingBoxSystem`, `ModelViewerViewportGuideSystem`. |
-| `engine/modelviewer/ModelViewerOperations.kt` | UI-driven actions applied to state. |
-| `engine/modelviewer/ModelViewerPanels.kt` | The panel implementations. |
-| `engine/modelviewer/ModelViewerTextureChannelResolver.kt` | Resolves texture channels for debug views. |
-| `engine/modelviewer/ImGuiLayoutConfig.kt` | `ModelViewerUiLayoutDefaults`. |
+| `engine/tools/modelviewer/ModelViewerScene.kt` | Builds camera/light/model entities, systems, and 8 ImGui panels. |
+| `engine/tools/modelviewer/ModelViewerState.kt` | All viewer UI/runtime state (display mode, debug mode, toggles, selection). |
+| `engine/tools/modelviewer/ModelViewerSystems.kt` | `ModelViewerSystem`, `ModelViewerModelRenderSystem`, `ModelViewerBoundingBoxSystem`, `ModelViewerViewportGuideSystem`. |
+| `engine/tools/modelviewer/ModelViewerOperations.kt` | UI-driven actions applied to state. |
+| `engine/tools/modelviewer/ModelViewerPanels.kt` | The panel implementations. |
+| `engine/tools/modelviewer/ModelViewerTextureChannelResolver.kt` | Resolves texture channels for debug views. |
+| `engine/tools/modelviewer/ImGuiLayoutConfig.kt` | `ModelViewerUiLayoutDefaults`. |
 | `engine/editor/viewport/EditorViewportCamera.kt` | Shared editor orbit/fly camera system. |
 
 ## Main Classes
@@ -114,6 +114,6 @@ UV-checker options and the default skybox preview.
 
 ## Related Code Patterns
 
-- Animation Viewer (`game/AnimationViewerScene.kt`) is structurally almost identical and is the
+- Animation Viewer (`core/.../game/AnimationViewerScene.kt`) is structurally almost identical and is the
   best reference for adding skeleton/animation-related features.
 - `EditorViewportCameraSystem` is shared with Animation Viewer and Scene Editor.

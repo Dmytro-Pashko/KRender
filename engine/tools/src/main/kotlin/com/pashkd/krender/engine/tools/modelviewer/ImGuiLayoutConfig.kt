@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.modelviewer
+package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout

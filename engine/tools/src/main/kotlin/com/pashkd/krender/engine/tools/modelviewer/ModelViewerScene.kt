@@ -1,9 +1,8 @@
-package com.pashkd.krender.game
+package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
 import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
-import com.pashkd.krender.engine.modelviewer.*
 import com.pashkd.krender.engine.render3d.*
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets

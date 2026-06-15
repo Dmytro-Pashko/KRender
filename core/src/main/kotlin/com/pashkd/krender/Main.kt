@@ -2,10 +2,17 @@ package com.pashkd.krender
 
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.backend.gdx.GdxEngineApplication
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
-import com.pashkd.krender.game.*
+import com.pashkd.krender.game.AnimationViewerScene
+import com.pashkd.krender.game.AssetBrowserScene
+import com.pashkd.krender.game.RuntimeScene
+import com.pashkd.krender.game.SceneEditorScene
+import com.pashkd.krender.game.TerrainEditorScene
+import com.pashkd.krender.game.UiComposerScene
+import java.lang.reflect.InvocationTargetException
 
 class Main(
     sceneName: String? = configuredSceneName(),
@@ -21,7 +28,7 @@ class Main(
     initialScene = {
         val requestedScene = sceneName?.trim()?.takeIf(String::isNotBlank) ?: ASSET_BROWSER_SCENE
         val selectedModel = modelPath?.let(AssetRef.Companion::model)
-        when (requestedScene.lowercase()) {
+        createToolsScene(requestedScene, modelPath) ?: when (requestedScene.lowercase()) {
             "asset-browser" -> AssetBrowserScene()
 
             "scene-editor" ->
@@ -33,11 +40,6 @@ class Main(
             "runtime-scene" ->
                 RuntimeScene(
                     scenePath = scenePath ?: throw missingProperty("krender.scene.path", "runtime-scene"),
-                )
-
-            "model-viewer" ->
-                ModelViewerScene(
-                    model = selectedModel ?: throw missingProperty("krender.model.path", "model-viewer"),
                 )
 
             "animation-viewer" ->
@@ -92,6 +94,24 @@ class Main(
 
         fun configuredSceneNameOverride(): String? =
             System.getProperty("krender.scene.name")?.takeIf(String::isNotBlank)
+
+        private fun createToolsScene(
+            sceneName: String,
+            modelPath: String?,
+        ): Scene? =
+            try {
+                val toolsModuleClass = Class.forName("com.pashkd.krender.engine.tools.ToolsModule")
+                val createSceneMethod = toolsModuleClass.getMethod("createScene", String::class.java, String::class.java)
+                createSceneMethod.invoke(null, sceneName, modelPath) as Scene?
+            } catch (_: ClassNotFoundException) {
+                null
+            } catch (error: InvocationTargetException) {
+                val cause = error.targetException
+                if (cause is RuntimeException) throw cause
+                throw IllegalStateException("Failed to create tool scene '$sceneName'.", cause)
+            } catch (error: ReflectiveOperationException) {
+                throw IllegalStateException("Failed to create tool scene '$sceneName'.", error)
+            }
 
         private fun missingProperty(
             propertyName: String,

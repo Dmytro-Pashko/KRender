@@ -1,4 +1,4 @@
-package com.pashkd.krender.engine.modelviewer
+package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.ui.editor.*
@@ -266,6 +266,7 @@ class ModelViewerInfoPanel(
 
     private fun drawWarnings(info: ModelAssetInfo) {
         val textureSlots = info.materials.flatMap { material -> material.textureSlots }
+        val size = info.size
         val warnings =
             buildList {
                 if (info.uvChannels.isEmpty()) add("No UV channels.")
@@ -279,8 +280,8 @@ class ModelViewerInfoPanel(
                     add("Normal texture exists but no tangent vertex channel was found.")
                 }
                 if (info.triangleCount >= HighTriangleWarningThreshold) add("High triangle count.")
-                if (info.boundsMin == null || info.boundsMax == null || info.size == null) add("Bounds are missing.")
-                if (info.size != null && info.size.isNearZero()) add("Model has zero or near-zero size.")
+                if (info.boundsMin == null || info.boundsMax == null || size == null) add("Bounds are missing.")
+                if (size != null && size.isNearZero()) add("Model has zero or near-zero size.")
                 if (info.meshParts.any { part -> part.materialId == null && part.materialIndex == null }) {
                     add("One or more mesh parts have no material assignment.")
                 }
