@@ -2,8 +2,8 @@ package com.pashkd.krender.engine.tools.sceneeditor
 
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
-import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraSystem
+import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraComponent
+import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraSystem
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets

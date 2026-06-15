@@ -1,7 +1,7 @@
 package com.pashkd.krender.engine.tools.sceneeditor
 
 import com.pashkd.krender.engine.api.Component
-import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
+import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraComponent
 
 /**
  * Marks runtime/editor support entities that must not be treated as scene content.

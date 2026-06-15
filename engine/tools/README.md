@@ -10,6 +10,15 @@ engine:tools -> core
 
 Tool routes are selected with `krender.scene`. When running through `:lwjgl3:run`, pass route properties with Gradle `-P` flags; the launcher forwards supported properties to JVM system properties. Asset paths are relative to the `assets/` working directory unless the current launcher documents otherwise.
 
+Convenience launch scripts are available in `engine/tools/scripts/`:
+
+- `asset_browser_launcher.sh` launches the Asset Browser.
+- `model_viewer_launcher.sh [model/path.glb]` launches the Model Viewer, defaulting to `model/wool_boy_animated.glb`.
+- `animation_viewer_launcher.sh [model/path.glb]` launches the Animation Viewer, defaulting to `model/wool_boy_animated.glb`.
+- `terrain_editor_launcher.sh [terrains/file.json]` launches the Terrain Editor, defaulting to `terrains/terrain_02_small_flat.json`.
+- `scene_editor_launcher.sh [scenes/file.krscene]` launches the Scene Editor, optionally opening a scene file.
+- `ui_composer_launcher.sh [ui/scenes/file.krui]` launches the UI Composer, defaulting to `ui/scenes/test_scene_01.krui`.
+
 ## Tools
 
 ### Asset Browser

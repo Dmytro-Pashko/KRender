@@ -6,7 +6,8 @@
 ## 1. Runtime loading (`AssetService`)
 
 Core contract: `core/.../engine/api/Assets.kt`. Backend: `GdxAssetService` in
-`core/.../engine/backend/gdx/GdxAssetService.kt`.
+`core/.../engine/backend/gdx/GdxAssetService.kt`, with asset-scoped skeleton pose sampling in
+`GdxModelPoseSampler.kt`.
 
 - **Typed handles.** `AssetRef<T>` carries a normalized `path` + a marker type
   (`ModelAsset`, `TextureAsset`, `TerrainAsset`, `ShaderAsset`). Build via
@@ -27,8 +28,8 @@ Core contract: `core/.../engine/api/Assets.kt`. Backend: `GdxAssetService` in
 - **Terrain is special:** `queue` **logs and ignores** `TerrainAsset`. Runtime terrain loading is
   handled outside `AssetService` (`engine/terrain/RuntimeTerrainService.kt` + persistence).
 - **Caches:** the backend keeps model infos, skeletons, bounds, triangle counts, texture preview
-  registry, runtime textures, and dedicated **pose-sampling** instances/controllers/scenes
-  (separate from renderer per-entity caches).
+  registry, runtime textures, and dedicated **pose-sampling** instances/controllers/scenes in
+  `GdxModelPoseSampler` (separate from renderer per-entity caches).
 
 ### Async caveat
 Assets load asynchronously while the scene is already `Active`. Scenes/systems must poll

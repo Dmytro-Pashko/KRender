@@ -99,7 +99,7 @@ models load but expose no clips.
 - Keep skeleton/animation data backend-neutral (`ModelBonePose`, `ModelSkeletonInfo`,
   `ModelAnimationInfo`); never reach into gdx-gltf types from the tool.
 - Do not mutate the renderer's per-entity instance caches from sampling code — use the
-  asset-scoped pose caches that `GdxAssetService` already maintains.
+  asset-scoped pose caches that `GdxModelPoseSampler` maintains.
 
 ## Recommended Improvements
 
@@ -109,5 +109,4 @@ models load but expose no clips.
 ## Related Code Patterns
 
 - Mirrors Model Viewer composition closely; use it as the reference for shared concerns.
-- Skeleton sampling caches: see `GdxAssetService` (`poseSampledInstances`,
-  `poseSampledAnimationControllers`, `poseSampledGltfScenes`).
+- Skeleton sampling caches: see `GdxModelPoseSampler`.

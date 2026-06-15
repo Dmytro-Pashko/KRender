@@ -34,6 +34,12 @@ sourceSets {
   }
 }
 
+tasks.named('processResources') {
+  from(rootProject.file('assets')) {
+    include 'shaders/**'
+  }
+}
+
 dependencies {
   implementation project(':core')
   implementation project(':games:woolboy')

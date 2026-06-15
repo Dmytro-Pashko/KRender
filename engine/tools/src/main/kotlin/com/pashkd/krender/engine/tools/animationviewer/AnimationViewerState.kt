@@ -1,8 +1,8 @@
 package com.pashkd.krender.engine.tools.animationviewer
 
 import com.pashkd.krender.engine.api.*
-import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraState
-import com.pashkd.krender.engine.editor.viewport.EditorViewportState
+import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraState
+import com.pashkd.krender.engine.tools.viewport.EditorViewportState
 
 /**
  * Viewport modes supported by the Animation Viewer.

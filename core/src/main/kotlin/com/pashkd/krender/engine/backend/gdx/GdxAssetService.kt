@@ -13,9 +13,7 @@ import com.badlogic.gdx.graphics.g3d.loader.ObjLoader
 import com.badlogic.gdx.graphics.g3d.model.MeshPart
 import com.badlogic.gdx.graphics.g3d.model.Node
 import com.badlogic.gdx.graphics.g3d.model.NodePart
-import com.badlogic.gdx.graphics.g3d.utils.AnimationController
 import com.badlogic.gdx.graphics.glutils.FileTextureData
-import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.math.collision.BoundingBox
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.JsonReader
@@ -26,8 +24,6 @@ import net.mgsx.gltf.loaders.glb.GLBAssetLoader
 import net.mgsx.gltf.loaders.gltf.GLTFAssetLoader
 import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute
 import net.mgsx.gltf.scene3d.scene.SceneAsset
-import net.mgsx.gltf.scene3d.utils.MaterialConverter
-import net.mgsx.gltf.scene3d.scene.Scene as GltfScene
 
 /**
  * Asset service that queues, loads, inspects, and unloads LibGDX-backed assets.
@@ -48,13 +44,7 @@ class GdxAssetService(
     private val texturePreviewRegistry = mutableMapOf<String, Texture>()
     private val runtimeTextures = mutableMapOf<String, RuntimeTextureEntry>()
     private val modelTexturePreviewKeys = mutableMapOf<String, Set<String>>()
-
-    // Dedicated asset-scoped pose-sampling caches. These are intentionally separate from
-    // GdxRenderer3D render-instance caches so viewer/debug skeleton sampling never mutates
-    // the visible per-entity render instances used by DrawModel commands.
-    private val poseSampledInstances = mutableMapOf<String, ModelInstance>()
-    private val poseSampledAnimationControllers = mutableMapOf<String, AnimationController>()
-    private val poseSampledGltfScenes = mutableMapOf<String, GltfScene>()
+    private val poseSampler = GdxModelPoseSampler(this)
 
     init {
         manager.setLoader(Model::class.java, ".g3dj", G3dModelLoader(JsonReader()))
@@ -217,10 +207,7 @@ class GdxAssetService(
         loop: Boolean,
     ): List<ModelBonePose> {
         if (asset.isPrimitive || !isLoaded(asset)) return emptyList()
-        return when {
-            asset.isGltf() -> sampleGltfSkeletonPose(asset, animationName, timeSeconds, loop)
-            else -> sampleStaticModelSkeletonPose(asset, animationName, timeSeconds, loop)
-        }
+        return poseSampler.sample(asset, animationName, timeSeconds, loop)
     }
 
     /** Returns an opaque handle for a loaded model texture or standalone texture asset. */
@@ -269,9 +256,7 @@ class GdxAssetService(
         modelTriangleCounts -= asset.path
         texturePreviewRegistry -= asset.path
         modelTexturePreviewKeys.remove(asset.path)?.forEach { key -> texturePreviewRegistry -= key }
-        poseSampledInstances -= asset.path
-        poseSampledAnimationControllers -= asset.path
-        poseSampledGltfScenes -= asset.path
+        poseSampler.clear(asset.path)
     }
 
     /** Returns a loaded LibGDX model for non-glTF model assets. */
@@ -349,7 +334,11 @@ class GdxAssetService(
 
     /** Returns a loaded standalone LibGDX texture asset. */
     private fun loadedTextureAsset(path: String): Texture? =
-        if (manager.isLoaded(path, Texture::class.java)) manager.get(path, Texture::class.java) else null
+        if (manager.isLoaded(path, Texture::class.java)) {
+            manager.get(path, Texture::class.java)
+        } else {
+            null
+        }
 
     private fun textureSource(pathOrId: String): String =
         when {
@@ -383,9 +372,7 @@ class GdxAssetService(
         runtimeTextures.clear()
         loggedLoaded.clear()
         warnedTextureBindings.clear()
-        poseSampledInstances.clear()
-        poseSampledAnimationControllers.clear()
-        poseSampledGltfScenes.clear()
+        poseSampler.clear()
         manager.dispose()
     }
 
@@ -532,87 +519,6 @@ class GdxAssetService(
         )
     }
 
-    private fun supportsSkeletonSampling(model: Model): Boolean {
-        val nodes = collectNodes(model.nodes)
-        val maxBonesPerPart = nodes.flatMap(::nodePartsOf).maxOfOrNull { part -> part.bones?.size ?: 0 } ?: 0
-        return maxBonesPerPart > 0 || model.animations.size > 0
-    }
-
-    private fun sampleStaticModelSkeletonPose(
-        asset: AssetRef<ModelAsset>,
-        animationName: String?,
-        timeSeconds: Float,
-        loop: Boolean,
-    ): List<ModelBonePose> {
-        val model = gdxModel(asset) ?: return emptyList()
-        if (!supportsSkeletonSampling(model)) return emptyList()
-        val instance = poseSampledInstances.getOrPut(asset.path) { ModelInstance(model) }
-        val controller = poseSampledAnimationControllers.getOrPut(asset.path) { AnimationController(instance) }
-        sampleAnimationPose(instance, controller, animationName, timeSeconds, loop)
-        return extractBonePoses(instance.nodes)
-    }
-
-    private fun sampleGltfSkeletonPose(
-        asset: AssetRef<ModelAsset>,
-        animationName: String?,
-        timeSeconds: Float,
-        loop: Boolean,
-    ): List<ModelBonePose> {
-        val sceneAsset = gltfScene(asset) ?: return emptyList()
-        val model = sceneAsset.scene.model
-        if (!supportsSkeletonSampling(model)) return emptyList()
-        val scene =
-            poseSampledGltfScenes.getOrPut(asset.path) {
-                GltfScene(sceneAsset.scene).also(MaterialConverter::makeCompatible)
-            }
-        sampleAnimationPose(scene.modelInstance, scene.animationController, animationName, timeSeconds, loop)
-        return extractBonePoses(scene.modelInstance.nodes)
-    }
-
-    private fun sampleAnimationPose(
-        instance: ModelInstance,
-        controller: AnimationController?,
-        animationName: String?,
-        timeSeconds: Float,
-        loop: Boolean,
-    ) {
-        if (controller == null || instance.animations.isEmpty) {
-            instance.calculateTransforms()
-            return
-        }
-        controller.paused = false
-        if (animationName.isNullOrBlank()) {
-            controller.setAnimation(null as String?)
-            controller.update(0f)
-            return
-        }
-        val animation =
-            instance.getAnimation(animationName) ?: run {
-                controller.setAnimation(null as String?)
-                controller.update(0f)
-                return
-            }
-        controller.setAnimation(animationName, if (loop) -1 else 1, 1f, null)
-        controller.current?.time = normalizedAnimationTime(animation, timeSeconds, loop)
-        controller.update(0f)
-    }
-
-    private fun extractBonePoses(nodes: Array<Node>): List<ModelBonePose> {
-        val collected = collectNodes(nodes)
-        val indexByNode = mutableMapOf<Node, Int>()
-        collected.forEachIndexed { index, node -> indexByNode[node] = index }
-        val translation = Vector3()
-        return collected.mapIndexed { index, node ->
-            node.globalTransform.getTranslation(translation)
-            ModelBonePose(
-                boneIndex = index,
-                name = node.id?.takeIf(String::isNotBlank),
-                parentIndex = node.parent?.let(indexByNode::get),
-                worldPosition = Vec3(translation.x, translation.y, translation.z),
-            )
-        }
-    }
-
     /**
      * Calculates the asset-local model bounds once from LibGDX model data.
      */
@@ -674,7 +580,7 @@ internal fun collectNodes(nodes: Array<Node>): List<Node> {
 /**
  * Returns every node part attached to the given node.
  */
-private fun nodePartsOf(node: Node): List<NodePart> =
+internal fun nodePartsOf(node: Node): List<NodePart> =
     buildList {
         for (part in node.parts) {
             add(part)
@@ -739,7 +645,8 @@ private fun buildMaterialInfos(
     }
 
 private fun com.badlogic.gdx.graphics.g3d.Material.textureLabel(type: Long): String? =
-    ((get(type) as? TextureAttribute)?.textureDescription?.texture)?.let(::textureIdentifier)
+    ((get(type) as? TextureAttribute)?.textureDescription?.texture)
+        ?.let(::textureIdentifier)
 
 private fun materialTextureSlots(
     material: com.badlogic.gdx.graphics.g3d.Material,
@@ -759,8 +666,10 @@ private fun materialTextureSlots(
                     ModelTextureSlotInfo(
                         channel = normalizeTextureChannel(attribute),
                         texturePath = texturePath,
-                        uvChannel = attribute.uvIndex.takeIf { uvIndex -> uvIndex >= 0 }
-                            ?.let { uvIndex -> "UV$uvIndex" },
+                        uvChannel =
+                            attribute.uvIndex
+                                .takeIf { uvIndex -> uvIndex >= 0 }
+                                ?.let { uvIndex -> "UV$uvIndex" },
                         materialIndex = materialIndex,
                         materialId = materialId,
                     ),
@@ -776,11 +685,11 @@ private fun normalizeTextureChannel(attribute: TextureAttribute): String =
         PBRTextureAttribute.NormalTexture,
         TextureAttribute.Normal,
         TextureAttribute.Bump,
-            -> "normal"
+        -> "normal"
 
         PBRTextureAttribute.EmissiveTexture,
         TextureAttribute.Emissive,
-            -> "emissive"
+        -> "emissive"
 
         PBRTextureAttribute.OcclusionTexture -> "occlusion"
         PBRTextureAttribute.MetallicRoughnessTexture -> "metallicRoughness"
@@ -839,7 +748,7 @@ private fun collectVertexAttributeSummary(meshes: Array<Mesh>): VertexAttributeS
                 VertexAttributes.Usage.Normal -> vertexChannels += "Normal"
                 VertexAttributes.Usage.ColorPacked,
                 VertexAttributes.Usage.ColorUnpacked,
-                    -> vertexChannels += "Color"
+                -> vertexChannels += "Color"
 
                 VertexAttributes.Usage.Tangent -> vertexChannels += "Tangent"
                 VertexAttributes.Usage.BiNormal -> vertexChannels += "Binormal"

@@ -27,7 +27,7 @@ and a glTF PBR preview with a skybox.
 | `engine/tools/modelviewer/ModelViewerPanels.kt` | The panel implementations. |
 | `engine/tools/modelviewer/ModelViewerTextureChannelResolver.kt` | Resolves texture channels for debug views. |
 | `engine/tools/modelviewer/ImGuiLayoutConfig.kt` | `ModelViewerUiLayoutDefaults`. |
-| `engine/editor/viewport/EditorViewportCamera.kt` | Shared editor orbit/fly camera system. |
+| `engine/tools/viewport/EditorViewportCamera.kt` | Shared editor orbit/fly camera system. |
 
 ## Main Classes
 

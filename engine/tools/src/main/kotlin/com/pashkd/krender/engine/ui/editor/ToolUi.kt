@@ -2,6 +2,9 @@ package com.pashkd.krender.engine.ui.editor
 
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
+import com.pashkd.krender.engine.ui.UiService as EngineUiService
+
+typealias UiService = EngineUiService
 
 /**
  * One drawable UI panel callback.

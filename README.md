@@ -68,13 +68,13 @@ KRender SDK/
 
 Gradle subprojects currently loaded by `settings.gradle`:
 
-- `core`
-- `engine:scene-player`
-- `engine:tools`
-- `lwjgl3`
-- `android`
-- `games:woolboy`
-- `apps:woolboy-desktop`
+- `core` - Backend-neutral engine API, LibGDX backend adapter, shared assets, scene, terrain, UI, rendering, and serialization services.
+- `engine:scene-player` - Runtime route for loading and playing `.krscene` scene documents.
+- `engine:tools` - Standalone editor/development tools for assets, models, animations, terrain, scenes, and UI documents.
+- `lwjgl3` - Desktop launcher that wires tools, scene playback, and desktop backend libraries.
+- `android` - Android launcher for scene playback with Android-specific backend setup.
+- `games:woolboy` - Standalone Woolboy gameplay/client module built on top of `core`.
+- `apps:woolboy-desktop` - Desktop Woolboy application and executable JAR packaging module.
 
 The root `assets/` directory remains the shared asset tree for the editor/runtime app. Woolboy ships its own curated
 runtime content from `games/woolboy/src/main/resources/assets/woolboy/`.
@@ -88,6 +88,22 @@ lwjgl3 -> core + engine:tools + engine:scene-player + desktop backend libraries
 android -> core + engine:scene-player
 games:woolboy -> core
 apps:woolboy-desktop -> games:woolboy + core
+```
+
+```mermaid
+flowchart LR
+    Core["core"]
+    Tools["engine:tools"] --> Core
+    ScenePlayer["engine:scene-player"] --> Core
+    Lwjgl3["lwjgl3"] --> Core
+    Lwjgl3 --> Tools
+    Lwjgl3 --> ScenePlayer
+    Lwjgl3 --> DesktopBackend["desktop backend libraries"]
+    Android["android"] --> Core
+    Android --> ScenePlayer
+    Woolboy["games:woolboy"] --> Core
+    WoolboyDesktop["apps:woolboy-desktop"] --> Woolboy
+    WoolboyDesktop --> Core
 ```
 
 ## Architecture
@@ -228,6 +244,15 @@ backend.profiler.endFrame(frame)
 KRender's editor and development tools live in `engine:tools`. They include Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, and UI Composer.
 
 Detailed tool descriptions and run commands are documented in [engine/tools/README.md](engine/tools/README.md).
+
+Convenience launch scripts live under `engine/tools/scripts/`:
+
+- `asset_browser_launcher.sh` - launches the Asset Browser.
+- `model_viewer_launcher.sh [model/path.glb]` - launches the Model Viewer, defaulting to `model/wool_boy_animated.glb`.
+- `animation_viewer_launcher.sh [model/path.glb]` - launches the Animation Viewer, defaulting to `model/wool_boy_animated.glb`.
+- `terrain_editor_launcher.sh [terrains/file.json]` - launches the Terrain Editor, defaulting to `terrains/terrain_02_small_flat.json`.
+- `scene_editor_launcher.sh [scenes/file.krscene]` - launches the Scene Editor, optionally opening a scene file.
+- `ui_composer_launcher.sh [ui/scenes/file.krui]` - launches the UI Composer, defaulting to `ui/scenes/test_scene_01.krui`.
 
 ## AI-Oriented Development
 
@@ -445,21 +470,24 @@ On Linux/macOS:
 ./gradlew build
 ```
 
-### Static Analysis
+### Quality Scripts
 
-Run the repository static-analysis workflow from the root:
+Quality scripts live under `scripts/` and can be run from the repository root:
 
 ```bash
-./scripts/static-analysis.sh
+./scripts/format_check.sh
+./scripts/static_analysis.sh
+./scripts/unit_test_coverage.sh
+./scripts/full_report.sh
 ```
 
 Safe Kotlin formatting plus verification:
 
 ```bash
-./scripts/static-analysis.sh --fix
+./scripts/format_check.sh --fix
 ```
 
-Reports are written under `build/reports/static-analysis/` and `build/reports/detekt/`. See `docs/quality/static-analysis.md` for details.
+`full_report.sh` runs formatting checks, static analysis, and unit test coverage. Reports are written under `build/reports/`, including `build/reports/static-analysis/`, `build/reports/unit-test-coverage/`, `build/reports/full-report/`, and `build/reports/detekt/`. The legacy `scripts/static-analysis.sh` wrapper remains available for compatibility.
 
 ## License
 

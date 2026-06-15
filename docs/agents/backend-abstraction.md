@@ -15,8 +15,10 @@
   (`backend/gdx/GdxEngineApplication.kt`) is the libGDX `ApplicationAdapter` bootstrap.
 - The backend is split by responsibility into sibling files in `backend/gdx/`:
   `LibGdxBackend.kt` (wiring only), `GdxEngineApplication.kt`, `GdxWindowService.kt`,
-  `GdxInputService.kt`, `GdxAssetService.kt`, `GdxTaskService.kt`, and `GdxRenderer3D.kt`
-  (renderer + sub-renderers). They all share the `com.pashkd.krender.engine.backend.gdx` package.
+  `GdxInputService.kt`, `GdxAssetService.kt`, `GdxModelPoseSampler.kt`, `GdxTaskService.kt`,
+  `GdxRenderer3D.kt`, `GdxLineShaderRenderer.kt`, `GdxModelViewerDebugRenderer.kt`,
+  `GdxSkyboxRenderer.kt`, `GdxGltfPbrPreviewRenderer.kt`, and `GdxCubemap.kt`. They all share
+  the `com.pashkd.krender.engine.backend.gdx` package.
 - A handful of pre-existing leaks (`Gdx`/`Pixmap`/JSON utils in `ui.editor` and `terrain`) are
   allow-listed in `BackendBoundaryTest`; do not add new ones.
 

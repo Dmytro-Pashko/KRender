@@ -1,8 +1,9 @@
 # Rendering Pipeline — Agent Deep Dive
 
 > Supplements `AGENTS.md` §7. Covers the render-command layer and the LibGDX renderer.
-> Core types: `core/.../engine/api/Render.kt`. Backend: `core/.../engine/backend/gdx/GdxRenderer3D.kt`
-> (`GdxRenderer3D`). Terrain rendering details now live in `docs/agents/tools/terrain-editor.md`
+> Core types: `core/.../engine/api/Render.kt`. Backend entry point:
+> `core/.../engine/backend/gdx/GdxRenderer3D.kt` (`GdxRenderer3D`) plus sub-renderers in the same
+> package. Terrain rendering details now live in `docs/agents/tools/terrain-editor.md`
 > and the shared runtime code under `core/.../engine/terrain/`.
 
 ## Principle
@@ -53,12 +54,15 @@ Per `render(context)`:
 1. `prepareSceneFrame()` resets GL state (disable scissor/blend/cull, enable depth) to avoid ImGui
    state leaking into the 3D pass (documented anti-blink fix).
 2. Clear color/depth; resolve the active `Camera` and `Environment` from the scene.
-3. If an `ApplyEnvironment` command exists, render the skybox (`GdxSkyboxRenderer`).
-4. Render lines (`GdxLineShaderRenderer`).
+3. If an `ApplyEnvironment` command exists, render the skybox (`GdxSkyboxRenderer.kt`).
+4. Render lines (`GdxLineShaderRenderer.kt`).
 5. Iterate commands: route `DrawModel` to normal / wireframe / material-debug
-   (`GdxModelViewerDebugRenderer`) / glTF-PBR-preview (`GdxGltfPbrPreviewRenderer`) paths; route
+   (`GdxModelViewerDebugRenderer.kt`) / glTF-PBR-preview (`GdxGltfPbrPreviewRenderer.kt`) paths; route
    `DrawDynamicModel` to dynamic/wireframe paths; uploads `runtimeTextures` first.
 6. Draw deferred wireframe + overlay lines.
+
+Shader sources used by the line and material-debug renderers live in `assets/shaders/` and are
+loaded through `GdxShaderSources`.
 
 Loaders: `.g3dj`/`.g3db` (`G3dModelLoader`), `.obj` (`ObjLoader`), `.gltf`/`.glb`
 (gdx-gltf `GLTFAssetLoader`/`GLBAssetLoader`). Models batch through libGDX `ModelBatch` with a
@@ -68,14 +72,14 @@ Loaders: `.g3dj`/`.g3db` (`G3dModelLoader`), `.obj` (`ObjLoader`), `.gltf`/`.glb
 
 The renderer keeps **per-entity** caches (`ModelInstance`, `AnimationController`, glTF scenes,
 primitives, dynamic models) keyed by `ModelCacheKey`. These are intentionally **separate** from
-`GdxAssetService`'s asset-scoped pose-sampling caches, so animation/skeleton sampling never mutates
-visible per-entity instances.
+`GdxModelPoseSampler`'s asset-scoped pose-sampling caches, so animation/skeleton sampling never
+mutates visible per-entity instances.
 
 ## Rules
 
 - Add new visualizations by extending a `RenderCommand` (core) and its handling in the renderer —
   never by drawing from a system.
-- Keep all GL/libGDX/gdx-gltf usage inside `GdxRenderer3D` and its sub-renderers.
+- Keep all GL/libGDX/gdx-gltf usage inside `GdxRenderer3D` and its sibling backend render helpers.
 - Backend-neutral texture data crosses the boundary as `RuntimeTextureData` (pixels) +
   `MaterialTextureRef` (binding by id) or `TexturePreviewHandle` (opaque preview) — never raw GL ids.
 

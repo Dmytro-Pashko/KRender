@@ -1,6 +1,15 @@
-package com.pashkd.krender.engine.editor.viewport
+package com.pashkd.krender.engine.tools.viewport
 
-import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.api.Component
+import com.pashkd.krender.engine.api.InputService
+import com.pashkd.krender.engine.api.InputSnapshot
+import com.pashkd.krender.engine.api.Key
+import com.pashkd.krender.engine.api.MouseButton
+import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.System
+import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.api.Vec2
+import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import kotlin.math.cos
 import kotlin.math.pow

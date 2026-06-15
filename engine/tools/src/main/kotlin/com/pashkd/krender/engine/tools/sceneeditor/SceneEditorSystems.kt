@@ -1,7 +1,7 @@
 package com.pashkd.krender.engine.tools.sceneeditor
 
 import com.pashkd.krender.engine.api.*
-import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraComponent
+import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent

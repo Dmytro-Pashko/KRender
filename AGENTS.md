@@ -223,13 +223,12 @@ backend-neutral data (`TexturePreviewHandle`, `RuntimeTextureData`, `ModelAssetI
 2. `RenderCommandBuffer.snapshot()` returns the commands sorted by `sortKey`.
 3. `GameLoop` builds a `RenderContext(scene, alpha, deltaSeconds, commands)` and calls
    `backend.renderer.render(context)`.
-4. `GdxRenderer3D` (`LibGdxBackend.kt`) interprets commands: it resolves the active camera
-   and environment, renders the skybox (`ApplyEnvironment`), then routes `DrawModel`/
-   `DrawDynamicModel` through normal, wireframe, material-debug, or glTF-PBR-preview paths,
-   plus a line renderer for grid/axes/lines. glTF models go through gdx-gltf; `.g3dj/.g3db/.obj`
-   go through libGDX loaders.
+4. `GdxRenderer3D` (`GdxRenderer3D.kt`) interprets commands: it resolves the active camera
+   and environment, delegates skyboxes, lines, material-debug, and glTF-PBR-preview rendering to
+   sibling backend helpers, then routes `DrawModel`/`DrawDynamicModel` through normal and
+   wireframe paths. glTF models go through gdx-gltf; `.g3dj/.g3db/.obj` go through libGDX loaders.
 5. Per-entity render caches (`ModelInstance`, `AnimationController`, glTF scenes) live in the
-   renderer and are intentionally separate from `GdxAssetService` pose-sampling caches.
+   renderer and are intentionally separate from `GdxModelPoseSampler` pose-sampling caches.
 
 Terrain rendering details live in `docs/agents/tools/terrain-editor.md` and the shared runtime code under
 `core/.../engine/terrain/`.
@@ -363,9 +362,9 @@ Scene Player (`engine:scene-player/.../ScenePlayerScene.kt`) is not an editor to
 | Scene | `Scene` / `SceneManager` | `api/Scene.kt` | Scene lifecycle + deferred stack. |
 | ECS | `SceneWorld`, `Entity`, `System`, `CommandBuffer` | `api/Ecs.kt` | Entity/component/system model. |
 | Render | `RenderCommand`, `Renderer`, `RenderCommandBuffer` | `api/Render.kt` | Backend-neutral draw layer. |
-| Render impl | `GdxRenderer3D` | `backend/gdx/GdxRenderer3D.kt` | Consumes commands via `ModelBatch`. |
+| Render impl | `GdxRenderer3D` + sibling helpers | `backend/gdx/GdxRenderer3D.kt` | Consumes commands via `ModelBatch` and delegates specialized backend rendering. |
 | Assets | `AssetService`, `AssetRef`, `AssetPack` | `api/Assets.kt` | Typed asset handles + loading. |
-| Assets impl | `GdxAssetService` | `backend/gdx/GdxAssetService.kt` | libGDX `AssetManager` loading + metadata. |
+| Assets impl | `GdxAssetService` + `GdxModelPoseSampler` | `backend/gdx/GdxAssetService.kt` | libGDX `AssetManager` loading, metadata, previews, and pose sampling. |
 | Asset registry | `LocalAssetRegistryService` / `NoOpAssetRegistryService` | `assets/AssetRegistryService.kt` | Editor asset scan + `.krmeta` (desktop); no-op (Android). |
 | Tasks | `TaskService` | `api/Tasks.kt` | Background/IO/main dispatch. |
 | Logging | `Logger`, `LogService`, `EngineLogService` | `api/Debug.kt` | Lazy structured logging + sinks. |

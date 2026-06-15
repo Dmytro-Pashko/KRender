@@ -3,8 +3,8 @@ package com.pashkd.krender.engine.tools.sceneeditor
 import com.pashkd.krender.engine.api.EntityId
 import com.pashkd.krender.engine.api.Vec2
 import com.pashkd.krender.engine.api.Vec3
-import com.pashkd.krender.engine.editor.viewport.EditorViewportCameraState
-import com.pashkd.krender.engine.editor.viewport.EditorViewportState
+import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraState
+import com.pashkd.krender.engine.tools.viewport.EditorViewportState
 import com.pashkd.krender.engine.scene.SceneValidationReport
 
 /**
