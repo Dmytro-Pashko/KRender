@@ -8,7 +8,6 @@ import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.game.AssetBrowserScene
 import com.pashkd.krender.game.RuntimeScene
-import com.pashkd.krender.game.UiComposerScene
 import java.lang.reflect.InvocationTargetException
 
 class Main(
@@ -31,19 +30,13 @@ class Main(
             terrainPath = configuredTerrainFilePath(),
             scenePath = scenePath,
             sceneNameOverride = configuredSceneNameOverride(),
+            uiScenePath = configuredUiScenePath(),
         ) ?: when (requestedScene.lowercase()) {
             "asset-browser" -> AssetBrowserScene()
 
             "runtime-scene" ->
                 RuntimeScene(
                     scenePath = scenePath ?: throw missingProperty("krender.scene.path", "runtime-scene"),
-                )
-
-            "ui-composer" ->
-                UiComposerScene(
-                    uiScenePath =
-                        configuredUiScenePath()
-                            ?: throw missingProperty("krender.ui.scene.path", requestedScene),
                 )
 
             else -> throw IllegalArgumentException(
@@ -86,6 +79,7 @@ class Main(
             terrainPath: String?,
             scenePath: String?,
             sceneNameOverride: String?,
+            uiScenePath: String?,
         ): Scene? =
             try {
                 val toolsModuleClass = Class.forName("com.pashkd.krender.engine.tools.ToolsModule")
@@ -97,8 +91,9 @@ class Main(
                         String::class.java,
                         String::class.java,
                         String::class.java,
+                        String::class.java,
                     )
-                createSceneMethod.invoke(null, sceneName, modelPath, terrainPath, scenePath, sceneNameOverride) as Scene?
+                createSceneMethod.invoke(null, sceneName, modelPath, terrainPath, scenePath, sceneNameOverride, uiScenePath) as Scene?
             } catch (_: ClassNotFoundException) {
                 null
             } catch (error: InvocationTargetException) {

@@ -56,16 +56,16 @@ KRender SDK/
 |   |   |   +-- assets/                   # Asset Browser logic, asset registry, import/export helpers
 |   |   |   +-- render3d/                 # 3D components, environment, render systems
 |   |   |   +-- scene/                    # Scene config, serialization, file and launcher services
-|   |   |   +-- sceneeditor/              # Scene Editor internals
+|   |   |   +-- sceneeditor/              # Shared editor bounds helpers used across tools
 |   |   |   +-- terrain/                  # Shared terrain runtime/persistence
-|   |   |   +-- uicomposer/               # UI Composer placeholder internals
+|   |   |   +-- uicomposer/               # Shared UI Composer model/helpers used by the tool + backend preview
 |   |   |   +-- ui/editor/                # ImGui editor UI
 |   |   |   +-- ui/runtime/               # Scene2D runtime UI service
 |   |   |   +-- ui/scene/                 # `.krui` model, serializer, validators
 |   |   +-- game/                         # Top-level Scene classes (tools + runtime player)
 |   +-- src/test/kotlin/...               # Pure JVM unit tests
 +-- engine/
-|   +-- tools/                            # Editor tool module; currently hosts Model Viewer, Animation Viewer, and Terrain Editor
+|   +-- tools/                            # Editor tool module; currently hosts Model Viewer, Animation Viewer, Terrain Editor, and Scene Editor
 +-- games/
 |   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
 +-- apps/

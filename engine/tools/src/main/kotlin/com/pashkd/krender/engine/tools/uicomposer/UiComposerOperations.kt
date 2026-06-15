@@ -1,8 +1,9 @@
-package com.pashkd.krender.engine.uicomposer
+package com.pashkd.krender.engine.tools.uicomposer
 
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.uicomposer.*
 import com.pashkd.krender.engine.ui.scene.*
 
 /**

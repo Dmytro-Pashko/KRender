@@ -1,4 +1,4 @@
-package com.pashkd.krender.game
+package com.pashkd.krender.engine.tools.uicomposer
 
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.backend.gdx.ui.composer.GdxUiComposerSkinMetadataReader

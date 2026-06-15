@@ -54,8 +54,8 @@ KRender SDK/
 |   |   |   +-- backend/gdx/              # LibGDX backend adapter (owns all Gdx.* / OpenGL)
 |   |   |   +-- assets/                   # Asset Browser tool + asset registry/metadata/importers
 |   |   |   +-- terrain/                  # Shared terrain runtime/mesh/persistence infrastructure
-|   |   |   +-- sceneeditor/              # Scene Editor tool internals
-|   |   |   +-- uicomposer/               # UI Composer (placeholder) internals
+|   |   |   +-- sceneeditor/              # Shared editor bounds helpers used across tools
+|   |   |   +-- uicomposer/               # Shared UI Composer model/helpers used by the tool + backend preview
 |   |   |   +-- scene/                    # Scene config, serialization, file/launch services
 |   |   |   +-- ui/editor/                # ImGui editor UI primitives (UiService, panels, layout)
 |   |   |   +-- ui/runtime/               # Scene2D-style runtime game UI service
@@ -331,14 +331,13 @@ visualizes the skeleton/pose. → `docs/agents/tools/animation-viewer.md`
 terrain with layers, material preview baking, and persistence. → `docs/agents/tools/terrain-editor.md`
 
 ### Scene Editor
-`game/SceneEditorScene.kt` (+ `engine/sceneeditor/`). Composes engine scene documents
+`engine/tools/.../sceneeditor/SceneEditorScene.kt` (+ sibling editor files in `engine:tools`, shared bounds helpers in `core/.../engine/sceneeditor/`). Composes engine scene documents
 (`.krscene`): hierarchy, inspector, selection, gizmos, environment, asset panel.
 → `docs/agents/tools/scene-editor.md`
 
-### UI Composer (placeholder)
-`game/UiComposerScene.kt` (+ `engine/uicomposer/`). A deliberately scoped placeholder route for
-`.krui` UiScene assets. Does **not** yet implement preview rendering, editing, drag/drop, Skin
-authoring, or save workflows. → `docs/agents/tools/ui-composer.md`
+### UI Composer
+`engine/tools/.../uicomposer/UiComposerScene.kt` (+ scene/layout/panel/operations files in `engine:tools`, shared `.krui` editor model/helpers in `core/.../engine/uicomposer/`). Opens
+`.krui` UiScene assets for validation-focused preview and inspection workflows. → `docs/agents/tools/ui-composer.md`
 
 ### Non-tool scenes
 `RuntimeScene` (runtime/player for `.krscene`) is not an editor tool but shares the same engine

@@ -11,8 +11,9 @@ scene for composing and inspecting engine scene data".
 
 ## Current Implementation
 
-- Scene: `core/.../game/SceneEditorScene.kt`.
-- Tool internals: `core/.../engine/sceneeditor/`.
+- Scene: `engine/tools/.../sceneeditor/SceneEditorScene.kt`.
+- Tool internals: `engine/tools/.../sceneeditor/`.
+- Shared bounds helpers reused by other tools remain in `core/.../engine/sceneeditor/SceneEditorBounds.kt`.
 - Launched as a separate JVM window by `Lwjgl3EditorToolLauncher.launchSceneEditorWithScene(path)`
   (`krender.scene=scene-editor`, `krender.scene.path=<path>`). Can also open empty (in-memory).
 - Note the two-world design: the scene's own `world` hosts editor systems/camera, while
@@ -22,15 +23,15 @@ scene for composing and inspecting engine scene data".
 
 | File | Responsibility |
 |---|---|
-| `game/SceneEditorScene.kt` | Composition: editor camera, document, operations, systems, panels. |
-| `engine/sceneeditor/SceneEditorDocument.kt` | Holds the edited scene's `SceneWorld` + document model. |
-| `engine/sceneeditor/SceneEditorOperations.kt` | New/open/save, entity add/remove, edits. |
-| `engine/sceneeditor/SceneEditorState.kt` | Editor UI state (selection, camera, scene name/path). |
-| `engine/sceneeditor/SceneEditorSystems.kt` | Selection, bounding box, light gizmo/sync, terrain sync, environment, document render systems. |
-| `engine/sceneeditor/SceneEditorComponents.kt` | `EditorOnlyComponent` + editor components. |
+| `engine/tools/.../sceneeditor/SceneEditorScene.kt` | Composition: editor camera, document, operations, systems, panels. |
+| `engine/tools/.../sceneeditor/SceneEditorDocument.kt` | Holds the edited scene's `SceneWorld` + document model. |
+| `engine/tools/.../sceneeditor/SceneEditorOperations.kt` | New/open/save, entity add/remove, edits. |
+| `engine/tools/.../sceneeditor/SceneEditorState.kt` | Editor UI state (selection, camera, scene name/path). |
+| `engine/tools/.../sceneeditor/SceneEditorSystems.kt` | Selection, bounding box, light gizmo/sync, terrain sync, environment, document render systems. |
+| `engine/tools/.../sceneeditor/SceneEditorComponents.kt` | `EditorOnlyComponent` + editor components. |
 | `engine/sceneeditor/SceneEditorBounds.kt` | `SceneEditorBoundsProvider` + bounds services. |
-| `engine/sceneeditor/SceneEditorPanels.kt` | Toolbar, hierarchy, inspector, viewport panels. |
-| `engine/sceneeditor/SceneAssetPanel.kt` | Asset panel + `SceneAssetBrowserModel`. |
+| `engine/tools/.../sceneeditor/SceneEditorPanels.kt` | Toolbar, hierarchy, inspector, viewport panels. |
+| `engine/tools/.../sceneeditor/SceneAssetPanel.kt` | Asset panel + `SceneAssetBrowserModel`. |
 | `engine/scene/SceneSerializer.kt`, `SceneDescriptors.kt`, `SceneAssetCollector.kt` | `.krscene` (de)serialization + asset collection. |
 
 ## Main Classes

@@ -1,10 +1,11 @@
-package com.pashkd.krender.engine.uicomposer
+package com.pashkd.krender.engine.tools.uicomposer
 
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.ui.editor.*
+import com.pashkd.krender.engine.uicomposer.*
 import com.pashkd.krender.engine.ui.scene.*
 import imgui.ImGui
 import imgui.dsl

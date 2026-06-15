@@ -19,8 +19,9 @@ Skin-backed styles/backgrounds and Asset-Registry-backed Image textures.
 
 ## Current Implementation
 
-- Scene: `core/.../game/UiComposerScene.kt`.
-- Tool internals: `core/.../engine/uicomposer/`.
+- Scene: `engine/tools/.../uicomposer/UiComposerScene.kt`.
+- Tool internals moved to `engine/tools/.../uicomposer/` for the scene/layout/panel/operations layer.
+- Shared editor model/helpers remain in `core/.../engine/uicomposer/`.
 - Shared `.krui` model + validation: `core/.../engine/ui/scene/`.
 - Backend preview: `core/.../engine/backend/gdx/ui/composer/GdxUiScenePreview.kt`,
   `GdxUiComposerSkinMetadataReader.kt`.
@@ -31,12 +32,12 @@ Skin-backed styles/backgrounds and Asset-Registry-backed Image textures.
 
 | File | Responsibility |
 |---|---|
-| `game/UiComposerScene.kt` | Composition; document load/reload, preview rebuild, save, undo/redo, canvas interaction system. |
-| `engine/uicomposer/UiComposerState.kt` (`UiComposerModel.kt`) | Editor document + UI state. |
-| `engine/uicomposer/UiComposerOperations.kt` | Edit/save/undo/redo operations. |
-| `engine/uicomposer/UiComposerDocumentEditing.kt`, `UiComposerHistory.kt` | Structure editing + history. |
-| `engine/uicomposer/UiComposerPanels.kt` | Toolbar, preview canvas, hierarchy, structure, inspector, scene bindings, diagnostics panels. |
-| `engine/uicomposer/UiComposerStyleValidation.kt`, `UiComposerBindingHelpers.kt` | Style/binding validation helpers. |
+| `engine/tools/.../uicomposer/UiComposerScene.kt` | Composition; document load/reload, preview rebuild, save, undo/redo, canvas interaction system. |
+| `core/.../engine/uicomposer/UiComposerState.kt` (`UiComposerModel.kt`) | Shared editor document + preview state used by the tool and backend preview. |
+| `engine/tools/.../uicomposer/UiComposerOperations.kt` | Edit/save/undo/redo operations. |
+| `core/.../engine/uicomposer/UiComposerDocumentEditing.kt`, `UiComposerHistory.kt` | Structure editing + history helpers. |
+| `engine/tools/.../uicomposer/UiComposerPanels.kt` | Toolbar, preview canvas, hierarchy, structure, inspector, scene bindings, diagnostics panels. |
+| `core/.../engine/uicomposer/UiComposerStyleValidation.kt`, `UiComposerBindingHelpers.kt` | Style/binding validation helpers. |
 | `engine/ui/scene/UiSceneDocument.kt`, `UiSceneSerializer.kt`, `UiSceneValidation.kt` | Shared `.krui` model + validators (also used by runtime UI). |
 | `backend/gdx/ui/composer/GdxUiScenePreview.kt` | Scene2D preview Stage/Skin/overlay (backend). |
 

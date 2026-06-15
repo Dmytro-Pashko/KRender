@@ -4,6 +4,7 @@ import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.tools.animationviewer.AnimationViewerScene
 import com.pashkd.krender.engine.tools.modelviewer.ModelViewerScene
 import com.pashkd.krender.engine.tools.sceneeditor.SceneEditorScene
+import com.pashkd.krender.engine.tools.uicomposer.UiComposerScene
 
 object ToolsModule {
     @JvmStatic
@@ -13,6 +14,7 @@ object ToolsModule {
         terrainPath: String? = null,
         scenePath: String? = null,
         sceneNameOverride: String? = null,
+        uiScenePath: String? = null,
     ): Scene? =
         when (sceneName.lowercase()) {
             "model-viewer" -> ModelViewerScene(modelPath ?: throw missingProperty("krender.model.path", sceneName))
@@ -22,6 +24,7 @@ object ToolsModule {
                     terrainPath ?: throw missingProperty("krender.terrain.path", sceneName),
                 )
             "scene-editor" -> SceneEditorScene(scenePath = scenePath, initialSceneName = sceneNameOverride)
+            "ui-composer" -> UiComposerScene(uiScenePath ?: throw missingProperty("krender.ui.scene.path", sceneName))
             else -> null
         }
 
