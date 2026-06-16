@@ -318,6 +318,12 @@ On desktop they are opened as **separate JVM windows** by `Lwjgl3EditorToolLaunc
 Scene playback routes are handled separately by `engine:scene-player` through `ScenePlayerModule`.
 Desktop bootstrap is platform-local: Windows, macOS, and Linux each have their own self-contained
 `desktop-lwjgl3-*` launcher module with a local `DesktopMain` composition.
+The small duplication across `DesktopMain`, `DesktopApplication`, platform `*Lwjgl3Launcher`
+entry points, and the `Lwjgl3EditorToolLauncher` / `Lwjgl3RuntimeWindowLauncher` /
+`Lwjgl3JvmProcessLauncher` helpers is intentional: it keeps startup/configuration local to each
+platform and avoids a misleading shared launcher module. When changing duplicated
+launcher/bootstrap files, review and synchronize the change across `desktop-lwjgl3-win`,
+`desktop-lwjgl3-macos`, and `desktop-lwjgl3-linux`.
 
 Each tool has a dedicated context file under `docs/agents/tools/`. Read it before changing
 that tool.

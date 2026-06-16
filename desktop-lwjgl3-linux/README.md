@@ -30,3 +30,9 @@ desktop-lwjgl3-linux
 
 Launcher logic is split by platform so Linux driver startup policy, runtime composition,
 secondary launchers, and packaging stay readable in one module.
+
+Duplication of `DesktopMain`, `DesktopApplication`, `LinuxLwjgl3Launcher`, and the secondary
+JVM launcher helpers is intentional. When changing duplicated launcher/bootstrap files, review and
+synchronize the same change across `desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, and
+`desktop-lwjgl3-linux` so platform startup/configuration stays local without a misleading shared
+launcher module.

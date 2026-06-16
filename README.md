@@ -84,6 +84,12 @@ Gradle subprojects currently loaded by `settings.gradle`:
 The root `assets/` directory remains the shared asset tree for the editor/runtime app. Woolboy ships its own curated
 runtime content from `games/woolboy/src/main/resources/assets/woolboy/`.
 
+The desktop launcher modules intentionally duplicate a small amount of bootstrap code. Keeping
+`DesktopMain`, `DesktopApplication`, the platform `*Lwjgl3Launcher` entry points, and secondary
+JVM launchers local to each platform keeps startup/configuration easy to inspect and avoids a
+misleading shared launcher module. When changing duplicated launcher files, review and synchronize
+the update across `desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, and `desktop-lwjgl3-linux`.
+
 The intended dependency direction is:
 
 ```text

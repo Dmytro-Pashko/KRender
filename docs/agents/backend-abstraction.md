@@ -76,6 +76,11 @@ Desktop tools and the runtime player run as **separate JVM processes**, not in-p
 - `DesktopMain` composes `ToolsModule` and `ScenePlayerModule` for desktop routes inside each platform launcher module.
 - `desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, and `desktop-lwjgl3-linux` own platform-local
   startup policy, run config, packaging, runtime composition, and secondary JVM launchers.
+- The duplicated desktop bootstrap code is intentional. Keep `DesktopMain`, `DesktopApplication`,
+  platform `*Lwjgl3Launcher` entry points, `Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`,
+  and `Lwjgl3JvmProcessLauncher` synchronized across all three platform modules when changing any
+  of them; this keeps platform startup/configuration local without reintroducing a misleading shared
+  launcher module.
 - Android creates `GdxEngineApplication` directly and gets its initial `.krscene` scene from
   `ScenePlayerModule`.
 - Backends that cannot spawn windows use `UnsupportedEditorToolLauncher` /
