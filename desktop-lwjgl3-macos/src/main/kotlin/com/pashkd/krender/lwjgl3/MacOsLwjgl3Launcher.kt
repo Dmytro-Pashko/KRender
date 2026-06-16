@@ -3,10 +3,10 @@
 package com.pashkd.krender.lwjgl3
 
 fun main(args: Array<String>) {
-    if (MacOsStartupPolicy.startNewJvmIfRequired(MainClassName)) {
+    if (MacOsStartupPolicy.startNewJvmIfRequired(MAIN_CLASS_NAME)) {
         return
     }
-    launchKRenderDesktopApplication(args, MainClassName)
+    launchKRenderDesktopApplication(args, MAIN_CLASS_NAME)
 }
 
-private const val MainClassName = "com.pashkd.krender.lwjgl3.MacOsLwjgl3Launcher"
+private const val MAIN_CLASS_NAME = "com.pashkd.krender.lwjgl3.MacOsLwjgl3Launcher"

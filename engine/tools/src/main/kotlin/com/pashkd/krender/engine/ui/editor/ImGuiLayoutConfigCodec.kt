@@ -227,14 +227,12 @@ object ImGuiLayoutConfigCodec {
     private fun JsonObject.string(
         name: String,
         fallbackValue: String,
-    ): String =
-        primitive(name)?.contentOrNull ?: fallbackValue
+    ): String = primitive(name)?.contentOrNull ?: fallbackValue
 
     private fun JsonObject.float(
         name: String,
         fallbackValue: Float,
-    ): Float =
-        primitive(name)?.floatOrNull ?: fallbackValue
+    ): Float = primitive(name)?.floatOrNull ?: fallbackValue
 
     private fun JsonObject.primitive(name: String) = this[name] as? JsonPrimitive
 

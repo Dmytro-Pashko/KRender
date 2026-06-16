@@ -3,10 +3,10 @@
 package com.pashkd.krender.lwjgl3
 
 fun main(args: Array<String>) {
-    if (LinuxStartupPolicy.startNewJvmIfRequired(MainClassName)) {
+    if (LinuxStartupPolicy.startNewJvmIfRequired(MAIN_CLASS_NAME)) {
         return
     }
-    launchKRenderDesktopApplication(args, MainClassName)
+    launchKRenderDesktopApplication(args, MAIN_CLASS_NAME)
 }
 
-private const val MainClassName = "com.pashkd.krender.lwjgl3.LinuxLwjgl3Launcher"
+private const val MAIN_CLASS_NAME = "com.pashkd.krender.lwjgl3.LinuxLwjgl3Launcher"

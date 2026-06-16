@@ -81,6 +81,9 @@ Gradle subprojects currently loaded by `settings.gradle`:
 - `games:woolboy` - Standalone Woolboy gameplay/client module built on top of `core`.
 - `apps:woolboy-desktop` - Desktop Woolboy application and executable JAR packaging module.
 
+The root Gradle conventions now live in `build.gradle.kts`, which owns the shared JVM defaults,
+repositories, root `detekt`/`ktlint` wiring, and repository-wide static-analysis source coverage.
+
 The root `assets/` directory remains the shared asset tree for the editor/runtime app. Woolboy ships its own curated
 runtime content from `games/woolboy/src/main/resources/assets/woolboy/`.
 

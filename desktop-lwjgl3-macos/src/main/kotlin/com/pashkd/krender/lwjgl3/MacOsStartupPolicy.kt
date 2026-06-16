@@ -17,37 +17,44 @@ object MacOsStartupPolicy {
     fun startNewJvmIfRequired(
         mainClassName: String,
         inheritIO: Boolean = true,
-    ): Boolean {
-        if (System.getProperty("org.graalvm.nativeimage.imagecode", "").isNotEmpty()) return false
-        if (isMainThread()) return false
+    ): Boolean =
+        if (shouldUseCurrentJvm()) {
+            false
+        } else {
+            val javaExecPath = "${System.getProperty("java.home")}/bin/java"
+            preflightError(javaExecPath)?.let { errorMessage ->
+                System.err.println(errorMessage)
+                false
+            } ?: run {
+                val command =
+                    buildList {
+                        add(javaExecPath)
+                        add("-XstartOnFirstThread")
+                        add("-D$JVM_RESTARTED_ARG=true")
+                        addAll(ManagementFactory.getRuntimeMXBean().inputArguments)
+                        add("-cp")
+                        add(System.getProperty("java.class.path"))
+                        add(mainClassName)
+                    }
 
-        val processId = LibC.getpid()
-        if (System.getenv("JAVA_STARTED_ON_FIRST_THREAD_$processId") == "1") return false
-
-        if (System.getProperty(JVM_RESTARTED_ARG) == "true") {
-            System.err.println(CHILD_LOOP_ERROR)
-            return false
+                startChild(command, inheritIO)
+            }
         }
 
-        val javaExecPath = "${System.getProperty("java.home")}/bin/java"
-        if (!File(javaExecPath).exists()) {
-            System.err.println(JRE_ERROR)
-            return false
-        }
-
-        val command =
-            buildList {
-                add(javaExecPath)
-                add("-XstartOnFirstThread")
-                add("-D$JVM_RESTARTED_ARG=true")
-                addAll(ManagementFactory.getRuntimeMXBean().inputArguments)
-                add("-cp")
-                add(System.getProperty("java.class.path"))
-                add(mainClassName)
+    private fun shouldUseCurrentJvm(): Boolean =
+        System.getProperty("org.graalvm.nativeimage.imagecode", "").isNotEmpty() ||
+            isMainThread() ||
+            run {
+                val processId = LibC.getpid()
+                System.getenv("JAVA_STARTED_ON_FIRST_THREAD_$processId") == "1"
             }
 
-        return startChild(command, inheritIO)
-    }
+    private fun preflightError(javaExecPath: String): String? =
+        when {
+            System.getProperty(JVM_RESTARTED_ARG) == "true" -> CHILD_LOOP_ERROR
+            !File(javaExecPath).exists() -> JRE_ERROR
+            else -> null
+        }
 
     private fun isMainThread(): Boolean {
         val objcMsgSend = ObjCRuntime.getLibrary().getFunctionAddress("objc_msgSend")

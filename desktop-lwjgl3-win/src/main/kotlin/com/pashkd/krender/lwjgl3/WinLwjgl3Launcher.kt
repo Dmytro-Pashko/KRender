@@ -4,7 +4,7 @@ package com.pashkd.krender.lwjgl3
 
 fun main(args: Array<String>) {
     WinStartupPolicy.prepare()
-    launchKRenderDesktopApplication(args, MainClassName)
+    launchKRenderDesktopApplication(args, MAIN_CLASS_NAME)
 }
 
-private const val MainClassName = "com.pashkd.krender.lwjgl3.WinLwjgl3Launcher"
+private const val MAIN_CLASS_NAME = "com.pashkd.krender.lwjgl3.WinLwjgl3Launcher"

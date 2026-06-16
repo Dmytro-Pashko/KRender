@@ -1,6 +1,7 @@
 # Static Analysis
 
-KRender now has a root static-analysis workflow for Kotlin formatting, static analysis, JVM verification, and unit test coverage reporting for the `core` module.
+KRender now has a root static-analysis workflow in `build.gradle.kts` for Kotlin formatting,
+static analysis, JVM verification, and unit test coverage reporting for the `core` module.
 The source scan includes nested game/app modules such as `games:woolboy` and `apps:woolboy-desktop`,
 plus the platform desktop launcher modules.
 

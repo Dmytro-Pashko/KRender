@@ -14,7 +14,11 @@ apply(plugin = "com.android.application")
 apply(plugin = "kotlin-android")
 
 val gdxVersion: String by project
-val androidAssetsDir = layout.buildDirectory.dir("generated/filtered-android-assets").get().asFile
+val androidAssetsDir =
+    layout.buildDirectory
+        .dir("generated/filtered-android-assets")
+        .get()
+        .asFile
 val natives by configurations.creating
 
 // Filters desktop/editor-only files out of the shared assets tree before Android packaging.

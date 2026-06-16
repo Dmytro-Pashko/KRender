@@ -14,33 +14,37 @@ object LinuxStartupPolicy {
     fun startNewJvmIfRequired(
         mainClassName: String,
         inheritIO: Boolean = true,
-    ): Boolean {
-        if (!isLinuxNvidia()) return false
-        if (System.getenv("__GL_THREADED_OPTIMIZATIONS") == "0") return false
+    ): Boolean =
+        if (shouldUseCurrentJvm()) {
+            false
+        } else {
+            val javaExecPath = "${System.getProperty("java.home")}/bin/java"
+            preflightError(javaExecPath)?.let { errorMessage ->
+                System.err.println(errorMessage)
+                false
+            } ?: run {
+                val command =
+                    buildList {
+                        add(javaExecPath)
+                        add("-D$JVM_RESTARTED_ARG=true")
+                        addAll(ManagementFactory.getRuntimeMXBean().inputArguments)
+                        add("-cp")
+                        add(System.getProperty("java.class.path"))
+                        add(mainClassName)
+                    }
 
-        if (System.getProperty(JVM_RESTARTED_ARG) == "true") {
-            System.err.println(CHILD_LOOP_ERROR)
-            return false
-        }
-
-        val javaExecPath = "${System.getProperty("java.home")}/bin/java"
-        if (!File(javaExecPath).exists()) {
-            System.err.println(JRE_ERROR)
-            return false
-        }
-
-        val command =
-            buildList {
-                add(javaExecPath)
-                add("-D$JVM_RESTARTED_ARG=true")
-                addAll(ManagementFactory.getRuntimeMXBean().inputArguments)
-                add("-cp")
-                add(System.getProperty("java.class.path"))
-                add(mainClassName)
+                startChild(command, inheritIO)
             }
+        }
 
-        return startChild(command, inheritIO)
-    }
+    private fun shouldUseCurrentJvm(): Boolean = !isLinuxNvidia() || System.getenv("__GL_THREADED_OPTIMIZATIONS") == "0"
+
+    private fun preflightError(javaExecPath: String): String? =
+        when {
+            System.getProperty(JVM_RESTARTED_ARG) == "true" -> CHILD_LOOP_ERROR
+            !File(javaExecPath).exists() -> JRE_ERROR
+            else -> null
+        }
 
     private fun isLinuxNvidia(): Boolean = File("/proc/driver").list { _, path -> "NVIDIA" in path.uppercase() }.isNullOrEmpty().not()
 

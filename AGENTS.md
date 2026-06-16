@@ -76,7 +76,7 @@ KRender SDK/
 +-- android/               # Android launcher (requires Android SDK)
 +-- assets/                # Shared runtime assets (models, textures, terrains, scenes, ui, skyboxes)
 +-- docs/                  # Documentation + screenshots (agents/, screenshot/)
-+-- build.gradle, settings.gradle, gradle.properties
++-- build.gradle.kts, settings.gradle, gradle.properties
 ```
 
 Gradle subprojects (`settings.gradle`): `core`, `engine:backend-gdx`, `engine:tools`, `engine:scene-player`,

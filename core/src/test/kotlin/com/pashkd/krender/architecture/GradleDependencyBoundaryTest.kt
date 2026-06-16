@@ -9,7 +9,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class GradleDependencyBoundaryTest {
-
     @Test
     fun `backend neutral modules do not depend on gdx backend artifacts`() {
         val violations = mutableListOf<String>()
@@ -86,44 +85,49 @@ class GradleDependencyBoundaryTest {
     private companion object {
         private val root: Path = repositoryRoot()
 
-        private val backendDependencyPatterns = listOf(
-            "com.badlogicgames.gdx:gdx",
-            "com.github.mgsx-dev.gdx-gltf:gltf",
-            "imgui-gl",
-            "project(':engine:backend-gdx')",
-            "project(\":engine:backend-gdx\")",
-        )
+        private val backendDependencyPatterns =
+            listOf(
+                "com.badlogicgames.gdx:gdx",
+                "com.github.mgsx-dev.gdx-gltf:gltf",
+                "imgui-gl",
+                "project(':engine:backend-gdx')",
+                "project(\":engine:backend-gdx\")",
+            )
 
-        private val forbiddenDependencyChecks = listOf(
-            DependencyCheck(
-                module = "core",
-                buildFile = "core/build.gradle.kts",
-                forbiddenPatterns = backendDependencyPatterns,
-            ),
-            DependencyCheck(
-                module = "engine:scene-player",
-                buildFile = "engine/scene-player/build.gradle.kts",
-                forbiddenPatterns = backendDependencyPatterns,
-            ),
-            DependencyCheck(
-                module = "games:woolboy",
-                buildFile = "games/woolboy/build.gradle.kts",
-                forbiddenPatterns = backendDependencyPatterns + listOf(
-                    "project(':engine:tools')",
-                    "project(\":engine:tools\")",
+        private val forbiddenDependencyChecks =
+            listOf(
+                DependencyCheck(
+                    module = "core",
+                    buildFile = "core/build.gradle.kts",
+                    forbiddenPatterns = backendDependencyPatterns,
                 ),
-            ),
-            DependencyCheck(
-                module = "engine:tools",
-                buildFile = "engine/tools/build.gradle.kts",
-                forbiddenPatterns = listOf(
-                    "com.github.mgsx-dev.gdx-gltf:gltf",
-                    "imgui-gl",
-                    "project(':engine:backend-gdx')",
-                    "project(\":engine:backend-gdx\")",
+                DependencyCheck(
+                    module = "engine:scene-player",
+                    buildFile = "engine/scene-player/build.gradle.kts",
+                    forbiddenPatterns = backendDependencyPatterns,
                 ),
-            ),
-        )
+                DependencyCheck(
+                    module = "games:woolboy",
+                    buildFile = "games/woolboy/build.gradle.kts",
+                    forbiddenPatterns =
+                        backendDependencyPatterns +
+                            listOf(
+                                "project(':engine:tools')",
+                                "project(\":engine:tools\")",
+                            ),
+                ),
+                DependencyCheck(
+                    module = "engine:tools",
+                    buildFile = "engine/tools/build.gradle.kts",
+                    forbiddenPatterns =
+                        listOf(
+                            "com.github.mgsx-dev.gdx-gltf:gltf",
+                            "imgui-gl",
+                            "project(':engine:backend-gdx')",
+                            "project(\":engine:backend-gdx\")",
+                        ),
+                ),
+            )
 
         private val desktopLauncherBuildFiles =
             listOf(
@@ -143,10 +147,14 @@ class GradleDependencyBoundaryTest {
         private fun repositoryRoot(): Path {
             var current = Path("").toAbsolutePath().normalize()
             while (current.parent != null) {
-                if (current.resolve("settings.gradle").exists()) return current
+                if (current.resolve("settings.gradle").exists()) {
+                    return current
+                }
                 current = current.parent
             }
-            error("Could not locate repository root from '${Path("").toAbsolutePath().absolutePathString()}'")
+            error(
+                "Could not locate repository root from '${Path("").toAbsolutePath().absolutePathString()}'",
+            )
         }
     }
 }

@@ -192,8 +192,7 @@ class BackendBoundaryTest {
             )
 
         /**
-         * TODO: Move these editor-only GDX helpers behind a platform/tool adapter module.
-         * They are kept explicit so new engine:tools GDX imports still fail Rule A.
+         * Known editor-only GDX helpers remain explicit so new engine:tools GDX imports still fail Rule A.
          */
         val KNOWN_TOOL_GDX_IMPORTS =
             setOf(
