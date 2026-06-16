@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:65854677-7e89-40c0-87f1-c58ec2dbc269",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "stone_pile_01",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

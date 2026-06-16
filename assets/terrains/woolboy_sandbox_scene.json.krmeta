@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:2e22fd68-ad66-454e-88fd-8e25a416ad7e",
+  "type": "Terrain",
+  "category": "Terrain",
+  "displayName": "woolboy_sandbox_scene",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:806b7938-d37c-4827-bda6-102177d1365b",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "hud_heart_full",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

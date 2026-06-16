@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:c5394e83-fc59-4cfa-b855-87ded6e5d604",
+  "type": "UiScene",
+  "category": "UI",
+  "displayName": "woolboy_loading",
+  "tags": [],
+  "importerId": "ui-scene",
+  "importSettings": {}
+}

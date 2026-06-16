@@ -1,0 +1,46 @@
+{
+  "panels": {
+    "sceneToolbar": {
+      "title": "Scene Toolbar",
+      "x": 5,
+      "y": 9,
+      "width": 653,
+      "height": 94
+    },
+    "sceneHierarchy": {
+      "title": "Scene Hierarchy",
+      "x": 7,
+      "y": 111,
+      "width": 401,
+      "height": 667
+    },
+    "sceneAssets": {
+      "title": "Assets",
+      "x": 7,
+      "y": 784,
+      "width": 406,
+      "height": 491
+    },
+    "sceneViewport": {
+      "title": "Scene Viewport",
+      "x": 1569,
+      "y": 6,
+      "width": 344,
+      "height": 253
+    },
+    "sceneInspector": {
+      "title": "Scene Inspector",
+      "x": 1568,
+      "y": 264,
+      "width": 345,
+      "height": 770
+    },
+    "runtimeLogs": {
+      "title": "Runtime Logs",
+      "x": 416,
+      "y": 1039,
+      "width": 1497,
+      "height": 237
+    }
+  }
+}

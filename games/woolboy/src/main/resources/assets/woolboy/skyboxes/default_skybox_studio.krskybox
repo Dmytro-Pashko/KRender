@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "id": "skybox:default_studio",
+  "name": "Default Studio Skybox",
+  "texturePath": "assets/woolboy/textures/default_skybox_studio.png",
+  "intensity": 1.0
+}

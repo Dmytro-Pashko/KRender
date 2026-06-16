@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "woolboy_final_results",
+  "skin": "ui/skins/craftacular-ui.json",
+  "bindings": [
+    {
+      "key": "scores",
+      "type": "Number",
+      "defaultValue": "1230"
+    }
+  ],
+  "root": {
+    "id": "root",
+    "type": "Stack",
+    "children": [
+      {
+        "id": "final_results_container",
+        "type": "Container",
+        "align": "Center",
+        "padding": {
+          "left": 40,
+          "top": 40,
+          "right": 40,
+          "bottom": 40
+        },
+        "children": [
+          {
+            "id": "final_results_panel",
+            "type": "Table",
+            "background": "window",
+            "padding": {
+              "left": 32,
+              "top": 32,
+              "right": 32,
+              "bottom": 32
+            },
+            "spacing": 24,
+            "children": [
+              {
+                "id": "title",
+                "type": "Label",
+                "style": "title",
+                "text": "Final Result",
+                "align": "Center"
+              },
+              {
+                "id": "score",
+                "type": "Label",
+                "text": "Score: {scores}",
+                "align": "Center"
+              },
+              {
+                "id": "restart_button",
+                "type": "TextButton",
+                "style": "default",
+                "text": "Restart",
+                "action": "woolboy.restart",
+                "width": 400,
+                "height": 100
+              },
+              {
+                "id": "settings_button",
+                "type": "TextButton",
+                "style": "default",
+                "text": "Settings",
+                "action": "woolboy.settings",
+                "width": 400,
+                "height": 100
+              },
+              {
+                "id": "exit_button",
+                "type": "TextButton",
+                "style": "default",
+                "text": "Exit",
+                "action": "woolboy.exit",
+                "width": 400,
+                "height": 100
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "formatVersion": 1,
+  "materials": [
+    {
+      "id": "terrain/sand",
+      "name": "Sand",
+      "albedoTexture": "textures/t_sand_01_s.png",
+      "fallbackColor": { "r": 0.78, "g": 0.63, "b": 0.35, "a": 1.0 },
+      "defaultTiling": 8.0
+    },
+    {
+      "id": "terrain/dirt",
+      "name": "Dirt",
+      "albedoTexture": "textures/t_dirt_01_s.png",
+      "fallbackColor": { "r": 0.38, "g": 0.25, "b": 0.15, "a": 1.0 },
+      "defaultTiling": 8.0
+    },
+    {
+      "id": "terrain/ground_grass",
+      "name": "Ground + Grass",
+      "albedoTexture": "textures/t_ground_01_s.png",
+      "fallbackColor": { "r": 0.24, "g": 0.42, "b": 0.18, "a": 1.0 },
+      "defaultTiling": 8.0
+    },
+    {
+      "id": "terrain/grass",
+      "name": "Grass",
+      "albedoTexture": "textures/t_grass_01_s.png",
+      "fallbackColor": { "r": 0.18, "g": 0.55, "b": 0.14, "a": 1.0 },
+      "defaultTiling": 8.0
+    },
+    {
+      "id": "terrain/gravel",
+      "name": "Gravel",
+      "albedoTexture": "textures/t_gravel_02_s.png",
+      "fallbackColor": { "r": 0.45, "g": 0.43, "b": 0.39, "a": 1.0 },
+      "defaultTiling": 8.0
+    },
+    {
+      "id": "terrain/stone",
+      "name": "Stone",
+      "albedoTexture": "textures/t_stone_01_s.png",
+      "fallbackColor": { "r": 0.191, "g": 0.191, "b": 0.191, "a": 1.0 },
+      "defaultTiling": 8.0
+    },
+    {
+      "id": "terrain/moss",
+      "name": "Moss",
+      "albedoTexture": "textures/t_ground_moss_01_s.png",
+      "fallbackColor": { "r": 0.191, "g": 0.191, "b": 0.222, "a": 1.0 },
+      "defaultTiling": 8.0
+    }
+  ]
+}

@@ -1,0 +1,1412 @@
+{
+  "schemaVersion": 1,
+  "id": "scene:8f787646-d875-4304-8412-7aaa29cc9fd1",
+  "name": "Untitled Scene",
+  "entities": [
+    {
+      "id": 1,
+      "name": "Active Camera",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Active Camera"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-0.47973454,5.990747,25.385283",
+            "rotation": "-17.739916,179.09973,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "PerspectiveCameraComponent",
+          "properties": {
+            "fieldOfViewDegrees": "67.0",
+            "near": "0.05",
+            "far": "128.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "e_construction_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_construction_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.15,-0.118,-1.624",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "0.75,0.75,0.75"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_building_construction_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "e_rock_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_rock_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-6.453,-0.1,4.095",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "2.7,2.65,2.05"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_rock_08.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "e_car_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_car_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "5.0,-0.05,4.8",
+            "rotation": "0.0,-74.8,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_car_04.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "e_rock_02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_rock_02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-4.503,-0.1,3.045",
+            "rotation": "25.35,31.05,9.7",
+            "scale": "2.7,2.65,2.05"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_rock_08.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "e_light_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_light_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.85,0.0,2.25",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "0.45,0.5,0.5"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_light_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "e_wall_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_wall_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-8.899,-0.05,-1.603",
+            "rotation": "0.0,90.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_wall_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "e_wall_02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_wall_02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "8.951,-0.05,-1.853",
+            "rotation": "0.0,90.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_wall_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "e_wall_03",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_wall_03"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "1.901,-0.05,-8.803",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_wall_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "e_plant_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-3.774,-0.029,3.703",
+            "rotation": "-5.45,14.6,0.0",
+            "scale": "1.25,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_grass_plant_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "e_plant_02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "1.386,-0.024,2.524",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_grass_plant_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "e_plant_03",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_03"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-4.83,0.009,4.561321",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.4,1.3"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_grass_plant_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "e_plant_04",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_04"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-5.436,-0.11,4.551",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_grass_plant_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "e_rock_03",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_rock_03"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-6.21,-0.164,2.184",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_rock_02.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "e_rock_04",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_rock_04"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-5.276,0.046,2.3335707",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_rock_08.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "l_light_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "l_light_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.854,1.22,2.522",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "2.66",
+            "color": "0.96568626,0.8576452,0.047337588,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "e_wall_04",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_wall_04"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-3.149,-0.05,-8.803",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_wall_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "e_rubish_container_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_rubish_container_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-6.267,-0.044,6.814",
+            "rotation": "0.0,-30.4,0.05",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_rubbish_container_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "e_bobcat_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_bobcat_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-6.802,-0.029,10.454",
+            "rotation": "0.05,-173.55,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_bobcat_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "e_wall_05",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_wall_05"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "8.951,-0.05,10.897",
+            "rotation": "0.0,90.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_wall_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "e_pile_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_pile_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-6.703,-0.043,13.702",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "2.0,2.0,2.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/stone_pile_02.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "e_plant_05",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_05"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "1.686,-0.024,2.274",
+            "rotation": "0.0,-50.9,-4.95",
+            "scale": "1.5,2.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_grass_plant_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "e_rubish_container_02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_rubish_container_02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-2.792,0.001,2.624",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_rubbish_container_02.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "e_wall_06",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_wall_06"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-8.949,0.0,11.097",
+            "rotation": "0.0,90.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_wall_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "e_pile_02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_pile_02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "4.739,-0.124,13.159",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/stone_pile_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "e_light_02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_light_02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "8.324,-0.038,15.493",
+            "rotation": "0.0,229.3,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_street_light_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "e_traffic_cone_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_traffic_cone_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-2.017,0.0,17.954",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_traffic_cone_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "e_traffic_cone_02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_traffic_cone_02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-0.667,0.0,17.904",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_traffic_cone_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "name": "e_traffic_cone_03",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_traffic_cone_03"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-3.617,0.2,17.854",
+            "rotation": "-92.4,-18.05,91.35",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_traffic_cone_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "name": "l_light_02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "l_light_02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "7.156,5.01,14.414",
+            "rotation": "0.05,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "7.67",
+            "color": "1.0,1.0,1.0,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "name": "l_light_03",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "l_light_03"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-6.294,5.36,15.714",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "5.41",
+            "color": "1.0,1.0,1.0,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "name": "e_fence_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_fence_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.106,0.0,16.871",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.4,1.7,1.4"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_fence_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "name": "e_plant_06",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_06"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-8.045,0.0,15.958",
+            "rotation": "0.6,0.0,0.0",
+            "scale": "1.65,1.55,1.5"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_plant_02.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "name": "e_plant_07",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_07"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-7.467,0.0,15.879",
+            "rotation": "0.0,19.5,-13.4",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_plant_02.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "name": "e_plant_08",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_08"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-8.325,0.0,15.433",
+            "rotation": "0.3,0.0,2.95",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_plant_02.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "name": "e_fence_02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_fence_02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-4.331,0.0,16.628",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.25,1.3,1.25"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_iron_fence_03.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "name": "e_fence_03",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_fence_03"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-9.103,0.0,16.899",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.4,1.7,1.4"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_brick_fence_02.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "name": "e_plant_09",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_09"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "6.429,0.0,6.650327",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.6,1.65,1.6"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_plant_03.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "name": "e_plant_10",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_10"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-7.121,0.0,9.1",
+            "rotation": "-3.55,26.6,0.0",
+            "scale": "1.6,1.65,1.6"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_plant_03.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "name": "e_plant_11",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_11"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.8866397,0.0,15.993884",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_plant_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "name": "e_plant_12",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_12"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "1.702,0.0,15.931",
+            "rotation": "-0.75,-33.35,0.0",
+            "scale": "1.45,1.55,1.45"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_plant_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "name": "e_plant_13",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "e_plant_13"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-3.608,0.0,2.648",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_plant_01.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "name": "Terrain 02 Small Flat",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Terrain 02 Small Flat"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "TerrainComponent",
+          "properties": {
+            "terrain": "terrains/terrain_02_small_flat.json",
+            "visible": "true",
+            "previewMode": "MaterialTexture",
+            "bakedTextureResolution": "2048"
+          }
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "name": "M Street Light 02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Street Light 02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-6.277,0.077,17.28",
+            "rotation": "0.0,90.1,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_street_light_02.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "name": "l_light_04",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "l_light_04"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-6.294,5.31,18.714",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "9.02",
+            "color": "1.0,1.0,1.0,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "name": "M Tree 06",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Tree 06"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "7.051,-0.098,1.558",
+            "rotation": "4.05,-61.75,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_tree_06.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "name": "M Tree 06 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Tree 06 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "7.151,-2.348,1.408",
+            "rotation": "4.05,24.75,0.0",
+            "scale": "0.75,0.75,0.7"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_tree_06.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "name": "M Tree 06 Copy",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Tree 06 Copy"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-8.099,-0.148,15.708",
+            "rotation": "-4.95,-91.8,0.0",
+            "scale": "0.65,0.7,0.6"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_tree_06.glb"
+          }
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "name": "M Actor Human 1",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "M Actor Human 1"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-0.903,0.0,7.261",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "ModelComponent",
+          "properties": {
+            "model": "model/m_actor_human_1.glb"
+          }
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "activeCameraEntityId": 1,
+    "activeTerrainEntityId": 79,
+    "lighting": {
+      "ambientColor": "0.9420175,0.95112085,0.96568626,1.0",
+      "ambientIntensity": 0.3
+    },
+    "environment": {
+      "skyboxAssetPath": "skyboxes/default_skybox_studio.krskybox",
+      "showSkybox": true,
+      "environmentIntensity": 1.0
+    },
+    "terrain": {
+      "materialLibraryPath": "materials/terrain_materials.json"
+    }
+  }
+}

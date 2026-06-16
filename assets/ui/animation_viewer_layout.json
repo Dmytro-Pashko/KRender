@@ -1,0 +1,53 @@
+{
+  "panels": {
+    "toolbar": {
+      "title": "Animation Viewer",
+      "x": 5,
+      "y": 9,
+      "width": 480,
+      "height": 145
+    },
+    "viewport": {
+      "title": "Viewport",
+      "x": 6,
+      "y": 162,
+      "width": 415,
+      "height": 300
+    },
+    "animations": {
+      "title": "Animations",
+      "x": 1550,
+      "y": 6,
+      "width": 366,
+      "height": 736
+    },
+    "playback": {
+      "title": "Playback",
+      "x": 1552,
+      "y": 746,
+      "width": 364,
+      "height": 332
+    },
+    "skeleton": {
+      "title": "Skeleton",
+      "x": 7,
+      "y": 468,
+      "width": 414,
+      "height": 805
+    },
+    "loading": {
+      "title": "Loading",
+      "x": 720,
+      "y": 320,
+      "width": 320,
+      "height": 120
+    },
+    "runtimeLogs": {
+      "title": "Runtime Logs",
+      "x": 424,
+      "y": 1086,
+      "width": 1489,
+      "height": 188
+    }
+  }
+}

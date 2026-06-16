@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "woolboy_loading",
+  "skin": "ui/skins/craftacular-ui.json",
+  "bindings": [
+    {
+      "key": "title",
+      "type": "Text",
+      "defaultValue": "Loading..."
+    },
+    {
+      "key": "progress",
+      "type": "Number",
+      "defaultValue": "0.65"
+    }
+  ],
+  "root": {
+    "id": "root",
+    "type": "Stack",
+    "children": [
+      {
+        "id": "loading_container",
+        "type": "Container",
+        "align": "Center",
+        "padding": {
+          "left": 40,
+          "top": 40,
+          "right": 40,
+          "bottom": 40
+        },
+        "children": [
+          {
+            "id": "loading_panel",
+            "type": "Table",
+            "background": "window",
+            "padding": {
+              "left": 32,
+              "top": 32,
+              "right": 32,
+              "bottom": 32
+            },
+            "spacing": 24,
+            "children": [
+              {
+                "id": "title",
+                "type": "Label",
+                "style": "title",
+                "text": "{title}",
+                "align": "Center"
+              },
+              {
+                "id": "progress",
+                "type": "ProgressBar",
+                "style": "default-horizontal",
+                "width": 520,
+                "height": 28,
+                "min": 0,
+                "max": 1,
+                "step": 0.01,
+                "valueBinding": "progress"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

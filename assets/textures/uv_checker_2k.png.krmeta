@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:0a112d4b-092c-4e0e-afb8-ef97bdf32174",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "uv_checker_2k",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

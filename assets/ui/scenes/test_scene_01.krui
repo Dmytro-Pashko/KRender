@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "test_scene_01",
+  "skin": "ui/skins/craftacular-ui.json",
+  "root": {
+    "id": "root",
+    "type": "Stack",
+    "children": []
+  }
+}

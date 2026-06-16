@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:cd5e1526-2cdd-423a-b8ee-4bb3de01df0d",
+  "type": "UiScene",
+  "category": "UI",
+  "displayName": "example_loading",
+  "tags": [],
+  "importerId": "ui-scene",
+  "importSettings": {}
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:ed7da200-1f23-4534-a34e-d5f1af1a3e3f",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_actor_human_1",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

@@ -1,0 +1,32 @@
+{
+  "panels": {
+    "assetBrowserControls": {
+      "title": "Asset Browser Controls",
+      "x": 2,
+      "y": 4,
+      "width": 1283,
+      "height": 115
+    },
+    "assetBrowser": {
+      "title": "Asset Browser",
+      "x": 3,
+      "y": 123,
+      "width": 1281,
+      "height": 663
+    },
+    "assetDetails": {
+      "title": "Asset Details",
+      "x": 1289,
+      "y": 5,
+      "width": 505,
+      "height": 1087
+    },
+    "runtimeLogs": {
+      "title": "Runtime Logs",
+      "x": 3,
+      "y": 791,
+      "width": 1282,
+      "height": 302
+    }
+  }
+}

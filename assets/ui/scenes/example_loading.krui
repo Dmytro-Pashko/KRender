@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "example_loading",
+  "skin": "ui/skins/craftacular-ui.json",
+  "bindings": [
+    {
+      "key": "title",
+      "type": "Text",
+      "defaultValue": "Loading..."
+    },
+    {
+      "key": "progress",
+      "type": "Number",
+      "defaultValue": "0.65"
+    }
+  ],
+  "root": {
+    "id": "root",
+    "type": "Table",
+    "padding": {
+      "left": 40,
+      "top": 40,
+      "right": 40,
+      "bottom": 40
+    },
+    "spacing": 24,
+    "children": [
+      {
+        "id": "title",
+        "type": "Label",
+        "style": "title",
+        "text": "{title}"
+      },
+      {
+        "id": "progress",
+        "type": "ProgressBar",
+        "style": "default-horizontal",
+        "width": 520,
+        "height": 28,
+        "valueBinding": "progress"
+      }
+    ]
+  }
+}

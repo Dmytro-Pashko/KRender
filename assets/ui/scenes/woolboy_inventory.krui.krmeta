@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:e69de6c2-cfbe-4973-8566-b09f89573397",
+  "type": "UiScene",
+  "category": "UI",
+  "displayName": "woolboy_inventory",
+  "tags": [],
+  "importerId": "ui-scene",
+  "importSettings": {}
+}

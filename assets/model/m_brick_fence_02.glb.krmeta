@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:5ae99f41-85af-4dd1-8770-3b29eb36ec0a",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_brick_fence_02",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:edb0ddc2-72ee-4ea6-9fba-d03be13d38cf",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "m_tree_06",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

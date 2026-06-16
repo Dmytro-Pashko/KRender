@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "id": "scene:new",
+  "name": "Untitled Scene",
+  "entities": [
+    {
+      "id": 1,
+      "name": "Woolboy Sandbox Scene",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Woolboy Sandbox Scene"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.0,0.0,0.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "TerrainComponent",
+          "properties": {
+            "terrain": "assets/woolboy/terrains/woolboy_sandbox_scene.json",
+            "visible": "true",
+            "previewMode": "MaterialTexture",
+            "bakedTextureResolution": "2048"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "light_01",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "light_01"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.7,6.6,1.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "29.44",
+            "color": "1.0,1.0,1.0,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "light_02",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "light_02"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "17.55,6.6,1.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "29.44",
+            "color": "0.02691274,0.119049326,0.5490196,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "light_03",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "light_03"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-17.9,6.6,1.0",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "29.44",
+            "color": "0.7941176,0.085640155,0.085640155,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "light_04",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "light_04"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.7,7.4,19.25",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "29.44",
+            "color": "0.0,0.6862745,0.5651671,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "light_05",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "light_05"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "0.7,7.4,-17.5",
+            "rotation": "0.0,0.0,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "LightComponent",
+          "properties": {
+            "type": "Point",
+            "intensity": "29.44",
+            "color": "0.88235295,0.0,0.83044976,1.0",
+            "direction": "-0.45,-0.8,-0.35"
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Camera",
+      "active": true,
+      "parentId": null,
+      "components": [
+        {
+          "type": "NameComponent",
+          "properties": {
+            "name": "Camera"
+          }
+        },
+        {
+          "type": "TransformComponent",
+          "properties": {
+            "position": "-8.748172,5.9657416,15.76074",
+            "rotation": "-30.859959,147.06017,0.0",
+            "scale": "1.0,1.0,1.0"
+          }
+        },
+        {
+          "type": "PerspectiveCameraComponent",
+          "properties": {
+            "fieldOfViewDegrees": "67.0",
+            "near": "0.05",
+            "far": "250.0"
+          }
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "activeCameraEntityId": 7,
+    "activeTerrainEntityId": 1,
+    "lighting": {
+      "ambientColor": "0.45,0.5,0.58,1.0",
+      "ambientIntensity": 0.55
+    },
+    "environment": {
+      "skyboxAssetPath": "assets/woolboy/skyboxes/default_skybox_studio.krskybox",
+      "showSkybox": true,
+      "environmentIntensity": 1.0
+    },
+    "terrain": {
+      "materialLibraryPath": "assets/woolboy/materials/terrain_materials.json"
+    }
+  }
+}

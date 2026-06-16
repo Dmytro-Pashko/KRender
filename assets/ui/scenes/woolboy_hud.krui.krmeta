@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:80dd7069-4792-40e9-aac9-f8d7a6eba4a1",
+  "type": "UiScene",
+  "category": "UI",
+  "displayName": "woolboy_hud",
+  "tags": [],
+  "importerId": "ui-scene",
+  "importSettings": {}
+}

@@ -1,0 +1,46 @@
+{
+  "panels": {
+    "terrain": {
+      "title": "Terrain",
+      "x": 1550,
+      "y": 5,
+      "width": 370,
+      "height": 420
+    },
+    "brush": {
+      "title": "Brush",
+      "x": 1550,
+      "y": 430,
+      "width": 370,
+      "height": 320
+    },
+    "layers": {
+      "title": "Layers",
+      "x": 1490,
+      "y": 755,
+      "width": 430,
+      "height": 522
+    },
+    "control": {
+      "title": "Control",
+      "x": 5,
+      "y": 458,
+      "width": 340,
+      "height": 815
+    },
+    "runtimeLogs": {
+      "title": "Runtime Logs",
+      "x": 348,
+      "y": 1060,
+      "width": 1140,
+      "height": 218
+    },
+    "sceneStatistics": {
+      "title": "Scene Statistics",
+      "x": 5,
+      "y": 5,
+      "width": 200,
+      "height": 443
+    }
+  }
+}
