@@ -715,7 +715,10 @@ class GdxRenderer3D(
     }
 
     /** Returns whether the dynamic mesh contains one RGBA color per vertex. */
-    private fun com.pashkd.krender.engine.api.DynamicMesh.hasVertexColors(): Boolean = colors != null && colors.size == vertexCount * 4
+    private fun com.pashkd.krender.engine.api.DynamicMesh.hasVertexColors(): Boolean {
+        val vertexColors = colors
+        return vertexColors != null && vertexColors.size == vertexCount * 4
+    }
 
     /** Returns the packed float count for one dynamic vertex. */
     private fun dynamicVertexFloatCount(hasColors: Boolean): Int =

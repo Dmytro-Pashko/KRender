@@ -1,7 +1,5 @@
 package com.pashkd.krender.engine.terrain
 
-import com.badlogic.gdx.Files
-import com.badlogic.gdx.Gdx
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DynamicMesh
 import com.pashkd.krender.engine.api.DynamicModel
@@ -234,19 +232,6 @@ class TerrainRuntimePipelineTest {
         val blue = (b.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
         val alpha = (a.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
         return (red shl 24) or (green shl 16) or (blue shl 8) or alpha
-    }
-
-    private inline fun <T> withGdxFiles(
-        files: Files?,
-        block: () -> T,
-    ): T {
-        val previous = Gdx.files
-        Gdx.files = files
-        return try {
-            block()
-        } finally {
-            Gdx.files = previous
-        }
     }
 
     private object NoopLogger : Logger {

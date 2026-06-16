@@ -181,4 +181,5 @@ tools/ui/*.jar
 /lwjgl3/build/*
 /tools/build/*
 /scene-player/build/*
+/engine/backend-gdx/build/*
 

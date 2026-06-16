@@ -9,16 +9,17 @@
   `assets` editor logic, `ui.editor`/`ui.runtime`/`ui.scene` contracts, `scene`, `serialization`,
   `viewport`, `window`, `math`, tool logic packages) defines interfaces + plain data and **must not
   import `com.badlogic.gdx` or `net.mgsx.gltf`**.
-- **Backend** (`engine.backend.gdx` only) implements those interfaces using libGDX/OpenGL/gdx-gltf.
+- **Backend** (`engine:backend-gdx`, package `engine.backend.gdx`) implements those interfaces using libGDX/OpenGL/gdx-gltf.
 - `EngineBackend` (`api/EngineRuntime.kt`) is the platform contract; `LibGdxBackend`
-  (`backend/gdx/LibGdxBackend.kt`) is the desktop/Android implementation; `GdxEngineApplication`
-  (`backend/gdx/GdxEngineApplication.kt`) is the libGDX `ApplicationAdapter` bootstrap.
+  (`engine/backend-gdx/.../backend/gdx/LibGdxBackend.kt`) is the desktop/Android implementation; `GdxEngineApplication`
+  (`engine/backend-gdx/.../backend/gdx/GdxEngineApplication.kt`) is the libGDX `ApplicationAdapter` bootstrap.
 - The backend is split by responsibility into sibling files in `backend/gdx/`:
   `LibGdxBackend.kt` (wiring only), `GdxEngineApplication.kt`, `GdxWindowService.kt`,
   `GdxInputService.kt`, `GdxAssetService.kt`, `GdxModelPoseSampler.kt`, `GdxTaskService.kt`,
   `GdxRenderer3D.kt`, `GdxLineShaderRenderer.kt`, `GdxModelViewerDebugRenderer.kt`,
   `GdxSkyboxRenderer.kt`, `GdxGltfPbrPreviewRenderer.kt`, and `GdxCubemap.kt`. They all share
   the `com.pashkd.krender.engine.backend.gdx` package.
+- Dependency direction is `engine:backend-gdx -> core`; `core` must not depend on the backend module.
 - A handful of pre-existing leaks (`Gdx`/`Pixmap`/JSON utils in `ui.editor` and `terrain`) are
   allow-listed in `BackendBoundaryTest`; do not add new ones.
 

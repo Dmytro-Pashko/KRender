@@ -1,6 +1,8 @@
 dependencies {
   implementation project(':core')
+  implementation project(':engine:backend-gdx')
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+  implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
   implementation "com.github.kotlin-graphics.imgui:imgui-core:1.89.7-1"
   testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion"
 }

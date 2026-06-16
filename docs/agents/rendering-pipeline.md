@@ -2,7 +2,7 @@
 
 > Supplements `AGENTS.md` §7. Covers the render-command layer and the LibGDX renderer.
 > Core types: `core/.../engine/api/Render.kt`. Backend entry point:
-> `core/.../engine/backend/gdx/GdxRenderer3D.kt` (`GdxRenderer3D`) plus sub-renderers in the same
+> `engine/backend-gdx/.../engine/backend/gdx/GdxRenderer3D.kt` (`GdxRenderer3D`) plus sub-renderers in the same
 > package. Terrain rendering details now live in `docs/agents/tools/terrain-editor.md`
 > and the shared runtime code under `core/.../engine/terrain/`.
 

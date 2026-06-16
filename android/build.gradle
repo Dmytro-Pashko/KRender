@@ -74,8 +74,13 @@ configurations { natives }
 
 dependencies {
   coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+  implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
   implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
   implementation(project(':core')) {
+    exclude group: 'com.github.kotlin-graphics.imgui'
+    exclude group: 'org.lwjgl'
+  }
+  implementation(project(':engine:backend-gdx')) {
     exclude group: 'com.github.kotlin-graphics.imgui'
     exclude group: 'org.lwjgl'
   }

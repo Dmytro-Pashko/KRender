@@ -42,6 +42,7 @@ tasks.named('processResources') {
 
 dependencies {
   implementation project(':core')
+  implementation project(':engine:backend-gdx')
   implementation project(':games:woolboy')
   implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
   implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
@@ -81,4 +82,3 @@ tasks.register('woolboyJar', Jar) {
 tasks.named('build') {
   dependsOn tasks.named('woolboyJar')
 }
-

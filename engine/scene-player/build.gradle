@@ -1,5 +1,7 @@
 dependencies {
   implementation project(':core')
+  implementation project(':engine:backend-gdx')
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+  implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
   testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion"
 }

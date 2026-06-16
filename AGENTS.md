@@ -43,13 +43,12 @@ first-class products built on the same engine primitives.
 
 ```text
 KRender SDK/
-+-- core/                  # Engine/runtime API, LibGDX backend, shared services
++-- core/                  # Backend-neutral engine/runtime API, data, and shared services
 |   +-- src/main/kotlin/com/pashkd/krender/
 |   |   +-- engine/
 |   |   |   +-- api/                      # Backend-neutral core API (see section 5)
 |   |   |   +-- render3d/                 # 3D components + ModelRenderSystem, environment system
 |   |   |   +-- animation/                # AnimationComponent
-|   |   |   +-- backend/gdx/              # LibGDX backend adapter (owns all Gdx.* / OpenGL)
 |   |   |   +-- assets/                   # Shared asset registry/metadata/importers/import-export services
 |   |   |   +-- terrain/                  # Shared terrain runtime/mesh/persistence infrastructure
 |   |   |   +-- scene/                    # Scene config, serialization, file/launch services
@@ -64,6 +63,7 @@ KRender SDK/
 |   |   +-- game/                         # Shared game-facing helpers that are not standalone tool/player routes
 |   +-- src/test/kotlin/...               # JVM unit tests (no GL needed)
 +-- engine/
+|   +-- backend-gdx/                      # LibGDX backend adapter; owns all Gdx.* / OpenGL / gdx-gltf code
 |   +-- scene-player/                     # `.krscene` runtime/player route module
 |   +-- tools/                            # Editor tool module; all development editor tools live here
 +-- games/
@@ -77,7 +77,7 @@ KRender SDK/
 +-- build.gradle, settings.gradle, gradle.properties
 ```
 
-Gradle subprojects (`settings.gradle`): `core`, `engine:tools`, `engine:scene-player`, `lwjgl3`, `android`,
+Gradle subprojects (`settings.gradle`): `core`, `engine:backend-gdx`, `engine:tools`, `engine:scene-player`, `lwjgl3`, `android`,
 `games:woolboy`, `apps:woolboy-desktop`. The root `assets` directory remains a shared resource folder for the
 existing editor/runtime app, while the Woolboy app bundles its own curated resources from
 `games/woolboy/src/main/resources/assets/woolboy/`.
@@ -89,16 +89,19 @@ existing editor/runtime app, while the Woolboy app bundles its own curated resou
 Three conceptual layers, with a strict dependency direction:
 
 ```text
-game scenes / tools  ──▶  engine.api (+ render3d, terrain, ui.editor, ...)  ──▶  backend.gdx
+game scenes / tools  ──▶  engine.api (+ render3d, terrain, ui.editor, ...)
+                                      ▲
+                                      │
+                              engine:backend-gdx
         │                          │                                              │
    build scenes,             backend-neutral                              owns ALL Gdx.* /
-   systems, panels           contracts + data                             OpenGL / AssetManager
+   systems, panels           contracts + data                             OpenGL / AssetManager / gdx-gltf
 ```
 
 - **Core (`engine.api` and sibling backend-neutral packages)** define contracts
   (`EngineContext`, `Scene`, `System`, `AssetService`, `Renderer`, `RenderCommand`, ...)
   and plain data. They must not import `com.badlogic.gdx`.
-- **Backend (`engine.backend.gdx`)** implements those contracts using libGDX and
+- **Backend (`engine:backend-gdx`, package `engine.backend.gdx`)** implements those contracts using libGDX and
   is the only place allowed to touch `Gdx.*`, OpenGL, `AssetManager`, ImGui rendering, etc.
 - **Game/tool scenes (`com.pashkd.krender.game.*`)** assemble entities, systems,
   and panels against the core API only.
@@ -112,7 +115,8 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 
 | Module | Responsibility |
 |---|---|
-| `core` | Engine/runtime API, LibGDX backend adapter, and shared backend-neutral services such as assets, terrain, scene files, serializers, and `.krui` documents. |
+| `core` | Backend-neutral engine/runtime API, data, and shared services such as assets, terrain, scene files, serializers, and `.krui` documents. |
+| `engine:backend-gdx` | LibGDX backend adapter and all Gdx/OpenGL/gdx-gltf implementation code. Depends on `core`. |
 | `engine:tools` | Editor tool module containing Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, UI Composer, tool routing, and editor-only helpers. |
 | `engine:scene-player` | Runtime/player module containing `ScenePlayerScene`, `ScenePlayerBuilder`, preferred `scene-player` routing plus legacy aliases, and the dedicated `.krscene` playback entry point. |
 | `lwjgl3` | Desktop entry point (`Lwjgl3Launcher`), window config, and the launchers that open tool/runtime windows as **separate JVM processes** (`Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`, `Lwjgl3JvmProcessLauncher`). |
@@ -202,7 +206,7 @@ a sorted snapshot each frame. See §7.
 
 - `EngineBackend` (`EngineRuntime.kt`) is the contract a platform must implement. It exposes
   all services plus a `Renderer` and `requestExit()`.
-- `LibGdxBackend` (`backend/gdx/LibGdxBackend.kt`) is the concrete implementation. It wires:
+- `LibGdxBackend` (`engine/backend-gdx/.../backend/gdx/LibGdxBackend.kt`) is the concrete implementation. It wires:
   `GdxInputService`, `GdxImGuiService` (or `NoOpUiService` on Android), `GdxRuntimeUiBackend`,
   `GdxAssetService`, `GdxSceneFileService`, `GdxTaskService`, `GdxWindowService`,
   `GdxRenderer3D`, `EngineLogService` (+ `GdxAppLogSink`, `FileLogSink`),
@@ -357,14 +361,14 @@ Scene Player (`engine:scene-player/.../ScenePlayerScene.kt`) is not an editor to
 | Runtime | `EngineRuntime` / `Engine` | `api/EngineRuntime.kt` | Owns scenes + services; implements `EngineContext`. |
 | Facade | `EngineContext` | `api/EngineRuntime.kt` | Service locator passed to scenes. |
 | Backend contract | `EngineBackend` | `api/EngineRuntime.kt` | Platform service contract. |
-| Backend impl | `LibGdxBackend` | `backend/gdx/LibGdxBackend.kt` | Wires libGDX services. |
+| Backend impl | `LibGdxBackend` | `engine/backend-gdx/.../backend/gdx/LibGdxBackend.kt` | Wires libGDX services. |
 | Loop | `GameLoop` | `api/EngineRuntime.kt` | Fixed + variable step frame driver. |
 | Scene | `Scene` / `SceneManager` | `api/Scene.kt` | Scene lifecycle + deferred stack. |
 | ECS | `SceneWorld`, `Entity`, `System`, `CommandBuffer` | `api/Ecs.kt` | Entity/component/system model. |
 | Render | `RenderCommand`, `Renderer`, `RenderCommandBuffer` | `api/Render.kt` | Backend-neutral draw layer. |
-| Render impl | `GdxRenderer3D` + sibling helpers | `backend/gdx/GdxRenderer3D.kt` | Consumes commands via `ModelBatch` and delegates specialized backend rendering. |
+| Render impl | `GdxRenderer3D` + sibling helpers | `engine/backend-gdx/.../backend/gdx/GdxRenderer3D.kt` | Consumes commands via `ModelBatch` and delegates specialized backend rendering. |
 | Assets | `AssetService`, `AssetRef`, `AssetPack` | `api/Assets.kt` | Typed asset handles + loading. |
-| Assets impl | `GdxAssetService` + `GdxModelPoseSampler` | `backend/gdx/GdxAssetService.kt` | libGDX `AssetManager` loading, metadata, previews, and pose sampling. |
+| Assets impl | `GdxAssetService` + `GdxModelPoseSampler` | `engine/backend-gdx/.../backend/gdx/GdxAssetService.kt` | libGDX `AssetManager` loading, metadata, previews, and pose sampling. |
 | Asset registry | `LocalAssetRegistryService` / `NoOpAssetRegistryService` | `assets/AssetRegistryService.kt` | Editor asset scan + `.krmeta` (desktop); no-op (Android). |
 | Tasks | `TaskService` | `api/Tasks.kt` | Background/IO/main dispatch. |
 | Logging | `Logger`, `LogService`, `EngineLogService` | `api/Debug.kt` | Lazy structured logging + sinks. |

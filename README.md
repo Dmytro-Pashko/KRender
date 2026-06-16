@@ -1,6 +1,6 @@
 # KRender SDK
 
-KRender SDK is a Kotlin + libGDX engine workspace built around a backend-neutral core, a LibGDX runtime backend, a dedicated scene player module, and standalone editor tools for assets, models, animations, terrain, scenes, and UI documents.
+KRender SDK is a Kotlin + libGDX engine workspace built around a backend-neutral core, a separate LibGDX runtime backend module, a dedicated scene player module, and standalone editor tools for assets, models, animations, terrain, scenes, and UI documents.
 
 ## Overview
 
@@ -39,11 +39,10 @@ into dedicated `games/` and `apps/` modules so the engine/SDK and a sample clien
 
 ```text
 KRender SDK/
-+-- core/                  # Backend-neutral API, LibGDX backend adapter, shared runtime services, serializers, terrain/runtime infrastructure
++-- core/                  # Backend-neutral API/data, shared runtime services, serializers, terrain/runtime infrastructure
 |   +-- src/main/kotlin/com/pashkd/krender/
 |   |   +-- engine/
 |   |   |   +-- api/                      # Backend-neutral runtime API
-|   |   |   +-- backend/gdx/              # LibGDX backend; owns all Gdx.* and OpenGL access
 |   |   |   +-- assets/                   # Shared asset registry, metadata, import/export services
 |   |   |   +-- render3d/                 # 3D components, environment, render systems
 |   |   |   +-- scene/                    # Scene config, serialization, file and launcher services
@@ -54,6 +53,7 @@ KRender SDK/
 |   |   +-- game/                         # Shared game-facing helpers that are not standalone tool/player routes
 |   +-- src/test/kotlin/...               # Pure JVM unit tests
 +-- engine/
+|   +-- backend-gdx/                      # LibGDX backend adapter; owns Gdx/OpenGL/gdx-gltf implementation code
 |   +-- scene-player/                     # `.krscene` runtime player route and scene-player module docs
 |   +-- tools/                            # Editor/development tools, tool routing, and editor-only helpers
 +-- games/
@@ -68,7 +68,8 @@ KRender SDK/
 
 Gradle subprojects currently loaded by `settings.gradle`:
 
-- `core` - Backend-neutral engine API, LibGDX backend adapter, shared assets, scene, terrain, UI, rendering, and serialization services.
+- `core` - Backend-neutral engine API/data plus shared assets, scene, terrain, UI contracts, rendering commands, and serialization services.
+- `engine:backend-gdx` - LibGDX backend adapter and all Gdx/OpenGL/gdx-gltf implementation code.
 - `engine:scene-player` - Runtime route for loading and playing `.krscene` scene documents.
 - `engine:tools` - Standalone editor/development tools for assets, models, animations, terrain, scenes, and UI documents.
 - `lwjgl3` - Desktop launcher that wires tools, scene playback, and desktop backend libraries.
@@ -84,26 +85,31 @@ The intended dependency direction is:
 ```text
 engine:tools -> core
 engine:scene-player -> core
-lwjgl3 -> core + engine:tools + engine:scene-player + desktop backend libraries
-android -> core + engine:scene-player
+engine:backend-gdx -> core
+lwjgl3 -> core + engine:backend-gdx + engine:tools + engine:scene-player + desktop backend libraries
+android -> core + engine:backend-gdx + engine:scene-player
 games:woolboy -> core
-apps:woolboy-desktop -> games:woolboy + core
+apps:woolboy-desktop -> games:woolboy + core + engine:backend-gdx
 ```
 
 ```mermaid
 flowchart LR
     Core["core"]
+    BackendGdx["engine:backend-gdx"] --> Core
     Tools["engine:tools"] --> Core
     ScenePlayer["engine:scene-player"] --> Core
     Lwjgl3["lwjgl3"] --> Core
+    Lwjgl3 --> BackendGdx
     Lwjgl3 --> Tools
     Lwjgl3 --> ScenePlayer
     Lwjgl3 --> DesktopBackend["desktop backend libraries"]
     Android["android"] --> Core
+    Android --> BackendGdx
     Android --> ScenePlayer
     Woolboy["games:woolboy"] --> Core
     WoolboyDesktop["apps:woolboy-desktop"] --> Woolboy
     WoolboyDesktop --> Core
+    WoolboyDesktop --> BackendGdx
 ```
 
 ## Architecture
@@ -147,12 +153,12 @@ context instead of directly constructing backend services.
 | `SceneWorld`             | Entity storage, system pipeline, deferred mutation buffer, render command buffer, and typed queries.                                                                             | `engine/api/Ecs.kt`                                           |
 | `Entity` / `Component`   | Runtime data model. Components include `TransformComponent`, `NameComponent`, `ParentComponent`, `VelocityComponent`, `LifetimeComponent`, and domain-specific components.       | `engine/api/Ecs.kt`                                           |
 | `System`                 | Behavior unit with `onAdded`, `fixedUpdate`, `update`, `lateUpdate`, `render`, and `debugRender`.                                                                                | `engine/api/Ecs.kt`                                           |
-| `AssetService`           | Schedules, updates, checks, inspects, previews, and unloads typed assets.                                                                                                        | `engine/api/Assets.kt`, `engine/backend/gdx/LibGdxBackend.kt` |
-| `InputService`           | Frame-stable normalized input snapshots and cursor capture.                                                                                                                      | `engine/api/Input.kt`, `engine/backend/gdx/LibGdxBackend.kt`  |
-| `UiService` / `UiSystem` | ImGui frame lifecycle, capture state, panel drawing, and texture preview drawing.                                                                                                | `engine/ui/editor/Ui.kt`, `engine/backend/gdx/GdxImGuiService.kt`    |
+| `AssetService`           | Schedules, updates, checks, inspects, previews, and unloads typed assets.                                                                                                        | `engine/api/Assets.kt`, `engine/backend-gdx/.../LibGdxBackend.kt` |
+| `InputService`           | Frame-stable normalized input snapshots and cursor capture.                                                                                                                      | `engine/api/Input.kt`, `engine/backend-gdx/.../LibGdxBackend.kt`  |
+| `UiService` / `UiSystem` | ImGui frame lifecycle, capture state, panel drawing, and texture preview drawing.                                                                                                | `engine/ui/editor/Ui.kt`, `engine/backend-gdx/.../GdxImGuiService.kt`    |
 | `Logger` / `LogService`  | Structured log entries, levels, history, sinks, and panels.                                                                                                                      | `engine/api/Debug.kt`, `engine/ui/editor/LogsPanel.kt`               |
-| `TaskService`            | Coroutine-based background, IO, main/render queue, and in-flight job tracking.                                                                                                   | `engine/api/Tasks.kt`, `engine/backend/gdx/LibGdxBackend.kt`  |
-| `Renderer`               | Backend render submission for collected `RenderCommand` instances.                                                                                                               | `engine/api/Render.kt`, `engine/backend/gdx/LibGdxBackend.kt` |
+| `TaskService`            | Coroutine-based background, IO, main/render queue, and in-flight job tracking.                                                                                                   | `engine/api/Tasks.kt`, `engine/backend-gdx/.../LibGdxBackend.kt`  |
+| `Renderer`               | Backend render submission for collected `RenderCommand` instances.                                                                                                               | `engine/api/Render.kt`, `engine/backend-gdx/.../LibGdxBackend.kt` |
 | `SceneSerializer`        | Encodes and decodes `.krscene` scene descriptors and applies them to `SceneWorld`.                                                                                               | `engine/scene/SceneSerializer.kt`                             |
 
 ## Scene Lifecycle
@@ -272,7 +278,8 @@ scene.
 
 Module split:
 
-- `core` — KRender engine / SDK
+- `core` — KRender backend-neutral engine API/data and shared services
+- `engine:backend-gdx` — LibGDX backend adapter
 - `games:woolboy` — Woolboy gameplay/client module
 - `apps:woolboy-desktop` — executable desktop app and fat-JAR task
 

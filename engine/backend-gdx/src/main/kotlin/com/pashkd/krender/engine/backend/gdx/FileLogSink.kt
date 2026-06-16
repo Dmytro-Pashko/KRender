@@ -36,8 +36,9 @@ class FileLogSink(
     override fun write(entry: LogEntry) {
         synchronized(writer) {
             writer.appendLine(formatEntry(entry))
-            if (entry.error != null) {
-                val stackTrace = formatStackTrace(entry.error)
+            val error = entry.error
+            if (error != null) {
+                val stackTrace = formatStackTrace(error)
                 writer.append(stackTrace)
                 if (!stackTrace.endsWith(System.lineSeparator())) {
                     writer.newLine()

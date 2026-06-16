@@ -10,18 +10,10 @@ def coverageExcludes = [
 ]
 
 dependencies {
-  api "com.badlogicgames.gdx:gdx:$gdxVersion"
-  implementation "com.github.kotlin-graphics.imgui:imgui-core:1.89.7-1"
-  implementation "com.github.kotlin-graphics.imgui:imgui-gl:1.89.7-1"
-  api "com.github.mgsx-dev.gdx-gltf:gltf:$gltfVersion"
   api "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
   api "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion"
   implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1"
   testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion"
-
-  if(enableGraalNative == 'true') {
-    implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"
-  }
 }
 
 jar {
