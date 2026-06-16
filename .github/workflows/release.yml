@@ -1,0 +1,251 @@
+name: Release
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-compile:
+    name: Full compile
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Run full compile
+        run: >
+          ./gradlew --no-daemon --console=plain
+          :core:compileKotlin
+          :core:compileTestKotlin
+          :engine:backend-gdx:compileKotlin
+          :engine:tools:compileKotlin
+          :engine:tools:compileTestKotlin
+          :engine:scene-player:compileKotlin
+          :engine:scene-player:compileTestKotlin
+          :desktop-lwjgl3-win:compileKotlin
+          :desktop-lwjgl3-macos:compileKotlin
+          :desktop-lwjgl3-linux:compileKotlin
+          :games:woolboy:compileKotlin
+          :apps:woolboy-desktop:compileKotlin
+
+  release-tests:
+    name: Tests
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Run JVM tests
+        run: >
+          ./gradlew --no-daemon --console=plain
+          :core:test
+          :engine:tools:test
+          :engine:scene-player:test
+
+  release-static-analysis:
+    name: Static analysis
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Run detekt
+        run: ./gradlew --no-daemon --console=plain detekt
+
+  release-docs:
+    name: Docs build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate current docs workflow state
+        run: |
+          echo "MkDocs and docs source are planned follow-up work."
+          echo "This placeholder check keeps the release gate explicit until mkdocs.yml and docs build commands are added."
+          test ! -f mkdocs.yml
+
+  release-desktop-artifacts:
+    name: Desktop artifacts build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Build desktop release artifacts
+        run: >
+          ./gradlew --no-daemon --console=plain
+          :desktop-lwjgl3-win:jarWin
+          :desktop-lwjgl3-macos:jarMac
+          :desktop-lwjgl3-linux:jarLinux
+          :apps:woolboy-desktop:woolboyJar
+          :apps:woolboy-desktop:distZip
+
+  build-tag-artifacts:
+    name: Build tag artifacts
+    if: github.event_name == 'push'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: krender-win
+            gradle_task: :desktop-lwjgl3-win:jarWin
+            artifact_path: desktop-lwjgl3-win/build/libs/*.jar
+          - os: macos-latest
+            artifact_name: krender-macos
+            gradle_task: :desktop-lwjgl3-macos:jarMac
+            artifact_path: desktop-lwjgl3-macos/build/libs/*.jar
+          - os: ubuntu-latest
+            artifact_name: krender-linux
+            gradle_task: :desktop-lwjgl3-linux:jarLinux
+            artifact_path: desktop-lwjgl3-linux/build/libs/*.jar
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        shell: bash
+        run: chmod +x gradlew
+
+      - name: Build platform artifact
+        shell: bash
+        run: ./gradlew --no-daemon --console=plain ${{ matrix.gradle_task }}
+
+      - name: Upload platform artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
+
+  build-tag-demo:
+    name: Build demo artifacts
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Build demo artifacts
+        run: >
+          ./gradlew --no-daemon --console=plain
+          :apps:woolboy-desktop:woolboyJar
+          :apps:woolboy-desktop:distZip
+
+      - name: Upload demo artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: woolboy-demo
+          path: |
+            apps/woolboy-desktop/build/libs/woolboy-demo.jar
+            apps/woolboy-desktop/build/distributions/*.zip
+          if-no-files-found: error
+
+  create-github-release:
+    name: Create GitHub Release
+    if: github.event_name == 'push'
+    needs:
+      - build-tag-artifacts
+      - build-tag-demo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release-artifacts/**/*.jar
+            release-artifacts/**/*.zip

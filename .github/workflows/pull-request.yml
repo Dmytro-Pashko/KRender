@@ -1,0 +1,139 @@
+name: Pull Request
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pull-request-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Run detekt
+        run: ./gradlew --no-daemon --console=plain detekt
+
+  lint-ktlint:
+    name: Lint / ktlint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Run ktlint
+        run: ./gradlew --no-daemon --console=plain ktlintCheck
+
+  formatting-check:
+    name: Formatting check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make scripts executable
+        run: |
+          chmod +x gradlew
+          chmod +x scripts/format_check.sh
+
+      - name: Run formatting check script
+        run: ./scripts/format_check.sh
+
+  compile-checks:
+    name: Compile checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Run compile checks
+        run: >
+          ./gradlew --no-daemon --console=plain
+          :core:compileKotlin
+          :engine:backend-gdx:compileKotlin
+          :engine:tools:compileKotlin
+          :engine:scene-player:compileKotlin
+          :desktop-lwjgl3-win:compileKotlin
+          :desktop-lwjgl3-macos:compileKotlin
+          :desktop-lwjgl3-linux:compileKotlin
+          :games:woolboy:compileKotlin
+          :apps:woolboy-desktop:compileKotlin
+
+  core-scene-player-unit-tests:
+    name: Core and scene-player unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        run: >
+          ./gradlew --no-daemon --console=plain
+          :core:test
+          :engine:scene-player:test
