@@ -35,6 +35,48 @@ class GradleDependencyBoundaryTest {
         )
     }
 
+    @Test
+    fun `desktop platform launcher modules depend directly on runtime modules`() {
+        val requiredDependencies =
+            listOf(
+                "project(\":core\")",
+                "project(\":engine:backend-gdx\")",
+                "project(\":engine:tools\")",
+                "project(\":engine:scene-player\")",
+            )
+        val staleDesktopDependencyPatterns =
+            listOf(
+                projectDependency("desktop-lwjgl3", doubleQuoted = true),
+                projectDependency("desktop-lwjgl3", doubleQuoted = false),
+            )
+        val violations = mutableListOf<String>()
+
+        desktopLauncherBuildFiles.forEach { buildFilePath ->
+            val buildFile = root.resolve(buildFilePath)
+            assertTrue(buildFile.exists(), "Missing Gradle file: $buildFilePath")
+
+            val text = buildFile.readText()
+            requiredDependencies.forEach { dependency ->
+                if (!text.contains(dependency)) {
+                    violations += "$buildFilePath must declare `$dependency`"
+                }
+            }
+            staleDesktopDependencyPatterns.forEach { dependency ->
+                if (text.contains(dependency)) {
+                    violations += "$buildFilePath must not declare removed launcher dependency `$dependency`"
+                }
+            }
+        }
+
+        assertTrue(
+            violations.isEmpty(),
+            violations.joinToString(
+                separator = "\n",
+                prefix = "Desktop launcher dependency boundary violations:\n",
+            ),
+        )
+    }
+
     private data class DependencyCheck(
         val module: String,
         val buildFile: String,
@@ -82,6 +124,21 @@ class GradleDependencyBoundaryTest {
                 ),
             ),
         )
+
+        private val desktopLauncherBuildFiles =
+            listOf(
+                "desktop-lwjgl3-win/build.gradle.kts",
+                "desktop-lwjgl3-macos/build.gradle.kts",
+                "desktop-lwjgl3-linux/build.gradle.kts",
+            )
+
+        private fun projectDependency(
+            path: String,
+            doubleQuoted: Boolean,
+        ): String {
+            val quote = if (doubleQuoted) "\"" else "'"
+            return "project($quote:$path$quote)"
+        }
 
         private fun repositoryRoot(): Path {
             var current = Path("").toAbsolutePath().normalize()

@@ -60,7 +60,9 @@ KRender SDK/
 |   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
 +-- apps/
 |   +-- woolboy-desktop/                  # Standalone Woolboy desktop launcher + executable JAR task
-+-- desktop-lwjgl3/        # Desktop SDK host application for KRender tools/runtime
++-- desktop-lwjgl3-win/    # Windows desktop SDK host application
++-- desktop-lwjgl3-macos/  # macOS desktop SDK host application
++-- desktop-lwjgl3-linux/  # Linux desktop SDK host application
 +-- android/               # Android launcher (requires Android SDK to build)
 +-- assets/                # Shared assets for the main editor/runtime application
 +-- docs/                  # Architecture notes, tool docs, screenshots, quality docs
@@ -72,7 +74,9 @@ Gradle subprojects currently loaded by `settings.gradle`:
 - `engine:backend-gdx` - LibGDX backend adapter and all Gdx/OpenGL/gdx-gltf implementation code.
 - `engine:scene-player` - Runtime route for loading and playing `.krscene` scene documents.
 - `engine:tools` - Standalone editor/development tools for assets, models, animations, terrain, scenes, and UI documents.
-- `desktop-lwjgl3` - Desktop SDK host application that wires tools, scene playback, and desktop backend libraries.
+- `desktop-lwjgl3-win` - Windows desktop SDK host application with Windows-local startup policy, runtime composition, secondary JVM launchers, and packaging.
+- `desktop-lwjgl3-macos` - macOS desktop SDK host application with first-thread startup policy, runtime composition, secondary JVM launchers, and packaging.
+- `desktop-lwjgl3-linux` - Linux desktop SDK host application with NVIDIA startup policy, runtime composition, secondary JVM launchers, and packaging.
 - `android` - Android launcher for scene playback with Android-specific backend setup.
 - `games:woolboy` - Standalone Woolboy gameplay/client module built on top of `core`.
 - `apps:woolboy-desktop` - Desktop Woolboy application and executable JAR packaging module.
@@ -86,7 +90,9 @@ The intended dependency direction is:
 engine:tools -> core
 engine:scene-player -> core
 engine:backend-gdx -> core
-desktop-lwjgl3 -> core + engine:backend-gdx + engine:tools + engine:scene-player + desktop backend libraries
+desktop-lwjgl3-win -> core + engine:backend-gdx + engine:tools + engine:scene-player
+desktop-lwjgl3-macos -> core + engine:backend-gdx + engine:tools + engine:scene-player
+desktop-lwjgl3-linux -> core + engine:backend-gdx + engine:tools + engine:scene-player
 android -> core + engine:backend-gdx + engine:scene-player
 games:woolboy -> core
 apps:woolboy-desktop -> games:woolboy + core + engine:backend-gdx
@@ -98,11 +104,21 @@ flowchart LR
     BackendGdx["engine:backend-gdx"] --> Core
     Tools["engine:tools"] --> Core
     ScenePlayer["engine:scene-player"] --> Core
-    DesktopLwjgl3["desktop-lwjgl3"] --> Core
-    DesktopLwjgl3 --> BackendGdx
-    DesktopLwjgl3 --> Tools
-    DesktopLwjgl3 --> ScenePlayer
-    DesktopLwjgl3 --> DesktopBackend["desktop backend libraries"]
+    DesktopWin["desktop-lwjgl3-win"] --> Core
+    DesktopWin --> BackendGdx
+    DesktopWin --> Tools
+    DesktopWin --> ScenePlayer
+    DesktopMac["desktop-lwjgl3-macos"] --> Core
+    DesktopMac --> BackendGdx
+    DesktopMac --> Tools
+    DesktopMac --> ScenePlayer
+    DesktopLinux["desktop-lwjgl3-linux"] --> Core
+    DesktopLinux --> BackendGdx
+    DesktopLinux --> Tools
+    DesktopLinux --> ScenePlayer
+    DesktopWin --> DesktopBackend["desktop backend libraries"]
+    DesktopMac --> DesktopBackend
+    DesktopLinux --> DesktopBackend
     Android["android"] --> Core
     Android --> BackendGdx
     Android --> ScenePlayer
@@ -118,7 +134,7 @@ KRender is organized around a small backend-facing runtime core:
 
 ```mermaid
 flowchart TD
-    Desktop["Desktop LWJGL3 Host"] --> DesktopMain["DesktopMain"]
+    Desktop["Platform Desktop LWJGL3 Host"] --> DesktopMain["DesktopMain"]
     DesktopMain --> ToolsModule["ToolsModule"]
     DesktopMain --> ScenePlayerModule["ScenePlayerModule"]
 
@@ -446,7 +462,7 @@ engine.logger.error("Runtime", error) { "Failed to load scene: ${error.message}"
 Fast JVM compile check on Windows:
 
 ```powershell
-.\gradlew.bat :core:compileKotlin :engine:backend-gdx:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3:compileKotlin
+.\gradlew.bat :core:compileKotlin :engine:backend-gdx:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3-win:compileKotlin :desktop-lwjgl3-macos:compileKotlin :desktop-lwjgl3-linux:compileKotlin
 ```
 
 Run JVM tests:
@@ -473,7 +489,7 @@ The full workspace build includes the `android` module and may require a configu
 On Linux/macOS:
 
 ```bash
-./gradlew :core:compileKotlin :engine:backend-gdx:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3:compileKotlin
+./gradlew :core:compileKotlin :engine:backend-gdx:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3-win:compileKotlin :desktop-lwjgl3-macos:compileKotlin :desktop-lwjgl3-linux:compileKotlin
 ./gradlew :core:test :engine:scene-player:test
 ./gradlew build
 ```

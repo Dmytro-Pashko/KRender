@@ -43,7 +43,9 @@ class BackendBoundaryTest {
                 importPrefix = "import com.badlogic.gdx",
                 allowed = { source ->
                     source.workspacePath.startsWith(BACKEND_GDX_ROOT) ||
-                        source.workspacePath.startsWith(DESKTOP_LWJGL3_ROOT) ||
+                        source.workspacePath.startsWith(DESKTOP_LWJGL3_WIN_ROOT) ||
+                        source.workspacePath.startsWith(DESKTOP_LWJGL3_MACOS_ROOT) ||
+                        source.workspacePath.startsWith(DESKTOP_LWJGL3_LINUX_ROOT) ||
                         source.workspacePath.startsWith(ANDROID_ROOT) ||
                         source.workspacePath.startsWith(WOOLBOY_DESKTOP_ROOT) ||
                         source.workspacePath in KNOWN_TOOL_GDX_IMPORTS
@@ -82,7 +84,9 @@ class BackendBoundaryTest {
                 importPrefix = "import com.pashkd.krender.engine.backend.gdx",
                 allowed = { source ->
                     source.workspacePath.startsWith(BACKEND_GDX_ROOT) ||
-                    source.workspacePath.startsWith(DESKTOP_LWJGL3_ROOT) ||
+                        source.workspacePath.startsWith(DESKTOP_LWJGL3_WIN_ROOT) ||
+                        source.workspacePath.startsWith(DESKTOP_LWJGL3_MACOS_ROOT) ||
+                        source.workspacePath.startsWith(DESKTOP_LWJGL3_LINUX_ROOT) ||
                         source.workspacePath.startsWith(ANDROID_ROOT) ||
                         source.workspacePath.startsWith(WOOLBOY_DESKTOP_ROOT)
                 },
@@ -167,7 +171,9 @@ class BackendBoundaryTest {
     private companion object {
         const val CORE_ROOT = "core/src/main/kotlin/"
         const val BACKEND_GDX_ROOT = "engine/backend-gdx/src/main/kotlin/"
-        const val DESKTOP_LWJGL3_ROOT = "desktop-lwjgl3/src/main/kotlin/"
+        const val DESKTOP_LWJGL3_WIN_ROOT = "desktop-lwjgl3-win/src/main/kotlin/"
+        const val DESKTOP_LWJGL3_MACOS_ROOT = "desktop-lwjgl3-macos/src/main/kotlin/"
+        const val DESKTOP_LWJGL3_LINUX_ROOT = "desktop-lwjgl3-linux/src/main/kotlin/"
         const val ANDROID_ROOT = "android/src/main/kotlin/"
         const val WOOLBOY_DESKTOP_ROOT = "apps/woolboy-desktop/src/main/kotlin/"
 
@@ -179,7 +185,9 @@ class BackendBoundaryTest {
                 SourceRoot("engine:backend-gdx", "engine/backend-gdx/src/main/kotlin"),
                 SourceRoot("games:woolboy", "games/woolboy/src/main/kotlin"),
                 SourceRoot("apps:woolboy-desktop", "apps/woolboy-desktop/src/main/kotlin"),
-                SourceRoot("desktop-lwjgl3", "desktop-lwjgl3/src/main/kotlin"),
+                SourceRoot("desktop-lwjgl3-win", "desktop-lwjgl3-win/src/main/kotlin"),
+                SourceRoot("desktop-lwjgl3-macos", "desktop-lwjgl3-macos/src/main/kotlin"),
+                SourceRoot("desktop-lwjgl3-linux", "desktop-lwjgl3-linux/src/main/kotlin"),
                 SourceRoot("android", "android/src/main/kotlin"),
             )
 

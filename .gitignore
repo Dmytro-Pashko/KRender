@@ -174,7 +174,7 @@ tools/ui/*.jar
 /core/build/*
 /apps/build/*
 /games/build/*
-/apps/*/build/
+/apps/*/build/*
 /games/*/build/*
 /engine/tools/build/*
 /engine/scene-player/build/*
@@ -182,3 +182,4 @@ tools/ui/*.jar
 /tools/build/*
 /scene-player/build/*
 /engine/backend-gdx/build/*
+/desktop-lwjgl3-*/build/*

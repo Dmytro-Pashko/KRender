@@ -70,14 +70,17 @@ KRender SDK/
 |   +-- woolboy/                          # Standalone Woolboy gameplay/client module + bundled assets
 +-- apps/
 |   +-- woolboy-desktop/                  # Standalone Woolboy desktop launcher + executable JAR task
-+-- desktop-lwjgl3/        # Desktop SDK host application (LWJGL3); spawns tool/runtime windows as separate JVMs
++-- desktop-lwjgl3-win/    # Windows desktop SDK host application
++-- desktop-lwjgl3-macos/  # macOS desktop SDK host application
++-- desktop-lwjgl3-linux/  # Linux desktop SDK host application
 +-- android/               # Android launcher (requires Android SDK)
 +-- assets/                # Shared runtime assets (models, textures, terrains, scenes, ui, skyboxes)
 +-- docs/                  # Documentation + screenshots (agents/, screenshot/)
 +-- build.gradle, settings.gradle, gradle.properties
 ```
 
-Gradle subprojects (`settings.gradle`): `core`, `engine:backend-gdx`, `engine:tools`, `engine:scene-player`, `desktop-lwjgl3`, `android`,
+Gradle subprojects (`settings.gradle`): `core`, `engine:backend-gdx`, `engine:tools`, `engine:scene-player`,
+`desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, `desktop-lwjgl3-linux`, `android`,
 `games:woolboy`, `apps:woolboy-desktop`. The root `assets` directory remains a shared resource folder for the
 existing editor/runtime app, while the Woolboy app bundles its own curated resources from
 `games/woolboy/src/main/resources/assets/woolboy/`.
@@ -119,7 +122,9 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 | `engine:backend-gdx` | LibGDX backend adapter and all Gdx/OpenGL/gdx-gltf implementation code. Depends on `core`. |
 | `engine:tools` | Editor tool module containing Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, UI Composer, tool routing, and editor-only helpers. It is mostly backend-neutral, with a small explicitly allowlisted temporary GDX editor-preview adapter layer. |
 | `engine:scene-player` | Runtime/player module containing `ScenePlayerScene`, `ScenePlayerBuilder`, `ScenePlayerModule`, preferred `scene-player` routing plus legacy aliases. It does not own a GDX entry point. |
-| `desktop-lwjgl3` | Desktop SDK host application entry point (`Lwjgl3Launcher`), window config, and the launchers that open tool/runtime windows as **separate JVM processes** (`Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`, `Lwjgl3JvmProcessLauncher`). |
+| `desktop-lwjgl3-win` | Windows desktop SDK host application. Owns `WinLwjgl3Launcher`, `WinStartupPolicy`, `DesktopMain`, secondary JVM launchers, Windows run config, Windows JAR packaging, and the Windows Construo target. |
+| `desktop-lwjgl3-macos` | macOS desktop SDK host application. Owns `MacOsLwjgl3Launcher`, `MacOsStartupPolicy`, `DesktopMain`, secondary JVM launchers, macOS run config, macOS JAR packaging, and macOS Construo targets. |
+| `desktop-lwjgl3-linux` | Linux desktop SDK host application. Owns `LinuxLwjgl3Launcher`, `LinuxStartupPolicy`, `DesktopMain`, secondary JVM launchers, Linux run config, Linux JAR packaging, and the Linux Construo target. |
 | `android` | Android launcher (`AndroidLauncher`). Creates `GdxEngineApplication` from `engine:backend-gdx` and its initial scene through `ScenePlayerModule`, uses `NoOpUiService` (no ImGui), and requires the Android SDK to build. |
 | `assets` | Runtime asset files scanned by the asset registry and loaded by the backend. |
 
@@ -311,6 +316,8 @@ On desktop they are opened as **separate JVM windows** by `Lwjgl3EditorToolLaunc
 (via `editorToolLauncher` on `EngineContext`). Inside the Asset Browser, the
 `AssetToolRegistry` maps asset categories to `AssetTool`s that call the launcher.
 Scene playback routes are handled separately by `engine:scene-player` through `ScenePlayerModule`.
+Desktop bootstrap is platform-local: Windows, macOS, and Linux each have their own self-contained
+`desktop-lwjgl3-*` launcher module with a local `DesktopMain` composition.
 
 Each tool has a dedicated context file under `docs/agents/tools/`. Read it before changing
 that tool.
@@ -355,8 +362,10 @@ Scene Player (`engine:scene-player/.../ScenePlayerScene.kt`) is not an editor to
 | Area | Class / Interface | Location | Responsibility |
 |---|---|---|---|
 | Routing (scene player) | `ScenePlayerModule` | `engine/scene-player/.../ScenePlayerModule.kt` | Backend-neutral route-to-scene factory for `.krscene` playback and legacy aliases. |
-| Routing (desktop) | `DesktopMain` | `desktop-lwjgl3/.../DesktopMain.kt` | Composes `ToolsModule` and `ScenePlayerModule` for desktop scene routing. |
-| Entry (desktop) | `Lwjgl3Launcher` | `desktop-lwjgl3/.../Lwjgl3Launcher.kt` | LWJGL3 `main()`, window config. |
+| Routing (desktop) | `DesktopMain` | `desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, `desktop-lwjgl3-linux` | Composes `ToolsModule` and `ScenePlayerModule` for desktop scene routing inside each platform launcher. |
+| Entry (Windows desktop) | `WinLwjgl3Launcher` | `desktop-lwjgl3-win/.../WinLwjgl3Launcher.kt` | Windows LWJGL3 `main()` and startup policy handoff. |
+| Entry (macOS desktop) | `MacOsLwjgl3Launcher` | `desktop-lwjgl3-macos/.../MacOsLwjgl3Launcher.kt` | macOS LWJGL3 `main()` and first-thread startup policy handoff. |
+| Entry (Linux desktop) | `LinuxLwjgl3Launcher` | `desktop-lwjgl3-linux/.../LinuxLwjgl3Launcher.kt` | Linux LWJGL3 `main()` and NVIDIA startup policy handoff. |
 | Entry (Android) | `AndroidLauncher` | `android/.../AndroidLauncher.kt` | Android entry point that creates `GdxEngineApplication` with `ScenePlayerModule`. |
 | Backend bootstrap | `GdxEngineApplication` | `engine/backend-gdx/.../backend/gdx/GdxEngineApplication.kt` | libGDX `ApplicationAdapter` that boots runtime. |
 | Runtime | `EngineRuntime` / `Engine` | `api/EngineRuntime.kt` | Owns scenes + services; implements `EngineContext`. |
@@ -379,7 +388,7 @@ Scene Player (`engine:scene-player/.../ScenePlayerScene.kt`) is not an editor to
 | UI (editor) | `UiService`, `UiPanel`, `UiSystem` | `ui/editor/Ui.kt` | ImGui panel composition. |
 | UI (runtime) | `RuntimeUiService` | `ui/runtime/RuntimeUiService.kt` | Scene2D runtime game UI. |
 | Scene files | `SceneFileService` | `scene/SceneFileService.kt` | Text read/write abstraction. |
-| Launchers | `EditorToolLauncher`, `RuntimeWindowLauncher` | `scene/` + `desktop-lwjgl3/` | Open tool/runtime windows. |
+| Launchers | `EditorToolLauncher`, `RuntimeWindowLauncher` | `scene/` + platform desktop modules | Open tool/runtime windows. |
 
 ---
 
@@ -422,7 +431,7 @@ Only patterns actually present in the code:
 See `docs/agents/logging.md` for detail. Conventions in code:
 
 - Use the injected `engine.logger` (`Logger`), never `println` or `Gdx.app.log` from core/tools.
-  (`println` appears only in the desktop `Lwjgl3Launcher` startup banner.)
+  (`println` appears only in the desktop launcher startup banner.)
 - Each class defines a `private const val TAG = "ClassName"` in its `companion object` and uses it.
 - Logging is **lazy**: `logger.info(TAG) { "message ${expensive()}" }` — the lambda only runs if
   the level is enabled.
@@ -491,9 +500,9 @@ See `docs/agents/logging.md` for detail. Conventions in code:
 - Things requiring a real OpenGL context (renderer, ImGui, texture upload) are **not** unit
   tested — validate those manually by running the relevant scene.
 - Useful Gradle commands (the README uses `.\gradlew.bat` on Windows; use `./gradlew` on macOS/Linux):
-  - `./gradlew :core:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3:compileKotlin` — fast compile check.
+  - `./gradlew :core:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3-win:compileKotlin :desktop-lwjgl3-macos:compileKotlin :desktop-lwjgl3-linux:compileKotlin` — fast compile check.
   - `./gradlew :core:test :engine:scene-player:test` — run unit tests.
-  - `./gradlew :desktop-lwjgl3:run` — run the default scene (Asset Browser).
+  - `./gradlew :desktop-lwjgl3-win:run` / `:desktop-lwjgl3-macos:run` / `:desktop-lwjgl3-linux:run` — run the default scene (Asset Browser) on the matching platform.
   - Run a specific tool/scene with system properties, e.g.
     `-Dkrender.scene=model-viewer -Dkrender.model.path=model/...` or
     `-Dkrender.scene=scene-player -Dkrender.scene.path=scenes/...`.
@@ -525,6 +534,6 @@ See `docs/agents/logging.md` for detail. Conventions in code:
 4. Keep components as data and behavior in systems; keep rendering as `RenderCommand`s.
 5. Respect lifecycle: deferred scene transitions, `CommandBuffer` mutations, async asset loading.
 6. Add or update a unit test in `core/src/test/kotlin` when logic is testable without GL.
-7. Compile (`:core:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3:compileKotlin`) and run `:core:test :engine:scene-player:test`.
-8. If behavior is GL/UI-dependent, run the scene (`:desktop-lwjgl3:run` with the right system properties).
+7. Compile (`:core:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3-win:compileKotlin :desktop-lwjgl3-macos:compileKotlin :desktop-lwjgl3-linux:compileKotlin`) and run `:core:test :engine:scene-player:test`.
+8. If behavior is GL/UI-dependent, run the scene with the matching platform module (`:desktop-lwjgl3-win:run`, `:desktop-lwjgl3-macos:run`, or `:desktop-lwjgl3-linux:run`) and the right system properties.
 9. Update this guide and the relevant `docs/agents/*` file if you changed architecture.

@@ -26,7 +26,6 @@
     <ID>CyclomaticComplexMethod:Scene2DSkinAssetDetailsRenderer.kt$Scene2DSkinAssetDetailsRenderer$override fun render( asset: AssetDescriptor, context: AssetDetailsRenderContext, )</ID>
     <ID>CyclomaticComplexMethod:SceneAssetCollector.kt$SceneDependencyCollector$fun collect( descriptor: SceneDescriptor, resolvedSkybox: SkyboxAssetDescriptor? = null, ): SceneDependencyGraph</ID>
     <ID>CyclomaticComplexMethod:SceneAssetDetailsRenderer.kt$SceneAssetDetailsRenderer$override fun render( asset: AssetDescriptor, context: AssetDetailsRenderContext, )</ID>
-    <ID>CyclomaticComplexMethod:StartupHelper.kt$StartupHelper$fun startNewJvm0( isMac: Boolean, inheritIO: Boolean, ): Boolean</ID>
     <ID>CyclomaticComplexMethod:TerrainBrush.kt$TerrainBrushApplier$fun apply( data: TerrainData, stroke: TerrainBrushStroke, patchBuilder: TerrainEditPatchBuilder? = null, ): Boolean</ID>
     <ID>CyclomaticComplexMethod:TerrainMetadata.kt$TerrainMetadataReader$private fun readArrayBody( text: String, name: String, ): String?</ID>
     <ID>CyclomaticComplexMethod:TerrainSystems.kt$TerrainCameraControllerSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
@@ -114,7 +113,6 @@
     <ID>NestedBlockDepth:SceneAssetCollector.kt$SceneDependencyCollector$fun collect( descriptor: SceneDescriptor, resolvedSkybox: SkyboxAssetDescriptor? = null, ): SceneDependencyGraph</ID>
     <ID>NestedBlockDepth:TerrainBrush.kt$TerrainBrushApplier$fun apply( data: TerrainData, stroke: TerrainBrushStroke, patchBuilder: TerrainEditPatchBuilder? = null, ): Boolean</ID>
     <ID>NestedBlockDepth:TerrainRuntime.kt$TerrainMaterialBakeService$fun bakeFinalSplatTexture( terrain: TerrainData, resolution: Int, textureId: String, revision: Long, blendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.OrderedAlpha, ): RuntimeTextureData</ID>
-    <ID>PrintStackTrace:StartupHelper.kt$StartupHelper$e</ID>
     <ID>ReturnCount:AnimationViewerState.kt$AnimationViewerState$fun connectedBoneIndices(): Set&lt;Int&gt;</ID>
     <ID>ReturnCount:AnimationViewerSystems.kt$AnimationViewerBoundingBoxSystem$override fun render( world: SceneWorld, alpha: Float, )</ID>
     <ID>ReturnCount:AnimationViewerSystems.kt$AnimationViewerModelRenderSystem$override fun render( world: SceneWorld, alpha: Float, )</ID>
@@ -199,8 +197,6 @@
     <ID>ReturnCount:SceneEditorSystems.kt$SceneEditorSelectionSystem$private fun selectionViewport(snapshot: InputSnapshot): SelectionViewport?</ID>
     <ID>ReturnCount:SceneMetadata.kt$SceneAssetMetadataReader$private fun String.parseVec3(): Triple&lt;Float, Float, Float&gt;?</ID>
     <ID>ReturnCount:ScenePathUtils.kt$ScenePathUtils$fun normalizeScenePath(path: String): String</ID>
-    <ID>ReturnCount:StartupHelper.kt$StartupHelper$@JvmOverloads fun startNewJvmIfRequired(inheritIO: Boolean = true): Boolean</ID>
-    <ID>ReturnCount:StartupHelper.kt$StartupHelper$fun startNewJvm0( isMac: Boolean, inheritIO: Boolean, ): Boolean</ID>
     <ID>ReturnCount:StyleReferenceValidator.kt$StyleReferenceValidator$override fun validate(context: UiSceneValidationContext): List&lt;UiSceneValidationIssue&gt;</ID>
     <ID>ReturnCount:TerrainMaterialPreviewBaker.kt$TerrainMaterialPreviewBaker$private fun loadMaterialPixmap(material: TerrainMaterialDescriptor): Pixmap?</ID>
     <ID>ReturnCount:TerrainMaterialPreviewBaker.kt$TerrainMaterialPreviewBaker$private fun sampleLayerTextureColor( layer: TerrainLayer, u: Float, v: Float, ): TerrainLayerColorDescriptor</ID>
@@ -239,7 +235,6 @@
     <ID>ReturnCount:WoolboySystems.kt$PlayerControllerSystem$private fun cameraMovementBasis(world: SceneWorld): CameraMovementBasis</ID>
     <ID>SpreadOperator:GdxRenderer3D.kt$GdxRenderer3D$( true, vertexBuffer.size / vertexStride, if (canUseIndices) meshData.indices.size else 0, *attributes.toTypedArray(), )</ID>
     <ID>SpreadOperator:LocalAssetImportService.kt$LocalAssetImportService$( source.toPath(), target.toPath(), *mainCopyOptions(plan.collisionPolicy), )</ID>
-    <ID>SpreadOperator:Lwjgl3Launcher.kt$(*(arrayOf(128, 64, 32, 16).map { "libgdx$it.png" }.toTypedArray()))</ID>
     <ID>ThrowsCount:AssetMetadataCodec.kt$AssetMetadataCodec$fun decode(text: String): AssetMetadataDocument</ID>
     <ID>ThrowsCount:RuntimeSceneValidator.kt$RuntimeSceneValidator$fun requireActiveCamera( world: SceneWorld, descriptor: SceneDescriptor, ): Entity</ID>
     <ID>ThrowsCount:RuntimeSceneValidator.kt$RuntimeSceneValidator$fun requireActiveTerrain( world: SceneWorld, descriptor: SceneDescriptor, ): Entity</ID>
@@ -273,7 +268,6 @@
     <ID>TooGenericExceptionCaught:SceneEditorOperations.kt$SceneEditorOperations$error: Exception</ID>
     <ID>TooGenericExceptionCaught:SceneEditorSystems.kt$SceneEditorEnvironmentRenderSystem$error: Exception</ID>
     <ID>TooGenericExceptionCaught:SkyboxAssetService.kt$SkyboxAssetService$error: Exception</ID>
-    <ID>TooGenericExceptionCaught:StartupHelper.kt$StartupHelper$e: Exception</ID>
     <ID>TooGenericExceptionCaught:TerrainEditorScene.kt$TerrainEditorScene$error: Exception</ID>
     <ID>TooGenericExceptionCaught:TerrainMaterialPreviewBaker.kt$TerrainMaterialPreviewBaker$error: Exception</ID>
     <ID>TooGenericExceptionCaught:TerrainRuntime.kt$RuntimeTerrainMeshSystem$error: Exception</ID>
@@ -335,11 +329,6 @@
     <ID>TooManyFunctions:UiComposerScene.kt$UiComposerScene : Scene</ID>
     <ID>TooManyFunctions:UiSceneSerializer.kt$UiSceneSerializer : KRenderSerializer</ID>
     <ID>TopLevelPropertyNaming:LogsPanel.kt$private const val TruncationSuffix = "..."</ID>
-    <ID>TopLevelPropertyNaming:Lwjgl3Launcher.kt$private const val DefaultForegroundFps = 60</ID>
-    <ID>TopLevelPropertyNaming:Lwjgl3Launcher.kt$private const val DefaultOpenGlTarget = "gl30"</ID>
-    <ID>TopLevelPropertyNaming:Lwjgl3Launcher.kt$private const val DefaultVSyncEnabled = false</ID>
-    <ID>TopLevelPropertyNaming:Lwjgl3Launcher.kt$private const val DefaultWindowHeight = 1080</ID>
-    <ID>TopLevelPropertyNaming:Lwjgl3Launcher.kt$private const val DefaultWindowWidth = 1920</ID>
     <ID>TopLevelPropertyNaming:ModelViewerPanels.kt$private const val TexturePreviewSize = 100f</ID>
     <ID>TopLevelPropertyNaming:RuntimeViewport.kt$private const val MinScale = 0.0001f</ID>
     <ID>TopLevelPropertyNaming:Scene2DSkinSelection.kt$const val DefaultUiSceneSkinPath = "ui/skins/craftacular-ui.json"</ID>

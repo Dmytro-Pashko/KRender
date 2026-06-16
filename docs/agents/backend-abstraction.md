@@ -48,7 +48,7 @@
 | `logs`/`logger` | `EngineLogService` + `GdxAppLogSink` + `FileLogSink` |
 | `runtimeStats`/`profiler` | `FrameRuntimeStatsService` / `FrameProfilerService` (core defaults) |
 | `terrainTextureSamplerFactory` | `GdxTerrainMaterialTextureSampler` factory |
-| launchers | injected (`Lwjgl3*Launcher` from `desktop-lwjgl3` on desktop; `Unsupported*` fallbacks otherwise) |
+| launchers | injected by the self-contained platform desktop modules; `Unsupported*` fallbacks otherwise |
 
 ## Crossing the boundary safely
 
@@ -73,7 +73,9 @@ Desktop tools and the runtime player run as **separate JVM processes**, not in-p
   `Lwjgl3JvmProcessLauncher`, passing `krender.scene` + a path system property
   (`krender.model.path`, `krender.terrain.path`, `krender.scene.path`, `krender.ui.scene.path`).
 - `Lwjgl3RuntimeWindowLauncher` (implements `RuntimeWindowLauncher`) launches the runtime player.
-- `DesktopMain` composes `ToolsModule` and `ScenePlayerModule` for desktop routes.
+- `DesktopMain` composes `ToolsModule` and `ScenePlayerModule` for desktop routes inside each platform launcher module.
+- `desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, and `desktop-lwjgl3-linux` own platform-local
+  startup policy, run config, packaging, runtime composition, and secondary JVM launchers.
 - Android creates `GdxEngineApplication` directly and gets its initial `.krscene` scene from
   `ScenePlayerModule`.
 - Backends that cannot spawn windows use `UnsupportedEditorToolLauncher` /
@@ -105,10 +107,12 @@ backend-owned adapter or `engine:tools-gdx` bridge in a focused follow-up.
   not be required by the runtime path.
 - Enforced guard: `BackendBoundaryTest` (`core` tests) fails the build on violations of four rules:
   - **Rule A** — `import com.badlogic.gdx` is allowed in `engine:backend-gdx`, launcher/app modules
-    (`desktop-lwjgl3`, `android`, `apps:woolboy-desktop`), and the explicit `engine:tools` preview adapter
+    (`desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, `desktop-lwjgl3-linux`,
+    `android`, `apps:woolboy-desktop`), and the explicit `engine:tools` preview adapter
     allowlist only.
   - **Rule B** — `import net.mgsx.gltf` is allowed only in `engine:backend-gdx`.
   - **Rule C** — `core` must not import `engine.backend.gdx`.
   - **Rule D** — Backend implementation imports are allowed only in `engine:backend-gdx`,
-    `desktop-lwjgl3`, `android`, and `apps:woolboy-desktop`.
+    `desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, `desktop-lwjgl3-linux`,
+    `android`, and `apps:woolboy-desktop`.
   The test reports module, source root, file path, import line, and rule.

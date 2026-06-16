@@ -49,7 +49,7 @@ and passes `TAG` to the logger. Use the class/feature name (e.g. `"ModelViewerSc
 
 - **Do** use `engine.logger` with a `TAG` and lazy lambdas.
 - **Don't** use `println` or `Gdx.app.log` from core/tool code. (`println` is acceptable only in the
-  desktop `Lwjgl3Launcher` startup banner.)
+  desktop launcher startup banner.)
 - **Don't** build expensive log strings eagerly outside the lambda.
 - Prefer `debug`/`trace` for per-frame or high-frequency messages; reserve `info` for meaningful
   state changes. (Several viewers currently over-use `info` per frame — see `ARCHITECTURE_REVIEW.md`.)

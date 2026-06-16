@@ -6,7 +6,9 @@ Woolboy now ships as a **standalone KRender SDK client application** instead of 
 
 ```text
 core/                  # KRender engine / SDK
-desktop-lwjgl3/        # Main KRender desktop host application for tools/runtime
+desktop-lwjgl3-win/    # Windows KRender desktop host application
+desktop-lwjgl3-macos/  # macOS KRender desktop host application
+desktop-lwjgl3-linux/  # Linux KRender desktop host application
 android/               # Android launcher
 games/
   woolboy/             # Woolboy gameplay/client module + bundled runtime assets
@@ -17,7 +19,9 @@ apps/
 Gradle project paths:
 
 - `:core`
-- `:desktop-lwjgl3`
+- `:desktop-lwjgl3-win`
+- `:desktop-lwjgl3-macos`
+- `:desktop-lwjgl3-linux`
 - `:android`
 - `:games:woolboy`
 - `:apps:woolboy-desktop`

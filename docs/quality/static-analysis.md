@@ -1,7 +1,8 @@
 # Static Analysis
 
 KRender now has a root static-analysis workflow for Kotlin formatting, static analysis, JVM verification, and unit test coverage reporting for the `core` module.
-The source scan now includes nested game/app modules such as `games:woolboy` and `apps:woolboy-desktop` for formatting and Detekt checks.
+The source scan includes nested game/app modules such as `games:woolboy` and `apps:woolboy-desktop`,
+plus the platform desktop launcher modules.
 
 ## Commands
 
@@ -29,7 +30,7 @@ You can also run the Gradle tasks directly:
 
 ## What Runs
 
-- `ktlint` checks Kotlin source formatting and style for `core`, nested `games/**`, nested `apps/**`, and repository `.kts` files, excluding `build/`, `.gradle/`, and `generated/`.
+- `ktlint` checks Kotlin source formatting and style for `core`, nested `games/**`, nested `apps/**`, desktop launcher modules, and repository `.kts` files, excluding `build/`, `.gradle/`, and `generated/`.
 - `detekt` checks Kotlin code quality, complexity, and code smells using `config/detekt/detekt.yml` across the same repository source roots.
 - `test` runs the existing JVM test suite, including architecture verification such as `BackendBoundaryTest`
   and Gradle dependency boundary checks.
@@ -80,10 +81,12 @@ Reduce the baseline over time by fixing findings and then regenerating it from a
 ## Boundary Rules
 
 Static analysis must not weaken the core/backend boundary. `BackendBoundaryTest` scans `core`, `engine:tools`,
-`engine:scene-player`, `engine:backend-gdx`, `games:woolboy`, `apps:woolboy-desktop`, `desktop-lwjgl3`, and `android`.
+`engine:scene-player`, `engine:backend-gdx`, `games:woolboy`, `apps:woolboy-desktop`,
+`desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, `desktop-lwjgl3-linux`, and `android`.
 It allows GDX imports only in the backend/launcher/app modules plus the explicit temporary `engine:tools`
 editor-preview adapter allowlist. Gradle dependency boundary tests keep backend dependencies out of `core`,
-`engine:scene-player`, and gameplay modules. New allowlist entries should not be added just to make verification pass.
+`engine:scene-player`, and gameplay modules, and verify that the platform desktop launchers depend directly on the
+runtime modules they host. New allowlist entries should not be added just to make verification pass.
 
 ## CI Readiness
 
