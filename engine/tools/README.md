@@ -8,6 +8,11 @@ Dependency direction:
 engine:tools -> core
 ```
 
+`engine:tools` is intended to stay backend-neutral editor/tool logic. It currently carries a small temporary
+GDX dependency for explicitly allowlisted editor-preview adapters (`TerrainMaterialPreviewBaker` and
+`uicomposer/gdx/*`). Do not add new GDX imports casually; justify any exception in `BackendBoundaryTest`.
+The preferred follow-up is to move this adapter layer to a dedicated module such as `engine:tools-gdx`.
+
 Tool routes are selected with `krender.scene`. When running through `:lwjgl3:run`, pass route properties with Gradle `-P` flags; the launcher forwards supported properties to JVM system properties. Asset paths are relative to the `assets/` working directory unless the current launcher documents otherwise.
 
 Convenience launch scripts are available in `engine/tools/scripts/`:

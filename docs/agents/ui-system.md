@@ -6,7 +6,7 @@
 ## 1. Editor UI (ImGui) — `engine.ui.editor`
 
 Core contract: `core/.../engine/ui/editor/Ui.kt`. Backend: `GdxImGuiService`
-(`core/.../engine/backend/gdx/GdxImGuiService.kt`).
+(`engine/backend-gdx/.../engine/backend/gdx/GdxImGuiService.kt`).
 
 - **`UiContext`/`UiService`**: `beginFrame(delta)`, `endFrame()`, `render()`, `resize()`,
   `captureState: UiCaptureState` (mouse/keyboard capture), `drawTexturePreview(handle, w, h)`.
@@ -36,7 +36,7 @@ Core contract: `core/.../engine/ui/editor/Ui.kt`. Backend: `GdxImGuiService`
 
 Core: `RuntimeUiService` (`core/.../engine/ui/runtime/RuntimeUiService.kt`) wrapping a
 `RuntimeUiBackend`. Backend: `GdxRuntimeUiBackend`
-(`core/.../engine/backend/gdx/ui/runtime/`), with app-provided runtime UI actor factories and
+(`engine/backend-gdx/.../engine/backend/gdx/ui/runtime/`), with app-provided runtime UI actor factories and
 `GdxUiSceneBuilder` building Scene2D from `.krui`.
 
 - Driven by the loop separately from the editor UI: `runtimeUi.update(delta)` then

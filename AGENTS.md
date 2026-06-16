@@ -117,10 +117,10 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 |---|---|
 | `core` | Backend-neutral engine/runtime API, data, and shared services such as assets, terrain, scene files, serializers, and `.krui` documents. |
 | `engine:backend-gdx` | LibGDX backend adapter and all Gdx/OpenGL/gdx-gltf implementation code. Depends on `core`. |
-| `engine:tools` | Editor tool module containing Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, UI Composer, tool routing, and editor-only helpers. |
-| `engine:scene-player` | Runtime/player module containing `ScenePlayerScene`, `ScenePlayerBuilder`, preferred `scene-player` routing plus legacy aliases, and the dedicated `.krscene` playback entry point. |
+| `engine:tools` | Editor tool module containing Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, UI Composer, tool routing, and editor-only helpers. It is mostly backend-neutral, with a small explicitly allowlisted temporary GDX editor-preview adapter layer. |
+| `engine:scene-player` | Runtime/player module containing `ScenePlayerScene`, `ScenePlayerBuilder`, `ScenePlayerModule`, preferred `scene-player` routing plus legacy aliases. It does not own a GDX entry point. |
 | `lwjgl3` | Desktop entry point (`Lwjgl3Launcher`), window config, and the launchers that open tool/runtime windows as **separate JVM processes** (`Lwjgl3EditorToolLauncher`, `Lwjgl3RuntimeWindowLauncher`, `Lwjgl3JvmProcessLauncher`). |
-| `android` | Android launcher (`AndroidLauncher`). Uses `ScenePlayerMain` for `.krscene` playback, uses `NoOpUiService` (no ImGui), and requires the Android SDK to build. |
+| `android` | Android launcher (`AndroidLauncher`). Creates `GdxEngineApplication` from `engine:backend-gdx` and its initial scene through `ScenePlayerModule`, uses `NoOpUiService` (no ImGui), and requires the Android SDK to build. |
 | `assets` | Runtime asset files scanned by the asset registry and loaded by the backend. |
 
 ---
@@ -354,10 +354,11 @@ Scene Player (`engine:scene-player/.../ScenePlayerScene.kt`) is not an editor to
 
 | Area | Class / Interface | Location | Responsibility |
 |---|---|---|---|
-| Entry (scene player) | `ScenePlayerMain` | `engine/scene-player/.../ScenePlayerMain.kt` | Convenience GDX application wrapper used by Android and available to other launchers for direct `.krscene` playback. |
+| Routing (scene player) | `ScenePlayerModule` | `engine/scene-player/.../ScenePlayerModule.kt` | Backend-neutral route-to-scene factory for `.krscene` playback and legacy aliases. |
 | Routing (desktop) | `DesktopMain` | `lwjgl3/.../DesktopMain.kt` | Composes `ToolsModule` and `ScenePlayerModule` for desktop scene routing. |
 | Entry (desktop) | `Lwjgl3Launcher` | `lwjgl3/.../Lwjgl3Launcher.kt` | LWJGL3 `main()`, window config. |
-| Backend bootstrap | `GdxEngineApplication` | `backend/gdx/GdxEngineApplication.kt` | libGDX `ApplicationAdapter` that boots runtime. |
+| Entry (Android) | `AndroidLauncher` | `android/.../AndroidLauncher.kt` | Android entry point that creates `GdxEngineApplication` with `ScenePlayerModule`. |
+| Backend bootstrap | `GdxEngineApplication` | `engine/backend-gdx/.../backend/gdx/GdxEngineApplication.kt` | libGDX `ApplicationAdapter` that boots runtime. |
 | Runtime | `EngineRuntime` / `Engine` | `api/EngineRuntime.kt` | Owns scenes + services; implements `EngineContext`. |
 | Facade | `EngineContext` | `api/EngineRuntime.kt` | Service locator passed to scenes. |
 | Backend contract | `EngineBackend` | `api/EngineRuntime.kt` | Platform service contract. |

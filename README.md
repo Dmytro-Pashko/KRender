@@ -121,11 +121,12 @@ flowchart TD
     Desktop["LWJGL3 Desktop Launcher"] --> DesktopMain["DesktopMain"]
     DesktopMain --> ToolsModule["ToolsModule"]
     DesktopMain --> ScenePlayerModule["ScenePlayerModule"]
-    Android["Android Launcher"] --> ScenePlayerMain["ScenePlayerMain"]
+
+    AndroidLauncher["AndroidLauncher"] --> GdxApp["GdxEngineApplication"]
+    GdxApp --> ScenePlayerModule
+    ScenePlayerModule --> PlayerScene["Scene Player Scene"]
 
     ToolsModule --> ToolScene["Editor Tool Scene"]
-    ScenePlayerModule --> PlayerScene["Scene Player Scene"]
-    ScenePlayerMain --> PlayerScene
 
     ToolScene --> Runtime["EngineRuntime"]
     PlayerScene --> Runtime
@@ -445,13 +446,13 @@ engine.logger.error("Runtime", error) { "Failed to load scene: ${error.message}"
 Fast JVM compile check on Windows:
 
 ```powershell
-.\gradlew.bat core:compileKotlin lwjgl3:compileKotlin
+.\gradlew.bat :core:compileKotlin :engine:backend-gdx:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :lwjgl3:compileKotlin
 ```
 
 Run JVM tests:
 
 ```powershell
-.\gradlew.bat core:test
+.\gradlew.bat :core:test :engine:scene-player:test
 ```
 
 Build the standalone Woolboy modules only:
@@ -472,8 +473,8 @@ The full workspace build includes the `android` module and may require a configu
 On Linux/macOS:
 
 ```bash
-./gradlew core:compileKotlin lwjgl3:compileKotlin
-./gradlew core:test
+./gradlew :core:compileKotlin :engine:backend-gdx:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :lwjgl3:compileKotlin
+./gradlew :core:test :engine:scene-player:test
 ./gradlew build
 ```
 

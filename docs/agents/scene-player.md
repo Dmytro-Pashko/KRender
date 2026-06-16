@@ -12,8 +12,9 @@ Scene Player is the non-editor runtime/player route for `.krscene` files. It loa
 - Scene: `engine/scene-player/.../ScenePlayerScene.kt`
 - Builder: `engine/scene-player/.../ScenePlayerBuilder.kt`
 - Routing: `engine/scene-player/.../ScenePlayerModule.kt`
-- Entry point: `engine/scene-player/.../ScenePlayerMain.kt`
 - Desktop composition: `lwjgl3/.../DesktopMain.kt`
+- Android composition: `android/.../AndroidLauncher.kt` creates `GdxEngineApplication` from
+  `engine:backend-gdx` and its initial scene through `ScenePlayerModule`.
 - Supported routes:
   - `scene-player` preferred route
   - `scene-viewer`
@@ -26,7 +27,6 @@ Scene Player is the non-editor runtime/player route for `.krscene` files. It loa
 | `engine/scene-player/.../ScenePlayerScene.kt` | Scene lifecycle, dependency scheduling, descriptor loading, runtime build logging. |
 | `engine/scene-player/.../ScenePlayerBuilder.kt` | Applies scene descriptors to the world and wires runtime render/terrain/environment systems. |
 | `engine/scene-player/.../ScenePlayerModule.kt` | Route-to-scene factory for player aliases. |
-| `engine/scene-player/.../ScenePlayerMain.kt` | Convenience GDX application wrapper used by Android and available to other launchers. |
 | `core/.../engine/scene/SceneSerializer.kt` | Decodes and applies `.krscene` scene descriptors. |
 | `core/.../engine/scene/RuntimeSceneValidator.kt` | Dependency validation and active-camera / active-terrain requirements. |
 | `core/.../engine/terrain/RuntimeTerrainService.kt` | Runtime terrain preparation for active terrain entities. |
@@ -39,10 +39,12 @@ Scene Player is the non-editor runtime/player route for `.krscene` files. It loa
 - `runtime-scene` is a route alias only, not the preferred class, module, or internal scene id name.
 - Scene Player is intentionally separate from `engine:tools` so Android can depend on it without pulling editor tooling.
 - The backend-neutral playback logic lives in `ScenePlayerScene`, `ScenePlayerBuilder`, and `ScenePlayerModule`.
+- Scene Player does not own a GDX entry point. Desktop composes it through `DesktopMain`; Android
+  composes it through `AndroidLauncher` and `GdxEngineApplication`.
 
 ## Validation
 
 ```sh
-./gradlew :core:compileKotlin :engine:scene-player:compileKotlin :lwjgl3:compileKotlin
+./gradlew :core:compileKotlin :engine:backend-gdx:compileKotlin :engine:scene-player:compileKotlin :lwjgl3:compileKotlin
 ./gradlew :core:test :engine:scene-player:test
 ```

@@ -31,7 +31,8 @@ You can also run the Gradle tasks directly:
 
 - `ktlint` checks Kotlin source formatting and style for `core`, nested `games/**`, nested `apps/**`, and repository `.kts` files, excluding `build/`, `.gradle/`, and `generated/`.
 - `detekt` checks Kotlin code quality, complexity, and code smells using `config/detekt/detekt.yml` across the same repository source roots.
-- `test` runs the existing JVM test suite, including architecture verification such as `BackendBoundaryTest`.
+- `test` runs the existing JVM test suite, including architecture verification such as `BackendBoundaryTest`
+  and Gradle dependency boundary checks.
 - `unitTestCoverageReport` runs `core:test` and then generates JaCoCo HTML, XML, and CSV reports for the `core` JVM unit tests.
 
 ## Reports
@@ -78,7 +79,11 @@ Reduce the baseline over time by fixing findings and then regenerating it from a
 
 ## Boundary Rules
 
-Static analysis must not weaken the core/backend boundary. `BackendBoundaryTest` remains part of verification, and new allowlist entries should not be added just to make the workflow pass.
+Static analysis must not weaken the core/backend boundary. `BackendBoundaryTest` scans `core`, `engine:tools`,
+`engine:scene-player`, `engine:backend-gdx`, `games:woolboy`, `apps:woolboy-desktop`, `lwjgl3`, and `android`.
+It allows GDX imports only in the backend/launcher/app modules plus the explicit temporary `engine:tools`
+editor-preview adapter allowlist. Gradle dependency boundary tests keep backend dependencies out of `core`,
+`engine:scene-player`, and gameplay modules. New allowlist entries should not be added just to make verification pass.
 
 ## CI Readiness
 

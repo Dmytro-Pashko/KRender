@@ -6,7 +6,7 @@
 ## 1. Runtime loading (`AssetService`)
 
 Core contract: `core/.../engine/api/Assets.kt`. Backend: `GdxAssetService` in
-`core/.../engine/backend/gdx/GdxAssetService.kt`, with asset-scoped skeleton pose sampling in
+`engine/backend-gdx/.../engine/backend/gdx/GdxAssetService.kt`, with asset-scoped skeleton pose sampling in
 `GdxModelPoseSampler.kt`.
 
 - **Typed handles.** `AssetRef<T>` carries a normalized `path` + a marker type

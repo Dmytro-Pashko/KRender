@@ -1,7 +1,7 @@
 # Logging & Diagnostics — Agent Deep Dive
 
 > Supplements `AGENTS.md` §15. Core types: `core/.../engine/api/Debug.kt`. Backend sinks:
-> `core/.../engine/backend/gdx/` (`GdxAppLogSink`, `FileLogSink.kt`).
+> `engine/backend-gdx/.../engine/backend/gdx/` (`GdxAppLogSink`, `FileLogSink.kt`).
 
 ## Logger
 
