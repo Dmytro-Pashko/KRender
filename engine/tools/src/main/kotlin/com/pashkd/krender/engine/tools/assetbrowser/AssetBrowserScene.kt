@@ -38,7 +38,7 @@ class AssetBrowserScene : Scene("asset_browser") {
             ImGuiLayoutConfigLoader(
                 assetPath = AssetBrowserUiLayoutDefaults.assetPath,
                 fallback = AssetBrowserUiLayoutDefaults.config,
-            ).load(engine.logger)
+            ).load(engine.logger, engine.sceneFiles)
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "AssetBrowserUi")
 

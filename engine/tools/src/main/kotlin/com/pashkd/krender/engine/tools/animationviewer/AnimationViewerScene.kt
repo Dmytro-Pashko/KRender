@@ -73,7 +73,7 @@ class AnimationViewerScene(
             ImGuiLayoutConfigLoader(
                 assetPath = AnimationViewerUiLayoutDefaults.assetPath,
                 fallback = AnimationViewerUiLayoutDefaults.config,
-            ).load(engine.logger)
+            ).load(engine.logger, engine.sceneFiles)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "AnimationViewerUi")
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         viewerState =

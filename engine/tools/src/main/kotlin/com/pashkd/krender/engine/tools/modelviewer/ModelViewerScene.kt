@@ -83,7 +83,7 @@ class ModelViewerScene(
             ImGuiLayoutConfigLoader(
                 assetPath = ModelViewerUiLayoutDefaults.assetPath,
                 fallback = ModelViewerUiLayoutDefaults.config,
-            ).load(engine.logger)
+            ).load(engine.logger, engine.sceneFiles)
         engine.logger.debug(TAG) {
             "ModelViewer UI layout loaded panels=${layoutConfig.panels.keys.joinToString()}"
         }

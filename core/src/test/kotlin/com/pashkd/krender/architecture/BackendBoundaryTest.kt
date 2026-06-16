@@ -7,121 +7,110 @@ import kotlin.test.fail
 /**
  * Enforces the backend-abstraction boundary documented in AGENTS.md §6:
  *
- * - **Rule A** — `import com.badlogic.gdx` is allowed only inside `engine.backend.gdx`.
- * - **Rule B** — `import net.mgsx.gltf` is allowed only inside `engine.backend.gdx`.
- * - **Rule C** — `engine.api` must never import `engine.backend.gdx`.
- * - **Rule D** — No files outside `engine.backend.gdx` should import backend packages
- *   (known exceptions are allow-listed below).
- *
- * Each rule has an explicit allowlist of pre-existing leaks. The test reports the offending
- * file path, the forbidden import line, and the violated rule so failures are actionable.
- * When a known violation is cleaned up, **remove it from the allowlist** to prevent regression.
+ * - **Rule A** — `import com.badlogic.gdx` is allowed only in backend/platform modules.
+ * - **Rule B** — `import net.mgsx.gltf` is allowed only in `engine:backend-gdx`.
+ * - **Rule C** — `core` must never import `engine.backend.gdx`.
+ * - **Rule D** — backend implementation imports are allowed only in backend/platform modules.
  */
 class BackendBoundaryTest {
+    private data class SourceRoot(
+        val module: String,
+        val path: String,
+    )
+
+    private data class SourceFile(
+        val module: String,
+        val sourceRoot: String,
+        val relativePath: String,
+        val file: File,
+    ) {
+        val workspacePath: String = "$sourceRoot/$relativePath"
+    }
+
     private data class ImportViolation(
+        val module: String,
+        val sourceRoot: String,
         val relativePath: String,
         val importLine: String,
         val rule: String,
     )
 
-    // ------------------------------------------------------------------
-    // Rule A — LibGDX imports outside backend
-    // ------------------------------------------------------------------
-
     @Test
-    fun `Rule A - only the gdx backend package imports com_badlogic_gdx`() {
+    fun `Rule A - LibGDX imports stay in backend and platform launcher modules`() {
         val violations =
             collectViolations(
-                rule = "A: LibGDX import outside backend",
+                rule = "A: LibGDX import outside backend/platform modules",
                 importPrefix = "import com.badlogic.gdx",
-                allowedPaths = { it.startsWith(BACKEND_PACKAGE_PATH) },
-                allowlist = KNOWN_LIBGDX_VIOLATIONS,
+                allowed = { source ->
+                    source.workspacePath.startsWith(BACKEND_GDX_ROOT) ||
+                        source.workspacePath.startsWith(LWJGL3_ROOT) ||
+                        source.workspacePath.startsWith(ANDROID_ROOT) ||
+                        source.workspacePath.startsWith(WOOLBOY_DESKTOP_ROOT) ||
+                        source.workspacePath in KNOWN_TOOL_GDX_IMPORTS
+                },
             )
         assertNoViolations(violations)
     }
 
-    // ------------------------------------------------------------------
-    // Rule B — glTF imports outside backend
-    // ------------------------------------------------------------------
-
     @Test
-    fun `Rule B - only the gdx backend package imports net_mgsx_gltf`() {
+    fun `Rule B - glTF imports stay in backend-gdx`() {
         val violations =
             collectViolations(
-                rule = "B: glTF import outside backend",
+                rule = "B: glTF import outside engine:backend-gdx",
                 importPrefix = "import net.mgsx.gltf",
-                allowedPaths = { it.startsWith(BACKEND_PACKAGE_PATH) },
-                allowlist = KNOWN_GLTF_VIOLATIONS,
+                allowed = { source -> source.workspacePath.startsWith(BACKEND_GDX_ROOT) },
             )
         assertNoViolations(violations)
     }
-
-    // ------------------------------------------------------------------
-    // Rule C — engine.api must not import backend packages
-    // ------------------------------------------------------------------
 
     @Test
-    fun `Rule C - engine_api must not import backend packages`() {
+    fun `Rule C - core must not import backend packages`() {
         val violations =
             collectViolations(
-                rule = "C: engine.api imports backend",
+                rule = "C: core imports backend",
                 importPrefix = "import com.pashkd.krender.engine.backend.gdx",
-                allowedPaths = { !it.startsWith(ENGINE_API_PATH) },
-                allowlist = emptySet(),
-                scopePath = ENGINE_API_PATH,
+                allowed = { source -> !source.workspacePath.startsWith(CORE_ROOT) },
             )
         assertNoViolations(violations)
     }
-
-    // ------------------------------------------------------------------
-    // Rule D — backend imports from non-backend files
-    // ------------------------------------------------------------------
 
     @Test
-    fun `Rule D - non-backend files should not import backend packages`() {
+    fun `Rule D - backend imports stay in backend and platform launchers`() {
         val violations =
             collectViolations(
-                rule = "D: backend import outside backend",
+                rule = "D: backend import outside backend/platform modules",
                 importPrefix = "import com.pashkd.krender.engine.backend.gdx",
-                allowedPaths = { it.startsWith(BACKEND_PACKAGE_PATH) },
-                allowlist = KNOWN_BACKEND_IMPORT_VIOLATIONS,
+                allowed = { source ->
+                    source.workspacePath.startsWith(BACKEND_GDX_ROOT) ||
+                        source.workspacePath.startsWith(LWJGL3_ROOT) ||
+                        source.workspacePath.startsWith(ANDROID_ROOT) ||
+                        source.workspacePath.startsWith(WOOLBOY_DESKTOP_ROOT)
+                },
             )
         assertNoViolations(violations)
     }
 
-    // ------------------------------------------------------------------
-    // Helpers
-    // ------------------------------------------------------------------
-
-    /**
-     * Scans source files, collects [ImportViolation]s for any import line starting with
-     * [importPrefix] in files where [allowedPaths] returns false, minus the [allowlist].
-     *
-     * If [scopePath] is non-null, only files under that path are scanned (used for Rule C).
-     */
     private fun collectViolations(
         rule: String,
         importPrefix: String,
-        allowedPaths: (String) -> Boolean,
-        allowlist: Set<String>,
-        scopePath: String? = null,
-    ): List<ImportViolation> {
-        val sourceRoot = resolveSourceRoot()
-        return sourceRoot
-            .walkTopDown()
-            .filter { it.isFile && it.extension == "kt" }
-            .map { file -> sourceRoot.toRelativePath(file) }
-            .filter { relativePath ->
-                if (scopePath != null) relativePath.startsWith(scopePath) else true
-            }.filterNot { relativePath -> allowedPaths(relativePath) }
-            .filterNot { relativePath -> relativePath in allowlist }
-            .flatMap { relativePath ->
-                File(sourceRoot, relativePath)
+        allowed: (SourceFile) -> Boolean,
+    ): List<ImportViolation> =
+        sourceFiles()
+            .filterNot(allowed)
+            .flatMap { source ->
+                source.file
                     .readLines()
                     .filter { line -> line.trimStart().startsWith(importPrefix) }
-                    .map { importLine -> ImportViolation(relativePath, importLine.trim(), rule) }
+                    .map { importLine ->
+                        ImportViolation(
+                            module = source.module,
+                            sourceRoot = source.sourceRoot,
+                            relativePath = source.relativePath,
+                            importLine = importLine.trim(),
+                            rule = rule,
+                        )
+                    }
             }.toList()
-    }
 
     private fun assertNoViolations(violations: List<ImportViolation>) {
         if (violations.isEmpty()) return
@@ -132,52 +121,78 @@ class BackendBoundaryTest {
                 appendLine()
                 grouped.forEach { (rule, items) ->
                     appendLine("  Rule $rule")
-                    items.forEach { v ->
-                        appendLine("    ${v.relativePath}")
-                        appendLine("      ${v.importLine}")
+                    items.forEach { violation ->
+                        appendLine("    module=${violation.module}")
+                        appendLine("    sourceRoot=${violation.sourceRoot}")
+                        appendLine("    path=${violation.relativePath}")
+                        appendLine("      ${violation.importLine}")
                     }
                 }
                 appendLine()
-                appendLine("Move the dependency into the backend package, or pass data across the boundary as backend-neutral types.")
+                appendLine("Move implementation code to a backend/platform module, or pass data across the boundary as backend-neutral types.")
             }
         fail(message)
     }
 
-    private fun File.toRelativePath(file: File): String = file.relativeTo(this).invariantSeparatorsPath
+    private fun sourceFiles(): Sequence<SourceFile> {
+        val root = repositoryRoot()
+        return SOURCE_ROOTS
+            .asSequence()
+            .map { sourceRoot -> sourceRoot to File(root, sourceRoot.path) }
+            .filter { (_, directory) -> directory.isDirectory }
+            .flatMap { (sourceRoot, directory) ->
+                directory
+                    .walkTopDown()
+                    .filter { file -> file.isFile && file.extension == "kt" }
+                    .map { file ->
+                        SourceFile(
+                            module = sourceRoot.module,
+                            sourceRoot = sourceRoot.path,
+                            relativePath = file.relativeTo(directory).invariantSeparatorsPath,
+                            file = file,
+                        )
+                    }
+            }
+    }
 
-    private fun resolveSourceRoot(): File {
-        val candidates =
-            listOf(
-                File("src/main/kotlin"),
-                File("core/src/main/kotlin"),
-            )
-        return candidates.firstOrNull { it.isDirectory }
-            ?: error("Could not locate core main source root from '${File(".").absolutePath}'")
+    private fun repositoryRoot(): File {
+        var current = File(".").canonicalFile
+        while (current.parentFile != null) {
+            if (File(current, "settings.gradle").isFile) return current
+            current = current.parentFile
+        }
+        error("Could not locate repository root from '${File(".").canonicalPath}'")
     }
 
     private companion object {
-        const val BACKEND_PACKAGE_PATH = "com/pashkd/krender/engine/backend/gdx/"
-        const val ENGINE_API_PATH = "com/pashkd/krender/engine/api/"
+        const val CORE_ROOT = "core/src/main/kotlin/"
+        const val BACKEND_GDX_ROOT = "engine/backend-gdx/src/main/kotlin/"
+        const val LWJGL3_ROOT = "lwjgl3/src/main/kotlin/"
+        const val ANDROID_ROOT = "android/src/main/kotlin/"
+        const val WOOLBOY_DESKTOP_ROOT = "apps/woolboy-desktop/src/main/kotlin/"
+
+        val SOURCE_ROOTS =
+            listOf(
+                SourceRoot("core", "core/src/main/kotlin"),
+                SourceRoot("engine:tools", "engine/tools/src/main/kotlin"),
+                SourceRoot("engine:scene-player", "engine/scene-player/src/main/kotlin"),
+                SourceRoot("engine:backend-gdx", "engine/backend-gdx/src/main/kotlin"),
+                SourceRoot("games:woolboy", "games/woolboy/src/main/kotlin"),
+                SourceRoot("apps:woolboy-desktop", "apps/woolboy-desktop/src/main/kotlin"),
+                SourceRoot("lwjgl3", "lwjgl3/src/main/kotlin"),
+                SourceRoot("android", "android/src/main/kotlin"),
+            )
 
         /**
-         * No pre-existing LibGDX leaks outside the backend. Keep this empty.
+         * TODO: Move these editor-only GDX helpers behind a platform/tool adapter module.
+         * They are kept explicit so new engine:tools GDX imports still fail Rule A.
          */
-        val KNOWN_LIBGDX_VIOLATIONS = emptySet<String>()
-
-        /**
-         * No pre-existing glTF leaks outside the backend. Keep this empty.
-         */
-        val KNOWN_GLTF_VIOLATIONS = emptySet<String>()
-
-        /**
-         * Pre-existing backend import leak from a non-backend file:
-         * - `Main.kt` — bootstrap entry point that instantiates `GdxEngineApplication`.
-         *
-         * These should eventually be abstracted behind core interfaces. Do not add new entries.
-         */
-        val KNOWN_BACKEND_IMPORT_VIOLATIONS =
+        val KNOWN_TOOL_GDX_IMPORTS =
             setOf(
-                "com/pashkd/krender/Main.kt",
+                "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/terraineditor/TerrainMaterialPreviewBaker.kt",
+                "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/uicomposer/gdx/GdxUiComposerSkinMetadataReader.kt",
+                "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/uicomposer/gdx/GdxUiSceneBuilder.kt",
+                "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/uicomposer/gdx/GdxUiScenePreview.kt",
             )
     }
 }

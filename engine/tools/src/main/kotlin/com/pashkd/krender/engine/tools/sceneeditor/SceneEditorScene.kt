@@ -32,7 +32,7 @@ class SceneEditorScene(
             ImGuiLayoutConfigLoader(
                 assetPath = SceneEditorUiLayoutDefaults.assetPath,
                 fallback = SceneEditorUiLayoutDefaults.config,
-            ).load(engine.logger)
+            ).load(engine.logger, engine.sceneFiles)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "SceneEditorUi")
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
 

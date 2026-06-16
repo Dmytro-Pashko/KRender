@@ -1,9 +1,13 @@
 package com.pashkd.krender.engine.ui.editor
 
-import com.badlogic.gdx.utils.JsonReader
-import com.badlogic.gdx.utils.JsonValue
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.scene.SceneFileService
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.floatOrNull
+import kotlinx.serialization.json.jsonObject
 import java.util.*
 
 /**
@@ -30,9 +34,9 @@ object ImGuiLayoutConfigCodec {
         source: String = "<layout>",
     ): ImGuiLayoutConfigDecodeResult =
         try {
-            val root = JsonReader().parse(text)
-            val panelsNode = root.get("panels")
-            if (panelsNode == null || !panelsNode.isObject) {
+            val root = Json.parseToJsonElement(text).jsonObject
+            val panelsNode = root["panels"] as? JsonObject
+            if (panelsNode == null) {
                 logger.warn(TAG) { "Layout asset '$source' is missing a valid 'panels' object. Using fallback layout." }
                 ImGuiLayoutConfigDecodeResult(config = fallback, usedFallback = true)
             } else {
@@ -92,15 +96,15 @@ object ImGuiLayoutConfigCodec {
     }
 
     private fun parsePanels(
-        panelsNode: JsonValue,
+        panelsNode: JsonObject,
         fallback: ImGuiLayoutConfig,
         logger: Logger,
         source: String,
     ): Map<String, ImGuiPanelLayout> {
         val parsedPanels =
             fallback.panels.mapValuesTo(linkedMapOf()) { (panelId, fallbackPanel) ->
-                val panelNode = panelsNode.get(panelId)
-                if (panelNode == null || !panelNode.isObject) {
+                val panelNode = panelsNode[panelId] as? JsonObject
+                if (panelNode == null) {
                     logger.warn(TAG) {
                         "Layout asset '$source' is missing panel '$panelId'. Using fallback layout for that panel."
                     }
@@ -110,13 +114,11 @@ object ImGuiLayoutConfigCodec {
                 }
             }
 
-        var panelNode = panelsNode.child
-        while (panelNode != null) {
-            val panelId = panelNode.name ?: ""
-            if (panelId.isNotBlank() && panelId !in parsedPanels && panelNode.isObject) {
-                parseJsonOnlyPanel(panelId, panelNode, logger, source)?.let { parsedPanels[panelId] = it }
+        panelsNode.forEach { (panelId, panelElement) ->
+            val panelNode = panelElement as? JsonObject
+            if (panelId.isNotBlank() && panelId !in parsedPanels && panelNode != null) {
+                parsedPanels[panelId] = parseJsonOnlyPanel(panelId, panelNode, logger, source)
             }
-            panelNode = panelNode.next
         }
 
         return parsedPanels
@@ -124,12 +126,12 @@ object ImGuiLayoutConfigCodec {
 
     private fun parsePanel(
         panelId: String,
-        panelNode: JsonValue,
+        panelNode: JsonObject,
         fallbackPanel: ImGuiPanelLayout,
         logger: Logger,
         source: String,
     ): ImGuiPanelLayout {
-        val title = panelNode.getString("title", fallbackPanel.title).takeUnless(String::isBlank) ?: fallbackPanel.title
+        val title = panelNode.string("title", fallbackPanel.title).takeUnless(String::isBlank) ?: fallbackPanel.title
         val x = readFiniteFloat(panelNode, "x", fallbackPanel.x)
         val y = readFiniteFloat(panelNode, "y", fallbackPanel.y)
         val width = readPositiveFloat(panelNode, "width", fallbackPanel.width, panelId, logger, source)
@@ -145,11 +147,11 @@ object ImGuiLayoutConfigCodec {
 
     private fun parseJsonOnlyPanel(
         panelId: String,
-        panelNode: JsonValue,
+        panelNode: JsonObject,
         logger: Logger,
         source: String,
     ): ImGuiPanelLayout {
-        val title = panelNode.getString("title", panelId).takeUnless(String::isBlank) ?: panelId
+        val title = panelNode.string("title", panelId).takeUnless(String::isBlank) ?: panelId
         val x = readFiniteFloat(panelNode, "x", 0f)
         val y = readFiniteFloat(panelNode, "y", 0f)
         val width = readPositiveFloat(panelNode, "width", DEFAULT_WIDTH, panelId, logger, source)
@@ -164,16 +166,16 @@ object ImGuiLayoutConfigCodec {
     }
 
     private fun readFiniteFloat(
-        panelNode: JsonValue,
+        panelNode: JsonObject,
         name: String,
         fallbackValue: Float,
     ): Float {
-        val value = panelNode.getFloat(name, fallbackValue)
+        val value = panelNode.float(name, fallbackValue)
         return if (value.isFinite()) value else fallbackValue
     }
 
     private fun readPositiveFloat(
-        panelNode: JsonValue,
+        panelNode: JsonObject,
         name: String,
         fallbackValue: Float,
         panelId: String,
@@ -221,6 +223,20 @@ object ImGuiLayoutConfigCodec {
                 }
             }
         }
+
+    private fun JsonObject.string(
+        name: String,
+        fallbackValue: String,
+    ): String =
+        primitive(name)?.contentOrNull ?: fallbackValue
+
+    private fun JsonObject.float(
+        name: String,
+        fallbackValue: Float,
+    ): Float =
+        primitive(name)?.floatOrNull ?: fallbackValue
+
+    private fun JsonObject.primitive(name: String) = this[name] as? JsonPrimitive
 
     private const val TAG = "ImGuiLayoutConfigCodec"
     private const val DEFAULT_WIDTH = 320f

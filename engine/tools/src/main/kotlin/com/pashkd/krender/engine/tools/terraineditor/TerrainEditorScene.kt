@@ -65,7 +65,7 @@ class TerrainEditorScene(
             ImGuiLayoutConfigLoader(
                 assetPath = TerrainEditorUiLayoutDefaults.assetPath,
                 fallback = TerrainEditorUiLayoutDefaults.config,
-            ).load(engine.logger)
+            ).load(engine.logger, engine.sceneFiles)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "TerrainEditorUi")
         editorState =
             TerrainEditorState(

@@ -52,7 +52,7 @@ class UiComposerScene(
             ImGuiLayoutConfigLoader(
                 assetPath = UiComposerUiLayoutDefaults.assetPath,
                 fallback = UiComposerUiLayoutDefaults.config,
-            ).load(engine.logger)
+            ).load(engine.logger, engine.sceneFiles)
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         operations = UiComposerOperations(composerState, engine, layoutTracker)
 
