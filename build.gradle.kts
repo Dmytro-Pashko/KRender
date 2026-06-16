@@ -12,7 +12,7 @@ import org.jlleitschuh.gradle.ktlint.KtlintExtension
 val kotlinVersion: String by project
 val detektVersion: String by project
 val ktlintGradleVersion: String by project
-val projectVersion: String by project
+val krenderVersion: String by project
 
 buildscript {
     repositories {
@@ -178,8 +178,9 @@ subprojects
 subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
 
-    version = projectVersion
+    version = krenderVersion
     extensions.extraProperties["appName"] = "KRender"
+    extensions.extraProperties["krenderVersion"] = krenderVersion
 
     repositories {
         mavenCentral()

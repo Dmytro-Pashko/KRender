@@ -14,6 +14,7 @@ apply(plugin = "com.android.application")
 apply(plugin = "kotlin-android")
 
 val gdxVersion: String by project
+val krenderVersion: String by project
 val androidAssetsDir =
     layout.buildDirectory
         .dir("generated/filtered-android-assets")
@@ -81,7 +82,7 @@ extensions.configure<ApplicationExtension>("android") {
         minSdk = 21
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = krenderVersion
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

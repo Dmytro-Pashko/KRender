@@ -26,7 +26,7 @@ apply(plugin = "io.github.fourlastor.construo")
 val gdxVersion: String by project
 val lwjgl3Version: String by project
 val graalHelperVersion: String by project
-val projectVersion: String by project
+val krenderVersion: String by project
 val enableGraalNative = providers.gradleProperty("enableGraalNative").orElse("false")
 val appName = extra["appName"] as String
 val mainClassName = "com.pashkd.krender.lwjgl3.WinLwjgl3Launcher"
@@ -108,7 +108,7 @@ tasks.named<JavaExec>("run") {
 }
 
 tasks.named<Jar>("jar") {
-    archiveFileName.set("$appName-$projectVersion-win.jar")
+    archiveFileName.set("$appName-$krenderVersion-win.jar")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     dependsOn(configurations.runtimeClasspath)
     from({
