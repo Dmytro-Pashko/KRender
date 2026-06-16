@@ -6,6 +6,7 @@ on:
       - master
   push:
     tags:
+      - "*.*.*"
       - "v*.*.*"
 
 permissions:
@@ -111,11 +112,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate current docs workflow state
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install MkDocs
+        run: python -m pip install --upgrade pip mkdocs
+
+      - name: Build docs
         run: |
-          echo "MkDocs and docs source are planned follow-up work."
-          echo "This placeholder check keeps the release gate explicit until mkdocs.yml and docs build commands are added."
-          test ! -f mkdocs.yml
+          mkdocs build --strict
 
   release-desktop-artifacts:
     name: Desktop artifacts build
