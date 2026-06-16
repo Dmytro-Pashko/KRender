@@ -10,4 +10,4 @@ if [[ $# -gt 0 ]]; then
   shift
 fi
 
-./gradlew :lwjgl3:run -Pkrender.scene=terrain-editor -Pkrender.terrain.path="${TERRAIN_PATH}" "$@"
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=terrain-editor -Pkrender.terrain.path="${TERRAIN_PATH}" "$@"

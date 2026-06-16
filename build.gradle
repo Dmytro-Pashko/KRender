@@ -31,7 +31,7 @@ def detektSources = files(
     include "core/src/**/*.kt"
     include "engine/**/src/**/*.kt"
     include "games/**/src/**/*.kt"
-    include "lwjgl3/src/**/*.kt"
+    include "desktop-lwjgl3/src/**/*.kt"
     include "apps/**/src/**/*.kt"
     include "android/src/**/*.kt"
     include "**/*.kts"

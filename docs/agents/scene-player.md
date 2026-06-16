@@ -12,7 +12,7 @@ Scene Player is the non-editor runtime/player route for `.krscene` files. It loa
 - Scene: `engine/scene-player/.../ScenePlayerScene.kt`
 - Builder: `engine/scene-player/.../ScenePlayerBuilder.kt`
 - Routing: `engine/scene-player/.../ScenePlayerModule.kt`
-- Desktop composition: `lwjgl3/.../DesktopMain.kt`
+- Desktop composition: `desktop-lwjgl3/.../DesktopMain.kt`
 - Android composition: `android/.../AndroidLauncher.kt` creates `GdxEngineApplication` from
   `engine:backend-gdx` and its initial scene through `ScenePlayerModule`.
 - Supported routes:
@@ -45,6 +45,6 @@ Scene Player is the non-editor runtime/player route for `.krscene` files. It loa
 ## Validation
 
 ```sh
-./gradlew :core:compileKotlin :engine:backend-gdx:compileKotlin :engine:scene-player:compileKotlin :lwjgl3:compileKotlin
+./gradlew :core:compileKotlin :engine:backend-gdx:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3:compileKotlin
 ./gradlew :core:test :engine:scene-player:test
 ```

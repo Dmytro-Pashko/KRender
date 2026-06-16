@@ -1,6 +1,6 @@
 # KRender Engine Tools
 
-`engine:tools` contains KRender's standalone editor and development tools. These tools are built on top of the shared engine/runtime services in `core` and are launched through the desktop `lwjgl3` application.
+`engine:tools` contains KRender's standalone editor and development tools. These tools are built on top of the shared engine/runtime services in `core` and are launched through the desktop `desktop-lwjgl3` host application.
 
 Dependency direction:
 
@@ -13,7 +13,7 @@ GDX dependency for explicitly allowlisted editor-preview adapters (`TerrainMater
 `uicomposer/gdx/*`). Do not add new GDX imports casually; justify any exception in `BackendBoundaryTest`.
 The preferred follow-up is to move this adapter layer to a dedicated module such as `engine:tools-gdx`.
 
-Tool routes are selected with `krender.scene`. When running through `:lwjgl3:run`, pass route properties with Gradle `-P` flags; the launcher forwards supported properties to JVM system properties. Asset paths are relative to the `assets/` working directory unless the current launcher documents otherwise.
+Tool routes are selected with `krender.scene`. When running through `:desktop-lwjgl3:run`, pass route properties with Gradle `-P` flags; the launcher forwards supported properties to JVM system properties. Asset paths are relative to the `assets/` working directory unless the current launcher documents otherwise.
 
 Convenience launch scripts are available in `engine/tools/scripts/`:
 
@@ -105,7 +105,7 @@ Required properties:
 Example:
 
 ```sh
-./gradlew :lwjgl3:run -Pkrender.scene=asset-browser
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=asset-browser
 ```
 
 ### Model Viewer
@@ -158,7 +158,7 @@ Required properties:
 Example:
 
 ```sh
-./gradlew :lwjgl3:run -Pkrender.scene=model-viewer -Pkrender.model.path=model/example.glb
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=model-viewer -Pkrender.model.path=model/example.glb
 ```
 
 ### Animation Viewer
@@ -207,7 +207,7 @@ Required properties:
 Example:
 
 ```sh
-./gradlew :lwjgl3:run -Pkrender.scene=animation-viewer -Pkrender.model.path=model/example.glb
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=animation-viewer -Pkrender.model.path=model/example.glb
 ```
 
 ### Terrain Editor
@@ -242,7 +242,7 @@ Required properties:
 Example:
 
 ```sh
-./gradlew :lwjgl3:run -Pkrender.scene=terrain-editor -Pkrender.terrain.path=terrain/example.krterrain
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=terrain-editor -Pkrender.terrain.path=terrain/example.krterrain
 ```
 
 ### Scene Editor
@@ -283,7 +283,7 @@ Optional properties:
 Example:
 
 ```sh
-./gradlew :lwjgl3:run -Pkrender.scene=scene-editor -Pkrender.scene.path=scenes/example.krscene
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=scene-editor -Pkrender.scene.path=scenes/example.krscene
 ```
 
 ### UI Composer
@@ -298,7 +298,7 @@ Required properties:
 Example:
 
 ```sh
-./gradlew :lwjgl3:run -Pkrender.scene=ui-composer -Pkrender.ui.scene.path=ui/example.krui
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=ui-composer -Pkrender.ui.scene.path=ui/example.krui
 ```
 
 ## Related Route
@@ -321,13 +321,13 @@ Required properties:
 Example:
 
 ```sh
-./gradlew :lwjgl3:run -Pkrender.scene=scene-player -Pkrender.scene.path=scenes/example.krscene
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=scene-player -Pkrender.scene.path=scenes/example.krscene
 ```
 
 The legacy command still works:
 
 ```sh
-./gradlew :lwjgl3:run -Pkrender.scene=runtime-scene -Pkrender.scene.path=scenes/example.krscene
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=runtime-scene -Pkrender.scene.path=scenes/example.krscene
 ```
 
 ## Validation
@@ -335,6 +335,6 @@ The legacy command still works:
 Use these checks after changing tool code:
 
 ```sh
-./gradlew :core:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :lwjgl3:compileKotlin
+./gradlew :core:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3:compileKotlin
 ./gradlew :core:test :engine:scene-player:test
 ```

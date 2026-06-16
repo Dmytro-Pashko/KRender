@@ -10,4 +10,4 @@ if [[ $# -gt 0 ]]; then
   shift
 fi
 
-./gradlew :lwjgl3:run -Pkrender.scene=ui-composer -Pkrender.ui.scene.path="${UI_SCENE_PATH}" "$@"
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=ui-composer -Pkrender.ui.scene.path="${UI_SCENE_PATH}" "$@"

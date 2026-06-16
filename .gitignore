@@ -5,7 +5,7 @@ gradle-app.setting
 /android/build/
 /core/build/
 /lwjgl2/build/
-/lwjgl3/build/
+/desktop-lwjgl3/build/
 /html/build/
 /teavm/build/
 /ios/build/
@@ -69,7 +69,7 @@ www-test/
 /android/bin/
 /core/bin/
 /lwjgl2/bin/
-/lwjgl3/bin/
+/desktop-lwjgl3/bin/
 /html/bin/
 /teavm/bin/
 /ios/bin/
@@ -93,7 +93,7 @@ imgui.log.lck
 /android/nbproject/private/
 /core/nbproject/private/
 /lwjgl2/nbproject/private/
-/lwjgl3/nbproject/private/
+/desktop-lwjgl3/nbproject/private/
 /html/nbproject/private/
 /teavm/nbproject/private/
 /ios/nbproject/private/
@@ -106,7 +106,7 @@ imgui.log.lck
 /android/nbbuild/
 /core/nbbuild/
 /lwjgl2/nbbuild/
-/lwjgl3/nbbuild/
+/desktop-lwjgl3/nbbuild/
 /html/nbbuild/
 /teavm/nbbuild/
 /ios/nbbuild/
@@ -119,7 +119,7 @@ imgui.log.lck
 /android/dist/
 /core/dist/
 /lwjgl2/dist/
-/lwjgl3/dist/
+/desktop-lwjgl3/dist/
 /html/dist/
 /teavm/dist/
 /ios/dist/
@@ -132,7 +132,7 @@ imgui.log.lck
 /android/nbdist/
 /core/nbdist/
 /lwjgl2/nbdist/
-/lwjgl3/nbdist/
+/desktop-lwjgl3/nbdist/
 /html/nbdist/
 /teavm/nbdist/
 /ios/nbdist/
@@ -178,8 +178,7 @@ tools/ui/*.jar
 /games/*/build/*
 /engine/tools/build/*
 /engine/scene-player/build/*
-/lwjgl3/build/*
+/desktop-lwjgl3/build/*
 /tools/build/*
 /scene-player/build/*
 /engine/backend-gdx/build/*
-

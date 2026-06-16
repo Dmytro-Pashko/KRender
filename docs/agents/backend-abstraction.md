@@ -48,7 +48,7 @@
 | `logs`/`logger` | `EngineLogService` + `GdxAppLogSink` + `FileLogSink` |
 | `runtimeStats`/`profiler` | `FrameRuntimeStatsService` / `FrameProfilerService` (core defaults) |
 | `terrainTextureSamplerFactory` | `GdxTerrainMaterialTextureSampler` factory |
-| launchers | injected (`Lwjgl3*Launcher` on desktop; `Unsupported*` fallbacks otherwise) |
+| launchers | injected (`Lwjgl3*Launcher` from `desktop-lwjgl3` on desktop; `Unsupported*` fallbacks otherwise) |
 
 ## Crossing the boundary safely
 
@@ -105,10 +105,10 @@ backend-owned adapter or `engine:tools-gdx` bridge in a focused follow-up.
   not be required by the runtime path.
 - Enforced guard: `BackendBoundaryTest` (`core` tests) fails the build on violations of four rules:
   - **Rule A** — `import com.badlogic.gdx` is allowed in `engine:backend-gdx`, launcher/app modules
-    (`lwjgl3`, `android`, `apps:woolboy-desktop`), and the explicit `engine:tools` preview adapter
+    (`desktop-lwjgl3`, `android`, `apps:woolboy-desktop`), and the explicit `engine:tools` preview adapter
     allowlist only.
   - **Rule B** — `import net.mgsx.gltf` is allowed only in `engine:backend-gdx`.
   - **Rule C** — `core` must not import `engine.backend.gdx`.
   - **Rule D** — Backend implementation imports are allowed only in `engine:backend-gdx`,
-    `lwjgl3`, `android`, and `apps:woolboy-desktop`.
+    `desktop-lwjgl3`, `android`, and `apps:woolboy-desktop`.
   The test reports module, source root, file path, import line, and rule.

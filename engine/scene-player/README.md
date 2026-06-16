@@ -21,13 +21,13 @@ All routes require:
 Example:
 
 ```sh
-./gradlew :lwjgl3:run -Pkrender.scene=scene-player -Pkrender.scene.path=scenes/example.krscene
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=scene-player -Pkrender.scene.path=scenes/example.krscene
 ```
 
 Legacy alias:
 
 ```sh
-./gradlew :lwjgl3:run -Pkrender.scene=runtime-scene -Pkrender.scene.path=scenes/example.krscene
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=runtime-scene -Pkrender.scene.path=scenes/example.krscene
 ```
 
 Paths are relative to the `assets/` working directory unless the current launcher documents otherwise.
@@ -37,6 +37,6 @@ Paths are relative to the `assets/` working directory unless the current launche
 ## Validation
 
 ```sh
-./gradlew :core:compileKotlin :engine:scene-player:compileKotlin :lwjgl3:compileKotlin
+./gradlew :core:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3:compileKotlin
 ./gradlew :core:test :engine:scene-player:test
 ```

@@ -8,7 +8,7 @@ cd "${ROOT_DIR}"
 if [[ $# -gt 0 ]]; then
   SCENE_PATH="$1"
   shift
-  ./gradlew :lwjgl3:run -Pkrender.scene=scene-editor -Pkrender.scene.path="${SCENE_PATH}" "$@"
+  ./gradlew :desktop-lwjgl3:run -Pkrender.scene=scene-editor -Pkrender.scene.path="${SCENE_PATH}" "$@"
 else
-  ./gradlew :lwjgl3:run -Pkrender.scene=scene-editor
+  ./gradlew :desktop-lwjgl3:run -Pkrender.scene=scene-editor
 fi

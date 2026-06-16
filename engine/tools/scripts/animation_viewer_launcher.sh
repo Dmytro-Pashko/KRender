@@ -10,4 +10,4 @@ if [[ $# -gt 0 ]]; then
   shift
 fi
 
-./gradlew :lwjgl3:run -Pkrender.scene=animation-viewer -Pkrender.model.path="${MODEL_PATH}" "$@"
+./gradlew :desktop-lwjgl3:run -Pkrender.scene=animation-viewer -Pkrender.model.path="${MODEL_PATH}" "$@"

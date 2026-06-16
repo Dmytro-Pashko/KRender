@@ -80,7 +80,7 @@ Reduce the baseline over time by fixing findings and then regenerating it from a
 ## Boundary Rules
 
 Static analysis must not weaken the core/backend boundary. `BackendBoundaryTest` scans `core`, `engine:tools`,
-`engine:scene-player`, `engine:backend-gdx`, `games:woolboy`, `apps:woolboy-desktop`, `lwjgl3`, and `android`.
+`engine:scene-player`, `engine:backend-gdx`, `games:woolboy`, `apps:woolboy-desktop`, `desktop-lwjgl3`, and `android`.
 It allows GDX imports only in the backend/launcher/app modules plus the explicit temporary `engine:tools`
 editor-preview adapter allowlist. Gradle dependency boundary tests keep backend dependencies out of `core`,
 `engine:scene-player`, and gameplay modules. New allowlist entries should not be added just to make verification pass.

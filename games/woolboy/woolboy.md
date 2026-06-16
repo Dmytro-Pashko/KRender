@@ -6,7 +6,7 @@ Woolboy now ships as a **standalone KRender SDK client application** instead of 
 
 ```text
 core/                  # KRender engine / SDK
-lwjgl3/                # Main KRender desktop launcher for tools/runtime
+desktop-lwjgl3/        # Main KRender desktop host application for tools/runtime
 android/               # Android launcher
 games/
   woolboy/             # Woolboy gameplay/client module + bundled runtime assets
@@ -17,7 +17,7 @@ apps/
 Gradle project paths:
 
 - `:core`
-- `:lwjgl3`
+- `:desktop-lwjgl3`
 - `:android`
 - `:games:woolboy`
 - `:apps:woolboy-desktop`
@@ -95,4 +95,3 @@ The JAR starts Woolboy by default and does not require `-Dkrender.scene=woolboy`
 - No JAR minimization is enabled yet.
 - No ProGuard/R8 or shrinker setup is added in this task.
 - No coverage threshold changes are introduced for Woolboy.
-

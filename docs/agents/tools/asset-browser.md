@@ -12,7 +12,7 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 
 - Scene: `engine/tools/.../assetbrowser/AssetBrowserScene.kt`.
 - Tool internals package: `engine/tools/.../assetbrowser/`, with shared asset infrastructure kept in `core/.../engine/assets/`.
-- Desktop startup resolves it through `engine/tools/ToolsModule.kt` and `lwjgl3/.../DesktopMain.kt`
+- Desktop startup resolves it through `engine/tools/ToolsModule.kt` and `desktop-lwjgl3/.../DesktopMain.kt`
   (`krender.scene` unset → `asset-browser` on desktop).
 - Tool routing uses `AssetToolRegistry`; there is intentionally **no** `when(category)` in the scene.
 
