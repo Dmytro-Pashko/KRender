@@ -103,9 +103,9 @@ Route selection is controlled by `krender.scene`.
 
 ```text
 desktop-lwjgl3/
-  build.gradle
+  build.gradle.kts
   README.md
-  nativeimage.gradle
+  nativeimage.gradle.kts
   src/main/kotlin/com/pashkd/krender/lwjgl3/
     Lwjgl3Launcher.kt
     DesktopMain.kt

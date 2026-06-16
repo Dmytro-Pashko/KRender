@@ -45,7 +45,7 @@ fun main(args: Array<String>) {
             // // This could improve compatibility with Windows machines with buggy OpenGL drivers, Macs
             // // with Apple Silicon that have to emulate compatibility with OpenGL anyway, and more.
             // // This uses the dependency `com.badlogicgames.gdx:gdx-lwjgl3-angle` to function.
-            // // You would need to add this line to desktop-lwjgl3/build.gradle , below the dependency on `gdx-backend-lwjgl3`:
+            // // You would need to add this line to desktop-lwjgl3/build.gradle.kts , below the dependency on `gdx-backend-lwjgl3`:
             // //     implementation "com.badlogicgames.gdx:gdx-lwjgl3-angle:$gdxVersion"
             // // You can choose to add the following line and the mentioned dependency if you want; they
             // // are not intended for games that use GL30 (which is compatibility with OpenGL ES 3.0).

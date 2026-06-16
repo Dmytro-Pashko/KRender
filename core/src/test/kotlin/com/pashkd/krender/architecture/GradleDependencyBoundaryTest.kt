@@ -55,17 +55,17 @@ class GradleDependencyBoundaryTest {
         private val forbiddenDependencyChecks = listOf(
             DependencyCheck(
                 module = "core",
-                buildFile = "core/build.gradle",
+                buildFile = "core/build.gradle.kts",
                 forbiddenPatterns = backendDependencyPatterns,
             ),
             DependencyCheck(
                 module = "engine:scene-player",
-                buildFile = "engine/scene-player/build.gradle",
+                buildFile = "engine/scene-player/build.gradle.kts",
                 forbiddenPatterns = backendDependencyPatterns,
             ),
             DependencyCheck(
                 module = "games:woolboy",
-                buildFile = "games/woolboy/build.gradle",
+                buildFile = "games/woolboy/build.gradle.kts",
                 forbiddenPatterns = backendDependencyPatterns + listOf(
                     "project(':engine:tools')",
                     "project(\":engine:tools\")",
@@ -73,7 +73,7 @@ class GradleDependencyBoundaryTest {
             ),
             DependencyCheck(
                 module = "engine:tools",
-                buildFile = "engine/tools/build.gradle",
+                buildFile = "engine/tools/build.gradle.kts",
                 forbiddenPatterns = listOf(
                     "com.github.mgsx-dev.gdx-gltf:gltf",
                     "imgui-gl",
