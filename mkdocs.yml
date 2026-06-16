@@ -1,0 +1,28 @@
+site_name: KRender SDK
+site_description: KRender engine and tool documentation
+site_url: https://dmytro-pashko.github.io/KRender/
+repo_url: https://github.com/Dmytro-Pashko/KRender
+repo_name: Dmytro-Pashko/KRender
+docs_dir: docs
+theme:
+  name: readthedocs
+nav:
+  - Home: index.md
+  - Architecture:
+      - Core Engine: agents/core-engine.md
+      - Backend Abstraction: agents/backend-abstraction.md
+      - Rendering Pipeline: agents/rendering-pipeline.md
+      - Asset System: agents/asset-system.md
+      - UI System: agents/ui-system.md
+      - Scene Player: agents/scene-player.md
+      - Logging: agents/logging.md
+  - Tools:
+      - Asset Browser: agents/tools/asset-browser.md
+      - Model Viewer: agents/tools/model-viewer.md
+      - Animation Viewer: agents/tools/animation-viewer.md
+      - Terrain Editor: agents/tools/terrain-editor.md
+      - Scene Editor: agents/tools/scene-editor.md
+      - UI Composer: agents/tools/ui-composer.md
+  - Quality:
+      - Static Analysis: quality/static-analysis.md
+      - Test Coverage: quality/test-coverage.md
