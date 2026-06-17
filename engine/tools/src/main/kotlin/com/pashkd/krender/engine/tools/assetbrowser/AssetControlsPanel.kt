@@ -5,7 +5,7 @@ import imgui.ImGui
 import imgui.dsl
 
 /**
- * Top-level control panel for asset creation, layout persistence, and quick launch shortcuts.
+ * Top-level control panel for asset creation and layout persistence.
  */
 class AssetControlsPanel(
     private val state: AssetBrowserState,
@@ -57,8 +57,8 @@ class AssetControlsPanel(
         }
         ImGui.sameLine()
         with(dsl) {
-            button("Woolboy App Info##${panelId}_woolboy_app_info") {
-                operations.showWoolboyAppInfo()
+            button("Exit##${panelId}_exit") {
+                operations.exit()
             }
         }
 

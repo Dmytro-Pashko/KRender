@@ -85,6 +85,10 @@ java -jar apps/woolboy-desktop/build/libs/woolboy-demo.jar
 
 The JAR starts Woolboy by default and does not require `-Dkrender.scene=woolboy`.
 
+## Run from IntelliJ IDEA
+
+![Run Woolboy from IntelliJ IDEA](../../docs/images/run_woolboy_intelij_idea.png)
+
 ## Validation notes
 
 - The standalone app is built with `:apps:woolboy-desktop:woolboyJar` and produces `apps/woolboy-desktop/build/libs/woolboy-demo.jar`.
