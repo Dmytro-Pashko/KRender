@@ -116,6 +116,7 @@ imgui.log.lck
 /shared/nbbuild/
 
 /dist/
+/site/
 /android/dist/
 /core/dist/
 /lwjgl2/dist/

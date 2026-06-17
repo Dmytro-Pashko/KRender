@@ -7,11 +7,12 @@ docs_dir: .
 theme:
   name: readthedocs
 nav:
-  - Home: docs/index.md
-  - Architecture: docs/architecture.md
-  - Tools: engine/tools/README.md
-  - Git Workflow: docs/git-flow.md
+  - Home: index.md
+  - Architecture: architecture.md
+  - Tools: tools.md
+  - Git Workflow: git-flow.md
   - Quality:
-      - Static Analysis: docs/quality/static-analysis.md
-      - Test Coverage: docs/quality/test-coverage.md
-  - AI Integration: docs/ai-integration.md
+      - Static Analysis: quality/static-analysis.md
+      - Test Coverage: quality/test-coverage.md
+  - AI Integration: ai-integration.md
+
