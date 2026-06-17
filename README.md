@@ -330,6 +330,14 @@ java -jar apps/woolboy-desktop/build/libs/woolboy-demo.jar
 The Woolboy app bundles its curated `assets/woolboy` runtime content inside the JAR and does not require
 `-Dkrender.scene=...`. See `games/woolboy/woolboy.md` for the app-specific layout and build notes.
 
+Run the SDK desktop host from IntelliJ IDEA:
+
+![Run SDK from IntelliJ IDEA](docs/images/run_sdk_intelij_idea.png)
+
+Run Woolboy from IntelliJ IDEA:
+
+![Run Woolboy from IntelliJ IDEA](docs/images/run_woolboy_intelij_idea.png)
+
 ## Example: Creating a Scene
 
 This example uses the current `Scene`, `AssetRef`, `SceneWorld`, component, and system APIs.

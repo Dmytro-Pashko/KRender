@@ -61,7 +61,7 @@ Features:
   JSON, its `.krmeta`, and dependency files in that direct skin folder are removed together. Rename and duplicate are
   currently disabled for Scene2D Skin assets to avoid partial folder operations.
 - Keeps layout controls in the Asset Browser Controls panel, including Create Asset, Import Asset, Export Asset
-  placeholder, Persist UI, Reset UI, and a shortcut explaining that Woolboy now ships as a separate standalone app.
+  placeholder, Persist UI, and Reset UI.
 
 Import workflow:
 
@@ -140,13 +140,13 @@ Features:
 
 Screenshots:
 
+Loaded model with grid, axis, and bounds helpers (LibGDX renderer):
 ![Model Viewer full mesh with grid, axis, and bounds](docs/screenshots/model_viewer/model-viewer-shader_full_mesh_grid_axis_bounds.png)
 ![Model Viewer shaded wireframe](docs/screenshots/model_viewer/model-viewer-shader_full_mesh_shaded_wires.png)
 ![Model Viewer full model without helpers](docs/screenshots/model_viewer/model-viewer-shader_full_model_no_grid_no_axis_no_bounds.png)
 ![Model Viewer isolated wireframe](docs/screenshots/model_viewer/model-viewer-wireframe_isolated.png)
 ![Model Viewer PBR preview](docs/screenshots/model_viewer/model-viewer-pbr_preview.png)
-![Model Viewer metallic roughness preview](docs/screenshots/model_viewer/model-viewer_metalic_preview.png)
-![Model Viewer alpha channel preview](docs/screenshots/model_viewer/model-viewer_alpha_channel_preview.png)
+![Model Viewer metallic roughness preview](docs/screenshots/model_viewer/model_viewer_roughness_channel.png)
 ![Model Viewer UV checker preview](docs/screenshots/model_viewer/model-viewer_uv_checker.png)
 ![Model Viewer normal texture preview](docs/screenshots/model_viewer/model-viewer_normal_view.png)
 
@@ -290,6 +290,12 @@ Example:
 
 The UI Composer is the `.krui` document tool. Its scope stays focused on inspection, validation, preview, and document-oriented structure workflows rather than a full drag/drop UI authoring suite.
 
+Screenshots:
+
+![UI Composer Woolboy main menu](docs/screenshots/ui_composer/ui_composer_woolboy_menu.png)
+![UI Composer Woolboy HUD](docs/screenshots/ui_composer/ui_composer_woolboy_hud.png)
+![UI Composer Woolboy final result](docs/screenshots/ui_composer/ui_composer_woolboy_final_result.png)
+
 Required properties:
 
 - `krender.scene=ui-composer`
@@ -306,6 +312,10 @@ Example:
 ### Scene Player
 
 Scene Player is the runtime/player route for `.krscene` files. It is not an editor tool, but it is closely related because Scene Editor and Asset Browser can launch it for scene preview and playback.
+
+Screenshot:
+
+![Scene Player preview](docs/screenshots/scene_player/scene_player_preview.png)
 
 Route names:
 
@@ -329,6 +339,16 @@ The legacy command still works:
 ```sh
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=runtime-scene -Pkrender.scene.path=scenes/example.krscene
 ```
+
+## IntelliJ IDEA
+
+Run the SDK desktop host from IntelliJ IDEA:
+
+![Run SDK from IntelliJ IDEA](../../docs/images/run_sdk_intelij_idea.png)
+
+Run the standalone Woolboy app from IntelliJ IDEA:
+
+![Run Woolboy from IntelliJ IDEA](../../docs/images/run_woolboy_intelij_idea.png)
 
 ## Validation
 

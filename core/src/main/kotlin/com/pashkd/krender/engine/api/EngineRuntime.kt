@@ -202,12 +202,10 @@ class GameLoop(
             backend.profiler.measure("update") {
                 scene.update(delta)
             }
-            if (runtime.completeExitIfRequested()) return
 
             backend.profiler.measure("lateUpdate") {
                 scene.lateUpdate(delta)
             }
-            if (runtime.completeExitIfRequested()) return
 
             backend.profiler.measure("runtimeUi.update") {
                 runtime.runtimeUi.update(delta)
@@ -217,6 +215,7 @@ class GameLoop(
             // final overlay passes are submitted.
             backend.ui.endFrame()
             uiFrameEnded = true
+            if (runtime.completeExitIfRequested()) return
 
             backend.profiler.measure("render.collect") {
                 scene.render(alpha)

@@ -12,11 +12,10 @@ class AssetBrowserUiOperations(
     private val context: EngineContext,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
 ) {
-    fun showWoolboyAppInfo() {
-        state.statusMessage = "Woolboy is now a separate desktop app. Build :apps:woolboy-desktop:woolboyJar to run it."
-        context.logger.info(TAG) {
-            "Woolboy demo launch moved to standalone module path=':apps:woolboy-desktop' task='woolboyJar'"
-        }
+    fun exit() {
+        state.statusMessage = "Exit requested."
+        context.logger.info(TAG) { "Asset Browser exit requested from controls panel" }
+        context.requestExit()
     }
 
     fun saveUiLayout() {
