@@ -1,5 +1,7 @@
 # KRender SDK
 
+![KRender SDK banner](docs/images/KRender_banner.png)
+
 KRender SDK is a Kotlin + libGDX engine workspace built around a backend-neutral core, a separate LibGDX runtime backend module, a dedicated scene player module, and standalone editor tools for assets, models, animations, terrain, scenes, and UI documents.
 
 Hosted documentation: [dmytro-pashko.github.io/KRender](https://dmytro-pashko.github.io/KRender)
