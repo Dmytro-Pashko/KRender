@@ -30,6 +30,14 @@ object WoolboyDesktopLauncher {
                 setBackBufferConfig(8, 8, 8, 0, 24, 0, 0)
                 setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 0)
                 setWindowedMode(DefaultWindowWidth, DefaultWindowHeight)
+                setWindowIcon(
+                    "logo/Krender_logo_256.png",
+                    "logo/Krender_logo_128.png",
+                    "logo/Krender_logo_64.png",
+                    "logo/Krender_logo_48.png",
+                    "logo/Krender_logo_32.png",
+                    "logo/Krender_logo_16.png",
+                )
             },
         )
     }

@@ -1,5 +1,7 @@
 # KRender SDK
 
+![KRender SDK banner](docs/images/KRender_banner.png)
+
 KRender SDK is a Kotlin + libGDX engine workspace built around a backend-neutral core, a separate LibGDX runtime backend module, a dedicated scene player module, and standalone editor tools for assets, models, animations, terrain, scenes, and UI documents.
 
 Hosted documentation: [dmytro-pashko.github.io/KRender](https://dmytro-pashko.github.io/KRender)
@@ -211,6 +213,23 @@ Safe Kotlin formatting plus verification:
 ```
 
 `full_report.sh` runs formatting checks, static analysis, and unit test coverage. Reports are written under `build/reports/`, including `build/reports/static-analysis/`, `build/reports/unit-test-coverage/`, `build/reports/full-report/`, and `build/reports/detekt/`. The legacy `scripts/static-analysis.sh` wrapper remains available for compatibility.
+
+## Open Source Projects Used
+
+KRender is built on top of several open source projects that provide the language, runtime, rendering, and tooling
+foundations of the SDK:
+
+- **Kotlin** - primary language used across the engine, including Kotlin ecosystem libraries used by the project.
+  Website: [kotlinlang.org](https://kotlinlang.org/)
+  Repository: [github.com/JetBrains/kotlin](https://github.com/JetBrains/kotlin)
+- **libGDX** - cross-platform runtime framework used for rendering, input, audio, assets, desktop launchers, and Android integration.
+  Website: [libgdx.com](https://libgdx.com/)
+  Repository: [github.com/libgdx/libgdx](https://github.com/libgdx/libgdx)
+- **gdx-gltf** - glTF 2.0 loading and PBR rendering support used by the 3D model pipeline and preview tooling.
+  Repository: [github.com/mgsx-dev/gdx-gltf](https://github.com/mgsx-dev/gdx-gltf)
+- **LWJGL 3** - native desktop windowing and OpenGL bindings underneath the desktop LibGDX backend.
+  Website: [lwjgl.org](https://www.lwjgl.org/)
+  Repository: [github.com/LWJGL/lwjgl3](https://github.com/LWJGL/lwjgl3)
 
 ## License
 

@@ -12,18 +12,6 @@ KRender SDK is organized as a small engine workspace rather than a single libGDX
 - `android` contains the Android launcher.
 - `games:woolboy` and `apps:woolboy-desktop` demonstrate how a standalone client app is built on top of the SDK.
 
-## Dependency Direction
-
-```text
-engine:tools -> core
-engine:scene-player -> core
-engine:backend-gdx -> core
-desktop-lwjgl3-* -> core + engine:backend-gdx + engine:tools + engine:scene-player
-android -> core + engine:backend-gdx + engine:scene-player
-games:woolboy -> core
-apps:woolboy-desktop -> games:woolboy + core + engine:backend-gdx
-```
-
 ## Core Runtime Concepts
 
 - `EngineRuntime` owns the scene manager, game loop, runtime UI service, and shared engine services.

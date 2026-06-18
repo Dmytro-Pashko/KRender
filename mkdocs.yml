@@ -3,9 +3,18 @@ site_description: KRender engine and tool documentation
 site_url: https://dmytro-pashko.github.io/KRender/
 repo_url: https://github.com/Dmytro-Pashko/KRender
 repo_name: Dmytro-Pashko/KRender
-docs_dir: .
+docs_dir: docs
 theme:
   name: readthedocs
+plugins:
+  - search
+  - mermaid2
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid
 nav:
   - Home: index.md
   - Architecture: architecture.md
@@ -15,4 +24,3 @@ nav:
       - Static Analysis: quality/static-analysis.md
       - Test Coverage: quality/test-coverage.md
   - AI Integration: ai-integration.md
-
