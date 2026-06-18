@@ -25,7 +25,14 @@ fun launchKRenderDesktopApplication(
             setBackBufferConfig(8, 8, 8, 0, 24, 0, 0)
             configureOpenGlTarget()
             setWindowedMode(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
-            setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx32.png", "libgdx16.png")
+            setWindowIcon(
+                "logo/Krender_logo_256.png",
+                "logo/Krender_logo_128.png",
+                "logo/Krender_logo_64.png",
+                "logo/Krender_logo_48.png",
+                "logo/Krender_logo_32.png",
+                "logo/Krender_logo_16.png",
+            )
         },
     )
 }

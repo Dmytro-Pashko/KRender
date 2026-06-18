@@ -161,7 +161,7 @@ extensions.configure<ConstruoPluginExtension>("construo") {
     }
     targets.register("winX64", Target.Windows::class.java) {
         architecture.set(Target.Architecture.X86_64)
-        icon.set(project.file("icons/logo.png"))
+        icon.set(rootProject.file("assets/logo/Krender_logo.ico"))
         jdkUrl.set("https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.10%2B7/OpenJDK21U-jdk_x64_windows_hotspot_21.0.10_7.zip")
     }
 }
