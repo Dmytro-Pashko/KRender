@@ -12,6 +12,7 @@ import com.pashkd.krender.engine.tools.assetbrowser.details.SceneAssetDetailsRen
 import com.pashkd.krender.engine.tools.assetbrowser.details.TerrainAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.TextureAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.UiSceneAssetDetailsRenderer
+import com.pashkd.krender.engine.tools.common.TexturePreviewCatalog
 import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.dsl
@@ -29,6 +30,8 @@ class AssetDetailsPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker? = null,
     private val operations: AssetBrowserOperationsHandler = AssetBrowserOperationsHandler.NoOp,
 ) : UiPanel {
+    private val texturePreviews = TexturePreviewCatalog(assets)
+
     private val renderers =
         listOf(
             TextureAssetDetailsRenderer(),
@@ -63,6 +66,7 @@ class AssetDetailsPanel(
             AssetDetailsRenderContext(
                 state = state,
                 assets = assets,
+                texturePreviews = texturePreviews,
                 ui = ui,
                 operations = operations,
                 panelId = panelId,

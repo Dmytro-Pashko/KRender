@@ -28,7 +28,7 @@ Skin-backed styles/backgrounds and Asset-Registry-backed Image textures.
 | `engine/tools/.../uicomposer/UiComposerScene.kt` | Composition; document load/reload, preview rebuild, save, undo/redo, canvas interaction system. |
 | `engine/tools/.../uicomposer/UiComposerModel.kt` | Editor document + preview state used by the tool and preview adapter. |
 | `engine/tools/.../uicomposer/UiComposerOperations.kt` | Edit/save/undo/redo operations. |
-| `engine/tools/.../uicomposer/UiComposerDocumentEditing.kt`, `UiComposerHistory.kt` | Structure editing + history helpers. |
+| `engine/tools/.../uicomposer/UiComposerDocumentEditing.kt`, `UiComposerHistory.kt` | Structure editing + UiComposer-facing wrappers over the shared snapshot history utility. |
 | `engine/tools/.../uicomposer/UiComposerPanels.kt` | Toolbar, preview canvas, hierarchy, structure, inspector, scene bindings, diagnostics panels. |
 | `engine/tools/.../uicomposer/UiComposerStyleValidation.kt`, `UiComposerBindingHelpers.kt` | Style/binding validation helpers. |
 | `engine/ui/scene/UiSceneDocument.kt`, `UiSceneSerializer.kt`, `UiSceneValidation.kt` | Shared `.krui` model + validators (also used by runtime UI). |
@@ -88,7 +88,7 @@ document (`ui/skins/...`). Texture assets (for Image node texture picking).
 - Undo/redo (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z) and save.
 - Node selection via hierarchy and selection-only canvas hit-testing; hover highlight.
 - Ctrl+drag camera pan and mouse-wheel zoom on the preview canvas.
-- Skin-backed style/background pickers; Asset Registry-backed Image texture picking.
+- Skin-backed style/background pickers; Asset Registry-backed Image texture picking delegated through shared editor asset-picker utilities.
 - Style / texture / binding validation diagnostics.
 
 ## Missing / Incomplete Features

@@ -4,6 +4,8 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TexturePreviewHandle
+import com.pashkd.krender.engine.tools.common.TexturePreviewCatalog
+import com.pashkd.krender.engine.tools.common.TexturePreviewResult
 import com.pashkd.krender.engine.ui.editor.*
 import com.pashkd.krender.engine.ui.scene.*
 import imgui.ImGui
@@ -488,6 +490,7 @@ class UiComposerInspectorPanel(
 ) : UiPanel {
     private val editBuffers = mutableMapOf<String, ByteArray>()
     private val loggedPreviewDiagnostics = mutableSetOf<String>()
+    private val texturePreviewCatalog = TexturePreviewCatalog(assets)
 
     /** Draws document details or selected-node scalar editing controls. */
     override fun draw() {
@@ -1056,8 +1059,8 @@ class UiComposerInspectorPanel(
     }
 
     private fun drawTexturePreview(path: String) {
-        val handle = assets.texturePreviewHandle(path)
-        if (handle == null) {
+        when (val preview = texturePreviewCatalog.preview(path)) {
+            is TexturePreviewResult.Unavailable -> {
             val reason = texturePreviewUnavailableReason(path)
             ImGui.textWrapped("Texture preview unavailable: $reason")
             logPreviewDiagnosticOnce(
@@ -1065,14 +1068,18 @@ class UiComposerInspectorPanel(
                 message = "UiComposer actor texture preview unavailable path='$path': $reason",
             )
             return
-        }
+            }
 
-        drawPreviewHandle(
-            handle = handle,
-            failureKey = "texture:$path:draw-failed:${handle.id}",
-            failureMessage = { reason -> "UiComposer actor texture preview draw failed path='$path': $reason" },
-        )
-        property("Image size", previewHandleSize(handle))
+            is TexturePreviewResult.Available -> {
+                val handle = preview.handle
+                drawPreviewHandle(
+                    handle = handle,
+                    failureKey = "texture:$path:draw-failed:${handle.id}",
+                    failureMessage = { reason -> "UiComposer actor texture preview draw failed path='$path': $reason" },
+                )
+                property("Image size", previewHandleSize(handle))
+            }
+        }
     }
 
     private fun drawBackgroundPreview(drawableName: String) {

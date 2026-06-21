@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.tools.uicomposer
 import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.tools.common.EditorAssetPickerCatalog
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
 import com.pashkd.krender.engine.ui.scene.UiSceneValidationIssue
 import com.pashkd.krender.engine.ui.scene.UiSceneValidator
@@ -39,6 +40,8 @@ data class UiComposerTextureOption(
 class UiComposerTextureOptionsProvider(
     private val assets: AssetRegistryService,
 ) {
+    private val catalog = EditorAssetPickerCatalog(assets)
+
     /**
      * Lists usable texture/image assets for the UiComposer Image texture picker.
      *
@@ -48,20 +51,17 @@ class UiComposerTextureOptionsProvider(
      * registry context for future phases.
      */
     fun listTextureOptions(): List<UiComposerTextureOption> =
-        assets
-            .byCategory(AssetCategory.Texture)
-            .asSequence()
-            .filter { descriptor -> descriptor.type == AssetType.Texture }
-            .map { descriptor ->
+        catalog
+            .listAssets(category = AssetCategory.Texture, type = AssetType.Texture)
+            .map { option ->
                 UiComposerTextureOption(
-                    displayName = descriptor.metadata["displayName"]?.takeIf(String::isNotBlank) ?: descriptor.name,
-                    path = descriptor.path,
-                    assetId = descriptor.id.value,
+                    displayName = option.displayName,
+                    path = option.path,
+                    assetId = option.assetId,
                 )
-            }.filter { option -> option.path.isNotBlank() }
-            .distinctBy { option -> option.path }
-            .sortedWith(compareBy<UiComposerTextureOption> { it.displayName.lowercase() }.thenBy { it.path.lowercase() })
-            .toList()
+            }
+
+    fun assetTypeByPath(): Map<String, AssetType> = catalog.assetTypeByPath()
 }
 
 /**

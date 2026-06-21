@@ -1,7 +1,8 @@
 package com.pashkd.krender.engine.tools.uicomposer
 
+import com.pashkd.krender.engine.tools.common.SnapshotEditorHistory
+import com.pashkd.krender.engine.tools.common.SnapshotEditorHistoryEntry
 import com.pashkd.krender.engine.ui.scene.UiSceneDocument
-import java.util.*
 
 /**
  * One undo/redo snapshot for UiComposer document editing.
@@ -25,38 +26,45 @@ data class UiComposerHistoryEntry(
 class UiComposerHistory(
     private val capacity: Int = 100,
 ) {
-    private val undoStack = ArrayDeque<UiComposerHistoryEntry>()
-    private val redoStack = ArrayDeque<UiComposerHistoryEntry>()
+    private val delegate = SnapshotEditorHistory<UiSceneDocument, String?>(capacity)
 
-    val canUndo: Boolean get() = undoStack.isNotEmpty()
-    val canRedo: Boolean get() = redoStack.isNotEmpty()
-    val undoCount: Int get() = undoStack.size
-    val redoCount: Int get() = redoStack.size
+    val canUndo: Boolean
+        get() = delegate.canUndo
 
-    fun clear() {
-        undoStack.clear()
-        redoStack.clear()
-    }
+    val canRedo: Boolean
+        get() = delegate.canRedo
+
+    val undoCount: Int
+        get() = delegate.undoCount
+
+    val redoCount: Int
+        get() = delegate.redoCount
+
+    fun clear() = delegate.clear()
 
     fun recordBeforeChange(entry: UiComposerHistoryEntry) {
-        undoStack.addLast(entry)
-        while (undoStack.size > capacity) {
-            undoStack.removeFirst()
-        }
-        redoStack.clear()
+        delegate.recordBeforeChange(entry.toSnapshotEntry())
     }
 
     fun undo(current: UiComposerHistoryEntry): UiComposerHistoryEntry? {
-        if (undoStack.isEmpty()) return null
-        val previous = undoStack.removeLast()
-        redoStack.addLast(current)
-        return previous
+        return delegate.undo(current.toSnapshotEntry())?.toUiComposerEntry()
     }
 
     fun redo(current: UiComposerHistoryEntry): UiComposerHistoryEntry? {
-        if (redoStack.isEmpty()) return null
-        val next = redoStack.removeLast()
-        undoStack.addLast(current)
-        return next
+        return delegate.redo(current.toSnapshotEntry())?.toUiComposerEntry()
     }
 }
+
+private fun UiComposerHistoryEntry.toSnapshotEntry(): SnapshotEditorHistoryEntry<UiSceneDocument, String?> =
+    SnapshotEditorHistoryEntry(
+        snapshot = document,
+        context = selectedNodeId,
+        description = description,
+    )
+
+private fun SnapshotEditorHistoryEntry<UiSceneDocument, String?>.toUiComposerEntry(): UiComposerHistoryEntry =
+    UiComposerHistoryEntry(
+        document = snapshot,
+        selectedNodeId = context,
+        description = description,
+    )

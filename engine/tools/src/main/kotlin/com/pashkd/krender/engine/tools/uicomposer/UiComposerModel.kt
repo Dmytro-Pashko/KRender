@@ -63,10 +63,11 @@ data class UiComposerState(
      * Last Asset Registry texture picker rows shown for Image.texture.
      *
      * This belongs to editor asset picking and Asset Registry integration. The
-     * selected `.krui` node still stores only a path string, and these rows are
-     * not saved as asset-id references. The picker intentionally does not
-     * import/copy textures, pick atlas regions, show thumbnails, support
-     * Asset Browser drag/drop, or change runtime behavior.
+     * rows are produced through shared editor asset-picker utilities, while the
+     * selected `.krui` node still stores only a path string. They are not saved
+     * as asset-id references. The picker intentionally does not import/copy
+     * textures, pick atlas regions, show thumbnails, support Asset Browser
+     * drag/drop, or change runtime behavior.
      */
     var textureOptions: List<UiComposerTextureOption> = emptyList(),
     /**
