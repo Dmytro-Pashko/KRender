@@ -26,7 +26,7 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 | `engine/tools/.../assetbrowser/AssetBrowserPanels.kt` | `AssetControlsPanel`, `AssetBrowserPanel`, `AssetDetailsPanel`. |
 | `engine/tools/.../assetbrowser/AssetBrowserLayout.kt` | `AssetBrowserUiLayoutDefaults` (panel layout config). |
 | `engine/tools/.../assetbrowser/AssetBrowserUiOperations.kt` | UI-side operations helper. |
-| `engine/tools/.../common/TexturePreviewCatalog.kt` | Shared texture preview handle/status lookup used by texture details and other tools. |
+| `engine/tools/.../common/EditorTexturePreviewService.kt` | Shared editor-facing texture preview handle/status lookup used by texture details and other tools. |
 | `engine/assets/AssetRegistryService.kt` | `LocalAssetRegistryService` — filesystem scan + `.krmeta`. |
 | `engine/assets/AssetOperationsService.kt` | `LocalAssetOperationsService` — create/rename/duplicate/delete/reveal. |
 | `engine/tools/.../assetbrowser/AssetToolRegistry.kt` | Maps assets to `AssetTool`s; resolves default + "open with" tools. |

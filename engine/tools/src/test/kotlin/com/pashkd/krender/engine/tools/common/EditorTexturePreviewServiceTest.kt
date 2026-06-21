@@ -7,15 +7,14 @@ import com.pashkd.krender.engine.api.TexturePreviewHandle
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNull
 
-class TexturePreviewCatalogTest {
+class EditorTexturePreviewServiceTest {
     @Test
     fun `null path returns unavailable`() {
         val assets = FakeAssetService()
-        val catalog = TexturePreviewCatalog(assets)
+        val service = EditorTexturePreviewService(assets)
 
-        val result = catalog.preview(null)
+        val result = service.preview(null)
 
         val unavailable = assertIs<TexturePreviewResult.Unavailable>(result)
         assertEquals("", unavailable.path)
@@ -26,9 +25,9 @@ class TexturePreviewCatalogTest {
     @Test
     fun `blank path returns unavailable`() {
         val assets = FakeAssetService()
-        val catalog = TexturePreviewCatalog(assets)
+        val service = EditorTexturePreviewService(assets)
 
-        val result = catalog.preview(" ")
+        val result = service.preview(" ")
 
         val unavailable = assertIs<TexturePreviewResult.Unavailable>(result)
         assertEquals(" ", unavailable.path)
@@ -39,13 +38,13 @@ class TexturePreviewCatalogTest {
     @Test
     fun `missing handle returns unavailable`() {
         val assets = FakeAssetService()
-        val catalog = TexturePreviewCatalog(assets)
+        val service = EditorTexturePreviewService(assets)
 
-        val result = catalog.preview("textures/missing.png")
+        val result = service.preview("textures/missing.png")
 
         val unavailable = assertIs<TexturePreviewResult.Unavailable>(result)
         assertEquals("textures/missing.png", unavailable.path)
-        assertEquals("Texture preview handle is unavailable.", unavailable.reason)
+        assertEquals("Texture is not loaded by AssetService yet.", unavailable.reason)
         assertEquals(listOf("textures/missing.png"), assets.requestedPreviewPaths)
     }
 
@@ -59,9 +58,9 @@ class TexturePreviewCatalogTest {
                         "textures/known.png" to handle,
                     ),
             )
-        val catalog = TexturePreviewCatalog(assets)
+        val service = EditorTexturePreviewService(assets)
 
-        val result = catalog.preview("textures/known.png")
+        val result = service.preview("textures/known.png")
 
         val available = assertIs<TexturePreviewResult.Available>(result)
         assertEquals("textures/known.png", available.path)

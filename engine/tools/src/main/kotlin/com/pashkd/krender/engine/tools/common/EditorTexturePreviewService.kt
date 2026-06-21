@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.common
 
+import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.TexturePreviewHandle
 
@@ -16,12 +17,12 @@ sealed interface TexturePreviewResult {
 }
 
 /**
- * Shared editor lookup wrapper for backend texture preview handles.
+ * Shared editor-facing lookup wrapper for backend texture preview handles.
  *
  * This centralizes status reporting around [AssetService.texturePreviewHandle]
  * without changing how tools actually render previews.
  */
-class TexturePreviewCatalog(
+class EditorTexturePreviewService(
     private val assets: AssetService,
 ) {
     fun preview(path: String?): TexturePreviewResult {
@@ -39,13 +40,25 @@ class TexturePreviewCatalog(
         }
 
         val handle = assets.texturePreviewHandle(path)
-        return if (handle != null) {
-            TexturePreviewResult.Available(path = path, handle = handle)
-        } else {
-            TexturePreviewResult.Unavailable(
-                path = path,
-                reason = "Texture preview handle is unavailable.",
-            )
+        if (handle != null) {
+            return TexturePreviewResult.Available(path = path, handle = handle)
         }
+
+        val loadState = runCatching { assets.isLoaded(AssetRef.texture(path)) }
+        val reason =
+            when {
+                loadState.isFailure ->
+                    "AssetService load state check failed: ${loadState.exceptionOrNull()?.message ?: "unknown error"}."
+
+                loadState.getOrDefault(false) ->
+                    "AssetService reports the texture is loaded, but the backend returned no preview handle."
+
+                else ->
+                    "Texture is not loaded by AssetService yet."
+            }
+        return TexturePreviewResult.Unavailable(
+            path = path,
+            reason = reason,
+        )
     }
 }
