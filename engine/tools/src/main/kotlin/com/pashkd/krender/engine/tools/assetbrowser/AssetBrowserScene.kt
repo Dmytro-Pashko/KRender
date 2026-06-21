@@ -406,12 +406,12 @@ class TerrainEditorAssetTool : AssetTool {
 }
 
 /**
- * Opens `.krui` UiScene assets through the temporary UI Composer route.
+ * Opens `.krui` UiScene assets in UI Composer.
  *
  * This tool belongs to editor/tool routing: it connects Asset Browser's UiScene metadata to
- * UiComposerScene so future composer work has a stable launch path. It intentionally does not
- * implement preview rendering, hierarchy/inspector editing, bounds overlays, Skin editing,
- * drag/drop editing, save/open workflows, or asset-id based references.
+ * UiComposerScene for validation, preview, hierarchy/inspector editing, undo/redo, and save
+ * workflows. Current UI Composer limitations still apply, including no canvas drag/drop authoring,
+ * no Skin editing, and no asset-id references.
  */
 class UiComposerAssetTool : AssetTool {
     override val id = "ui-composer"
@@ -421,14 +421,14 @@ class UiComposerAssetTool : AssetTool {
     override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.UI && asset.type == AssetType.UiScene
 
     /**
-     * Launches the placeholder composer window for the selected UiScene path.
+     * Launches UI Composer for the selected UiScene path.
      */
     override fun open(
         asset: AssetDescriptor,
         context: EngineContext,
     ) {
         val path = normalizedAssetPath(asset)
-        context.logger.info(TAG) { "Opening UiScene asset '$path' in UI Composer placeholder" }
+        context.logger.info(TAG) { "Opening UiScene asset '$path' in UI Composer" }
         context.editorToolLauncher.launchUiComposer(path)
     }
 

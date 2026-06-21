@@ -17,7 +17,7 @@ import com.pashkd.krender.engine.ui.scene.*
 /**
  * Builds LibGDX Scene2D actors from shared `.krui` documents.
  *
- * This class belongs to the runtime backend, not the shared model or future editor
+ * This class belongs to the runtime backend, not the shared model or editor
  * UI. It maps the KRender-native `.krui` widget subset to real Scene2D widgets and
  * deliberately keeps Scene2D as the layout engine. It does not implement custom
  * rendering, Skin editing, Asset Browser integration, arbitrary Actor
@@ -176,7 +176,7 @@ class GdxUiSceneBuilder(
                     // so invalid/multi-child containers may happen while building early tools.
                     // Instead of dropping children, we wrap them in a Stack so the document still
                     // previews/renders. The validator should warn about suspicious structures;
-                    // future UI Composer should either prevent this or explicitly insert a Stack.
+                    // UI Composer should either prevent this or explicitly insert a Stack.
                     logger.warn(TAG) {
                         "Container '${node.id}' has ${node.children.size} children; wrapping them in a Stack for `.krui` MVP."
                     }

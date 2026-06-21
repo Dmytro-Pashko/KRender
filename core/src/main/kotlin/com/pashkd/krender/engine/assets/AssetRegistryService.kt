@@ -323,8 +323,9 @@ class LocalAssetRegistryService(
          *
          * The `ui/scenes` entry exists so `.krui` UiScene documents under `assets/ui/scenes` are indexed by
          * Asset Browser. `ui/skins` indexes LibGDX Scene2D Skin JSON descriptors for `.krui` creation and
-         * future Skin tooling. These are asset-indexing routes only; they do not enable UI Composer editing,
-         * preview rendering, Skin editing, drag/drop editing, or asset-id based references.
+         * UI Composer picker workflows. Indexing keeps these assets discoverable for routing, validation,
+         * preview, hierarchy/inspector editing, and save workflows, while current limitations such as no
+         * Skin editing and no asset-id based references still apply.
          */
         val DefaultRootPaths =
             listOf(

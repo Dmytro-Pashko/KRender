@@ -92,7 +92,7 @@ All discovered categories (`AssetDomain.kt`): `Model`, `Texture`, `Skybox`, `Mat
 
 - No thumbnail/texture grid previews in the list (text + metadata only).
 - No drag/drop, multi-select, or batch operations.
-- UI assets only route to the **placeholder** UI Composer (see its doc).
+- `.krui` UI assets route to UI Composer for validation, preview, hierarchy/inspector editing, undo/redo, and save workflows.
 - No audio/script tooling despite the categories existing.
 
 ## Known Problems

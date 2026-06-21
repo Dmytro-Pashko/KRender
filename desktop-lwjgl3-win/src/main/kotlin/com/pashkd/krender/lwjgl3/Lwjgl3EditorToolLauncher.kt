@@ -45,7 +45,7 @@ class Lwjgl3EditorToolLauncher(
     }
 
     /**
-     * Launches the temporary UiComposerScene placeholder for a `.krui` UiScene asset.
+     * Launches UiComposerScene for a `.krui` UiScene asset.
      */
     override fun launchUiComposer(uiScenePath: String) {
         launch(

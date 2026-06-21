@@ -26,7 +26,7 @@ scenes, and systems do not spread `Gdx.*` calls through the project.
 
 Beyond the runtime engine, the repository ships a set of **ImGui-based editor tools**
 that run as standalone scenes (Asset Browser, Model Viewer, Animation Viewer,
-Terrain Editor, Scene Editor, and a placeholder UI Composer). These tools are
+Terrain Editor, Scene Editor, and a UI Composer `.krui` editor/preview tool). These tools are
 first-class products built on the same engine primitives.
 
 - Language: Kotlin `2.2.21`, JVM target 11.
@@ -353,7 +353,7 @@ terrain with layers, material preview baking, and persistence. → `docs/agents/
 
 ### UI Composer
 `engine/tools/.../uicomposer/UiComposerScene.kt` (+ scene/layout/panel/operations/model helpers and preview adapter in `engine:tools`). Opens
-`.krui` UiScene assets for validation-focused preview and inspection workflows. → `docs/agents/tools/ui-composer.md`
+`.krui` UiScene assets for validation, Scene2D preview, hierarchy/inspector editing, undo/redo, and save workflows. → `docs/agents/tools/ui-composer.md`
 
 ### Non-tool scenes
 Scene Player (`engine:scene-player/.../ScenePlayerScene.kt`) is not an editor tool. It handles

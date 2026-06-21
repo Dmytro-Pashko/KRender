@@ -13,12 +13,12 @@ interface EditorToolLauncher {
     fun launchSceneEditorWithScene(scenePath: String)
 
     /**
-     * Opens a `.krui` UiScene in the temporary UI Composer route.
+     * Opens a `.krui` UiScene in the UI Composer route.
      *
      * This is editor/tool routing only: it gives Asset Browser a stable launch target for UiScene
-     * assets before the real composer editor exists. The launched placeholder does not render previews,
-     * edit hierarchy/inspector data, show bounds overlays, edit Skins, support drag/drop, save files,
-     * or introduce asset-id references.
+     * assets. The launched tool supports validation, Scene2D preview, hierarchy/inspector editing,
+     * undo/redo, and save workflows, while current limitations such as no drag/drop authoring,
+     * no Skin editing, and no asset-id references remain intentional.
      */
     fun launchUiComposer(uiScenePath: String)
 }

@@ -288,7 +288,7 @@ Example:
 
 ### UI Composer
 
-The UI Composer is the `.krui` document tool. Its scope stays focused on inspection, validation, preview, and document-oriented structure workflows rather than a full drag/drop UI authoring suite.
+The UI Composer is the `.krui` document editor and preview tool. Its current scope covers validation, Scene2D preview, selected-node scalar editing, hierarchy-driven structure editing, save, undo/redo, hierarchy or canvas selection, Skin-backed style/background picking, and Asset Registry-backed Image texture picking. It remains a document-oriented workflow rather than a full drag/drop UI authoring suite.
 
 Screenshots:
 

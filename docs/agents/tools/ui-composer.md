@@ -61,8 +61,8 @@ Scene2D preview after the main renderer and before ImGui.
 ## Data Flow
 
 1. `show()` builds state, a `UiComposerDocumentLoader` (over `engine.sceneFiles::readText`), the
-   backend `GdxUiScenePreview`, a Skin metadata reader, and a **local** `LocalAssetRegistryService`
-   used only for the Image texture picker.
+   backend `GdxUiScenePreview`, a Skin metadata reader, and an
+   `UiComposerTextureOptionsProvider` over `engine.assetRegistry` for the Image texture picker.
 2. `reloadDocumentAndPreview()` decodes `.krui`, refreshes Skin metadata + validation buckets,
    and rebuilds the Scene2D preview.
 3. Per frame, `update()` handles deferred save/reload/rebuild/undo-redo requests; the canvas
@@ -102,9 +102,6 @@ a simple toolbar state.
 
 ## Known Problems
 
-- Uses a **local** `LocalAssetRegistryService` for the texture picker because `EngineContext`
-  exposes the runtime `AssetService`, not a shared `AssetRegistryService`. The code itself flags
-  this as something to replace with a shared registry once Asset Browser and Composer align.
 - Stale "placeholder" comments elsewhere misrepresent this tool's current capabilities.
 - The preview is the one place a tool draws Scene2D directly via a backend hook
   (`overlayRender`) — keep that plumbing contained to editor/backend code.
@@ -127,8 +124,6 @@ a simple toolbar state.
 
 ## Recommended Improvements
 
-- Replace the local texture registry with a shared engine `AssetRegistryService` on
-  `EngineContext`.
 - Update stale comments carefully when they misdescribe current UI Composer scope or routing.
 
 ## Related Code Patterns

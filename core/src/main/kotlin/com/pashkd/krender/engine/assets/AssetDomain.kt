@@ -24,9 +24,10 @@ enum class AssetCategory(
     /**
      * UI document category used by asset indexing and browser filters for KRender-native `.krui` UiScene files.
      *
-     * This category is metadata-only for now: it makes runtime UI documents visible to tools and prepares
-     * routing to UiComposerScene, but it does not provide preview rendering, hierarchy editing, Skin editing,
-     * drag/drop authoring, or asset-id references.
+     * `.krui` assets in this category are routed to UI Composer for validation, preview,
+     * hierarchy/inspector editing, undo/redo, and save workflows. Current limitations still apply:
+     * no canvas drag/drop authoring, no actor resizing on canvas, no multi-select, no canvas-based
+     * structure editing, no Skin editing, and no asset-id references.
      */
     UI("UI", 5),
     Scene("Scene", 6),
@@ -48,17 +49,18 @@ enum class AssetType {
      * KRender-native Scene2D UI scene document stored as `.krui`.
      *
      * This type belongs to asset metadata and tool routing: runtime UI already consumes the shared
-     * `engine.ui.scene` model, while Asset Browser now indexes these files and can open a temporary
-     * UiComposerScene placeholder. Full UI Composer editing, preview rendering, Skin editing, drag/drop,
-     * and asset-id references are intentionally deferred.
+     * `engine.ui.scene` model, while Asset Browser indexes these files and opens UiComposerScene for
+     * validation, preview, hierarchy/inspector editing, undo/redo, and save workflows. Current
+     * limitations remain intentional: no canvas drag/drop, no actor resizing on canvas, no multi-select,
+     * no canvas-based structure editing, no Skin editing, and no asset-id references.
      */
     UiScene,
 
     /**
      * LibGDX Scene2D Skin JSON descriptor used by `.krui` UI scenes and future Skin tooling.
      *
-     * This asset type is metadata-only for now. Asset Browser can index and inspect Skin JSON files,
-     * but Skin editing, preview rendering, and asset-id based texture migration are intentionally out of scope.
+     * Asset Browser can index and inspect Skin JSON files for `.krui` workflows, but Skin editing,
+     * dedicated Skin preview tooling, and asset-id based texture migration are intentionally out of scope.
      */
     Scene2DSkin,
     Scene,

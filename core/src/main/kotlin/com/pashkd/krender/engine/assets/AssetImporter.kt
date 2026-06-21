@@ -189,9 +189,9 @@ class Scene2DSkinImporter(
  * KRender-native `.krui` UiScene document importer.
  *
  * This importer belongs to asset indexing and asset metadata. It recognizes the shared UiScene
- * document format used by runtime UI and the future UiComposerScene, extracts lightweight metadata,
- * and reports non-fatal validation warnings. It does not build Scene2D actors, render previews,
- * edit hierarchy/bounds, edit Skins, handle drag/drop authoring, or convert paths to asset ids.
+ * document format used by runtime UI and UiComposerScene, extracts lightweight metadata,
+ * and reports non-fatal validation warnings. Preview and editing happen in UI Composer; this importer
+ * stays limited to indexing and does not build Scene2D actors or convert paths to asset ids.
  */
 class UiSceneImporter(
     private val logger: Logger? = null,
