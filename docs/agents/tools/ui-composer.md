@@ -102,7 +102,6 @@ a simple toolbar state.
 
 ## Known Problems
 
-- Stale "placeholder" comments elsewhere misrepresent this tool's current capabilities.
 - The preview is the one place a tool draws Scene2D directly via a backend hook
   (`overlayRender`) — keep that plumbing contained to editor/backend code.
 

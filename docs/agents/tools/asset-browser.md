@@ -86,13 +86,13 @@ All discovered categories (`AssetDomain.kt`): `Model`, `Texture`, `Skybox`, `Mat
 - Model metadata preview (triangle/vertex/material counts via `ModelAssetInfo`).
 - Create / rename / duplicate / delete / reveal operations with sensible default content
   (skybox, scene, terrain, `.krui`, material templates).
+- `.krui` UI assets route to UI Composer for validation, Scene2D preview, hierarchy/inspector editing, undo/redo, and save workflows.
 - "Open" (default tool) and "Open with" (alternate tools) per asset.
 
 ## Missing / Incomplete Features
 
 - No thumbnail/texture grid previews in the list (text + metadata only).
 - No drag/drop, multi-select, or batch operations.
-- `.krui` UI assets route to UI Composer for validation, preview, hierarchy/inspector editing, undo/redo, and save workflows.
 - No audio/script tooling despite the categories existing.
 
 ## Known Problems
