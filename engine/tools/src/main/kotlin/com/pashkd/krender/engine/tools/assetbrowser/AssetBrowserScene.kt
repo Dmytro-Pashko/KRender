@@ -50,6 +50,7 @@ class AssetBrowserScene : Scene("asset_browser") {
                 register(ModelViewerAssetTool())
                 register(AnimationViewerAssetTool())
                 register(TerrainEditorAssetTool())
+                register(SkinEditorAssetTool())
                 register(UiComposerAssetTool())
                 register(SceneEditorAssetTool())
                 register(SceneRuntimeAssetTool())
@@ -434,6 +435,27 @@ class UiComposerAssetTool : AssetTool {
 
     companion object {
         private const val TAG = "UiComposerAssetTool"
+    }
+}
+
+class SkinEditorAssetTool : AssetTool {
+    override val id = "skin-editor"
+    override val displayName = "Open in Skin Editor"
+    override val supportedCategories = setOf(AssetCategory.UI)
+
+    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.UI && asset.type == AssetType.Scene2DSkin
+
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Opening Scene2D Skin asset '$path' in Skin Editor" }
+        context.editorToolLauncher.launchSkinEditor(path)
+    }
+
+    companion object {
+        private const val TAG = "SkinEditorAssetTool"
     }
 }
 
