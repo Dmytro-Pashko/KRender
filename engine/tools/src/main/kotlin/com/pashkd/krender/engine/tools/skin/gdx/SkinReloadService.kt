@@ -12,6 +12,7 @@ import com.pashkd.krender.engine.tools.skin.SkinProblemSeverity
 import com.pashkd.krender.engine.tools.skin.SkinProjectLoader
 import com.pashkd.krender.engine.tools.skin.SkinValidationContext
 import com.pashkd.krender.engine.tools.skin.SkinValidator
+import com.pashkd.krender.engine.tools.skin.sortedForDisplay
 
 class LoadedSkinHandle internal constructor(
     internal val skin: Skin,
@@ -72,7 +73,7 @@ class SkinReloadService(
 
         val result = baseResult.copy(problems = problems, previewSkinAvailable = currentHandle != null)
         val validationProblems = validators.flatMap { validator -> validator.validate(SkinValidationContext(result)) }
-        return result.copy(problems = result.problems + validationProblems)
+        return result.copy(problems = (result.problems + validationProblems).sortedForDisplay())
     }
 
     override fun dispose() {

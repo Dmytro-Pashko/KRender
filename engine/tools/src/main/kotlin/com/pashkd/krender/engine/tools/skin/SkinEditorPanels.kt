@@ -96,6 +96,8 @@ class SkinEditorStyleTreePanel(
                     styles.forEach { style ->
                         if (ImGui.selectable("${style.name}##skin_editor_style_${style.type}_${style.name}", state.selectedStyleKey == style.key)) {
                             state.selectedStyleKey = style.key
+                            state.selectedResourceKey = null
+                            state.selectedProblemIndex = null
                             state.previewDirty = true
                         }
                     }
@@ -122,13 +124,22 @@ class SkinEditorResourceBrowserPanel(
             return
         }
 
-        if (state.loadResult.resourceIndex.resources.isEmpty()) {
+        val resourceIndex = state.loadResult.resourceIndex
+        if (resourceIndex.resources.isEmpty()) {
             ImGui.textUnformatted("No resources indexed.")
         } else {
-            state.loadResult.resourceIndex.resources.forEach { resource ->
-                val label = "${resource.name} [${resource.type}]"
-                if (ImGui.selectable("$label##skin_editor_resource_${resource.name}", state.selectedResourceName == resource.name)) {
-                    state.selectedResourceName = resource.name
+            SkinResourceCategory.entries.forEach { category ->
+                val resources = resourceIndex.resourcesFor(category)
+                if (resources.isNotEmpty() && ImGui.treeNode("${category.name} (${resources.size})##skin_editor_resource_category_$category")) {
+                    resources.forEach { resource ->
+                        val label = "${resource.name} [${resource.type}]"
+                        if (ImGui.selectable("$label##skin_editor_resource_${category}_${resource.name}", state.selectedResourceKey == resource.key)) {
+                            state.selectedResourceKey = resource.key
+                            state.selectedStyleKey = null
+                            state.selectedProblemIndex = null
+                        }
+                    }
+                    ImGui.treePop()
                 }
             }
         }
@@ -155,9 +166,12 @@ class SkinEditorProblemsPanel(
             ImGui.textUnformatted("No problems reported.")
         } else {
             state.loadResult.problems.forEachIndexed { index, problem ->
-                val label = "[${problem.severity}] ${problem.message}"
+                val source = problem.source?.let { " [$it]" }.orEmpty()
+                val label = "[${problem.severity}][${problem.category}] ${problem.message}$source"
                 if (ImGui.selectable("$label##skin_editor_problem_$index", state.selectedProblemIndex == index)) {
                     state.selectedProblemIndex = index
+                    state.selectedStyleKey = null
+                    state.selectedResourceKey = null
                 }
             }
         }
@@ -217,27 +231,50 @@ class SkinEditorInspectorPanel(
         }
 
         val style = state.loadResult.styleIndex.styles.firstOrNull { it.key == state.selectedStyleKey }
-        val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.name == state.selectedResourceName }
+        val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
         val problem = state.selectedProblemIndex?.let(state.loadResult.problems::getOrNull)
 
         when {
             style != null -> {
                 ImGui.textUnformatted("Style: ${style.name}")
                 ImGui.textUnformatted("Type: ${style.type}")
+                ImGui.textUnformatted("Fields: ${style.rawFieldCount}")
                 ImGui.separator()
                 if (style.fields.isEmpty()) {
                     ImGui.textUnformatted("No fields indexed.")
                 } else {
                     style.fields.forEach { field ->
                         ImGui.textWrapped("${field.name}: ${field.rawValue ?: "<object>"} [${field.valueType}]")
+                        field.reference?.let { reference ->
+                            val category = reference.category?.name ?: "Unknown"
+                            val status = if (reference.resolved) "resolved" else "missing"
+                            ImGui.textWrapped("  Reference: $category '${reference.name}' ($status)")
+                        }
                     }
+                }
+                ImGui.separator()
+                ImGui.textUnformatted("Referenced resources: ${style.resourceReferences.size}")
+                style.resourceReferences.forEach { reference ->
+                    val category = reference.category?.name ?: "Unknown"
+                    val status = if (reference.resolved) "resolved" else "missing"
+                    ImGui.textWrapped("$category '${reference.name}' ($status)")
                 }
             }
 
             resource != null -> {
                 ImGui.textUnformatted("Resource: ${resource.name}")
+                ImGui.textUnformatted("Category: ${resource.category}")
                 ImGui.textUnformatted("Type: ${resource.type}")
                 ImGui.textWrapped("Source: ${resource.source ?: "<none>"}")
+                ImGui.textUnformatted("Resolved: ${if (resource.resolved) "yes" else "no"}")
+                ImGui.textUnformatted("Referenced by: ${resource.referencedBy.size}")
+                resource.referencedBy.forEach { reference -> ImGui.textWrapped(reference) }
+                if (resource.details.isNotEmpty()) {
+                    ImGui.separator()
+                    resource.details.toSortedMap().forEach { (name, value) ->
+                        ImGui.textWrapped("$name: $value")
+                    }
+                }
             }
 
             problem != null -> {
@@ -286,7 +323,7 @@ class SkinEditorPreviewControlsPanel(
         ImGui.textUnformatted("Loaded skin: ${if (state.loadResult.previewSkinAvailable) "yes" else "no"}")
         ImGui.textUnformatted("Root actor: ${state.previewInfo.rootActorClass ?: "<none>"}")
         ImGui.textUnformatted("Selected style: ${state.selectedStyleKey?.let { "${it.type}.${it.name}" } ?: "<none>"}")
-        ImGui.textUnformatted("Selected resource: ${state.selectedResourceName ?: "<none>"}")
+        ImGui.textUnformatted("Selected resource: ${state.selectedResourceKey?.let { "${it.category}.${it.name}" } ?: "<none>"}")
         ImGui.textUnformatted("Canvas: ${state.canvasRect.width.toInt()} x ${state.canvasRect.height.toInt()}")
         ImGui.end()
     }

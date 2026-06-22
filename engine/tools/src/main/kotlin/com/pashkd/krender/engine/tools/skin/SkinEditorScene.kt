@@ -106,8 +106,12 @@ class SkinEditorScene(
             }
         editorState.previewDirty = true
         editorState.selectedStyleKey = editorState.loadResult.styleIndex.styles.firstOrNull()?.key
-        editorState.selectedResourceName = editorState.loadResult.resourceIndex.resources.firstOrNull()?.name
-        editorState.selectedProblemIndex = editorState.loadResult.problems.indices.firstOrNull()
+        editorState.selectedResourceKey =
+            editorState.loadResult.resourceIndex.resources.firstOrNull()?.key
+                .takeIf { editorState.selectedStyleKey == null }
+        editorState.selectedProblemIndex =
+            editorState.loadResult.problems.indices.firstOrNull()
+                .takeIf { editorState.selectedStyleKey == null && editorState.selectedResourceKey == null }
     }
 
     private fun createUiSystem(): UiSystem {
@@ -217,7 +221,7 @@ private class SkinEditorPreviewUpdateSystem(
                         layout = layout,
                         loadedSkin = previewSkinHandle(),
                         selectedStyleKey = state.selectedStyleKey,
-                        selectedResourceName = state.selectedResourceName,
+                        selectedResourceName = state.selectedResourceKey?.name,
                     )
                 state.previewInfo = buildResult.previewInfo
                 replacePreviewProblems(
@@ -257,7 +261,10 @@ private class SkinEditorPreviewUpdateSystem(
                     state.loadResult.problems.filterNot { problem -> problem.category == SkinProblemCategory.Preview } +
                         previewProblems,
             )
-        state.selectedProblemIndex = state.loadResult.problems.indices.firstOrNull()
+        state.loadResult = state.loadResult.copy(problems = state.loadResult.problems.sortedForDisplay())
+        if (state.selectedStyleKey == null && state.selectedResourceKey == null) {
+            state.selectedProblemIndex = state.loadResult.problems.indices.firstOrNull()
+        }
     }
 
     private fun previewSkinHandle(): com.pashkd.krender.engine.tools.skin.gdx.LoadedSkinHandle? = reloadService.currentSkinHandle

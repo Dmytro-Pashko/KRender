@@ -14,13 +14,75 @@ data class SkinProject(
 
 data class ResourceReference(
     val name: String,
-    val type: String,
+    val category: SkinResourceCategory? = null,
     val source: String? = null,
+    val resolved: Boolean = false,
 )
 
-data class SkinResourceIndex(
-    val resources: List<ResourceReference> = emptyList(),
+enum class SkinResourceCategory {
+    Color,
+    Font,
+    Drawable,
+    AtlasRegion,
+    Texture,
+    Atlas,
+    Unknown,
+}
+
+data class SkinResourceKey(
+    val category: SkinResourceCategory,
+    val name: String,
 )
+
+data class SkinResourceInfo(
+    val name: String,
+    val category: SkinResourceCategory,
+    val type: String,
+    val source: String? = null,
+    val referencedBy: List<String> = emptyList(),
+    val resolved: Boolean = true,
+    val details: Map<String, String> = emptyMap(),
+) {
+    val key: SkinResourceKey = SkinResourceKey(category = category, name = name)
+}
+
+data class SkinResourceIndex(
+    val colors: List<SkinResourceInfo> = emptyList(),
+    val fonts: List<SkinResourceInfo> = emptyList(),
+    val drawables: List<SkinResourceInfo> = emptyList(),
+    val atlasRegions: List<SkinResourceInfo> = emptyList(),
+    val textures: List<SkinResourceInfo> = emptyList(),
+    val atlasFiles: List<SkinResourceInfo> = emptyList(),
+    val unknownReferences: List<SkinResourceInfo> = emptyList(),
+) {
+    val resources: List<SkinResourceInfo>
+        get() = colors + fonts + drawables + atlasRegions + textures + atlasFiles + unknownReferences
+
+    fun resourcesFor(category: SkinResourceCategory): List<SkinResourceInfo> =
+        when (category) {
+            SkinResourceCategory.Color -> colors
+            SkinResourceCategory.Font -> fonts
+            SkinResourceCategory.Drawable -> drawables
+            SkinResourceCategory.AtlasRegion -> atlasRegions
+            SkinResourceCategory.Texture -> textures
+            SkinResourceCategory.Atlas -> atlasFiles
+            SkinResourceCategory.Unknown -> unknownReferences
+        }
+
+    fun resolves(reference: ResourceReference): Boolean =
+        when (reference.category) {
+            SkinResourceCategory.Drawable ->
+                sequenceOf(drawables, atlasRegions, textures)
+                    .flatten()
+                    .any { resource -> resource.name == reference.name }
+
+            null,
+            SkinResourceCategory.Unknown,
+            -> resources.any { resource -> resource.name == reference.name }
+
+            else -> resourcesFor(reference.category).any { resource -> resource.name == reference.name }
+        }
+}
 
 data class StyleFieldInfo(
     val name: String,
@@ -38,8 +100,11 @@ data class StyleInfo(
     val name: String,
     val type: String,
     val fields: List<StyleFieldInfo> = emptyList(),
+    val resourceReferences: List<ResourceReference> = emptyList(),
+    val rawFieldCount: Int = fields.size,
 ) {
     val key: StyleKey = StyleKey(type = type, name = name)
+    val displayName: String = "$type.$name"
 }
 
 data class SkinStyleIndex(
@@ -122,7 +187,7 @@ data class SkinEditorState(
     var pendingPathInput: String = "",
     var loadResult: SkinLoadResult = SkinLoadResult(),
     var selectedStyleKey: StyleKey? = null,
-    var selectedResourceName: String? = null,
+    var selectedResourceKey: SkinResourceKey? = null,
     var selectedProblemIndex: Int? = null,
     var canvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),
     var previewLayoutId: String = DefaultWidgetPreviewLayout.Id,
