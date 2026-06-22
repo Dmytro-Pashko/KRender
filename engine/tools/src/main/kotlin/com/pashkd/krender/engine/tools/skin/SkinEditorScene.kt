@@ -64,7 +64,7 @@ class SkinEditorScene(
 
         world.systems.add(createUiSystem())
         world.systems.add(SkinEditorPreviewUpdateSystem(editorState, preview, previewLayouts, reloadService, engine.logger))
-        world.systems.add(SkinResourcePreviewUpdateSystem(editorState, resourcePreview))
+        world.systems.add(SkinResourcePreviewUpdateSystem(editorState, resourcePreview, reloadService))
     }
 
     override fun update(dt: Float) {
@@ -318,6 +318,7 @@ private class SkinEditorPreviewUpdateSystem(
 private class SkinResourcePreviewUpdateSystem(
     private val state: SkinEditorState,
     private val resourcePreview: GdxSkinResourcePreview,
+    private val reloadService: SkinReloadService,
 ) : System() {
     override fun update(
         world: SceneWorld,
@@ -342,6 +343,7 @@ private class SkinResourcePreviewUpdateSystem(
                 resourceIndex = state.loadResult.resourceIndex,
                 selectedResource = selectedResource,
                 previewState = state.resourceVisualPreview,
+                loadedSkin = reloadService.currentSkinHandle,
             )
     }
 }

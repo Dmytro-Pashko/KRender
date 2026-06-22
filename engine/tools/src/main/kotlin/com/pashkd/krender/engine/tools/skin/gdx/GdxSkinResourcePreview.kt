@@ -5,17 +5,21 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
+import com.pashkd.krender.engine.tools.skin.DefaultFontPreviewSampleText
+import com.pashkd.krender.engine.tools.skin.SkinFontPreviewState
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.tools.skin.SkinProject
 import com.pashkd.krender.engine.tools.skin.SkinResourceCategory
 import com.pashkd.krender.engine.tools.skin.SkinResourceIndex
 import com.pashkd.krender.engine.tools.skin.SkinResourceInfo
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewInfo
+import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewKind
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewState
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewZoomMode
 import java.io.File
@@ -25,7 +29,8 @@ class GdxSkinResourcePreview(
 ) : Disposable {
     private val batch = SpriteBatch()
     private val shapes = ShapeRenderer()
-    private val font = BitmapFont()
+    private val labelFont = BitmapFont()
+    private val glyphLayout = GlyphLayout()
     private val previewMatrix = Matrix4()
     private var viewportX = 0
     private var viewportY = 0
@@ -33,12 +38,15 @@ class GdxSkinResourcePreview(
     private var viewportHeight = 1
     private var loadedTexturePath: String? = null
     private var loadedTexture: Texture? = null
+    private var loadedPreviewFontPath: String? = null
+    private var loadedPreviewFont: BitmapFont? = null
+    private var previewFontOwned = false
     private var currentInfo: SkinResourceVisualPreviewInfo = SkinResourceVisualPreviewInfo()
     private var currentRegion: ResolvedRegion? = null
     private var lastFailureKey: String? = null
 
     init {
-        font.color = Color(0.95f, 0.96f, 0.98f, 1f)
+        labelFont.color = Color(0.95f, 0.96f, 0.98f, 1f)
     }
 
     fun update(
@@ -46,24 +54,30 @@ class GdxSkinResourcePreview(
         resourceIndex: SkinResourceIndex,
         selectedResource: SkinResourceInfo?,
         previewState: SkinResourceVisualPreviewState,
+        loadedSkin: LoadedSkinHandle?,
     ): SkinResourceVisualPreviewInfo {
-        val resolved = resolveResourcePreview(project, resourceIndex, selectedResource, previewState)
+        val resolved = resolveResourcePreview(project, resourceIndex, selectedResource, previewState, loadedSkin)
         currentRegion = resolved.region
         currentInfo =
             when {
+                resolved.kind == SkinResourceVisualPreviewKind.Font -> updateFontPreviewInfo(resolved, previewState.fontPreview)
                 resolved.texturePath == null -> {
                     unloadTexture()
+                    unloadPreviewFont()
                     SkinResourceVisualPreviewInfo(
                         statusMessage = resolved.message,
+                        kind = resolved.kind,
                         atlasPageName = resolved.atlasPageName,
                         selectedRegionName = resolved.region?.name,
                     )
                 }
 
                 ensureTextureLoaded(resolved.texturePath) -> {
+                    unloadPreviewFont()
                     val texture = loadedTexture
                     SkinResourceVisualPreviewInfo(
                         statusMessage = resolved.message,
+                        kind = resolved.kind,
                         resolvedTexturePath = resolved.texturePath,
                         textureWidth = texture?.width ?: 0,
                         textureHeight = texture?.height ?: 0,
@@ -75,6 +89,7 @@ class GdxSkinResourcePreview(
                 else ->
                     SkinResourceVisualPreviewInfo(
                         statusMessage = "Failed to load texture preview: ${File(resolved.texturePath).name}",
+                        kind = resolved.kind,
                         resolvedTexturePath = resolved.texturePath,
                         atlasPageName = resolved.atlasPageName,
                         selectedRegionName = resolved.region?.name,
@@ -135,35 +150,10 @@ class GdxSkinResourcePreview(
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
 
         previewMatrix.setToOrtho2D(0f, 0f, safeViewportWidth.toFloat(), safeViewportHeight.toFloat())
-        val texture = loadedTexture
-        if (texture != null) {
-            val scale = computeScale(texture, safeViewportWidth, safeViewportHeight, previewState.zoomMode)
-            val drawWidth = texture.width * scale
-            val drawHeight = texture.height * scale
-            val drawX = ((safeViewportWidth - drawWidth) * 0.5f).coerceAtLeast(0f)
-            val drawY = ((safeViewportHeight - drawHeight) * 0.5f).coerceAtLeast(0f)
-
-            batch.projectionMatrix = previewMatrix
-            batch.begin()
-            batch.draw(texture, drawX, drawY, drawWidth, drawHeight)
-            batch.end()
-
-            val region = currentRegion
-            if (region != null && previewState.showRegionBounds) {
-                val bounds = mapRegionBounds(region, texture, drawX, drawY, scale)
-                shapes.projectionMatrix = previewMatrix
-                shapes.begin(ShapeRenderer.ShapeType.Line)
-                shapes.color = Color(0.15f, 0.85f, 0.55f, 1f)
-                shapes.rect(bounds.x, bounds.y, bounds.width, bounds.height)
-                shapes.end()
-
-                if (previewState.showRegionLabels) {
-                    batch.projectionMatrix = previewMatrix
-                    batch.begin()
-                    font.draw(batch, region.name, bounds.x + 4f, bounds.y + bounds.height - 4f)
-                    batch.end()
-                }
-            }
+        when (currentInfo.kind) {
+            SkinResourceVisualPreviewKind.Texture -> renderTexturePreview(safeViewportWidth, safeViewportHeight, previewState)
+            SkinResourceVisualPreviewKind.Font -> renderFontPreview(safeViewportWidth, safeViewportHeight, previewState.fontPreview)
+            SkinResourceVisualPreviewKind.None -> Unit
         }
 
         if (!scissorWasEnabled) {
@@ -176,9 +166,10 @@ class GdxSkinResourcePreview(
 
     override fun dispose() {
         unloadTexture()
+        unloadPreviewFont()
         batch.dispose()
         shapes.dispose()
-        font.dispose()
+        labelFont.dispose()
     }
 
     private fun resolveResourcePreview(
@@ -186,17 +177,22 @@ class GdxSkinResourcePreview(
         resourceIndex: SkinResourceIndex,
         selectedResource: SkinResourceInfo?,
         previewState: SkinResourceVisualPreviewState,
+        loadedSkin: LoadedSkinHandle?,
     ): ResolvedPreview {
         if (selectedResource == null) {
-            return ResolvedPreview(message = "Select a texture, atlas, or atlas region.")
+            return ResolvedPreview(message = "Select a texture, atlas, atlas region, or font.")
         }
         return when (selectedResource.category) {
             SkinResourceCategory.Texture -> {
                 val texturePath = selectedResource.source?.takeIf { File(it).exists() }
                 if (texturePath != null) {
-                    ResolvedPreview(texturePath = texturePath, message = "Showing texture '${File(texturePath).name}'.")
+                    ResolvedPreview(
+                        kind = SkinResourceVisualPreviewKind.Texture,
+                        texturePath = texturePath,
+                        message = "Showing texture '${File(texturePath).name}'.",
+                    )
                 } else {
-                    ResolvedPreview(message = "Texture file could not be resolved.")
+                    ResolvedPreview(kind = SkinResourceVisualPreviewKind.Texture, message = "Texture file could not be resolved.")
                 }
             }
 
@@ -222,13 +218,14 @@ class GdxSkinResourcePreview(
                                 "Showing atlas page '${File(pagePath).name}'."
                             }
                         ResolvedPreview(
+                            kind = SkinResourceVisualPreviewKind.Texture,
                             texturePath = pagePath,
                             atlasPageName = pageName,
                             region = region,
                             message = message,
                         )
                     } else {
-                        ResolvedPreview(message = "Atlas page '$pageName' could not be resolved.")
+                        ResolvedPreview(kind = SkinResourceVisualPreviewKind.Texture, message = "Atlas page '$pageName' could not be resolved.")
                     }
                 }
             }
@@ -242,18 +239,60 @@ class GdxSkinResourcePreview(
                     val pagePath = resolveAtlasPagePath(project, atlasFile, pageName)
                     if (pagePath != null) {
                         ResolvedPreview(
+                            kind = SkinResourceVisualPreviewKind.Texture,
                             texturePath = pagePath,
                             atlasPageName = pageName,
                             region = selectedResource.toResolvedRegion(),
                             message = "Showing atlas region '${selectedResource.name}' on '${File(pagePath).name}'.",
                         )
                     } else {
-                        ResolvedPreview(message = "Atlas page '$pageName' could not be resolved for '${selectedResource.name}'.")
+                        ResolvedPreview(
+                            kind = SkinResourceVisualPreviewKind.Texture,
+                            message = "Atlas page '$pageName' could not be resolved for '${selectedResource.name}'.",
+                        )
                     }
                 }
             }
 
-            else -> ResolvedPreview(message = "Visual preview is available for textures and atlas resources.")
+            SkinResourceCategory.Font -> {
+                val matchedFontPath = selectedResource.details["matchedFile"]?.takeUnless { it == "<none>" }
+                when {
+                    matchedFontPath != null && selectedResource.details["matchedFileExtension"]?.equals("fnt", ignoreCase = true) == true ->
+                        ResolvedPreview(
+                            kind = SkinResourceVisualPreviewKind.Font,
+                            fontPath = matchedFontPath,
+                            fontPreviewSource = "Matched .fnt file",
+                            message = "Showing BMFont sample for '${selectedResource.name}'.",
+                        )
+
+                    loadedSkin?.skin?.has(selectedResource.name, BitmapFont::class.java) == true ->
+                        ResolvedPreview(
+                            kind = SkinResourceVisualPreviewKind.Font,
+                            skinFontName = selectedResource.name,
+                            fontPreviewSource = "Loaded skin resource",
+                            loadedSkin = loadedSkin,
+                            message = "Showing loaded skin font sample for '${selectedResource.name}'.",
+                        )
+
+                    matchedFontPath != null ->
+                        ResolvedPreview(
+                            kind = SkinResourceVisualPreviewKind.Font,
+                            fontPath = matchedFontPath,
+                            fontPreviewSource = "Indexed font file",
+                            message = "Font metadata is available, but .${
+                                selectedResource.details["matchedFileExtension"] ?: "unknown"
+                            } preview is deferred in this step.",
+                        )
+
+                    else ->
+                        ResolvedPreview(
+                            kind = SkinResourceVisualPreviewKind.Font,
+                            message = "No matched .fnt file or loaded skin font was available for preview.",
+                        )
+                }
+            }
+
+            else -> ResolvedPreview(message = "Visual preview is available for textures, atlas resources, and fonts.")
         }
     }
 
@@ -290,6 +329,91 @@ class GdxSkinResourcePreview(
         loadedTexturePath = null
     }
 
+    private fun updateFontPreviewInfo(
+        resolved: ResolvedPreview,
+        fontPreview: SkinFontPreviewState,
+    ): SkinResourceVisualPreviewInfo {
+        unloadTexture()
+        val fontReady =
+            when {
+                resolved.fontPath != null -> ensurePreviewFontLoaded(resolved.fontPath)
+                resolved.skinFontName != null -> ensurePreviewFontFromSkin(resolved.skinFontName, resolved.loadedSkin)
+                else -> false
+            }
+        return SkinResourceVisualPreviewInfo(
+            statusMessage =
+                if (fontReady) {
+                    resolved.message
+                } else {
+                    resolved.message
+                },
+            kind = SkinResourceVisualPreviewKind.Font,
+            resolvedFontPath = resolved.fontPath,
+            fontPreviewSource = resolved.fontPreviewSource ?: defaultFontPreviewSource(fontReady, resolved, fontPreview),
+        )
+    }
+
+    private fun ensurePreviewFontLoaded(path: String): Boolean {
+        if (loadedPreviewFontPath == path && loadedPreviewFont != null) {
+            return true
+        }
+        unloadPreviewFont()
+        return runCatching {
+            BitmapFont(Gdx.files.absolute(path), false)
+        }.fold(
+            onSuccess = { font ->
+                loadedPreviewFont = font
+                loadedPreviewFontPath = path
+                previewFontOwned = true
+                true
+            },
+            onFailure = { error ->
+                val failureKey = "font:$path:${error.message}"
+                if (failureKey != lastFailureKey) {
+                    logger.warn(TAG, error) { "Skin resource preview failed to load font '$path': ${error.message}" }
+                    lastFailureKey = failureKey
+                }
+                false
+            },
+        )
+    }
+
+    private fun ensurePreviewFontFromSkin(
+        fontName: String,
+        loadedSkin: LoadedSkinHandle?,
+    ): Boolean {
+        if (loadedPreviewFontPath == "skin:$fontName" && loadedPreviewFont != null) {
+            return true
+        }
+        unloadPreviewFont()
+        val skin = loadedSkin?.skin ?: return false
+        return runCatching { skin.getFont(fontName) }.fold(
+            onSuccess = { bitmapFont ->
+                loadedPreviewFont = bitmapFont
+                loadedPreviewFontPath = "skin:$fontName"
+                previewFontOwned = false
+                true
+            },
+            onFailure = { error ->
+                val failureKey = "skin-font:$fontName:${error.message}"
+                if (failureKey != lastFailureKey) {
+                    logger.warn(TAG, error) { "Skin resource preview failed to resolve skin font '$fontName': ${error.message}" }
+                    lastFailureKey = failureKey
+                }
+                false
+            },
+        )
+    }
+
+    private fun unloadPreviewFont() {
+        if (previewFontOwned) {
+            loadedPreviewFont?.dispose()
+        }
+        loadedPreviewFont = null
+        loadedPreviewFontPath = null
+        previewFontOwned = false
+    }
+
     private fun computeScale(
         texture: Texture,
         canvasWidth: Int,
@@ -323,6 +447,82 @@ class GdxSkinResourcePreview(
             height = region.height * scale,
         )
     }
+
+    private fun renderTexturePreview(
+        safeViewportWidth: Int,
+        safeViewportHeight: Int,
+        previewState: SkinResourceVisualPreviewState,
+    ) {
+        val texture = loadedTexture ?: return
+        val scale = computeScale(texture, safeViewportWidth, safeViewportHeight, previewState.zoomMode)
+        val drawWidth = texture.width * scale
+        val drawHeight = texture.height * scale
+        val drawX = ((safeViewportWidth - drawWidth) * 0.5f).coerceAtLeast(0f)
+        val drawY = ((safeViewportHeight - drawHeight) * 0.5f).coerceAtLeast(0f)
+
+        batch.projectionMatrix = previewMatrix
+        batch.begin()
+        batch.draw(texture, drawX, drawY, drawWidth, drawHeight)
+        batch.end()
+
+        val region = currentRegion
+        if (region != null && previewState.showRegionBounds) {
+            val bounds = mapRegionBounds(region, texture, drawX, drawY, scale)
+            shapes.projectionMatrix = previewMatrix
+            shapes.begin(ShapeRenderer.ShapeType.Line)
+            shapes.color = Color(0.15f, 0.85f, 0.55f, 1f)
+            shapes.rect(bounds.x, bounds.y, bounds.width, bounds.height)
+            shapes.end()
+
+            if (previewState.showRegionLabels) {
+                batch.projectionMatrix = previewMatrix
+                batch.begin()
+                labelFont.draw(batch, region.name, bounds.x + 4f, bounds.y + bounds.height - 4f)
+                batch.end()
+            }
+        }
+    }
+
+    private fun renderFontPreview(
+        safeViewportWidth: Int,
+        safeViewportHeight: Int,
+        fontPreview: SkinFontPreviewState,
+    ) {
+        val previewFont = loadedPreviewFont ?: return
+        val sampleText = buildFontSample(fontPreview)
+        val oldScaleX = previewFont.data.scaleX
+        val oldScaleY = previewFont.data.scaleY
+        previewFont.data.setScale(fontPreview.fontScale)
+        previewFont.color = Color.WHITE
+        glyphLayout.setText(previewFont, sampleText, Color.WHITE, safeViewportWidth - 24f, 1, true)
+        val drawX = 12f
+        val drawY = (safeViewportHeight - 12f).coerceAtLeast(glyphLayout.height + 16f)
+        batch.projectionMatrix = previewMatrix
+        batch.begin()
+        previewFont.draw(batch, glyphLayout, drawX, drawY)
+        batch.end()
+        previewFont.data.setScale(oldScaleX, oldScaleY)
+    }
+
+    private fun buildFontSample(fontPreview: SkinFontPreviewState): String {
+        val lines = fontPreview.sampleText.ifBlank { DefaultFontPreviewSampleText }.lineSequence().toMutableList()
+        return lines
+            .filterNot { line -> !fontPreview.showUkrainianSample && line.any(::isCyrillicCharacter) }
+            .filterNot { line -> !fontPreview.showAsciiSample && line.any(Char::isLetterOrDigit) && line.none(::isCyrillicCharacter) }
+            .joinToString("\n")
+            .ifBlank { "Font preview sample is empty." }
+    }
+
+    private fun defaultFontPreviewSource(
+        fontReady: Boolean,
+        resolved: ResolvedPreview,
+        fontPreview: SkinFontPreviewState,
+    ): String? {
+        if (!fontReady) return null
+        return resolved.fontPreviewSource ?: "Font preview"
+    }
+
+    private fun isCyrillicCharacter(character: Char): Boolean = character.code in 0x0400..0x04FF
 
     private fun resolveAtlasPagePath(
         project: SkinProject?,
@@ -363,9 +563,14 @@ class GdxSkinResourcePreview(
     }
 
     private data class ResolvedPreview(
+        val kind: SkinResourceVisualPreviewKind = SkinResourceVisualPreviewKind.None,
         val texturePath: String? = null,
         val atlasPageName: String? = null,
         val region: ResolvedRegion? = null,
+        val fontPath: String? = null,
+        val skinFontName: String? = null,
+        val fontPreviewSource: String? = null,
+        val loadedSkin: LoadedSkinHandle? = null,
         val message: String,
     )
 

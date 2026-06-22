@@ -97,6 +97,7 @@ class SkinAssetResolver {
 
 class SkinProjectLoader {
     private val atlasParser = SkinAtlasParser()
+    private val bitmapFontParser = SkinBitmapFontParser()
 
     fun inspect(project: SkinProject?): SkinLoadResult {
         if (project == null) {
@@ -487,6 +488,9 @@ class SkinProjectLoader {
             put("origin", "skin")
             put("rawType", rawTypeName)
             put("rawValue", value.toString())
+            if (category == SkinResourceCategory.Font) {
+                put("declaredInSkin", "true")
+            }
             when (value) {
                 is JsonPrimitive -> put("value", value.content)
                 is JsonObject -> {
@@ -522,10 +526,22 @@ class SkinProjectLoader {
                         details =
                             resource.details +
                                 if (match != null) {
+                                    val previewDetails =
+                                        when {
+                                            match.extension.equals("fnt", ignoreCase = true) -> parseBitmapFontDetails(match)
+                                            else -> emptyMap()
+                                        }
                                     match.fileDetails().mapKeys { (name, _) -> "matchedFile${name.replaceFirstChar(Char::uppercase)}" } +
-                                        mapOf("matchedFile" to match.path)
+                                        mapOf(
+                                            "matchedFile" to match.path,
+                                            "fontPreviewAvailable" to match.extension.equals("fnt", ignoreCase = true).toString(),
+                                        ) +
+                                        previewDetails
                                 } else {
-                                    mapOf("matchedFile" to "<none>")
+                                    mapOf(
+                                        "matchedFile" to "<none>",
+                                        "fontPreviewAvailable" to "false",
+                                    )
                                 },
                     )
             }
@@ -535,7 +551,24 @@ class SkinProjectLoader {
         mapOf(
             "extension" to extension.lowercase(),
             "sizeBytes" to length().toString(),
+            "discoveredFile" to "true",
         )
+
+    private fun parseBitmapFontDetails(file: File): Map<String, String> {
+        val info = bitmapFontParser.parse(file)
+        return buildMap {
+            put("fntReadable", info.readable.toString())
+            info.face?.let { put("fntFace", it) }
+            info.size?.let { put("fntSize", it) }
+            info.lineHeight?.let { put("fntLineHeight", it) }
+            info.base?.let { put("fntBase", it) }
+            info.pages?.let { put("fntPages", it) }
+            info.charCount?.let { put("fntCharCount", it.toString()) }
+            info.asciiGlyphCoverage?.let { put("asciiGlyphCoverage", it) }
+            info.ukrainianGlyphCoverage?.let { put("ukrainianGlyphCoverage", it) }
+            info.missingUkrainianGlyphs?.let { put("missingUkrainianGlyphs", it) }
+        }
+    }
 
     private fun JsonElement.renderPreview(): String? =
         when (this) {

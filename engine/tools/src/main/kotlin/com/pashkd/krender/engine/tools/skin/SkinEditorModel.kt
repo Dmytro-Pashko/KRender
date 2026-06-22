@@ -98,20 +98,37 @@ enum class SkinResourceVisualPreviewZoomMode {
     Percent200,
 }
 
+data class SkinFontPreviewState(
+    var sampleText: String = DefaultFontPreviewSampleText,
+    var showUkrainianSample: Boolean = true,
+    var showAsciiSample: Boolean = true,
+    var fontScale: Float = 1f,
+)
+
+enum class SkinResourceVisualPreviewKind {
+    None,
+    Texture,
+    Font,
+}
+
 data class SkinResourceVisualPreviewState(
     var zoomMode: SkinResourceVisualPreviewZoomMode = SkinResourceVisualPreviewZoomMode.Fit,
     var showRegionBounds: Boolean = true,
     var showRegionLabels: Boolean = false,
     var selectedAtlasRegionName: String? = null,
+    var fontPreview: SkinFontPreviewState = SkinFontPreviewState(),
 )
 
 data class SkinResourceVisualPreviewInfo(
-    val statusMessage: String = "Select a texture, atlas, or atlas region.",
+    val statusMessage: String = "Select a texture, atlas, atlas region, or font.",
+    val kind: SkinResourceVisualPreviewKind = SkinResourceVisualPreviewKind.None,
     val resolvedTexturePath: String? = null,
     val textureWidth: Int = 0,
     val textureHeight: Int = 0,
     val atlasPageName: String? = null,
     val selectedRegionName: String? = null,
+    val resolvedFontPath: String? = null,
+    val fontPreviewSource: String? = null,
 )
 
 data class StyleFieldInfo(
@@ -267,3 +284,9 @@ data class SkinEditorState(
     var statusMessage: String = "Skin Editor ready.",
     var previewInfo: SkinEditorPreviewStageInfo = SkinEditorPreviewStageInfo(),
 )
+
+const val DefaultFontPreviewSampleText =
+    "KRender Font Preview\n" +
+        "Український текст: Привіт, рушій!\n" +
+        "The quick brown fox jumps over the lazy dog.\n" +
+        "0123456789 !@#$%^&*()"

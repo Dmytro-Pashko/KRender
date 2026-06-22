@@ -124,6 +124,25 @@ class SkinEditorOperations(
             } ?: "Atlas preview region cleared."
     }
 
+    fun setFontPreviewScale(scale: Float) {
+        state.resourceVisualPreview.fontPreview.fontScale = scale.coerceIn(0.5f, 2f)
+        state.statusMessage = "Font preview scale set to ${formatScale(state.resourceVisualPreview.fontPreview.fontScale)}."
+    }
+
+    fun setFontPreviewSampleText(sampleText: String) {
+        state.resourceVisualPreview.fontPreview.sampleText = sampleText
+    }
+
+    fun setShowUkrainianFontSample(show: Boolean) {
+        state.resourceVisualPreview.fontPreview.showUkrainianSample = show
+        state.statusMessage = if (show) "Ukrainian font sample enabled." else "Ukrainian font sample hidden."
+    }
+
+    fun setShowAsciiFontSample(show: Boolean) {
+        state.resourceVisualPreview.fontPreview.showAsciiSample = show
+        state.statusMessage = if (show) "ASCII font sample enabled." else "ASCII font sample hidden."
+    }
+
     fun saveUiLayout() {
         ImGuiLayoutConfigCodec.save(SkinEditorUiLayoutDefaults.assetPath, layoutTracker.currentConfig(), engine.sceneFiles)
         state.statusMessage = "Panel layout saved."

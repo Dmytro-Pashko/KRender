@@ -103,6 +103,39 @@ class FontValidator : SkinValidator {
                         source = font.source,
                     )
             }
+        context.loadResult.resourceIndex.fonts.forEach { font ->
+            val matchedFile = font.details["matchedFile"]
+            val matchedExtension = font.details["matchedFileExtension"]?.lowercase()
+            if (matchedExtension == "fnt" && font.details["fntReadable"] == "false") {
+                problems +=
+                    SkinProblem(
+                        severity = SkinProblemSeverity.Warning,
+                        category = SkinProblemCategory.Font,
+                        message = "Bitmap font '${font.name}' matched an unreadable .fnt file.",
+                        source = matchedFile ?: font.source,
+                    )
+            }
+            val ukrainianCoverage = font.details["ukrainianGlyphCoverage"]?.substringBefore('/')?.toIntOrNull()
+            if (matchedExtension == "fnt" && ukrainianCoverage == 0 && font.referencedBy.isNotEmpty()) {
+                problems +=
+                    SkinProblem(
+                        severity = SkinProblemSeverity.Warning,
+                        category = SkinProblemCategory.Font,
+                        message = "Bitmap font '${font.name}' has no indexed Ukrainian glyph coverage.",
+                        source = matchedFile ?: font.source,
+                        suggestedFix = "Re-export the BMFont with Ukrainian glyphs if this font is expected to render localized text.",
+                    )
+            }
+            if (matchedFile != null && matchedFile != "<none>" && matchedExtension in UnsupportedFontPreviewExtensions) {
+                problems +=
+                    SkinProblem(
+                        severity = SkinProblemSeverity.Warning,
+                        category = SkinProblemCategory.Font,
+                        message = "Font '${font.name}' uses .$matchedExtension, which is indexed but not supported for visual preview in this step.",
+                        source = matchedFile,
+                    )
+            }
+        }
         return problems
     }
 }
@@ -226,3 +259,5 @@ fun List<SkinProblem>.sortedForDisplay(): List<SkinProblem> =
             { problem -> problem.message },
         ),
     )
+
+private val UnsupportedFontPreviewExtensions = setOf("ttf", "otf")
