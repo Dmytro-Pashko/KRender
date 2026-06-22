@@ -1,11 +1,12 @@
 package com.pashkd.krender.engine.tools.skin
 
-import com.pashkd.krender.engine.tools.skin.gdx.LoadedSkinHandle
 import java.io.File
 
 data class SkinProject(
     val rootDirectory: File,
     val skinFile: File? = null,
+    val descriptorCandidates: List<File> = emptyList(),
+    val descriptorResolutionMessage: String? = null,
     val atlasFiles: List<File> = emptyList(),
     val textureFiles: List<File> = emptyList(),
     val fontFiles: List<File> = emptyList(),
@@ -28,11 +29,18 @@ data class StyleFieldInfo(
     val reference: ResourceReference? = null,
 )
 
+data class StyleKey(
+    val type: String,
+    val name: String,
+)
+
 data class StyleInfo(
     val name: String,
     val type: String,
     val fields: List<StyleFieldInfo> = emptyList(),
-)
+) {
+    val key: StyleKey = StyleKey(type = type, name = name)
+}
 
 data class SkinStyleIndex(
     val styles: List<StyleInfo> = emptyList(),
@@ -65,13 +73,11 @@ data class SkinProblem(
 
 data class SkinLoadResult(
     val project: SkinProject? = null,
-    val loadedSkin: LoadedSkinHandle? = null,
     val resourceIndex: SkinResourceIndex = SkinResourceIndex(),
     val styleIndex: SkinStyleIndex = SkinStyleIndex(),
     val problems: List<SkinProblem> = emptyList(),
-) {
-    val hasLoadedSkin: Boolean get() = loadedSkin != null
-}
+    val previewSkinAvailable: Boolean = false,
+)
 
 data class SkinEditorCanvasRect(
     val x: Float = 0f,
@@ -115,7 +121,7 @@ data class SkinEditorState(
     var currentInputPath: String? = null,
     var pendingPathInput: String = "",
     var loadResult: SkinLoadResult = SkinLoadResult(),
-    var selectedStyleName: String? = null,
+    var selectedStyleKey: StyleKey? = null,
     var selectedResourceName: String? = null,
     var selectedProblemIndex: Int? = null,
     var canvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),

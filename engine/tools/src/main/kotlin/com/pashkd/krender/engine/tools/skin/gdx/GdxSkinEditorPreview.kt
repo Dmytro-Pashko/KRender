@@ -11,7 +11,13 @@ import com.pashkd.krender.engine.tools.skin.PreviewLayout
 import com.pashkd.krender.engine.tools.skin.PreviewLayoutContext
 import com.pashkd.krender.engine.tools.skin.SkinEditorPreviewStageInfo
 import com.pashkd.krender.engine.tools.skin.SkinLoadResult
+import com.pashkd.krender.engine.tools.skin.StyleKey
 import com.pashkd.krender.engine.tools.skin.WidgetPreviewFactory
+
+data class GdxSkinPreviewBuildResult(
+    val previewInfo: SkinEditorPreviewStageInfo,
+    val issues: List<PreviewBuildIssue> = emptyList(),
+)
 
 class GdxSkinEditorPreview(
     private val logger: Logger,
@@ -27,28 +33,33 @@ class GdxSkinEditorPreview(
     fun rebuild(
         loadResult: SkinLoadResult,
         layout: PreviewLayout,
-        selectedStyleName: String?,
+        loadedSkin: LoadedSkinHandle?,
+        selectedStyleKey: StyleKey?,
         selectedResourceName: String?,
-    ): SkinEditorPreviewStageInfo {
+    ): GdxSkinPreviewBuildResult {
         stage.clear()
-        val root =
+        val buildResult =
             safeWidgetBuilder.build(
                 item =
                     layout.build(
                         context =
                             PreviewLayoutContext(
                                 loadResult = loadResult,
-                                selectedStyleName = selectedStyleName,
+                                selectedStyleKey = selectedStyleKey,
                                 selectedResourceName = selectedResourceName,
                             ),
                         factory = previewFactory,
                     ),
-                loadedSkin = loadResult.loadedSkin,
+                loadedSkin = loadedSkin,
             )
+        val root = buildResult.actor
         stage.addActor(root)
         root.setPosition(24f, 24f)
-        logger.debug(TAG) { "Skin preview rebuilt layout='${layout.id}' loadedSkin=${loadResult.hasLoadedSkin}" }
-        return SkinEditorPreviewStageInfo(actorCount = stage.root.children.size, rootActorClass = root.javaClass.simpleName)
+        logger.debug(TAG) { "Skin preview rebuilt layout='${layout.id}' loadedSkin=${loadResult.previewSkinAvailable} issues=${buildResult.issues.size}" }
+        return GdxSkinPreviewBuildResult(
+            previewInfo = SkinEditorPreviewStageInfo(actorCount = stage.root.children.size, rootActorClass = root.javaClass.simpleName),
+            issues = buildResult.issues,
+        )
     }
 
     fun update(dt: Float) {
@@ -71,6 +82,10 @@ class GdxSkinEditorPreview(
     fun clearCanvasViewport() {
         viewportWidth = 1
         viewportHeight = 1
+    }
+
+    fun clear() {
+        stage.clear()
     }
 
     fun resize(

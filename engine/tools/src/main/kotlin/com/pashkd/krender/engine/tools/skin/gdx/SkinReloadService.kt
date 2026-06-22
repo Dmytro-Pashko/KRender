@@ -28,6 +28,7 @@ class SkinReloadService(
     private val validators: List<SkinValidator>,
 ) : Disposable {
     private var currentHandle: LoadedSkinHandle? = null
+    val currentSkinHandle: LoadedSkinHandle? get() = currentHandle
 
     fun reload(inputPath: String?): SkinLoadResult {
         currentHandle?.dispose()
@@ -69,7 +70,7 @@ class SkinReloadService(
             }
         }
 
-        val result = baseResult.copy(loadedSkin = currentHandle, problems = problems)
+        val result = baseResult.copy(problems = problems, previewSkinAvailable = currentHandle != null)
         val validationProblems = validators.flatMap { validator -> validator.validate(SkinValidationContext(result)) }
         return result.copy(problems = result.problems + validationProblems)
     }

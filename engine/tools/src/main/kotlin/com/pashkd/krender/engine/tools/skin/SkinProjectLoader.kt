@@ -14,28 +14,84 @@ class SkinAssetResolver {
         if (!file.exists()) return null
 
         val rootDirectory = if (file.isDirectory) file else file.parentFile ?: file.absoluteFile.parentFile ?: return null
-        val skinFile = when {
-            file.isFile -> file
-            else -> rootDirectory.listFiles()
-                .orEmpty()
-                .sortedBy { it.name }
-                .firstOrNull { candidate -> candidate.isFile && candidate.extension.equals("json", ignoreCase = true) }
-        }
+        val descriptorResolution = resolveDescriptor(file, rootDirectory)
 
         return SkinProject(
             rootDirectory = rootDirectory,
-            skinFile = skinFile,
+            skinFile = descriptorResolution.selected,
+            descriptorCandidates = descriptorResolution.candidates,
+            descriptorResolutionMessage = descriptorResolution.message,
             atlasFiles = rootDirectory.listFilesByExtensions("atlas"),
             textureFiles = rootDirectory.listFilesByExtensions("png", "jpg", "jpeg"),
             fontFiles = rootDirectory.listFilesByExtensions("fnt", "ttf", "otf"),
         )
     }
 
+    private fun resolveDescriptor(
+        input: File,
+        rootDirectory: File,
+    ): DescriptorResolution =
+        when {
+            input.isFile -> {
+                if (input.hasSkinDescriptorExtension()) {
+                    DescriptorResolution(selected = input, candidates = listOf(input))
+                } else {
+                    DescriptorResolution(
+                        selected = null,
+                        candidates = listOf(input),
+                        message = "Selected file is not a supported skin descriptor (.json or .uiskin).",
+                    )
+                }
+            }
+
+            else -> {
+                val candidates =
+                    rootDirectory.listFiles()
+                        .orEmpty()
+                        .filter { candidate -> candidate.isFile && candidate.hasSkinDescriptorExtension() }
+                        .sortedBy { it.name.lowercase() }
+                val prioritized =
+                    DescriptorPriorityNames
+                        .firstNotNullOfOrNull { expected -> candidates.firstOrNull { candidate -> candidate.name.equals(expected, ignoreCase = true) } }
+                when {
+                    prioritized != null -> DescriptorResolution(selected = prioritized, candidates = candidates)
+                    candidates.size == 1 -> DescriptorResolution(selected = candidates.single(), candidates = candidates)
+                    candidates.size > 1 ->
+                        DescriptorResolution(
+                            selected = null,
+                            candidates = candidates,
+                            message = "Multiple skin descriptors were found; select one explicitly.",
+                        )
+
+                    else -> DescriptorResolution(selected = null, candidates = emptyList())
+                }
+            }
+        }
+
     private fun File.listFilesByExtensions(vararg extensions: String): List<File> =
         listFiles()
             .orEmpty()
             .filter { file -> file.isFile && extensions.any { ext -> file.extension.equals(ext, ignoreCase = true) } }
             .sortedBy { it.name }
+
+    private fun File.hasSkinDescriptorExtension(): Boolean =
+        extension.equals("json", ignoreCase = true) || extension.equals("uiskin", ignoreCase = true)
+
+    private data class DescriptorResolution(
+        val selected: File?,
+        val candidates: List<File>,
+        val message: String? = null,
+    )
+
+    private companion object {
+        private val DescriptorPriorityNames =
+            listOf(
+                "skin.uiskin",
+                "skin.json",
+                "default.uiskin",
+                "default.json",
+            )
+    }
 }
 
 class SkinProjectLoader {
@@ -56,12 +112,27 @@ class SkinProjectLoader {
 
         val problems = mutableListOf<SkinProblem>()
         val skinFile = project.skinFile
+        project.descriptorResolutionMessage?.let { message ->
+            problems +=
+                SkinProblem(
+                    severity = SkinProblemSeverity.Warning,
+                    category = SkinProblemCategory.Project,
+                    message = message,
+                    source = project.rootDirectory.path,
+                    suggestedFix = project.descriptorCandidates.takeIf(List<File>::isNotEmpty)?.joinToString { it.name },
+                )
+        }
         if (skinFile == null) {
             problems +=
                 SkinProblem(
                     severity = SkinProblemSeverity.Warning,
                     category = SkinProblemCategory.Project,
-                    message = "No skin JSON file was discovered in the selected location.",
+                    message =
+                        if (project.descriptorCandidates.isEmpty()) {
+                            "No supported skin descriptor (.json or .uiskin) was discovered in the selected location."
+                        } else {
+                            "No skin descriptor was selected for preview loading."
+                        },
                     source = project.rootDirectory.path,
                 )
             return SkinLoadResult(project = project, problems = problems)
@@ -91,12 +162,7 @@ class SkinProjectLoader {
                         ),
                 )
             } else {
-                SkinLoadResult(
-                    project = project,
-                    resourceIndex = buildResourceIndex(project, root),
-                    styleIndex = buildStyleIndex(root),
-                    problems = problems,
-                )
+                SkinLoadResult(project = project, resourceIndex = buildResourceIndex(project, root), styleIndex = buildStyleIndex(root), problems = problems)
             }
         } catch (error: Exception) {
             SkinLoadResult(

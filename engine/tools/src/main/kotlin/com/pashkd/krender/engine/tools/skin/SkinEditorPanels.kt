@@ -58,7 +58,7 @@ class SkinEditorToolbarPanel(
         ImGui.separator()
         ImGui.textUnformatted("Path: ${state.currentInputPath ?: "<none>"}")
         ImGui.textUnformatted("Status: ${state.statusMessage}")
-        ImGui.textUnformatted("Loaded skin: ${if (state.loadResult.hasLoadedSkin) "yes" else "no"}")
+        ImGui.textUnformatted("Loaded skin: ${if (state.loadResult.previewSkinAvailable) "yes" else "no"}")
         ImGui.textUnformatted("Styles: ${state.loadResult.styleIndex.styles.size}")
         ImGui.textUnformatted("Resources: ${state.loadResult.resourceIndex.resources.size}")
         ImGui.textUnformatted("Problems: ${state.loadResult.problems.size}")
@@ -94,8 +94,9 @@ class SkinEditorStyleTreePanel(
             state.loadResult.styleIndex.styles.groupBy { it.type }.forEach { (type, styles) ->
                 if (ImGui.treeNode("$type##skin_editor_style_type_$type")) {
                     styles.forEach { style ->
-                        if (ImGui.selectable("${style.name}##skin_editor_style_${style.type}_${style.name}", state.selectedStyleName == style.name)) {
-                            state.selectedStyleName = style.name
+                        if (ImGui.selectable("${style.name}##skin_editor_style_${style.type}_${style.name}", state.selectedStyleKey == style.key)) {
+                            state.selectedStyleKey = style.key
+                            state.previewDirty = true
                         }
                     }
                     ImGui.treePop()
@@ -215,7 +216,7 @@ class SkinEditorInspectorPanel(
             return
         }
 
-        val style = state.loadResult.styleIndex.styles.firstOrNull { it.name == state.selectedStyleName }
+        val style = state.loadResult.styleIndex.styles.firstOrNull { it.key == state.selectedStyleKey }
         val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.name == state.selectedResourceName }
         val problem = state.selectedProblemIndex?.let(state.loadResult.problems::getOrNull)
 
@@ -282,9 +283,9 @@ class SkinEditorPreviewControlsPanel(
             ImGui.endCombo()
         }
         ImGui.separator()
-        ImGui.textUnformatted("Loaded skin: ${if (state.loadResult.hasLoadedSkin) "yes" else "no"}")
+        ImGui.textUnformatted("Loaded skin: ${if (state.loadResult.previewSkinAvailable) "yes" else "no"}")
         ImGui.textUnformatted("Root actor: ${state.previewInfo.rootActorClass ?: "<none>"}")
-        ImGui.textUnformatted("Selected style: ${state.selectedStyleName ?: "<none>"}")
+        ImGui.textUnformatted("Selected style: ${state.selectedStyleKey?.let { "${it.type}.${it.name}" } ?: "<none>"}")
         ImGui.textUnformatted("Selected resource: ${state.selectedResourceName ?: "<none>"}")
         ImGui.textUnformatted("Canvas: ${state.canvasRect.width.toInt()} x ${state.canvasRect.height.toInt()}")
         ImGui.end()

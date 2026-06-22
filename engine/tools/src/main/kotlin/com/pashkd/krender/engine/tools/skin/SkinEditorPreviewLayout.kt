@@ -2,7 +2,7 @@ package com.pashkd.krender.engine.tools.skin
 
 data class PreviewLayoutContext(
     val loadResult: SkinLoadResult,
-    val selectedStyleName: String? = null,
+    val selectedStyleKey: StyleKey? = null,
     val selectedResourceName: String? = null,
 )
 

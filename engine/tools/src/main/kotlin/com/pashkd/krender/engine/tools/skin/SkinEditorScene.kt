@@ -1,8 +1,9 @@
 package com.pashkd.krender.engine.tools.skin
 
+import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.skin.gdx.GdxSkinEditorPreview
@@ -59,7 +60,7 @@ class SkinEditorScene(
         reloadSkin()
 
         world.systems.add(createUiSystem())
-        world.systems.add(SkinEditorPreviewUpdateSystem(editorState, preview, previewLayouts))
+        world.systems.add(SkinEditorPreviewUpdateSystem(editorState, preview, previewLayouts, reloadService, engine.logger))
     }
 
     override fun update(dt: Float) {
@@ -100,11 +101,11 @@ class SkinEditorScene(
         editorState.statusMessage =
             when {
                 editorState.loadResult.project == null -> "Select a Scene2D skin to begin."
-                editorState.loadResult.hasLoadedSkin -> "Skin loaded for preview."
+                editorState.loadResult.previewSkinAvailable -> "Skin loaded for preview."
                 else -> "Skin loaded with problems."
             }
         editorState.previewDirty = true
-        editorState.selectedStyleName = editorState.loadResult.styleIndex.styles.firstOrNull()?.name
+        editorState.selectedStyleKey = editorState.loadResult.styleIndex.styles.firstOrNull()?.key
         editorState.selectedResourceName = editorState.loadResult.resourceIndex.resources.firstOrNull()?.name
         editorState.selectedProblemIndex = editorState.loadResult.problems.indices.firstOrNull()
     }
@@ -189,6 +190,8 @@ private class SkinEditorPreviewUpdateSystem(
     private val state: SkinEditorState,
     private val preview: GdxSkinEditorPreview,
     private val previewLayouts: PreviewLayoutRegistry,
+    private val reloadService: SkinReloadService,
+    private val logger: Logger,
 ) : System() {
     override fun update(
         world: SceneWorld,
@@ -207,15 +210,59 @@ private class SkinEditorPreviewUpdateSystem(
         }
         if (state.previewDirty) {
             val layout = previewLayouts.layoutOrDefault(state.previewLayoutId)
-            state.previewInfo =
-                preview.rebuild(
-                    loadResult = state.loadResult,
-                    layout = layout,
-                    selectedStyleName = state.selectedStyleName,
-                    selectedResourceName = state.selectedResourceName,
+            try {
+                val buildResult =
+                    preview.rebuild(
+                        loadResult = state.loadResult,
+                        layout = layout,
+                        loadedSkin = previewSkinHandle(),
+                        selectedStyleKey = state.selectedStyleKey,
+                        selectedResourceName = state.selectedResourceName,
+                    )
+                state.previewInfo = buildResult.previewInfo
+                replacePreviewProblems(
+                    buildResult.issues.map { issue ->
+                        SkinProblem(
+                            severity = SkinProblemSeverity.Warning,
+                            category = SkinProblemCategory.Preview,
+                            message = issue.message,
+                        )
+                    },
                 )
-            state.previewDirty = false
+            } catch (error: Exception) {
+                preview.clear()
+                state.previewInfo = SkinEditorPreviewStageInfo()
+                replacePreviewProblems(
+                    listOf(
+                        SkinProblem(
+                            severity = SkinProblemSeverity.Error,
+                            category = SkinProblemCategory.Preview,
+                            message = error.message ?: error::class.simpleName ?: "Unknown preview error.",
+                        ),
+                    ),
+                )
+                state.statusMessage = "Failed to build preview."
+                logger.error(TAG, error) { "Skin Editor preview rebuild failed: ${error.message}" }
+            } finally {
+                state.previewDirty = false
+            }
         }
         preview.update(dt)
+    }
+
+    private fun replacePreviewProblems(previewProblems: List<SkinProblem>) {
+        state.loadResult =
+            state.loadResult.copy(
+                problems =
+                    state.loadResult.problems.filterNot { problem -> problem.category == SkinProblemCategory.Preview } +
+                        previewProblems,
+            )
+        state.selectedProblemIndex = state.loadResult.problems.indices.firstOrNull()
+    }
+
+    private fun previewSkinHandle(): com.pashkd.krender.engine.tools.skin.gdx.LoadedSkinHandle? = reloadService.currentSkinHandle
+
+    private companion object {
+        private const val TAG = "SkinEditorPreviewUpdateSystem"
     }
 }

@@ -25,13 +25,26 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.pashkd.krender.engine.tools.skin.PreviewWidgetKind
 import com.pashkd.krender.engine.tools.skin.SkinEditorPreviewItem
 
+data class PreviewBuildIssue(
+    val message: String,
+)
+
+data class PreviewActorBuildResult(
+    val actor: Actor,
+    val issues: List<PreviewBuildIssue>,
+)
+
 class SafeWidgetBuilder : Disposable {
     private val fallbackSkin = createFallbackSkin()
 
     fun build(
         item: SkinEditorPreviewItem,
         loadedSkin: LoadedSkinHandle?,
-    ): Actor = build(item, loadedSkin?.skin)
+    ): PreviewActorBuildResult {
+        val issues = linkedSetOf<PreviewBuildIssue>()
+        val actor = build(item, loadedSkin?.skin, issues)
+        return PreviewActorBuildResult(actor = actor, issues = issues.toList())
+    }
 
     override fun dispose() {
         fallbackSkin.dispose()
@@ -40,29 +53,31 @@ class SafeWidgetBuilder : Disposable {
     private fun build(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor =
         when (item.kind) {
-            PreviewWidgetKind.Column -> buildColumn(item, primarySkin)
-            PreviewWidgetKind.Window -> buildWindow(item, primarySkin)
-            PreviewWidgetKind.Label -> buildLabel(item, primarySkin)
-            PreviewWidgetKind.TextButton -> buildTextButton(item, primarySkin)
-            PreviewWidgetKind.CheckBox -> buildCheckBox(item, primarySkin)
-            PreviewWidgetKind.TextField -> buildTextField(item, primarySkin)
-            PreviewWidgetKind.SelectBox -> buildSelectBox(item, primarySkin)
-            PreviewWidgetKind.List -> buildList(item, primarySkin)
-            PreviewWidgetKind.ScrollPane -> buildScrollPane(item, primarySkin)
-            PreviewWidgetKind.Slider -> buildSlider(item, primarySkin)
-            PreviewWidgetKind.ProgressBar -> buildProgressBar(item, primarySkin)
+            PreviewWidgetKind.Column -> buildColumn(item, primarySkin, issues)
+            PreviewWidgetKind.Window -> buildWindow(item, primarySkin, issues)
+            PreviewWidgetKind.Label -> buildLabel(item, primarySkin, issues)
+            PreviewWidgetKind.TextButton -> buildTextButton(item, primarySkin, issues)
+            PreviewWidgetKind.CheckBox -> buildCheckBox(item, primarySkin, issues)
+            PreviewWidgetKind.TextField -> buildTextField(item, primarySkin, issues)
+            PreviewWidgetKind.SelectBox -> buildSelectBox(item, primarySkin, issues)
+            PreviewWidgetKind.List -> buildList(item, primarySkin, issues)
+            PreviewWidgetKind.ScrollPane -> buildScrollPane(item, primarySkin, issues)
+            PreviewWidgetKind.Slider -> buildSlider(item, primarySkin, issues)
+            PreviewWidgetKind.ProgressBar -> buildProgressBar(item, primarySkin, issues)
         }
 
     private fun buildColumn(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor =
         Table().apply {
             defaults().growX().pad(6f)
             item.children.forEach { child ->
-                add(build(child, primarySkin))
+                add(build(child, primarySkin, issues))
                 row()
             }
             pack()
@@ -71,14 +86,15 @@ class SafeWidgetBuilder : Disposable {
     private fun buildWindow(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
-        val skin = skinFor(primarySkin, item.styleName, Window.WindowStyle::class.java)
+        val skin = skinFor(primarySkin, item.styleName, DefaultStyleName, Window.WindowStyle::class.java, "WindowStyle", issues)
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         val actor = if (styleName != null && skin.has(styleName, Window.WindowStyle::class.java)) Window(item.label, skin, styleName) else Window(item.label, skin)
         actor.isMovable = false
         actor.isResizable = false
         item.children.forEach { child ->
-            actor.add(build(child, primarySkin)).growX().pad(6f)
+            actor.add(build(child, primarySkin, issues)).growX().pad(6f)
             actor.row()
         }
         actor.pack()
@@ -88,8 +104,9 @@ class SafeWidgetBuilder : Disposable {
     private fun buildLabel(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
-        val skin = skinFor(primarySkin, item.styleName, Label.LabelStyle::class.java)
+        val skin = skinFor(primarySkin, item.styleName, DefaultStyleName, Label.LabelStyle::class.java, "LabelStyle", issues)
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         return if (styleName != null && skin.has(styleName, Label.LabelStyle::class.java)) {
             Label(item.text.orEmpty(), skin, styleName)
@@ -101,8 +118,9 @@ class SafeWidgetBuilder : Disposable {
     private fun buildTextButton(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
-        val skin = skinFor(primarySkin, item.styleName, TextButton.TextButtonStyle::class.java)
+        val skin = skinFor(primarySkin, item.styleName, DefaultStyleName, TextButton.TextButtonStyle::class.java, "TextButtonStyle", issues)
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         return if (styleName != null && skin.has(styleName, TextButton.TextButtonStyle::class.java)) {
             TextButton(item.text.orEmpty(), skin, styleName)
@@ -114,8 +132,9 @@ class SafeWidgetBuilder : Disposable {
     private fun buildCheckBox(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
-        val skin = skinFor(primarySkin, item.styleName, CheckBox.CheckBoxStyle::class.java)
+        val skin = skinFor(primarySkin, item.styleName, DefaultStyleName, CheckBox.CheckBoxStyle::class.java, "CheckBoxStyle", issues)
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         return if (styleName != null && skin.has(styleName, CheckBox.CheckBoxStyle::class.java)) {
             CheckBox(item.text.orEmpty(), skin, styleName)
@@ -127,8 +146,9 @@ class SafeWidgetBuilder : Disposable {
     private fun buildTextField(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
-        val skin = skinFor(primarySkin, item.styleName, TextField.TextFieldStyle::class.java)
+        val skin = skinFor(primarySkin, item.styleName, DefaultStyleName, TextField.TextFieldStyle::class.java, "TextFieldStyle", issues)
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         return if (styleName != null && skin.has(styleName, TextField.TextFieldStyle::class.java)) {
             TextField(item.text.orEmpty(), skin, styleName)
@@ -140,8 +160,9 @@ class SafeWidgetBuilder : Disposable {
     private fun buildSelectBox(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
-        val skin = skinFor(primarySkin, item.styleName, SelectBox.SelectBoxStyle::class.java)
+        val skin = skinFor(primarySkin, item.styleName, DefaultStyleName, SelectBox.SelectBoxStyle::class.java, "SelectBoxStyle", issues)
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         val actor =
             if (styleName != null && skin.has(styleName, SelectBox.SelectBoxStyle::class.java)) {
@@ -157,8 +178,9 @@ class SafeWidgetBuilder : Disposable {
     private fun buildList(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
-        val skin = skinFor(primarySkin, item.styleName, GdxList.ListStyle::class.java)
+        val skin = skinFor(primarySkin, item.styleName, DefaultStyleName, GdxList.ListStyle::class.java, "ListStyle", issues)
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         val actor =
             if (styleName != null && skin.has(styleName, GdxList.ListStyle::class.java)) {
@@ -173,10 +195,11 @@ class SafeWidgetBuilder : Disposable {
     private fun buildScrollPane(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
         val child = item.children.firstOrNull()
-        val content = child?.let { build(it, primarySkin) } ?: missingActor("Missing ScrollPane child")
-        val skin = skinFor(primarySkin, item.styleName, ScrollPane.ScrollPaneStyle::class.java)
+        val content = child?.let { build(it, primarySkin, issues) } ?: missingActor("Missing ScrollPane child")
+        val skin = skinFor(primarySkin, item.styleName, DefaultStyleName, ScrollPane.ScrollPaneStyle::class.java, "ScrollPaneStyle", issues)
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         val actor =
             if (styleName != null && skin.has(styleName, ScrollPane.ScrollPaneStyle::class.java)) {
@@ -194,8 +217,17 @@ class SafeWidgetBuilder : Disposable {
     private fun buildSlider(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
-        val skin = skinFor(primarySkin, item.styleName ?: DefaultHorizontalSliderStyle, Slider.SliderStyle::class.java)
+        val skin =
+            skinFor(
+                primarySkin,
+                requestedStyleName = item.styleName,
+                defaultStyleName = DefaultHorizontalSliderStyle,
+                type = Slider.SliderStyle::class.java,
+                typeName = "SliderStyle",
+                issues = issues,
+            )
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         val actor =
             if (styleName != null && skin.has(styleName, Slider.SliderStyle::class.java)) {
@@ -212,8 +244,17 @@ class SafeWidgetBuilder : Disposable {
     private fun buildProgressBar(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
-        val skin = skinFor(primarySkin, item.styleName ?: DefaultHorizontalProgressBarStyle, ProgressBar.ProgressBarStyle::class.java)
+        val skin =
+            skinFor(
+                primarySkin,
+                requestedStyleName = item.styleName,
+                defaultStyleName = DefaultHorizontalProgressBarStyle,
+                type = ProgressBar.ProgressBarStyle::class.java,
+                typeName = "ProgressBarStyle",
+                issues = issues,
+            )
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         val actor =
             if (styleName != null && skin.has(styleName, ProgressBar.ProgressBarStyle::class.java)) {
@@ -229,14 +270,21 @@ class SafeWidgetBuilder : Disposable {
 
     private fun <T> skinFor(
         primarySkin: Skin?,
-        styleName: String?,
+        requestedStyleName: String?,
+        defaultStyleName: String,
         type: Class<T>,
+        typeName: String,
+        issues: MutableSet<PreviewBuildIssue>,
     ): Skin =
         when {
             primarySkin == null -> fallbackSkin
-            styleName != null && primarySkin.has(styleName, type) -> primarySkin
-            primarySkin.has(DefaultStyleName, type) -> primarySkin
-            else -> fallbackSkin
+            requestedStyleName != null && primarySkin.has(requestedStyleName, type) -> primarySkin
+            requestedStyleName == null && primarySkin.has(defaultStyleName, type) -> primarySkin
+            else -> {
+                val missingStyleName = requestedStyleName ?: defaultStyleName
+                issues += PreviewBuildIssue("Missing $typeName '$missingStyleName'; rendered with fallback skin.")
+                fallbackSkin
+            }
         }
 
     private fun missingActor(message: String): Actor =
