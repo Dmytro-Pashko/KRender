@@ -2,7 +2,7 @@ package com.pashkd.krender.engine.tools.skin
 
 class FormsPreviewLayout : PreviewLayout {
     override val id: String = "forms"
-    override val displayName: String = "Forms"
+    override val displayName: String = "Form"
 
     override fun build(
         context: PreviewLayoutContext,
@@ -13,16 +13,16 @@ class FormsPreviewLayout : PreviewLayout {
             label = "Profile Settings",
             children =
                 listOf(
-                    factory.label("forms_title", "Account and workspace settings"),
+                    factory.label("forms_title", context.text.labelText),
                     factory.label("forms_ukrainian", "Налаштування профілю та робочого простору"),
-                    factory.textField("forms_username", "Username"),
+                    factory.textField("forms_username", context.text.textFieldPlaceholder),
                     factory.textField("forms_email", "name@example.com"),
                     factory.selectBox("forms_quality", listOf("Low", "High", "Ultra", "Автоматично")),
                     factory.checkBox("forms_notifications", "Enable notifications"),
                     factory.checkBox("forms_updates", "Автоматично перевіряти оновлення"),
                     factory.slider("forms_volume"),
                     factory.progressBar("forms_storage"),
-                    factory.textButton("forms_save", "Save"),
+                    factory.textButton("forms_save", context.text.buttonText),
                     factory.textButton("forms_cancel", "Cancel"),
                     factory.textButton("forms_reset", "Reset"),
                 ),
@@ -31,7 +31,7 @@ class FormsPreviewLayout : PreviewLayout {
 
 class TablesPreviewLayout : PreviewLayout {
     override val id: String = "tables"
-    override val displayName: String = "Tables / Lists"
+    override val displayName: String = "Tables"
 
     override fun build(
         context: PreviewLayoutContext,
@@ -52,13 +52,13 @@ class TablesPreviewLayout : PreviewLayout {
             label = "Resource Table",
             children =
                 listOf(
-                    factory.label("tables_title", "Project resources / Ресурси проєкту"),
+                    factory.label("tables_title", context.text.labelText),
                     factory.selectBox("tables_filter", listOf("All assets", "Models", "Textures", "UI")),
                     factory.scrollPane(
                         "tables_scroll",
                         factory.list("tables_list", rows),
                     ),
-                    factory.textButton("tables_open", "Open Selected"),
+                    factory.textButton("tables_open", context.text.buttonText),
                     factory.textButton("tables_refresh", "Refresh"),
                 ),
         )
@@ -67,7 +67,7 @@ class TablesPreviewLayout : PreviewLayout {
 
 class DialogsPreviewLayout : PreviewLayout {
     override val id: String = "dialogs"
-    override val displayName: String = "Dialogs"
+    override val displayName: String = "Dialog"
 
     override fun build(
         context: PreviewLayoutContext,
@@ -78,11 +78,11 @@ class DialogsPreviewLayout : PreviewLayout {
             label = "Unsaved Changes",
             children =
                 listOf(
-                    factory.label("dialogs_message", "The current project contains unsaved changes."),
+                    factory.label("dialogs_message", context.text.labelText),
                     factory.label("dialogs_ukrainian", "Зберегти зміни перед закриттям?"),
-                    factory.textField("dialogs_name", "Project name"),
+                    factory.textField("dialogs_name", context.text.textFieldPlaceholder),
                     factory.checkBox("dialogs_remember", "Remember my choice"),
-                    factory.textButton("dialogs_save", "Save and Close"),
+                    factory.textButton("dialogs_save", context.text.buttonText),
                     factory.textButton("dialogs_discard", "Discard"),
                     factory.textButton("dialogs_cancel", "Cancel"),
                 ),
@@ -91,7 +91,7 @@ class DialogsPreviewLayout : PreviewLayout {
 
 class StressPreviewLayout : PreviewLayout {
     override val id: String = "stress"
-    override val displayName: String = "Stress"
+    override val displayName: String = "List"
 
     override fun build(
         context: PreviewLayoutContext,
@@ -111,15 +111,15 @@ class StressPreviewLayout : PreviewLayout {
             label = "Widget Stress Preview",
             children =
                 listOf(
-                    factory.label("stress_long", stressItems[3]),
+                    factory.label("stress_long", context.text.labelText),
                     factory.label("stress_symbols", stressItems[1]),
                     factory.label("stress_ukrainian", stressItems[2]),
-                    factory.textField("stress_field", "Very long editable-looking placeholder text 0123456789"),
+                    factory.textField("stress_field", context.text.textFieldPlaceholder),
                     factory.selectBox("stress_select", stressItems.take(4)),
                     factory.scrollPane("stress_scroll", factory.list("stress_list", stressItems)),
                     factory.checkBox("stress_checkbox_a", "Short option"),
                     factory.checkBox("stress_checkbox_b", "Надзвичайно довгий підпис параметра для перевірки компонування"),
-                    factory.textButton("stress_button_a", "Primary Action 123"),
+                    factory.textButton("stress_button_a", context.text.buttonText),
                     factory.textButton("stress_button_b", "Додаткова дія"),
                     factory.slider("stress_slider"),
                     factory.progressBar("stress_progress"),
@@ -147,14 +147,14 @@ class SelectedStylePreviewLayout : PreviewLayout {
             when (selected.type) {
                 "LabelStyle" ->
                     listOf(
-                        factory.label("selected_label_short", "Selected label style", styleName),
+                        factory.label("selected_label_short", context.text.labelText, styleName),
                         factory.label("selected_label_ukrainian", "Український текст: Привіт, рушій!", styleName),
                         factory.label("selected_label_long", "The quick brown fox jumps over the lazy dog.", styleName),
                     )
 
                 "TextButtonStyle" ->
                     listOf(
-                        factory.textButton("selected_button_primary", "Primary Action", styleName),
+                        factory.textButton("selected_button_primary", context.text.buttonText, styleName),
                         factory.textButton("selected_button_ukrainian", "Підтвердити", styleName),
                         factory.textButton("selected_button_long", "A Button With A Deliberately Long Caption", styleName),
                     )
@@ -169,7 +169,7 @@ class SelectedStylePreviewLayout : PreviewLayout {
                 "TextAreaStyle",
                 ->
                     listOf(
-                        factory.textField("selected_field_a", "Selected text field style", styleName),
+                        factory.textField("selected_field_a", context.text.textFieldPlaceholder, styleName),
                         factory.textField("selected_field_b", "Введіть текст українською", styleName),
                     )
 

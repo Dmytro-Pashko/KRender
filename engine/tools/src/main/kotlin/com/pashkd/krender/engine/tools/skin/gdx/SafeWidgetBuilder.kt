@@ -25,6 +25,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.pashkd.krender.engine.tools.skin.PreviewWidgetKind
 import com.pashkd.krender.engine.tools.skin.SkinEditSession
 import com.pashkd.krender.engine.tools.skin.SkinEditorPreviewItem
+import com.pashkd.krender.engine.tools.skin.StyleKey
 
 data class PreviewBuildIssue(
     val message: String,
@@ -33,22 +34,32 @@ data class PreviewBuildIssue(
 data class PreviewActorBuildResult(
     val actor: Actor,
     val issues: List<PreviewBuildIssue>,
+    val selectedStyleActors: List<Actor> = emptyList(),
 )
 
 class SafeWidgetBuilder : Disposable {
     private val fallbackSkin = createFallbackSkin()
     private val styleEditApplier = GdxSkinStyleEditApplier()
     private var currentEditSession = SkinEditSession()
+    private var currentSelectedStyleKey: StyleKey? = null
+    private val selectedStyleActors = mutableListOf<Actor>()
 
     fun build(
         item: SkinEditorPreviewItem,
         loadedSkin: LoadedSkinHandle?,
         editSession: SkinEditSession,
+        selectedStyleKey: StyleKey?,
     ): PreviewActorBuildResult {
         currentEditSession = editSession
+        currentSelectedStyleKey = selectedStyleKey
+        selectedStyleActors.clear()
         val issues = linkedSetOf<PreviewBuildIssue>()
         val actor = build(item, loadedSkin?.skin, editSession, issues)
-        return PreviewActorBuildResult(actor = actor, issues = issues.toList())
+        return PreviewActorBuildResult(
+            actor = actor,
+            issues = issues.toList(),
+            selectedStyleActors = selectedStyleActors.toList(),
+        )
     }
 
     override fun dispose() {
@@ -76,7 +87,37 @@ class SafeWidgetBuilder : Disposable {
                 PreviewWidgetKind.ProgressBar -> buildProgressBar(item, primarySkin, issues)
             }
         styleEditApplier.apply(actor, item, primarySkin, editSession, issues)
+        if (matchesSelectedStyle(item)) {
+            selectedStyleActors += actor
+        }
         return actor
+    }
+
+    private fun matchesSelectedStyle(item: SkinEditorPreviewItem): Boolean {
+        val selected = currentSelectedStyleKey ?: return false
+        val itemType =
+            when (item.kind) {
+                PreviewWidgetKind.Window -> "WindowStyle"
+                PreviewWidgetKind.Label -> "LabelStyle"
+                PreviewWidgetKind.TextButton -> "TextButtonStyle"
+                PreviewWidgetKind.CheckBox -> "CheckBoxStyle"
+                PreviewWidgetKind.TextField -> selected.type.takeIf { it == "TextAreaStyle" } ?: "TextFieldStyle"
+                PreviewWidgetKind.SelectBox -> "SelectBoxStyle"
+                PreviewWidgetKind.List -> "ListStyle"
+                PreviewWidgetKind.ScrollPane -> "ScrollPaneStyle"
+                PreviewWidgetKind.Slider -> "SliderStyle"
+                PreviewWidgetKind.ProgressBar -> "ProgressBarStyle"
+                PreviewWidgetKind.Column -> return false
+            }
+        val effectiveStyleName =
+            item.styleName ?: when (item.kind) {
+                PreviewWidgetKind.Slider,
+                PreviewWidgetKind.ProgressBar,
+                -> DefaultHorizontalSliderStyle
+
+                else -> DefaultStyleName
+            }
+        return itemType == selected.type && effectiveStyleName == selected.name
     }
 
     private fun buildColumn(

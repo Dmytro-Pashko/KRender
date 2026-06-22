@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.skin
 
+import com.pashkd.krender.engine.api.TexturePreviewHandle
 import java.io.File
 
 data class SkinProject(
@@ -88,7 +89,7 @@ data class SkinResourceBrowserState(
     var query: String = "",
     var selectedCategory: SkinResourceCategory? = null,
     var showOnlyUnresolved: Boolean = false,
-    var showOnlyReferenced: Boolean = false,
+    var showOnlyReferenced: Boolean = true,
 )
 
 data class SkinProblemFilterState(
@@ -118,6 +119,7 @@ enum class SkinResourceVisualPreviewKind {
     None,
     Texture,
     Font,
+    Color,
 }
 
 data class SkinResourceVisualPreviewState(
@@ -129,15 +131,17 @@ data class SkinResourceVisualPreviewState(
 )
 
 data class SkinResourceVisualPreviewInfo(
-    val statusMessage: String = "Select a texture, atlas, atlas region, or font.",
+    val statusMessage: String = "Select a texture, atlas, atlas region, font, or color.",
     val kind: SkinResourceVisualPreviewKind = SkinResourceVisualPreviewKind.None,
     val resolvedTexturePath: String? = null,
+    val texturePreviewHandle: TexturePreviewHandle? = null,
     val textureWidth: Int = 0,
     val textureHeight: Int = 0,
     val atlasPageName: String? = null,
     val selectedRegionName: String? = null,
     val resolvedFontPath: String? = null,
     val fontPreviewSource: String? = null,
+    val colorValue: String? = null,
 )
 
 data class StyleFieldInfo(
@@ -247,11 +251,18 @@ data class SkinEditorPreviewStageInfo(
 )
 
 data class SkinPreviewSettings(
-    var screenPresetId: String = SkinPreviewScreenPresets.DesktopId,
+    var screenPresetId: String = SkinPreviewScreenPresets.DefaultId,
     var scale: Float = 1f,
     var showBounds: Boolean = false,
     var showFallbackWarnings: Boolean = true,
     var selectedOnly: Boolean = false,
+    var text: SkinPreviewTextSettings = SkinPreviewTextSettings(),
+)
+
+data class SkinPreviewTextSettings(
+    var labelText: String = "KRender Label Preview",
+    var buttonText: String = "KRender Button",
+    var textFieldPlaceholder: String = "Placeholder text",
 )
 
 data class SkinPreviewScreenPreset(
@@ -262,19 +273,17 @@ data class SkinPreviewScreenPreset(
 )
 
 object SkinPreviewScreenPresets {
-    const val DesktopId = "desktop"
+    const val DefaultId = "hd"
 
     val presets: List<SkinPreviewScreenPreset> =
         listOf(
-            SkinPreviewScreenPreset(id = "compact", displayName = "Compact", width = 640, height = 480),
-            SkinPreviewScreenPreset(id = DesktopId, displayName = "Desktop", width = 1280, height = 720),
-            SkinPreviewScreenPreset(id = "wide", displayName = "Wide", width = 1600, height = 900),
-            SkinPreviewScreenPreset(id = "mobile", displayName = "Mobile", width = 390, height = 844),
-            SkinPreviewScreenPreset(id = "tablet", displayName = "Tablet", width = 1024, height = 768),
+            SkinPreviewScreenPreset(id = "desktop_large", displayName = "1980 x 1020", width = 1980, height = 1020),
+            SkinPreviewScreenPreset(id = "tablet", displayName = "1024 x 768", width = 1024, height = 768),
+            SkinPreviewScreenPreset(id = DefaultId, displayName = "1280 x 720", width = 1280, height = 720),
         )
 
     fun presetOrDefault(id: String?): SkinPreviewScreenPreset =
-        presets.firstOrNull { preset -> preset.id == id } ?: presets.first { preset -> preset.id == DesktopId }
+        presets.firstOrNull { preset -> preset.id == id } ?: presets.first { preset -> preset.id == DefaultId }
 }
 
 data class SkinEditorState(
@@ -302,6 +311,5 @@ data class SkinEditorState(
 
 const val DefaultFontPreviewSampleText =
     "KRender Font Preview\n" +
-        "Український текст: Привіт, рушій!\n" +
         "The quick brown fox jumps over the lazy dog.\n" +
         "0123456789 !@#$%^&*()"

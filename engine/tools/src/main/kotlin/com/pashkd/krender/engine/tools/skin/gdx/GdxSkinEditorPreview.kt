@@ -3,6 +3,9 @@ package com.pashkd.krender.engine.tools.skin.gdx
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.FitViewport
@@ -11,6 +14,7 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.tools.skin.PreviewLayout
 import com.pashkd.krender.engine.tools.skin.PreviewLayoutContext
 import com.pashkd.krender.engine.tools.skin.SkinEditSession
+import com.pashkd.krender.engine.tools.skin.SkinPreviewTextSettings
 import com.pashkd.krender.engine.tools.skin.SkinEditorPreviewStageInfo
 import com.pashkd.krender.engine.tools.skin.SkinLoadResult
 import com.pashkd.krender.engine.tools.skin.StyleKey
@@ -27,6 +31,8 @@ class GdxSkinEditorPreview(
     private val stage = Stage(FitViewport(1f, 1f))
     private val safeWidgetBuilder = SafeWidgetBuilder()
     private val previewFactory = WidgetPreviewFactory()
+    private val selectedStyleShapes = ShapeRenderer()
+    private var selectedStyleActors: List<com.badlogic.gdx.scenes.scene2d.Actor> = emptyList()
     private var viewportX = 0
     private var viewportY = 0
     private var viewportWidth = 1
@@ -40,6 +46,7 @@ class GdxSkinEditorPreview(
         layout: PreviewLayout,
         loadedSkin: LoadedSkinHandle?,
         editSession: SkinEditSession,
+        previewText: SkinPreviewTextSettings,
         selectedStyleKey: StyleKey?,
         selectedResourceName: String?,
     ): GdxSkinPreviewBuildResult {
@@ -53,13 +60,16 @@ class GdxSkinEditorPreview(
                                 loadResult = loadResult,
                                 selectedStyleKey = selectedStyleKey,
                                 selectedResourceName = selectedResourceName,
+                                text = previewText,
                             ),
                         factory = previewFactory,
                     ),
                 loadedSkin = loadedSkin,
                 editSession = editSession,
+                selectedStyleKey = selectedStyleKey,
             )
         val root = buildResult.actor
+        selectedStyleActors = buildResult.selectedStyleActors
         stage.addActor(root)
         centerActor(root)
         logger.debug(TAG) { "Skin preview rebuilt layout='${layout.id}' loadedSkin=${loadResult.previewSkinAvailable} issues=${buildResult.issues.size}" }
@@ -147,6 +157,7 @@ class GdxSkinEditorPreview(
         stage.viewport.setScreenBounds(contentX, contentY, contentWidth, contentHeight)
         stage.viewport.apply(false)
         stage.draw()
+        drawSelectedStyleHighlights()
 
         if (!scissorWasEnabled) {
             Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
@@ -158,7 +169,27 @@ class GdxSkinEditorPreview(
 
     override fun dispose() {
         safeWidgetBuilder.dispose()
+        selectedStyleShapes.dispose()
         stage.dispose()
+    }
+
+    private fun drawSelectedStyleHighlights() {
+        if (selectedStyleActors.isEmpty()) return
+        selectedStyleShapes.projectionMatrix = stage.camera.combined
+        selectedStyleShapes.begin(ShapeRenderer.ShapeType.Line)
+        selectedStyleShapes.color = SelectedStyleHighlightColor
+        selectedStyleActors.forEach { actor ->
+            if (!actor.isVisible || actor.width <= 0f || actor.height <= 0f) return@forEach
+            val bottomLeft = actor.localToStageCoordinates(Vector2(0f, 0f))
+            val bottomRight = actor.localToStageCoordinates(Vector2(actor.width, 0f))
+            val topRight = actor.localToStageCoordinates(Vector2(actor.width, actor.height))
+            val topLeft = actor.localToStageCoordinates(Vector2(0f, actor.height))
+            selectedStyleShapes.line(bottomLeft, bottomRight)
+            selectedStyleShapes.line(bottomRight, topRight)
+            selectedStyleShapes.line(topRight, topLeft)
+            selectedStyleShapes.line(topLeft, bottomLeft)
+        }
+        selectedStyleShapes.end()
     }
 
     private fun centerActor(actor: com.badlogic.gdx.scenes.scene2d.Actor) {
@@ -175,5 +206,6 @@ class GdxSkinEditorPreview(
 
     private companion object {
         private const val TAG = "GdxSkinEditorPreview"
+        private val SelectedStyleHighlightColor = Color(1f, 0.55f, 0.08f, 1f)
     }
 }

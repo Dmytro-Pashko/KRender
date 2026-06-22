@@ -4,6 +4,7 @@ data class PreviewLayoutContext(
     val loadResult: SkinLoadResult,
     val selectedStyleKey: StyleKey? = null,
     val selectedResourceName: String? = null,
+    val text: SkinPreviewTextSettings = SkinPreviewTextSettings(),
 )
 
 interface PreviewLayout {
@@ -20,10 +21,10 @@ class PreviewLayoutRegistry(
     layouts: List<PreviewLayout> =
         listOf(
             DefaultWidgetPreviewLayout(),
-            FormsPreviewLayout(),
             TablesPreviewLayout(),
-            DialogsPreviewLayout(),
+            FormsPreviewLayout(),
             StressPreviewLayout(),
+            DialogsPreviewLayout(),
             SelectedStylePreviewLayout(),
         ),
 ) {
@@ -121,7 +122,7 @@ class WidgetPreviewFactory {
 
 class DefaultWidgetPreviewLayout : PreviewLayout {
     override val id: String = Id
-    override val displayName: String = "Default Widgets"
+    override val displayName: String = "All Widgets"
 
     override fun build(
         context: PreviewLayoutContext,
@@ -138,12 +139,12 @@ class DefaultWidgetPreviewLayout : PreviewLayout {
             label = "KRender Skin Preview",
             children =
                 listOf(
-                    factory.label("header", "KRender Skin Preview"),
+                    factory.label("header", context.text.labelText),
                     factory.label("ukrainian", "Український текст: Привіт, рушій!"),
                     factory.label("english", "The quick brown fox jumps over the lazy dog."),
-                    factory.textButton("button", "Apply"),
+                    factory.textButton("button", context.text.buttonText),
                     factory.checkBox("checkbox", "Enable preview"),
-                    factory.textField("text_field", "Search skin resources"),
+                    factory.textField("text_field", context.text.textFieldPlaceholder),
                     factory.selectBox("select_box", items = listOf("Primary", "Secondary", "Danger")),
                     factory.scrollPane(
                         "scroll_pane",

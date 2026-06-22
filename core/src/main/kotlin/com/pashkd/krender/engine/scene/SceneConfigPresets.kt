@@ -88,7 +88,7 @@ object SceneConfigPresets {
                 ),
             window =
                 RuntimeWindowConfig(
-                    resolution = WindowResolution(width = 2322, height = 1317),
+                    resolution = WindowResolution(width = 2930, height = 1350),
                     mode = WindowMode.Windowed,
                 ),
         )

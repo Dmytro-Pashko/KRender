@@ -148,7 +148,7 @@ class SkinEditorScene(
             addPanel(
                 uiSystem,
                 "Resources",
-                SkinEditorResourceBrowserPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger),
+                SkinEditorResourceBrowserPanel(editorState, operations, engine.ui, layoutConfig, layoutTracker, eventLogger),
             )
             addPanel(
                 uiSystem,
@@ -158,12 +158,7 @@ class SkinEditorScene(
             addPanel(
                 uiSystem,
                 "PreviewCanvas",
-                SkinEditorPreviewCanvasPanel(editorState, layoutConfig, layoutTracker, eventLogger),
-            )
-            addPanel(
-                uiSystem,
-                "ResourcePreview",
-                SkinEditorResourcePreviewPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger),
+                SkinEditorPreviewCanvasPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger),
             )
             addPanel(
                 uiSystem,
@@ -254,6 +249,7 @@ private class SkinEditorPreviewUpdateSystem(
                         layout = layout,
                         loadedSkin = previewSkinHandle(),
                         editSession = state.editSession,
+                        previewText = state.previewSettings.text,
                         selectedStyleKey = state.selectedStyleKey,
                         selectedResourceName = state.selectedResourceKey?.name,
                     )
@@ -336,8 +332,9 @@ private class SkinResourcePreviewUpdateSystem(
         world: SceneWorld,
         dt: Float,
     ) {
+        val selectedResource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
         val rect = state.resourcePreviewCanvasRect
-        if (rect.isValid) {
+        if (rect.isValid && selectedResource?.category == SkinResourceCategory.Font) {
             resourcePreview.setCanvasViewport(
                 x = rect.x.toInt(),
                 y = rect.y.toInt(),
@@ -348,7 +345,6 @@ private class SkinResourcePreviewUpdateSystem(
             resourcePreview.clearCanvasViewport()
         }
 
-        val selectedResource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
         state.resourceVisualPreviewInfo =
             resourcePreview.update(
                 project = state.loadResult.project,
@@ -356,6 +352,7 @@ private class SkinResourcePreviewUpdateSystem(
                 selectedResource = selectedResource,
                 previewState = state.resourceVisualPreview,
                 loadedSkin = reloadService.currentSkinHandle,
+                editSession = state.editSession,
             )
     }
 }

@@ -4,8 +4,10 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
+import imgui.api.colorButton
 import imgui.dsl
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -32,7 +34,7 @@ class SkinEditorToolbarPanel(
         syncPathBuffer()
         ImGui.setNextItemWidth(560f)
         ImGui.inputText("Skin path##skin_editor_path", pathBuffer)
-        ImGui.sameLine()
+        ImGui.newLine()
         with(dsl) {
             button("Open Path##skin_editor_open_path") {
                 operations.openPath(readBuffer(pathBuffer))
@@ -56,13 +58,18 @@ class SkinEditorToolbarPanel(
                 operations.restoreUiLayout()
             }
         }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Exit##skin_editor_exit") {
+                operations.requestExit()
+            }
+        }
         ImGui.separator()
         ImGui.textUnformatted("Path: ${state.currentInputPath ?: "<none>"}")
         ImGui.textUnformatted("Status: ${state.statusMessage}")
         ImGui.textUnformatted("Loaded skin: ${if (state.loadResult.previewSkinAvailable) "yes" else "no"}")
-        ImGui.textUnformatted("Styles: ${state.loadResult.styleIndex.styles.size}")
+        ImGui.textUnformatted("Styles: ${state.editSession.activeStyles().size}")
         ImGui.textUnformatted("Resources: ${state.loadResult.resourceIndex.resources.size}")
-        ImGui.textUnformatted("Problems: ${state.loadResult.problems.size}")
         ImGui.textUnformatted("Editing: ${if (state.editSession.dirty) "dirty" else "clean"} (${state.editSession.changes.size} pending)")
         ImGui.sameLine()
         if (ImGui.button("Discard Edits##skin_editor_discard_edits")) {
@@ -87,6 +94,9 @@ class SkinEditorStyleTreePanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val createNameBuffer = ByteArray(128)
+    private var createType = SkinStyleTemplates.types.first()
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.StyleTree)
         val expanded = beginImGuiPanel(SkinEditorPanelIds.StyleTree, layout, layoutTracker)
@@ -96,12 +106,15 @@ class SkinEditorStyleTreePanel(
             return
         }
 
+        drawCreateStyle()
+        ImGui.separator()
+        ImGui.textUnformatted("Styles")
         val styles = state.editSession.activeStyles()
         if (styles.isEmpty()) {
             ImGui.textUnformatted("No styles indexed.")
         } else {
             styles.groupBy { it.key.type }.forEach { (type, typeStyles) ->
-                if (ImGui.treeNode("$type##skin_editor_style_type_$type")) {
+                if (ImGui.treeNode("$type (${typeStyles.size})##skin_editor_style_type_$type")) {
                     typeStyles.forEach { style ->
                         val stateLabel =
                             when {
@@ -119,22 +132,45 @@ class SkinEditorStyleTreePanel(
         }
         ImGui.end()
     }
+
+    private fun drawCreateStyle() {
+        ImGui.textUnformatted("Create Style")
+        if (ImGui.beginCombo("Type##skin_editor_create_style_type", createType)) {
+            SkinStyleTemplates.types.forEach { type ->
+                if (ImGui.selectable(type, type == createType)) {
+                    createType = type
+                }
+            }
+            ImGui.endCombo()
+        }
+        ImGui.textUnformatted("Name:")
+        ImGui.setNextItemWidth(-1f)
+        ImGui.inputText("##skin_editor_create_style_name", createNameBuffer)
+        if (ImGui.button("Create##skin_editor_create_style_apply")) {
+            if (operations.createStyle(createType, readBuffer(createNameBuffer))) {
+                createNameBuffer.fill(0)
+            }
+        }
+    }
 }
 
 class SkinEditorResourceBrowserPanel(
     private val state: SkinEditorState,
     private val operations: SkinEditorOperations,
+    private val ui: UiService,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private val queryBuffer = ByteArray(256)
+    private val fontSampleBuffer = ByteArray(1024)
 
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.ResourceBrowser)
         val expanded = beginImGuiPanel(SkinEditorPanelIds.ResourceBrowser, layout, layoutTracker)
         eventLogger.observe(SkinEditorPanelIds.ResourceBrowser, layout.title)
         if (!expanded) {
+            state.resourcePreviewCanvasRect = SkinEditorCanvasRect()
             ImGui.end()
             return
         }
@@ -158,20 +194,222 @@ class SkinEditorResourceBrowserPanel(
                         if (ImGui.selectable("$label##skin_editor_resource_${category}_${resource.name}", state.selectedResourceKey == resource.key)) {
                             operations.selectResource(resource)
                         }
+                        if (resource.category == SkinResourceCategory.Color) {
+                            resourceColor(resource)?.let { color ->
+                                ImGui.sameLine()
+                                colorButton(
+                                    "Color##skin_editor_resource_color_${resource.name}",
+                                    color[0],
+                                    color[1],
+                                    color[2],
+                                    color[3],
+                                )
+                            }
+                        }
                     }
                     ImGui.treePop()
                 }
             }
         }
+        drawResourcePreviewSection()
         ImGui.end()
+    }
+
+    private fun drawResourcePreviewSection() {
+        ImGui.separator()
+        ImGui.textUnformatted("Resource Preview")
+        val selectedResource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
+        drawResourcePreviewControls(selectedResource)
+        ImGui.separator()
+        ImGui.textWrapped(state.resourceVisualPreviewInfo.statusMessage)
+        state.resourceVisualPreviewInfo.resolvedTexturePath?.let { path ->
+            ImGui.textWrapped("Texture: ${File(path).name}")
+            ImGui.textUnformatted("Size: ${state.resourceVisualPreviewInfo.textureWidth} x ${state.resourceVisualPreviewInfo.textureHeight}")
+        }
+        state.resourceVisualPreviewInfo.resolvedFontPath?.let { path ->
+            ImGui.textWrapped("Font file: ${File(path).name}")
+        }
+        state.resourceVisualPreviewInfo.fontPreviewSource?.let { source ->
+            ImGui.textWrapped("Font source: $source")
+        }
+        state.resourceVisualPreviewInfo.colorValue?.let { value ->
+            ImGui.textWrapped("Color: $value")
+        }
+        state.resourceVisualPreviewInfo.atlasPageName?.let { page ->
+            ImGui.textWrapped("Atlas page: $page")
+        }
+        state.resourceVisualPreviewInfo.selectedRegionName?.let { regionName ->
+            ImGui.textWrapped("Region overlay: $regionName")
+        }
+        ImGui.separator()
+        drawInlineResourcePreview()
+    }
+
+    private fun drawInlineResourcePreview() {
+        val info = state.resourceVisualPreviewInfo
+        when (info.kind) {
+            SkinResourceVisualPreviewKind.Texture -> {
+                state.resourcePreviewCanvasRect = SkinEditorCanvasRect()
+                val handle = info.texturePreviewHandle
+                if (handle == null) {
+                    ImGui.textWrapped("Image preview unavailable.")
+                } else {
+                    val availableWidth = ImGui.contentRegionAvail.x.coerceAtLeast(1f)
+                    val scale =
+                        when (state.resourceVisualPreview.zoomMode) {
+                            SkinResourceVisualPreviewZoomMode.Fit ->
+                                minOf(
+                                    availableWidth / handle.width.coerceAtLeast(1).toFloat(),
+                                    MaxInlineResourcePreviewHeight / handle.height.coerceAtLeast(1).toFloat(),
+                                ).coerceAtLeast(MinInlineResourcePreviewScale)
+
+                            SkinResourceVisualPreviewZoomMode.Percent50 -> 0.5f
+                            SkinResourceVisualPreviewZoomMode.Percent100 -> 1f
+                            SkinResourceVisualPreviewZoomMode.Percent200 -> 2f
+                        }
+                    val width = handle.width * scale
+                    val height = handle.height * scale
+                    if (!ui.drawTexturePreview(handle, width, height)) {
+                        ImGui.textWrapped("Image preview unavailable: UI backend rejected the texture handle.")
+                    }
+                }
+            }
+
+            SkinResourceVisualPreviewKind.Color -> {
+                state.resourcePreviewCanvasRect = SkinEditorCanvasRect()
+                val selected = state.selectedResourceKey?.let(state.editSession.resources::get)
+                val values = selected?.values
+                val color = values?.let(::parseResourceColor)
+                if (color != null) {
+                    colorButton("Color preview##skin_editor_resource_color_preview", color[0], color[1], color[2], color[3])
+                }
+            }
+
+            SkinResourceVisualPreviewKind.Font -> {
+                state.resourcePreviewCanvasRect = SkinEditorCanvasRect()
+                val handle = info.texturePreviewHandle
+                if (handle == null) {
+                    ImGui.textWrapped("Font preview image unavailable.")
+                } else {
+                    val availableWidth = ImGui.contentRegionAvail.x.coerceAtLeast(1f)
+                    val scale = minOf(1f, availableWidth / handle.width.coerceAtLeast(1).toFloat())
+                    if (!ui.drawTexturePreview(handle, handle.width * scale, handle.height * scale)) {
+                        ImGui.textWrapped("Font preview unavailable: UI backend rejected the texture handle.")
+                    }
+                }
+            }
+
+            SkinResourceVisualPreviewKind.None -> state.resourcePreviewCanvasRect = SkinEditorCanvasRect()
+        }
+    }
+
+    private fun drawResourcePreviewControls(selectedResource: SkinResourceInfo?) {
+        val previewState = state.resourceVisualPreview
+        if (selectedResource?.category == SkinResourceCategory.Font) {
+            drawFontPreviewControls()
+        } else if (selectedResource?.category != SkinResourceCategory.Color) {
+            if (ImGui.beginCombo("Zoom##skin_editor_resource_preview_zoom", formatResourcePreviewZoom(previewState.zoomMode))) {
+                SkinResourceVisualPreviewZoomMode.entries.forEach { zoomMode ->
+                    if (ImGui.selectable("${formatResourcePreviewZoom(zoomMode)}##skin_editor_resource_preview_zoom_$zoomMode", zoomMode == previewState.zoomMode)) {
+                        operations.setResourcePreviewZoomMode(zoomMode)
+                    }
+                }
+                ImGui.endCombo()
+            }
+            ImGui.sameLine()
+            with(dsl) {
+                button("Reset##skin_editor_resource_preview_zoom_reset") {
+                    operations.resetResourcePreviewZoom()
+                }
+            }
+
+            val showBounds = booleanArrayOf(previewState.showRegionBounds)
+            if (ImGui.checkbox("Show region bounds##skin_editor_resource_preview_bounds", showBounds)) {
+                operations.setShowResourceRegionBounds(showBounds[0])
+            }
+            val showLabels = booleanArrayOf(previewState.showRegionLabels)
+            if (ImGui.checkbox("Show region labels##skin_editor_resource_preview_labels", showLabels)) {
+                operations.setShowResourceRegionLabels(showLabels[0])
+            }
+        }
+
+        selectedResource?.let { resource ->
+            if (resource.category == SkinResourceCategory.Atlas || resource.category == SkinResourceCategory.AtlasRegion) {
+                drawAtlasRegionSelector(resource)
+            }
+            ImGui.textUnformatted("Selected resource: ${resource.category}.${resource.name}")
+        } ?: ImGui.textUnformatted("Selected resource: <none>")
+    }
+
+    private fun drawFontPreviewControls() {
+        val fontPreview = state.resourceVisualPreview.fontPreview
+        if (readBuffer(fontSampleBuffer) != fontPreview.sampleText) {
+            writeBuffer(fontSampleBuffer, fontPreview.sampleText)
+        }
+        ImGui.textUnformatted("Preview text:")
+        if (ImGui.inputTextMultiline("##skin_editor_font_preview_text", fontSampleBuffer, ImVec2(-1f, FontPreviewTextHeight))) {
+            operations.setFontPreviewSampleText(readBuffer(fontSampleBuffer))
+        }
+        val selectedScale = FontPreviewScales.minBy { scale -> kotlin.math.abs(scale - fontPreview.fontScale) }
+        if (ImGui.beginCombo("Font scale##skin_editor_font_preview_scale", formatPreviewScale(selectedScale))) {
+            FontPreviewScales.forEach { scale ->
+                if (ImGui.selectable("${formatPreviewScale(scale)}##skin_editor_font_preview_scale_$scale", scale == selectedScale)) {
+                    operations.setFontPreviewScale(scale)
+                }
+            }
+            ImGui.endCombo()
+        }
+        val showCyrillic = booleanArrayOf(fontPreview.showUkrainianSample)
+        if (ImGui.checkbox("Show Cyrillic##skin_editor_font_preview_uk", showCyrillic)) {
+            operations.setShowUkrainianFontSample(showCyrillic[0])
+        }
+        val showAscii = booleanArrayOf(fontPreview.showAsciiSample)
+        if (ImGui.checkbox("Show ASCII##skin_editor_font_preview_ascii", showAscii)) {
+            operations.setShowAsciiFontSample(showAscii[0])
+        }
+        ImGui.textWrapped("Sample text uses the built-in preview block plus Cyrillic and ASCII coverage toggles.")
+    }
+
+    private fun drawAtlasRegionSelector(resource: SkinResourceInfo) {
+        if (resource.category == SkinResourceCategory.AtlasRegion) {
+            ImGui.textWrapped("Region overlay follows the selected atlas region.")
+            return
+        }
+        val atlasSource = resource.source.takeIf { resource.category == SkinResourceCategory.Atlas } ?: return
+        val regions =
+            state.loadResult.resourceIndex.atlasRegions
+                .filter { region -> region.source == atlasSource }
+                .map(SkinResourceInfo::name)
+        if (regions.isEmpty()) return
+
+        val selectedName = state.resourceVisualPreview.selectedAtlasRegionName?.takeIf { name -> name in regions }
+        val comboLabel = selectedName ?: "None"
+        if (ImGui.beginCombo("Region overlay##skin_editor_resource_preview_region", comboLabel)) {
+            if (ImGui.selectable("None##skin_editor_resource_preview_region_none", selectedName == null)) {
+                operations.selectAtlasRegionPreview(null)
+            }
+            regions.forEach { regionName ->
+                if (ImGui.selectable("$regionName##skin_editor_resource_preview_region_$regionName", regionName == selectedName)) {
+                    operations.selectAtlasRegionPreview(regionName)
+                }
+            }
+            ImGui.endCombo()
+        }
+    }
+
+    private fun resourceColor(resource: SkinResourceInfo): FloatArray? {
+        val values = state.editSession.resources[resource.key]?.values ?: resource.details
+        return parseResourceColor(values)
     }
 
     private fun drawFilters() {
         if (readBuffer(queryBuffer) != state.resourceBrowser.query) {
             writeBuffer(queryBuffer, state.resourceBrowser.query)
         }
-        ImGui.setNextItemWidth(-1f)
-        if (ImGui.inputText("Search##skin_editor_resource_search", queryBuffer)) {
+        ImGui.textUnformatted("Search:")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(ResourceSearchWidth)
+        if (ImGui.inputText("##skin_editor_resource_search", queryBuffer)) {
             state.resourceBrowser.query = readBuffer(queryBuffer)
         }
 
@@ -244,6 +482,9 @@ class SkinEditorProblemsPanel(
                 val label = "[${problem.severity}][${problem.category}] ${problem.message}$source"
                 if (ImGui.selectable("${label.toAsciiSafeText()}##skin_editor_problem_$index", state.selectedProblemIndex == index)) {
                     operations.selectProblem(index, problem)
+                }
+                if (state.selectedProblemIndex == index) {
+                    safeTextWrapped(problem.message)
                 }
             }
         }
@@ -318,6 +559,7 @@ class SkinEditorProblemsPanel(
 
 class SkinEditorPreviewCanvasPanel(
     private val state: SkinEditorState,
+    private val operations: SkinEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
@@ -333,11 +575,37 @@ class SkinEditorPreviewCanvasPanel(
             return
         }
 
-        ImGui.textUnformatted("Scene2D preview")
+        ImGui.textUnformatted("Scene2D preview Actors: ${state.previewInfo.actorCount}")
+        val selectedPreset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
+        ImGui.textUnformatted("Resolution:")
         ImGui.sameLine()
-        ImGui.textUnformatted("Actors: ${state.previewInfo.actorCount}")
+        ImGui.setNextItemWidth(180f)
+        if (ImGui.beginCombo("##skin_editor_canvas_resolution", selectedPreset.displayName)) {
+            SkinPreviewScreenPresets.presets.forEach { preset ->
+                if (ImGui.selectable("${preset.displayName}##skin_editor_canvas_resolution_${preset.id}", preset.id == selectedPreset.id)) {
+                    operations.selectScreenPreset(preset.id)
+                }
+            }
+            ImGui.endCombo()
+        }
+        val selectedScale = PreviewScales.minBy { scale -> kotlin.math.abs(scale - state.previewSettings.scale) }
+        ImGui.textUnformatted("Scale:")
         ImGui.sameLine()
-        ImGui.textUnformatted("${previewPresetLabel(state)} @ ${formatPreviewScale(state.previewInfo.scale)}")
+        ImGui.setNextItemWidth(120f)
+        if (ImGui.beginCombo("##skin_editor_canvas_scale", formatPreviewScale(selectedScale))) {
+            PreviewScales.forEach { scale ->
+                if (ImGui.selectable("${formatPreviewScale(scale)}##skin_editor_canvas_scale_$scale", scale == selectedScale)) {
+                    operations.setPreviewScale(scale)
+                }
+            }
+            ImGui.endCombo()
+        }
+        val showBounds = booleanArrayOf(state.previewSettings.showBounds)
+        ImGui.textUnformatted("Show Bounding Box:")
+        ImGui.sameLine()
+        if (ImGui.checkbox("##skin_editor_canvas_bounds", showBounds)) {
+            operations.setShowBounds(showBounds[0])
+        }
         ImGui.separator()
 
         val min = ImGui.cursorScreenPos
@@ -351,150 +619,6 @@ class SkinEditorPreviewCanvasPanel(
             )
         ImGui.invisibleButton("##skin_editor_preview_canvas", ImVec2(state.canvasRect.width, state.canvasRect.height))
         ImGui.end()
-    }
-}
-
-class SkinEditorResourcePreviewPanel(
-    private val state: SkinEditorState,
-    private val operations: SkinEditorOperations,
-    private val layoutConfig: ImGuiLayoutConfig,
-    private val layoutTracker: ImGuiLayoutRuntimeTracker,
-    private val eventLogger: ImGuiWindowEventLogger,
-) : UiPanel {
-    override fun draw() {
-        val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.ResourcePreview)
-        ImGui.setNextWindowBgAlpha(0f)
-        val expanded = beginImGuiPanel(SkinEditorPanelIds.ResourcePreview, layout, layoutTracker)
-        eventLogger.observe(SkinEditorPanelIds.ResourcePreview, layout.title)
-        if (!expanded) {
-            state.resourcePreviewCanvasRect = SkinEditorCanvasRect()
-            ImGui.end()
-            return
-        }
-
-        val selectedResource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
-        drawResourcePreviewControls(selectedResource)
-        ImGui.separator()
-        ImGui.textWrapped(state.resourceVisualPreviewInfo.statusMessage)
-        state.resourceVisualPreviewInfo.resolvedTexturePath?.let { path ->
-            ImGui.textWrapped("Texture: ${File(path).name}")
-            ImGui.textUnformatted("Size: ${state.resourceVisualPreviewInfo.textureWidth} x ${state.resourceVisualPreviewInfo.textureHeight}")
-        }
-        state.resourceVisualPreviewInfo.resolvedFontPath?.let { path ->
-            ImGui.textWrapped("Font file: ${File(path).name}")
-        }
-        state.resourceVisualPreviewInfo.fontPreviewSource?.let { source ->
-            ImGui.textWrapped("Font source: $source")
-        }
-        state.resourceVisualPreviewInfo.atlasPageName?.let { page ->
-            ImGui.textWrapped("Atlas page: $page")
-        }
-        state.resourceVisualPreviewInfo.selectedRegionName?.let { regionName ->
-            ImGui.textWrapped("Region overlay: $regionName")
-        }
-        ImGui.separator()
-
-        val min = ImGui.cursorScreenPos
-        val available = ImGui.contentRegionAvail
-        state.resourcePreviewCanvasRect =
-            SkinEditorCanvasRect(
-                x = min.x,
-                y = min.y,
-                width = available.x.coerceAtLeast(1f),
-                height = available.y.coerceAtLeast(1f),
-            )
-        ImGui.invisibleButton("##skin_editor_resource_preview_canvas", ImVec2(state.resourcePreviewCanvasRect.width, state.resourcePreviewCanvasRect.height))
-        ImGui.end()
-    }
-
-    private fun drawResourcePreviewControls(selectedResource: SkinResourceInfo?) {
-        val previewState = state.resourceVisualPreview
-        if (selectedResource?.category == SkinResourceCategory.Font) {
-            drawFontPreviewControls()
-        } else {
-            if (ImGui.beginCombo("Zoom##skin_editor_resource_preview_zoom", formatResourcePreviewZoom(previewState.zoomMode))) {
-                SkinResourceVisualPreviewZoomMode.entries.forEach { zoomMode ->
-                    if (ImGui.selectable("${formatResourcePreviewZoom(zoomMode)}##skin_editor_resource_preview_zoom_$zoomMode", zoomMode == previewState.zoomMode)) {
-                        operations.setResourcePreviewZoomMode(zoomMode)
-                    }
-                }
-                ImGui.endCombo()
-            }
-            ImGui.sameLine()
-            with(dsl) {
-                button("Reset##skin_editor_resource_preview_zoom_reset") {
-                    operations.resetResourcePreviewZoom()
-                }
-            }
-
-            val showBounds = booleanArrayOf(previewState.showRegionBounds)
-            if (ImGui.checkbox("Show region bounds##skin_editor_resource_preview_bounds", showBounds)) {
-                operations.setShowResourceRegionBounds(showBounds[0])
-            }
-            val showLabels = booleanArrayOf(previewState.showRegionLabels)
-            if (ImGui.checkbox("Show region labels##skin_editor_resource_preview_labels", showLabels)) {
-                operations.setShowResourceRegionLabels(showLabels[0])
-            }
-        }
-
-        selectedResource?.let { resource ->
-            if (resource.category == SkinResourceCategory.Atlas || resource.category == SkinResourceCategory.AtlasRegion) {
-                drawAtlasRegionSelector(resource)
-            }
-            ImGui.textUnformatted("Selected resource: ${resource.category}.${resource.name}")
-        } ?: ImGui.textUnformatted("Selected resource: <none>")
-    }
-
-    private fun drawFontPreviewControls() {
-        val fontPreview = state.resourceVisualPreview.fontPreview
-        val selectedScale = FontPreviewScales.minBy { scale -> kotlin.math.abs(scale - fontPreview.fontScale) }
-        if (ImGui.beginCombo("Font scale##skin_editor_font_preview_scale", formatPreviewScale(selectedScale))) {
-            FontPreviewScales.forEach { scale ->
-                if (ImGui.selectable("${formatPreviewScale(scale)}##skin_editor_font_preview_scale_$scale", scale == selectedScale)) {
-                    operations.setFontPreviewScale(scale)
-                }
-            }
-            ImGui.endCombo()
-        }
-        val showUkrainian = booleanArrayOf(fontPreview.showUkrainianSample)
-        if (ImGui.checkbox("Show Ukrainian##skin_editor_font_preview_uk", showUkrainian)) {
-            operations.setShowUkrainianFontSample(showUkrainian[0])
-        }
-        val showAscii = booleanArrayOf(fontPreview.showAsciiSample)
-        if (ImGui.checkbox("Show ASCII##skin_editor_font_preview_ascii", showAscii)) {
-            operations.setShowAsciiFontSample(showAscii[0])
-        }
-        ImGui.textWrapped("Sample text uses the built-in preview block plus the toggles above for Ukrainian and ASCII coverage checks.")
-    }
-
-    private fun drawAtlasRegionSelector(resource: SkinResourceInfo) {
-        if (resource.category == SkinResourceCategory.AtlasRegion) {
-            ImGui.textWrapped("Region overlay follows the selected atlas region.")
-            return
-        }
-        val atlasSource = when (resource.category) {
-            SkinResourceCategory.Atlas -> resource.source
-            else -> null
-        } ?: return
-        val regions =
-            state.loadResult.resourceIndex.atlasRegions
-                .filter { region -> region.source == atlasSource }
-                .map(SkinResourceInfo::name)
-        if (regions.isEmpty()) return
-
-        val selectedName = state.resourceVisualPreview.selectedAtlasRegionName?.takeIf { name -> name in regions }
-        val comboLabel = selectedName ?: "None"
-        if (ImGui.beginCombo("Region overlay##skin_editor_resource_preview_region", comboLabel)) {
-            if (ImGui.selectable("None##skin_editor_resource_preview_region_none", selectedName == null)) {
-                operations.selectAtlasRegionPreview(null)
-            }
-            regions.forEach { regionName ->
-                if (ImGui.selectable("$regionName##skin_editor_resource_preview_region_$regionName", regionName == selectedName)) {
-                    operations.selectAtlasRegionPreview(regionName)
-                }
-            }
-            ImGui.endCombo()
-        }
     }
 }
 
@@ -575,8 +699,6 @@ class SkinEditorStyleEditorPanel(
     private val colorBuffers = mutableMapOf<String, ByteArray>()
     private val renameBuffer = ByteArray(128)
     private val duplicateBuffer = ByteArray(128)
-    private val createNameBuffer = ByteArray(128)
-    private var createType = SkinStyleTemplates.types.first()
     private var pendingFieldName: String? = null
     private var actionStyleKey: StyleKey? = null
 
@@ -609,7 +731,6 @@ class SkinEditorStyleEditorPanel(
             colorResource != null -> drawColorEditor(colorResource)
             else -> {
                 ImGui.textWrapped("Select a style to edit its fields, or select a Color resource for lightweight color editing.")
-                drawCreateStyle()
             }
         }
         drawRecentChanges()
@@ -650,7 +771,10 @@ class SkinEditorStyleEditorPanel(
         }
 
         ImGui.separator()
-        drawFieldGroup("References", style, style.fields.values.filter(EditableStyleField::isReference))
+        drawAddKnownField(style)
+        ImGui.separator()
+        ImGui.textUnformatted("Fields")
+        drawFieldGroup("Properties", style, style.fields.values.filter(EditableStyleField::isReference))
         drawFieldGroup(
             "Scalar values",
             style,
@@ -661,9 +785,6 @@ class SkinEditorStyleEditorPanel(
             style,
             style.fields.values.filter { field -> !field.isReference && field.valueType !in ScalarValueTypes },
         )
-        drawAddKnownField(style)
-        ImGui.separator()
-        drawCreateStyle()
     }
 
     private fun drawFieldGroup(
@@ -726,10 +847,14 @@ class SkinEditorStyleEditorPanel(
     }
 
     private fun drawAddKnownField(style: EditableStyle) {
+        ImGui.textUnformatted("Create Field")
         val availableFields =
             SkinStyleTemplates.fieldsFor(style.key.type)
                 .filterNot { template -> style.fields.keys.any { name -> name.equals(template.name, ignoreCase = true) } }
-        if (availableFields.isEmpty()) return
+        if (availableFields.isEmpty()) {
+            ImGui.textUnformatted("All known fields are already present.")
+            return
+        }
         pendingFieldName = pendingFieldName?.takeIf { name -> availableFields.any { it.name == name } } ?: availableFields.first().name
         if (ImGui.beginCombo("Add field##skin_editor_add_field", pendingFieldName ?: "Select field")) {
             availableFields.forEach { template ->
@@ -768,26 +893,6 @@ class SkinEditorStyleEditorPanel(
             ImGui.textUnformatted("Color value is valid.")
         } else {
             ImGui.textWrapped("Edit warning: $warning")
-        }
-    }
-
-    private fun drawCreateStyle() {
-        ImGui.textUnformatted("Create style")
-        if (ImGui.beginCombo("Type##skin_editor_create_style_type", createType)) {
-            SkinStyleTemplates.types.forEach { type ->
-                if (ImGui.selectable(type, type == createType)) {
-                    createType = type
-                }
-            }
-            ImGui.endCombo()
-        }
-        ImGui.setNextItemWidth(180f)
-        ImGui.inputText("Name##skin_editor_create_style_name", createNameBuffer)
-        ImGui.sameLine()
-        if (ImGui.button("Create##skin_editor_create_style_apply")) {
-            if (operations.createStyle(createType, readBuffer(createNameBuffer))) {
-                createNameBuffer.fill(0)
-            }
         }
     }
 
@@ -909,7 +1014,7 @@ private fun drawResourceInspector(
         SkinResourceCategory.Font -> {
             ImGui.separator()
             ImGui.textUnformatted("Font file")
-            ImGui.textWrapped("Visual preview is available in the Resource Preview panel when a matched .fnt or loaded skin font can be resolved.")
+            ImGui.textWrapped("Visual preview is available in the Resources preview section when a matched .fnt or loaded skin font can be resolved.")
             ImGui.textWrapped(
                 "Visual preview: ${
                     when {
@@ -953,7 +1058,7 @@ private fun drawResourceInspector(
         SkinResourceCategory.Atlas -> {
             ImGui.separator()
             ImGui.textUnformatted("Atlas contents")
-            ImGui.textWrapped("Visual preview available in Resource Preview panel.")
+            ImGui.textWrapped("Visual preview available in the Resources preview section.")
             drawDetail(resource, "pageCount")
             drawDetail(resource, "regionCount")
             drawDetail(resource, "pages")
@@ -968,14 +1073,14 @@ private fun drawResourceInspector(
         SkinResourceCategory.AtlasRegion -> {
             ImGui.separator()
             ImGui.textUnformatted("Atlas region")
-            ImGui.textWrapped("Visual preview available in Resource Preview panel.")
+            ImGui.textWrapped("Visual preview available in the Resources preview section.")
             listOf("atlas", "page", "xy", "size", "orig", "offset", "index").forEach { field -> drawDetail(resource, field) }
         }
 
         SkinResourceCategory.Texture -> {
             ImGui.separator()
             ImGui.textUnformatted("Texture file")
-            ImGui.textWrapped("Visual preview available in Resource Preview panel.")
+            ImGui.textWrapped("Visual preview available in the Resources preview section.")
             drawDetail(resource, "extension")
             drawDetail(resource, "sizeBytes")
         }
@@ -1018,6 +1123,10 @@ class SkinEditorPreviewControlsPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val labelTextBuffer = ByteArray(256)
+    private val buttonTextBuffer = ByteArray(256)
+    private val textFieldBuffer = ByteArray(256)
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.PreviewControls)
         val expanded = beginImGuiPanel(SkinEditorPanelIds.PreviewControls, layout, layoutTracker)
@@ -1027,7 +1136,6 @@ class SkinEditorPreviewControlsPanel(
             return
         }
 
-        ImGui.textWrapped("Preview layouts stay predefined for now. This panel keeps the workflow read-only while making Scene2D preview switching faster.")
         if (ImGui.beginCombo("Layout##skin_editor_preview_layout", previewLayouts.layoutOrDefault(state.previewLayoutId).displayName)) {
             previewLayouts.layouts.forEach { layoutOption ->
                 if (ImGui.selectable("${layoutOption.displayName}##skin_editor_preview_layout_${layoutOption.id}", layoutOption.id == state.previewLayoutId)) {
@@ -1036,69 +1144,12 @@ class SkinEditorPreviewControlsPanel(
             }
             ImGui.endCombo()
         }
-        ImGui.sameLine()
-        with(dsl) {
-            button("Reset##skin_editor_preview_layout_reset") {
-                operations.resetPreviewLayout()
-            }
-        }
-        val selectedPreset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
-        val presetLabel = "${selectedPreset.displayName} (${selectedPreset.width} x ${selectedPreset.height})"
-        if (ImGui.beginCombo("Screen##skin_editor_preview_screen", presetLabel)) {
-            SkinPreviewScreenPresets.presets.forEach { preset ->
-                val label = "${preset.displayName} (${preset.width} x ${preset.height})"
-                if (ImGui.selectable("$label##skin_editor_preview_screen_${preset.id}", preset.id == selectedPreset.id)) {
-                    operations.selectScreenPreset(preset.id)
-                }
-            }
-            ImGui.endCombo()
-        }
-        ImGui.sameLine()
-        with(dsl) {
-            button("Desktop##skin_editor_preview_screen_reset") {
-                operations.resetPreviewScreenPreset()
-            }
-        }
-        ImGui.textWrapped("Fixed screen presets preserve aspect ratio and may letterbox inside the preview canvas.")
-        val selectedScale = PreviewScales.minBy { scale -> kotlin.math.abs(scale - state.previewSettings.scale) }
-        if (ImGui.beginCombo("Scale##skin_editor_preview_scale", formatPreviewScale(selectedScale))) {
-            PreviewScales.forEach { scale ->
-                if (ImGui.selectable("${formatPreviewScale(scale)}##skin_editor_preview_scale_$scale", scale == selectedScale)) {
-                    operations.setPreviewScale(scale)
-                }
-            }
-            ImGui.endCombo()
-        }
-        ImGui.sameLine()
-        with(dsl) {
-            button("100%##skin_editor_preview_scale_reset") {
-                operations.resetPreviewScale()
-            }
-        }
-        val showBounds = booleanArrayOf(state.previewSettings.showBounds)
-        if (ImGui.checkbox("Show bounds##skin_editor_preview_bounds", showBounds)) {
-            operations.setShowBounds(showBounds[0])
-        }
+        drawPreviewTextSettings()
         val showFallbackWarnings = booleanArrayOf(state.previewSettings.showFallbackWarnings)
         if (ImGui.checkbox("Show fallback warnings##skin_editor_preview_warnings", showFallbackWarnings)) {
             operations.setShowFallbackWarnings(showFallbackWarnings[0])
         }
-        ImGui.sameLine()
-        with(dsl) {
-            button("Reset all##skin_editor_preview_reset_all") {
-                operations.resetPreviewSettings()
-            }
-        }
-        ImGui.separator()
-        with(dsl) {
-            button("Preview selected style##skin_editor_preview_selected_style") {
-                operations.previewSelectedStyle()
-            }
-        }
         val selectedStyle = state.selectedStyleKey
-        if (selectedStyle != null && state.previewLayoutId != SelectedStylePreviewLayout.Id) {
-            ImGui.textWrapped("Selected style can be previewed using \"Preview selected style\".")
-        }
         ImGui.separator()
         ImGui.textUnformatted("Loaded skin: ${if (state.loadResult.previewSkinAvailable) "yes" else "no"}")
         ImGui.textUnformatted("Layout: ${previewLayouts.layoutOrDefault(state.previewInfo.layoutId ?: state.previewLayoutId).displayName} (${state.previewInfo.layoutId ?: state.previewLayoutId})")
@@ -1116,11 +1167,40 @@ class SkinEditorPreviewControlsPanel(
         ImGui.textUnformatted("Canvas: ${state.canvasRect.width.toInt()} x ${state.canvasRect.height.toInt()}")
         ImGui.end()
     }
+
+    private fun drawPreviewTextSettings() {
+        val text = state.previewSettings.text
+        syncPreviewBuffer(labelTextBuffer, text.labelText)
+        if (ImGui.inputText("Label text##skin_editor_preview_label_text", labelTextBuffer)) {
+            operations.setPreviewLabelText(readBuffer(labelTextBuffer))
+        }
+        syncPreviewBuffer(buttonTextBuffer, text.buttonText)
+        if (ImGui.inputText("Button text##skin_editor_preview_button_text", buttonTextBuffer)) {
+            operations.setPreviewButtonText(readBuffer(buttonTextBuffer))
+        }
+        syncPreviewBuffer(textFieldBuffer, text.textFieldPlaceholder)
+        if (ImGui.inputText("TextField text##skin_editor_preview_field_text", textFieldBuffer)) {
+            operations.setPreviewTextFieldPlaceholder(readBuffer(textFieldBuffer))
+        }
+    }
+
+    private fun syncPreviewBuffer(
+        buffer: ByteArray,
+        value: String,
+    ) {
+        if (readBuffer(buffer) != value) {
+            writeBuffer(buffer, value)
+        }
+    }
 }
 
 private val PreviewScales = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f)
 private val FontPreviewScales = listOf(0.5f, 1f, 1.5f, 2f)
 private const val MaxInspectorAtlasRegions = 100
+private const val ResourceSearchWidth = 300f
+private const val MaxInlineResourcePreviewHeight = 320f
+private const val MinInlineResourcePreviewScale = 0.05f
+private const val FontPreviewTextHeight = 96f
 
 private fun formatPreviewScale(scale: Float): String = "${(scale * 100f).toInt()}%"
 
@@ -1134,6 +1214,27 @@ private fun formatResourcePreviewZoom(zoomMode: SkinResourceVisualPreviewZoomMod
 
 private fun previewPresetLabel(state: SkinEditorState): String = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId).displayName
 
+private fun parseResourceColor(values: Map<String, String>): FloatArray? {
+    val hex = values["value"] ?: values["hex"]
+    if (hex != null) {
+        val normalized = hex.removePrefix("#")
+        if (normalized.length !in setOf(6, 8) || normalized.any { character -> !character.isDigit() && character.lowercaseChar() !in 'a'..'f' }) {
+            return null
+        }
+        val red = normalized.substring(0, 2).toInt(16) / 255f
+        val green = normalized.substring(2, 4).toInt(16) / 255f
+        val blue = normalized.substring(4, 6).toInt(16) / 255f
+        val alpha = if (normalized.length == 8) normalized.substring(6, 8).toInt(16) / 255f else 1f
+        return floatArrayOf(red, green, blue, alpha)
+    }
+    val red = values["r"]?.toFloatOrNull() ?: return null
+    val green = values["g"]?.toFloatOrNull() ?: return null
+    val blue = values["b"]?.toFloatOrNull() ?: return null
+    val alpha = values["a"]?.toFloatOrNull() ?: 1f
+    if (listOf(red, green, blue, alpha).any { channel -> channel !in 0f..1f }) return null
+    return floatArrayOf(red, green, blue, alpha)
+}
+
 private fun selectedResourceSummary(state: SkinEditorState): String? =
     state.selectedResourceKey?.let { key ->
         val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == key }
@@ -1145,7 +1246,7 @@ private fun drawSelectedResourcePreviewHint(state: SkinEditorState) {
     val selectedResourceKey = state.selectedResourceKey ?: return
     val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == selectedResourceKey } ?: return
     if (resource.category in AvailablePreviewCategories) {
-        ImGui.textWrapped("Visual preview is available in the Resource Preview panel.")
+        ImGui.textWrapped("Visual preview is available in the Resources preview section.")
     } else if (resource.category in DeferredPreviewCategories) {
         ImGui.textWrapped("Visual preview for ${resource.category.name.lowercase()} resources is planned for the next steps.")
     }
@@ -1157,12 +1258,10 @@ private val AvailablePreviewCategories =
         SkinResourceCategory.AtlasRegion,
         SkinResourceCategory.Texture,
         SkinResourceCategory.Font,
-    )
-
-private val DeferredPreviewCategories =
-    setOf(
         SkinResourceCategory.Color,
     )
+
+private val DeferredPreviewCategories = emptySet<SkinResourceCategory>()
 
 private fun readBuffer(buffer: ByteArray): String {
     val end = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size

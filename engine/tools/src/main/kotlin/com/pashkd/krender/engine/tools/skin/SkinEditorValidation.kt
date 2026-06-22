@@ -189,7 +189,7 @@ class FontValidator : SkinValidator {
                         category = SkinProblemCategory.Font,
                         message =
                             buildString {
-                                append("Bitmap font '${font.name}' has no indexed Ukrainian glyph coverage.")
+                                append("Bitmap font '${font.name}' has no indexed Ukrainian Cyrillic glyph coverage.")
                                 missingGlyphs?.let { append(" Missing: $it") }
                             },
                         source = matchedFile ?: font.source,

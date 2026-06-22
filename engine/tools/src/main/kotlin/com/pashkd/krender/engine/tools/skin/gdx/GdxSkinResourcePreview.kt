@@ -3,17 +3,23 @@ package com.pashkd.krender.engine.tools.skin.gdx
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.math.Matrix4
+import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 import com.pashkd.krender.engine.tools.skin.DefaultFontPreviewSampleText
+import com.pashkd.krender.engine.tools.skin.SkinEditSession
 import com.pashkd.krender.engine.tools.skin.SkinFontPreviewState
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.tools.skin.SkinProject
 import com.pashkd.krender.engine.tools.skin.SkinResourceCategory
 import com.pashkd.krender.engine.tools.skin.SkinResourceIndex
@@ -41,9 +47,14 @@ class GdxSkinResourcePreview(
     private var loadedPreviewFontPath: String? = null
     private var loadedPreviewFont: BitmapFont? = null
     private var previewFontOwned = false
+    private var failedFontLoadKey: String? = null
+    private var fontPreviewBuffer: FrameBuffer? = null
+    private var fontPreviewRenderKey: String? = null
     private var currentInfo: SkinResourceVisualPreviewInfo = SkinResourceVisualPreviewInfo()
     private var currentRegion: ResolvedRegion? = null
-    private var lastFailureKey: String? = null
+    private var currentColor: Color? = null
+    private var lastFontLoadFailure: String? = null
+    private val warnedFailureKeys = mutableSetOf<String>()
 
     init {
         labelFont.color = Color(0.95f, 0.96f, 0.98f, 1f)
@@ -55,12 +66,23 @@ class GdxSkinResourcePreview(
         selectedResource: SkinResourceInfo?,
         previewState: SkinResourceVisualPreviewState,
         loadedSkin: LoadedSkinHandle?,
+        editSession: SkinEditSession,
     ): SkinResourceVisualPreviewInfo {
-        val resolved = resolveResourcePreview(project, resourceIndex, selectedResource, previewState, loadedSkin)
+        val resolved = resolveResourcePreview(project, resourceIndex, selectedResource, previewState, loadedSkin, editSession)
         currentRegion = resolved.region
+        currentColor = resolved.color
         currentInfo =
             when {
                 resolved.kind == SkinResourceVisualPreviewKind.Font -> updateFontPreviewInfo(resolved, previewState.fontPreview)
+                resolved.kind == SkinResourceVisualPreviewKind.Color -> {
+                    unloadTexture()
+                    unloadPreviewFont()
+                    SkinResourceVisualPreviewInfo(
+                        statusMessage = resolved.message,
+                        kind = resolved.kind,
+                        colorValue = resolved.colorValue,
+                    )
+                }
                 resolved.texturePath == null -> {
                     unloadTexture()
                     unloadPreviewFont()
@@ -79,6 +101,14 @@ class GdxSkinResourcePreview(
                         statusMessage = resolved.message,
                         kind = resolved.kind,
                         resolvedTexturePath = resolved.texturePath,
+                        texturePreviewHandle =
+                            texture?.let {
+                                TexturePreviewHandle(
+                                    id = it.textureObjectHandle,
+                                    width = it.width,
+                                    height = it.height,
+                                )
+                            },
                         textureWidth = texture?.width ?: 0,
                         textureHeight = texture?.height ?: 0,
                         atlasPageName = resolved.atlasPageName,
@@ -153,6 +183,7 @@ class GdxSkinResourcePreview(
         when (currentInfo.kind) {
             SkinResourceVisualPreviewKind.Texture -> renderTexturePreview(safeViewportWidth, safeViewportHeight, previewState)
             SkinResourceVisualPreviewKind.Font -> renderFontPreview(safeViewportWidth, safeViewportHeight, previewState.fontPreview)
+            SkinResourceVisualPreviewKind.Color -> renderColorPreview(safeViewportWidth, safeViewportHeight)
             SkinResourceVisualPreviewKind.None -> Unit
         }
 
@@ -167,6 +198,8 @@ class GdxSkinResourcePreview(
     override fun dispose() {
         unloadTexture()
         unloadPreviewFont()
+        fontPreviewBuffer?.dispose()
+        fontPreviewBuffer = null
         batch.dispose()
         shapes.dispose()
         labelFont.dispose()
@@ -178,9 +211,10 @@ class GdxSkinResourcePreview(
         selectedResource: SkinResourceInfo?,
         previewState: SkinResourceVisualPreviewState,
         loadedSkin: LoadedSkinHandle?,
+        editSession: SkinEditSession,
     ): ResolvedPreview {
         if (selectedResource == null) {
-            return ResolvedPreview(message = "Select a texture, atlas, atlas region, or font.")
+            return ResolvedPreview(message = "Select a texture, atlas, atlas region, font, or color.")
         }
         return when (selectedResource.category) {
             SkinResourceCategory.Texture -> {
@@ -257,14 +291,6 @@ class GdxSkinResourcePreview(
             SkinResourceCategory.Font -> {
                 val matchedFontPath = selectedResource.details["matchedFile"]?.takeUnless { it == "<none>" }
                 when {
-                    matchedFontPath != null && selectedResource.details["matchedFileExtension"]?.equals("fnt", ignoreCase = true) == true ->
-                        ResolvedPreview(
-                            kind = SkinResourceVisualPreviewKind.Font,
-                            fontPath = matchedFontPath,
-                            fontPreviewSource = "Matched .fnt file",
-                            message = "Showing BMFont sample for '${selectedResource.name}'.",
-                        )
-
                     loadedSkin?.skin?.has(selectedResource.name, BitmapFont::class.java) == true ->
                         ResolvedPreview(
                             kind = SkinResourceVisualPreviewKind.Font,
@@ -272,6 +298,15 @@ class GdxSkinResourcePreview(
                             fontPreviewSource = "Loaded skin resource",
                             loadedSkin = loadedSkin,
                             message = "Showing loaded skin font sample for '${selectedResource.name}'.",
+                        )
+
+                    matchedFontPath != null && selectedResource.details["matchedFileExtension"]?.equals("fnt", ignoreCase = true) == true ->
+                        ResolvedPreview(
+                            kind = SkinResourceVisualPreviewKind.Font,
+                            fontPath = matchedFontPath,
+                            projectRoot = project?.rootDirectory,
+                            fontPreviewSource = "Matched .fnt file",
+                            message = "Showing BMFont sample for '${selectedResource.name}'.",
                         )
 
                     matchedFontPath != null ->
@@ -292,7 +327,26 @@ class GdxSkinResourcePreview(
                 }
             }
 
-            else -> ResolvedPreview(message = "Visual preview is available for textures, atlas resources, and fonts.")
+            SkinResourceCategory.Color -> {
+                val editable = editSession.resources[selectedResource.key]
+                val values = editable?.values ?: selectedResource.details
+                val parsed = parseColor(values)
+                if (parsed != null) {
+                    ResolvedPreview(
+                        kind = SkinResourceVisualPreviewKind.Color,
+                        color = parsed.first,
+                        colorValue = parsed.second,
+                        message = "Showing color '${selectedResource.name}' from ${if (editable?.modifiedFields?.isNotEmpty() == true) "in-memory edits" else "loaded skin metadata"}.",
+                    )
+                } else {
+                    ResolvedPreview(
+                        kind = SkinResourceVisualPreviewKind.Color,
+                        message = "Color '${selectedResource.name}' has an invalid or unsupported value.",
+                    )
+                }
+            }
+
+            else -> ResolvedPreview(message = "Visual preview is available for textures, atlas resources, fonts, and colors.")
         }
     }
 
@@ -307,16 +361,14 @@ class GdxSkinResourcePreview(
             onSuccess = { texture ->
                 loadedTexture = texture
                 loadedTexturePath = path
-                lastFailureKey = null
                 true
             },
             onFailure = { error ->
                 loadedTexturePath = null
                 loadedTexture = null
                 val failureKey = "$path:${error.message}"
-                if (failureKey != lastFailureKey) {
+                if (warnedFailureKeys.add(failureKey)) {
                     logger.warn(TAG, error) { "Skin resource preview failed to load texture '$path': ${error.message}" }
-                    lastFailureKey = failureKey
                 }
                 false
             },
@@ -336,42 +388,68 @@ class GdxSkinResourcePreview(
         unloadTexture()
         val fontReady =
             when {
-                resolved.fontPath != null -> ensurePreviewFontLoaded(resolved.fontPath)
+                resolved.fontPath != null -> ensurePreviewFontLoaded(resolved.fontPath, resolved.projectRoot)
                 resolved.skinFontName != null -> ensurePreviewFontFromSkin(resolved.skinFontName, resolved.loadedSkin)
                 else -> false
+            }
+        val previewHandle =
+            if (fontReady && renderFontPreviewTexture(fontPreview)) {
+                fontPreviewBuffer?.colorBufferTexture?.let { texture ->
+                    TexturePreviewHandle(
+                        id = texture.textureObjectHandle,
+                        width = texture.width,
+                        height = texture.height,
+                        v0 = 1f,
+                        v1 = 0f,
+                    )
+                }
+            } else {
+                null
             }
         return SkinResourceVisualPreviewInfo(
             statusMessage =
                 if (fontReady) {
                     resolved.message
                 } else {
-                    resolved.message
+                    "Font preview unavailable: ${lastFontLoadFailure ?: resolved.message}"
                 },
             kind = SkinResourceVisualPreviewKind.Font,
+            texturePreviewHandle = previewHandle,
             resolvedFontPath = resolved.fontPath,
             fontPreviewSource = resolved.fontPreviewSource ?: defaultFontPreviewSource(fontReady, resolved, fontPreview),
         )
     }
 
-    private fun ensurePreviewFontLoaded(path: String): Boolean {
+    private fun ensurePreviewFontLoaded(
+        path: String,
+        projectRoot: File?,
+    ): Boolean {
+        val loadKey = "${File(path).absolutePath}:${projectRoot?.absolutePath}"
         if (loadedPreviewFontPath == path && loadedPreviewFont != null) {
             return true
         }
+        if (failedFontLoadKey == loadKey) {
+            return false
+        }
         unloadPreviewFont()
+        val normalizedPath = File(path).absolutePath.replace('\\', '/')
         return runCatching {
-            BitmapFont(Gdx.files.absolute(path), false)
+            loadBitmapFontWithResolvedPages(File(normalizedPath), projectRoot)
         }.fold(
             onSuccess = { font ->
                 loadedPreviewFont = font
                 loadedPreviewFontPath = path
                 previewFontOwned = true
+                lastFontLoadFailure = null
+                failedFontLoadKey = null
                 true
             },
             onFailure = { error ->
                 val failureKey = "font:$path:${error.message}"
-                if (failureKey != lastFailureKey) {
+                lastFontLoadFailure = error.message ?: "Could not load BMFont pages."
+                failedFontLoadKey = loadKey
+                if (warnedFailureKeys.add(failureKey)) {
                     logger.warn(TAG, error) { "Skin resource preview failed to load font '$path': ${error.message}" }
-                    lastFailureKey = failureKey
                 }
                 false
             },
@@ -392,13 +470,14 @@ class GdxSkinResourcePreview(
                 loadedPreviewFont = bitmapFont
                 loadedPreviewFontPath = "skin:$fontName"
                 previewFontOwned = false
+                lastFontLoadFailure = null
                 true
             },
             onFailure = { error ->
                 val failureKey = "skin-font:$fontName:${error.message}"
-                if (failureKey != lastFailureKey) {
+                lastFontLoadFailure = error.message ?: "Could not resolve skin font."
+                if (warnedFailureKeys.add(failureKey)) {
                     logger.warn(TAG, error) { "Skin resource preview failed to resolve skin font '$fontName': ${error.message}" }
-                    lastFailureKey = failureKey
                 }
                 false
             },
@@ -412,6 +491,59 @@ class GdxSkinResourcePreview(
         loadedPreviewFont = null
         loadedPreviewFontPath = null
         previewFontOwned = false
+        fontPreviewRenderKey = null
+    }
+
+    private fun renderFontPreviewTexture(fontPreview: SkinFontPreviewState): Boolean {
+        val previewFont = loadedPreviewFont ?: return false
+        val sampleText = buildFontSample(fontPreview)
+        val renderKey =
+            "${loadedPreviewFontPath}:${fontPreview.fontScale}:${fontPreview.showUkrainianSample}:" +
+                "${fontPreview.showAsciiSample}:$sampleText"
+        if (fontPreviewRenderKey == renderKey && fontPreviewBuffer != null) return true
+
+        val buffer =
+            fontPreviewBuffer
+                ?: FrameBuffer(Pixmap.Format.RGBA8888, FontPreviewTextureWidth, FontPreviewTextureHeight, false)
+                    .also { fontPreviewBuffer = it }
+        val oldScaleX = previewFont.data.scaleX
+        val oldScaleY = previewFont.data.scaleY
+        val oldColor = Color(previewFont.color)
+        val previousViewport = BufferUtils.newIntBuffer(4)
+        Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, previousViewport)
+        var beganBuffer = false
+        return runCatching {
+            buffer.begin()
+            beganBuffer = true
+            Gdx.gl.glClearColor(0.055f, 0.06f, 0.07f, 1f)
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+            previewMatrix.setToOrtho2D(0f, 0f, FontPreviewTextureWidth.toFloat(), FontPreviewTextureHeight.toFloat())
+            previewFont.data.setScale(fontPreview.fontScale)
+            previewFont.color = Color.WHITE
+            glyphLayout.setText(
+                previewFont,
+                sampleText,
+                Color.WHITE,
+                FontPreviewTextureWidth - FontPreviewPadding * 2f,
+                1,
+                true,
+            )
+            batch.projectionMatrix = previewMatrix
+            batch.begin()
+            previewFont.draw(batch, glyphLayout, FontPreviewPadding, FontPreviewTextureHeight - FontPreviewPadding)
+            batch.end()
+            buffer.end()
+            beganBuffer = false
+            fontPreviewRenderKey = renderKey
+            true
+        }.getOrElse {
+            if (beganBuffer) buffer.end()
+            false
+        }.also {
+            previewFont.data.setScale(oldScaleX, oldScaleY)
+            previewFont.color = oldColor
+            Gdx.gl.glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3])
+        }
     }
 
     private fun computeScale(
@@ -506,6 +638,95 @@ class GdxSkinResourcePreview(
         previewFont.color = oldColor
     }
 
+    private fun renderColorPreview(
+        safeViewportWidth: Int,
+        safeViewportHeight: Int,
+    ) {
+        val color = currentColor ?: return
+        val padding = 24f
+        val width = (safeViewportWidth - padding * 2f).coerceAtLeast(1f)
+        val height = (safeViewportHeight - padding * 2f).coerceAtLeast(1f)
+        shapes.projectionMatrix = previewMatrix
+        shapes.begin(ShapeRenderer.ShapeType.Filled)
+        shapes.color = Color(0.18f, 0.19f, 0.22f, 1f)
+        shapes.rect(padding - 4f, padding - 4f, width + 8f, height + 8f)
+        shapes.color = color
+        shapes.rect(padding, padding, width, height)
+        shapes.end()
+    }
+
+    private fun loadBitmapFontWithResolvedPages(
+        fontFile: File,
+        projectRoot: File?,
+    ): BitmapFont {
+        val fontHandle = Gdx.files.absolute(fontFile.absolutePath.replace('\\', '/'))
+        val data = BitmapFont.BitmapFontData(fontHandle, false)
+        val pageNames =
+            parseFontPageNames(fontFile)
+                .takeIf(List<String>::isNotEmpty)
+                ?: data.imagePaths
+                    ?.map { imagePath -> File(imagePath).name }
+                    ?.takeIf(List<String>::isNotEmpty)
+                ?: emptyList()
+        require(pageNames.isNotEmpty()) { "No page images declared in ${fontFile.name}." }
+        val textures = mutableListOf<Texture>()
+        return try {
+            val regions = Array<TextureRegion>()
+            pageNames.forEach { pageName ->
+                val pageFile =
+                    resolveFontPageFile(fontFile, projectRoot, pageName)
+                        ?: error("Could not resolve BMFont page '$pageName' for ${fontFile.name}.")
+                val texture = Texture(Gdx.files.absolute(pageFile.absolutePath.replace('\\', '/')))
+                textures += texture
+                regions.add(TextureRegion(texture))
+            }
+            BitmapFont(data, regions, true)
+        } catch (error: Exception) {
+            textures.forEach(Texture::dispose)
+            throw error
+        }
+    }
+
+    private fun parseFontPageNames(fontFile: File): List<String> =
+        fontFile.readLines()
+            .mapNotNull { line -> FontPageRegex.find(line)?.groupValues?.getOrNull(1) }
+
+    private fun resolveFontPageFile(
+        fontFile: File,
+        projectRoot: File?,
+        pageName: String,
+    ): File? {
+        val normalizedPage = pageName.replace('\\', '/')
+        val pageFile = File(normalizedPage)
+        val candidates =
+            buildList {
+                if (pageFile.isAbsolute) add(pageFile)
+                fontFile.parentFile?.let { parent -> add(File(parent, normalizedPage)) }
+                projectRoot?.let { root -> add(File(root, normalizedPage)) }
+                projectRoot?.let { root -> add(File(root, pageFile.name)) }
+            }
+        return candidates.firstOrNull { candidate -> candidate.isFile }
+    }
+
+    private fun parseColor(values: Map<String, String>): Pair<Color, String>? {
+        val hex = values["value"] ?: values["hex"]
+        if (hex != null) {
+            val normalized = hex.removePrefix("#")
+            if (normalized.length !in setOf(6, 8) || normalized.any { character -> !character.isDigit() && character.lowercaseChar() !in 'a'..'f' }) {
+                return null
+            }
+            return runCatching { Color.valueOf(if (normalized.length == 6) normalized + "ff" else normalized) }
+                .getOrNull()
+                ?.let { color -> color to "#${normalized.uppercase()}" }
+        }
+        val red = values["r"]?.toFloatOrNull() ?: return null
+        val green = values["g"]?.toFloatOrNull() ?: return null
+        val blue = values["b"]?.toFloatOrNull() ?: return null
+        val alpha = values["a"]?.toFloatOrNull() ?: 1f
+        if (listOf(red, green, blue, alpha).any { channel -> channel !in 0f..1f }) return null
+        return Color(red, green, blue, alpha) to "r=$red g=$green b=$blue a=$alpha"
+    }
+
     private fun buildFontSample(fontPreview: SkinFontPreviewState): String {
         val lines = fontPreview.sampleText.ifBlank { DefaultFontPreviewSampleText }.lineSequence().toMutableList()
         return lines
@@ -573,6 +794,9 @@ class GdxSkinResourcePreview(
         val skinFontName: String? = null,
         val fontPreviewSource: String? = null,
         val loadedSkin: LoadedSkinHandle? = null,
+        val projectRoot: File? = null,
+        val color: Color? = null,
+        val colorValue: String? = null,
         val message: String,
     )
 
@@ -593,5 +817,9 @@ class GdxSkinResourcePreview(
 
     private companion object {
         private const val TAG = "GdxSkinResourcePreview"
+        private const val FontPreviewTextureWidth = 640
+        private const val FontPreviewTextureHeight = 260
+        private const val FontPreviewPadding = 16f
+        private val FontPageRegex = Regex("""^\s*page\s+.*file="([^"]+)"""")
     }
 }

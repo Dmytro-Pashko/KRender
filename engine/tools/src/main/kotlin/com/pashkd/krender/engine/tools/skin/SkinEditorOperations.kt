@@ -13,6 +13,10 @@ class SkinEditorOperations(
         state.reloadRequested = true
     }
 
+    fun requestExit() {
+        engine.requestExit()
+    }
+
     fun openPath(path: String) {
         state.currentInputPath = path.trim().replace('\\', '/').ifBlank { null }
         state.pendingPathInput = state.currentInputPath.orEmpty()
@@ -301,36 +305,19 @@ class SkinEditorOperations(
         updatePreviewStatus(if (showWarnings) "Fallback warnings shown in Problems." else "Fallback warnings hidden in Problems.")
     }
 
-    fun resetPreviewScale() {
-        state.previewSettings.scale = 1f
-        updatePreviewStatus("Preview scale reset to 100%.")
+    fun setPreviewLabelText(value: String) {
+        state.previewSettings.text.labelText = value
+        updatePreviewStatus("Preview label text updated.")
     }
 
-    fun resetPreviewScreenPreset() {
-        val preset = SkinPreviewScreenPresets.presetOrDefault(SkinPreviewScreenPresets.DesktopId)
-        state.previewSettings.screenPresetId = preset.id
-        updatePreviewStatus("Preview screen reset to ${preset.displayName}.")
+    fun setPreviewButtonText(value: String) {
+        state.previewSettings.text.buttonText = value
+        updatePreviewStatus("Preview button text updated.")
     }
 
-    fun resetPreviewLayout() {
-        state.previewLayoutId = DefaultWidgetPreviewLayout.Id
-        updatePreviewStatus("Preview layout reset to '${DefaultWidgetPreviewLayout.Id}'.")
-    }
-
-    fun resetPreviewSettings() {
-        state.previewSettings = SkinPreviewSettings()
-        state.previewLayoutId = DefaultWidgetPreviewLayout.Id
-        updatePreviewStatus("Preview settings reset.")
-    }
-
-    fun previewSelectedStyle() {
-        val selectedStyle = state.selectedStyleKey
-        if (selectedStyle == null) {
-            state.statusMessage = "Select a style before using selected-style preview."
-            return
-        }
-        state.previewLayoutId = SelectedStylePreviewLayout.Id
-        updatePreviewStatus("Previewing selected style '${selectedStyle.type}.${selectedStyle.name}'.")
+    fun setPreviewTextFieldPlaceholder(value: String) {
+        state.previewSettings.text.textFieldPlaceholder = value
+        updatePreviewStatus("Preview text field placeholder updated.")
     }
 
     fun setResourcePreviewZoomMode(zoomMode: SkinResourceVisualPreviewZoomMode) {
@@ -372,7 +359,7 @@ class SkinEditorOperations(
 
     fun setShowUkrainianFontSample(show: Boolean) {
         state.resourceVisualPreview.fontPreview.showUkrainianSample = show
-        state.statusMessage = if (show) "Ukrainian font sample enabled." else "Ukrainian font sample hidden."
+        state.statusMessage = if (show) "Cyrillic font sample enabled." else "Cyrillic font sample hidden."
     }
 
     fun setShowAsciiFontSample(show: Boolean) {
