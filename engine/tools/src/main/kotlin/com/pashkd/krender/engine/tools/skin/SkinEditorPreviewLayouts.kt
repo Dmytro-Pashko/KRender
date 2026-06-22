@@ -129,7 +129,7 @@ class StressPreviewLayout : PreviewLayout {
 }
 
 class SelectedStylePreviewLayout : PreviewLayout {
-    override val id: String = "selected_style"
+    override val id: String = Id
     override val displayName: String = "Selected Style"
 
     override fun build(
@@ -217,5 +217,9 @@ class SelectedStylePreviewLayout : PreviewLayout {
                 listOf(factory.label("selected_style_title", "${selected.type}.${selected.name}")) +
                     children,
         )
+    }
+
+    companion object {
+        const val Id = "selected_style"
     }
 }

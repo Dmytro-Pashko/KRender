@@ -254,6 +254,8 @@ class SkinEditorPreviewCanvasPanel(
         ImGui.textUnformatted("Scene2D preview")
         ImGui.sameLine()
         ImGui.textUnformatted("Actors: ${state.previewInfo.actorCount}")
+        ImGui.sameLine()
+        ImGui.textUnformatted("${previewPresetLabel(state)} @ ${formatPreviewScale(state.previewInfo.scale)}")
         ImGui.separator()
 
         val min = ImGui.cursorScreenPos
@@ -441,7 +443,7 @@ class SkinEditorPreviewControlsPanel(
             return
         }
 
-        ImGui.textWrapped("Preview layouts stay predefined for now. This panel establishes the future layout/parameter workspace without introducing editing yet.")
+        ImGui.textWrapped("Preview layouts stay predefined for now. This panel keeps the workflow read-only while making Scene2D preview switching faster.")
         if (ImGui.beginCombo("Layout##skin_editor_preview_layout", previewLayouts.layoutOrDefault(state.previewLayoutId).displayName)) {
             previewLayouts.layouts.forEach { layoutOption ->
                 if (ImGui.selectable("${layoutOption.displayName}##skin_editor_preview_layout_${layoutOption.id}", layoutOption.id == state.previewLayoutId)) {
@@ -449,6 +451,12 @@ class SkinEditorPreviewControlsPanel(
                 }
             }
             ImGui.endCombo()
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Reset##skin_editor_preview_layout_reset") {
+                operations.resetPreviewLayout()
+            }
         }
         val selectedPreset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
         val presetLabel = "${selectedPreset.displayName} (${selectedPreset.width} x ${selectedPreset.height})"
@@ -461,6 +469,13 @@ class SkinEditorPreviewControlsPanel(
             }
             ImGui.endCombo()
         }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Desktop##skin_editor_preview_screen_reset") {
+                operations.resetPreviewScreenPreset()
+            }
+        }
+        ImGui.textWrapped("Fixed screen presets preserve aspect ratio and may letterbox inside the preview canvas.")
         val selectedScale = PreviewScales.minBy { scale -> kotlin.math.abs(scale - state.previewSettings.scale) }
         if (ImGui.beginCombo("Scale##skin_editor_preview_scale", formatPreviewScale(selectedScale))) {
             PreviewScales.forEach { scale ->
@@ -470,6 +485,12 @@ class SkinEditorPreviewControlsPanel(
             }
             ImGui.endCombo()
         }
+        ImGui.sameLine()
+        with(dsl) {
+            button("100%##skin_editor_preview_scale_reset") {
+                operations.resetPreviewScale()
+            }
+        }
         val showBounds = booleanArrayOf(state.previewSettings.showBounds)
         if (ImGui.checkbox("Show bounds##skin_editor_preview_bounds", showBounds)) {
             operations.setShowBounds(showBounds[0])
@@ -478,13 +499,37 @@ class SkinEditorPreviewControlsPanel(
         if (ImGui.checkbox("Show fallback warnings##skin_editor_preview_warnings", showFallbackWarnings)) {
             operations.setShowFallbackWarnings(showFallbackWarnings[0])
         }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Reset all##skin_editor_preview_reset_all") {
+                operations.resetPreviewSettings()
+            }
+        }
+        ImGui.separator()
+        with(dsl) {
+            button("Preview selected style##skin_editor_preview_selected_style") {
+                operations.previewSelectedStyle()
+            }
+        }
+        val selectedStyle = state.selectedStyleKey
+        if (selectedStyle != null && state.previewLayoutId != SelectedStylePreviewLayout.Id) {
+            ImGui.textWrapped("Selected style can be previewed using \"Preview selected style\".")
+        }
         ImGui.separator()
         ImGui.textUnformatted("Loaded skin: ${if (state.loadResult.previewSkinAvailable) "yes" else "no"}")
+        ImGui.textUnformatted("Layout: ${previewLayouts.layoutOrDefault(state.previewInfo.layoutId ?: state.previewLayoutId).displayName} (${state.previewInfo.layoutId ?: state.previewLayoutId})")
+        ImGui.textUnformatted("Logical screen: ${state.previewInfo.logicalWidth} x ${state.previewInfo.logicalHeight}")
+        ImGui.textUnformatted("Scale: ${formatPreviewScale(state.previewInfo.scale)}")
         ImGui.textUnformatted("Root actor: ${state.previewInfo.rootActorClass ?: "<none>"}")
-        ImGui.textUnformatted("Selected style: ${state.selectedStyleKey?.let { "${it.type}.${it.name}" } ?: "<none>"}")
-        ImGui.textUnformatted("Selected resource: ${state.selectedResourceKey?.let { "${it.category}.${it.name}" } ?: "<none>"}")
+        ImGui.textUnformatted("Actor count: ${state.previewInfo.actorCount}")
+        ImGui.textUnformatted("Fallback issues: ${state.previewInfo.fallbackIssueCount}")
+        if (!state.previewSettings.showFallbackWarnings && state.previewInfo.fallbackIssueCount > 0) {
+            ImGui.textWrapped("Fallback warnings hidden. Preview may use fallback widgets.")
+        }
+        ImGui.textUnformatted("Selected style: ${selectedStyle?.let { "${it.type}.${it.name}" } ?: "<none>"}")
+        ImGui.textUnformatted("Selected resource: ${selectedResourceSummary(state) ?: "<none>"}")
+        drawSelectedResourcePreviewHint(state)
         ImGui.textUnformatted("Canvas: ${state.canvasRect.width.toInt()} x ${state.canvasRect.height.toInt()}")
-        ImGui.textUnformatted("Logical screen: ${selectedPreset.width} x ${selectedPreset.height}")
         ImGui.end()
     }
 }
@@ -493,6 +538,31 @@ private val PreviewScales = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f)
 private const val MaxInspectorAtlasRegions = 100
 
 private fun formatPreviewScale(scale: Float): String = "${(scale * 100f).toInt()}%"
+
+private fun previewPresetLabel(state: SkinEditorState): String = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId).displayName
+
+private fun selectedResourceSummary(state: SkinEditorState): String? =
+    state.selectedResourceKey?.let { key ->
+        val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == key }
+            ?: return@let "${key.category}.${key.name}"
+        "${resource.category}.${resource.name}${if (resource.resolved) "" else " (missing)"}"
+    }
+
+private fun drawSelectedResourcePreviewHint(state: SkinEditorState) {
+    val selectedResourceKey = state.selectedResourceKey ?: return
+    val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == selectedResourceKey } ?: return
+    if (resource.category in PreviewHintCategories) {
+        ImGui.textWrapped("Visual preview for ${resource.category.name.lowercase()} resources is planned for the next steps.")
+    }
+}
+
+private val PreviewHintCategories =
+    setOf(
+        SkinResourceCategory.AtlasRegion,
+        SkinResourceCategory.Texture,
+        SkinResourceCategory.Font,
+        SkinResourceCategory.Color,
+    )
 
 private fun readBuffer(buffer: ByteArray): String {
     val end = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size

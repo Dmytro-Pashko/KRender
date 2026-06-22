@@ -187,6 +187,11 @@ enum class PreviewWidgetKind {
 data class SkinEditorPreviewStageInfo(
     val actorCount: Int = 0,
     val rootActorClass: String? = null,
+    val layoutId: String? = null,
+    val logicalWidth: Int = 0,
+    val logicalHeight: Int = 0,
+    val scale: Float = 1f,
+    val fallbackIssueCount: Int = 0,
 )
 
 data class SkinPreviewSettings(

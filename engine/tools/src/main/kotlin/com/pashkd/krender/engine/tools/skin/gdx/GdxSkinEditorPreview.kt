@@ -61,7 +61,7 @@ class GdxSkinEditorPreview(
         centerActor(root)
         logger.debug(TAG) { "Skin preview rebuilt layout='${layout.id}' loadedSkin=${loadResult.previewSkinAvailable} issues=${buildResult.issues.size}" }
         return GdxSkinPreviewBuildResult(
-            previewInfo = SkinEditorPreviewStageInfo(actorCount = stage.root.children.size, rootActorClass = root.javaClass.simpleName),
+            previewInfo = SkinEditorPreviewStageInfo(actorCount = actorCount(root), rootActorClass = root.javaClass.simpleName),
             issues = buildResult.issues,
         )
     }
@@ -115,16 +115,23 @@ class GdxSkinEditorPreview(
     fun render() {
         if (viewportWidth <= 1 || viewportHeight <= 1) return
 
+        val graphicsWidth = Gdx.graphics.width.coerceAtLeast(1)
+        val graphicsHeight = Gdx.graphics.height.coerceAtLeast(1)
+        val safeViewportX = viewportX.coerceIn(0, graphicsWidth - 1)
+        val safeViewportY = viewportY.coerceIn(0, graphicsHeight - 1)
+        val safeViewportWidth = viewportWidth.coerceAtMost(graphicsWidth - safeViewportX).coerceAtLeast(1)
+        val safeViewportHeight = viewportHeight.coerceAtMost(graphicsHeight - safeViewportY).coerceAtLeast(1)
+
         val previousViewport = BufferUtils.newIntBuffer(4)
         val previousScissor = BufferUtils.newIntBuffer(4)
         Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, previousViewport)
         Gdx.gl.glGetIntegerv(GL20.GL_SCISSOR_BOX, previousScissor)
         val scissorWasEnabled = Gdx.gl.glIsEnabled(GL20.GL_SCISSOR_TEST)
-        val glY = Gdx.graphics.height - viewportY - viewportHeight
+        val glY = (graphicsHeight - safeViewportY - safeViewportHeight).coerceAtLeast(0)
 
-        Gdx.gl.glViewport(viewportX, glY, viewportWidth, viewportHeight)
+        Gdx.gl.glViewport(safeViewportX, glY, safeViewportWidth, safeViewportHeight)
         Gdx.gl.glEnable(GL20.GL_SCISSOR_TEST)
-        Gdx.gl.glScissor(viewportX, glY, viewportWidth, viewportHeight)
+        Gdx.gl.glScissor(safeViewportX, glY, safeViewportWidth, safeViewportHeight)
         Gdx.gl.glClearColor(0.07f, 0.075f, 0.09f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
         Gdx.gl.glDisable(GL20.GL_DEPTH_TEST)
@@ -132,8 +139,8 @@ class GdxSkinEditorPreview(
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         val contentWidth = stage.viewport.screenWidth.coerceAtLeast(1)
         val contentHeight = stage.viewport.screenHeight.coerceAtLeast(1)
-        val contentX = viewportX + (viewportWidth - contentWidth) / 2
-        val contentY = glY + (viewportHeight - contentHeight) / 2
+        val contentX = safeViewportX + (safeViewportWidth - contentWidth) / 2
+        val contentY = glY + (safeViewportHeight - contentHeight) / 2
         stage.viewport.setScreenBounds(contentX, contentY, contentWidth, contentHeight)
         stage.viewport.apply(false)
         stage.draw()
@@ -156,6 +163,11 @@ class GdxSkinEditorPreview(
             ((logicalWidth - actor.width) / 2f).coerceAtLeast(0f),
             ((logicalHeight - actor.height) / 2f).coerceAtLeast(0f),
         )
+    }
+
+    private fun actorCount(actor: com.badlogic.gdx.scenes.scene2d.Actor): Int {
+        val group = actor as? com.badlogic.gdx.scenes.scene2d.Group ?: return 1
+        return 1 + group.children.sumOf(::actorCount)
     }
 
     private companion object {

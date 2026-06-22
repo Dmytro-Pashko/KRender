@@ -219,6 +219,7 @@ private class SkinEditorPreviewUpdateSystem(
         }
         if (state.previewDirty) {
             val layout = previewLayouts.layoutOrDefault(state.previewLayoutId)
+            val preset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
             try {
                 val buildResult =
                     preview.rebuild(
@@ -228,7 +229,14 @@ private class SkinEditorPreviewUpdateSystem(
                         selectedStyleKey = state.selectedStyleKey,
                         selectedResourceName = state.selectedResourceKey?.name,
                     )
-                state.previewInfo = buildResult.previewInfo
+                state.previewInfo =
+                    buildResult.previewInfo.copy(
+                        layoutId = layout.id,
+                        logicalWidth = preset.width,
+                        logicalHeight = preset.height,
+                        scale = state.previewSettings.scale,
+                        fallbackIssueCount = buildResult.issues.size,
+                    )
                 replacePreviewProblems(
                     if (state.previewSettings.showFallbackWarnings) {
                         buildResult.issues.map { issue ->
@@ -244,7 +252,13 @@ private class SkinEditorPreviewUpdateSystem(
                 )
             } catch (error: Exception) {
                 preview.clear()
-                state.previewInfo = SkinEditorPreviewStageInfo()
+                state.previewInfo =
+                    SkinEditorPreviewStageInfo(
+                        layoutId = layout.id,
+                        logicalWidth = preset.width,
+                        logicalHeight = preset.height,
+                        scale = state.previewSettings.scale,
+                    )
                 replacePreviewProblems(
                     listOf(
                         SkinProblem(
