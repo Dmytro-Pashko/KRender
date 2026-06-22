@@ -201,10 +201,13 @@ class SkinEditorResourceBrowserPanel(
 
 class SkinEditorProblemsPanel(
     private val state: SkinEditorState,
+    private val operations: SkinEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val queryBuffer = ByteArray(256)
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.Problems)
         val expanded = beginImGuiPanel(SkinEditorPanelIds.Problems, layout, layoutTracker)
@@ -214,20 +217,89 @@ class SkinEditorProblemsPanel(
             return
         }
 
+        drawFilters()
         if (state.loadResult.problems.isEmpty()) {
             ImGui.textUnformatted("No problems reported.")
         } else {
-            state.loadResult.problems.forEachIndexed { index, problem ->
-                val source = problem.source?.let { " [$it]" }.orEmpty()
+            val filteredProblems =
+                state.loadResult.problems
+                    .withIndex()
+                    .filter { indexedProblem -> matchesFilters(indexedProblem.value) }
+            ImGui.textUnformatted("Showing ${filteredProblems.size} of ${state.loadResult.problems.size}")
+            filteredProblems.forEach { (index, problem) ->
+                val source = problem.source?.shortSource()?.let { " [$it]" }.orEmpty()
                 val label = "[${problem.severity}][${problem.category}] ${problem.message}$source"
-                if (ImGui.selectable("$label##skin_editor_problem_$index", state.selectedProblemIndex == index)) {
-                    state.selectedProblemIndex = index
-                    state.selectedStyleKey = null
-                    state.selectedResourceKey = null
+                if (ImGui.selectable("${label.toAsciiSafeText()}##skin_editor_problem_$index", state.selectedProblemIndex == index)) {
+                    operations.selectProblem(index, problem)
                 }
             }
         }
         ImGui.end()
+    }
+
+    private fun drawFilters() {
+        if (readBuffer(queryBuffer) != state.problemFilters.query) {
+            writeBuffer(queryBuffer, state.problemFilters.query)
+        }
+        ImGui.setNextItemWidth(-1f)
+        if (ImGui.inputText("Search##skin_editor_problem_search", queryBuffer)) {
+            state.problemFilters.query = readBuffer(queryBuffer)
+        }
+
+        val severityLabel = state.problemFilters.severity?.name ?: "All severities"
+        if (ImGui.beginCombo("Severity##skin_editor_problem_severity", severityLabel)) {
+            if (ImGui.selectable("All severities##skin_editor_problem_severity_all", state.problemFilters.severity == null)) {
+                state.problemFilters.severity = null
+            }
+            SkinProblemSeverity.entries.forEach { severity ->
+                if (ImGui.selectable("${severity.name}##skin_editor_problem_severity_$severity", state.problemFilters.severity == severity)) {
+                    state.problemFilters.severity = severity
+                }
+            }
+            ImGui.endCombo()
+        }
+
+        val categoryLabel = state.problemFilters.category?.name ?: "All categories"
+        if (ImGui.beginCombo("Category##skin_editor_problem_category", categoryLabel)) {
+            if (ImGui.selectable("All categories##skin_editor_problem_category_all", state.problemFilters.category == null)) {
+                state.problemFilters.category = null
+            }
+            SkinProblemCategory.entries.forEach { category ->
+                if (ImGui.selectable("${category.name}##skin_editor_problem_category_$category", state.problemFilters.category == category)) {
+                    state.problemFilters.category = category
+                }
+            }
+            ImGui.endCombo()
+        }
+
+        val showErrors = booleanArrayOf(state.problemFilters.showErrors)
+        if (ImGui.checkbox("Error##skin_editor_problem_show_error", showErrors)) {
+            state.problemFilters.showErrors = showErrors[0]
+        }
+        ImGui.sameLine()
+        val showWarnings = booleanArrayOf(state.problemFilters.showWarnings)
+        if (ImGui.checkbox("Warning##skin_editor_problem_show_warning", showWarnings)) {
+            state.problemFilters.showWarnings = showWarnings[0]
+        }
+        ImGui.sameLine()
+        val showInfo = booleanArrayOf(state.problemFilters.showInfo)
+        if (ImGui.checkbox("Info##skin_editor_problem_show_info", showInfo)) {
+            state.problemFilters.showInfo = showInfo[0]
+        }
+        ImGui.separator()
+    }
+
+    private fun matchesFilters(problem: SkinProblem): Boolean {
+        val filters = state.problemFilters
+        if (filters.severity != null && problem.severity != filters.severity) return false
+        if (filters.category != null && problem.category != filters.category) return false
+        if (problem.severity == SkinProblemSeverity.Error && !filters.showErrors) return false
+        if (problem.severity == SkinProblemSeverity.Warning && !filters.showWarnings) return false
+        if (problem.severity == SkinProblemSeverity.Info && !filters.showInfo) return false
+        val query = filters.query.trim()
+        if (query.isEmpty()) return true
+        return sequenceOf(problem.message, problem.source.orEmpty(), problem.suggestedFix.orEmpty())
+            .any { value -> value.contains(query, ignoreCase = true) }
     }
 }
 
@@ -276,8 +348,6 @@ class SkinEditorResourcePreviewPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    private val sampleBuffer = ByteArray(1024)
-
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.ResourcePreview)
         ImGui.setNextWindowBgAlpha(0f)
@@ -381,12 +451,7 @@ class SkinEditorResourcePreviewPanel(
         if (ImGui.checkbox("Show ASCII##skin_editor_font_preview_ascii", showAscii)) {
             operations.setShowAsciiFontSample(showAscii[0])
         }
-        if (readBuffer(sampleBuffer) != fontPreview.sampleText) {
-            writeBuffer(sampleBuffer, fontPreview.sampleText)
-        }
-        if (ImGui.inputTextMultiline("Sample##skin_editor_font_preview_sample", sampleBuffer, ImVec2(-1f, 88f))) {
-            operations.setFontPreviewSampleText(readBuffer(sampleBuffer))
-        }
+        ImGui.textWrapped("Sample text uses the built-in preview block plus the toggles above for Ukrainian and ASCII coverage checks.")
     }
 
     private fun drawAtlasRegionSelector(resource: SkinResourceInfo) {
@@ -440,6 +505,14 @@ class SkinEditorInspectorPanel(
         val problem = state.selectedProblemIndex?.let(state.loadResult.problems::getOrNull)
 
         when {
+            problem != null -> {
+                drawProblemInspector(
+                    problem = problem,
+                    linkedStyle = state.loadResult.styleIndex.styles.firstOrNull { it.key == problem.styleKey },
+                    linkedResource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == problem.resourceKey },
+                )
+            }
+
             style != null -> {
                 ImGui.textUnformatted("Style: ${style.name}")
                 ImGui.textUnformatted("Type: ${style.type}")
@@ -470,19 +543,46 @@ class SkinEditorInspectorPanel(
                 drawResourceInspector(resource, state.loadResult.resourceIndex, state.loadResult.previewSkinAvailable)
             }
 
-            problem != null -> {
-                ImGui.textUnformatted("Severity: ${problem.severity}")
-                ImGui.textUnformatted("Category: ${problem.category}")
-                ImGui.textWrapped(problem.message)
-                problem.source?.let { ImGui.textWrapped("Source: $it") }
-                problem.suggestedFix?.let { ImGui.textWrapped("Suggested fix: $it") }
-            }
-
             else -> {
                 ImGui.textWrapped("Select a style, resource, or problem to inspect the current skin foundation.")
             }
         }
         ImGui.end()
+    }
+}
+
+private fun drawProblemInspector(
+    problem: SkinProblem,
+    linkedStyle: StyleInfo?,
+    linkedResource: SkinResourceInfo?,
+) {
+    ImGui.textUnformatted("Problem")
+    ImGui.textUnformatted("Severity: ${problem.severity}")
+    ImGui.textUnformatted("Category: ${problem.category}")
+    safeTextWrapped(problem.message)
+    problem.source?.let { source -> safeTextWrapped("Source: $source") }
+    problem.suggestedFix?.let { suggestedFix -> safeTextWrapped("Suggested fix: $suggestedFix") }
+
+    problem.styleKey?.let { styleKey ->
+        ImGui.separator()
+        ImGui.textUnformatted("Linked style")
+        ImGui.textUnformatted("${styleKey.type}.${styleKey.name}")
+        linkedStyle?.let { style ->
+            ImGui.textUnformatted("Fields: ${style.rawFieldCount}")
+            ImGui.textUnformatted("Resource references: ${style.resourceReferences.size}")
+        }
+    }
+    problem.resourceKey?.let { resourceKey ->
+        ImGui.separator()
+        ImGui.textUnformatted("Linked resource")
+        ImGui.textUnformatted("${resourceKey.category}.${resourceKey.name}")
+        if (linkedResource != null) {
+            ImGui.textUnformatted("Type: ${linkedResource.type}")
+            ImGui.textUnformatted("Resolved: ${if (linkedResource.resolved) "yes" else "no"}")
+            linkedResource.source?.let { source -> safeTextWrapped("Source: $source") }
+        } else {
+            ImGui.textUnformatted("Resource is unresolved or no longer indexed.")
+        }
     }
 }
 
@@ -546,6 +646,7 @@ private fun drawResourceInspector(
                 "asciiGlyphCoverage",
                 "ukrainianGlyphCoverage",
                 "missingUkrainianGlyphs",
+                "missingUkrainianGlyphCount",
                 "fntReadable",
             ).forEach { field -> drawDetail(resource, field) }
         }
@@ -593,12 +694,12 @@ private fun drawResourceInspector(
 
     ImGui.separator()
     ImGui.textUnformatted("Referenced by: ${resource.referencedBy.size}")
-    resource.referencedBy.forEach { reference -> ImGui.textWrapped(reference) }
+    resource.referencedBy.forEach(::safeTextWrapped)
     if (resource.details.isNotEmpty()) {
         ImGui.separator()
         ImGui.textUnformatted("All metadata")
         resource.details.toSortedMap().forEach { (name, value) ->
-            ImGui.textWrapped("$name: $value")
+            safeTextWrapped("$name: $value")
         }
     }
 }
@@ -607,7 +708,7 @@ private fun drawDetail(
     resource: SkinResourceInfo,
     name: String,
 ) {
-    resource.details[name]?.let { value -> ImGui.textWrapped("$name: $value") }
+    resource.details[name]?.let { value -> safeTextWrapped("$name: $value") }
 }
 
 class SkinEditorPreviewControlsPanel(
@@ -776,4 +877,26 @@ private fun writeBuffer(
     buffer.fill(0)
     val bytes = value.toByteArray(StandardCharsets.UTF_8)
     bytes.copyInto(buffer, endIndex = bytes.size.coerceAtMost(buffer.size - 1))
+}
+
+private fun safeTextWrapped(value: String) {
+    ImGui.textWrapped(value.toAsciiSafeText())
+}
+
+private fun String.toAsciiSafeText(): String =
+    buildString(length) {
+        for (character in this@toAsciiSafeText) {
+            when {
+                character == '\n' || character == '\r' || character == '\t' -> append(character)
+                character.code in 32..126 -> append(character)
+                else -> append("\\u").append(character.code.toString(16).uppercase().padStart(4, '0'))
+            }
+        }
+    }
+
+private fun String.shortSource(): String {
+    val normalized = substringBefore('#')
+    val suffix = substringAfter('#', missingDelimiterValue = "")
+    val fileName = File(normalized).name.ifBlank { normalized }
+    return if (suffix.isBlank()) fileName else "$fileName#$suffix"
 }

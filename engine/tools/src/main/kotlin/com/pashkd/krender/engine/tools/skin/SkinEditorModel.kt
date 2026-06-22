@@ -91,6 +91,15 @@ data class SkinResourceBrowserState(
     var showOnlyReferenced: Boolean = false,
 )
 
+data class SkinProblemFilterState(
+    var query: String = "",
+    var severity: SkinProblemSeverity? = null,
+    var category: SkinProblemCategory? = null,
+    var showInfo: Boolean = true,
+    var showWarnings: Boolean = true,
+    var showErrors: Boolean = true,
+)
+
 enum class SkinResourceVisualPreviewZoomMode {
     Fit,
     Percent50,
@@ -169,6 +178,7 @@ enum class SkinProblemCategory {
     Loading,
     Atlas,
     Font,
+    Color,
     Drawable,
     Style,
     Resource,
@@ -181,6 +191,8 @@ data class SkinProblem(
     val message: String,
     val source: String? = null,
     val suggestedFix: String? = null,
+    val styleKey: StyleKey? = null,
+    val resourceKey: SkinResourceKey? = null,
 )
 
 data class SkinLoadResult(
@@ -273,6 +285,7 @@ data class SkinEditorState(
     var selectedResourceKey: SkinResourceKey? = null,
     var selectedProblemIndex: Int? = null,
     var resourceBrowser: SkinResourceBrowserState = SkinResourceBrowserState(),
+    var problemFilters: SkinProblemFilterState = SkinProblemFilterState(),
     var canvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),
     var resourcePreviewCanvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),
     var resourceVisualPreview: SkinResourceVisualPreviewState = SkinResourceVisualPreviewState(),

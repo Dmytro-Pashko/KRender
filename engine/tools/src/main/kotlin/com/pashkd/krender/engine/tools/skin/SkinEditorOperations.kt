@@ -38,6 +38,19 @@ class SkinEditorOperations(
             }
     }
 
+    fun selectProblem(
+        index: Int,
+        problem: SkinProblem,
+    ) {
+        state.selectedProblemIndex = index
+        state.selectedStyleKey = problem.styleKey
+        state.selectedResourceKey = problem.resourceKey
+        state.resourceVisualPreview.selectedAtlasRegionName =
+            problem.resourceKey
+                ?.takeIf { key -> key.category == SkinResourceCategory.AtlasRegion }
+                ?.name
+    }
+
     fun selectLayout(layoutId: String) {
         state.previewLayoutId = layoutId
         updatePreviewStatus("Preview layout set to '$layoutId'.")

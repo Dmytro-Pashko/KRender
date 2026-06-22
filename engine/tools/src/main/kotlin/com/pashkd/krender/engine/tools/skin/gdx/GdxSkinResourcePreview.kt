@@ -492,6 +492,7 @@ class GdxSkinResourcePreview(
         val sampleText = buildFontSample(fontPreview)
         val oldScaleX = previewFont.data.scaleX
         val oldScaleY = previewFont.data.scaleY
+        val oldColor = Color(previewFont.color)
         previewFont.data.setScale(fontPreview.fontScale)
         previewFont.color = Color.WHITE
         glyphLayout.setText(previewFont, sampleText, Color.WHITE, safeViewportWidth - 24f, 1, true)
@@ -502,6 +503,7 @@ class GdxSkinResourcePreview(
         previewFont.draw(batch, glyphLayout, drawX, drawY)
         batch.end()
         previewFont.data.setScale(oldScaleX, oldScaleY)
+        previewFont.color = oldColor
     }
 
     private fun buildFontSample(fontPreview: SkinFontPreviewState): String {

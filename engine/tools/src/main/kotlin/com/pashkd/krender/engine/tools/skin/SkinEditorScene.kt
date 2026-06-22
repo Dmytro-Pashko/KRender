@@ -46,6 +46,8 @@ class SkinEditorScene(
                     listOf(
                         AtlasValidator(),
                         FontValidator(),
+                        ColorValidator(),
+                        DuplicateResourceNameValidator(),
                         DrawableValidator(),
                         StyleReferenceValidator(),
                         UnusedResourceAnalyzer(),
@@ -149,7 +151,7 @@ class SkinEditorScene(
             addPanel(
                 uiSystem,
                 "Problems",
-                SkinEditorProblemsPanel(editorState, layoutConfig, layoutTracker, eventLogger),
+                SkinEditorProblemsPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger),
             )
             addPanel(
                 uiSystem,
@@ -296,6 +298,7 @@ private class SkinEditorPreviewUpdateSystem(
     }
 
     private fun replacePreviewProblems(previewProblems: List<SkinProblem>) {
+        val selectedProblem = state.selectedProblemIndex?.let(state.loadResult.problems::getOrNull)
         state.loadResult =
             state.loadResult.copy(
                 problems =
@@ -303,7 +306,8 @@ private class SkinEditorPreviewUpdateSystem(
                         previewProblems,
             )
         state.loadResult = state.loadResult.copy(problems = state.loadResult.problems.sortedForDisplay())
-        if (state.selectedStyleKey == null && state.selectedResourceKey == null) {
+        state.selectedProblemIndex = selectedProblem?.let(state.loadResult.problems::indexOf)?.takeIf { index -> index >= 0 }
+        if (state.selectedProblemIndex == null && state.selectedStyleKey == null && state.selectedResourceKey == null) {
             state.selectedProblemIndex = state.loadResult.problems.indices.firstOrNull()
         }
     }

@@ -567,6 +567,7 @@ class SkinProjectLoader {
             info.asciiGlyphCoverage?.let { put("asciiGlyphCoverage", it) }
             info.ukrainianGlyphCoverage?.let { put("ukrainianGlyphCoverage", it) }
             info.missingUkrainianGlyphs?.let { put("missingUkrainianGlyphs", it) }
+            info.missingUkrainianGlyphCount?.let { put("missingUkrainianGlyphCount", it.toString()) }
         }
     }
 

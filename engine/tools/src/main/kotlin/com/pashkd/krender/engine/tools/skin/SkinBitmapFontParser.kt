@@ -14,6 +14,7 @@ data class SkinBitmapFontInfo(
     val asciiGlyphCoverage: String? = null,
     val ukrainianGlyphCoverage: String? = null,
     val missingUkrainianGlyphs: String? = null,
+    val missingUkrainianGlyphCount: Int? = null,
     val readable: Boolean = true,
 )
 
@@ -61,8 +62,7 @@ class SkinBitmapFontParser {
             val missingUkrainian =
                 UkrainianGlyphIds
                     .filterNot(charIds::contains)
-                    .map(Int::toChar)
-                    .joinToString("")
+                    .joinToString(" ") { code -> "U+${code.toString(16).uppercase().padStart(4, '0')}" }
 
             SkinBitmapFontInfo(
                 file = file,
@@ -75,6 +75,7 @@ class SkinBitmapFontParser {
                 asciiGlyphCoverage = "$asciiCovered/${AsciiGlyphIds.size}",
                 ukrainianGlyphCoverage = "$ukrainianCovered/${UkrainianGlyphIds.size}",
                 missingUkrainianGlyphs = missingUkrainian.takeIf(String::isNotBlank),
+                missingUkrainianGlyphCount = UkrainianGlyphIds.size - ukrainianCovered,
             )
         }.getOrElse {
             SkinBitmapFontInfo(file = file, readable = false)
