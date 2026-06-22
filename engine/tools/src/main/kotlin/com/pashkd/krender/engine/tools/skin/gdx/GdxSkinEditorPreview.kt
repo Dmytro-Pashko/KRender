@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.tools.skin.PreviewLayout
 import com.pashkd.krender.engine.tools.skin.PreviewLayoutContext
+import com.pashkd.krender.engine.tools.skin.SkinEditSession
 import com.pashkd.krender.engine.tools.skin.SkinEditorPreviewStageInfo
 import com.pashkd.krender.engine.tools.skin.SkinLoadResult
 import com.pashkd.krender.engine.tools.skin.StyleKey
@@ -38,6 +39,7 @@ class GdxSkinEditorPreview(
         loadResult: SkinLoadResult,
         layout: PreviewLayout,
         loadedSkin: LoadedSkinHandle?,
+        editSession: SkinEditSession,
         selectedStyleKey: StyleKey?,
         selectedResourceName: String?,
     ): GdxSkinPreviewBuildResult {
@@ -55,6 +57,7 @@ class GdxSkinEditorPreview(
                         factory = previewFactory,
                     ),
                 loadedSkin = loadedSkin,
+                editSession = editSession,
             )
         val root = buildResult.actor
         stage.addActor(root)

@@ -19,7 +19,7 @@ import com.pashkd.krender.engine.ui.editor.UiSystem
 class SkinEditorScene(
     initialSkinPath: String? = null,
 ) : Scene("skin_editor") {
-    override val config: SceneConfig = SceneConfigPresets.EditorTool
+    override val config: SceneConfig = SceneConfigPresets.SkinEditor
 
     private lateinit var editorState: SkinEditorState
     private lateinit var preview: GdxSkinEditorPreview
@@ -120,6 +120,8 @@ class SkinEditorScene(
                 else -> "Skin loaded with problems."
             }
         editorState.previewDirty = true
+        editorState.editSession = SkinEditSessionFactory.create(editorState.loadResult)
+        editorState.selectedEditFieldName = null
         editorState.selectedStyleKey = editorState.loadResult.styleIndex.styles.firstOrNull()?.key
         editorState.selectedResourceKey =
             editorState.loadResult.resourceIndex.resources.firstOrNull()?.key
@@ -167,6 +169,11 @@ class SkinEditorScene(
                 uiSystem,
                 "Inspector",
                 SkinEditorInspectorPanel(editorState, layoutConfig, layoutTracker, eventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "StyleEditor",
+                SkinEditorStyleEditorPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger),
             )
             addPanel(
                 uiSystem,
@@ -246,6 +253,7 @@ private class SkinEditorPreviewUpdateSystem(
                         loadResult = state.loadResult,
                         layout = layout,
                         loadedSkin = previewSkinHandle(),
+                        editSession = state.editSession,
                         selectedStyleKey = state.selectedStyleKey,
                         selectedResourceName = state.selectedResourceKey?.name,
                     )

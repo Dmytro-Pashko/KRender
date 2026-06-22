@@ -3,63 +3,70 @@
     "skinEditorToolbar": {
       "title": "Skin Editor Toolbar",
       "x": 3,
-      "y": 4,
-      "width": 1056,
-      "height": 163
+      "y": 16,
+      "width": 1029,
+      "height": 202
     },
     "skinEditorStyleTree": {
       "title": "Styles",
-      "x": 1538,
-      "y": 763,
-      "width": 378,
-      "height": 508
+      "x": 1541,
+      "y": 1012,
+      "width": 397,
+      "height": 298
     },
     "skinEditorResourceBrowser": {
       "title": "Resources",
-      "x": 1540,
-      "y": 170,
-      "width": 376,
-      "height": 279
+      "x": 1909,
+      "y": 10,
+      "width": 408,
+      "height": 441
     },
     "skinEditorProblems": {
       "title": "Problems",
-      "x": 1066,
-      "y": 6,
-      "width": 850,
-      "height": 158
+      "x": 749,
+      "y": 11,
+      "width": 1150,
+      "height": 203
     },
     "skinEditorPreviewCanvas": {
       "title": "Preview Canvas",
-      "x": 376,
-      "y": 172,
+      "x": 377,
+      "y": 225,
       "width": 1155,
-      "height": 872
+      "height": 854
     },
     "skinEditorInspector": {
       "title": "Inspector",
       "x": 5,
       "y": 642,
-      "width": 368,
-      "height": 403
+      "width": 366,
+      "height": 447
+    },
+    "skinEditorStyleEditor": {
+      "title": "Style Editor",
+      "x": 1939,
+      "y": 1015,
+      "width": 383,
+      "height": 299
     },
     "skinEditorPreviewControls": {
       "title": "Preview Controls",
-      "x": 5,
-      "y": 171,
-      "width": 367,
-      "height": 467
+      "x": 4,
+      "y": 223,
+      "width": 368,
+      "height": 415
     },
     "skinEditorResourcePreview": {
       "title": "Resource Preview",
       "x": 1538,
       "y": 459,
-      "width": 376,
-      "height": 299
+      "width": 781,
+      "height": 553
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
       "x": 6,
-      "y": 1055,
+      "y": 1096,
       "width": 1529,
       "height": 214
     }

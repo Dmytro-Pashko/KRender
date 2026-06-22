@@ -51,6 +51,230 @@ class SkinEditorOperations(
                 ?.name
     }
 
+    fun discardInMemoryEdits() {
+        state.editSession = SkinEditSessionFactory.create(state.loadResult)
+        state.selectedEditFieldName = null
+        state.previewDirty = true
+        state.statusMessage = "In-memory edits discarded."
+    }
+
+    fun updateStyleField(
+        styleKey: StyleKey,
+        fieldName: String,
+        value: String,
+    ) {
+        val style = state.editSession.findEditableStyle(styleKey) ?: return
+        val field = style.fields[fieldName] ?: return
+        if (field.value == value) return
+        field.value = value
+        if (field.originalValue == value) {
+            style.modifiedFields.remove(fieldName)
+            removeFieldChange(styleKey = style.key, fieldName = fieldName)
+            updateEditStatus("Reset ${style.key.type}.${style.key.name}.$fieldName")
+            return
+        } else {
+            style.modifiedFields += fieldName
+        }
+        recordEdit(
+            SkinEditChange(
+                description = "Changed ${style.key.type}.${style.key.name}.$fieldName",
+                styleKey = style.key,
+                fieldName = fieldName,
+            ),
+        )
+    }
+
+    fun resetStyleField(
+        styleKey: StyleKey,
+        fieldName: String,
+    ) {
+        val style = state.editSession.findEditableStyle(styleKey) ?: return
+        val field = style.fields[fieldName] ?: return
+        val originalValue = field.originalValue ?: return
+        if (field.value == originalValue) return
+        updateStyleField(styleKey, fieldName, originalValue)
+    }
+
+    fun addStyleField(
+        styleKey: StyleKey,
+        knownField: KnownStyleField,
+    ) {
+        val style = state.editSession.findEditableStyle(styleKey) ?: return
+        if (style.fields.keys.any { name -> name.equals(knownField.name, ignoreCase = true) }) {
+            state.statusMessage = "Field '${knownField.name}' already exists."
+            return
+        }
+        style.fields[knownField.name] =
+            EditableStyleField(
+                name = knownField.name,
+                value = "",
+                valueType = "string",
+                referenceCategory = knownField.referenceCategory,
+                isReference = knownField.referenceCategory != null,
+                originalValue = null,
+            )
+        style.modifiedFields += knownField.name
+        style.removedFields.remove(knownField.name)
+        state.selectedEditFieldName = knownField.name
+        recordEdit(
+            SkinEditChange(
+                description = "Added ${style.key.type}.${style.key.name}.${knownField.name}",
+                styleKey = style.key,
+                fieldName = knownField.name,
+            ),
+        )
+    }
+
+    fun removeStyleField(
+        styleKey: StyleKey,
+        fieldName: String,
+    ) {
+        val style = state.editSession.findEditableStyle(styleKey) ?: return
+        val removedField = style.fields.remove(fieldName) ?: return
+        style.modifiedFields.remove(fieldName)
+        if (removedField.originalValue == null) {
+            style.removedFields.remove(fieldName)
+            removeFieldChange(styleKey = style.key, fieldName = fieldName)
+            updateEditStatus("Removed newly added ${style.key.type}.${style.key.name}.$fieldName")
+        } else {
+            style.removedFields += fieldName
+            recordEdit(
+                SkinEditChange(
+                    description = "Removed ${style.key.type}.${style.key.name}.$fieldName",
+                    styleKey = style.key,
+                    fieldName = fieldName,
+                ),
+            )
+        }
+        if (state.selectedEditFieldName == fieldName) {
+            state.selectedEditFieldName = null
+        }
+    }
+
+    fun duplicateStyle(
+        sourceKey: StyleKey,
+        newName: String,
+    ): Boolean {
+        val source = state.editSession.findEditableStyle(sourceKey) ?: return false
+        val targetKey = StyleKey(source.key.type, newName.trim())
+        if (!validateNewStyleKey(targetKey)) return false
+        state.editSession.styles[targetKey] =
+            source.copy(
+                key = targetKey,
+                displayName = "${targetKey.type}.${targetKey.name}",
+                fields = source.fields.mapValuesTo(linkedMapOf()) { (_, field) -> field.copy() },
+                sourceKey = source.sourceKey ?: source.key,
+                createdInEditor = true,
+                renamedInEditor = false,
+                deleted = false,
+                modifiedFields = source.fields.keys.toMutableSet(),
+                removedFields = source.removedFields.toMutableSet(),
+            )
+        state.selectedStyleKey = targetKey
+        state.selectedResourceKey = null
+        state.selectedProblemIndex = null
+        recordEdit(SkinEditChange("Duplicated ${source.key.type}.${source.key.name} as ${targetKey.name}", styleKey = targetKey))
+        return true
+    }
+
+    fun renameStyle(
+        sourceKey: StyleKey,
+        newName: String,
+    ): Boolean {
+        val source = state.editSession.findEditableStyle(sourceKey) ?: return false
+        val targetKey = StyleKey(source.key.type, newName.trim())
+        if (targetKey == source.key) return true
+        if (!validateNewStyleKey(targetKey)) return false
+        state.editSession.styles.remove(source.key)
+        source.key = targetKey
+        source.displayName = "${targetKey.type}.${targetKey.name}"
+        source.renamedInEditor = true
+        state.editSession.styles[targetKey] = source
+        state.editSession.changes.indices.forEach { index ->
+            val change = state.editSession.changes[index]
+            if (change.styleKey == sourceKey) {
+                state.editSession.changes[index] = change.copy(styleKey = targetKey)
+            }
+        }
+        state.selectedStyleKey = targetKey
+        recordEdit(SkinEditChange("Renamed ${sourceKey.type}.${sourceKey.name} to ${targetKey.name}", styleKey = targetKey))
+        return true
+    }
+
+    fun createStyle(
+        type: String,
+        name: String,
+    ): Boolean {
+        val key = StyleKey(type, name.trim())
+        if (!validateNewStyleKey(key)) return false
+        val fields =
+            SkinStyleTemplates.fieldsFor(type)
+                .associateTo(linkedMapOf()) { template ->
+                    template.name to
+                        EditableStyleField(
+                            name = template.name,
+                            value = "",
+                            valueType = "string",
+                            referenceCategory = template.referenceCategory,
+                            isReference = template.referenceCategory != null,
+                            originalValue = null,
+                        )
+                }
+        state.editSession.styles[key] =
+            EditableStyle(
+                key = key,
+                displayName = "${key.type}.${key.name}",
+                fields = fields,
+                sourceKey = null,
+                createdInEditor = true,
+                modifiedFields = fields.keys.toMutableSet(),
+            )
+        state.selectedStyleKey = key
+        state.selectedResourceKey = null
+        state.selectedProblemIndex = null
+        recordEdit(SkinEditChange("Created ${key.type}.${key.name}", styleKey = key))
+        return true
+    }
+
+    fun deleteStyle(styleKey: StyleKey) {
+        val style = state.editSession.findEditableStyle(styleKey) ?: return
+        style.deleted = true
+        state.selectedStyleKey = null
+        state.selectedEditFieldName = null
+        recordEdit(SkinEditChange("Deleted ${style.key.type}.${style.key.name}", styleKey = style.key))
+    }
+
+    fun updateColorResource(
+        resourceKey: SkinResourceKey,
+        fieldName: String,
+        value: String,
+    ) {
+        val resource = state.editSession.resources[resourceKey] ?: return
+        if (resource.key.category != SkinResourceCategory.Color || resource.values[fieldName] == value) return
+        resource.values[fieldName] = value
+        if (resource.originalValues[fieldName] == value) {
+            resource.modifiedFields.remove(fieldName)
+            removeFieldChange(resourceKey = resource.key, fieldName = fieldName)
+            updateEditStatus("Reset ${resource.key.category}.${resource.key.name}.$fieldName")
+            return
+        }
+        resource.modifiedFields += fieldName
+        recordEdit(
+            SkinEditChange(
+                description = "Changed ${resource.key.category}.${resource.key.name}.$fieldName",
+                resourceKey = resource.key,
+                fieldName = fieldName,
+            ),
+        )
+    }
+
+    fun selectEditChange(change: SkinEditChange) {
+        state.selectedStyleKey = change.styleKey
+        state.selectedResourceKey = change.resourceKey
+        state.selectedProblemIndex = null
+        state.previewDirty = change.styleKey != null
+    }
+
     fun selectLayout(layoutId: String) {
         state.previewLayoutId = layoutId
         updatePreviewStatus("Preview layout set to '$layoutId'.")
@@ -169,6 +393,50 @@ class SkinEditorOperations(
     private fun updatePreviewStatus(message: String) {
         state.previewDirty = true
         state.statusMessage = message
+    }
+
+    private fun validateNewStyleKey(key: StyleKey): Boolean {
+        if (key.name.isBlank()) {
+            state.statusMessage = "Style name cannot be blank."
+            return false
+        }
+        if (state.editSession.styles[key]?.deleted == false) {
+            state.statusMessage = "Style '${key.type}.${key.name}' already exists."
+            return false
+        }
+        return true
+    }
+
+    private fun recordEdit(change: SkinEditChange) {
+        if (change.fieldName != null) {
+            state.editSession.changes.removeAll { existing ->
+                existing.fieldName == change.fieldName &&
+                    existing.styleKey == change.styleKey &&
+                    existing.resourceKey == change.resourceKey
+            }
+        }
+        state.editSession.changes += change
+        state.editSession.dirty = state.editSession.changes.isNotEmpty()
+        state.previewDirty = true
+        state.statusMessage = "${change.description}. Edits are in-memory only."
+    }
+
+    private fun removeFieldChange(
+        styleKey: StyleKey? = null,
+        resourceKey: SkinResourceKey? = null,
+        fieldName: String,
+    ) {
+        state.editSession.changes.removeAll { change ->
+            change.fieldName == fieldName &&
+                change.styleKey == styleKey &&
+                change.resourceKey == resourceKey
+        }
+        state.editSession.dirty = state.editSession.changes.isNotEmpty()
+    }
+
+    private fun updateEditStatus(description: String) {
+        state.previewDirty = true
+        state.statusMessage = "$description. Edits are in-memory only."
     }
 
     private fun formatScale(scale: Float): String = "${(scale * 100f).toInt()}%"

@@ -284,6 +284,8 @@ data class SkinEditorState(
     var selectedStyleKey: StyleKey? = null,
     var selectedResourceKey: SkinResourceKey? = null,
     var selectedProblemIndex: Int? = null,
+    var editSession: SkinEditSession = SkinEditSession(),
+    var selectedEditFieldName: String? = null,
     var resourceBrowser: SkinResourceBrowserState = SkinResourceBrowserState(),
     var problemFilters: SkinProblemFilterState = SkinProblemFilterState(),
     var canvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),

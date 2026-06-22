@@ -77,4 +77,19 @@ object SceneConfigPresets {
                     mode = WindowMode.Windowed,
                 ),
         )
+    /** Current Skin Editor preset. Kept separate for future divergence. */
+    val SkinEditor =
+        SceneConfig(
+            viewport =
+                RuntimeViewportConfig(
+                    designWidth = 1920f,
+                    designHeight = 1080f,
+                    scalePolicy = UiScalePolicy.ScaleByHeight,
+                ),
+            window =
+                RuntimeWindowConfig(
+                    resolution = WindowResolution(width = 2322, height = 1317),
+                    mode = WindowMode.Windowed,
+                ),
+        )
 }

@@ -23,6 +23,7 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.pashkd.krender.engine.tools.skin.PreviewWidgetKind
+import com.pashkd.krender.engine.tools.skin.SkinEditSession
 import com.pashkd.krender.engine.tools.skin.SkinEditorPreviewItem
 
 data class PreviewBuildIssue(
@@ -36,13 +37,17 @@ data class PreviewActorBuildResult(
 
 class SafeWidgetBuilder : Disposable {
     private val fallbackSkin = createFallbackSkin()
+    private val styleEditApplier = GdxSkinStyleEditApplier()
+    private var currentEditSession = SkinEditSession()
 
     fun build(
         item: SkinEditorPreviewItem,
         loadedSkin: LoadedSkinHandle?,
+        editSession: SkinEditSession,
     ): PreviewActorBuildResult {
+        currentEditSession = editSession
         val issues = linkedSetOf<PreviewBuildIssue>()
-        val actor = build(item, loadedSkin?.skin, issues)
+        val actor = build(item, loadedSkin?.skin, editSession, issues)
         return PreviewActorBuildResult(actor = actor, issues = issues.toList())
     }
 
@@ -53,31 +58,37 @@ class SafeWidgetBuilder : Disposable {
     private fun build(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        editSession: SkinEditSession,
         issues: MutableSet<PreviewBuildIssue>,
-    ): Actor =
-        when (item.kind) {
-            PreviewWidgetKind.Column -> buildColumn(item, primarySkin, issues)
-            PreviewWidgetKind.Window -> buildWindow(item, primarySkin, issues)
-            PreviewWidgetKind.Label -> buildLabel(item, primarySkin, issues)
-            PreviewWidgetKind.TextButton -> buildTextButton(item, primarySkin, issues)
-            PreviewWidgetKind.CheckBox -> buildCheckBox(item, primarySkin, issues)
-            PreviewWidgetKind.TextField -> buildTextField(item, primarySkin, issues)
-            PreviewWidgetKind.SelectBox -> buildSelectBox(item, primarySkin, issues)
-            PreviewWidgetKind.List -> buildList(item, primarySkin, issues)
-            PreviewWidgetKind.ScrollPane -> buildScrollPane(item, primarySkin, issues)
-            PreviewWidgetKind.Slider -> buildSlider(item, primarySkin, issues)
-            PreviewWidgetKind.ProgressBar -> buildProgressBar(item, primarySkin, issues)
-        }
+    ): Actor {
+        val actor =
+            when (item.kind) {
+                PreviewWidgetKind.Column -> buildColumn(item, primarySkin, editSession, issues)
+                PreviewWidgetKind.Window -> buildWindow(item, primarySkin, editSession, issues)
+                PreviewWidgetKind.Label -> buildLabel(item, primarySkin, issues)
+                PreviewWidgetKind.TextButton -> buildTextButton(item, primarySkin, issues)
+                PreviewWidgetKind.CheckBox -> buildCheckBox(item, primarySkin, issues)
+                PreviewWidgetKind.TextField -> buildTextField(item, primarySkin, issues)
+                PreviewWidgetKind.SelectBox -> buildSelectBox(item, primarySkin, issues)
+                PreviewWidgetKind.List -> buildList(item, primarySkin, issues)
+                PreviewWidgetKind.ScrollPane -> buildScrollPane(item, primarySkin, editSession, issues)
+                PreviewWidgetKind.Slider -> buildSlider(item, primarySkin, issues)
+                PreviewWidgetKind.ProgressBar -> buildProgressBar(item, primarySkin, issues)
+            }
+        styleEditApplier.apply(actor, item, primarySkin, editSession, issues)
+        return actor
+    }
 
     private fun buildColumn(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        editSession: SkinEditSession,
         issues: MutableSet<PreviewBuildIssue>,
     ): Actor =
         Table().apply {
             defaults().growX().pad(6f)
             item.children.forEach { child ->
-                add(build(child, primarySkin, issues))
+                add(build(child, primarySkin, editSession, issues))
                 row()
             }
             pack()
@@ -86,6 +97,7 @@ class SafeWidgetBuilder : Disposable {
     private fun buildWindow(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        editSession: SkinEditSession,
         issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
         val skin = skinFor(primarySkin, item.styleName, DefaultStyleName, Window.WindowStyle::class.java, "WindowStyle", issues)
@@ -94,7 +106,7 @@ class SafeWidgetBuilder : Disposable {
         actor.isMovable = false
         actor.isResizable = false
         item.children.forEach { child ->
-            actor.add(build(child, primarySkin, issues)).growX().pad(6f)
+            actor.add(build(child, primarySkin, editSession, issues)).growX().pad(6f)
             actor.row()
         }
         actor.pack()
@@ -195,10 +207,11 @@ class SafeWidgetBuilder : Disposable {
     private fun buildScrollPane(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
+        editSession: SkinEditSession,
         issues: MutableSet<PreviewBuildIssue>,
     ): Actor {
         val child = item.children.firstOrNull()
-        val content = child?.let { build(it, primarySkin, issues) } ?: missingActor("Missing ScrollPane child")
+        val content = child?.let { build(it, primarySkin, editSession, issues) } ?: missingActor("Missing ScrollPane child")
         val skin = skinFor(primarySkin, item.styleName, DefaultStyleName, ScrollPane.ScrollPaneStyle::class.java, "ScrollPaneStyle", issues)
         val styleName = item.styleName.takeIf { !it.isNullOrBlank() }
         val actor =
@@ -280,6 +293,14 @@ class SafeWidgetBuilder : Disposable {
             primarySkin == null -> fallbackSkin
             requestedStyleName != null && primarySkin.has(requestedStyleName, type) -> primarySkin
             requestedStyleName == null && primarySkin.has(defaultStyleName, type) -> primarySkin
+            requestedStyleName != null &&
+                currentEditSession.styles.values.any { style ->
+                    !style.deleted &&
+                        style.key.name == requestedStyleName &&
+                        (style.key.type == typeName || style.key.type == "TextAreaStyle" && typeName == "TextFieldStyle")
+                } ->
+                if (primarySkin.has(defaultStyleName, type)) primarySkin else fallbackSkin
+
             else -> {
                 val missingStyleName = requestedStyleName ?: defaultStyleName
                 issues += PreviewBuildIssue("Missing $typeName '$missingStyleName'; rendered with fallback skin.")

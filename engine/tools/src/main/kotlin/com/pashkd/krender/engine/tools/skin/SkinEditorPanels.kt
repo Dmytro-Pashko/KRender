@@ -63,6 +63,12 @@ class SkinEditorToolbarPanel(
         ImGui.textUnformatted("Styles: ${state.loadResult.styleIndex.styles.size}")
         ImGui.textUnformatted("Resources: ${state.loadResult.resourceIndex.resources.size}")
         ImGui.textUnformatted("Problems: ${state.loadResult.problems.size}")
+        ImGui.textUnformatted("Editing: ${if (state.editSession.dirty) "dirty" else "clean"} (${state.editSession.changes.size} pending)")
+        ImGui.sameLine()
+        if (ImGui.button("Discard Edits##skin_editor_discard_edits")) {
+            operations.discardInMemoryEdits()
+        }
+        ImGui.textUnformatted("Edits are in-memory only. Saving is deferred.")
         ImGui.end()
     }
 
@@ -90,13 +96,20 @@ class SkinEditorStyleTreePanel(
             return
         }
 
-        if (state.loadResult.styleIndex.styles.isEmpty()) {
+        val styles = state.editSession.activeStyles()
+        if (styles.isEmpty()) {
             ImGui.textUnformatted("No styles indexed.")
         } else {
-            state.loadResult.styleIndex.styles.groupBy { it.type }.forEach { (type, styles) ->
+            styles.groupBy { it.key.type }.forEach { (type, typeStyles) ->
                 if (ImGui.treeNode("$type##skin_editor_style_type_$type")) {
-                    styles.forEach { style ->
-                        if (ImGui.selectable("${style.name}##skin_editor_style_${style.type}_${style.name}", state.selectedStyleKey == style.key)) {
+                    typeStyles.forEach { style ->
+                        val stateLabel =
+                            when {
+                                style.createdInEditor -> " [new]"
+                                style.renamedInEditor -> " [renamed]"
+                                else -> ""
+                            }
+                        if (ImGui.selectable("${style.key.name}$stateLabel##skin_editor_style_${style.key.type}_${style.key.name}", state.selectedStyleKey == style.key)) {
                             operations.selectStyle(style.key)
                         }
                     }
@@ -548,6 +561,292 @@ class SkinEditorInspectorPanel(
             }
         }
         ImGui.end()
+    }
+}
+
+class SkinEditorStyleEditorPanel(
+    private val state: SkinEditorState,
+    private val operations: SkinEditorOperations,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    private val fieldBuffers = mutableMapOf<String, ByteArray>()
+    private val colorBuffers = mutableMapOf<String, ByteArray>()
+    private val renameBuffer = ByteArray(128)
+    private val duplicateBuffer = ByteArray(128)
+    private val createNameBuffer = ByteArray(128)
+    private var createType = SkinStyleTemplates.types.first()
+    private var pendingFieldName: String? = null
+    private var actionStyleKey: StyleKey? = null
+
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.StyleEditor)
+        val expanded = beginImGuiPanel(SkinEditorPanelIds.StyleEditor, layout, layoutTracker)
+        eventLogger.observe(SkinEditorPanelIds.StyleEditor, layout.title)
+        if (!expanded) {
+            ImGui.end()
+            return
+        }
+
+        ImGui.textUnformatted("Editing: ${if (state.editSession.dirty) "dirty" else "clean"}")
+        ImGui.textUnformatted("Pending changes: ${state.editSession.changes.size}")
+        ImGui.textUnformatted("Edits are in-memory only. Saving is deferred.")
+        if (ImGui.button("Discard All##skin_editor_style_editor_discard")) {
+            operations.discardInMemoryEdits()
+        }
+        ImGui.sameLine()
+        ImGui.textUnformatted("Save deferred")
+        ImGui.separator()
+
+        val style = state.editSession.findEditableStyle(state.selectedStyleKey)
+        val colorResource =
+            state.selectedResourceKey
+                ?.takeIf { key -> key.category == SkinResourceCategory.Color }
+                ?.let(state.editSession.resources::get)
+        when {
+            style != null -> drawStyleEditor(style)
+            colorResource != null -> drawColorEditor(colorResource)
+            else -> {
+                ImGui.textWrapped("Select a style to edit its fields, or select a Color resource for lightweight color editing.")
+                drawCreateStyle()
+            }
+        }
+        drawRecentChanges()
+        ImGui.end()
+    }
+
+    private fun drawStyleEditor(style: EditableStyle) {
+        if (actionStyleKey != style.key) {
+            writeBuffer(renameBuffer, style.key.name)
+            writeBuffer(duplicateBuffer, "${style.key.name}-copy")
+            actionStyleKey = style.key
+        }
+        ImGui.textUnformatted("Style: ${style.key.name}")
+        ImGui.textUnformatted("Type: ${style.key.type}")
+        val flags =
+            buildList {
+                if (style.createdInEditor) add("created")
+                if (style.renamedInEditor) add("renamed")
+            }
+        if (flags.isNotEmpty()) {
+            ImGui.textUnformatted("State: ${flags.joinToString()}")
+        }
+
+        ImGui.setNextItemWidth(180f)
+        ImGui.inputText("Rename##skin_editor_style_rename", renameBuffer)
+        ImGui.sameLine()
+        if (ImGui.button("Apply##skin_editor_style_rename_apply")) {
+            operations.renameStyle(style.key, readBuffer(renameBuffer))
+        }
+        ImGui.setNextItemWidth(180f)
+        ImGui.inputText("Duplicate as##skin_editor_style_duplicate", duplicateBuffer)
+        ImGui.sameLine()
+        if (ImGui.button("Duplicate##skin_editor_style_duplicate_apply")) {
+            operations.duplicateStyle(style.key, readBuffer(duplicateBuffer))
+        }
+        if (ImGui.button("Delete In Memory##skin_editor_style_delete")) {
+            operations.deleteStyle(style.key)
+        }
+
+        ImGui.separator()
+        drawFieldGroup("References", style, style.fields.values.filter(EditableStyleField::isReference))
+        drawFieldGroup(
+            "Scalar values",
+            style,
+            style.fields.values.filter { field -> !field.isReference && field.valueType in ScalarValueTypes },
+        )
+        drawFieldGroup(
+            "Other / raw values",
+            style,
+            style.fields.values.filter { field -> !field.isReference && field.valueType !in ScalarValueTypes },
+        )
+        drawAddKnownField(style)
+        ImGui.separator()
+        drawCreateStyle()
+    }
+
+    private fun drawFieldGroup(
+        title: String,
+        style: EditableStyle,
+        fields: List<EditableStyleField>,
+    ) {
+        if (fields.isEmpty()) return
+        ImGui.textUnformatted(title)
+        fields.toList().forEach { field ->
+            ImGui.pushID("skin_editor_field_${style.key.type}_${style.key.name}_${field.name}")
+            ImGui.textUnformatted(field.name)
+            if (field.isReference) {
+                drawReferencePicker(style, field)
+            } else {
+                drawRawField(style, field)
+            }
+            ImGui.sameLine()
+            if (field.originalValue != null && ImGui.button("Reset")) {
+                operations.resetStyleField(style.key, field.name)
+            }
+            ImGui.sameLine()
+            if (ImGui.button("Remove")) {
+                operations.removeStyleField(style.key, field.name)
+            }
+            ImGui.popID()
+        }
+        ImGui.separator()
+    }
+
+    private fun drawReferencePicker(
+        style: EditableStyle,
+        field: EditableStyleField,
+    ) {
+        val options = referenceOptions(field.referenceCategory)
+        val currentLabel = field.value.ifBlank { "<none>" }
+        ImGui.setNextItemWidth(-90f)
+        if (ImGui.beginCombo("##reference", currentLabel)) {
+            options.forEach { resource ->
+                val label = "${resource.name} [${resource.category}]"
+                if (ImGui.selectable("$label##${resource.category}_${resource.name}", resource.name == field.value)) {
+                    operations.updateStyleField(style.key, field.name, resource.name)
+                }
+            }
+            ImGui.endCombo()
+        }
+    }
+
+    private fun drawRawField(
+        style: EditableStyle,
+        field: EditableStyleField,
+    ) {
+        val bufferKey = "${style.key.type}.${style.key.name}.${field.name}"
+        val buffer = fieldBuffers.getOrPut(bufferKey) { ByteArray(512) }
+        syncBuffer(buffer, field.value)
+        ImGui.setNextItemWidth(-90f)
+        if (ImGui.inputText("##value", buffer)) {
+            operations.updateStyleField(style.key, field.name, readBuffer(buffer))
+        }
+    }
+
+    private fun drawAddKnownField(style: EditableStyle) {
+        val availableFields =
+            SkinStyleTemplates.fieldsFor(style.key.type)
+                .filterNot { template -> style.fields.keys.any { name -> name.equals(template.name, ignoreCase = true) } }
+        if (availableFields.isEmpty()) return
+        pendingFieldName = pendingFieldName?.takeIf { name -> availableFields.any { it.name == name } } ?: availableFields.first().name
+        if (ImGui.beginCombo("Add field##skin_editor_add_field", pendingFieldName ?: "Select field")) {
+            availableFields.forEach { template ->
+                if (ImGui.selectable(template.name, template.name == pendingFieldName)) {
+                    pendingFieldName = template.name
+                }
+            }
+            ImGui.endCombo()
+        }
+        ImGui.sameLine()
+        if (ImGui.button("Add##skin_editor_add_field_apply")) {
+            availableFields.firstOrNull { template -> template.name == pendingFieldName }?.let { template ->
+                operations.addStyleField(style.key, template)
+            }
+        }
+    }
+
+    private fun drawColorEditor(resource: EditableResource) {
+        ImGui.textUnformatted("Color: ${resource.key.name}")
+        val fields =
+            resource.values.keys
+                .takeIf(Collection<String>::isNotEmpty)
+                ?: listOf("value")
+        fields.forEach { fieldName ->
+            val currentValue = resource.values[fieldName].orEmpty()
+            val bufferKey = "${resource.key.name}.$fieldName"
+            val buffer = colorBuffers.getOrPut(bufferKey) { ByteArray(64) }
+            syncBuffer(buffer, currentValue)
+            ImGui.setNextItemWidth(-1f)
+            if (ImGui.inputText("$fieldName##skin_editor_color_$bufferKey", buffer)) {
+                operations.updateColorResource(resource.key, fieldName, readBuffer(buffer))
+            }
+        }
+        val warning = validateEditableColor(resource)
+        if (warning == null) {
+            ImGui.textUnformatted("Color value is valid.")
+        } else {
+            ImGui.textWrapped("Edit warning: $warning")
+        }
+    }
+
+    private fun drawCreateStyle() {
+        ImGui.textUnformatted("Create style")
+        if (ImGui.beginCombo("Type##skin_editor_create_style_type", createType)) {
+            SkinStyleTemplates.types.forEach { type ->
+                if (ImGui.selectable(type, type == createType)) {
+                    createType = type
+                }
+            }
+            ImGui.endCombo()
+        }
+        ImGui.setNextItemWidth(180f)
+        ImGui.inputText("Name##skin_editor_create_style_name", createNameBuffer)
+        ImGui.sameLine()
+        if (ImGui.button("Create##skin_editor_create_style_apply")) {
+            if (operations.createStyle(createType, readBuffer(createNameBuffer))) {
+                createNameBuffer.fill(0)
+            }
+        }
+    }
+
+    private fun drawRecentChanges() {
+        ImGui.separator()
+        ImGui.textUnformatted("Recent changes")
+        if (state.editSession.changes.isEmpty()) {
+            ImGui.textUnformatted("No pending changes.")
+            return
+        }
+        state.editSession.changes.takeLast(MaxVisibleChanges).asReversed().forEachIndexed { index, change ->
+            if (ImGui.selectable("${change.description}##skin_editor_change_$index")) {
+                operations.selectEditChange(change)
+            }
+        }
+    }
+
+    private fun referenceOptions(category: SkinResourceCategory?): List<SkinResourceInfo> =
+        when (category) {
+            SkinResourceCategory.Font -> state.loadResult.resourceIndex.fonts
+            SkinResourceCategory.Color -> state.loadResult.resourceIndex.colors
+            SkinResourceCategory.Drawable ->
+                state.loadResult.resourceIndex.drawables +
+                    state.loadResult.resourceIndex.atlasRegions +
+                    state.loadResult.resourceIndex.textures
+
+            SkinResourceCategory.Texture -> state.loadResult.resourceIndex.textures
+            else -> emptyList()
+        }.filter(SkinResourceInfo::resolved)
+            .distinctBy(SkinResourceInfo::key)
+            .sortedWith(compareBy(SkinResourceInfo::category, SkinResourceInfo::name))
+
+    private fun validateEditableColor(resource: EditableResource): String? {
+        val hex = resource.values["value"] ?: resource.values["hex"]
+        if (hex != null) {
+            return if (SimpleEditableHexColor.matches(hex)) null else "Use #RRGGBB, #RRGGBBAA, RRGGBB, or RRGGBBAA."
+        }
+        val missing = listOf("r", "g", "b").filterNot(resource.values::containsKey)
+        if (missing.isNotEmpty()) return "Missing channel(s): ${missing.joinToString()}."
+        val invalid =
+            listOf("r", "g", "b", "a")
+                .filter(resource.values::containsKey)
+                .filter { channel -> resource.values[channel]?.toFloatOrNull()?.let { it !in 0f..1f } ?: true }
+        return invalid.takeIf(List<String>::isNotEmpty)?.let { "Invalid channel(s): ${it.joinToString()}; expected 0.0..1.0." }
+    }
+
+    private fun syncBuffer(
+        buffer: ByteArray,
+        value: String,
+    ) {
+        if (readBuffer(buffer) != value) {
+            writeBuffer(buffer, value)
+        }
+    }
+
+    private companion object {
+        private val ScalarValueTypes = setOf("string", "boolean", "integer", "number", "primitive")
+        private val SimpleEditableHexColor = Regex("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
+        private const val MaxVisibleChanges = 20
     }
 }
 
