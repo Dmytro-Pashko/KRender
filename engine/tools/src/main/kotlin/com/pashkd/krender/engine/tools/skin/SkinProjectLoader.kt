@@ -96,6 +96,8 @@ class SkinAssetResolver {
 }
 
 class SkinProjectLoader {
+    private val atlasParser = SkinAtlasParser()
+
     fun inspect(project: SkinProject?): SkinLoadResult {
         if (project == null) {
             return SkinLoadResult(
@@ -209,15 +211,33 @@ class SkinProjectLoader {
         }
 
         project.atlasFiles.forEach { file ->
-            addResource(file.toResourceInfo(SkinResourceCategory.Atlas))
-            parseAtlasRegionNames(file).forEach { regionName ->
+            val atlas = atlasParser.parse(file)
+            addResource(
+                file.toResourceInfo(SkinResourceCategory.Atlas).copy(
+                    details =
+                        file.fileDetails() +
+                            mapOf(
+                                "origin" to "file",
+                                "pageCount" to atlas.pages.size.toString(),
+                                "regionCount" to atlas.regions.size.toString(),
+                                "pages" to atlas.pages.joinToString { page -> page.name },
+                                "readable" to atlas.readable.toString(),
+                            ),
+                ),
+            )
+            atlas.regions.forEach { region ->
                 addResource(
                     SkinResourceInfo(
-                        name = regionName,
+                        name = region.name,
                         category = SkinResourceCategory.AtlasRegion,
                         type = "AtlasRegion",
                         source = file.path,
-                        details = mapOf("origin" to "atlas", "atlas" to file.name),
+                        details =
+                            mapOf(
+                                "origin" to "atlas",
+                                "atlas" to file.name,
+                                "page" to region.page.orEmpty(),
+                            ) + region.details,
                     ),
                 )
             }
@@ -233,25 +253,19 @@ class SkinProjectLoader {
             val category = resourceCategoryForType(rawTypeName) ?: return@forEach
             val bucket = value as? JsonObject ?: return@forEach
             bucket.forEach { (name, resourceValue) ->
-                val details =
-                    buildMap {
-                        put("origin", "skin")
-                        put("rawType", rawTypeName)
-                        if (resourceValue is JsonObject) {
-                            resourceValue["file"]?.renderPreview()?.let { file -> put("file", file) }
-                        }
-                    }
                 addResource(
                     SkinResourceInfo(
                         name = name,
                         category = category,
                         type = normalizeSkinTypeName(rawTypeName),
                         source = "${project.skinFile?.path}#$rawTypeName.$name",
-                        details = details,
+                        details = resourceDetails(rawTypeName, category, resourceValue),
                     ),
                 )
             }
         }
+
+        matchFontFiles(resources, project.fontFiles)
 
         styleIndex.styles.forEach { style ->
             style.fields.forEach { field ->
@@ -265,19 +279,34 @@ class SkinProjectLoader {
                     )
                 matchingKeys.forEach { key ->
                     resources[key]?.let { resource ->
-                        resources[key] = resource.copy(referencedBy = (resource.referencedBy + referencedBy).distinct().sorted())
+                        val resolutionDetails =
+                            if (reference.category == SkinResourceCategory.Drawable && key.category != SkinResourceCategory.Drawable) {
+                                mapOf("resolvesDrawableAs" to key.category.name)
+                            } else {
+                                emptyMap()
+                            }
+                        resources[key] =
+                            resource.copy(
+                                referencedBy = (resource.referencedBy + referencedBy).distinct().sorted(),
+                                details = resource.details + resolutionDetails,
+                            )
                     }
                 }
-                if (reference.category == null && matchingKeys.isEmpty()) {
+                if (matchingKeys.isEmpty()) {
+                    val category = reference.category ?: SkinResourceCategory.Unknown
                     addResource(
                         SkinResourceInfo(
                             name = reference.name,
-                            category = SkinResourceCategory.Unknown,
-                            type = "Reference",
+                            category = category,
+                            type = "${category.name}Reference",
                             source = reference.source,
                             referencedBy = listOf(referencedBy),
                             resolved = false,
-                            details = mapOf("origin" to "style-reference"),
+                            details =
+                                mapOf(
+                                    "origin" to "style-reference",
+                                    "expectedCategory" to category.name,
+                                ),
                         ),
                     )
                 }
@@ -446,25 +475,67 @@ class SkinProjectLoader {
             category = category,
             type = extension.lowercase(),
             source = path,
-            details =
-                mapOf(
-                    "origin" to "file",
-                    "extension" to extension.lowercase(),
-                    "sizeBytes" to length().toString(),
-                ),
+            details = mapOf("origin" to "file") + fileDetails(),
         )
 
-    private fun parseAtlasRegionNames(file: File): List<String> =
-        runCatching {
-            file.readLines(StandardCharsets.UTF_8)
-                .asSequence()
-                .filter { line -> line.isNotBlank() && !line.first().isWhitespace() && ':' !in line }
-                .map(String::trim)
-                .filterNot { line -> TextureFileExtensions.any { extension -> line.endsWith(".$extension", ignoreCase = true) } }
-                .distinct()
-                .sorted()
-                .toList()
-        }.getOrDefault(emptyList())
+    private fun resourceDetails(
+        rawTypeName: String,
+        category: SkinResourceCategory,
+        value: JsonElement,
+    ): Map<String, String> =
+        buildMap {
+            put("origin", "skin")
+            put("rawType", rawTypeName)
+            put("rawValue", value.toString())
+            when (value) {
+                is JsonPrimitive -> put("value", value.content)
+                is JsonObject -> {
+                    value["file"]?.renderPreview()?.let { file -> put("file", file) }
+                    if (category == SkinResourceCategory.Color) {
+                        listOf("r", "g", "b", "a", "hex").forEach { field ->
+                            value[field]?.renderPreview()?.let { fieldValue -> put(field, fieldValue) }
+                        }
+                    }
+                }
+
+                else -> Unit
+            }
+        }
+
+    private fun matchFontFiles(
+        resources: MutableMap<SkinResourceKey, SkinResourceInfo>,
+        fontFiles: List<File>,
+    ) {
+        resources.keys
+            .filter { key -> key.category == SkinResourceCategory.Font }
+            .forEach { key ->
+                val resource = resources[key] ?: return@forEach
+                val declaredFile = resource.details["file"]?.let(::File)?.name
+                val match =
+                    fontFiles.firstOrNull { file ->
+                        file.nameWithoutExtension.equals(resource.name, ignoreCase = true) ||
+                            declaredFile?.equals(file.name, ignoreCase = true) == true ||
+                            declaredFile?.let { File(it).nameWithoutExtension.equals(file.nameWithoutExtension, ignoreCase = true) } == true
+                    }
+                resources[key] =
+                    resource.copy(
+                        details =
+                            resource.details +
+                                if (match != null) {
+                                    match.fileDetails().mapKeys { (name, _) -> "matchedFile${name.replaceFirstChar(Char::uppercase)}" } +
+                                        mapOf("matchedFile" to match.path)
+                                } else {
+                                    mapOf("matchedFile" to "<none>")
+                                },
+                    )
+            }
+    }
+
+    private fun File.fileDetails(): Map<String, String> =
+        mapOf(
+            "extension" to extension.lowercase(),
+            "sizeBytes" to length().toString(),
+        )
 
     private fun JsonElement.renderPreview(): String? =
         when (this) {
@@ -520,7 +591,5 @@ class SkinProjectLoader {
                 "checkboxon",
                 "checkboxoff",
             )
-
-        private val TextureFileExtensions = setOf("png", "jpg", "jpeg")
     }
 }

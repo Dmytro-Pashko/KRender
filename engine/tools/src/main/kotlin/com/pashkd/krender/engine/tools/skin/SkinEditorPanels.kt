@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
 import imgui.dsl
+import java.io.File
 import java.nio.charset.StandardCharsets
 import glm_.vec2.Vec2 as ImVec2
 
@@ -115,6 +116,8 @@ class SkinEditorResourceBrowserPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val queryBuffer = ByteArray(256)
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.ResourceBrowser)
         val expanded = beginImGuiPanel(SkinEditorPanelIds.ResourceBrowser, layout, layoutTracker)
@@ -125,14 +128,21 @@ class SkinEditorResourceBrowserPanel(
         }
 
         val resourceIndex = state.loadResult.resourceIndex
+        drawFilters()
         if (resourceIndex.resources.isEmpty()) {
             ImGui.textUnformatted("No resources indexed.")
         } else {
-            SkinResourceCategory.entries.forEach { category ->
-                val resources = resourceIndex.resourcesFor(category)
+            val filteredResources = resourceIndex.resources.filter(::matchesFilters)
+            ImGui.textUnformatted("Showing ${filteredResources.size} of ${resourceIndex.resources.size}")
+            val categories = state.resourceBrowser.selectedCategory?.let(::listOf) ?: SkinResourceCategory.entries
+            categories.forEach { category ->
+                val resources = filteredResources.filter { resource -> resource.category == category }
                 if (resources.isNotEmpty() && ImGui.treeNode("${category.name} (${resources.size})##skin_editor_resource_category_$category")) {
                     resources.forEach { resource ->
-                        val label = "${resource.name} [${resource.type}]"
+                        val status = if (resource.resolved) "" else " missing"
+                        val source = resource.source?.substringBefore('#')?.let(::File)?.name?.takeIf(String::isNotBlank)
+                        val sourceLabel = source?.let { " source: $it" }.orEmpty()
+                        val label = "${resource.name} [${resource.type}]$status refs: ${resource.referencedBy.size}$sourceLabel"
                         if (ImGui.selectable("$label##skin_editor_resource_${category}_${resource.name}", state.selectedResourceKey == resource.key)) {
                             state.selectedResourceKey = resource.key
                             state.selectedStyleKey = null
@@ -144,6 +154,51 @@ class SkinEditorResourceBrowserPanel(
             }
         }
         ImGui.end()
+    }
+
+    private fun drawFilters() {
+        if (readBuffer(queryBuffer) != state.resourceBrowser.query) {
+            writeBuffer(queryBuffer, state.resourceBrowser.query)
+        }
+        ImGui.setNextItemWidth(-1f)
+        if (ImGui.inputText("Search##skin_editor_resource_search", queryBuffer)) {
+            state.resourceBrowser.query = readBuffer(queryBuffer)
+        }
+
+        val categoryLabel = state.resourceBrowser.selectedCategory?.name ?: "All categories"
+        if (ImGui.beginCombo("Category##skin_editor_resource_category_filter", categoryLabel)) {
+            if (ImGui.selectable("All categories##skin_editor_resource_category_all", state.resourceBrowser.selectedCategory == null)) {
+                state.resourceBrowser.selectedCategory = null
+            }
+            SkinResourceCategory.entries.forEach { category ->
+                if (ImGui.selectable("${category.name}##skin_editor_resource_category_filter_$category", state.resourceBrowser.selectedCategory == category)) {
+                    state.resourceBrowser.selectedCategory = category
+                }
+            }
+            ImGui.endCombo()
+        }
+
+        val unresolved = booleanArrayOf(state.resourceBrowser.showOnlyUnresolved)
+        if (ImGui.checkbox("Only unresolved##skin_editor_resource_unresolved", unresolved)) {
+            state.resourceBrowser.showOnlyUnresolved = unresolved[0]
+        }
+        val referenced = booleanArrayOf(state.resourceBrowser.showOnlyReferenced)
+        if (ImGui.checkbox("Only referenced##skin_editor_resource_referenced", referenced)) {
+            state.resourceBrowser.showOnlyReferenced = referenced[0]
+        }
+        ImGui.separator()
+    }
+
+    private fun matchesFilters(resource: SkinResourceInfo): Boolean {
+        val browser = state.resourceBrowser
+        if (browser.selectedCategory != null && resource.category != browser.selectedCategory) return false
+        if (browser.showOnlyUnresolved && resource.resolved) return false
+        if (browser.showOnlyReferenced && resource.referencedBy.isEmpty()) return false
+        val query = browser.query.trim()
+        if (query.isEmpty()) return true
+        return sequenceOf(resource.name, resource.type, resource.source.orEmpty())
+            .plus(resource.details.asSequence().flatMap { (name, value) -> sequenceOf(name, value) })
+            .any { value -> value.contains(query, ignoreCase = true) }
     }
 }
 
@@ -262,19 +317,7 @@ class SkinEditorInspectorPanel(
             }
 
             resource != null -> {
-                ImGui.textUnformatted("Resource: ${resource.name}")
-                ImGui.textUnformatted("Category: ${resource.category}")
-                ImGui.textUnformatted("Type: ${resource.type}")
-                ImGui.textWrapped("Source: ${resource.source ?: "<none>"}")
-                ImGui.textUnformatted("Resolved: ${if (resource.resolved) "yes" else "no"}")
-                ImGui.textUnformatted("Referenced by: ${resource.referencedBy.size}")
-                resource.referencedBy.forEach { reference -> ImGui.textWrapped(reference) }
-                if (resource.details.isNotEmpty()) {
-                    ImGui.separator()
-                    resource.details.toSortedMap().forEach { (name, value) ->
-                        ImGui.textWrapped("$name: $value")
-                    }
-                }
+                drawResourceInspector(resource, state.loadResult.resourceIndex)
             }
 
             problem != null -> {
@@ -291,6 +334,94 @@ class SkinEditorInspectorPanel(
         }
         ImGui.end()
     }
+}
+
+private fun drawResourceInspector(
+    resource: SkinResourceInfo,
+    resourceIndex: SkinResourceIndex,
+) {
+    ImGui.textUnformatted("Resource: ${resource.name}")
+    ImGui.textUnformatted("Category: ${resource.category}")
+    ImGui.textUnformatted("Type: ${resource.type}")
+    ImGui.textWrapped("Source: ${resource.source ?: "<none>"}")
+    ImGui.textUnformatted("Resolved: ${if (resource.resolved) "yes" else "no"}")
+
+    when (resource.category) {
+        SkinResourceCategory.Color -> {
+            ImGui.separator()
+            ImGui.textUnformatted("Color value")
+            drawDetail(resource, "value")
+            drawDetail(resource, "hex")
+            listOf("r", "g", "b", "a").forEach { channel -> drawDetail(resource, channel) }
+            drawDetail(resource, "rawValue")
+        }
+
+        SkinResourceCategory.Font -> {
+            ImGui.separator()
+            ImGui.textUnformatted("Font file")
+            drawDetail(resource, "file")
+            drawDetail(resource, "matchedFile")
+            drawDetail(resource, "matchedFileExtension")
+            drawDetail(resource, "matchedFileSizeBytes")
+            drawDetail(resource, "extension")
+            drawDetail(resource, "sizeBytes")
+        }
+
+        SkinResourceCategory.Atlas -> {
+            ImGui.separator()
+            ImGui.textUnformatted("Atlas contents")
+            drawDetail(resource, "pageCount")
+            drawDetail(resource, "regionCount")
+            drawDetail(resource, "pages")
+            val regions =
+                resourceIndex.atlasRegions
+                    .filter { region -> region.source == resource.source }
+                    .take(MaxInspectorAtlasRegions)
+            ImGui.textUnformatted("Region names: ${regions.size}${if (regions.size == MaxInspectorAtlasRegions) "+" else ""}")
+            regions.forEach { region -> ImGui.textWrapped(region.name) }
+        }
+
+        SkinResourceCategory.AtlasRegion -> {
+            ImGui.separator()
+            ImGui.textUnformatted("Atlas region")
+            listOf("atlas", "page", "xy", "size", "orig", "offset", "index").forEach { field -> drawDetail(resource, field) }
+        }
+
+        SkinResourceCategory.Texture -> {
+            ImGui.separator()
+            ImGui.textUnformatted("Texture file")
+            drawDetail(resource, "extension")
+            drawDetail(resource, "sizeBytes")
+        }
+
+        SkinResourceCategory.Drawable,
+        SkinResourceCategory.Unknown,
+        -> {
+            ImGui.separator()
+            ImGui.textUnformatted("Resolution")
+            drawDetail(resource, "origin")
+            drawDetail(resource, "expectedCategory")
+            drawDetail(resource, "resolvesDrawableAs")
+        }
+    }
+
+    ImGui.separator()
+    ImGui.textUnformatted("Referenced by: ${resource.referencedBy.size}")
+    resource.referencedBy.forEach { reference -> ImGui.textWrapped(reference) }
+    if (resource.details.isNotEmpty()) {
+        ImGui.separator()
+        ImGui.textUnformatted("All metadata")
+        resource.details.toSortedMap().forEach { (name, value) ->
+            ImGui.textWrapped("$name: $value")
+        }
+    }
+}
+
+private fun drawDetail(
+    resource: SkinResourceInfo,
+    name: String,
+) {
+    resource.details[name]?.let { value -> ImGui.textWrapped("$name: $value") }
 }
 
 class SkinEditorPreviewControlsPanel(
@@ -359,6 +490,7 @@ class SkinEditorPreviewControlsPanel(
 }
 
 private val PreviewScales = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f)
+private const val MaxInspectorAtlasRegions = 100
 
 private fun formatPreviewScale(scale: Float): String = "${(scale * 100f).toInt()}%"
 

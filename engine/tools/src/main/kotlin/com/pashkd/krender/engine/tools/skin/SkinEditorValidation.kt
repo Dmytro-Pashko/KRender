@@ -27,15 +27,27 @@ class AtlasValidator : SkinValidator {
                 )
         }
         project.atlasFiles.forEach { atlasFile ->
+            val atlasResource = context.loadResult.resourceIndex.atlasFiles.firstOrNull { resource -> resource.source == atlasFile.path }
+            if (atlasResource?.details?.get("readable") == "false") {
+                problems +=
+                    SkinProblem(
+                        severity = SkinProblemSeverity.Warning,
+                        category = SkinProblemCategory.Atlas,
+                        message = "Atlas '${atlasFile.name}' could not be read for resource inspection.",
+                        source = atlasFile.path,
+                    )
+                return@forEach
+            }
             val regionCount =
                 context.loadResult.resourceIndex.atlasRegions.count { region ->
                     region.source == atlasFile.path
                 }
+            val pageCount = atlasResource?.details?.get("pageCount") ?: "0"
             problems +=
                 SkinProblem(
                     severity = SkinProblemSeverity.Info,
                     category = SkinProblemCategory.Atlas,
-                    message = "Discovered atlas '${atlasFile.name}' with $regionCount probable region(s).",
+                    message = "Discovered atlas '${atlasFile.name}' with $pageCount page(s) and $regionCount probable region(s).",
                     source = atlasFile.path,
                 )
         }
@@ -80,6 +92,17 @@ class FontValidator : SkinValidator {
                     suggestedFix = "Verify BitmapFont file paths or place the required font files with the skin assets.",
                 )
         }
+        context.loadResult.resourceIndex.fonts
+            .filter { font -> font.details["file"] != null && font.details["matchedFile"] == "<none>" }
+            .forEach { font ->
+                problems +=
+                    SkinProblem(
+                        severity = SkinProblemSeverity.Warning,
+                        category = SkinProblemCategory.Font,
+                        message = "Declared font file '${font.details["file"]}' for '${font.name}' was not discovered.",
+                        source = font.source,
+                    )
+            }
         return problems
     }
 }

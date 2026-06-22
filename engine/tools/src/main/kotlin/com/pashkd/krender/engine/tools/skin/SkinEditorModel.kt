@@ -74,15 +74,22 @@ data class SkinResourceIndex(
             SkinResourceCategory.Drawable ->
                 sequenceOf(drawables, atlasRegions, textures)
                     .flatten()
-                    .any { resource -> resource.name == reference.name }
+                    .any { resource -> resource.name == reference.name && resource.resolved }
 
             null,
             SkinResourceCategory.Unknown,
-            -> resources.any { resource -> resource.name == reference.name }
+            -> resources.any { resource -> resource.name == reference.name && resource.resolved }
 
-            else -> resourcesFor(reference.category).any { resource -> resource.name == reference.name }
+            else -> resourcesFor(reference.category).any { resource -> resource.name == reference.name && resource.resolved }
         }
 }
+
+data class SkinResourceBrowserState(
+    var query: String = "",
+    var selectedCategory: SkinResourceCategory? = null,
+    var showOnlyUnresolved: Boolean = false,
+    var showOnlyReferenced: Boolean = false,
+)
 
 data class StyleFieldInfo(
     val name: String,
@@ -220,6 +227,7 @@ data class SkinEditorState(
     var selectedStyleKey: StyleKey? = null,
     var selectedResourceKey: SkinResourceKey? = null,
     var selectedProblemIndex: Int? = null,
+    var resourceBrowser: SkinResourceBrowserState = SkinResourceBrowserState(),
     var canvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),
     var previewLayoutId: String = DefaultWidgetPreviewLayout.Id,
     var previewSettings: SkinPreviewSettings = SkinPreviewSettings(),
