@@ -11,6 +11,7 @@ object SkinEditorPanelIds {
     const val Problems = "skinEditorProblems"
     const val Inspector = "skinEditorInspector"
     const val PreviewControls = "skinEditorPreviewControls"
+    const val ResourcePreview = "skinEditorResourcePreview"
     const val Logs = "runtimeLogs"
 }
 
@@ -76,6 +77,14 @@ object SkinEditorUiLayoutDefaults {
                             y = 608f,
                             width = 320f,
                             height = 256f,
+                        ),
+                    SkinEditorPanelIds.ResourcePreview to
+                        ImGuiPanelLayout(
+                            title = "Resource Preview",
+                            x = 1344f,
+                            y = 472f,
+                            width = 320f,
+                            height = 392f,
                         ),
                     SkinEditorPanelIds.Logs to
                         ImGuiPanelLayout(

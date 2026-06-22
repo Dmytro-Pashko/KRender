@@ -49,6 +49,13 @@
       "width": 299,
       "height": 237
     },
+    "skinEditorResourcePreview": {
+      "title": "Resource Preview",
+      "x": 1617,
+      "y": 671,
+      "width": 299,
+      "height": 379
+    },
     "runtimeLogs": {
       "title": "Runtime Logs",
       "x": 6,

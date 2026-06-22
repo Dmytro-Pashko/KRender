@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.skin.gdx.GdxSkinEditorPreview
+import com.pashkd.krender.engine.tools.skin.gdx.GdxSkinResourcePreview
 import com.pashkd.krender.engine.tools.skin.gdx.SkinReloadService
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -22,6 +23,7 @@ class SkinEditorScene(
 
     private lateinit var editorState: SkinEditorState
     private lateinit var preview: GdxSkinEditorPreview
+    private lateinit var resourcePreview: GdxSkinResourcePreview
     private lateinit var reloadService: SkinReloadService
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
     private lateinit var operations: SkinEditorOperations
@@ -34,6 +36,7 @@ class SkinEditorScene(
     override fun show() {
         engine.logger.info(TAG) { "Showing Skin Editor path='${editorState.currentInputPath ?: "<none>"}'" }
         preview = GdxSkinEditorPreview(engine.logger)
+        resourcePreview = GdxSkinResourcePreview(engine.logger)
         reloadService =
             SkinReloadService(
                 logger = engine.logger,
@@ -61,6 +64,7 @@ class SkinEditorScene(
 
         world.systems.add(createUiSystem())
         world.systems.add(SkinEditorPreviewUpdateSystem(editorState, preview, previewLayouts, reloadService, engine.logger))
+        world.systems.add(SkinResourcePreviewUpdateSystem(editorState, resourcePreview))
     }
 
     override fun update(dt: Float) {
@@ -74,6 +78,9 @@ class SkinEditorScene(
         if (::preview.isInitialized) {
             preview.render()
         }
+        if (::resourcePreview.isInitialized) {
+            resourcePreview.render(editorState.resourceVisualPreview)
+        }
     }
 
     override fun resize(
@@ -83,11 +90,17 @@ class SkinEditorScene(
         if (::preview.isInitialized) {
             preview.resize(width, height)
         }
+        if (::resourcePreview.isInitialized) {
+            resourcePreview.resize(width, height)
+        }
     }
 
     override fun dispose() {
         if (::preview.isInitialized) {
             preview.dispose()
+        }
+        if (::resourcePreview.isInitialized) {
+            resourcePreview.dispose()
         }
         if (::reloadService.isInitialized) {
             reloadService.dispose()
@@ -126,12 +139,12 @@ class SkinEditorScene(
             addPanel(
                 uiSystem,
                 "StyleTree",
-                SkinEditorStyleTreePanel(editorState, layoutConfig, layoutTracker, eventLogger),
+                SkinEditorStyleTreePanel(editorState, operations, layoutConfig, layoutTracker, eventLogger),
             )
             addPanel(
                 uiSystem,
                 "Resources",
-                SkinEditorResourceBrowserPanel(editorState, layoutConfig, layoutTracker, eventLogger),
+                SkinEditorResourceBrowserPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger),
             )
             addPanel(
                 uiSystem,
@@ -142,6 +155,11 @@ class SkinEditorScene(
                 uiSystem,
                 "PreviewCanvas",
                 SkinEditorPreviewCanvasPanel(editorState, layoutConfig, layoutTracker, eventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "ResourcePreview",
+                SkinEditorResourcePreviewPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger),
             )
             addPanel(
                 uiSystem,
@@ -294,5 +312,36 @@ private class SkinEditorPreviewUpdateSystem(
 
     private companion object {
         private const val TAG = "SkinEditorPreviewUpdateSystem"
+    }
+}
+
+private class SkinResourcePreviewUpdateSystem(
+    private val state: SkinEditorState,
+    private val resourcePreview: GdxSkinResourcePreview,
+) : System() {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
+        val rect = state.resourcePreviewCanvasRect
+        if (rect.isValid) {
+            resourcePreview.setCanvasViewport(
+                x = rect.x.toInt(),
+                y = rect.y.toInt(),
+                width = rect.width.toInt(),
+                height = rect.height.toInt(),
+            )
+        } else {
+            resourcePreview.clearCanvasViewport()
+        }
+
+        val selectedResource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
+        state.resourceVisualPreviewInfo =
+            resourcePreview.update(
+                project = state.loadResult.project,
+                resourceIndex = state.loadResult.resourceIndex,
+                selectedResource = selectedResource,
+                previewState = state.resourceVisualPreview,
+            )
     }
 }

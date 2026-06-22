@@ -19,6 +19,25 @@ class SkinEditorOperations(
         state.reloadRequested = true
     }
 
+    fun selectStyle(styleKey: StyleKey) {
+        state.selectedStyleKey = styleKey
+        state.selectedResourceKey = null
+        state.selectedProblemIndex = null
+        state.previewDirty = true
+    }
+
+    fun selectResource(resource: SkinResourceInfo) {
+        state.selectedResourceKey = resource.key
+        state.selectedStyleKey = null
+        state.selectedProblemIndex = null
+        state.resourceVisualPreview.selectedAtlasRegionName =
+            if (resource.category == SkinResourceCategory.AtlasRegion) {
+                resource.name
+            } else {
+                null
+            }
+    }
+
     fun selectLayout(layoutId: String) {
         state.previewLayoutId = layoutId
         updatePreviewStatus("Preview layout set to '$layoutId'.")
@@ -77,6 +96,34 @@ class SkinEditorOperations(
         updatePreviewStatus("Previewing selected style '${selectedStyle.type}.${selectedStyle.name}'.")
     }
 
+    fun setResourcePreviewZoomMode(zoomMode: SkinResourceVisualPreviewZoomMode) {
+        state.resourceVisualPreview.zoomMode = zoomMode
+        state.statusMessage = "Resource preview zoom set to ${formatResourceZoom(zoomMode)}."
+    }
+
+    fun resetResourcePreviewZoom() {
+        state.resourceVisualPreview.zoomMode = SkinResourceVisualPreviewZoomMode.Fit
+        state.statusMessage = "Resource preview zoom reset to Fit."
+    }
+
+    fun setShowResourceRegionBounds(showBounds: Boolean) {
+        state.resourceVisualPreview.showRegionBounds = showBounds
+        state.statusMessage = if (showBounds) "Resource preview bounds enabled." else "Resource preview bounds hidden."
+    }
+
+    fun setShowResourceRegionLabels(showLabels: Boolean) {
+        state.resourceVisualPreview.showRegionLabels = showLabels
+        state.statusMessage = if (showLabels) "Resource preview labels enabled." else "Resource preview labels hidden."
+    }
+
+    fun selectAtlasRegionPreview(regionName: String?) {
+        state.resourceVisualPreview.selectedAtlasRegionName = regionName?.takeIf(String::isNotBlank)
+        state.statusMessage =
+            state.resourceVisualPreview.selectedAtlasRegionName?.let { name ->
+                "Atlas preview region set to '$name'."
+            } ?: "Atlas preview region cleared."
+    }
+
     fun saveUiLayout() {
         ImGuiLayoutConfigCodec.save(SkinEditorUiLayoutDefaults.assetPath, layoutTracker.currentConfig(), engine.sceneFiles)
         state.statusMessage = "Panel layout saved."
@@ -93,4 +140,12 @@ class SkinEditorOperations(
     }
 
     private fun formatScale(scale: Float): String = "${(scale * 100f).toInt()}%"
+
+    private fun formatResourceZoom(zoomMode: SkinResourceVisualPreviewZoomMode): String =
+        when (zoomMode) {
+            SkinResourceVisualPreviewZoomMode.Fit -> "Fit"
+            SkinResourceVisualPreviewZoomMode.Percent50 -> "50%"
+            SkinResourceVisualPreviewZoomMode.Percent100 -> "100%"
+            SkinResourceVisualPreviewZoomMode.Percent200 -> "200%"
+        }
 }

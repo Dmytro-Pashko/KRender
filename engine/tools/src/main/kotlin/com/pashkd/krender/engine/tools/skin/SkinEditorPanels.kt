@@ -76,6 +76,7 @@ class SkinEditorToolbarPanel(
 
 class SkinEditorStyleTreePanel(
     private val state: SkinEditorState,
+    private val operations: SkinEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
@@ -96,10 +97,7 @@ class SkinEditorStyleTreePanel(
                 if (ImGui.treeNode("$type##skin_editor_style_type_$type")) {
                     styles.forEach { style ->
                         if (ImGui.selectable("${style.name}##skin_editor_style_${style.type}_${style.name}", state.selectedStyleKey == style.key)) {
-                            state.selectedStyleKey = style.key
-                            state.selectedResourceKey = null
-                            state.selectedProblemIndex = null
-                            state.previewDirty = true
+                            operations.selectStyle(style.key)
                         }
                     }
                     ImGui.treePop()
@@ -112,6 +110,7 @@ class SkinEditorStyleTreePanel(
 
 class SkinEditorResourceBrowserPanel(
     private val state: SkinEditorState,
+    private val operations: SkinEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
@@ -144,9 +143,7 @@ class SkinEditorResourceBrowserPanel(
                         val sourceLabel = source?.let { " source: $it" }.orEmpty()
                         val label = "${resource.name} [${resource.type}]$status refs: ${resource.referencedBy.size}$sourceLabel"
                         if (ImGui.selectable("$label##skin_editor_resource_${category}_${resource.name}", state.selectedResourceKey == resource.key)) {
-                            state.selectedResourceKey = resource.key
-                            state.selectedStyleKey = null
-                            state.selectedProblemIndex = null
+                            operations.selectResource(resource)
                         }
                     }
                     ImGui.treePop()
@@ -272,6 +269,118 @@ class SkinEditorPreviewCanvasPanel(
     }
 }
 
+class SkinEditorResourcePreviewPanel(
+    private val state: SkinEditorState,
+    private val operations: SkinEditorOperations,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.ResourcePreview)
+        ImGui.setNextWindowBgAlpha(0f)
+        val expanded = beginImGuiPanel(SkinEditorPanelIds.ResourcePreview, layout, layoutTracker)
+        eventLogger.observe(SkinEditorPanelIds.ResourcePreview, layout.title)
+        if (!expanded) {
+            state.resourcePreviewCanvasRect = SkinEditorCanvasRect()
+            ImGui.end()
+            return
+        }
+
+        val selectedResource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
+        drawResourcePreviewControls(selectedResource)
+        ImGui.separator()
+        ImGui.textWrapped(state.resourceVisualPreviewInfo.statusMessage)
+        state.resourceVisualPreviewInfo.resolvedTexturePath?.let { path ->
+            ImGui.textWrapped("Texture: ${File(path).name}")
+            ImGui.textUnformatted("Size: ${state.resourceVisualPreviewInfo.textureWidth} x ${state.resourceVisualPreviewInfo.textureHeight}")
+        }
+        state.resourceVisualPreviewInfo.atlasPageName?.let { page ->
+            ImGui.textWrapped("Atlas page: $page")
+        }
+        state.resourceVisualPreviewInfo.selectedRegionName?.let { regionName ->
+            ImGui.textWrapped("Region overlay: $regionName")
+        }
+        ImGui.separator()
+
+        val min = ImGui.cursorScreenPos
+        val available = ImGui.contentRegionAvail
+        state.resourcePreviewCanvasRect =
+            SkinEditorCanvasRect(
+                x = min.x,
+                y = min.y,
+                width = available.x.coerceAtLeast(1f),
+                height = available.y.coerceAtLeast(1f),
+            )
+        ImGui.invisibleButton("##skin_editor_resource_preview_canvas", ImVec2(state.resourcePreviewCanvasRect.width, state.resourcePreviewCanvasRect.height))
+        ImGui.end()
+    }
+
+    private fun drawResourcePreviewControls(selectedResource: SkinResourceInfo?) {
+        val previewState = state.resourceVisualPreview
+        if (ImGui.beginCombo("Zoom##skin_editor_resource_preview_zoom", formatResourcePreviewZoom(previewState.zoomMode))) {
+            SkinResourceVisualPreviewZoomMode.entries.forEach { zoomMode ->
+                if (ImGui.selectable("${formatResourcePreviewZoom(zoomMode)}##skin_editor_resource_preview_zoom_$zoomMode", zoomMode == previewState.zoomMode)) {
+                    operations.setResourcePreviewZoomMode(zoomMode)
+                }
+            }
+            ImGui.endCombo()
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Reset##skin_editor_resource_preview_zoom_reset") {
+                operations.resetResourcePreviewZoom()
+            }
+        }
+
+        val showBounds = booleanArrayOf(previewState.showRegionBounds)
+        if (ImGui.checkbox("Show region bounds##skin_editor_resource_preview_bounds", showBounds)) {
+            operations.setShowResourceRegionBounds(showBounds[0])
+        }
+        val showLabels = booleanArrayOf(previewState.showRegionLabels)
+        if (ImGui.checkbox("Show region labels##skin_editor_resource_preview_labels", showLabels)) {
+            operations.setShowResourceRegionLabels(showLabels[0])
+        }
+
+        selectedResource?.let { resource ->
+            if (resource.category == SkinResourceCategory.Atlas || resource.category == SkinResourceCategory.AtlasRegion) {
+                drawAtlasRegionSelector(resource)
+            }
+            ImGui.textUnformatted("Selected resource: ${resource.category}.${resource.name}")
+        } ?: ImGui.textUnformatted("Selected resource: <none>")
+    }
+
+    private fun drawAtlasRegionSelector(resource: SkinResourceInfo) {
+        if (resource.category == SkinResourceCategory.AtlasRegion) {
+            ImGui.textWrapped("Region overlay follows the selected atlas region.")
+            return
+        }
+        val atlasSource = when (resource.category) {
+            SkinResourceCategory.Atlas -> resource.source
+            else -> null
+        } ?: return
+        val regions =
+            state.loadResult.resourceIndex.atlasRegions
+                .filter { region -> region.source == atlasSource }
+                .map(SkinResourceInfo::name)
+        if (regions.isEmpty()) return
+
+        val selectedName = state.resourceVisualPreview.selectedAtlasRegionName?.takeIf { name -> name in regions }
+        val comboLabel = selectedName ?: "None"
+        if (ImGui.beginCombo("Region overlay##skin_editor_resource_preview_region", comboLabel)) {
+            if (ImGui.selectable("None##skin_editor_resource_preview_region_none", selectedName == null)) {
+                operations.selectAtlasRegionPreview(null)
+            }
+            regions.forEach { regionName ->
+                if (ImGui.selectable("$regionName##skin_editor_resource_preview_region_$regionName", regionName == selectedName)) {
+                    operations.selectAtlasRegionPreview(regionName)
+                }
+            }
+            ImGui.endCombo()
+        }
+    }
+}
+
 class SkinEditorInspectorPanel(
     private val state: SkinEditorState,
     private val layoutConfig: ImGuiLayoutConfig,
@@ -372,6 +481,7 @@ private fun drawResourceInspector(
         SkinResourceCategory.Atlas -> {
             ImGui.separator()
             ImGui.textUnformatted("Atlas contents")
+            ImGui.textWrapped("Visual preview available in Resource Preview panel.")
             drawDetail(resource, "pageCount")
             drawDetail(resource, "regionCount")
             drawDetail(resource, "pages")
@@ -386,12 +496,14 @@ private fun drawResourceInspector(
         SkinResourceCategory.AtlasRegion -> {
             ImGui.separator()
             ImGui.textUnformatted("Atlas region")
+            ImGui.textWrapped("Visual preview available in Resource Preview panel.")
             listOf("atlas", "page", "xy", "size", "orig", "offset", "index").forEach { field -> drawDetail(resource, field) }
         }
 
         SkinResourceCategory.Texture -> {
             ImGui.separator()
             ImGui.textUnformatted("Texture file")
+            ImGui.textWrapped("Visual preview available in Resource Preview panel.")
             drawDetail(resource, "extension")
             drawDetail(resource, "sizeBytes")
         }
@@ -539,6 +651,14 @@ private const val MaxInspectorAtlasRegions = 100
 
 private fun formatPreviewScale(scale: Float): String = "${(scale * 100f).toInt()}%"
 
+private fun formatResourcePreviewZoom(zoomMode: SkinResourceVisualPreviewZoomMode): String =
+    when (zoomMode) {
+        SkinResourceVisualPreviewZoomMode.Fit -> "Fit"
+        SkinResourceVisualPreviewZoomMode.Percent50 -> "50%"
+        SkinResourceVisualPreviewZoomMode.Percent100 -> "100%"
+        SkinResourceVisualPreviewZoomMode.Percent200 -> "200%"
+    }
+
 private fun previewPresetLabel(state: SkinEditorState): String = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId).displayName
 
 private fun selectedResourceSummary(state: SkinEditorState): String? =
@@ -551,15 +671,22 @@ private fun selectedResourceSummary(state: SkinEditorState): String? =
 private fun drawSelectedResourcePreviewHint(state: SkinEditorState) {
     val selectedResourceKey = state.selectedResourceKey ?: return
     val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == selectedResourceKey } ?: return
-    if (resource.category in PreviewHintCategories) {
+    if (resource.category in AvailablePreviewCategories) {
+        ImGui.textWrapped("Visual preview is available in the Resource Preview panel.")
+    } else if (resource.category in DeferredPreviewCategories) {
         ImGui.textWrapped("Visual preview for ${resource.category.name.lowercase()} resources is planned for the next steps.")
     }
 }
 
-private val PreviewHintCategories =
+private val AvailablePreviewCategories =
     setOf(
+        SkinResourceCategory.Atlas,
         SkinResourceCategory.AtlasRegion,
         SkinResourceCategory.Texture,
+    )
+
+private val DeferredPreviewCategories =
+    setOf(
         SkinResourceCategory.Font,
         SkinResourceCategory.Color,
     )

@@ -91,6 +91,29 @@ data class SkinResourceBrowserState(
     var showOnlyReferenced: Boolean = false,
 )
 
+enum class SkinResourceVisualPreviewZoomMode {
+    Fit,
+    Percent50,
+    Percent100,
+    Percent200,
+}
+
+data class SkinResourceVisualPreviewState(
+    var zoomMode: SkinResourceVisualPreviewZoomMode = SkinResourceVisualPreviewZoomMode.Fit,
+    var showRegionBounds: Boolean = true,
+    var showRegionLabels: Boolean = false,
+    var selectedAtlasRegionName: String? = null,
+)
+
+data class SkinResourceVisualPreviewInfo(
+    val statusMessage: String = "Select a texture, atlas, or atlas region.",
+    val resolvedTexturePath: String? = null,
+    val textureWidth: Int = 0,
+    val textureHeight: Int = 0,
+    val atlasPageName: String? = null,
+    val selectedRegionName: String? = null,
+)
+
 data class StyleFieldInfo(
     val name: String,
     val valueType: String,
@@ -234,6 +257,9 @@ data class SkinEditorState(
     var selectedProblemIndex: Int? = null,
     var resourceBrowser: SkinResourceBrowserState = SkinResourceBrowserState(),
     var canvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),
+    var resourcePreviewCanvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),
+    var resourceVisualPreview: SkinResourceVisualPreviewState = SkinResourceVisualPreviewState(),
+    var resourceVisualPreviewInfo: SkinResourceVisualPreviewInfo = SkinResourceVisualPreviewInfo(),
     var previewLayoutId: String = DefaultWidgetPreviewLayout.Id,
     var previewSettings: SkinPreviewSettings = SkinPreviewSettings(),
     var previewDirty: Boolean = true,
