@@ -182,6 +182,37 @@ data class SkinEditorPreviewStageInfo(
     val rootActorClass: String? = null,
 )
 
+data class SkinPreviewSettings(
+    var screenPresetId: String = SkinPreviewScreenPresets.DesktopId,
+    var scale: Float = 1f,
+    var showBounds: Boolean = false,
+    var showFallbackWarnings: Boolean = true,
+    var selectedOnly: Boolean = false,
+)
+
+data class SkinPreviewScreenPreset(
+    val id: String,
+    val displayName: String,
+    val width: Int,
+    val height: Int,
+)
+
+object SkinPreviewScreenPresets {
+    const val DesktopId = "desktop"
+
+    val presets: List<SkinPreviewScreenPreset> =
+        listOf(
+            SkinPreviewScreenPreset(id = "compact", displayName = "Compact", width = 640, height = 480),
+            SkinPreviewScreenPreset(id = DesktopId, displayName = "Desktop", width = 1280, height = 720),
+            SkinPreviewScreenPreset(id = "wide", displayName = "Wide", width = 1600, height = 900),
+            SkinPreviewScreenPreset(id = "mobile", displayName = "Mobile", width = 390, height = 844),
+            SkinPreviewScreenPreset(id = "tablet", displayName = "Tablet", width = 1024, height = 768),
+        )
+
+    fun presetOrDefault(id: String?): SkinPreviewScreenPreset =
+        presets.firstOrNull { preset -> preset.id == id } ?: presets.first { preset -> preset.id == DesktopId }
+}
+
 data class SkinEditorState(
     var currentInputPath: String? = null,
     var pendingPathInput: String = "",
@@ -191,6 +222,7 @@ data class SkinEditorState(
     var selectedProblemIndex: Int? = null,
     var canvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),
     var previewLayoutId: String = DefaultWidgetPreviewLayout.Id,
+    var previewSettings: SkinPreviewSettings = SkinPreviewSettings(),
     var previewDirty: Boolean = true,
     var reloadRequested: Boolean = false,
     var statusMessage: String = "Skin Editor ready.",

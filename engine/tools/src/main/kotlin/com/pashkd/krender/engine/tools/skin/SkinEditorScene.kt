@@ -203,11 +203,16 @@ private class SkinEditorPreviewUpdateSystem(
     ) {
         val rect = state.canvasRect
         if (rect.isValid) {
+            val preset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
             preview.setCanvasViewport(
                 x = rect.x.toInt(),
                 y = rect.y.toInt(),
                 width = rect.width.toInt(),
                 height = rect.height.toInt(),
+                logicalWidth = preset.width,
+                logicalHeight = preset.height,
+                scale = state.previewSettings.scale,
+                showBounds = state.previewSettings.showBounds,
             )
         } else {
             preview.clearCanvasViewport()
@@ -225,12 +230,16 @@ private class SkinEditorPreviewUpdateSystem(
                     )
                 state.previewInfo = buildResult.previewInfo
                 replacePreviewProblems(
-                    buildResult.issues.map { issue ->
-                        SkinProblem(
-                            severity = SkinProblemSeverity.Warning,
-                            category = SkinProblemCategory.Preview,
-                            message = issue.message,
-                        )
+                    if (state.previewSettings.showFallbackWarnings) {
+                        buildResult.issues.map { issue ->
+                            SkinProblem(
+                                severity = SkinProblemSeverity.Warning,
+                                category = SkinProblemCategory.Preview,
+                                message = issue.message,
+                            )
+                        }
+                    } else {
+                        emptyList()
                     },
                 )
             } catch (error: Exception) {

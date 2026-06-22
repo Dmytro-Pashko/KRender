@@ -17,7 +17,15 @@ interface PreviewLayout {
 }
 
 class PreviewLayoutRegistry(
-    layouts: List<PreviewLayout> = listOf(DefaultWidgetPreviewLayout()),
+    layouts: List<PreviewLayout> =
+        listOf(
+            DefaultWidgetPreviewLayout(),
+            FormsPreviewLayout(),
+            TablesPreviewLayout(),
+            DialogsPreviewLayout(),
+            StressPreviewLayout(),
+            SelectedStylePreviewLayout(),
+        ),
 ) {
     private val layoutsById = layouts.associateBy { it.id }
     val layouts: List<PreviewLayout> = layouts
@@ -113,7 +121,7 @@ class WidgetPreviewFactory {
 
 class DefaultWidgetPreviewLayout : PreviewLayout {
     override val id: String = Id
-    override val displayName: String = "Default Widget Preview"
+    override val displayName: String = "Default Widgets"
 
     override fun build(
         context: PreviewLayoutContext,

@@ -319,15 +319,48 @@ class SkinEditorPreviewControlsPanel(
             }
             ImGui.endCombo()
         }
+        val selectedPreset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
+        val presetLabel = "${selectedPreset.displayName} (${selectedPreset.width} x ${selectedPreset.height})"
+        if (ImGui.beginCombo("Screen##skin_editor_preview_screen", presetLabel)) {
+            SkinPreviewScreenPresets.presets.forEach { preset ->
+                val label = "${preset.displayName} (${preset.width} x ${preset.height})"
+                if (ImGui.selectable("$label##skin_editor_preview_screen_${preset.id}", preset.id == selectedPreset.id)) {
+                    operations.selectScreenPreset(preset.id)
+                }
+            }
+            ImGui.endCombo()
+        }
+        val selectedScale = PreviewScales.minBy { scale -> kotlin.math.abs(scale - state.previewSettings.scale) }
+        if (ImGui.beginCombo("Scale##skin_editor_preview_scale", formatPreviewScale(selectedScale))) {
+            PreviewScales.forEach { scale ->
+                if (ImGui.selectable("${formatPreviewScale(scale)}##skin_editor_preview_scale_$scale", scale == selectedScale)) {
+                    operations.setPreviewScale(scale)
+                }
+            }
+            ImGui.endCombo()
+        }
+        val showBounds = booleanArrayOf(state.previewSettings.showBounds)
+        if (ImGui.checkbox("Show bounds##skin_editor_preview_bounds", showBounds)) {
+            operations.setShowBounds(showBounds[0])
+        }
+        val showFallbackWarnings = booleanArrayOf(state.previewSettings.showFallbackWarnings)
+        if (ImGui.checkbox("Show fallback warnings##skin_editor_preview_warnings", showFallbackWarnings)) {
+            operations.setShowFallbackWarnings(showFallbackWarnings[0])
+        }
         ImGui.separator()
         ImGui.textUnformatted("Loaded skin: ${if (state.loadResult.previewSkinAvailable) "yes" else "no"}")
         ImGui.textUnformatted("Root actor: ${state.previewInfo.rootActorClass ?: "<none>"}")
         ImGui.textUnformatted("Selected style: ${state.selectedStyleKey?.let { "${it.type}.${it.name}" } ?: "<none>"}")
         ImGui.textUnformatted("Selected resource: ${state.selectedResourceKey?.let { "${it.category}.${it.name}" } ?: "<none>"}")
         ImGui.textUnformatted("Canvas: ${state.canvasRect.width.toInt()} x ${state.canvasRect.height.toInt()}")
+        ImGui.textUnformatted("Logical screen: ${selectedPreset.width} x ${selectedPreset.height}")
         ImGui.end()
     }
 }
+
+private val PreviewScales = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f)
+
+private fun formatPreviewScale(scale: Float): String = "${(scale * 100f).toInt()}%"
 
 private fun readBuffer(buffer: ByteArray): String {
     val end = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size
