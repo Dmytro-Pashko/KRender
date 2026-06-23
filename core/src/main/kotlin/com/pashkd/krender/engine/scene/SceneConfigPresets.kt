@@ -93,4 +93,20 @@ object SceneConfigPresets {
                     mode = WindowMode.Windowed,
                 ),
         )
+
+    /** Current Texture Manager preset. Kept separate for future divergence. */
+    val TextureManager =
+        SceneConfig(
+            viewport =
+                RuntimeViewportConfig(
+                    designWidth = 1920f,
+                    designHeight = 1080f,
+                    scalePolicy = UiScalePolicy.ScaleByHeight,
+                ),
+            window =
+                RuntimeWindowConfig(
+                    resolution = WindowResolution(width = 2160, height = 1350),
+                    mode = WindowMode.Windowed,
+                ),
+        )
 }

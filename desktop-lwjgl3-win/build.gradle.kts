@@ -91,6 +91,7 @@ val forwardedRouteProperties =
         "krender.scene",
         "krender.model.path",
         "krender.model",
+        "krender.texture.path",
         "krender.scene.path",
         "krender.scene.name",
         "krender.terrain.path",

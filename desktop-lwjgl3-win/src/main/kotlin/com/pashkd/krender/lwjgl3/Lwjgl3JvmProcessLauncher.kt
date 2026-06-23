@@ -59,6 +59,7 @@ internal class Lwjgl3JvmProcessLauncher(
         val scene = properties["krender.scene"] ?: "tool"
         val path =
             properties["krender.model.path"]
+                ?: properties["krender.texture.path"]
                 ?: properties["krender.terrain.path"]
                 ?: properties["krender.scene.path"]
                 ?: "session"
@@ -143,6 +144,7 @@ internal class Lwjgl3JvmProcessLauncher(
                 "-Dkrender.scene.path=",
                 "-Dkrender.model=",
                 "-Dkrender.model.path=",
+                "-Dkrender.texture.path=",
                 "-Dkrender.terrain.path=",
             )
 
