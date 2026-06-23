@@ -14,6 +14,7 @@ import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import glm_.vec2.Vec2 as ImVec2
 import imgui.ImGui
+import kotlin.math.hypot
 
 class SkinEditorPreviewCanvasPanel(
     private val state: SkinEditorState,
@@ -22,6 +23,9 @@ class SkinEditorPreviewCanvasPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private var previewClickPending = false
+    private var previewClickDragDistance = 0f
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.PreviewCanvas)
         ImGui.setNextWindowBgAlpha(0f)
@@ -61,7 +65,14 @@ class SkinEditorPreviewCanvasPanel(
         ImGui.textUnformatted("Show Bounding Box:")
         ImGui.sameLine()
         if (ImGui.checkbox("##skin_editor_canvas_bounds", showBounds)) operations.setShowBounds(showBounds[0])
+        val highlightSelectedStyle = booleanArrayOf(state.previewSettings.highlightSelectedStyle)
+        ImGui.textUnformatted("Highlight selected style:")
+        ImGui.sameLine()
+        if (ImGui.checkbox("##skin_editor_canvas_highlight_style", highlightSelectedStyle)) {
+            operations.setHighlightSelectedStyle(highlightSelectedStyle[0])
+        }
         ImGui.textUnformatted("Canvas: ${state.canvasRect.width.toInt()} x ${state.canvasRect.height.toInt()}")
+        ImGui.textWrapped("Ctrl + RMB drag: pan. Ctrl + mouse wheel: zoom.")
         ImGui.separator()
 
         val min = ImGui.cursorScreenPos
@@ -74,6 +85,33 @@ class SkinEditorPreviewCanvasPanel(
                 height = available.y.coerceAtLeast(1f),
             )
         ImGui.invisibleButton("##skin_editor_preview_canvas", ImVec2(state.canvasRect.width, state.canvasRect.height))
+        handleCanvasInteraction()
         ImGui.end()
+    }
+
+    private fun handleCanvasInteraction() {
+        val io = ImGui.io
+        val hovered = ImGui.isItemHovered()
+
+        if (hovered && io.mouseClicked[0]) {
+            previewClickPending = true
+            previewClickDragDistance = 0f
+        }
+        if (previewClickPending && io.mouseDown[0]) {
+            previewClickDragDistance += hypot(io.mouseDelta.x, io.mouseDelta.y)
+        }
+        if (hovered && io.keyCtrl && io.mouseDown[1] && (io.mouseDelta.x != 0f || io.mouseDelta.y != 0f)) {
+            operations.panPreviewCamera(io.mouseDelta.x, io.mouseDelta.y)
+            previewClickPending = false
+        }
+        if (hovered && io.keyCtrl && io.mouseWheel != 0f) {
+            val nextZoom = state.previewSettings.cameraZoom * (1f + io.mouseWheel * 0.1f)
+            operations.setPreviewCameraZoom(nextZoom)
+            previewClickPending = false
+        }
+        if (previewClickPending && io.mouseReleased[0]) {
+            previewClickPending = false
+            previewClickDragDistance = 0f
+        }
     }
 }

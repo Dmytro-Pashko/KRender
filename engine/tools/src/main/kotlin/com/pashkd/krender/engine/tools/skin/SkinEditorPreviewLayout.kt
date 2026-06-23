@@ -61,6 +61,13 @@ class WidgetPreviewFactory {
         styleName: String? = null,
     ): SkinEditorPreviewItem = SkinEditorPreviewItem(key = key, label = "Label", kind = PreviewWidgetKind.Label, styleName = styleName, text = text)
 
+    fun button(
+        key: String,
+        text: String,
+        styleName: String? = null,
+    ): SkinEditorPreviewItem =
+        SkinEditorPreviewItem(key = key, label = "Button", kind = PreviewWidgetKind.Button, styleName = styleName, text = text)
+
     fun textButton(
         key: String,
         text: String,
@@ -109,6 +116,20 @@ class WidgetPreviewFactory {
             children = listOf(child),
         )
 
+    fun splitPane(
+        key: String,
+        firstChild: SkinEditorPreviewItem,
+        secondChild: SkinEditorPreviewItem,
+        styleName: String? = null,
+    ): SkinEditorPreviewItem =
+        SkinEditorPreviewItem(
+            key = key,
+            label = "SplitPane",
+            kind = PreviewWidgetKind.SplitPane,
+            styleName = styleName,
+            children = listOf(firstChild, secondChild),
+        )
+
     fun slider(
         key: String,
         styleName: String? = null,
@@ -118,6 +139,20 @@ class WidgetPreviewFactory {
         key: String,
         styleName: String? = null,
     ): SkinEditorPreviewItem = SkinEditorPreviewItem(key = key, label = "ProgressBar", kind = PreviewWidgetKind.ProgressBar, styleName = styleName)
+
+    fun tree(
+        key: String,
+        items: List<String>,
+        styleName: String? = null,
+    ): SkinEditorPreviewItem =
+        SkinEditorPreviewItem(key = key, label = "Tree", kind = PreviewWidgetKind.Tree, styleName = styleName, items = items)
+
+    fun textTooltip(
+        key: String,
+        text: String,
+        styleName: String? = null,
+    ): SkinEditorPreviewItem =
+        SkinEditorPreviewItem(key = key, label = "TextTooltip", kind = PreviewWidgetKind.TextTooltip, styleName = styleName, text = text)
 }
 
 class DefaultWidgetPreviewLayout : PreviewLayout {

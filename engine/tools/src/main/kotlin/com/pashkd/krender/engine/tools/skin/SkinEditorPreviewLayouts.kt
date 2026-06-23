@@ -159,6 +159,12 @@ class SelectedStylePreviewLayout : PreviewLayout {
                         factory.textButton("selected_button_long", "A Button With A Deliberately Long Caption", styleName),
                     )
 
+                "ButtonStyle" ->
+                    listOf(
+                        factory.button("selected_button_style_primary", "ButtonStyle Preview", styleName),
+                        factory.button("selected_button_style_secondary", "Українська кнопка", styleName),
+                    )
+
                 "CheckBoxStyle" ->
                     listOf(
                         factory.checkBox("selected_checkbox_a", "Enabled option", styleName),
@@ -188,8 +194,44 @@ class SelectedStylePreviewLayout : PreviewLayout {
                         ),
                     )
 
+                "SplitPaneStyle" ->
+                    listOf(
+                        factory.splitPane(
+                            "selected_split_pane",
+                            factory.label("selected_split_left", "Navigation", null),
+                            factory.column(
+                                "selected_split_right",
+                                "Content",
+                                listOf(
+                                    factory.label("selected_split_text", "Split pane preview"),
+                                    factory.label("selected_split_text_uk", "Попередній перегляд роздільника"),
+                                ),
+                            ),
+                            styleName,
+                        ),
+                    )
+
                 "SliderStyle" -> listOf(factory.slider("selected_slider", styleName))
                 "ProgressBarStyle" -> listOf(factory.progressBar("selected_progress", styleName))
+                "TreeStyle" ->
+                    listOf(
+                        factory.tree(
+                            "selected_tree",
+                            listOf(
+                                "UI",
+                                "UI/Buttons",
+                                "UI/Buttons/Primary",
+                                "UI/Dialogs",
+                                "Scenes",
+                            ),
+                            styleName,
+                        ),
+                    )
+                "TextTooltipStyle" ->
+                    listOf(
+                        factory.textTooltip("selected_tooltip", "Tooltip preview: KRender skin hint", styleName),
+                        factory.label("selected_tooltip_note", "Tooltip container preview is shown in-place."),
+                    )
                 "WindowStyle" ->
                     return factory.window(
                         key = "selected_window",

@@ -109,12 +109,21 @@ enum class SkinResourceVisualPreviewZoomMode {
     Custom,
 }
 
+data class SkinAtlasPreviewVisualOptions(
+    var showCheckerboard: Boolean = true,
+    var showGrid: Boolean = false,
+    var gridSize: Int = 32,
+    var showAllRegionBounds: Boolean = false,
+    var showHoverHighlight: Boolean = true,
+)
+
 data class SkinResourcePreviewViewportState(
     var panX: Float = 0f,
     var panY: Float = 0f,
     var zoom: Float = 1f,
     var clickSelectRegionEnabled: Boolean = true,
     var contentKey: String? = null,
+    var atlasVisuals: SkinAtlasPreviewVisualOptions = SkinAtlasPreviewVisualOptions(),
 )
 
 data class SkinFontPreviewState(
@@ -134,7 +143,6 @@ enum class SkinResourceVisualPreviewKind {
 data class SkinResourceVisualPreviewState(
     var zoomMode: SkinResourceVisualPreviewZoomMode = SkinResourceVisualPreviewZoomMode.Fit,
     var showRegionBounds: Boolean = true,
-    var showRegionLabels: Boolean = false,
     var selectedAtlasRegionName: String? = null,
     var viewport: SkinResourcePreviewViewportState = SkinResourcePreviewViewportState(),
     var fontPreview: SkinFontPreviewState = SkinFontPreviewState(),
@@ -246,14 +254,18 @@ enum class PreviewWidgetKind {
     Column,
     Window,
     Label,
+    Button,
     TextButton,
     CheckBox,
     TextField,
     SelectBox,
     List,
     ScrollPane,
+    SplitPane,
     Slider,
     ProgressBar,
+    Tree,
+    TextTooltip,
 }
 
 data class SkinEditorPreviewStageInfo(
@@ -270,6 +282,10 @@ data class SkinPreviewSettings(
     var screenPresetId: String = SkinPreviewScreenPresets.DefaultId,
     var scale: Float = 1f,
     var showBounds: Boolean = false,
+    var highlightSelectedStyle: Boolean = true,
+    var cameraPanX: Float = 0f,
+    var cameraPanY: Float = 0f,
+    var cameraZoom: Float = 1f,
     var showFallbackWarnings: Boolean = true,
     var text: SkinPreviewTextSettings = SkinPreviewTextSettings(),
 )

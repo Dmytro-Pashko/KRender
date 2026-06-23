@@ -13,6 +13,7 @@ internal const val MinInlineResourcePreviewScale = 0.05f
 internal const val FontPreviewTextHeight = 96f
 internal const val ResourcePreviewViewportHeight = 360f
 internal const val ResourcePreviewClickDragThreshold = 4f
+internal const val MinResourcePreviewGridScreenSpacing = 8f
 
 internal fun formatPreviewScale(scale: Float): String = "${(scale * 100f).toInt()}%"
 
@@ -104,6 +105,16 @@ internal data class AtlasRegionHitInfo(
     val area: Int get() = width * height
 }
 
+internal data class AtlasRegionScreenRect(
+    val minX: Float,
+    val minY: Float,
+    val maxX: Float,
+    val maxY: Float,
+) {
+    val width: Float get() = maxX - minX
+    val height: Float get() = maxY - minY
+}
+
 internal fun computeFitZoom(
     viewportWidth: Float,
     viewportHeight: Float,
@@ -169,6 +180,43 @@ internal fun parseAtlasRegionHitInfo(resource: SkinResourceInfo): AtlasRegionHit
         height = size.second,
     )
 }
+
+internal fun atlasRegionScreenRect(
+    region: AtlasRegionHitInfo,
+    layout: ResourcePreviewViewportLayout,
+): AtlasRegionScreenRect {
+    val minX = layout.imageX + region.x * layout.effectiveZoom
+    val minY = layout.imageY + region.y * layout.effectiveZoom
+    return AtlasRegionScreenRect(
+        minX = minX,
+        minY = minY,
+        maxX = minX + region.width * layout.effectiveZoom,
+        maxY = minY + region.height * layout.effectiveZoom,
+    )
+}
+
+internal fun clipRectToViewport(
+    rect: AtlasRegionScreenRect,
+    layout: ResourcePreviewViewportLayout,
+): AtlasRegionScreenRect? {
+    val minX = maxOf(rect.minX, layout.viewportX)
+    val minY = maxOf(rect.minY, layout.viewportY)
+    val maxX = minOf(rect.maxX, layout.viewportX + layout.viewportWidth)
+    val maxY = minOf(rect.maxY, layout.viewportY + layout.viewportHeight)
+    if (maxX <= minX || maxY <= minY) return null
+    return AtlasRegionScreenRect(minX = minX, minY = minY, maxX = maxX, maxY = maxY)
+}
+
+internal fun packImColor(
+    red: Int,
+    green: Int,
+    blue: Int,
+    alpha: Int = 255,
+): Int =
+    (alpha.coerceIn(0, 255) shl 24) or
+        (blue.coerceIn(0, 255) shl 16) or
+        (green.coerceIn(0, 255) shl 8) or
+        red.coerceIn(0, 255)
 
 internal fun String.parseIntPair(): Pair<Int, Int>? {
     val parts = split(',').map(String::trim)

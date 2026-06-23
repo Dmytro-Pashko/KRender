@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.tools.skin.ui
 import com.pashkd.krender.engine.tools.skin.AtlasRegionHitInfo
 import com.pashkd.krender.engine.tools.skin.FontPreviewScales
 import com.pashkd.krender.engine.tools.skin.FontPreviewTextHeight
+import com.pashkd.krender.engine.tools.skin.MinResourcePreviewGridScreenSpacing
 import com.pashkd.krender.engine.tools.skin.ResourcePreviewClickDragThreshold
 import com.pashkd.krender.engine.tools.skin.ResourcePreviewViewportHeight
 import com.pashkd.krender.engine.tools.skin.ResourceSearchWidth
@@ -14,9 +15,12 @@ import com.pashkd.krender.engine.tools.skin.SkinResourceInfo
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewInfo
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewKind
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewZoomMode
+import com.pashkd.krender.engine.tools.skin.atlasRegionScreenRect
+import com.pashkd.krender.engine.tools.skin.clipRectToViewport
 import com.pashkd.krender.engine.tools.skin.computeResourcePreviewViewportLayout
 import com.pashkd.krender.engine.tools.skin.formatPreviewScale
 import com.pashkd.krender.engine.tools.skin.formatResourcePreviewZoom
+import com.pashkd.krender.engine.tools.skin.packImColor
 import com.pashkd.krender.engine.tools.skin.parseAtlasRegionHitInfo
 import com.pashkd.krender.engine.tools.skin.parseResourceColor
 import com.pashkd.krender.engine.tools.skin.readBuffer
@@ -36,6 +40,8 @@ import imgui.dsl
 import java.io.File
 import kotlin.math.hypot
 
+private const val ResourceListMaxHeight = 250f
+
 class SkinEditorResourceBrowserPanel(
     private val state: SkinEditorState,
     private val operations: SkinEditorOperations,
@@ -48,6 +54,7 @@ class SkinEditorResourceBrowserPanel(
     private val fontSampleBuffer = ByteArray(1024)
     private var previewClickPending = false
     private var previewClickDragDistance = 0f
+    private var hoveredAtlasRegion: AtlasRegionHitInfo? = null
 
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.ResourceBrowser)
@@ -60,6 +67,7 @@ class SkinEditorResourceBrowserPanel(
 
         val resourceIndex = state.loadResult.resourceIndex
         drawFilters()
+        ImGui.beginChild("skin_editor_resource_list", ImVec2(0f, ResourceListMaxHeight), true)
         if (resourceIndex.resources.isEmpty()) {
             ImGui.textUnformatted("No resources indexed.")
         } else {
@@ -94,6 +102,7 @@ class SkinEditorResourceBrowserPanel(
                 }
             }
         }
+        ImGui.endChild()
         drawResourcePreviewSection()
         ImGui.end()
     }
@@ -124,8 +133,14 @@ class SkinEditorResourceBrowserPanel(
         state.resourceVisualPreviewInfo.selectedRegionName?.let { regionName ->
             ImGui.textWrapped("Region overlay: $regionName")
         }
+        val hoverRegionLabel =
+            hoveredAtlasRegion?.let { hovered ->
+                "${hovered.resource.name}  xy=${hovered.x},${hovered.y}  size=${hovered.width} x ${hovered.height}"
+            } ?: "<none>"
+        ImGui.textWrapped("Hover region: $hoverRegionLabel")
         ImGui.separator()
         drawInlineResourcePreview(selectedResource)
+        drawAtlasRegionPreviewDetails(selectedResource)
     }
 
     private fun drawInlineResourcePreview(selectedResource: SkinResourceInfo?) {
@@ -134,6 +149,7 @@ class SkinEditorResourceBrowserPanel(
             SkinResourceVisualPreviewKind.Texture -> drawInteractiveTexturePreview(selectedResource, info)
 
             SkinResourceVisualPreviewKind.Color -> {
+                hoveredAtlasRegion = null
                 val selected = state.selectedResourceKey?.let(state.editSession.resources::get)
                 val values = selected?.values
                 val color = values?.let(::parseResourceColor)
@@ -143,6 +159,7 @@ class SkinEditorResourceBrowserPanel(
             }
 
             SkinResourceVisualPreviewKind.Font -> {
+                hoveredAtlasRegion = null
                 val handle = info.texturePreviewHandle
                 if (handle == null) {
                     ImGui.textWrapped("Font preview image unavailable.")
@@ -155,7 +172,7 @@ class SkinEditorResourceBrowserPanel(
                 }
             }
 
-            SkinResourceVisualPreviewKind.None -> Unit
+            SkinResourceVisualPreviewKind.None -> hoveredAtlasRegion = null
         }
     }
 
@@ -184,6 +201,7 @@ class SkinEditorResourceBrowserPanel(
                 imageHeight = handle.height,
                 previewState = state.resourceVisualPreview,
             )
+        drawTexturePreviewBackground(selectedResource, viewportLayout)
         ImGui.windowDrawList.addImage(
             handle.id,
             ImVec2(viewportLayout.imageX, viewportLayout.imageY),
@@ -191,7 +209,9 @@ class SkinEditorResourceBrowserPanel(
             ImVec2(handle.u0, handle.v0),
             ImVec2(handle.u1, handle.v1),
         )
-        handleTexturePreviewInteraction(selectedResource, info, viewportLayout)
+        val hoveredRegion = hoveredAtlasRegion(selectedResource, info, viewportLayout)
+        drawTexturePreviewOverlays(selectedResource, viewportLayout, hoveredRegion)
+        handleTexturePreviewInteraction(selectedResource, info, viewportLayout, hoveredRegion)
         ImGui.endChild()
     }
 
@@ -231,14 +251,36 @@ class SkinEditorResourceBrowserPanel(
             if (ImGui.checkbox("Show region bounds##skin_editor_resource_preview_bounds", showBounds)) {
                 operations.setShowResourceRegionBounds(showBounds[0])
             }
-            val showLabels = booleanArrayOf(previewState.showRegionLabels)
-            if (ImGui.checkbox("Show region labels##skin_editor_resource_preview_labels", showLabels)) {
-                operations.setShowResourceRegionLabels(showLabels[0])
-            }
             if (selectedResource?.category == SkinResourceCategory.Atlas || selectedResource?.category == SkinResourceCategory.AtlasRegion) {
+                val atlasVisuals = previewState.viewport.atlasVisuals
                 val clickSelect = booleanArrayOf(previewState.viewport.clickSelectRegionEnabled)
                 if (ImGui.checkbox("Click to select region##skin_editor_resource_preview_click_select", clickSelect)) {
                     operations.setAtlasClickSelectionEnabled(clickSelect[0])
+                }
+                val checkerboard = booleanArrayOf(atlasVisuals.showCheckerboard)
+                if (ImGui.checkbox("Checkerboard##skin_editor_resource_preview_checkerboard", checkerboard)) {
+                    operations.setAtlasCheckerboardEnabled(checkerboard[0])
+                }
+                val grid = booleanArrayOf(atlasVisuals.showGrid)
+                if (ImGui.checkbox("Grid##skin_editor_resource_preview_grid", grid)) {
+                    operations.setAtlasGridEnabled(grid[0])
+                }
+                val gridLabel = "${atlasVisuals.gridSize}px"
+                if (ImGui.beginCombo("Grid size##skin_editor_resource_preview_grid_size", gridLabel)) {
+                    listOf(8, 16, 32, 64, 128).forEach { gridSize ->
+                        if (ImGui.selectable("${gridSize}px##skin_editor_resource_preview_grid_size_$gridSize", gridSize == atlasVisuals.gridSize)) {
+                            operations.setAtlasGridSize(gridSize)
+                        }
+                    }
+                    ImGui.endCombo()
+                }
+                val allBounds = booleanArrayOf(atlasVisuals.showAllRegionBounds)
+                if (ImGui.checkbox("All region bounds##skin_editor_resource_preview_all_bounds", allBounds)) {
+                    operations.setAtlasAllRegionBoundsEnabled(allBounds[0])
+                }
+                val hoverHighlight = booleanArrayOf(atlasVisuals.showHoverHighlight)
+                if (ImGui.checkbox("Hover highlight##skin_editor_resource_preview_hover", hoverHighlight)) {
+                    operations.setAtlasHoverHighlightEnabled(hoverHighlight[0])
                 }
                 ImGui.textWrapped("Ctrl + RMB drag: pan. Ctrl + mouse wheel: zoom. Click region: select.")
             } else {
@@ -283,6 +325,31 @@ class SkinEditorResourceBrowserPanel(
         ImGui.textWrapped("Sample text uses the built-in preview block plus Cyrillic and ASCII coverage toggles.")
     }
 
+    private fun drawAtlasRegionPreviewDetails(selectedResource: SkinResourceInfo?) {
+        val atlasRegionResource =
+            when (selectedResource?.category) {
+                SkinResourceCategory.AtlasRegion -> selectedResource
+                SkinResourceCategory.Atlas -> {
+                    val selectedRegionName = state.resourceVisualPreview.selectedAtlasRegionName
+                    state.loadResult.resourceIndex.atlasRegions.firstOrNull { region ->
+                        region.name == selectedRegionName &&
+                            region.source == selectedResource.source &&
+                            region.details["page"] == activeAtlasPage(selectedResource)
+                    }
+                }
+                else -> null
+            } ?: return
+
+        ImGui.separator()
+        ImGui.textUnformatted("Atlas Region")
+        ImGui.textWrapped("Name: ${atlasRegionResource.name}")
+        listOf("atlas", "page", "xy", "size", "orig", "offset", "index").forEach { field ->
+            atlasRegionResource.details[field]?.let { value ->
+                ImGui.textWrapped("$field: $value")
+            }
+        }
+    }
+
     private fun drawAtlasRegionSelector(resource: SkinResourceInfo) {
         val atlasSource = resource.source ?: return
         val pageName = activeAtlasPage(resource)
@@ -314,9 +381,11 @@ class SkinEditorResourceBrowserPanel(
         selectedResource: SkinResourceInfo?,
         info: SkinResourceVisualPreviewInfo,
         viewportLayout: com.pashkd.krender.engine.tools.skin.ResourcePreviewViewportLayout,
+        hoveredRegion: AtlasRegionHitInfo?,
     ) {
         val io = ImGui.io
         val hovered = ImGui.isWindowHovered()
+        hoveredAtlasRegion = hoveredRegion?.takeIf { hovered }
 
         if (hovered && io.mouseClicked[0]) {
             previewClickPending = true
@@ -345,7 +414,7 @@ class SkinEditorResourceBrowserPanel(
                     previewClickDragDistance <= ResourcePreviewClickDragThreshold &&
                     state.resourceVisualPreview.viewport.clickSelectRegionEnabled
             if (clickAllowed) {
-                hitTestAtlasRegion(selectedResource, info, viewportLayout, io.mousePos.x, io.mousePos.y)?.let { hit ->
+                hoveredRegion?.let { hit ->
                     operations.selectResource(hit.resource)
                     operations.selectAtlasRegionByName(hit.resource.name, hit.resource.source, hit.pageName)
                     state.statusMessage = "Selected atlas region '${hit.resource.name}' from preview."
@@ -375,6 +444,142 @@ class SkinEditorResourceBrowserPanel(
                     imageY >= region.y &&
                     imageY <= region.y + region.height
             }.minWithOrNull(compareBy<AtlasRegionHitInfo>({ it.area }, { it.resource.name }))
+    }
+
+    private fun hoveredAtlasRegion(
+        selectedResource: SkinResourceInfo?,
+        info: SkinResourceVisualPreviewInfo,
+        viewportLayout: com.pashkd.krender.engine.tools.skin.ResourcePreviewViewportLayout,
+    ): AtlasRegionHitInfo? {
+        if (!ImGui.isWindowHovered()) return null
+        return hitTestAtlasRegion(selectedResource, info, viewportLayout, ImGui.io.mousePos.x, ImGui.io.mousePos.y)
+    }
+
+    private fun drawTexturePreviewBackground(
+        selectedResource: SkinResourceInfo?,
+        viewportLayout: com.pashkd.krender.engine.tools.skin.ResourcePreviewViewportLayout,
+    ) {
+        val imageRect =
+            clipRectToViewport(
+                com.pashkd.krender.engine.tools.skin.AtlasRegionScreenRect(
+                    minX = viewportLayout.imageX,
+                    minY = viewportLayout.imageY,
+                    maxX = viewportLayout.imageX + viewportLayout.imageWidth,
+                    maxY = viewportLayout.imageY + viewportLayout.imageHeight,
+                ),
+                viewportLayout,
+            ) ?: return
+        val drawList = ImGui.windowDrawList
+        val atlasVisuals = state.resourceVisualPreview.viewport.atlasVisuals
+        if (selectedResource?.category !in setOf(SkinResourceCategory.Atlas, SkinResourceCategory.AtlasRegion, SkinResourceCategory.Texture)) return
+        if (atlasVisuals.showCheckerboard) {
+            val tileSize = (16f * viewportLayout.effectiveZoom).coerceIn(8f, 32f)
+            var rowIndex = 0
+            var y = imageRect.minY
+            while (y < imageRect.maxY) {
+                var columnIndex = 0
+                var x = imageRect.minX
+                while (x < imageRect.maxX) {
+                    val color = if ((rowIndex + columnIndex) % 2 == 0) CheckerboardLightColor else CheckerboardDarkColor
+                    drawList.addRectFilled(
+                        ImVec2(x, y),
+                        ImVec2(minOf(x + tileSize, imageRect.maxX), minOf(y + tileSize, imageRect.maxY)),
+                        color,
+                    )
+                    x += tileSize
+                    columnIndex++
+                }
+                y += tileSize
+                rowIndex++
+            }
+        }
+    }
+
+    private fun drawTexturePreviewOverlays(
+        selectedResource: SkinResourceInfo?,
+        viewportLayout: com.pashkd.krender.engine.tools.skin.ResourcePreviewViewportLayout,
+        hoveredRegion: AtlasRegionHitInfo?,
+    ) {
+        selectedResource ?: return
+        if (selectedResource.category != SkinResourceCategory.Atlas && selectedResource.category != SkinResourceCategory.AtlasRegion) return
+        val atlasVisuals = state.resourceVisualPreview.viewport.atlasVisuals
+        if (atlasVisuals.showGrid) {
+            drawAtlasGrid(viewportLayout, atlasVisuals.gridSize)
+        }
+        val regions = activeAtlasRegions(selectedResource)
+        if (atlasVisuals.showAllRegionBounds) {
+            drawAtlasRegionBounds(regions, viewportLayout)
+        }
+        if (atlasVisuals.showHoverHighlight) {
+            hoveredRegion?.let { drawHoveredAtlasRegion(it, viewportLayout) }
+        }
+    }
+
+    private fun drawAtlasGrid(
+        viewportLayout: com.pashkd.krender.engine.tools.skin.ResourcePreviewViewportLayout,
+        gridSize: Int,
+    ) {
+        val screenSpacing = gridSize.coerceAtLeast(1) * viewportLayout.effectiveZoom
+        if (screenSpacing < MinResourcePreviewGridScreenSpacing) return
+        val imageRect =
+            clipRectToViewport(
+                com.pashkd.krender.engine.tools.skin.AtlasRegionScreenRect(
+                    minX = viewportLayout.imageX,
+                    minY = viewportLayout.imageY,
+                    maxX = viewportLayout.imageX + viewportLayout.imageWidth,
+                    maxY = viewportLayout.imageY + viewportLayout.imageHeight,
+                ),
+                viewportLayout,
+            ) ?: return
+        val drawList = ImGui.windowDrawList
+        var x = imageRect.minX
+        while (x <= imageRect.maxX) {
+            drawList.addLine(ImVec2(x, imageRect.minY), ImVec2(x, imageRect.maxY), GridColor, 1f)
+            x += screenSpacing
+        }
+        var y = imageRect.minY
+        while (y <= imageRect.maxY) {
+            drawList.addLine(ImVec2(imageRect.minX, y), ImVec2(imageRect.maxX, y), GridColor, 1f)
+            y += screenSpacing
+        }
+    }
+
+    private fun drawAtlasRegionBounds(
+        regions: List<AtlasRegionHitInfo>,
+        viewportLayout: com.pashkd.krender.engine.tools.skin.ResourcePreviewViewportLayout,
+    ) {
+        val drawList = ImGui.windowDrawList
+        regions.forEach { region ->
+            val screenRect = clipRectToViewport(atlasRegionScreenRect(region, viewportLayout), viewportLayout) ?: return@forEach
+            drawList.addRect(
+                ImVec2(screenRect.minX, screenRect.minY),
+                ImVec2(screenRect.maxX, screenRect.maxY),
+                AllRegionBoundsColor,
+            )
+        }
+    }
+
+    private fun drawHoveredAtlasRegion(
+        hoveredRegion: AtlasRegionHitInfo,
+        viewportLayout: com.pashkd.krender.engine.tools.skin.ResourcePreviewViewportLayout,
+    ) {
+        val drawList = ImGui.windowDrawList
+        val screenRect = clipRectToViewport(atlasRegionScreenRect(hoveredRegion, viewportLayout), viewportLayout) ?: return
+        drawList.addRectFilled(
+            ImVec2(screenRect.minX, screenRect.minY),
+            ImVec2(screenRect.maxX, screenRect.maxY),
+            HoverFillColor,
+        )
+        drawList.addRect(
+            ImVec2(screenRect.minX, screenRect.minY),
+            ImVec2(screenRect.maxX, screenRect.maxY),
+            HoverStrokeColor,
+        )
+        drawList.addRect(
+            ImVec2(screenRect.minX + 1f, screenRect.minY + 1f),
+            ImVec2(screenRect.maxX - 1f, screenRect.maxY - 1f),
+            HoverStrokeColor,
+        )
     }
 
     private fun activeAtlasRegions(selectedResource: SkinResourceInfo): List<AtlasRegionHitInfo> {
@@ -446,5 +651,14 @@ class SkinEditorResourceBrowserPanel(
         return sequenceOf(resource.name, resource.type, resource.source.orEmpty())
             .plus(resource.details.asSequence().flatMap { (name, value) -> sequenceOf(name, value) })
             .any { value -> value.contains(query, ignoreCase = true) }
+    }
+
+    private companion object {
+        private val CheckerboardLightColor = packImColor(104, 104, 104, 255)
+        private val CheckerboardDarkColor = packImColor(72, 72, 72, 255)
+        private val GridColor = packImColor(255, 255, 255, 48)
+        private val AllRegionBoundsColor = packImColor(255, 214, 102, 180)
+        private val HoverFillColor = packImColor(64, 173, 255, 48)
+        private val HoverStrokeColor = packImColor(64, 173, 255, 255)
     }
 }

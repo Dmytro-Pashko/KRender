@@ -35,7 +35,6 @@ class GdxSkinResourcePreview(
     private val glyphLayout = GlyphLayout()
     private val previewMatrix = Matrix4()
     private val overlayShapes = ShapeRenderer()
-    private val overlayLabelFont = BitmapFont()
     private var loadedTexturePath: String? = null
     private var loadedTexture: Texture? = null
     private var loadedPreviewFontPath: String? = null
@@ -118,7 +117,6 @@ class GdxSkinResourcePreview(
         imagePreviewBuffer?.dispose()
         imagePreviewBuffer = null
         overlayShapes.dispose()
-        overlayLabelFont.dispose()
         batch.dispose()
     }
 
@@ -510,7 +508,6 @@ class GdxSkinResourcePreview(
                 append(':').append(region.name)
                 append(':').append(region.x).append(',').append(region.y).append(',').append(region.width).append(',').append(region.height)
                 append(':').append(previewState.showRegionBounds)
-                append(':').append(previewState.showRegionLabels)
             }
         val buffer =
             imagePreviewBuffer
@@ -518,6 +515,7 @@ class GdxSkinResourcePreview(
                     existing.width == textureWidth && existing.height == textureHeight
                 }
                 ?: FrameBuffer(Pixmap.Format.RGBA8888, textureWidth, textureHeight, false).also { newBuffer ->
+                    newBuffer.colorBufferTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
                     imagePreviewBuffer?.dispose()
                     imagePreviewBuffer = newBuffer
                 }
@@ -526,8 +524,6 @@ class GdxSkinResourcePreview(
         val previousViewport = BufferUtils.newIntBuffer(4)
         Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, previousViewport)
         val regionBottom = (textureHeight - region.y - region.height).toFloat()
-        val labelText = region.name
-        val oldLabelColor = Color(overlayLabelFont.color)
         var beganBuffer = false
         return runCatching {
             buffer.begin()
@@ -559,19 +555,6 @@ class GdxSkinResourcePreview(
                 overlayShapes.end()
             }
 
-            if (previewState.showRegionLabels) {
-                overlayLabelFont.color = SelectedRegionLabelColor
-                glyphLayout.setText(overlayLabelFont, labelText)
-                batch.begin()
-                overlayLabelFont.draw(
-                    batch,
-                    glyphLayout,
-                    region.x.toFloat() + LabelPadding,
-                    (regionBottom + region.height + glyphLayout.height + LabelPadding).coerceAtMost(textureHeight.toFloat() - LabelPadding),
-                )
-                batch.end()
-            }
-
             buffer.end()
             beganBuffer = false
             imagePreviewRenderKey = renderKey
@@ -580,7 +563,6 @@ class GdxSkinResourcePreview(
             if (beganBuffer) buffer.end()
             false
         }.also {
-            overlayLabelFont.color = oldLabelColor
             Gdx.gl.glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3])
         }
     }
@@ -676,9 +658,7 @@ class GdxSkinResourcePreview(
         private const val FontPreviewTextureWidth = 640
         private const val FontPreviewTextureHeight = 260
         private const val FontPreviewPadding = 16f
-        private const val LabelPadding = 6f
         private val SelectedRegionFillColor = Color(0.1f, 0.7f, 1f, 0.22f)
         private val SelectedRegionBorderColor = Color(0.1f, 0.85f, 1f, 0.95f)
-        private val SelectedRegionLabelColor = Color(0.95f, 0.98f, 1f, 1f)
     }
 }

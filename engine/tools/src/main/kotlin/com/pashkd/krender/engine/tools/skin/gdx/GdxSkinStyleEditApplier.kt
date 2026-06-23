@@ -12,8 +12,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Slider
+import com.badlogic.gdx.scenes.scene2d.ui.SplitPane
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
+import com.badlogic.gdx.scenes.scene2d.ui.Tree
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.pashkd.krender.engine.tools.skin.EditableStyle
@@ -270,8 +272,13 @@ class GdxSkinStyleEditApplier {
                 actor is SelectBox<*> && style is SelectBox.SelectBoxStyle -> actor.setStyle(style).let { true }
                 actor is GdxList<*> && style is GdxList.ListStyle -> actor.setStyle(style).let { true }
                 actor is ScrollPane && style is ScrollPane.ScrollPaneStyle -> actor.setStyle(style).let { true }
+                actor is SplitPane && style is SplitPane.SplitPaneStyle -> actor.setStyle(style).let { true }
                 actor is Slider && style is Slider.SliderStyle -> actor.setStyle(style).let { true }
                 actor is ProgressBar && style is ProgressBar.ProgressBarStyle -> actor.setStyle(style).let { true }
+                actor is Tree<*, *> && style is Tree.TreeStyle -> {
+                    actor.style = style
+                    true
+                }
                 actor is Window && style is Window.WindowStyle -> actor.setStyle(style).let { true }
                 else -> false
             }
@@ -290,8 +297,10 @@ class GdxSkinStyleEditApplier {
             is SelectBox<*> -> actor.style
             is GdxList<*> -> actor.style
             is ScrollPane -> actor.style
+            is SplitPane -> actor.style
             is Slider -> actor.style
             is ProgressBar -> actor.style
+            is Tree<*, *> -> actor.style
             is Window -> actor.style
             else -> null
         }
@@ -309,8 +318,10 @@ class GdxSkinStyleEditApplier {
             is SelectBox<*> -> styleType == "SelectBoxStyle"
             is GdxList<*> -> styleType == "ListStyle"
             is ScrollPane -> styleType == "ScrollPaneStyle"
+            is SplitPane -> styleType == "SplitPaneStyle"
             is Slider -> styleType == "SliderStyle"
             is ProgressBar -> styleType == "ProgressBarStyle"
+            is Tree<*, *> -> styleType == "TreeStyle"
             is Window -> styleType == "WindowStyle"
             else -> false
         }
@@ -329,7 +340,9 @@ class GdxSkinStyleEditApplier {
             is SelectBox<*>,
             is GdxList<*>,
             is ScrollPane,
+            is SplitPane,
             is Window,
+            is Tree<*, *>,
             -> "default"
 
             else -> null
@@ -347,8 +360,10 @@ class GdxSkinStyleEditApplier {
             "ListStyle" -> GdxList.ListStyle::class.java
             "SelectBoxStyle" -> SelectBox.SelectBoxStyle::class.java
             "ScrollPaneStyle" -> ScrollPane.ScrollPaneStyle::class.java
+            "SplitPaneStyle" -> SplitPane.SplitPaneStyle::class.java
             "SliderStyle" -> Slider.SliderStyle::class.java
             "ProgressBarStyle" -> ProgressBar.ProgressBarStyle::class.java
+            "TreeStyle" -> Tree.TreeStyle::class.java
             "WindowStyle" -> Window.WindowStyle::class.java
             else -> null
         }

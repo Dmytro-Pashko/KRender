@@ -40,6 +40,10 @@ class GdxSkinEditorPreview(
     private var logicalWidth = 1
     private var logicalHeight = 1
     private var previewScale = 1f
+    private var highlightSelectedStyle = true
+    private var cameraPanX = 0f
+    private var cameraPanY = 0f
+    private var cameraZoom = 1f
 
     fun rebuild(
         loadResult: SkinLoadResult,
@@ -92,6 +96,10 @@ class GdxSkinEditorPreview(
         logicalHeight: Int,
         scale: Float,
         showBounds: Boolean,
+        highlightSelectedStyle: Boolean,
+        cameraPanX: Float,
+        cameraPanY: Float,
+        cameraZoom: Float,
     ) {
         viewportX = x.coerceAtLeast(0)
         viewportY = y.coerceAtLeast(0)
@@ -100,11 +108,19 @@ class GdxSkinEditorPreview(
         this.logicalWidth = logicalWidth.coerceAtLeast(1)
         this.logicalHeight = logicalHeight.coerceAtLeast(1)
         previewScale = scale.coerceIn(0.5f, 1.5f)
+        this.highlightSelectedStyle = highlightSelectedStyle
+        this.cameraPanX = cameraPanX
+        this.cameraPanY = cameraPanY
+        this.cameraZoom = cameraZoom.coerceIn(0.25f, 4f)
         stage.viewport.setWorldSize(this.logicalWidth.toFloat(), this.logicalHeight.toFloat())
         stage.viewport.update(viewportWidth, viewportHeight, false)
         (stage.camera as? OrthographicCamera)?.apply {
-            position.set(this@GdxSkinEditorPreview.logicalWidth / 2f, this@GdxSkinEditorPreview.logicalHeight / 2f, 0f)
-            zoom = 1f / previewScale
+            position.set(
+                this@GdxSkinEditorPreview.logicalWidth / 2f + this@GdxSkinEditorPreview.cameraPanX,
+                this@GdxSkinEditorPreview.logicalHeight / 2f + this@GdxSkinEditorPreview.cameraPanY,
+                0f,
+            )
+            zoom = (1f / previewScale) / this@GdxSkinEditorPreview.cameraZoom
             update()
         }
         stage.setDebugAll(showBounds)
@@ -174,6 +190,7 @@ class GdxSkinEditorPreview(
     }
 
     private fun drawSelectedStyleHighlights() {
+        if (!highlightSelectedStyle) return
         if (selectedStyleActors.isEmpty()) return
         selectedStyleShapes.projectionMatrix = stage.camera.combined
         selectedStyleShapes.begin(ShapeRenderer.ShapeType.Line)

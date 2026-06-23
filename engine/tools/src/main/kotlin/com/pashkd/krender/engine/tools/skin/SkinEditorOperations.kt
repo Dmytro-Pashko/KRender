@@ -140,6 +140,36 @@ class SkinEditorOperations(
         updatePreviewStatus(if (showBounds) "Preview bounds enabled." else "Preview bounds hidden.")
     }
 
+    fun setHighlightSelectedStyle(enabled: Boolean) {
+        state.previewSettings.highlightSelectedStyle = enabled
+        state.statusMessage = if (enabled) "Selected style highlight enabled." else "Selected style highlight hidden."
+    }
+
+    fun panPreviewCamera(
+        deltaScreenX: Float,
+        deltaScreenY: Float,
+    ) {
+        val canvasWidth = state.canvasRect.width.coerceAtLeast(1f)
+        val canvasHeight = state.canvasRect.height.coerceAtLeast(1f)
+        val preset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
+        val visibleWorldWidth = preset.width / state.previewSettings.scale / state.previewSettings.cameraZoom
+        val visibleWorldHeight = preset.height / state.previewSettings.scale / state.previewSettings.cameraZoom
+        state.previewSettings.cameraPanX -= deltaScreenX * (visibleWorldWidth / canvasWidth)
+        state.previewSettings.cameraPanY += deltaScreenY * (visibleWorldHeight / canvasHeight)
+    }
+
+    fun setPreviewCameraZoom(value: Float) {
+        state.previewSettings.cameraZoom = value.coerceIn(MinPreviewCameraZoom, MaxPreviewCameraZoom)
+        state.statusMessage = "Preview camera zoom set to ${formatScale(state.previewSettings.cameraZoom)}."
+    }
+
+    fun resetPreviewCamera() {
+        state.previewSettings.cameraPanX = 0f
+        state.previewSettings.cameraPanY = 0f
+        state.previewSettings.cameraZoom = 1f
+        state.statusMessage = "Preview camera reset."
+    }
+
     fun setShowFallbackWarnings(showWarnings: Boolean) {
         state.previewSettings.showFallbackWarnings = showWarnings
         updatePreviewStatus(if (showWarnings) "Fallback warnings shown in Problems." else "Fallback warnings hidden in Problems.")
@@ -181,11 +211,6 @@ class SkinEditorOperations(
         state.statusMessage = if (showBounds) "Resource preview bounds enabled." else "Resource preview bounds hidden."
     }
 
-    fun setShowResourceRegionLabels(showLabels: Boolean) {
-        state.resourceVisualPreview.showRegionLabels = showLabels
-        state.statusMessage = if (showLabels) "Resource preview labels enabled." else "Resource preview labels hidden."
-    }
-
     fun selectAtlasRegionPreview(
         regionName: String?,
         preferredSource: String? = null,
@@ -224,6 +249,31 @@ class SkinEditorOperations(
     fun setAtlasClickSelectionEnabled(enabled: Boolean) {
         state.resourceVisualPreview.viewport.clickSelectRegionEnabled = enabled
         state.statusMessage = if (enabled) "Atlas click selection enabled." else "Atlas click selection disabled."
+    }
+
+    fun setAtlasCheckerboardEnabled(enabled: Boolean) {
+        state.resourceVisualPreview.viewport.atlasVisuals.showCheckerboard = enabled
+        state.statusMessage = if (enabled) "Atlas transparency checkerboard enabled." else "Atlas transparency checkerboard hidden."
+    }
+
+    fun setAtlasGridEnabled(enabled: Boolean) {
+        state.resourceVisualPreview.viewport.atlasVisuals.showGrid = enabled
+        state.statusMessage = if (enabled) "Atlas preview grid enabled." else "Atlas preview grid hidden."
+    }
+
+    fun setAtlasGridSize(size: Int) {
+        state.resourceVisualPreview.viewport.atlasVisuals.gridSize = size.coerceIn(4, 256)
+        state.statusMessage = "Atlas preview grid size set to ${state.resourceVisualPreview.viewport.atlasVisuals.gridSize}px."
+    }
+
+    fun setAtlasAllRegionBoundsEnabled(enabled: Boolean) {
+        state.resourceVisualPreview.viewport.atlasVisuals.showAllRegionBounds = enabled
+        state.statusMessage = if (enabled) "Atlas region bounds overlay enabled." else "Atlas region bounds overlay hidden."
+    }
+
+    fun setAtlasHoverHighlightEnabled(enabled: Boolean) {
+        state.resourceVisualPreview.viewport.atlasVisuals.showHoverHighlight = enabled
+        state.statusMessage = if (enabled) "Atlas hover highlight enabled." else "Atlas hover highlight hidden."
     }
 
     fun selectAtlasRegionByName(
@@ -306,5 +356,7 @@ class SkinEditorOperations(
     private companion object {
         private const val MinResourcePreviewZoom = 0.1f
         private const val MaxResourcePreviewZoom = 8f
+        private const val MinPreviewCameraZoom = 0.25f
+        private const val MaxPreviewCameraZoom = 4f
     }
 }

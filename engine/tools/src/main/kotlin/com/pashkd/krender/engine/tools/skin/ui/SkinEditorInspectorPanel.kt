@@ -200,8 +200,7 @@ private fun drawResourceInspector(
         SkinResourceCategory.AtlasRegion -> {
             ImGui.separator()
             ImGui.textUnformatted("Atlas region")
-            ImGui.textWrapped("Visual preview available in the Resources preview section.")
-            listOf("atlas", "page", "xy", "size", "orig", "offset", "index").forEach { field -> drawDetail(resource, field) }
+            ImGui.textWrapped("Atlas region details are shown in the Resources preview section.")
         }
 
         SkinResourceCategory.Texture -> {
@@ -226,13 +225,6 @@ private fun drawResourceInspector(
     ImGui.separator()
     ImGui.textUnformatted("Referenced by: ${resource.referencedBy.size}")
     resource.referencedBy.forEach(::safeTextWrapped)
-    if (resource.details.isNotEmpty()) {
-        ImGui.separator()
-        ImGui.textUnformatted("All metadata")
-        resource.details.toSortedMap().forEach { (name, value) ->
-            safeTextWrapped("$name: $value")
-        }
-    }
 }
 
 private fun drawDetail(
