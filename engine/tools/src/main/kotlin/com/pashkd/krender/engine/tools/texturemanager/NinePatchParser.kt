@@ -31,6 +31,15 @@ data class NinePatchDocument(
     val readable: Boolean = true,
 )
 
+/**
+ * Backend-neutral pixel buffer used by [NinePatchParser].
+ *
+ * Pixels are stored as ARGB:
+ * - alpha: bits 24..31
+ * - red: bits 16..23
+ * - green: bits 8..15
+ * - blue: bits 0..7
+ */
 data class NinePatchPixelData(
     val width: Int,
     val height: Int,
@@ -157,7 +166,7 @@ class NinePatchParser {
         val invalidPositions = mutableListOf<Int>()
         var segmentStart: Int? = null
         for (x in 1 until image.width - 1) {
-            when (classifyPixel(image.pixelAt(x, y))) {
+            when (classifyArgbPixel(image.pixelAt(x, y))) {
                 GuidePixel.Guide -> {
                     if (segmentStart == null) segmentStart = x - 1
                 }
@@ -194,7 +203,7 @@ class NinePatchParser {
         val invalidPositions = mutableListOf<Int>()
         var segmentStart: Int? = null
         for (y in 1 until image.height - 1) {
-            when (classifyPixel(image.pixelAt(x, y))) {
+            when (classifyArgbPixel(image.pixelAt(x, y))) {
                 GuidePixel.Guide -> {
                     if (segmentStart == null) segmentStart = y - 1
                 }
@@ -273,7 +282,7 @@ class NinePatchParser {
         }
     }
 
-    private fun classifyPixel(pixel: Int): GuidePixel {
+    private fun classifyArgbPixel(pixel: Int): GuidePixel {
         val alpha = (pixel ushr 24) and 0xFF
         if (alpha <= 0) return GuidePixel.Transparent
         val red = (pixel ushr 16) and 0xFF
