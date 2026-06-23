@@ -26,8 +26,16 @@ import com.pashkd.krender.engine.tools.skin.SkinResourceInfo
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewInfo
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewKind
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewState
+import com.pashkd.krender.engine.tools.skin.parseIntPair
 import java.io.File
 
+/**
+ * GDX adapter for resource preview rendering only.
+ *
+ * This class may load textures/fonts and produce opaque [TexturePreviewHandle]
+ * instances, but it must not own ImGui interaction, atlas hit-testing, or
+ * persistence behavior.
+ */
 class GdxSkinResourcePreview(
     private val logger: Logger,
 ) : Disposable {
@@ -620,14 +628,6 @@ class GdxSkinResourcePreview(
             width = size.first,
             height = size.second,
         )
-    }
-
-    private fun String.parseIntPair(): Pair<Int, Int>? {
-        val parts = split(',').map(String::trim)
-        if (parts.size < 2) return null
-        val first = parts[0].toIntOrNull() ?: return null
-        val second = parts[1].toIntOrNull() ?: return null
-        return first to second
     }
 
     private data class ResolvedPreview(

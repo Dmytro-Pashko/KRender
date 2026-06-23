@@ -11,6 +11,7 @@ class SkinEditorOperations(
 ) {
     private val editService = SkinEditService(state)
 
+    // Load and navigation commands.
     fun requestReload() {
         state.reloadRequested = true
     }
@@ -55,6 +56,7 @@ class SkinEditorOperations(
                 ?.name
     }
 
+    // In-memory edit commands.
     fun discardInMemoryEdits() {
         editService.discardEdits()
     }
@@ -119,6 +121,7 @@ class SkinEditorOperations(
         editService.selectChange(change)
     }
 
+    // Scene2D preview commands.
     fun selectLayout(layoutId: String) {
         state.previewLayoutId = layoutId
         updatePreviewStatus("Preview layout set to '$layoutId'.")
@@ -152,21 +155,21 @@ class SkinEditorOperations(
         val canvasWidth = state.canvasRect.width.coerceAtLeast(1f)
         val canvasHeight = state.canvasRect.height.coerceAtLeast(1f)
         val preset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
-        val visibleWorldWidth = preset.width / state.previewSettings.scale / state.previewSettings.cameraZoom
-        val visibleWorldHeight = preset.height / state.previewSettings.scale / state.previewSettings.cameraZoom
-        state.previewSettings.cameraPanX -= deltaScreenX * (visibleWorldWidth / canvasWidth)
-        state.previewSettings.cameraPanY += deltaScreenY * (visibleWorldHeight / canvasHeight)
+        val visibleWorldWidth = preset.width / state.previewSettings.scale / state.previewSettings.camera.zoom
+        val visibleWorldHeight = preset.height / state.previewSettings.scale / state.previewSettings.camera.zoom
+        state.previewSettings.camera.panX -= deltaScreenX * (visibleWorldWidth / canvasWidth)
+        state.previewSettings.camera.panY += deltaScreenY * (visibleWorldHeight / canvasHeight)
     }
 
     fun setPreviewCameraZoom(value: Float) {
-        state.previewSettings.cameraZoom = value.coerceIn(MinPreviewCameraZoom, MaxPreviewCameraZoom)
-        state.statusMessage = "Preview camera zoom set to ${formatScale(state.previewSettings.cameraZoom)}."
+        state.previewSettings.camera.zoom = value.coerceIn(MinPreviewCameraZoom, MaxPreviewCameraZoom)
+        state.statusMessage = "Preview camera zoom set to ${formatScale(state.previewSettings.camera.zoom)}."
     }
 
     fun resetPreviewCamera() {
-        state.previewSettings.cameraPanX = 0f
-        state.previewSettings.cameraPanY = 0f
-        state.previewSettings.cameraZoom = 1f
+        state.previewSettings.camera.panX = 0f
+        state.previewSettings.camera.panY = 0f
+        state.previewSettings.camera.zoom = 1f
         state.statusMessage = "Preview camera reset."
     }
 
@@ -190,6 +193,7 @@ class SkinEditorOperations(
         updatePreviewStatus("Preview text field placeholder updated.")
     }
 
+    // Resource preview commands.
     fun setResourcePreviewZoomMode(zoomMode: SkinResourceVisualPreviewZoomMode) {
         state.resourceVisualPreview.zoomMode = zoomMode
         when (zoomMode) {
@@ -246,6 +250,7 @@ class SkinEditorOperations(
         state.statusMessage = "Resource preview view reset to Fit."
     }
 
+    // Atlas preview overlay commands.
     fun setAtlasClickSelectionEnabled(enabled: Boolean) {
         state.resourceVisualPreview.viewport.clickSelectRegionEnabled = enabled
         state.statusMessage = if (enabled) "Atlas click selection enabled." else "Atlas click selection disabled."
@@ -298,6 +303,7 @@ class SkinEditorOperations(
             } ?: "Atlas preview region cleared."
     }
 
+    // Resource preview synchronization and font preview commands.
     fun syncResourcePreviewViewportContent(contentKey: String?) {
         val viewport = state.resourceVisualPreview.viewport
         if (viewport.contentKey == contentKey) return
@@ -343,15 +349,6 @@ class SkinEditorOperations(
     }
 
     private fun formatScale(scale: Float): String = "${(scale * 100f).toInt()}%"
-
-    private fun formatResourceZoom(zoomMode: SkinResourceVisualPreviewZoomMode): String =
-        when (zoomMode) {
-            SkinResourceVisualPreviewZoomMode.Fit -> "Fit"
-            SkinResourceVisualPreviewZoomMode.Percent50 -> "50%"
-            SkinResourceVisualPreviewZoomMode.Percent100 -> "100%"
-            SkinResourceVisualPreviewZoomMode.Percent200 -> "200%"
-            SkinResourceVisualPreviewZoomMode.Custom -> "Custom"
-        }
 
     private companion object {
         private const val MinResourcePreviewZoom = 0.1f

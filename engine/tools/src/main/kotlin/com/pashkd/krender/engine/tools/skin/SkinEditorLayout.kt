@@ -72,7 +72,7 @@ object SkinEditorUiLayoutDefaults {
                         ),
                     SkinEditorPanelIds.StyleEditor to
                         ImGuiPanelLayout(
-                            title = "Style Inspector",
+                            title = "Style Editor",
                             x = 1344f,
                             y = 136f,
                             width = 360f,

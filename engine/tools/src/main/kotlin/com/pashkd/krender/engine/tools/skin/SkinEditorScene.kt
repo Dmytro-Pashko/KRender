@@ -244,9 +244,9 @@ private class SkinEditorPreviewUpdateSystem(
                 scale = state.previewSettings.scale,
                 showBounds = state.previewSettings.showBounds,
                 highlightSelectedStyle = state.previewSettings.highlightSelectedStyle,
-                cameraPanX = state.previewSettings.cameraPanX,
-                cameraPanY = state.previewSettings.cameraPanY,
-                cameraZoom = state.previewSettings.cameraZoom,
+                cameraPanX = state.previewSettings.camera.panX,
+                cameraPanY = state.previewSettings.camera.panY,
+                cameraZoom = state.previewSettings.camera.zoom,
             )
         } else {
             preview.clearCanvasViewport()

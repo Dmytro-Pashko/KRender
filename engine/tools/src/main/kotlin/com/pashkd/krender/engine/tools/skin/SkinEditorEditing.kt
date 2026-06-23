@@ -1,6 +1,24 @@
 package com.pashkd.krender.engine.tools.skin
 
 /**
+ * In-memory editing layer for Skin Editor.
+ *
+ * Loaded/indexed model:
+ * [SkinLoadResult], [SkinStyleIndex], [SkinResourceIndex]
+ *
+ * In-memory edit model:
+ * [SkinEditSession], [EditableStyle], [EditableResource], [SkinEditChange]
+ *
+ * Preview state:
+ * [SkinPreviewSettings], [SkinResourceVisualPreviewState]
+ *
+ * ImGui panels and GDX adapters may observe this model, but a future JSON
+ * writer must consume [SkinEditSession.toEditedSnapshot] only. The writer must
+ * not depend on ImGui panels, GDX preview adapters, runtime texture handles,
+ * or UI buffers.
+ */
+
+/**
  * In-memory edit projection built from one loaded/indexed skin.
  *
  * [baseStyleIndex] and [baseResourceIndex] preserve the loaded state, while
@@ -261,6 +279,11 @@ fun SkinEditSession.activeStyles(): List<EditableStyle> =
 fun SkinEditSession.findEditableStyle(key: StyleKey?): EditableStyle? = key?.let(styles::get)?.takeUnless(EditableStyle::deleted)
 
 /** Returns an immutable deep copy suitable for a future JSON writer or diff builder. */
+/**
+ * Returns the writer-ready edit projection.
+ *
+ * This snapshot is the intended input for JSON writer/diff generation.
+ */
 fun SkinEditSession.toEditedSnapshot(): SkinEditedSnapshot =
     SkinEditedSnapshot(
         styles =

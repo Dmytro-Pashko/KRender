@@ -105,7 +105,7 @@ class SkinEditorPreviewCanvasPanel(
             previewClickPending = false
         }
         if (hovered && io.keyCtrl && io.mouseWheel != 0f) {
-            val nextZoom = state.previewSettings.cameraZoom * (1f + io.mouseWheel * 0.1f)
+            val nextZoom = state.previewSettings.camera.zoom * (1f + io.mouseWheel * 0.1f)
             operations.setPreviewCameraZoom(nextZoom)
             previewClickPending = false
         }

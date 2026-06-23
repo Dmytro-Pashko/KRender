@@ -3,6 +3,23 @@ package com.pashkd.krender.engine.tools.skin
 import com.pashkd.krender.engine.api.TexturePreviewHandle
 import java.io.File
 
+/**
+ * Skin Editor state model layers.
+ *
+ * Loaded/indexed model:
+ * [SkinLoadResult], [SkinStyleIndex], [SkinResourceIndex]
+ *
+ * In-memory edit model:
+ * [SkinEditSession], [EditableStyle], [EditableResource], [SkinEditChange]
+ *
+ * Preview state:
+ * [SkinPreviewSettings], [SkinResourceVisualPreviewState]
+ *
+ * ImGui panels are view/controllers only. GDX adapters are rendering-only.
+ * Future JSON writing must stay independent from panels, preview adapters, UI
+ * buffers, and [TexturePreviewHandle].
+ */
+
 data class SkinProject(
     val rootDirectory: File,
     val skinFile: File? = null,
@@ -109,6 +126,12 @@ enum class SkinResourceVisualPreviewZoomMode {
     Custom,
 }
 
+/**
+ * Atlas-only overlay toggles used by the ImGui resource preview viewport.
+ *
+ * This state is inspection/UI-only and must not participate in persistence,
+ * diff generation, or the future JSON writer pipeline.
+ */
 data class SkinAtlasPreviewVisualOptions(
     var showCheckerboard: Boolean = true,
     var showGrid: Boolean = false,
@@ -117,6 +140,12 @@ data class SkinAtlasPreviewVisualOptions(
     var showHoverHighlight: Boolean = true,
 )
 
+/**
+ * Interactive viewport state for texture/atlas previews shown in ImGui panels.
+ *
+ * Pan/zoom here applies only to the resource preview viewport. It is separate
+ * from Scene2D preview camera state used by the Preview Canvas.
+ */
 data class SkinResourcePreviewViewportState(
     var panX: Float = 0f,
     var panY: Float = 0f,
@@ -140,6 +169,13 @@ enum class SkinResourceVisualPreviewKind {
     Color,
 }
 
+/**
+ * Resource preview UI state for the Resources panel.
+ *
+ * This model tracks only preview selection, viewport interaction, and
+ * lightweight toggles for inspection. It is not part of the loaded skin model
+ * and must not be consumed by the writer.
+ */
 data class SkinResourceVisualPreviewState(
     var zoomMode: SkinResourceVisualPreviewZoomMode = SkinResourceVisualPreviewZoomMode.Fit,
     var showRegionBounds: Boolean = true,
@@ -148,6 +184,13 @@ data class SkinResourceVisualPreviewState(
     var fontPreview: SkinFontPreviewState = SkinFontPreviewState(),
 )
 
+/**
+ * Opaque result of one resource preview refresh.
+ *
+ * [texturePreviewHandle] is an engine UI handle for ImGui rendering only. It
+ * intentionally carries no ownership or LibGDX object for the editor model and
+ * must never be used by persistence or JSON writer code.
+ */
 data class SkinResourceVisualPreviewInfo(
     val statusMessage: String = "Select a texture, atlas, atlas region, font, or color.",
     val kind: SkinResourceVisualPreviewKind = SkinResourceVisualPreviewKind.None,
@@ -250,6 +293,10 @@ data class SkinEditorPreviewItem(
     val children: List<SkinEditorPreviewItem> = emptyList(),
 )
 
+/**
+ * Preview-only widget categories used to build temporary Scene2D preview
+ * layouts. These kinds are not part of skin serialization or the writer model.
+ */
 enum class PreviewWidgetKind {
     Column,
     Window,
@@ -278,18 +325,30 @@ data class SkinEditorPreviewStageInfo(
     val fallbackIssueCount: Int = 0,
 )
 
+/** Camera transform for the Scene2D Preview Canvas only. */
+data class SkinPreviewCameraState(
+    var panX: Float = 0f,
+    var panY: Float = 0f,
+    var zoom: Float = 1f,
+)
+
+/**
+ * Scene2D Preview Canvas UI state.
+ *
+ * This is separate from resource preview viewport state and exists only to
+ * control preview rendering, diagnostics visibility, and text samples.
+ */
 data class SkinPreviewSettings(
     var screenPresetId: String = SkinPreviewScreenPresets.DefaultId,
     var scale: Float = 1f,
     var showBounds: Boolean = false,
     var highlightSelectedStyle: Boolean = true,
-    var cameraPanX: Float = 0f,
-    var cameraPanY: Float = 0f,
-    var cameraZoom: Float = 1f,
+    var camera: SkinPreviewCameraState = SkinPreviewCameraState(),
     var showFallbackWarnings: Boolean = true,
     var text: SkinPreviewTextSettings = SkinPreviewTextSettings(),
 )
 
+/** Preview-only sample text configuration for Scene2D widget layouts. */
 data class SkinPreviewTextSettings(
     var labelText: String = "KRender Label Preview",
     var buttonText: String = "KRender Button",

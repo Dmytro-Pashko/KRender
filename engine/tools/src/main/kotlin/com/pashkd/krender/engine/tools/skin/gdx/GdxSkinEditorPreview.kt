@@ -25,6 +25,7 @@ data class GdxSkinPreviewBuildResult(
     val issues: List<PreviewBuildIssue> = emptyList(),
 )
 
+/** GDX adapter responsible only for Scene2D preview stage construction/rendering. */
 class GdxSkinEditorPreview(
     private val logger: Logger,
 ) : Disposable {
