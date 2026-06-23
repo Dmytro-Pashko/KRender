@@ -14,6 +14,7 @@ Full user-facing documentation is published in the hosted docs:
 - Animation Viewer
 - Terrain Editor
 - Scene Editor
+- Skin Editor
 - UI Composer
 
 Scene Player is not part of `engine:tools`, but it is documented together with the tools because Asset Browser and Scene Editor can launch `.krscene` files through it.
@@ -44,8 +45,11 @@ Examples:
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=animation-viewer -Pkrender.model.path=model/example.glb
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=terrain-editor -Pkrender.terrain.path=terrain/example.krterrain
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=scene-editor -Pkrender.scene.path=scenes/example.krscene
+./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=skin-editor -Pkrender.skin.path=ui/skins/xp_ui/xp-ui.json
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=ui-composer -Pkrender.ui.scene.path=ui/example.krui
 ```
+
+Skin Editor accepts an optional `krender.skin.path=<path>` property. When omitted, the tool starts in an empty/no-skin state until a skin path is provided.
 
 Convenience launch scripts are available in `engine/tools/scripts/`:
 
@@ -55,3 +59,5 @@ Convenience launch scripts are available in `engine/tools/scripts/`:
 - `terrain_editor_launcher.sh`
 - `scene_editor_launcher.sh`
 - `ui_composer_launcher.sh`
+
+Skin Editor currently has no dedicated convenience launch script; run it through the desktop host with `krender.scene=skin-editor` and optional `krender.skin.path=<path>`.
