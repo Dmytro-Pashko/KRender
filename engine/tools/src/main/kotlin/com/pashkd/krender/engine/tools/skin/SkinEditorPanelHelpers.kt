@@ -33,14 +33,18 @@ internal fun parseResourceColor(values: Map<String, String>): FloatArray? {
 
 internal fun selectedResourceSummary(state: SkinEditorState): String? =
     state.selectedResourceKey?.let { key ->
-        val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == key }
-            ?: return@let "${key.category}.${key.name}"
+        val resource =
+            state.loadResult.resourceIndex.resources
+                .firstOrNull { it.key == key }
+                ?: return@let "${key.category}.${key.name}"
         "${resource.category}.${resource.name}${if (resource.resolved) "" else " (missing)"}"
     }
 
 internal fun drawSelectedResourcePreviewHint(state: SkinEditorState) {
     val selectedResourceKey = state.selectedResourceKey ?: return
-    val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == selectedResourceKey } ?: return
+    val resource =
+        state.loadResult.resourceIndex.resources
+            .firstOrNull { it.key == selectedResourceKey } ?: return
     if (resource.category in AvailablePreviewCategories) {
         ImGui.textWrapped("Visual preview is available in the Resources preview section.")
     }
@@ -70,7 +74,13 @@ internal fun String.toAsciiSafeText(): String =
             when {
                 character == '\n' || character == '\r' || character == '\t' -> append(character)
                 character.code in 32..126 -> append(character)
-                else -> append("\\u").append(character.code.toString(16).uppercase().padStart(4, '0'))
+                else ->
+                    append("\\u").append(
+                        character.code
+                            .toString(16)
+                            .uppercase()
+                            .padStart(4, '0'),
+                    )
             }
         }
     }

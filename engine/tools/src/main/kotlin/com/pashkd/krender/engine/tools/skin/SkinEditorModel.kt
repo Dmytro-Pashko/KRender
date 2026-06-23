@@ -418,8 +418,7 @@ object SkinPreviewScreenPresets {
             SkinPreviewScreenPreset(id = DefaultId, displayName = "1280 x 720", width = 1280, height = 720),
         )
 
-    fun presetOrDefault(id: String?): SkinPreviewScreenPreset =
-        presets.firstOrNull { preset -> preset.id == id } ?: presets.first { preset -> preset.id == DefaultId }
+    fun presetOrDefault(id: String?): SkinPreviewScreenPreset = presets.firstOrNull { preset -> preset.id == id } ?: presets.first { preset -> preset.id == DefaultId }
 }
 
 data class SkinEditorState(

@@ -65,43 +65,37 @@ class WidgetPreviewFactory {
         key: String,
         text: String,
         styleName: String? = null,
-    ): SkinEditorPreviewItem =
-        SkinEditorPreviewItem(key = key, label = "Button", kind = PreviewWidgetKind.Button, styleName = styleName, text = text)
+    ): SkinEditorPreviewItem = SkinEditorPreviewItem(key = key, label = "Button", kind = PreviewWidgetKind.Button, styleName = styleName, text = text)
 
     fun textButton(
         key: String,
         text: String,
         styleName: String? = null,
-    ): SkinEditorPreviewItem =
-        SkinEditorPreviewItem(key = key, label = "TextButton", kind = PreviewWidgetKind.TextButton, styleName = styleName, text = text)
+    ): SkinEditorPreviewItem = SkinEditorPreviewItem(key = key, label = "TextButton", kind = PreviewWidgetKind.TextButton, styleName = styleName, text = text)
 
     fun checkBox(
         key: String,
         text: String,
         styleName: String? = null,
-    ): SkinEditorPreviewItem =
-        SkinEditorPreviewItem(key = key, label = "CheckBox", kind = PreviewWidgetKind.CheckBox, styleName = styleName, text = text)
+    ): SkinEditorPreviewItem = SkinEditorPreviewItem(key = key, label = "CheckBox", kind = PreviewWidgetKind.CheckBox, styleName = styleName, text = text)
 
     fun textField(
         key: String,
         text: String,
         styleName: String? = null,
-    ): SkinEditorPreviewItem =
-        SkinEditorPreviewItem(key = key, label = "TextField", kind = PreviewWidgetKind.TextField, styleName = styleName, text = text)
+    ): SkinEditorPreviewItem = SkinEditorPreviewItem(key = key, label = "TextField", kind = PreviewWidgetKind.TextField, styleName = styleName, text = text)
 
     fun selectBox(
         key: String,
         items: List<String>,
         styleName: String? = null,
-    ): SkinEditorPreviewItem =
-        SkinEditorPreviewItem(key = key, label = "SelectBox", kind = PreviewWidgetKind.SelectBox, styleName = styleName, items = items)
+    ): SkinEditorPreviewItem = SkinEditorPreviewItem(key = key, label = "SelectBox", kind = PreviewWidgetKind.SelectBox, styleName = styleName, items = items)
 
     fun list(
         key: String,
         items: List<String>,
         styleName: String? = null,
-    ): SkinEditorPreviewItem =
-        SkinEditorPreviewItem(key = key, label = "List", kind = PreviewWidgetKind.List, styleName = styleName, items = items)
+    ): SkinEditorPreviewItem = SkinEditorPreviewItem(key = key, label = "List", kind = PreviewWidgetKind.List, styleName = styleName, items = items)
 
     fun scrollPane(
         key: String,
@@ -144,15 +138,13 @@ class WidgetPreviewFactory {
         key: String,
         items: List<String>,
         styleName: String? = null,
-    ): SkinEditorPreviewItem =
-        SkinEditorPreviewItem(key = key, label = "Tree", kind = PreviewWidgetKind.Tree, styleName = styleName, items = items)
+    ): SkinEditorPreviewItem = SkinEditorPreviewItem(key = key, label = "Tree", kind = PreviewWidgetKind.Tree, styleName = styleName, items = items)
 
     fun textTooltip(
         key: String,
         text: String,
         styleName: String? = null,
-    ): SkinEditorPreviewItem =
-        SkinEditorPreviewItem(key = key, label = "TextTooltip", kind = PreviewWidgetKind.TextTooltip, styleName = styleName, text = text)
+    ): SkinEditorPreviewItem = SkinEditorPreviewItem(key = key, label = "TextTooltip", kind = PreviewWidgetKind.TextTooltip, styleName = styleName, text = text)
 }
 
 class DefaultWidgetPreviewLayout : PreviewLayout {

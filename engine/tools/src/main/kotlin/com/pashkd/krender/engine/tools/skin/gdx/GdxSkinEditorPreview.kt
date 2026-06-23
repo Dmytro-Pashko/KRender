@@ -1,27 +1,27 @@
 package com.pashkd.krender.engine.tools.skin.gdx
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.FitViewport
-import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.Actor
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.tools.skin.PreviewLayout
 import com.pashkd.krender.engine.tools.skin.PreviewLayoutContext
 import com.pashkd.krender.engine.tools.skin.SkinEditSession
-import com.pashkd.krender.engine.tools.skin.SkinPreviewTextSettings
+import com.pashkd.krender.engine.tools.skin.SkinEditorPreviewStageInfo
+import com.pashkd.krender.engine.tools.skin.SkinLoadResult
 import com.pashkd.krender.engine.tools.skin.SkinPreviewInteractionFeedback
 import com.pashkd.krender.engine.tools.skin.SkinPreviewPointerButton
 import com.pashkd.krender.engine.tools.skin.SkinPreviewPointerEvent
 import com.pashkd.krender.engine.tools.skin.SkinPreviewPointerEventType
-import com.pashkd.krender.engine.tools.skin.SkinEditorPreviewStageInfo
-import com.pashkd.krender.engine.tools.skin.SkinLoadResult
+import com.pashkd.krender.engine.tools.skin.SkinPreviewTextSettings
 import com.pashkd.krender.engine.tools.skin.StyleKey
 import com.pashkd.krender.engine.tools.skin.WidgetPreviewFactory
 
@@ -166,7 +166,9 @@ class GdxSkinEditorPreview(
         }
         updateStageScreenBounds()
         stage.setDebugAll(showBounds)
-        stage.root.children.firstOrNull()?.let(::centerActor)
+        stage.root.children
+            .firstOrNull()
+            ?.let(::centerActor)
     }
 
     fun clearCanvasViewport() {

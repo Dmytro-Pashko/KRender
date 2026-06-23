@@ -15,9 +15,9 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
-import glm_.vec2.Vec2 as ImVec2
 import imgui.ImGui
 import kotlin.math.hypot
+import glm_.vec2.Vec2 as ImVec2
 
 class SkinEditorPreviewCanvasPanel(
     private val state: SkinEditorState,
@@ -100,14 +100,17 @@ class SkinEditorPreviewCanvasPanel(
         ImGui.textUnformatted("Focus actor: ${state.previewSettings.interaction.focusedActorPath ?: "<none>"}")
         ImGui.textUnformatted(
             "Cursor: " +
-                (state.previewSettings.interaction.cursorCanvasX?.let { x ->
-                    val y = state.previewSettings.interaction.cursorCanvasY ?: 0f
-                    val stageX = state.previewSettings.interaction.cursorStageX ?: 0f
-                    val stageY = state.previewSettings.interaction.cursorStageY ?: 0f
-                    "canvas (${x.toInt()}, ${y.toInt()}) | stage (${stageX.toInt()}, ${stageY.toInt()})"
-                } ?: "<none>")
+                (
+                    state.previewSettings.interaction.cursorCanvasX?.let { x ->
+                        val y = state.previewSettings.interaction.cursorCanvasY ?: 0f
+                        val stageX = state.previewSettings.interaction.cursorStageX ?: 0f
+                        val stageY = state.previewSettings.interaction.cursorStageY ?: 0f
+                        "canvas (${x.toInt()}, ${y.toInt()}) | stage (${stageX.toInt()}, ${stageY.toInt()})"
+                    } ?: "<none>"
+                ),
         )
-        state.previewSettings.interaction.lastInputStatus?.let(ImGui::textWrapped)
+        state.previewSettings.interaction.lastInputStatus
+            ?.let(ImGui::textWrapped)
         ImGui.separator()
 
         val min = ImGui.cursorScreenPos

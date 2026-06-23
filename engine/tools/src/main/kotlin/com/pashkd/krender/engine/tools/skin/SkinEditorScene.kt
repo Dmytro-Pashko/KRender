@@ -1,8 +1,8 @@
 package com.pashkd.krender.engine.tools.skin
 
-import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.Scene
+import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
@@ -131,16 +131,23 @@ class SkinEditorScene(
         editorState.selectedEditFieldName = null
         editorState.selectedStyleKey =
             preferredStyleKey?.takeIf { key ->
-                editorState.loadResult.styleIndex.styles.any { style -> style.key == key }
-            } ?: editorState.loadResult.styleIndex.styles.firstOrNull()?.key
+                editorState.loadResult.styleIndex.styles
+                    .any { style -> style.key == key }
+            } ?: editorState.loadResult.styleIndex.styles
+                .firstOrNull()
+                ?.key
         editorState.selectedResourceKey =
             preferredResourceKey?.takeIf { key ->
                 editorState.selectedStyleKey == null &&
-                    editorState.loadResult.resourceIndex.resources.any { resource -> resource.key == key }
-            } ?: editorState.loadResult.resourceIndex.resources.firstOrNull()?.key
+                    editorState.loadResult.resourceIndex.resources
+                        .any { resource -> resource.key == key }
+            } ?: editorState.loadResult.resourceIndex.resources
+                .firstOrNull()
+                ?.key
                 .takeIf { editorState.selectedStyleKey == null }
         editorState.selectedProblemIndex =
-            editorState.loadResult.problems.indices.firstOrNull()
+            editorState.loadResult.problems.indices
+                .firstOrNull()
                 .takeIf { editorState.selectedStyleKey == null && editorState.selectedResourceKey == null }
         editorState.pendingPreviewPointerEvents.clear()
         editorState.previewSettings.interaction.hoveredActorPath = null
@@ -367,7 +374,9 @@ private class SkinEditorPreviewUpdateSystem(
         state.loadResult = state.loadResult.copy(problems = state.loadResult.problems.sortedForDisplay())
         state.selectedProblemIndex = selectedProblem?.let(state.loadResult.problems::indexOf)?.takeIf { index -> index >= 0 }
         if (state.selectedProblemIndex == null && state.selectedStyleKey == null && state.selectedResourceKey == null) {
-            state.selectedProblemIndex = state.loadResult.problems.indices.firstOrNull()
+            state.selectedProblemIndex =
+                state.loadResult.problems.indices
+                    .firstOrNull()
         }
     }
 
@@ -387,7 +396,9 @@ private class SkinResourcePreviewUpdateSystem(
         world: SceneWorld,
         dt: Float,
     ) {
-        val selectedResource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
+        val selectedResource =
+            state.loadResult.resourceIndex.resources
+                .firstOrNull { it.key == state.selectedResourceKey }
         state.resourceVisualPreviewInfo =
             resourcePreview.update(
                 project = state.loadResult.project,

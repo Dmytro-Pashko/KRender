@@ -281,6 +281,7 @@ fun SkinEditSession.activeStyles(): List<EditableStyle> =
 fun SkinEditSession.findEditableStyle(key: StyleKey?): EditableStyle? = key?.let(styles::get)?.takeUnless(EditableStyle::deleted)
 
 /** Returns an immutable deep copy suitable for a future JSON writer or diff builder. */
+
 /**
  * Returns the writer-ready edit projection.
  *

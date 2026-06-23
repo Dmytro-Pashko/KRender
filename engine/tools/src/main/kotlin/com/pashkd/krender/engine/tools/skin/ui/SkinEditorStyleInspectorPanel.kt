@@ -157,7 +157,8 @@ class SkinEditorStyleInspectorPanel(
         ImGui.textUnformatted("Add field")
         ImGui.textUnformatted("Use this section to create a new known field for the selected style.")
         val availableFields =
-            SkinStyleTemplates.fieldsFor(style.key.type)
+            SkinStyleTemplates
+                .fieldsFor(style.key.type)
                 .filterNot { template -> style.fields.keys.any { name -> name.equals(template.name, ignoreCase = true) } }
         if (availableFields.isEmpty()) {
             ImGui.textUnformatted("All known fields are already present.")
@@ -212,7 +213,7 @@ class SkinEditorStyleInspectorPanel(
 
     private fun nextDuplicateName(style: EditableStyle): String {
         val baseName = style.key.name
-        val preferred = "${baseName}-copy"
+        val preferred = "$baseName-copy"
         if (state.editSession.styles[StyleKey(style.key.type, preferred)]?.deleted != false) {
             return preferred
         }

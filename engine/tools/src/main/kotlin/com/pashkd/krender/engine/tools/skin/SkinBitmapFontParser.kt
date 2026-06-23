@@ -94,8 +94,9 @@ class SkinBitmapFontParser {
             ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
                 .map(Char::code)
         private val UkrainianGlyphIds =
-            ("АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ" +
-                "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя")
-                .map(Char::code)
+            (
+                "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ" +
+                    "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+            ).map(Char::code)
     }
 }

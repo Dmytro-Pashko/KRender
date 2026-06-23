@@ -47,7 +47,11 @@ class SkinEditorProblemsPanel(
                     .filter { indexedProblem -> matchesFilters(indexedProblem.value) }
             ImGui.textUnformatted("Showing ${filteredProblems.size} of ${state.loadResult.problems.size}")
             filteredProblems.forEach { (index, problem) ->
-                val source = problem.source?.shortSource()?.let { " [$it]" }.orEmpty()
+                val source =
+                    problem.source
+                        ?.shortSource()
+                        ?.let { " [$it]" }
+                        .orEmpty()
                 val label = "[${problem.severity}][${problem.category}] ${problem.message}$source"
                 if (ImGui.selectable("${label.toAsciiSafeText()}##skin_editor_problem_$index", state.selectedProblemIndex == index)) {
                     operations.selectProblem(index, problem)

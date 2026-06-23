@@ -179,7 +179,9 @@ class SkinEditorOperations(
             } else {
                 "Widget interaction disabled."
             }
-        state.statusMessage = state.previewSettings.interaction.lastInputStatus.orEmpty()
+        state.statusMessage =
+            state.previewSettings.interaction.lastInputStatus
+                .orEmpty()
     }
 
     fun queuePreviewPointerEvent(event: SkinPreviewPointerEvent) {
@@ -348,13 +350,14 @@ class SkinEditorOperations(
         state.resourceVisualPreview.selectedAtlasRegionName = regionName?.takeIf(String::isNotBlank)
         val selectedRegionName = state.resourceVisualPreview.selectedAtlasRegionName
         if (selectedRegionName != null) {
-            state.loadResult.resourceIndex.atlasRegions.firstOrNull { region ->
-                region.name == selectedRegionName &&
-                    (preferredSource == null || region.source == preferredSource) &&
-                    (preferredPage == null || region.details["page"] == preferredPage)
-            }?.let { region ->
-                state.selectedResourceKey = region.key
-            }
+            state.loadResult.resourceIndex.atlasRegions
+                .firstOrNull { region ->
+                    region.name == selectedRegionName &&
+                        (preferredSource == null || region.source == preferredSource) &&
+                        (preferredPage == null || region.details["page"] == preferredPage)
+                }?.let { region ->
+                    state.selectedResourceKey = region.key
+                }
         }
         state.statusMessage =
             selectedRegionName?.let { name ->

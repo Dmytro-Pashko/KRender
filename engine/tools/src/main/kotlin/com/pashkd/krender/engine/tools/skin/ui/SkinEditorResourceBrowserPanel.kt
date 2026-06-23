@@ -15,10 +15,10 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
-import glm_.vec2.Vec2 as ImVec2
 import imgui.ImGui
 import imgui.api.colorButton
 import java.io.File
+import glm_.vec2.Vec2 as ImVec2
 
 private const val ResourceListMaxHeight = 300f
 
@@ -76,7 +76,12 @@ class SkinEditorResourceBrowserPanel(
 
     private fun drawResourceRow(resource: SkinResourceInfo) {
         val status = if (resource.resolved) "" else " missing"
-        val source = resource.source?.substringBefore('#')?.let(::File)?.name?.takeIf(String::isNotBlank)
+        val source =
+            resource.source
+                ?.substringBefore('#')
+                ?.let(::File)
+                ?.name
+                ?.takeIf(String::isNotBlank)
         val sourceLabel = source?.let { " source: $it" }.orEmpty()
         val label = "${resource.name} [${resource.type}]$status refs: ${resource.referencedBy.size}$sourceLabel"
         if (ImGui.selectable("$label##skin_editor_resource_${resource.category}_${resource.name}", state.selectedResourceKey == resource.key)) {
@@ -144,7 +149,8 @@ class SkinEditorResourceBrowserPanel(
     }
 
     private fun selectedResource(): SkinResourceInfo? =
-        state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
+        state.loadResult.resourceIndex.resources
+            .firstOrNull { it.key == state.selectedResourceKey }
 
     private fun resourceColor(resource: SkinResourceInfo): FloatArray? {
         val values = state.editSession.resources[resource.key]?.values ?: resource.details

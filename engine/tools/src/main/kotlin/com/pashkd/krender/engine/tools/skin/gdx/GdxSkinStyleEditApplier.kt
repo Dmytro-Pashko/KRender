@@ -6,7 +6,6 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.CheckBox
 import com.badlogic.gdx.scenes.scene2d.ui.Label
-import com.badlogic.gdx.scenes.scene2d.ui.List as GdxList
 import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
@@ -24,8 +23,10 @@ import com.pashkd.krender.engine.tools.skin.SkinEditSession
 import com.pashkd.krender.engine.tools.skin.SkinEditorPreviewItem
 import com.pashkd.krender.engine.tools.skin.SkinResourceCategory
 import java.lang.reflect.Field
+import com.badlogic.gdx.scenes.scene2d.ui.List as GdxList
 
 class GdxSkinStyleEditApplier {
+    @Suppress("ReturnCount")
     fun apply(
         actor: Actor,
         item: SkinEditorPreviewItem,
@@ -65,8 +66,8 @@ class GdxSkinStyleEditApplier {
                     field.name in editableStyle.modifiedFields ||
                     field.name in resourceAffectedFields
             }.forEach { field ->
-            applyField(editedStyle, field, skin, editSession, editableStyle, issues)
-        }
+                applyField(editedStyle, field, skin, editSession, editableStyle, issues)
+            }
         editableStyle.removedFields.forEach { fieldName ->
             clearField(editedStyle, fieldName, editableStyle, issues)
         }
@@ -104,6 +105,7 @@ class GdxSkinStyleEditApplier {
         }
     }
 
+    @Suppress("ReturnCount")
     private fun applyField(
         style: Any,
         editableField: EditableStyleField,
@@ -115,15 +117,17 @@ class GdxSkinStyleEditApplier {
         val targetField =
             style.javaClass.fields.firstOrNull { field -> field.name.equals(editableField.name, ignoreCase = true) }
                 ?: run {
-                    issues += PreviewBuildIssue(
-                        "Edited field '${editableField.name}' is not supported by ${editableStyle.key.type}.",
-                    )
+                    issues +=
+                        PreviewBuildIssue(
+                            "Edited field '${editableField.name}' is not supported by ${editableStyle.key.type}.",
+                        )
                     return
                 }
         if (editableField.value.isBlank()) {
-            issues += PreviewBuildIssue(
-                "Edited field '${editableStyle.key.type}.${editableStyle.key.name}.${editableField.name}' is empty.",
-            )
+            issues +=
+                PreviewBuildIssue(
+                    "Edited field '${editableStyle.key.type}.${editableStyle.key.name}.${editableField.name}' is empty.",
+                )
             return
         }
         val value =
@@ -134,16 +138,18 @@ class GdxSkinStyleEditApplier {
                 editSession = editSession,
             )
         if (value == UnresolvedValue) {
-            issues += PreviewBuildIssue(
-                "Could not resolve edited value '${editableField.value}' for ${editableStyle.key.type}.${editableStyle.key.name}.${editableField.name}.",
-            )
+            issues +=
+                PreviewBuildIssue(
+                    "Could not resolve edited value '${editableField.value}' for ${editableStyle.key.type}.${editableStyle.key.name}.${editableField.name}.",
+                )
             return
         }
         runCatching { targetField.set(style, value) }
             .onFailure { error ->
-                issues += PreviewBuildIssue(
-                    "Could not apply ${editableStyle.key.type}.${editableStyle.key.name}.${editableField.name}: ${error.message}",
-                )
+                issues +=
+                    PreviewBuildIssue(
+                        "Could not apply ${editableStyle.key.type}.${editableStyle.key.name}.${editableField.name}: ${error.message}",
+                    )
             }
     }
 
@@ -162,9 +168,10 @@ class GdxSkinStyleEditApplier {
         }
         runCatching { targetField.set(style, null) }
             .onFailure { error ->
-                issues += PreviewBuildIssue(
-                    "Could not remove ${editableStyle.key.type}.${editableStyle.key.name}.$fieldName: ${error.message}",
-                )
+                issues +=
+                    PreviewBuildIssue(
+                        "Could not remove ${editableStyle.key.type}.${editableStyle.key.name}.$fieldName: ${error.message}",
+                    )
             }
     }
 
@@ -226,6 +233,7 @@ class GdxSkinStyleEditApplier {
         }
     }
 
+    @Suppress("ReturnCount")
     private fun editedColor(
         name: String,
         editSession: SkinEditSession,

@@ -23,13 +23,15 @@ class SkinStyleSaveService(
 ) {
     private val loader = SkinProjectLoader()
 
+    @Suppress("ReturnCount")
     fun save(
         project: SkinProject?,
         loadResult: SkinLoadResult,
         editSession: SkinEditSession,
     ): SkinStyleSaveResult {
-        val skinFile = project?.skinFile
-            ?: return SkinStyleSaveResult(success = false, message = "No skin file is loaded.")
+        val skinFile =
+            project?.skinFile
+                ?: return SkinStyleSaveResult(success = false, message = "No skin file is loaded.")
         if (!skinFile.exists()) {
             return SkinStyleSaveResult(success = false, file = skinFile, message = "Skin file does not exist.")
         }
@@ -40,12 +42,13 @@ class SkinStyleSaveService(
 
         return try {
             val originalText = files.readText(skinFile.path)
-            val root = KRenderJson.Pretty.parseToJsonElement(originalText) as? JsonObject
-                ?: return SkinStyleSaveResult(
-                    success = false,
-                    file = skinFile,
-                    message = "Skin root must be a JSON object.",
-                )
+            val root =
+                KRenderJson.Pretty.parseToJsonElement(originalText) as? JsonObject
+                    ?: return SkinStyleSaveResult(
+                        success = false,
+                        file = skinFile,
+                        message = "Skin root must be a JSON object.",
+                    )
             val backupFile = createBackup(skinFile)
             val updatedRoot = applySnapshot(root, snapshot, loadResult)
             val encoded = KRenderJson.Pretty.encodeToString(JsonObject.serializer(), updatedRoot)
@@ -117,8 +120,7 @@ class SkinStyleSaveService(
                 !style.createdInEditor &&
                     sourceKey.type == style.key.type &&
                     sourceKey.name != style.key.name
-            }
-            ?.let { sourceKey -> updatedSection.remove(sourceKey.name) }
+            }?.let { sourceKey -> updatedSection.remove(sourceKey.name) }
         val existingStyleObject =
             (section[style.key.name] as? JsonObject)
                 ?: style.sourceKey?.let { sourceKey -> section[sourceKey.name] as? JsonObject }
@@ -127,6 +129,7 @@ class SkinStyleSaveService(
         root[sectionKey] = JsonObject(updatedSection)
     }
 
+    @Suppress("ReturnCount")
     private fun removeStyle(
         root: MutableMap<String, JsonElement>,
         style: EditableStyle,
@@ -191,6 +194,7 @@ class SkinStyleSaveService(
         return JsonObject(ordered)
     }
 
+    @Suppress("ReturnCount")
     private fun buildColorElement(
         resource: EditableResource,
         existingValue: JsonElement?,
@@ -224,6 +228,7 @@ class SkinStyleSaveService(
             scalarToJson(field.value, preserveColorHexString = field.referenceCategory == SkinResourceCategory.Color)
         }
 
+    @Suppress("ReturnCount")
     private fun scalarToJson(
         value: String,
         preserveColorHexString: Boolean,
@@ -252,8 +257,7 @@ class SkinStyleSaveService(
         normalizedTypeName: String,
     ): String? = root.keys.firstOrNull { key -> loader.normalizeSkinTypeName(key) == normalizedTypeName }
 
-    private fun String.toCanonicalStyleSectionKey(): String =
-        CanonicalStyleSectionKeys[this] ?: this
+    private fun String.toCanonicalStyleSectionKey(): String = CanonicalStyleSectionKeys[this] ?: this
 
     private fun SkinResourceCategory.sectionTypeName(): String =
         when (this) {

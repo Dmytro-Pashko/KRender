@@ -31,16 +31,24 @@ class SkinEditorInspectorPanel(
             return
         }
 
-        val style = state.loadResult.styleIndex.styles.firstOrNull { it.key == state.selectedStyleKey }
-        val resource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
+        val style =
+            state.loadResult.styleIndex.styles
+                .firstOrNull { it.key == state.selectedStyleKey }
+        val resource =
+            state.loadResult.resourceIndex.resources
+                .firstOrNull { it.key == state.selectedResourceKey }
         val problem = state.selectedProblemIndex?.let(state.loadResult.problems::getOrNull)
 
         when {
             problem != null -> {
                 drawProblemInspector(
                     problem = problem,
-                    linkedStyle = state.loadResult.styleIndex.styles.firstOrNull { it.key == problem.styleKey },
-                    linkedResource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == problem.resourceKey },
+                    linkedStyle =
+                        state.loadResult.styleIndex.styles
+                            .firstOrNull { it.key == problem.styleKey },
+                    linkedResource =
+                        state.loadResult.resourceIndex.resources
+                            .firstOrNull { it.key == problem.resourceKey },
                 )
             }
 

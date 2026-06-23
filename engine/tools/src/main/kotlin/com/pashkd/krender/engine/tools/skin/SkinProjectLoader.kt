@@ -47,7 +47,8 @@ class SkinAssetResolver {
 
             else -> {
                 val candidates =
-                    rootDirectory.listFiles()
+                    rootDirectory
+                        .listFiles()
                         .orEmpty()
                         .filter { candidate -> candidate.isFile && candidate.hasSkinDescriptorExtension() }
                         .sortedBy { it.name.lowercase() }
@@ -75,8 +76,7 @@ class SkinAssetResolver {
             .filter { file -> file.isFile && extensions.any { ext -> file.extension.equals(ext, ignoreCase = true) } }
             .sortedBy { it.name }
 
-    private fun File.hasSkinDescriptorExtension(): Boolean =
-        extension.equals("json", ignoreCase = true) || extension.equals("uiskin", ignoreCase = true)
+    private fun File.hasSkinDescriptorExtension(): Boolean = extension.equals("json", ignoreCase = true) || extension.equals("uiskin", ignoreCase = true)
 
     private data class DescriptorResolution(
         val selected: File?,
@@ -158,12 +158,13 @@ class SkinProjectLoader {
                 SkinLoadResult(
                     project = project,
                     problems =
-                        problems + SkinProblem(
-                            severity = SkinProblemSeverity.Error,
-                            category = SkinProblemCategory.Loading,
-                            message = "Skin root must be a JSON object.",
-                            source = skinFile.path,
-                        ),
+                        problems +
+                            SkinProblem(
+                                severity = SkinProblemSeverity.Error,
+                                category = SkinProblemCategory.Loading,
+                                message = "Skin root must be a JSON object.",
+                                source = skinFile.path,
+                            ),
                 )
             } else {
                 val rawStyleIndex = buildStyleIndex(root)
@@ -179,12 +180,13 @@ class SkinProjectLoader {
             SkinLoadResult(
                 project = project,
                 problems =
-                    problems + SkinProblem(
-                        severity = SkinProblemSeverity.Error,
-                        category = SkinProblemCategory.Loading,
-                        message = error.message ?: error::class.simpleName ?: "Unknown skin parse error.",
-                        source = skinFile.path,
-                    ),
+                    problems +
+                        SkinProblem(
+                            severity = SkinProblemSeverity.Error,
+                            category = SkinProblemCategory.Loading,
+                            message = error.message ?: error::class.simpleName ?: "Unknown skin parse error.",
+                            source = skinFile.path,
+                        ),
             )
         }
     }

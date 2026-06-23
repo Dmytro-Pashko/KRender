@@ -5,11 +5,11 @@ import com.pashkd.krender.engine.tools.skin.AtlasRegionScreenRect
 import com.pashkd.krender.engine.tools.skin.ResourcePreviewViewportLayout
 import com.pashkd.krender.engine.tools.skin.SkinResourceCategory
 import com.pashkd.krender.engine.tools.skin.SkinResourceInfo
-import com.pashkd.krender.engine.tools.skin.clipRectToViewport
 import com.pashkd.krender.engine.tools.skin.atlasRegionScreenRect
+import com.pashkd.krender.engine.tools.skin.clipRectToViewport
 import com.pashkd.krender.engine.tools.skin.packImColor
-import glm_.vec2.Vec2 as ImVec2
 import imgui.ImGui
+import glm_.vec2.Vec2 as ImVec2
 
 /** Pure ImGui drawing helpers for atlas/texture preview overlays. */
 internal object SkinEditorResourcePreviewOverlays {

@@ -13,9 +13,9 @@ import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewInfo
 import com.pashkd.krender.engine.tools.skin.computeResourcePreviewViewportLayout
 import com.pashkd.krender.engine.tools.skin.hitTestAtlasRegion
 import com.pashkd.krender.engine.tools.skin.parseAtlasRegionHitInfo
-import glm_.vec2.Vec2 as ImVec2
 import imgui.ImGui
 import kotlin.math.hypot
+import glm_.vec2.Vec2 as ImVec2
 
 /** Owns atlas viewport interaction, hit-testing, and overlay composition. */
 internal class SkinEditorAtlasPreviewViewport(
@@ -154,6 +154,5 @@ internal class SkinEditorAtlasPreviewViewport(
             .mapNotNull(::parseAtlasRegionHitInfo)
     }
 
-    private fun buildPreviewContentKey(info: SkinResourceVisualPreviewInfo): String? =
-        info.resolvedTexturePath?.let { texturePath -> "${info.kind}:$texturePath:${info.atlasPageName.orEmpty()}" }
+    private fun buildPreviewContentKey(info: SkinResourceVisualPreviewInfo): String? = info.resolvedTexturePath?.let { texturePath -> "${info.kind}:$texturePath:${info.atlasPageName.orEmpty()}" }
 }

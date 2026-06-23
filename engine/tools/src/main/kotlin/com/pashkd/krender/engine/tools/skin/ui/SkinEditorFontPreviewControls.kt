@@ -9,8 +9,8 @@ import com.pashkd.krender.engine.tools.skin.SkinResourceInfo
 import com.pashkd.krender.engine.tools.skin.formatPreviewScale
 import com.pashkd.krender.engine.tools.skin.readBuffer
 import com.pashkd.krender.engine.tools.skin.writeBuffer
-import glm_.vec2.Vec2 as ImVec2
 import imgui.ImGui
+import glm_.vec2.Vec2 as ImVec2
 
 /** Font preview-specific controls for sample text and render toggles. */
 internal class SkinEditorFontPreviewControls(

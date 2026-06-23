@@ -16,6 +16,7 @@ class SkinEditService(
         state.statusMessage = "In-memory edits discarded."
     }
 
+    @Suppress("ReturnCount")
     fun updateStyleField(
         styleKey: StyleKey,
         fieldName: String,
@@ -49,7 +50,11 @@ class SkinEditService(
         styleKey: StyleKey,
         fieldName: String,
     ) {
-        val field = state.editSession.findEditableStyle(styleKey)?.fields?.get(fieldName) ?: return
+        val field =
+            state.editSession
+                .findEditableStyle(styleKey)
+                ?.fields
+                ?.get(fieldName) ?: return
         val originalValue = field.originalValue ?: return
         updateStyleField(styleKey, fieldName, originalValue)
     }
@@ -112,6 +117,7 @@ class SkinEditService(
         if (state.selectedEditFieldName == fieldName) state.selectedEditFieldName = null
     }
 
+    @Suppress("ReturnCount")
     fun duplicateStyle(
         sourceKey: StyleKey,
         newName: String,
@@ -144,6 +150,7 @@ class SkinEditService(
         return true
     }
 
+    @Suppress("ReturnCount")
     fun renameStyle(
         sourceKey: StyleKey,
         newName: String,
@@ -228,6 +235,7 @@ class SkinEditService(
         )
     }
 
+    @Suppress("ReturnCount")
     fun updateColorResource(
         resourceKey: SkinResourceKey,
         fieldName: String,
@@ -269,6 +277,7 @@ class SkinEditService(
         state.selectedProblemIndex = null
     }
 
+    @Suppress("ReturnCount")
     private fun validateNewStyleKey(key: StyleKey): Boolean {
         if (key.name.isBlank()) {
             state.statusMessage = "Style name cannot be blank."

@@ -4,11 +4,11 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.CheckBox
 import com.badlogic.gdx.scenes.scene2d.ui.Label
-import com.badlogic.gdx.scenes.scene2d.ui.List as GdxList
 import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
@@ -25,11 +25,11 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
-import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.pashkd.krender.engine.tools.skin.PreviewWidgetKind
 import com.pashkd.krender.engine.tools.skin.SkinEditSession
 import com.pashkd.krender.engine.tools.skin.SkinEditorPreviewItem
 import com.pashkd.krender.engine.tools.skin.StyleKey
+import com.badlogic.gdx.scenes.scene2d.ui.List as GdxList
 
 data class PreviewBuildIssue(
     val message: String,
@@ -550,11 +550,12 @@ class SafeWidgetBuilder : Disposable {
                 backgroundOver = accentDrawable
                 font = bitmapFont
                 fontColor = Color.WHITE
-                scrollStyle = ScrollPane.ScrollPaneStyle().apply {
-                    background = panelDrawable
-                    vScroll = outlineDrawable
-                    vScrollKnob = accentDrawable
-                }
+                scrollStyle =
+                    ScrollPane.ScrollPaneStyle().apply {
+                        background = panelDrawable
+                        vScroll = outlineDrawable
+                        vScrollKnob = accentDrawable
+                    }
                 listStyle = skin.get("default", GdxList.ListStyle::class.java)
             },
         )

@@ -13,12 +13,12 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
-import com.pashkd.krender.engine.tools.skin.DefaultFontPreviewSampleText
-import com.pashkd.krender.engine.tools.skin.SkinEditSession
-import com.pashkd.krender.engine.tools.skin.SkinFontPreviewState
-import com.pashkd.krender.engine.tools.skin.SkinColorValueParser
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TexturePreviewHandle
+import com.pashkd.krender.engine.tools.skin.DefaultFontPreviewSampleText
+import com.pashkd.krender.engine.tools.skin.SkinColorValueParser
+import com.pashkd.krender.engine.tools.skin.SkinEditSession
+import com.pashkd.krender.engine.tools.skin.SkinFontPreviewState
 import com.pashkd.krender.engine.tools.skin.SkinProject
 import com.pashkd.krender.engine.tools.skin.SkinResourceCategory
 import com.pashkd.krender.engine.tools.skin.SkinResourceIndex
@@ -155,7 +155,12 @@ class GdxSkinResourcePreview(
 
             SkinResourceCategory.Atlas -> {
                 val atlasFile = selectedResource.source?.let(::File)
-                val pageName = selectedResource.details["pages"]?.split(',')?.firstOrNull()?.trim().orEmpty()
+                val pageName =
+                    selectedResource.details["pages"]
+                        ?.split(',')
+                        ?.firstOrNull()
+                        ?.trim()
+                        .orEmpty()
                 if (atlasFile == null || pageName.isBlank()) {
                     ResolvedPreview(message = "Atlas page metadata is unavailable for visual preview.")
                 } else {
@@ -344,6 +349,7 @@ class GdxSkinResourcePreview(
         )
     }
 
+    @Suppress("ReturnCount")
     private fun ensurePreviewFontLoaded(
         path: String,
         projectRoot: File?,
@@ -380,6 +386,7 @@ class GdxSkinResourcePreview(
         )
     }
 
+    @Suppress("ReturnCount")
     private fun ensurePreviewFontFromSkin(
         fontName: String,
         loadedSkin: LoadedSkinHandle?,
@@ -418,11 +425,12 @@ class GdxSkinResourcePreview(
         fontPreviewRenderKey = null
     }
 
+    @Suppress("ReturnCount")
     private fun renderFontPreviewTexture(fontPreview: SkinFontPreviewState): Boolean {
         val previewFont = loadedPreviewFont ?: return false
         val sampleText = buildFontSample(fontPreview)
         val renderKey =
-            "${loadedPreviewFontPath}:${fontPreview.fontScale}:${fontPreview.showCyrillicSample}:" +
+            "$loadedPreviewFontPath:${fontPreview.fontScale}:${fontPreview.showCyrillicSample}:" +
                 "${fontPreview.showAsciiSample}:$sampleText"
         if (fontPreviewRenderKey == renderKey && fontPreviewBuffer != null) return true
 
@@ -470,6 +478,7 @@ class GdxSkinResourcePreview(
         }
     }
 
+    @Suppress("ReturnCount")
     private fun buildImagePreviewHandle(
         texture: Texture?,
         resolved: ResolvedPreview,
@@ -502,6 +511,7 @@ class GdxSkinResourcePreview(
         }
     }
 
+    @Suppress("ReturnCount")
     private fun renderImagePreviewTexture(
         texture: Texture,
         resolved: ResolvedPreview,
@@ -514,7 +524,14 @@ class GdxSkinResourcePreview(
             buildString {
                 append(loadedTexturePath)
                 append(':').append(region.name)
-                append(':').append(region.x).append(',').append(region.y).append(',').append(region.width).append(',').append(region.height)
+                append(':')
+                    .append(region.x)
+                    .append(',')
+                    .append(region.y)
+                    .append(',')
+                    .append(region.width)
+                    .append(',')
+                    .append(region.height)
                 append(':').append(previewState.showRegionBounds)
             }
         val buffer =
@@ -581,7 +598,11 @@ class GdxSkinResourcePreview(
     }
 
     private fun buildFontSample(fontPreview: SkinFontPreviewState): String {
-        val lines = fontPreview.sampleText.ifBlank { DefaultFontPreviewSampleText }.lineSequence().toMutableList()
+        val lines =
+            fontPreview.sampleText
+                .ifBlank { DefaultFontPreviewSampleText }
+                .lineSequence()
+                .toMutableList()
         return lines
             .filterNot { line -> !fontPreview.showCyrillicSample && line.any(::isCyrillicCharacter) }
             .filterNot { line -> !fontPreview.showAsciiSample && line.any(Char::isLetterOrDigit) && line.none(::isCyrillicCharacter) }
@@ -618,6 +639,7 @@ class GdxSkinResourcePreview(
         return candidates.firstOrNull(File::exists)?.path
     }
 
+    @Suppress("ReturnCount")
     private fun SkinResourceInfo.toResolvedRegion(): ResolvedRegion? {
         val xy = details["xy"]?.parseIntPair() ?: return null
         val size = details["size"]?.parseIntPair() ?: return null

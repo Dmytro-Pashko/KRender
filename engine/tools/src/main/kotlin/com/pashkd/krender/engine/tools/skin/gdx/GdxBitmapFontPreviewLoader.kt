@@ -43,7 +43,8 @@ internal object GdxBitmapFontPreviewLoader {
     }
 
     private fun parsePageNames(fontFile: File): List<String> =
-        fontFile.readLines()
+        fontFile
+            .readLines()
             .mapNotNull { line -> FontPageRegex.find(line)?.groupValues?.getOrNull(1) }
 
     private fun resolvePageFile(

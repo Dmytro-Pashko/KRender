@@ -66,19 +66,19 @@ class AtlasValidator : SkinValidator {
 
             val malformedRegions =
                 resourceIndex.atlasRegions
-                .filter { region -> region.source == atlasFile.path }
-                .filterNot(::hasValidRegionBounds)
+                    .filter { region -> region.source == atlasFile.path }
+                    .filterNot(::hasValidRegionBounds)
             malformedRegions.take(MaxAtlasRegionProblems).forEach { region ->
-                    problems +=
-                        SkinProblem(
-                            severity = SkinProblemSeverity.Warning,
-                            category = SkinProblemCategory.Atlas,
-                            message = "Atlas region '${region.name}' has missing or malformed xy/size metadata.",
-                            source = region.source,
-                            suggestedFix = "Repack the atlas or verify the region coordinates and size entries.",
-                            resourceKey = region.key,
-                        )
-                }
+                problems +=
+                    SkinProblem(
+                        severity = SkinProblemSeverity.Warning,
+                        category = SkinProblemCategory.Atlas,
+                        message = "Atlas region '${region.name}' has missing or malformed xy/size metadata.",
+                        source = region.source,
+                        suggestedFix = "Repack the atlas or verify the region coordinates and size entries.",
+                        resourceKey = region.key,
+                    )
+            }
             val hiddenMalformedRegions = malformedRegions.size - MaxAtlasRegionProblems
             if (hiddenMalformedRegions > 0) {
                 problems +=
@@ -139,13 +139,20 @@ class FontValidator : SkinValidator {
                     suggestedFix = "Declare BitmapFont resources in the skin descriptor.",
                 )
         }
-        if (fontReferences.isNotEmpty() && context.loadResult.project?.fontFiles.isNullOrEmpty()) {
+        if (fontReferences.isNotEmpty() &&
+            context.loadResult.project
+                ?.fontFiles
+                .isNullOrEmpty()
+        ) {
             problems +=
                 SkinProblem(
                     severity = SkinProblemSeverity.Warning,
                     category = SkinProblemCategory.Font,
                     message = "Styles reference fonts, but no font files were discovered next to the skin project.",
-                    source = context.loadResult.project?.rootDirectory?.path,
+                    source =
+                        context.loadResult.project
+                            ?.rootDirectory
+                            ?.path,
                     suggestedFix = "Verify BitmapFont file paths or place the required font files with the skin assets.",
                 )
         }
@@ -154,8 +161,7 @@ class FontValidator : SkinValidator {
                 font.referencedBy.isNotEmpty() &&
                     font.details["file"] != null &&
                     font.details["matchedFile"] == "<none>"
-            }
-            .forEach { font ->
+            }.forEach { font ->
                 problems +=
                     SkinProblem(
                         severity = SkinProblemSeverity.Warning,
@@ -328,12 +334,13 @@ class DrawableValidator : SkinValidator {
 
                 "ButtonStyle",
                 "ImageButtonStyle",
-                -> missingFieldsProblem(
-                    style = style,
-                    fieldNames = fieldNames,
-                    requiredAny = listOf("up", "down", "over", "disabled"),
-                    message = "Button style defines none of the common drawable states: up, down, over, disabled.",
-                )
+                ->
+                    missingFieldsProblem(
+                        style = style,
+                        fieldNames = fieldNames,
+                        requiredAny = listOf("up", "down", "over", "disabled"),
+                        message = "Button style defines none of the common drawable states: up, down, over, disabled.",
+                    )
 
                 "CheckBoxStyle" ->
                     missingRequiredFields(
@@ -345,12 +352,13 @@ class DrawableValidator : SkinValidator {
 
                 "TextFieldStyle",
                 "TextAreaStyle",
-                -> missingRequiredFields(
-                    style = style,
-                    fieldNames = fieldNames,
-                    required = listOf("font", "fontcolor", "cursor", "selection"),
-                    displayNames = mapOf("fontcolor" to "fontColor"),
-                )
+                ->
+                    missingRequiredFields(
+                        style = style,
+                        fieldNames = fieldNames,
+                        required = listOf("font", "fontcolor", "cursor", "selection"),
+                        displayNames = mapOf("fontcolor" to "fontColor"),
+                    )
 
                 "WindowStyle" ->
                     buildList {
@@ -409,15 +417,13 @@ class DrawableValidator : SkinValidator {
         style: StyleInfo,
         message: String,
         suggestedFix: String? = null,
-    ): SkinProblem =
-        styleProblem(SkinProblemSeverity.Warning, style, message, suggestedFix)
+    ): SkinProblem = styleProblem(SkinProblemSeverity.Warning, style, message, suggestedFix)
 
     private fun info(
         style: StyleInfo,
         message: String,
         suggestedFix: String? = null,
-    ): SkinProblem =
-        styleProblem(SkinProblemSeverity.Info, style, message, suggestedFix)
+    ): SkinProblem = styleProblem(SkinProblemSeverity.Info, style, message, suggestedFix)
 
     private fun styleProblem(
         severity: SkinProblemSeverity,
@@ -526,8 +532,7 @@ private fun String.parseIntList(expectedSize: Int): List<Int>? {
     return values.takeIf { it.size >= expectedSize }
 }
 
-private fun String.truncateForMessage(maxLength: Int): String =
-    if (length <= maxLength) this else take(maxLength).trimEnd() + "..."
+private fun String.truncateForMessage(maxLength: Int): String = if (length <= maxLength) this else take(maxLength).trimEnd() + "..."
 
 private val SimpleHexColor = Regex("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 private val DrawableResolutionCategories =

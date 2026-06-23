@@ -136,12 +136,13 @@ class SelectedStylePreviewLayout : PreviewLayout {
         context: PreviewLayoutContext,
         factory: WidgetPreviewFactory,
     ): SkinEditorPreviewItem {
-        val selected = context.selectedStyleKey
-            ?: return factory.column(
-                key = "selected_style_empty",
-                label = "Selected Style",
-                children = listOf(factory.label("selected_style_empty_label", "Select a style in the Styles panel.")),
-            )
+        val selected =
+            context.selectedStyleKey
+                ?: return factory.column(
+                    key = "selected_style_empty",
+                    label = "Selected Style",
+                    children = listOf(factory.label("selected_style_empty_label", "Select a style in the Styles panel.")),
+                )
         val styleName = selected.name
         val children =
             when (selected.type) {
