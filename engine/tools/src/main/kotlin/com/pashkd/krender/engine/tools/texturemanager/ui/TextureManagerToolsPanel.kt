@@ -23,7 +23,14 @@ class TextureManagerToolsPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val importSourceBuffer = ByteArray(BufferSize)
+    private val importTargetBuffer = ByteArray(BufferSize)
+    private val exportDirectoryBuffer = ByteArray(BufferSize)
+    private val exportBaseNameBuffer = ByteArray(BufferSize)
+    private var synced = false
+
     override fun draw() {
+        syncBuffersIfNeeded()
         val layout = layoutConfig.panels.getValue(TextureManagerPanelIds.Tools)
         val expanded = beginImGuiPanel(TextureManagerPanelIds.Tools, layout, layoutTracker)
         eventLogger.observe(TextureManagerPanelIds.Tools, layout.title)
@@ -120,10 +127,73 @@ class TextureManagerToolsPanel(
         textLine("Diagnostics: ${state.packing.lastResult.diagnostics.size}")
 
         ImGui.separator()
+        textLine("Texture Import")
+        ImGui.textUnformatted("Source Path")
+        ImGui.setNextItemWidth(-1f)
+        if (ImGui.inputText("##texture_manager_import_source", importSourceBuffer)) {
+            operations.setImportSourcePath(readBuffer(importSourceBuffer))
+        }
+        ImGui.textUnformatted("Target Directory")
+        ImGui.setNextItemWidth(-1f)
+        if (ImGui.inputText("##texture_manager_import_target_dir", importTargetBuffer)) {
+            operations.setImportTargetDirectory(readBuffer(importTargetBuffer))
+        }
+        val importOverwrite = booleanArrayOf(state.importExport.importOverwrite)
+        if (ImGui.checkbox("Overwrite Existing Texture##texture_manager_import_overwrite", importOverwrite)) {
+            operations.setImportOverwrite(importOverwrite[0])
+        }
+        if (ImGui.button("Import Texture##texture_manager_tools_import")) {
+            operations.importTexture()
+        }
+        state.importExport.lastImportResult?.let { result ->
+            textLine(result.message)
+            result.writtenPaths.forEach(::textLine)
+        }
+
+        ImGui.separator()
+        textLine("Atlas Descriptor Export")
+        ImGui.textUnformatted("Export Directory")
+        ImGui.setNextItemWidth(-1f)
+        if (ImGui.inputText("##texture_manager_export_dir", exportDirectoryBuffer)) {
+            operations.setExportDirectory(readBuffer(exportDirectoryBuffer))
+        }
+        ImGui.textUnformatted("Export Base Name")
+        ImGui.setNextItemWidth(-1f)
+        if (ImGui.inputText("##texture_manager_export_base_name", exportBaseNameBuffer)) {
+            operations.setExportBaseName(readBuffer(exportBaseNameBuffer))
+        }
+        val exportOverwrite = booleanArrayOf(state.importExport.exportOverwrite)
+        if (ImGui.checkbox("Overwrite Existing Descriptor##texture_manager_export_overwrite", exportOverwrite)) {
+            operations.setExportOverwrite(exportOverwrite[0])
+        }
+        val canExport = packingPlan?.packedRegionCount?.let { it > 0 } == true
+        if (!canExport) ImGui.beginDisabled()
+        if (ImGui.button("Export Atlas Descriptor Draft##texture_manager_export_descriptor")) {
+            operations.exportAtlasDescriptorDraft()
+        }
+        if (!canExport) ImGui.endDisabled()
+        if (!canExport) {
+            textLine("Run a packing dry-run with at least one packed region before exporting.")
+        }
+        state.importExport.lastExportResult?.let { result ->
+            textLine(result.message)
+            result.writtenPaths.forEach(::textLine)
+        }
+
+        ImGui.separator()
         textLine("Mouse wheel: zoom")
         textLine("RMB drag or Pan mode: pan")
         textLine("LMB on region: select")
         ImGui.end()
+    }
+
+    private fun syncBuffersIfNeeded() {
+        if (synced) return
+        writeBuffer(importSourceBuffer, state.importExport.importSourcePath)
+        writeBuffer(importTargetBuffer, state.importExport.importTargetDirectory)
+        writeBuffer(exportDirectoryBuffer, state.importExport.exportDirectory)
+        writeBuffer(exportBaseNameBuffer, state.importExport.exportBaseName)
+        synced = true
     }
 
     private fun drawPageSizeCombo(
@@ -152,6 +222,7 @@ class TextureManagerToolsPanel(
     }
 
     companion object {
+        private const val BufferSize = 1024
         private val PageSizeOptions = intArrayOf(32, 64, 128, 256, 512, 1024, 2048, 4096)
         private val PaddingOptions = intArrayOf(0, 1, 2, 4, 8, 16)
     }

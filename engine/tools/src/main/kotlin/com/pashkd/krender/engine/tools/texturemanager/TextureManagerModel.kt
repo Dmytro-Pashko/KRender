@@ -164,6 +164,7 @@ data class TextureManagerState(
     var assetBrowser: TextureManagerAssetBrowserState = TextureManagerAssetBrowserState(),
     var atlasBrowser: TextureManagerAtlasBrowserState = TextureManagerAtlasBrowserState(),
     var packing: TextureAtlasPackingState = TextureAtlasPackingState(),
+    var importExport: TextureManagerImportExportState = TextureManagerImportExportState(),
     var diagnosticsFilter: TextureManagerDiagnosticsFilterState = TextureManagerDiagnosticsFilterState(),
     var statusMessage: String = "Texture Manager ready.",
     var reloadRequested: Boolean = false,
