@@ -77,6 +77,7 @@ object SceneConfigPresets {
                     mode = WindowMode.Windowed,
                 ),
         )
+
     /** Current Skin Editor preset. Kept separate for future divergence. */
     val SkinEditor =
         SceneConfig(
