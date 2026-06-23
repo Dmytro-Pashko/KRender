@@ -10,6 +10,7 @@ data class SkinColorValue(
 )
 
 object SkinColorValueParser {
+    @Suppress("ReturnCount")
     fun parse(values: Map<String, String>): SkinColorValue? {
         val hex = values["value"] ?: values["hex"]
         if (hex != null) {
