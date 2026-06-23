@@ -50,7 +50,8 @@ class AssetBrowserScene : Scene("asset_browser") {
                 register(ModelViewerAssetTool())
                 register(AnimationViewerAssetTool())
                 register(TerrainEditorAssetTool())
-                register(TextureManagerAssetTool())
+                register(TextureManagerAtlasAssetTool())
+                register(TextureManagerTextureAssetTool())
                 register(SkinEditorAssetTool())
                 register(UiComposerAssetTool())
                 register(SceneEditorAssetTool())
@@ -160,7 +161,7 @@ class AssetBrowserScene : Scene("asset_browser") {
             }
             return
         }
-        engine.logger.info(TAG) { "Opening asset '${asset.path}' with tool '${tool.id}'" }
+        engine.logger.info(TAG) { "Asset Browser default action selected tool='${tool.id}' path='${asset.path}' type=${asset.type}" }
         try {
             tool.open(asset, engine)
             browserState.statusMessage = "Opened ${tool.displayName}: ${asset.path}"
@@ -246,6 +247,7 @@ private class SceneOperationsHandler(
             return
         }
         try {
+            logger.info(TAG) { "Asset Browser Open With selected tool='${tool.id}' path='${asset.path}' type=${asset.type}" }
             tool.open(asset, engineProvider())
             state.statusMessage = "Opened ${tool.displayName}: ${asset.path}"
             logger.info(TAG) { "Open with succeeded tool='${tool.id}' path='${asset.path}'" }
@@ -407,36 +409,44 @@ class TerrainEditorAssetTool : AssetTool {
     }
 }
 
-/**
- * Opens supported texture and atlas assets in Texture Manager.
- */
-class TextureManagerAssetTool : AssetTool {
-    override val id = "texture-manager"
+class TextureManagerAtlasAssetTool : AssetTool {
+    override val id = "texture-manager-atlas"
     override val displayName = "Open in Texture Manager"
     override val supportedCategories = setOf(AssetCategory.Texture)
 
-    override fun canOpen(asset: AssetDescriptor): Boolean =
-        asset.category == AssetCategory.Texture &&
-            (asset.type == AssetType.Texture || asset.type == AssetType.Atlas)
+    /**
+     * Atlas assets default to Texture Manager because it is the only tool that
+     * surfaces page and region inspection in the current read-only workflow.
+     */
+    override val defaultAction = true
+
+    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Texture && asset.type == AssetType.Atlas
 
     override fun open(
         asset: AssetDescriptor,
         context: EngineContext,
-    ) {
-        val path = normalizedAssetPath(asset)
-        if (!canOpen(asset)) {
-            context.logger.warn(TAG) {
-                "Rejected unsupported Texture Manager asset path='$path' category=${asset.category} type=${asset.type}"
-            }
-            return
-        }
-        context.logger.info(TAG) { "Opening asset '$path' in Texture Manager" }
-        context.editorToolLauncher.launchTextureManager(path)
-        context.logger.info(TAG) { "Texture Manager launch requested path='$path'" }
-    }
+    ) = launchTextureManagerAsset(asset, context, TAG)
 
     companion object {
-        private const val TAG = "TextureManagerAssetTool"
+        private const val TAG = "TextureManagerAtlasTool"
+    }
+}
+
+class TextureManagerTextureAssetTool : AssetTool {
+    override val id = "texture-manager-texture"
+    override val displayName = "Open in Texture Manager"
+    override val supportedCategories = setOf(AssetCategory.Texture)
+    override val defaultAction = false
+
+    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Texture && asset.type == AssetType.Texture
+
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) = launchTextureManagerAsset(asset, context, TAG)
+
+    companion object {
+        private const val TAG = "TextureManagerTextureTool"
     }
 }
 
@@ -537,6 +547,22 @@ class SceneRuntimeAssetTool : AssetTool {
     companion object {
         private const val TAG = "SceneRuntimeAssetTool"
     }
+}
+
+private fun launchTextureManagerAsset(
+    asset: AssetDescriptor,
+    context: EngineContext,
+    tag: String,
+) {
+    val path = normalizedAssetPath(asset)
+    if (asset.category != AssetCategory.Texture || (asset.type != AssetType.Texture && asset.type != AssetType.Atlas)) {
+        context.logger.warn(tag) {
+            "Rejected unsupported Texture Manager asset path='$path' category=${asset.category} type=${asset.type}"
+        }
+        return
+    }
+    context.editorToolLauncher.launchTextureManager(path)
+    context.logger.info(tag) { "Texture Manager launch requested path='$path'" }
 }
 
 private fun normalizedAssetPath(asset: AssetDescriptor): String = asset.path.trim().replace('\\', '/')

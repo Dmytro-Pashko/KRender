@@ -88,14 +88,24 @@ class TextureManagerScene(
         editorState.statusMessage =
             when {
                 editorState.project.rootDirectory == null -> "Open a texture, atlas, or directory to begin."
-                editorState.diagnostics.any { it.severity == TextureManagerDiagnosticSeverity.Error } -> "Loaded with errors."
-                editorState.diagnostics.any { it.severity == TextureManagerDiagnosticSeverity.Warning } -> "Loaded with warnings."
+                editorState.diagnostics.any { it.severity == TextureManagerDiagnosticSeverity.Error } -> "Loaded ${loadedPathLabel()} with errors."
+                editorState.diagnostics.any { it.severity == TextureManagerDiagnosticSeverity.Warning } -> "Loaded ${loadedPathLabel()} with warnings."
+                editorState.currentInputPath != null -> "Loaded ${loadedPathLabel()}."
                 else -> "Texture Manager ready."
             }
+        editorState.project.resolvedInputPath?.let { resolvedPath ->
+            if (editorState.currentInputPath != null) {
+                engine.logger.info(TAG) {
+                    "Texture Manager loaded input path='${editorState.currentInputPath}' resolved='$resolvedPath' diagnostics=${editorState.diagnostics.size}"
+                }
+            }
+        }
         engine.logger.info(TAG) {
             "Texture Manager reload completed assets=${editorState.project.assets.size} textures=${editorState.project.discoveredTextureFiles.size} atlases=${editorState.project.discoveredAtlasFiles.size} diagnostics=${editorState.diagnostics.size}"
         }
     }
+
+    private fun loadedPathLabel(): String = "'${editorState.project.resolvedInputPath ?: editorState.currentInputPath ?: "<unknown>"}'"
 
     private fun ensureValidSelectionAfterReload() {
         val validAssetId =

@@ -74,6 +74,7 @@ class TextureManagerToolbarPanel(
 
         ImGui.separator()
         ImGui.textWrapped(state.statusMessage)
+        textLine("Input: ${state.currentInputPath ?: "<none>"}")
         state.project.resolvedInputPath?.let { path -> textLine("Resolved: $path") }
         state.project.rootDirectory?.let { root -> textLine("Root: ${root.path.replace('\\', '/')}") }
         ImGui.end()

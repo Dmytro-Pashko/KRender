@@ -111,12 +111,12 @@ class GdxModelImporter : AssetImporter {
 }
 
 /**
- * 2D textures (png/jpg/webp).
+ * 2D textures (png/jpg/ktx/webp).
  */
 class TextureImporter : AssetImporter {
     override val id = "texture"
     override val displayName = "Texture"
-    override val supportedExtensions = setOf("png", "jpg", "jpeg", "webp")
+    override val supportedExtensions = setOf("png", "jpg", "jpeg", "ktx", "webp")
     override val outputType = AssetType.Texture
     override val outputCategory = AssetCategory.Texture
 
