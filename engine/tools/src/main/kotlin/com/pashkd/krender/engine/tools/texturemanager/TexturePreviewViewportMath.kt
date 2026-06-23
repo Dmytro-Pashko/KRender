@@ -19,6 +19,15 @@ internal data class TextureRegionScreenRect(
     val maxY: Float,
 )
 
+internal data class TextureAtlasRegionMetrics(
+    val areaPixels: Int? = null,
+    val u0: Float? = null,
+    val v0: Float? = null,
+    val u1: Float? = null,
+    val v1: Float? = null,
+    val outsidePageBounds: Boolean = false,
+)
+
 internal fun computeTexturePreviewViewportLayout(
     rect: TextureManagerCanvasRect,
     textureWidth: Int,
@@ -71,6 +80,39 @@ internal fun atlasRegionScreenRect(
     )
 }
 
+internal fun screenToTexturePixelX(
+    screenX: Float,
+    layout: TexturePreviewViewportLayout,
+): Float = (screenX - layout.imageX) / layout.effectiveZoom
+
+internal fun screenToTexturePixelY(
+    screenY: Float,
+    layout: TexturePreviewViewportLayout,
+): Float = (screenY - layout.imageY) / layout.effectiveZoom
+
+internal fun computeRegionMetrics(
+    region: TextureAtlasRegion,
+    textureWidth: Int,
+    textureHeight: Int,
+): TextureAtlasRegionMetrics {
+    val xy = region.xy
+    val size = region.size
+    val area = size?.let { dimensions -> dimensions.first * dimensions.second }
+    if (xy == null || size == null || textureWidth <= 0 || textureHeight <= 0) {
+        return TextureAtlasRegionMetrics(areaPixels = area)
+    }
+    val right = xy.first + size.first
+    val bottom = xy.second + size.second
+    return TextureAtlasRegionMetrics(
+        areaPixels = area,
+        u0 = xy.first / textureWidth.toFloat(),
+        v0 = xy.second / textureHeight.toFloat(),
+        u1 = right / textureWidth.toFloat(),
+        v1 = bottom / textureHeight.toFloat(),
+        outsidePageBounds = xy.first < 0 || xy.second < 0 || right > textureWidth || bottom > textureHeight,
+    )
+}
+
 internal fun hitTestAtlasRegion(
     regions: List<TextureAtlasRegion>,
     layout: TexturePreviewViewportLayout,
@@ -87,6 +129,12 @@ internal fun hitTestAtlasRegion(
         }
 }
 
+internal fun formatRegionMetrics(metrics: TextureAtlasRegionMetrics): String {
+    val area = metrics.areaPixels?.toString() ?: "<unknown>"
+    val outside = if (metrics.outsidePageBounds) " outside bounds" else ""
+    return "$area px$outside"
+}
+
 internal fun formatZoomMode(mode: TexturePreviewZoomMode): String =
     when (mode) {
         TexturePreviewZoomMode.Fit -> "Fit"
@@ -97,4 +145,3 @@ internal fun formatZoomMode(mode: TexturePreviewZoomMode): String =
     }
 
 private const val MinPreviewScale = 0.05f
-

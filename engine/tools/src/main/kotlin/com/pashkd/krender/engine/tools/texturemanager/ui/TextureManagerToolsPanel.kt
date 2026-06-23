@@ -66,6 +66,9 @@ class TextureManagerToolsPanel(
         if (ImGui.button("Reset Camera##texture_manager_reset_camera")) {
             operations.resetPreviewCamera()
         }
+        if (ImGui.button("Focus Selected Region##texture_manager_focus_region")) {
+            operations.fitSelectedRegion()
+        }
 
         val checker = booleanArrayOf(state.preview.showCheckerboard)
         if (ImGui.checkbox("Checkerboard##texture_manager_checker", checker)) {

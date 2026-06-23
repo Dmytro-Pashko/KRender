@@ -8,6 +8,8 @@ import com.pashkd.krender.engine.tools.texturemanager.TextureManagerToolMode
 import com.pashkd.krender.engine.tools.texturemanager.computeTexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.texturemanager.formatZoomMode
 import com.pashkd.krender.engine.tools.texturemanager.hitTestAtlasRegion
+import com.pashkd.krender.engine.tools.texturemanager.screenToTexturePixelX
+import com.pashkd.krender.engine.tools.texturemanager.screenToTexturePixelY
 import com.pashkd.krender.engine.tools.texturemanager.selectedRegionsForPage
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -28,6 +30,13 @@ class TextureManagerPreviewCanvasPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private var pendingSelectRegionId: com.pashkd.krender.engine.tools.texturemanager.AtlasRegionId? = null
+    private var clickDragDistance = 0f
+    private var cursorTextureX: Int? = null
+    private var cursorTextureY: Int? = null
+    private var cursorRegionX: Int? = null
+    private var cursorRegionY: Int? = null
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(TextureManagerPanelIds.Preview)
         val expanded = beginImGuiPanel(TextureManagerPanelIds.Preview, layout, layoutTracker)
@@ -38,15 +47,7 @@ class TextureManagerPreviewCanvasPanel(
             return
         }
 
-        textLine("Zoom: ${formatZoomMode(state.preview.zoomMode)}")
-        ImGui.sameLine()
-        textLine("Texture: ${state.previewInfo.textureWidth} x ${state.previewInfo.textureHeight}")
-        ImGui.sameLine()
-        val cursorText =
-            state.hoveredRegionId?.let { hovered ->
-                "Hovered: ${hovered.regionName}"
-            } ?: "Hovered: <none>"
-        textLine(cursorText)
+        drawStatusLine()
         ImGui.separator()
 
         val min = ImGui.cursorScreenPos
@@ -98,8 +99,13 @@ class TextureManagerPreviewCanvasPanel(
         val hovered = ImGui.isItemHovered()
         if (!hovered) {
             operations.setHoveredRegion(null)
+            cursorTextureX = null
+            cursorTextureY = null
+            cursorRegionX = null
+            cursorRegionY = null
             return
         }
+        updateCursorMetrics(viewportLayout)
         if (io.mouseWheel != 0f) {
             operations.setPreviewZoom(state.preview.customZoom * (1f + io.mouseWheel * 0.1f))
         }
@@ -107,6 +113,8 @@ class TextureManagerPreviewCanvasPanel(
             (io.mouseDelta.x != 0f || io.mouseDelta.y != 0f)
         ) {
             operations.panPreview(io.mouseDelta.x, io.mouseDelta.y)
+            clickDragDistance += kotlin.math.abs(io.mouseDelta.x) + kotlin.math.abs(io.mouseDelta.y)
+            pendingSelectRegionId = null
         }
         val hoveredRegion =
             if (regions.isNotEmpty()) {
@@ -115,8 +123,73 @@ class TextureManagerPreviewCanvasPanel(
                 null
             }
         operations.setHoveredRegion(hoveredRegion?.id)
-        if (io.mouseClicked[0] && hoveredRegion != null) {
-            operations.selectRegion(hoveredRegion.id)
+        if (hoveredRegion?.xy != null && cursorTextureX != null && cursorTextureY != null) {
+            cursorRegionX = cursorTextureX!! - hoveredRegion.xy.first
+            cursorRegionY = cursorTextureY!! - hoveredRegion.xy.second
+        } else {
+            cursorRegionX = null
+            cursorRegionY = null
         }
+        if (io.mouseClicked[0]) {
+            pendingSelectRegionId = hoveredRegion?.id
+            clickDragDistance = 0f
+        }
+        if (pendingSelectRegionId != null && io.mouseReleased[0] && clickDragDistance < ClickDragThreshold) {
+            operations.selectRegion(pendingSelectRegionId)
+            if (ImGui.run { MouseButton.Left.isDoubleClicked }) {
+                operations.fitSelectedRegion()
+            }
+            pendingSelectRegionId = null
+        }
+    }
+
+    private fun updateCursorMetrics(viewportLayout: com.pashkd.krender.engine.tools.texturemanager.TexturePreviewViewportLayout) {
+        val io = ImGui.io
+        val textureX = screenToTexturePixelX(io.mousePos.x, viewportLayout)
+        val textureY = screenToTexturePixelY(io.mousePos.y, viewportLayout)
+        cursorTextureX =
+            textureX
+                .takeIf { x -> x >= 0f && x <= state.previewInfo.textureWidth }
+                ?.toInt()
+        cursorTextureY =
+            textureY
+                .takeIf { y -> y >= 0f && y <= state.previewInfo.textureHeight }
+                ?.toInt()
+    }
+
+    private fun drawStatusLine() {
+        val zoomPercent =
+            when (state.preview.zoomMode) {
+                com.pashkd.krender.engine.tools.texturemanager.TexturePreviewZoomMode.Fit -> "Fit"
+                else -> "${(state.preview.viewport.zoom * 100f).toInt()}%"
+            }
+        val cursorText =
+            if (cursorTextureX != null && cursorTextureY != null) {
+                "Cursor: ${cursorTextureX}, ${cursorTextureY}"
+            } else {
+                "Cursor: <outside>"
+            }
+        val hoveredText = state.hoveredRegionId?.regionName ?: "<none>"
+        val selectedText = state.selectedRegionId?.regionName ?: "<none>"
+        val regionCursorText =
+            if (cursorRegionX != null && cursorRegionY != null) {
+                "Region: ${cursorRegionX}, ${cursorRegionY}"
+            } else {
+                "Region: <n/a>"
+            }
+        textLine("Zoom: $zoomPercent")
+        ImGui.sameLine()
+        textLine("Texture: ${state.previewInfo.textureWidth} x ${state.previewInfo.textureHeight}")
+        ImGui.sameLine()
+        textLine(cursorText)
+        ImGui.sameLine()
+        textLine(regionCursorText)
+        textLine("Hovered: $hoveredText")
+        ImGui.sameLine()
+        textLine("Selected: $selectedText")
+    }
+
+    companion object {
+        private const val ClickDragThreshold = 6f
     }
 }

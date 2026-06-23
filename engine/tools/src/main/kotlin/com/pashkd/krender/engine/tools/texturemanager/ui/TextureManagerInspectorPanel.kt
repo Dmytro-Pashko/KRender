@@ -2,6 +2,7 @@ package com.pashkd.krender.engine.tools.texturemanager.ui
 
 import com.pashkd.krender.engine.tools.texturemanager.TextureManagerPanelIds
 import com.pashkd.krender.engine.tools.texturemanager.TextureManagerState
+import com.pashkd.krender.engine.tools.texturemanager.computeRegionMetrics
 import com.pashkd.krender.engine.tools.texturemanager.selectedAsset
 import com.pashkd.krender.engine.tools.texturemanager.selectedAtlasDocument
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
@@ -10,6 +11,9 @@ import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class TextureManagerInspectorPanel(
     private val state: TextureManagerState,
@@ -33,14 +37,20 @@ class TextureManagerInspectorPanel(
             return
         }
 
+        textLine("File: ${asset.fileName}")
         textLine("Path: ${asset.path}")
         textLine("Extension: ${asset.extension.ifBlank { "<none>" }}")
         textLine("Size: ${formatBytes(asset.sizeBytes)}")
+        textLine("Modified: ${ModifiedAtFormatter.format(Instant.ofEpochMilli(asset.modifiedAtMillis).atZone(ZoneId.systemDefault()))}")
         asset.textureInfo?.let { info ->
-            textLine("Dimensions: ${info.width ?: 0} x ${info.height ?: 0}")
+            textLine("Metadata dimensions: ${info.width ?: 0} x ${info.height ?: 0}")
             textLine("Format: ${info.colorFormat ?: "<unknown>"}")
         }
+        if (state.previewInfo.textureWidth > 0 && state.previewInfo.textureHeight > 0) {
+            textLine("Preview dimensions: ${state.previewInfo.textureWidth} x ${state.previewInfo.textureHeight}")
+        }
         asset.metadataPath?.let { path -> textLine(".krmeta: $path") } ?: textLine(".krmeta: <missing>")
+        textLine("Metadata present: ${if (asset.metadataPath != null) "yes" else "no"}")
         if (asset.registryMetadata.isNotEmpty()) {
             ImGui.separator()
             textLine("Indexed metadata")
@@ -63,6 +73,7 @@ class TextureManagerInspectorPanel(
                 atlas.regions.firstOrNull { region -> region.id == regionId }?.let { region ->
                     ImGui.separator()
                     textLine("Selected region: ${region.id.regionName}")
+                    textLine("Page: ${region.id.pageName}")
                     listOf(
                         "rotate" to region.rotate,
                         "xy" to region.xy?.let { "${it.first}, ${it.second}" },
@@ -75,11 +86,26 @@ class TextureManagerInspectorPanel(
                     ).forEach { (label, value) ->
                         if (value != null) textLine("$label: $value")
                     }
+                    val metrics = computeRegionMetrics(region, state.previewInfo.textureWidth, state.previewInfo.textureHeight)
+                    textLine("Area: ${metrics.areaPixels ?: 0}px")
+                    val uvText =
+                        if (metrics.u0 != null && metrics.v0 != null && metrics.u1 != null && metrics.v1 != null) {
+                            "(${formatUv(metrics.u0)}, ${formatUv(metrics.v0)}) -> (${formatUv(metrics.u1)}, ${formatUv(metrics.v1)})"
+                        } else {
+                            "<unknown>"
+                        }
+                    textLine("UV: $uvText")
+                    textLine("Outside bounds: ${if (metrics.outsidePageBounds) "yes" else "no"}")
                 }
             }
         }
 
         ImGui.end()
     }
-}
 
+    private fun formatUv(value: Float): String = "%.4f".format(value)
+
+    companion object {
+        private val ModifiedAtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    }
+}

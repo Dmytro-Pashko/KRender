@@ -29,6 +29,13 @@ enum class TexturePreviewZoomMode {
     Custom,
 }
 
+enum class TextureAtlasRegionSortMode {
+    Name,
+    Index,
+    AreaAscending,
+    AreaDescending,
+}
+
 data class TextureManagerTextureInfo(
     val width: Int? = null,
     val height: Int? = null,
@@ -129,6 +136,7 @@ data class TextureManagerAssetBrowserState(
 
 data class TextureManagerAtlasBrowserState(
     var query: String = "",
+    var sortMode: TextureAtlasRegionSortMode = TextureAtlasRegionSortMode.Name,
 )
 
 data class TextureManagerDiagnosticsFilterState(

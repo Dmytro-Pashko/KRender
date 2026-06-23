@@ -3,7 +3,10 @@ package com.pashkd.krender.engine.tools.texturemanager.ui
 import com.pashkd.krender.engine.tools.texturemanager.TextureManagerOperations
 import com.pashkd.krender.engine.tools.texturemanager.TextureManagerPanelIds
 import com.pashkd.krender.engine.tools.texturemanager.TextureManagerState
+import com.pashkd.krender.engine.tools.texturemanager.TextureAtlasRegionSortMode
+import com.pashkd.krender.engine.tools.texturemanager.computeRegionMetrics
 import com.pashkd.krender.engine.tools.texturemanager.selectedAtlasDocument
+import com.pashkd.krender.engine.tools.texturemanager.resolveAtlasPreviewTexturePath
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -64,6 +67,15 @@ class TextureManagerAtlasRegionsPanel(
                 }
                 ImGui.endCombo()
             }
+            if (ImGui.beginCombo("Sort##texture_manager_region_sort", state.atlasBrowser.sortMode.name)) {
+                TextureAtlasRegionSortMode.entries.forEach { mode ->
+                    if (ImGui.selectable(mode.name, state.atlasBrowser.sortMode == mode)) {
+                        state.atlasBrowser.sortMode = mode
+                    }
+                }
+                ImGui.endCombo()
+            }
+            drawPageSummary(atlas, currentPage)
         }
 
         ImGui.beginChild("texture_manager_regions_list", ImVec2(0f, 0f), true)
@@ -72,6 +84,10 @@ class TextureManagerAtlasRegionsPanel(
             val sizeText = region.size?.let { "${it.first} x ${it.second}" } ?: "<unknown>"
             if (ImGui.selectable("${region.id.regionName} [$sizeText]##${region.id.regionName}_${region.id.pageName}", selected)) {
                 operations.selectRegion(region.id)
+            }
+            if (ImGui.isItemHovered() && ImGui.run { imgui.MouseButton.Left.isDoubleClicked }) {
+                operations.selectRegion(region.id)
+                operations.fitSelectedRegion()
             }
         }
         if (visibleRegions(atlas).isEmpty()) {
@@ -82,16 +98,55 @@ class TextureManagerAtlasRegionsPanel(
     }
 
     private fun visibleRegions(atlas: com.pashkd.krender.engine.tools.texturemanager.TextureAtlasDocument) =
-        atlas.regions.filter { region ->
-            (state.selectedAtlasPageName == null || region.id.pageName == state.selectedAtlasPageName) &&
-                (
-                    state.atlasBrowser.query.isBlank() ||
-                        region.id.regionName.contains(state.atlasBrowser.query, ignoreCase = true)
-                )
+        atlas.regions
+            .filter { region ->
+                val query = state.atlasBrowser.query
+                (state.selectedAtlasPageName == null || region.id.pageName == state.selectedAtlasPageName) &&
+                    (
+                        query.isBlank() ||
+                            region.id.regionName.contains(query, ignoreCase = true) ||
+                            region.id.pageName.contains(query, ignoreCase = true)
+                    )
+            }.sortedWith(regionComparator())
+
+    private fun regionComparator(): Comparator<com.pashkd.krender.engine.tools.texturemanager.TextureAtlasRegion> =
+        when (state.atlasBrowser.sortMode) {
+            TextureAtlasRegionSortMode.Name -> compareBy({ it.id.regionName.lowercase() }, { it.index ?: Int.MAX_VALUE })
+            TextureAtlasRegionSortMode.Index -> compareBy({ it.index ?: Int.MAX_VALUE }, { it.id.regionName.lowercase() })
+            TextureAtlasRegionSortMode.AreaAscending ->
+                compareBy<com.pashkd.krender.engine.tools.texturemanager.TextureAtlasRegion> { region ->
+                    region.size?.let { it.first * it.second } ?: Int.MAX_VALUE
+                }.thenBy { it.id.regionName.lowercase() }
+            TextureAtlasRegionSortMode.AreaDescending ->
+                compareByDescending<com.pashkd.krender.engine.tools.texturemanager.TextureAtlasRegion> { region ->
+                    region.size?.let { it.first * it.second } ?: Int.MIN_VALUE
+                }.thenBy { it.id.regionName.lowercase() }
         }
+
+    private fun drawPageSummary(
+        atlas: com.pashkd.krender.engine.tools.texturemanager.TextureAtlasDocument,
+        pageName: String,
+    ) {
+        val page = atlas.pages.firstOrNull { candidate -> candidate.name == pageName } ?: return
+        val texturePath = page.details["texturePath"] ?: resolveAtlasPreviewTexturePath(atlas.file.path, atlas, pageName) ?: "<unknown>"
+        val exists = page.details["textureExists"] == "true"
+        val pageRegionCount = atlas.regions.count { region -> region.id.pageName == pageName }
+        textLine("Page texture: $texturePath")
+        textLine("Page exists: ${if (exists) "yes" else "missing"}")
+        val width = page.details["textureWidth"] ?: state.previewInfo.textureWidth.takeIf { state.previewInfo.atlasPageName == pageName && it > 0 }?.toString()
+        val height = page.details["textureHeight"] ?: state.previewInfo.textureHeight.takeIf { state.previewInfo.atlasPageName == pageName && it > 0 }?.toString()
+        textLine("Page size: ${width ?: "?"} x ${height ?: "?"}")
+        textLine("Regions on page: $pageRegionCount")
+        state.selectedRegionId?.let { regionId ->
+            atlas.regions.firstOrNull { region -> region.id == regionId }?.let { region ->
+                val metrics = computeRegionMetrics(region, width?.toIntOrNull() ?: 0, height?.toIntOrNull() ?: 0)
+                textLine("Selected area: ${metrics.areaPixels ?: 0}px")
+            }
+        }
+        ImGui.separator()
+    }
 
     companion object {
         private const val BufferSize = 256
     }
 }
-

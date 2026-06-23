@@ -104,6 +104,57 @@ class TextureManagerOperations(
         state.statusMessage = "Preview zoom set to ${(state.preview.customZoom * 100f).toInt()}%."
     }
 
+    /**
+     * Centers and zooms the preview around the selected atlas region when the
+     * canvas and preview dimensions are available.
+     */
+    fun fitSelectedRegion() {
+        val regionId = state.selectedRegionId
+        val atlas = state.selectedAtlasDocument()
+        val region = atlas?.regions?.firstOrNull { candidate -> candidate.id == regionId }
+        if (region == null || region.xy == null || region.size == null) {
+            state.statusMessage = "Select a region with valid bounds to focus it."
+            return
+        }
+        val canvas = state.canvasRect
+        val textureWidth = state.previewInfo.textureWidth
+        val textureHeight = state.previewInfo.textureHeight
+        if (!canvas.isValid || textureWidth <= 0 || textureHeight <= 0) {
+            engine.logger.warn(TAG) {
+                "Texture Manager fitSelectedRegion ignored region='${region.id.regionName}' because canvas or preview dimensions were unavailable"
+            }
+            state.statusMessage = "Preview must be visible before focusing a region."
+            return
+        }
+
+        val regionWidth = region.size.first.coerceAtLeast(1)
+        val regionHeight = region.size.second.coerceAtLeast(1)
+        val zoom =
+            minOf(
+                canvas.width / regionWidth.toFloat(),
+                canvas.height / regionHeight.toFloat(),
+            ).coerceIn(0.05f, 8f) * 0.9f
+
+        val imageWidth = textureWidth * zoom
+        val imageHeight = textureHeight * zoom
+        val baseImageX = canvas.x + (canvas.width - imageWidth) * 0.5f
+        val baseImageY = canvas.y + (canvas.height - imageHeight) * 0.5f
+        val regionCenterX = region.xy.first + regionWidth * 0.5f
+        val regionCenterY = region.xy.second + regionHeight * 0.5f
+        val desiredCenterX = canvas.x + canvas.width * 0.5f
+        val desiredCenterY = canvas.y + canvas.height * 0.5f
+
+        state.preview.customZoom = zoom
+        state.preview.viewport.zoom = zoom
+        state.preview.zoomMode = TexturePreviewZoomMode.Custom
+        state.preview.viewport.panX = desiredCenterX - (baseImageX + regionCenterX * zoom)
+        state.preview.viewport.panY = desiredCenterY - (baseImageY + regionCenterY * zoom)
+        state.statusMessage = "Focused region '${region.id.regionName}'."
+        engine.logger.info(TAG) {
+            "Texture Manager fit selected region='${region.id.regionName}' page='${region.id.pageName}' zoom=$zoom"
+        }
+    }
+
     fun panPreview(
         deltaX: Float,
         deltaY: Float,

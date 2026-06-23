@@ -52,21 +52,9 @@ class TextureManagerProjectLoader(
         diagnostics += discoveredFiles.diagnostics
         val atlasDocuments =
             discoveredFiles.atlases.associate { file ->
-                val atlas = atlasParser.parse(file)
+                val atlas = enrichAtlasDocument(file, atlasParser.parse(file), diagnostics)
                 logger.info(TAG) { "Parsed atlas '${normalizePath(file.path)}' pages=${atlas.pages.size} regions=${atlas.regions.size} readable=${atlas.readable}" }
                 atlas.diagnostics.forEach(diagnostics::add)
-                atlas.pages.forEach { page ->
-                    val pageFile = resolveAtlasPage(file, page.name)
-                    if (pageFile == null || !pageFile.isFile) {
-                        diagnostics +=
-                            TextureManagerDiagnostic(
-                                severity = TextureManagerDiagnosticSeverity.Warning,
-                                category = TextureManagerDiagnosticCategory.Atlas,
-                                message = "Atlas page texture '${page.name}' is missing.",
-                                source = normalizePath(file.path),
-                            )
-                    }
-                }
                 normalizePath(file.path) to atlas
             }
 
@@ -219,6 +207,109 @@ class TextureManagerProjectLoader(
         if (pageFile.isAbsolute) return pageFile
         val atlasParent = atlasFile.parentFile ?: return null
         return File(atlasParent, pageName)
+    }
+
+    private fun enrichAtlasDocument(
+        atlasFile: File,
+        atlas: TextureAtlasDocument,
+        diagnostics: MutableList<TextureManagerDiagnostic>,
+    ): TextureAtlasDocument {
+        val pageRegions = atlas.regions.groupBy { region -> region.id.pageName }
+        val enrichedPages =
+            atlas.pages.map { page ->
+                val pageFile = resolveAtlasPage(atlasFile, page.name)
+                val pageMetadata = pageFile?.takeIf(File::isFile)?.let(metadataService::read)
+                if (pageFile == null || !pageFile.isFile) {
+                    diagnostics +=
+                        TextureManagerDiagnostic(
+                            severity = TextureManagerDiagnosticSeverity.Warning,
+                            category = TextureManagerDiagnosticCategory.Atlas,
+                            message = "Atlas page texture '${page.name}' is missing.",
+                            source = normalizePath(atlasFile.path),
+                        )
+                }
+                if (pageRegions[page.name].isNullOrEmpty()) {
+                    diagnostics +=
+                        TextureManagerDiagnostic(
+                            severity = TextureManagerDiagnosticSeverity.Warning,
+                            category = TextureManagerDiagnosticCategory.Atlas,
+                            message = "Atlas page '${page.name}' has no regions.",
+                            source = normalizePath(atlasFile.path),
+                        )
+                }
+                validatePageRegions(atlasFile, page.name, pageRegions[page.name].orEmpty(), pageMetadata, diagnostics)
+                page.copy(
+                    details =
+                        page.details +
+                            mapOf(
+                                "texturePath" to normalizePath(pageFile?.path ?: page.name),
+                                "textureExists" to ((pageFile?.isFile == true).toString()),
+                            ) +
+                            buildMap {
+                                pageMetadata?.width?.let { put("textureWidth", it.toString()) }
+                                pageMetadata?.height?.let { put("textureHeight", it.toString()) }
+                            },
+                )
+            }
+        return atlas.copy(pages = enrichedPages)
+    }
+
+    private fun validatePageRegions(
+        atlasFile: File,
+        pageName: String,
+        regions: List<TextureAtlasRegion>,
+        pageMetadata: TextureManagerTextureInfo?,
+        diagnostics: MutableList<TextureManagerDiagnostic>,
+    ) {
+        regions.groupBy { region -> region.id.regionName }
+            .filterValues { grouped -> grouped.size > 1 }
+            .forEach { (name, _) ->
+                diagnostics +=
+                    TextureManagerDiagnostic(
+                        severity = TextureManagerDiagnosticSeverity.Warning,
+                        category = TextureManagerDiagnosticCategory.Atlas,
+                        message = "Duplicate region name '$name' on page '$pageName'.",
+                        source = normalizePath(atlasFile.path),
+                    )
+            }
+        regions.forEach { region ->
+            if (region.xy == null) {
+                diagnostics +=
+                    TextureManagerDiagnostic(
+                        severity = TextureManagerDiagnosticSeverity.Warning,
+                        category = TextureManagerDiagnosticCategory.Atlas,
+                        message = "Region '${region.id.regionName}' is missing xy.",
+                        source = normalizePath(atlasFile.path),
+                    )
+            }
+            if (region.size == null) {
+                diagnostics +=
+                    TextureManagerDiagnostic(
+                        severity = TextureManagerDiagnosticSeverity.Warning,
+                        category = TextureManagerDiagnosticCategory.Atlas,
+                        message = "Region '${region.id.regionName}' is missing size.",
+                        source = normalizePath(atlasFile.path),
+                    )
+            }
+            val width = pageMetadata?.width
+            val height = pageMetadata?.height
+            if (width != null && height != null && region.xy != null && region.size != null) {
+                val right = region.xy.first + region.size.first
+                val bottom = region.xy.second + region.size.second
+                if (region.xy.first < 0 || region.xy.second < 0 || right > width || bottom > height) {
+                    diagnostics +=
+                        TextureManagerDiagnostic(
+                            severity = TextureManagerDiagnosticSeverity.Warning,
+                            category = TextureManagerDiagnosticCategory.Atlas,
+                            message = "Region '${region.id.regionName}' is outside page bounds.",
+                            source = normalizePath(atlasFile.path),
+                        )
+                    logger.warn(TAG) {
+                        "Texture Manager detected out-of-bounds region region='${region.id.regionName}' page='$pageName' atlas='${normalizePath(atlasFile.path)}'"
+                    }
+                }
+            }
+        }
     }
 
     private data class ScanResult(
