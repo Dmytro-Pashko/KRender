@@ -1,0 +1,72 @@
+package com.pashkd.krender.engine.tools.skin
+
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
+import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import glm_.vec2.Vec2 as ImVec2
+import imgui.ImGui
+
+class SkinEditorPreviewCanvasPanel(
+    private val state: SkinEditorState,
+    private val operations: SkinEditorOperations,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
+) : UiPanel {
+    override fun draw() {
+        val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.PreviewCanvas)
+        ImGui.setNextWindowBgAlpha(0f)
+        val expanded = beginImGuiPanel(SkinEditorPanelIds.PreviewCanvas, layout, layoutTracker)
+        eventLogger.observe(SkinEditorPanelIds.PreviewCanvas, layout.title)
+        if (!expanded) {
+            state.canvasRect = SkinEditorCanvasRect()
+            ImGui.end()
+            return
+        }
+
+        ImGui.textUnformatted("Scene2D preview Actors: ${state.previewInfo.actorCount}")
+        val selectedPreset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
+        ImGui.textUnformatted("Resolution:")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(180f)
+        if (ImGui.beginCombo("##skin_editor_canvas_resolution", selectedPreset.displayName)) {
+            SkinPreviewScreenPresets.presets.forEach { preset ->
+                if (ImGui.selectable("${preset.displayName}##skin_editor_canvas_resolution_${preset.id}", preset.id == selectedPreset.id)) {
+                    operations.selectScreenPreset(preset.id)
+                }
+            }
+            ImGui.endCombo()
+        }
+        val selectedScale = PreviewScales.minBy { scale -> kotlin.math.abs(scale - state.previewSettings.scale) }
+        ImGui.textUnformatted("Scale:")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(120f)
+        if (ImGui.beginCombo("##skin_editor_canvas_scale", formatPreviewScale(selectedScale))) {
+            PreviewScales.forEach { scale ->
+                if (ImGui.selectable("${formatPreviewScale(scale)}##skin_editor_canvas_scale_$scale", scale == selectedScale)) {
+                    operations.setPreviewScale(scale)
+                }
+            }
+            ImGui.endCombo()
+        }
+        val showBounds = booleanArrayOf(state.previewSettings.showBounds)
+        ImGui.textUnformatted("Show Bounding Box:")
+        ImGui.sameLine()
+        if (ImGui.checkbox("##skin_editor_canvas_bounds", showBounds)) operations.setShowBounds(showBounds[0])
+        ImGui.separator()
+
+        val min = ImGui.cursorScreenPos
+        val available = ImGui.contentRegionAvail
+        state.canvasRect =
+            SkinEditorCanvasRect(
+                x = min.x,
+                y = min.y,
+                width = available.x.coerceAtLeast(1f),
+                height = available.y.coerceAtLeast(1f),
+            )
+        ImGui.invisibleButton("##skin_editor_preview_canvas", ImVec2(state.canvasRect.width, state.canvasRect.height))
+        ImGui.end()
+    }
+}

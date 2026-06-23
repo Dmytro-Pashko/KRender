@@ -8,16 +8,14 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.math.Matrix4
-import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 import com.pashkd.krender.engine.tools.skin.DefaultFontPreviewSampleText
 import com.pashkd.krender.engine.tools.skin.SkinEditSession
 import com.pashkd.krender.engine.tools.skin.SkinFontPreviewState
+import com.pashkd.krender.engine.tools.skin.SkinColorValueParser
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.tools.skin.SkinProject
@@ -27,21 +25,14 @@ import com.pashkd.krender.engine.tools.skin.SkinResourceInfo
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewInfo
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewKind
 import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewState
-import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewZoomMode
 import java.io.File
 
 class GdxSkinResourcePreview(
     private val logger: Logger,
 ) : Disposable {
     private val batch = SpriteBatch()
-    private val shapes = ShapeRenderer()
-    private val labelFont = BitmapFont()
     private val glyphLayout = GlyphLayout()
     private val previewMatrix = Matrix4()
-    private var viewportX = 0
-    private var viewportY = 0
-    private var viewportWidth = 1
-    private var viewportHeight = 1
     private var loadedTexturePath: String? = null
     private var loadedTexture: Texture? = null
     private var loadedPreviewFontPath: String? = null
@@ -51,14 +42,8 @@ class GdxSkinResourcePreview(
     private var fontPreviewBuffer: FrameBuffer? = null
     private var fontPreviewRenderKey: String? = null
     private var currentInfo: SkinResourceVisualPreviewInfo = SkinResourceVisualPreviewInfo()
-    private var currentRegion: ResolvedRegion? = null
-    private var currentColor: Color? = null
     private var lastFontLoadFailure: String? = null
     private val warnedFailureKeys = mutableSetOf<String>()
-
-    init {
-        labelFont.color = Color(0.95f, 0.96f, 0.98f, 1f)
-    }
 
     fun update(
         project: SkinProject?,
@@ -69,8 +54,6 @@ class GdxSkinResourcePreview(
         editSession: SkinEditSession,
     ): SkinResourceVisualPreviewInfo {
         val resolved = resolveResourcePreview(project, resourceIndex, selectedResource, previewState, loadedSkin, editSession)
-        currentRegion = resolved.region
-        currentColor = resolved.color
         currentInfo =
             when {
                 resolved.kind == SkinResourceVisualPreviewKind.Font -> updateFontPreviewInfo(resolved, previewState.fontPreview)
@@ -128,81 +111,12 @@ class GdxSkinResourcePreview(
         return currentInfo
     }
 
-    fun setCanvasViewport(
-        x: Int,
-        y: Int,
-        width: Int,
-        height: Int,
-    ) {
-        viewportX = x.coerceAtLeast(0)
-        viewportY = y.coerceAtLeast(0)
-        viewportWidth = width.coerceAtLeast(1)
-        viewportHeight = height.coerceAtLeast(1)
-    }
-
-    fun clearCanvasViewport() {
-        viewportWidth = 1
-        viewportHeight = 1
-    }
-
-    fun resize(
-        @Suppress("UNUSED_PARAMETER")
-        width: Int,
-        @Suppress("UNUSED_PARAMETER")
-        height: Int,
-    ) = Unit
-
-    fun render(previewState: SkinResourceVisualPreviewState) {
-        if (viewportWidth <= 1 || viewportHeight <= 1) return
-
-        val graphicsWidth = Gdx.graphics.width.coerceAtLeast(1)
-        val graphicsHeight = Gdx.graphics.height.coerceAtLeast(1)
-        val safeViewportX = viewportX.coerceIn(0, graphicsWidth - 1)
-        val safeViewportY = viewportY.coerceIn(0, graphicsHeight - 1)
-        val safeViewportWidth = viewportWidth.coerceAtMost(graphicsWidth - safeViewportX).coerceAtLeast(1)
-        val safeViewportHeight = viewportHeight.coerceAtMost(graphicsHeight - safeViewportY).coerceAtLeast(1)
-        val glY = (graphicsHeight - safeViewportY - safeViewportHeight).coerceAtLeast(0)
-
-        val previousViewport = BufferUtils.newIntBuffer(4)
-        val previousScissor = BufferUtils.newIntBuffer(4)
-        Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, previousViewport)
-        Gdx.gl.glGetIntegerv(GL20.GL_SCISSOR_BOX, previousScissor)
-        val scissorWasEnabled = Gdx.gl.glIsEnabled(GL20.GL_SCISSOR_TEST)
-
-        Gdx.gl.glViewport(safeViewportX, glY, safeViewportWidth, safeViewportHeight)
-        Gdx.gl.glEnable(GL20.GL_SCISSOR_TEST)
-        Gdx.gl.glScissor(safeViewportX, glY, safeViewportWidth, safeViewportHeight)
-        Gdx.gl.glClearColor(0.055f, 0.06f, 0.07f, 1f)
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-        Gdx.gl.glDisable(GL20.GL_DEPTH_TEST)
-        Gdx.gl.glDisable(GL20.GL_CULL_FACE)
-        Gdx.gl.glEnable(GL20.GL_BLEND)
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
-
-        previewMatrix.setToOrtho2D(0f, 0f, safeViewportWidth.toFloat(), safeViewportHeight.toFloat())
-        when (currentInfo.kind) {
-            SkinResourceVisualPreviewKind.Texture -> renderTexturePreview(safeViewportWidth, safeViewportHeight, previewState)
-            SkinResourceVisualPreviewKind.Font -> renderFontPreview(safeViewportWidth, safeViewportHeight, previewState.fontPreview)
-            SkinResourceVisualPreviewKind.Color -> renderColorPreview(safeViewportWidth, safeViewportHeight)
-            SkinResourceVisualPreviewKind.None -> Unit
-        }
-
-        if (!scissorWasEnabled) {
-            Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
-        } else {
-            Gdx.gl.glScissor(previousScissor[0], previousScissor[1], previousScissor[2], previousScissor[3])
-        }
-        Gdx.gl.glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3])
-    }
-
     override fun dispose() {
         unloadTexture()
         unloadPreviewFont()
         fontPreviewBuffer?.dispose()
         fontPreviewBuffer = null
         batch.dispose()
-        shapes.dispose()
-        labelFont.dispose()
     }
 
     private fun resolveResourcePreview(
@@ -434,7 +348,7 @@ class GdxSkinResourcePreview(
         unloadPreviewFont()
         val normalizedPath = File(path).absolutePath.replace('\\', '/')
         return runCatching {
-            loadBitmapFontWithResolvedPages(File(normalizedPath), projectRoot)
+            GdxBitmapFontPreviewLoader.load(File(normalizedPath), projectRoot)
         }.fold(
             onSuccess = { font ->
                 loadedPreviewFont = font
@@ -498,7 +412,7 @@ class GdxSkinResourcePreview(
         val previewFont = loadedPreviewFont ?: return false
         val sampleText = buildFontSample(fontPreview)
         val renderKey =
-            "${loadedPreviewFontPath}:${fontPreview.fontScale}:${fontPreview.showUkrainianSample}:" +
+            "${loadedPreviewFontPath}:${fontPreview.fontScale}:${fontPreview.showCyrillicSample}:" +
                 "${fontPreview.showAsciiSample}:$sampleText"
         if (fontPreviewRenderKey == renderKey && fontPreviewBuffer != null) return true
 
@@ -546,191 +460,15 @@ class GdxSkinResourcePreview(
         }
     }
 
-    private fun computeScale(
-        texture: Texture,
-        canvasWidth: Int,
-        canvasHeight: Int,
-        zoomMode: SkinResourceVisualPreviewZoomMode,
-    ): Float =
-        when (zoomMode) {
-            SkinResourceVisualPreviewZoomMode.Fit ->
-                minOf(
-                    canvasWidth.toFloat() / texture.width.coerceAtLeast(1).toFloat(),
-                    canvasHeight.toFloat() / texture.height.coerceAtLeast(1).toFloat(),
-                ).coerceAtLeast(0.05f)
-
-            SkinResourceVisualPreviewZoomMode.Percent50 -> 0.5f
-            SkinResourceVisualPreviewZoomMode.Percent100 -> 1f
-            SkinResourceVisualPreviewZoomMode.Percent200 -> 2f
-        }
-
-    private fun mapRegionBounds(
-        region: ResolvedRegion,
-        texture: Texture,
-        drawX: Float,
-        drawY: Float,
-        scale: Float,
-    ): PreviewBounds {
-        val regionBottom = texture.height - region.y - region.height
-        return PreviewBounds(
-            x = drawX + region.x * scale,
-            y = drawY + regionBottom * scale,
-            width = region.width * scale,
-            height = region.height * scale,
-        )
-    }
-
-    private fun renderTexturePreview(
-        safeViewportWidth: Int,
-        safeViewportHeight: Int,
-        previewState: SkinResourceVisualPreviewState,
-    ) {
-        val texture = loadedTexture ?: return
-        val scale = computeScale(texture, safeViewportWidth, safeViewportHeight, previewState.zoomMode)
-        val drawWidth = texture.width * scale
-        val drawHeight = texture.height * scale
-        val drawX = ((safeViewportWidth - drawWidth) * 0.5f).coerceAtLeast(0f)
-        val drawY = ((safeViewportHeight - drawHeight) * 0.5f).coerceAtLeast(0f)
-
-        batch.projectionMatrix = previewMatrix
-        batch.begin()
-        batch.draw(texture, drawX, drawY, drawWidth, drawHeight)
-        batch.end()
-
-        val region = currentRegion
-        if (region != null && previewState.showRegionBounds) {
-            val bounds = mapRegionBounds(region, texture, drawX, drawY, scale)
-            shapes.projectionMatrix = previewMatrix
-            shapes.begin(ShapeRenderer.ShapeType.Line)
-            shapes.color = Color(0.15f, 0.85f, 0.55f, 1f)
-            shapes.rect(bounds.x, bounds.y, bounds.width, bounds.height)
-            shapes.end()
-
-            if (previewState.showRegionLabels) {
-                batch.projectionMatrix = previewMatrix
-                batch.begin()
-                labelFont.draw(batch, region.name, bounds.x + 4f, bounds.y + bounds.height - 4f)
-                batch.end()
-            }
-        }
-    }
-
-    private fun renderFontPreview(
-        safeViewportWidth: Int,
-        safeViewportHeight: Int,
-        fontPreview: SkinFontPreviewState,
-    ) {
-        val previewFont = loadedPreviewFont ?: return
-        val sampleText = buildFontSample(fontPreview)
-        val oldScaleX = previewFont.data.scaleX
-        val oldScaleY = previewFont.data.scaleY
-        val oldColor = Color(previewFont.color)
-        previewFont.data.setScale(fontPreview.fontScale)
-        previewFont.color = Color.WHITE
-        glyphLayout.setText(previewFont, sampleText, Color.WHITE, safeViewportWidth - 24f, 1, true)
-        val drawX = 12f
-        val drawY = (safeViewportHeight - 12f).coerceAtLeast(glyphLayout.height + 16f)
-        batch.projectionMatrix = previewMatrix
-        batch.begin()
-        previewFont.draw(batch, glyphLayout, drawX, drawY)
-        batch.end()
-        previewFont.data.setScale(oldScaleX, oldScaleY)
-        previewFont.color = oldColor
-    }
-
-    private fun renderColorPreview(
-        safeViewportWidth: Int,
-        safeViewportHeight: Int,
-    ) {
-        val color = currentColor ?: return
-        val padding = 24f
-        val width = (safeViewportWidth - padding * 2f).coerceAtLeast(1f)
-        val height = (safeViewportHeight - padding * 2f).coerceAtLeast(1f)
-        shapes.projectionMatrix = previewMatrix
-        shapes.begin(ShapeRenderer.ShapeType.Filled)
-        shapes.color = Color(0.18f, 0.19f, 0.22f, 1f)
-        shapes.rect(padding - 4f, padding - 4f, width + 8f, height + 8f)
-        shapes.color = color
-        shapes.rect(padding, padding, width, height)
-        shapes.end()
-    }
-
-    private fun loadBitmapFontWithResolvedPages(
-        fontFile: File,
-        projectRoot: File?,
-    ): BitmapFont {
-        val fontHandle = Gdx.files.absolute(fontFile.absolutePath.replace('\\', '/'))
-        val data = BitmapFont.BitmapFontData(fontHandle, false)
-        val pageNames =
-            parseFontPageNames(fontFile)
-                .takeIf(List<String>::isNotEmpty)
-                ?: data.imagePaths
-                    ?.map { imagePath -> File(imagePath).name }
-                    ?.takeIf(List<String>::isNotEmpty)
-                ?: emptyList()
-        require(pageNames.isNotEmpty()) { "No page images declared in ${fontFile.name}." }
-        val textures = mutableListOf<Texture>()
-        return try {
-            val regions = Array<TextureRegion>()
-            pageNames.forEach { pageName ->
-                val pageFile =
-                    resolveFontPageFile(fontFile, projectRoot, pageName)
-                        ?: error("Could not resolve BMFont page '$pageName' for ${fontFile.name}.")
-                val texture = Texture(Gdx.files.absolute(pageFile.absolutePath.replace('\\', '/')))
-                textures += texture
-                regions.add(TextureRegion(texture))
-            }
-            BitmapFont(data, regions, true)
-        } catch (error: Exception) {
-            textures.forEach(Texture::dispose)
-            throw error
-        }
-    }
-
-    private fun parseFontPageNames(fontFile: File): List<String> =
-        fontFile.readLines()
-            .mapNotNull { line -> FontPageRegex.find(line)?.groupValues?.getOrNull(1) }
-
-    private fun resolveFontPageFile(
-        fontFile: File,
-        projectRoot: File?,
-        pageName: String,
-    ): File? {
-        val normalizedPage = pageName.replace('\\', '/')
-        val pageFile = File(normalizedPage)
-        val candidates =
-            buildList {
-                if (pageFile.isAbsolute) add(pageFile)
-                fontFile.parentFile?.let { parent -> add(File(parent, normalizedPage)) }
-                projectRoot?.let { root -> add(File(root, normalizedPage)) }
-                projectRoot?.let { root -> add(File(root, pageFile.name)) }
-            }
-        return candidates.firstOrNull { candidate -> candidate.isFile }
-    }
-
     private fun parseColor(values: Map<String, String>): Pair<Color, String>? {
-        val hex = values["value"] ?: values["hex"]
-        if (hex != null) {
-            val normalized = hex.removePrefix("#")
-            if (normalized.length !in setOf(6, 8) || normalized.any { character -> !character.isDigit() && character.lowercaseChar() !in 'a'..'f' }) {
-                return null
-            }
-            return runCatching { Color.valueOf(if (normalized.length == 6) normalized + "ff" else normalized) }
-                .getOrNull()
-                ?.let { color -> color to "#${normalized.uppercase()}" }
-        }
-        val red = values["r"]?.toFloatOrNull() ?: return null
-        val green = values["g"]?.toFloatOrNull() ?: return null
-        val blue = values["b"]?.toFloatOrNull() ?: return null
-        val alpha = values["a"]?.toFloatOrNull() ?: 1f
-        if (listOf(red, green, blue, alpha).any { channel -> channel !in 0f..1f }) return null
-        return Color(red, green, blue, alpha) to "r=$red g=$green b=$blue a=$alpha"
+        val color = SkinColorValueParser.parse(values) ?: return null
+        return Color(color.r, color.g, color.b, color.a) to color.displayValue
     }
 
     private fun buildFontSample(fontPreview: SkinFontPreviewState): String {
         val lines = fontPreview.sampleText.ifBlank { DefaultFontPreviewSampleText }.lineSequence().toMutableList()
         return lines
-            .filterNot { line -> !fontPreview.showUkrainianSample && line.any(::isCyrillicCharacter) }
+            .filterNot { line -> !fontPreview.showCyrillicSample && line.any(::isCyrillicCharacter) }
             .filterNot { line -> !fontPreview.showAsciiSample && line.any(Char::isLetterOrDigit) && line.none(::isCyrillicCharacter) }
             .joinToString("\n")
             .ifBlank { "Font preview sample is empty." }
@@ -808,18 +546,10 @@ class GdxSkinResourcePreview(
         val height: Int,
     )
 
-    private data class PreviewBounds(
-        val x: Float,
-        val y: Float,
-        val width: Float,
-        val height: Float,
-    )
-
     private companion object {
         private const val TAG = "GdxSkinResourcePreview"
         private const val FontPreviewTextureWidth = 640
         private const val FontPreviewTextureHeight = 260
         private const val FontPreviewPadding = 16f
-        private val FontPageRegex = Regex("""^\s*page\s+.*file="([^"]+)"""")
     }
 }

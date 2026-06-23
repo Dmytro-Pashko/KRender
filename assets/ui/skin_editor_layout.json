@@ -2,38 +2,38 @@
   "panels": {
     "skinEditorToolbar": {
       "title": "Skin Editor Toolbar",
-      "x": 3,
-      "y": 16,
-      "width": 742,
-      "height": 234
+      "x": 4,
+      "y": 9,
+      "width": 482,
+      "height": 240
     },
     "skinEditorStyleTree": {
       "title": "Styles",
-      "x": 1717,
-      "y": 9,
+      "x": 1426,
+      "y": 8,
       "width": 406,
       "height": 439
     },
     "skinEditorResourceBrowser": {
       "title": "Resources",
-      "x": 2126,
+      "x": 1836,
       "y": 8,
-      "width": 796,
-      "height": 1338
+      "width": 558,
+      "height": 1347
     },
     "skinEditorProblems": {
       "title": "Problems",
-      "x": 749,
-      "y": 11,
-      "width": 963,
-      "height": 241
+      "x": 490,
+      "y": 9,
+      "width": 931,
+      "height": 236
     },
     "skinEditorPreviewCanvas": {
       "title": "Preview Canvas",
-      "x": 377,
-      "y": 257,
-      "width": 1338,
-      "height": 861
+      "x": 379,
+      "y": 255,
+      "width": 1045,
+      "height": 869
     },
     "skinEditorInspector": {
       "title": "Inspector",
@@ -44,8 +44,8 @@
     },
     "skinEditorStyleEditor": {
       "title": "Style Editor",
-      "x": 1715,
-      "y": 455,
+      "x": 1426,
+      "y": 454,
       "width": 406,
       "height": 891
     },
@@ -60,8 +60,8 @@
       "title": "Runtime Logs",
       "x": 4,
       "y": 1129,
-      "width": 1710,
-      "height": 214
+      "width": 1416,
+      "height": 213
     }
   }
 }

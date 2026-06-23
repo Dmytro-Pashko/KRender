@@ -42,16 +42,7 @@ class SkinEditorScene(
                 logger = engine.logger,
                 assetResolver = SkinAssetResolver(),
                 projectLoader = SkinProjectLoader(),
-                validators =
-                    listOf(
-                        AtlasValidator(),
-                        FontValidator(),
-                        ColorValidator(),
-                        DuplicateResourceNameValidator(),
-                        DrawableValidator(),
-                        StyleReferenceValidator(),
-                        UnusedResourceAnalyzer(),
-                    ),
+                validators = defaultSkinValidators(),
             )
         val layoutConfig =
             ImGuiLayoutConfigLoader(
@@ -80,9 +71,6 @@ class SkinEditorScene(
         if (::preview.isInitialized) {
             preview.render()
         }
-        if (::resourcePreview.isInitialized) {
-            resourcePreview.render(editorState.resourceVisualPreview)
-        }
     }
 
     override fun resize(
@@ -91,9 +79,6 @@ class SkinEditorScene(
     ) {
         if (::preview.isInitialized) {
             preview.resize(width, height)
-        }
-        if (::resourcePreview.isInitialized) {
-            resourcePreview.resize(width, height)
         }
     }
 
@@ -119,6 +104,10 @@ class SkinEditorScene(
                 editorState.loadResult.previewSkinAvailable -> "Skin loaded for preview."
                 else -> "Skin loaded with problems."
             }
+        resetEditorStateAfterReload()
+    }
+
+    private fun resetEditorStateAfterReload() {
         editorState.previewDirty = true
         editorState.editSession = SkinEditSessionFactory.create(editorState.loadResult)
         editorState.selectedEditFieldName = null
@@ -211,6 +200,17 @@ class SkinEditorScene(
         private const val TAG = "SkinEditorScene"
     }
 }
+
+private fun defaultSkinValidators(): List<SkinValidator> =
+    listOf(
+        AtlasValidator(),
+        FontValidator(),
+        ColorValidator(),
+        DuplicateResourceNameValidator(),
+        DrawableValidator(),
+        StyleReferenceValidator(),
+        UnusedResourceAnalyzer(),
+    )
 
 private class SkinEditorPreviewUpdateSystem(
     private val state: SkinEditorState,
@@ -333,18 +333,6 @@ private class SkinResourcePreviewUpdateSystem(
         dt: Float,
     ) {
         val selectedResource = state.loadResult.resourceIndex.resources.firstOrNull { it.key == state.selectedResourceKey }
-        val rect = state.resourcePreviewCanvasRect
-        if (rect.isValid && selectedResource?.category == SkinResourceCategory.Font) {
-            resourcePreview.setCanvasViewport(
-                x = rect.x.toInt(),
-                y = rect.y.toInt(),
-                width = rect.width.toInt(),
-                height = rect.height.toInt(),
-            )
-        } else {
-            resourcePreview.clearCanvasViewport()
-        }
-
         state.resourceVisualPreviewInfo =
             resourcePreview.update(
                 project = state.loadResult.project,

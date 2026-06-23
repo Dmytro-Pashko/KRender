@@ -1,5 +1,12 @@
 package com.pashkd.krender.engine.tools.skin
 
+/**
+ * In-memory edit projection built from one loaded/indexed skin.
+ *
+ * [baseStyleIndex] and [baseResourceIndex] preserve the loaded state, while
+ * [styles] and [resources] are mutable editor projections used by preview and
+ * a future JSON writer. This session never writes files itself.
+ */
 data class SkinEditSession(
     val baseStyleIndex: SkinStyleIndex = SkinStyleIndex(),
     val baseResourceIndex: SkinResourceIndex = SkinResourceIndex(),
@@ -9,6 +16,7 @@ data class SkinEditSession(
     val changes: MutableList<SkinEditChange> = mutableListOf(),
 )
 
+/** Editable style projection with source identity and field-level change state. */
 data class EditableStyle(
     var key: StyleKey,
     var displayName: String,
@@ -21,6 +29,7 @@ data class EditableStyle(
     val removedFields: MutableSet<String> = linkedSetOf(),
 )
 
+/** Editable scalar or resource-reference field belonging to an [EditableStyle]. */
 data class EditableStyleField(
     val name: String,
     var value: String,
@@ -30,6 +39,7 @@ data class EditableStyleField(
     val originalValue: String? = value,
 )
 
+/** Editable resource projection; currently used for top-level color values. */
 data class EditableResource(
     val key: SkinResourceKey,
     val values: MutableMap<String, String> = linkedMapOf(),
@@ -40,13 +50,48 @@ data class EditableResource(
     val modifiedFields: MutableSet<String> = linkedSetOf(),
 )
 
+/** Structured kind of in-memory mutation recorded for UI and future writer work. */
+enum class SkinEditChangeType {
+    StyleFieldChanged,
+    StyleFieldAdded,
+    StyleFieldRemoved,
+    StyleCreated,
+    StyleDuplicated,
+    StyleRenamed,
+    StyleDeleted,
+    ResourceFieldChanged,
+}
+
+/**
+ * One UI-oriented edit record.
+ *
+ * This is not yet a persistence diff or undo command; structured values are
+ * retained so a future writer can reason about changes without parsing text.
+ */
 data class SkinEditChange(
+    val type: SkinEditChangeType,
     val description: String,
     val styleKey: StyleKey? = null,
     val resourceKey: SkinResourceKey? = null,
     val fieldName: String? = null,
+    val oldValue: String? = null,
+    val newValue: String? = null,
 )
 
+/**
+ * Stable writer-ready projection of the active edit state.
+ *
+ * Deleted entries are excluded; lists are sorted by stable keys and contain no
+ * ImGui buffers, GDX objects, or file-writing behavior.
+ */
+data class SkinEditedSnapshot(
+    val styles: List<EditableStyle>,
+    val resources: List<EditableResource>,
+    val changes: List<SkinEditChange>,
+    val dirty: Boolean,
+)
+
+/** Creates a fresh edit session from an immutable [SkinLoadResult]. */
 object SkinEditSessionFactory {
     fun create(loadResult: SkinLoadResult): SkinEditSession =
         SkinEditSession(
@@ -105,6 +150,7 @@ data class KnownStyleField(
     val referenceCategory: SkinResourceCategory? = null,
 )
 
+/** Known Scene2D style fields used only to assist style/field creation. */
 object SkinStyleTemplates {
     val types: List<String> =
         listOf(
@@ -213,3 +259,29 @@ fun SkinEditSession.activeStyles(): List<EditableStyle> =
         .sortedWith(compareBy({ style -> style.key.type }, { style -> style.key.name }))
 
 fun SkinEditSession.findEditableStyle(key: StyleKey?): EditableStyle? = key?.let(styles::get)?.takeUnless(EditableStyle::deleted)
+
+/** Returns an immutable deep copy suitable for a future JSON writer or diff builder. */
+fun SkinEditSession.toEditedSnapshot(): SkinEditedSnapshot =
+    SkinEditedSnapshot(
+        styles =
+            activeStyles().map { style ->
+                style.copy(
+                    fields = style.fields.mapValuesTo(linkedMapOf()) { (_, field) -> field.copy() },
+                    modifiedFields = style.modifiedFields.toMutableSet(),
+                    removedFields = style.removedFields.toMutableSet(),
+                )
+            },
+        resources =
+            resources.values
+                .filterNot(EditableResource::deleted)
+                .sortedWith(compareBy({ resource -> resource.key.category.name }, { resource -> resource.key.name }))
+                .map { resource ->
+                    resource.copy(
+                        values = resource.values.toMutableMap(),
+                        originalValues = resource.originalValues.toMap(),
+                        modifiedFields = resource.modifiedFields.toMutableSet(),
+                    )
+                },
+        changes = changes.toList(),
+        dirty = dirty,
+    )

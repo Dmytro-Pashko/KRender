@@ -110,7 +110,7 @@ enum class SkinResourceVisualPreviewZoomMode {
 
 data class SkinFontPreviewState(
     var sampleText: String = DefaultFontPreviewSampleText,
-    var showUkrainianSample: Boolean = true,
+    var showCyrillicSample: Boolean = true,
     var showAsciiSample: Boolean = true,
     var fontScale: Float = 1f,
 )
@@ -134,6 +134,12 @@ data class SkinResourceVisualPreviewInfo(
     val statusMessage: String = "Select a texture, atlas, atlas region, font, or color.",
     val kind: SkinResourceVisualPreviewKind = SkinResourceVisualPreviewKind.None,
     val resolvedTexturePath: String? = null,
+    /**
+     * Engine-level opaque UI texture reference used by inline ImGui previews.
+     *
+     * This is safe in neutral tool state because it carries no LibGDX object or
+     * ownership; creation and disposal remain inside the GDX preview adapter.
+     */
     val texturePreviewHandle: TexturePreviewHandle? = null,
     val textureWidth: Int = 0,
     val textureHeight: Int = 0,
@@ -255,7 +261,6 @@ data class SkinPreviewSettings(
     var scale: Float = 1f,
     var showBounds: Boolean = false,
     var showFallbackWarnings: Boolean = true,
-    var selectedOnly: Boolean = false,
     var text: SkinPreviewTextSettings = SkinPreviewTextSettings(),
 )
 
@@ -298,7 +303,6 @@ data class SkinEditorState(
     var resourceBrowser: SkinResourceBrowserState = SkinResourceBrowserState(),
     var problemFilters: SkinProblemFilterState = SkinProblemFilterState(),
     var canvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),
-    var resourcePreviewCanvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),
     var resourceVisualPreview: SkinResourceVisualPreviewState = SkinResourceVisualPreviewState(),
     var resourceVisualPreviewInfo: SkinResourceVisualPreviewInfo = SkinResourceVisualPreviewInfo(),
     var previewLayoutId: String = DefaultWidgetPreviewLayout.Id,
