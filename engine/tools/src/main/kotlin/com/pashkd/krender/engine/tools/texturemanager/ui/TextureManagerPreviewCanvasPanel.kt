@@ -52,11 +52,10 @@ class TextureManagerPreviewCanvasPanel(
         drawStatusLine()
         ImGui.separator()
 
+        ImGui.beginChild("texture_manager_preview_canvas_body", ImVec2(0f, 0f), true)
         val min = ImGui.cursorScreenPos
         val size = ImGui.contentRegionAvail
         state.canvasRect = TextureManagerCanvasRect(min.x, min.y, size.x.coerceAtLeast(1f), size.y.coerceAtLeast(1f))
-        ImGui.beginChild("texture_manager_preview_canvas_body", ImVec2(0f, 0f), true)
-        ImGui.invisibleButton("##texture_manager_preview_canvas_hit", ImVec2(state.canvasRect.width - 8f, state.canvasRect.height - 8f))
 
         val handle = state.previewInfo.texturePreviewHandle
         if (handle != null && state.previewInfo.textureWidth > 0 && state.previewInfo.textureHeight > 0) {
@@ -70,10 +69,8 @@ class TextureManagerPreviewCanvasPanel(
             if (state.preview.showCheckerboard) {
                 TextureManagerPreviewOverlays.drawCheckerboard(viewportLayout)
             }
-            val screen = ImGui.cursorScreenPos
             ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
             ui.drawTexturePreview(handle, viewportLayout.imageWidth, viewportLayout.imageHeight)
-            ImGui.cursorScreenPos = screen
             val regions = state.selectedRegionsForPage()
             val selectedRegion = regions.firstOrNull { region -> region.id == state.selectedRegionId }
             val hoveredRegion = regions.firstOrNull { region -> region.id == state.hoveredRegionId }
@@ -89,6 +86,8 @@ class TextureManagerPreviewCanvasPanel(
                     TextureManagerPreviewOverlays.drawNinePatchGuides(document, viewportLayout)
                 }
             }
+            ImGui.cursorScreenPos = ImVec2(state.canvasRect.x, state.canvasRect.y)
+            ImGui.invisibleButton("##texture_manager_preview_canvas_hit", ImVec2(state.canvasRect.width, state.canvasRect.height))
             handleInteraction(viewportLayout, regions)
         } else {
             ImGui.textWrapped(state.previewInfo.statusMessage)
