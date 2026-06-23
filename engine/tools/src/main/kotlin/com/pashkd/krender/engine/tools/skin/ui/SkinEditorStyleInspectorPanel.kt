@@ -43,7 +43,7 @@ class SkinEditorStyleInspectorPanel(
 
         ImGui.textUnformatted("Editing: ${if (state.editSession.dirty) "dirty" else "clean"}")
         ImGui.textUnformatted("Pending changes: ${state.editSession.changes.size}")
-        ImGui.textUnformatted("Edits are in-memory only. Saving is deferred.")
+        ImGui.textUnformatted("Draft edits update preview immediately. Use Save Changes to persist them.")
         ImGui.separator()
 
         val style = state.editSession.findEditableStyle(state.selectedStyleKey)

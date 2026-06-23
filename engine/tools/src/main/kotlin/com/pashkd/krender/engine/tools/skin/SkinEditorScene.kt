@@ -104,6 +104,9 @@ class SkinEditorScene(
     }
 
     private fun reloadSkin() {
+        val previousSelectedStyleKey = editorState.selectedStyleKey
+        val previousSelectedResourceKey = editorState.selectedResourceKey
+        val pendingStatusOverride = editorState.pendingStatusAfterReload
         editorState.reloadRequested = false
         editorState.loadResult = reloadService.reload(editorState.currentInputPath)
         editorState.statusMessage =
@@ -112,16 +115,29 @@ class SkinEditorScene(
                 editorState.loadResult.previewSkinAvailable -> "Skin loaded for preview."
                 else -> "Skin loaded with problems."
             }
-        resetEditorStateAfterReload()
+        resetEditorStateAfterReload(previousSelectedStyleKey, previousSelectedResourceKey)
+        pendingStatusOverride?.let { status ->
+            editorState.statusMessage = status
+            editorState.pendingStatusAfterReload = null
+        }
     }
 
-    private fun resetEditorStateAfterReload() {
+    private fun resetEditorStateAfterReload(
+        preferredStyleKey: StyleKey? = null,
+        preferredResourceKey: SkinResourceKey? = null,
+    ) {
         editorState.previewDirty = true
         editorState.editSession = SkinEditSessionFactory.create(editorState.loadResult)
         editorState.selectedEditFieldName = null
-        editorState.selectedStyleKey = editorState.loadResult.styleIndex.styles.firstOrNull()?.key
+        editorState.selectedStyleKey =
+            preferredStyleKey?.takeIf { key ->
+                editorState.loadResult.styleIndex.styles.any { style -> style.key == key }
+            } ?: editorState.loadResult.styleIndex.styles.firstOrNull()?.key
         editorState.selectedResourceKey =
-            editorState.loadResult.resourceIndex.resources.firstOrNull()?.key
+            preferredResourceKey?.takeIf { key ->
+                editorState.selectedStyleKey == null &&
+                    editorState.loadResult.resourceIndex.resources.any { resource -> resource.key == key }
+            } ?: editorState.loadResult.resourceIndex.resources.firstOrNull()?.key
                 .takeIf { editorState.selectedStyleKey == null }
         editorState.selectedProblemIndex =
             editorState.loadResult.problems.indices.firstOrNull()

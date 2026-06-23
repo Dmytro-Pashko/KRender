@@ -104,7 +104,9 @@ data class SkinEditChange(
  */
 data class SkinEditedSnapshot(
     val styles: List<EditableStyle>,
+    val deletedStyles: List<EditableStyle>,
     val resources: List<EditableResource>,
+    val deletedResources: List<EditableResource>,
     val changes: List<SkinEditChange>,
     val dirty: Boolean,
 )
@@ -294,9 +296,31 @@ fun SkinEditSession.toEditedSnapshot(): SkinEditedSnapshot =
                     removedFields = style.removedFields.toMutableSet(),
                 )
             },
+        deletedStyles =
+            styles.values
+                .filter(EditableStyle::deleted)
+                .sortedWith(compareBy({ style -> style.key.type }, { style -> style.key.name }))
+                .map { style ->
+                    style.copy(
+                        fields = style.fields.mapValuesTo(linkedMapOf()) { (_, field) -> field.copy() },
+                        modifiedFields = style.modifiedFields.toMutableSet(),
+                        removedFields = style.removedFields.toMutableSet(),
+                    )
+                },
         resources =
             resources.values
                 .filterNot(EditableResource::deleted)
+                .sortedWith(compareBy({ resource -> resource.key.category.name }, { resource -> resource.key.name }))
+                .map { resource ->
+                    resource.copy(
+                        values = resource.values.toMutableMap(),
+                        originalValues = resource.originalValues.toMap(),
+                        modifiedFields = resource.modifiedFields.toMutableSet(),
+                    )
+                },
+        deletedResources =
+            resources.values
+                .filter(EditableResource::deleted)
                 .sortedWith(compareBy({ resource -> resource.key.category.name }, { resource -> resource.key.name }))
                 .map { resource ->
                     resource.copy(

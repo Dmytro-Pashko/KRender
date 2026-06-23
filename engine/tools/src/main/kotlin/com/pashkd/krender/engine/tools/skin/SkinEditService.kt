@@ -124,7 +124,7 @@ class SkinEditService(
                 key = targetKey,
                 displayName = "${targetKey.type}.${targetKey.name}",
                 fields = source.fields.mapValuesTo(linkedMapOf()) { (_, field) -> field.copy() },
-                sourceKey = source.sourceKey ?: source.key,
+                sourceKey = null,
                 createdInEditor = true,
                 renamedInEditor = false,
                 deleted = false,

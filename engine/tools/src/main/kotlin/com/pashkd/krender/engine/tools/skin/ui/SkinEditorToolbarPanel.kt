@@ -46,6 +46,13 @@ class SkinEditorToolbarPanel(
             button("Discard Edits##skin_editor_discard_edits") { operations.discardInMemoryEdits() }
         }
         ImGui.sameLine()
+        val canSaveChanges = state.loadResult.project?.skinFile != null && state.editSession.dirty && state.editSession.changes.isNotEmpty()
+        if (!canSaveChanges) ImGui.beginDisabled()
+        with(dsl) {
+            button("Save Changes##skin_editor_save_changes") { operations.saveChanges() }
+        }
+        if (!canSaveChanges) ImGui.endDisabled()
+        ImGui.sameLine()
         with(dsl) {
             button("Save Panel Layout##skin_editor_save_layout") { operations.saveUiLayout() }
         }
@@ -64,7 +71,7 @@ class SkinEditorToolbarPanel(
         ImGui.textUnformatted("Styles: ${state.editSession.activeStyles().size}")
         ImGui.textUnformatted("Resources: ${state.loadResult.resourceIndex.resources.size}")
         ImGui.textUnformatted("Editing: ${if (state.editSession.dirty) "dirty" else "clean"} (${state.editSession.changes.size} pending)")
-        ImGui.textUnformatted("Edits are in-memory only. Saving is deferred.")
+        ImGui.textUnformatted("Save Changes writes draft style/resource edits to the loaded skin file.")
         ImGui.end()
     }
 

@@ -10,6 +10,7 @@ class SkinEditorOperations(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
 ) {
     private val editService = SkinEditService(state)
+    private val saveService = SkinStyleSaveService(engine.logger, engine.sceneFiles)
 
     // Load and navigation commands.
     fun requestReload() {
@@ -59,6 +60,23 @@ class SkinEditorOperations(
     // In-memory edit commands.
     fun discardInMemoryEdits() {
         editService.discardEdits()
+    }
+
+    fun saveChanges() {
+        if (state.loadResult.project?.skinFile == null) {
+            state.statusMessage = "Failed to save style changes: no skin file loaded."
+            return
+        }
+        if (!state.editSession.dirty || state.editSession.changes.isEmpty()) {
+            state.statusMessage = "No draft style changes to save."
+            return
+        }
+        val result = saveService.save(state.loadResult.project, state.loadResult, state.editSession)
+        state.statusMessage = result.message
+        if (result.success) {
+            state.pendingStatusAfterReload = result.message
+            state.reloadRequested = true
+        }
     }
 
     fun updateStyleField(

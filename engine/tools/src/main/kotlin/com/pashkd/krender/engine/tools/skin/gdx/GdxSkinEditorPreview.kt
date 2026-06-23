@@ -103,17 +103,11 @@ class GdxSkinEditorPreview(
 
     fun handlePointerEvent(event: SkinPreviewPointerEvent): SkinPreviewInteractionFeedback {
         val insideContent = containsScreenPosition(event.screenX, event.screenY)
-        val manualStageCoords = screenToStageCoordinates(event.screenX, event.screenY)
-        val dispatchedScreenCoords = stage.stageToScreenCoordinates(manualStageCoords.cpy())
-        logger.debug(TAG) {
-            "Preview pointer event type=${event.type} screen=(${event.screenX.toInt()},${event.screenY.toInt()}) " +
-                "manualStage=(${manualStageCoords.x},${manualStageCoords.y}) dispatchedScreen=(${dispatchedScreenCoords.x},${dispatchedScreenCoords.y}) " +
-                "button=${event.button} inside=$insideContent content=($contentScreenX,$contentScreenY ${contentScreenWidth}x$contentScreenHeight) " +
-                "viewport=($viewportX,$viewportY ${viewportWidth}x$viewportHeight)"
-        }
         if (!insideContent) {
             return currentInteractionFeedback(status = "Pointer is outside preview content.")
         }
+        val stageCoords = screenToStageCoordinates(event.screenX, event.screenY)
+        val dispatchedScreenCoords = stageToDispatchScreenCoordinates(stageCoords.x, stageCoords.y)
         val button = toGdxButton(event.button)
         when (event.type) {
             SkinPreviewPointerEventType.Move -> stage.mouseMoved(dispatchedScreenCoords.x.toInt(), dispatchedScreenCoords.y.toInt())
@@ -214,12 +208,6 @@ class GdxSkinEditorPreview(
         Gdx.gl.glDisable(GL20.GL_DEPTH_TEST)
         Gdx.gl.glEnable(GL20.GL_BLEND)
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
-        logger.debug(TAG) {
-            "Preview render viewport=($safeViewportX,$safeViewportY ${safeViewportWidth}x$safeViewportHeight) " +
-                "contentScreen=($contentScreenX,$contentScreenY ${contentScreenWidth}x$contentScreenHeight) " +
-                "contentGl=($contentGlX,$contentGlY ${contentScreenWidth}x$contentScreenHeight) logical=${logicalWidth}x$logicalHeight scale=$previewScale cameraZoom=$cameraZoom " +
-                "cameraPan=($cameraPanX,$cameraPanY)"
-        }
         stage.viewport.setScreenBounds(contentGlX, contentGlY, contentScreenWidth, contentScreenHeight)
         stage.viewport.apply(false)
         drawCheckerboardBackground()
@@ -339,11 +327,6 @@ class GdxSkinEditorPreview(
         contentScreenY = graphicsHeight - contentGlY - contentHeight
         contentScreenWidth = contentWidth
         contentScreenHeight = contentHeight
-        logger.debug(TAG) {
-            "Preview bounds synced viewport=($safeViewportX,$safeViewportY ${safeViewportWidth}x$safeViewportHeight) " +
-                "contentScreen=($contentScreenX,$contentScreenY ${contentScreenWidth}x$contentScreenHeight) " +
-                "contentGl=($contentGlX,$contentGlY ${contentScreenWidth}x$contentScreenHeight)"
-        }
     }
 
     private fun currentInteractionFeedback(
@@ -352,25 +335,18 @@ class GdxSkinEditorPreview(
         status: String? = null,
     ): SkinPreviewInteractionFeedback =
         if (screenX != null && screenY != null) {
-                val manualCoords = screenToStageCoordinates(screenX, screenY)
-                val dispatchedScreenCoords = stage.stageToScreenCoordinates(manualCoords.cpy())
-                val stageCoords = stage.screenToStageCoordinates(dispatchedScreenCoords.cpy())
-                val hitActor = stage.hit(stageCoords.x, stageCoords.y, false) ?: stage.hit(manualCoords.x, manualCoords.y, false)
-                val localCanvasX = (screenX - contentScreenX).coerceIn(0f, contentScreenWidth.toFloat())
-                val localCanvasY = (screenY - contentScreenY).coerceIn(0f, contentScreenHeight.toFloat())
-                logger.debug(TAG) {
-                    "Preview hit-test screen=(${screenX.toInt()},${screenY.toInt()}) dispatchedScreen=(${dispatchedScreenCoords.x},${dispatchedScreenCoords.y}) " +
-                        "stage=(${stageCoords.x},${stageCoords.y}) manualStage=(${manualCoords.x},${manualCoords.y}) " +
-                        "actor=${hitActor?.let(::actorPath) ?: "<none>"}"
-                }
+            val stageCoords = screenToStageCoordinates(screenX, screenY)
+            val hitActor = stage.hit(stageCoords.x, stageCoords.y, false)
+            val localCanvasX = (screenX - contentScreenX).coerceIn(0f, contentScreenWidth.toFloat())
+            val localCanvasY = (screenY - contentScreenY).coerceIn(0f, contentScreenHeight.toFloat())
             SkinPreviewInteractionFeedback(
                 hoveredActorPath = hitActor?.let(::actorPath),
                 focusedActorPath = (stage.keyboardFocus ?: stage.scrollFocus ?: hitActor)?.let(::actorPath),
                 lastInputStatus = status,
                 cursorCanvasX = localCanvasX,
                 cursorCanvasY = localCanvasY,
-                cursorStageX = manualCoords.x,
-                cursorStageY = manualCoords.y,
+                cursorStageX = stageCoords.x,
+                cursorStageY = stageCoords.y,
             )
         } else {
             SkinPreviewInteractionFeedback(lastInputStatus = status)
@@ -408,6 +384,24 @@ class GdxSkinEditorPreview(
         val stageX = cameraCenterX - visibleWorldWidth * 0.5f + localX / contentScreenWidth * visibleWorldWidth
         val stageY = cameraCenterY + visibleWorldHeight * 0.5f - localY / contentScreenHeight * visibleWorldHeight
         return Vector2(stageX, stageY)
+    }
+
+    private fun stageToDispatchScreenCoordinates(
+        stageX: Float,
+        stageY: Float,
+    ): Vector2 {
+        val visibleWorldWidth = logicalWidth * ((1f / previewScale) / cameraZoom)
+        val visibleWorldHeight = logicalHeight * ((1f / previewScale) / cameraZoom)
+        val cameraCenterX = logicalWidth * 0.5f + cameraPanX
+        val cameraCenterY = logicalHeight * 0.5f + cameraPanY
+        val localX =
+            ((stageX - (cameraCenterX - visibleWorldWidth * 0.5f)) / visibleWorldWidth) * contentScreenWidth
+        val localY =
+            ((cameraCenterY + visibleWorldHeight * 0.5f - stageY) / visibleWorldHeight) * contentScreenHeight
+        return Vector2(
+            contentScreenX + localX.coerceIn(0f, contentScreenWidth.toFloat()),
+            contentScreenY + localY.coerceIn(0f, contentScreenHeight.toFloat()),
+        )
     }
 
     private companion object {

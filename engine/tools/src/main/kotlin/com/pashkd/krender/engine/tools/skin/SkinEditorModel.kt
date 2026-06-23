@@ -440,6 +440,7 @@ data class SkinEditorState(
     var previewSettings: SkinPreviewSettings = SkinPreviewSettings(),
     var previewDirty: Boolean = true,
     var reloadRequested: Boolean = false,
+    var pendingStatusAfterReload: String? = null,
     var statusMessage: String = "Skin Editor ready.",
     var previewInfo: SkinEditorPreviewStageInfo = SkinEditorPreviewStageInfo(),
     val pendingPreviewPointerEvents: MutableList<SkinPreviewPointerEvent> = mutableListOf(),
