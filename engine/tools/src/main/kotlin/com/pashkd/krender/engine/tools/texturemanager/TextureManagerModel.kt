@@ -163,6 +163,7 @@ data class TextureManagerState(
     var canvasRect: TextureManagerCanvasRect = TextureManagerCanvasRect(),
     var assetBrowser: TextureManagerAssetBrowserState = TextureManagerAssetBrowserState(),
     var atlasBrowser: TextureManagerAtlasBrowserState = TextureManagerAtlasBrowserState(),
+    var packing: TextureAtlasPackingState = TextureAtlasPackingState(),
     var diagnosticsFilter: TextureManagerDiagnosticsFilterState = TextureManagerDiagnosticsFilterState(),
     var statusMessage: String = "Texture Manager ready.",
     var reloadRequested: Boolean = false,

@@ -9,6 +9,7 @@ object TextureManagerPanelIds {
     const val Preview = "textureManagerPreview"
     const val Inspector = "textureManagerInspector"
     const val Regions = "textureManagerRegions"
+    const val Packing = "textureManagerPacking"
     const val Tools = "textureManagerTools"
     const val Diagnostics = "textureManagerDiagnostics"
     const val Logs = "runtimeLogs"
@@ -23,7 +24,8 @@ object TextureManagerUiLayoutDefaults {
                 mapOf(
                     TextureManagerPanelIds.Toolbar to ImGuiPanelLayout("Texture Manager Toolbar", 16f, 16f, 1500f, 120f),
                     TextureManagerPanelIds.Assets to ImGuiPanelLayout("Assets", 16f, 152f, 380f, 640f),
-                    TextureManagerPanelIds.Preview to ImGuiPanelLayout("Preview Canvas", 412f, 152f, 940f, 820f),
+                    TextureManagerPanelIds.Preview to ImGuiPanelLayout("Preview Canvas", 412f, 152f, 940f, 620f),
+                    TextureManagerPanelIds.Packing to ImGuiPanelLayout("Packing Preview", 412f, 788f, 940f, 184f),
                     TextureManagerPanelIds.Inspector to ImGuiPanelLayout("Inspector", 1368f, 152f, 360f, 340f),
                     TextureManagerPanelIds.Regions to ImGuiPanelLayout("Atlas Regions", 1368f, 508f, 360f, 464f),
                     TextureManagerPanelIds.Tools to ImGuiPanelLayout("Tools", 1744f, 152f, 300f, 340f),
@@ -32,4 +34,3 @@ object TextureManagerUiLayoutDefaults {
                 ),
         )
 }
-

@@ -11,6 +11,7 @@ import com.pashkd.krender.engine.tools.texturemanager.ui.TextureManagerAssetBrow
 import com.pashkd.krender.engine.tools.texturemanager.ui.TextureManagerAtlasRegionsPanel
 import com.pashkd.krender.engine.tools.texturemanager.ui.TextureManagerDiagnosticsPanel
 import com.pashkd.krender.engine.tools.texturemanager.ui.TextureManagerInspectorPanel
+import com.pashkd.krender.engine.tools.texturemanager.ui.TextureManagerPackingPanel
 import com.pashkd.krender.engine.tools.texturemanager.ui.TextureManagerPreviewCanvasPanel
 import com.pashkd.krender.engine.tools.texturemanager.ui.TextureManagerToolbarPanel
 import com.pashkd.krender.engine.tools.texturemanager.ui.TextureManagerToolsPanel
@@ -80,6 +81,7 @@ class TextureManagerScene(
         val result = loader.load(editorState.currentInputPath)
         editorState.project = result.project
         editorState.diagnostics = result.diagnostics
+        syncPackingSourcesWithProject()
         val selectedAssetStillExists =
             editorState.selectedAssetId?.let { selectedId ->
                 editorState.project.assets.any { asset -> asset.id == selectedId }
@@ -113,6 +115,20 @@ class TextureManagerScene(
 
     private fun loadedPathLabel(): String = "'${editorState.project.resolvedInputPath ?: editorState.currentInputPath ?: "<unknown>"}'"
 
+    private fun syncPackingSourcesWithProject() {
+        val texturePaths =
+            editorState.project.assets
+                .filter { asset -> asset.kind == TextureManagerAssetKind.Texture }
+                .map { asset -> asset.path }
+                .toSet()
+        editorState.packing.includedTexturePaths =
+            if (editorState.packing.includedTexturePaths.isEmpty()) {
+                texturePaths
+            } else {
+                editorState.packing.includedTexturePaths.intersect(texturePaths)
+            }
+    }
+
     private fun ensureValidSelectionAfterReload() {
         val validAssetId =
             editorState.selectedAssetId?.takeIf { selectedId ->
@@ -140,6 +156,7 @@ class TextureManagerScene(
             addPanel(uiSystem, "Toolbar", TextureManagerToolbarPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Assets", TextureManagerAssetBrowserPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Preview", TextureManagerPreviewCanvasPanel(editorState, operations, engine.ui, layoutConfig, layoutTracker, eventLogger))
+            addPanel(uiSystem, "Packing", TextureManagerPackingPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Inspector", TextureManagerInspectorPanel(editorState, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Regions", TextureManagerAtlasRegionsPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Tools", TextureManagerToolsPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))

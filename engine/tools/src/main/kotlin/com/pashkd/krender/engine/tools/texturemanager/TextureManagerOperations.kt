@@ -9,11 +9,15 @@ class TextureManagerOperations(
     private val state: TextureManagerState,
     private val engine: EngineContext,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val packingPlanner: TextureAtlasPackingPlanner = TextureAtlasPackingPlanner(),
 ) {
     fun openPath(path: String) {
         val normalized = path.trim().replace('\\', '/').ifBlank { null }
         if (normalized != state.currentInputPath) {
             state.clearPreviewSelection()
+            state.packing.lastResult = TextureAtlasPackingResult()
+            state.packing.selectedPageIndex = 0
+            state.packing.selectedRegionSourcePath = null
             engine.logger.info(TAG) {
                 "Texture Manager input path changed old='${state.currentInputPath ?: "<none>"}' new='${normalized ?: "<none>"}'; selection reset"
             }
@@ -201,6 +205,92 @@ class TextureManagerOperations(
         state.statusMessage = if (enabled) "Nine-patch guides enabled." else "Nine-patch guides hidden."
     }
 
+    fun setPackingMaxPageWidth(value: Int) {
+        state.packing.settings.maxPageWidth = value
+    }
+
+    fun setPackingMaxPageHeight(value: Int) {
+        state.packing.settings.maxPageHeight = value
+    }
+
+    fun setPackingPadding(value: Int) {
+        state.packing.settings.padding = value
+    }
+
+    fun setPackingAllowRotation(enabled: Boolean) {
+        state.packing.settings.allowRotation = enabled
+    }
+
+    fun setPackingIncludeNinePatch(enabled: Boolean) {
+        state.packing.settings.includeNinePatch = enabled
+    }
+
+    fun runPackingDryRun() {
+        val settings = state.packing.settings.copy()
+        val diagnostics = mutableListOf<TextureAtlasPackingDiagnostic>()
+        val inputs =
+            state.project.assets
+                .filter { asset ->
+                    asset.kind == TextureManagerAssetKind.Texture &&
+                        (state.packing.includedTexturePaths.isEmpty() || asset.path in state.packing.includedTexturePaths)
+                }.mapNotNull { asset ->
+                    val width = asset.textureInfo?.width
+                    val height = asset.textureInfo?.height
+                    if (width == null || height == null) {
+                        diagnostics +=
+                            TextureAtlasPackingDiagnostic(
+                                severity = TextureManagerDiagnosticSeverity.Warning,
+                                message = "Texture dimensions are unknown and the texture was skipped.",
+                                sourcePath = asset.path,
+                            )
+                        null
+                    } else {
+                        TextureAtlasPackingInput(
+                            sourcePath = asset.path,
+                            displayName = asset.displayName,
+                            width = width,
+                            height = height,
+                            isNinePatch = isNinePatchTexturePath(asset.fileName),
+                        )
+                    }
+                }
+        engine.logger.info(TAG) {
+            "Texture Manager packing dry-run started candidates=${inputs.size} max=${settings.maxPageWidth}x${settings.maxPageHeight} padding=${settings.padding} rotation=${settings.allowRotation} includeNinePatch=${settings.includeNinePatch}"
+        }
+        val result = packingPlanner.plan(inputs, settings)
+        val mergedDiagnostics = diagnostics + result.diagnostics
+        state.packing.lastResult = result.copy(diagnostics = mergedDiagnostics)
+        state.packing.selectedPageIndex = 0
+        state.packing.selectedRegionSourcePath = result.plan?.pages?.firstOrNull()?.regions?.firstOrNull()?.sourcePath
+        val pages = result.plan?.pages?.size ?: 0
+        val regions = result.plan?.packedRegionCount ?: 0
+        val skipped = result.plan?.skippedCount ?: 0
+        state.statusMessage = "Packing dry-run produced $pages page(s), $regions region(s), skipped $skipped."
+        engine.logger.info(TAG) {
+            "Texture Manager packing dry-run completed pages=$pages regions=$regions skipped=$skipped diagnostics=${mergedDiagnostics.size}"
+        }
+    }
+
+    fun selectPackingPage(index: Int) {
+        state.packing.selectedPageIndex = index
+        val page = state.packing.lastResult.plan?.pages?.getOrNull(index)
+        state.packing.selectedRegionSourcePath = page?.regions?.firstOrNull()?.sourcePath
+        state.statusMessage = if (page != null) "Selected packing page '${page.name}'." else "Packing page selection cleared."
+    }
+
+    fun selectPackingRegion(sourcePath: String?) {
+        state.packing.selectedRegionSourcePath = sourcePath
+        val region = state.selectedPackingRegion()
+        if (region != null) {
+            state.project.assets.firstOrNull { asset -> asset.path == region.sourcePath }?.let { asset ->
+                state.selectedAssetId = asset.id
+            }
+            state.statusMessage = "Selected packed region '${region.displayName}'."
+        } else {
+            state.statusMessage = "Packed region selection cleared."
+        }
+    }
+
     fun importTexturePlaceholder() = placeholder("Import Texture")
 
     fun saveMetadataPlaceholder() = placeholder("Save Metadata")
@@ -252,6 +342,15 @@ internal fun TextureManagerState.selectedRegionsForPage(): List<TextureAtlasRegi
         ?.regions
         ?.filter { region -> selectedAtlasPageName == null || region.id.pageName == selectedAtlasPageName }
         .orEmpty()
+
+internal fun TextureManagerState.selectedPackingPlan(): TextureAtlasPackingPlan? = packing.lastResult.plan
+
+internal fun TextureManagerState.selectedPackingPage(): TextureAtlasPackingPage? = packing.lastResult.plan?.pages?.getOrNull(packing.selectedPageIndex)
+
+internal fun TextureManagerState.selectedPackingRegion(): TextureAtlasPackingRegion? =
+    selectedPackingPage()
+        ?.regions
+        ?.firstOrNull { region -> region.sourcePath == packing.selectedRegionSourcePath }
 
 internal fun TextureManagerState.selectedPreviewTexturePath(): String? {
     val asset = selectedAsset()

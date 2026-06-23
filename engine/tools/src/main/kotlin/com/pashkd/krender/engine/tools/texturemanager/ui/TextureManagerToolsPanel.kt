@@ -6,6 +6,7 @@ import com.pashkd.krender.engine.tools.texturemanager.TextureManagerState
 import com.pashkd.krender.engine.tools.texturemanager.TextureManagerToolMode
 import com.pashkd.krender.engine.tools.texturemanager.TexturePreviewZoomMode
 import com.pashkd.krender.engine.tools.texturemanager.formatZoomMode
+import com.pashkd.krender.engine.tools.texturemanager.selectedPackingPlan
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -88,9 +89,70 @@ class TextureManagerToolsPanel(
         }
 
         ImGui.separator()
+        textLine("Atlas Packing Draft")
+        drawPageSizeCombo(
+            label = "Max Width##texture_manager_packing_width",
+            value = state.packing.settings.maxPageWidth,
+            onSelect = operations::setPackingMaxPageWidth,
+        )
+        drawPageSizeCombo(
+            label = "Max Height##texture_manager_packing_height",
+            value = state.packing.settings.maxPageHeight,
+            onSelect = operations::setPackingMaxPageHeight,
+        )
+        drawPaddingCombo()
+        val allowRotation = booleanArrayOf(state.packing.settings.allowRotation)
+        if (ImGui.checkbox("Allow Rotation##texture_manager_packing_rotation", allowRotation)) {
+            operations.setPackingAllowRotation(allowRotation[0])
+        }
+        val includeNinePatch = booleanArrayOf(state.packing.settings.includeNinePatch)
+        if (ImGui.checkbox("Include Nine-patch##texture_manager_packing_nine_patch", includeNinePatch)) {
+            operations.setPackingIncludeNinePatch(includeNinePatch[0])
+        }
+        if (ImGui.button("Run Packing Dry-run##texture_manager_packing_run")) {
+            operations.runPackingDryRun()
+        }
+        val packingPlan = state.selectedPackingPlan()
+        textLine("Input count: ${packingPlan?.inputCount ?: 0}")
+        textLine("Packed regions: ${packingPlan?.packedRegionCount ?: 0}")
+        textLine("Skipped: ${packingPlan?.skippedCount ?: 0}")
+        textLine("Pages: ${packingPlan?.pages?.size ?: 0}")
+        textLine("Diagnostics: ${state.packing.lastResult.diagnostics.size}")
+
+        ImGui.separator()
         textLine("Mouse wheel: zoom")
         textLine("RMB drag or Pan mode: pan")
         textLine("LMB on region: select")
         ImGui.end()
+    }
+
+    private fun drawPageSizeCombo(
+        label: String,
+        value: Int,
+        onSelect: (Int) -> Unit,
+    ) {
+        if (!ImGui.beginCombo(label, value.toString())) return
+        PageSizeOptions.forEach { option ->
+            if (ImGui.selectable(option.toString(), option == value)) {
+                onSelect(option)
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    private fun drawPaddingCombo() {
+        val value = state.packing.settings.padding
+        if (!ImGui.beginCombo("Padding##texture_manager_packing_padding", value.toString())) return
+        PaddingOptions.forEach { option ->
+            if (ImGui.selectable(option.toString(), option == value)) {
+                operations.setPackingPadding(option)
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    companion object {
+        private val PageSizeOptions = intArrayOf(32, 64, 128, 256, 512, 1024, 2048, 4096)
+        private val PaddingOptions = intArrayOf(0, 1, 2, 4, 8, 16)
     }
 }
