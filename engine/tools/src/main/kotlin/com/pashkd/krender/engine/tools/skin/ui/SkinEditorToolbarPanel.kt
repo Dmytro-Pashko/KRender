@@ -1,5 +1,11 @@
-package com.pashkd.krender.engine.tools.skin
+package com.pashkd.krender.engine.tools.skin.ui
 
+import com.pashkd.krender.engine.tools.skin.SkinEditorOperations
+import com.pashkd.krender.engine.tools.skin.SkinEditorPanelIds
+import com.pashkd.krender.engine.tools.skin.SkinEditorState
+import com.pashkd.krender.engine.tools.skin.activeStyles
+import com.pashkd.krender.engine.tools.skin.readBuffer
+import com.pashkd.krender.engine.tools.skin.writeBuffer
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -27,15 +33,17 @@ class SkinEditorToolbarPanel(
         }
 
         syncPathBuffer()
-        ImGui.setNextItemWidth(560f)
-        ImGui.inputText("Skin path##skin_editor_path", pathBuffer)
+        ImGui.textUnformatted("Skin path:")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(300f)
+        ImGui.inputText("##skin_editor_path", pathBuffer)
         ImGui.newLine()
         with(dsl) {
-            button("Open Path##skin_editor_open_path") { operations.openPath(readBuffer(pathBuffer)) }
+            button("Reload##skin_editor_reload") { reloadFromToolbarPath() }
         }
         ImGui.sameLine()
         with(dsl) {
-            button("Reload##skin_editor_reload") { operations.requestReload() }
+            button("Discard Edits##skin_editor_discard_edits") { operations.discardInMemoryEdits() }
         }
         ImGui.sameLine()
         with(dsl) {
@@ -56,10 +64,18 @@ class SkinEditorToolbarPanel(
         ImGui.textUnformatted("Styles: ${state.editSession.activeStyles().size}")
         ImGui.textUnformatted("Resources: ${state.loadResult.resourceIndex.resources.size}")
         ImGui.textUnformatted("Editing: ${if (state.editSession.dirty) "dirty" else "clean"} (${state.editSession.changes.size} pending)")
-        ImGui.sameLine()
-        if (ImGui.button("Discard Edits##skin_editor_discard_edits")) operations.discardInMemoryEdits()
         ImGui.textUnformatted("Edits are in-memory only. Saving is deferred.")
         ImGui.end()
+    }
+
+    private fun reloadFromToolbarPath() {
+        val enteredPath = readBuffer(pathBuffer).trim().replace('\\', '/')
+        val currentPath = state.currentInputPath.orEmpty()
+        if (enteredPath != currentPath) {
+            operations.openPath(enteredPath)
+        } else {
+            operations.requestReload()
+        }
     }
 
     private fun syncPathBuffer() {

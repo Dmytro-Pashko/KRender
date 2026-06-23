@@ -27,14 +27,12 @@ class SkinEditorOperations(
 
     fun selectStyle(styleKey: StyleKey) {
         state.selectedStyleKey = styleKey
-        state.selectedResourceKey = null
         state.selectedProblemIndex = null
         state.previewDirty = true
     }
 
     fun selectResource(resource: SkinResourceInfo) {
         state.selectedResourceKey = resource.key
-        state.selectedStyleKey = null
         state.selectedProblemIndex = null
         state.resourceVisualPreview.selectedAtlasRegionName =
             if (resource.category == SkinResourceCategory.AtlasRegion) {

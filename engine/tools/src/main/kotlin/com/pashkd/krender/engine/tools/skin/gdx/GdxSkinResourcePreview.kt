@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
@@ -33,6 +34,8 @@ class GdxSkinResourcePreview(
     private val batch = SpriteBatch()
     private val glyphLayout = GlyphLayout()
     private val previewMatrix = Matrix4()
+    private val overlayShapes = ShapeRenderer()
+    private val overlayLabelFont = BitmapFont()
     private var loadedTexturePath: String? = null
     private var loadedTexture: Texture? = null
     private var loadedPreviewFontPath: String? = null
@@ -41,6 +44,8 @@ class GdxSkinResourcePreview(
     private var failedFontLoadKey: String? = null
     private var fontPreviewBuffer: FrameBuffer? = null
     private var fontPreviewRenderKey: String? = null
+    private var imagePreviewBuffer: FrameBuffer? = null
+    private var imagePreviewRenderKey: String? = null
     private var currentInfo: SkinResourceVisualPreviewInfo = SkinResourceVisualPreviewInfo()
     private var lastFontLoadFailure: String? = null
     private val warnedFailureKeys = mutableSetOf<String>()
@@ -80,18 +85,12 @@ class GdxSkinResourcePreview(
                 ensureTextureLoaded(resolved.texturePath) -> {
                     unloadPreviewFont()
                     val texture = loadedTexture
+                    val previewHandle = buildImagePreviewHandle(texture, resolved, previewState)
                     SkinResourceVisualPreviewInfo(
                         statusMessage = resolved.message,
                         kind = resolved.kind,
                         resolvedTexturePath = resolved.texturePath,
-                        texturePreviewHandle =
-                            texture?.let {
-                                TexturePreviewHandle(
-                                    id = it.textureObjectHandle,
-                                    width = it.width,
-                                    height = it.height,
-                                )
-                            },
+                        texturePreviewHandle = previewHandle,
                         textureWidth = texture?.width ?: 0,
                         textureHeight = texture?.height ?: 0,
                         atlasPageName = resolved.atlasPageName,
@@ -116,6 +115,10 @@ class GdxSkinResourcePreview(
         unloadPreviewFont()
         fontPreviewBuffer?.dispose()
         fontPreviewBuffer = null
+        imagePreviewBuffer?.dispose()
+        imagePreviewBuffer = null
+        overlayShapes.dispose()
+        overlayLabelFont.dispose()
         batch.dispose()
     }
 
@@ -293,6 +296,7 @@ class GdxSkinResourcePreview(
         loadedTexture?.dispose()
         loadedTexture = null
         loadedTexturePath = null
+        imagePreviewRenderKey = null
     }
 
     private fun updateFontPreviewInfo(
@@ -460,6 +464,127 @@ class GdxSkinResourcePreview(
         }
     }
 
+    private fun buildImagePreviewHandle(
+        texture: Texture?,
+        resolved: ResolvedPreview,
+        previewState: SkinResourceVisualPreviewState,
+    ): TexturePreviewHandle? {
+        texture ?: return null
+        if (resolved.region == null) {
+            return TexturePreviewHandle(
+                id = texture.textureObjectHandle,
+                width = texture.width,
+                height = texture.height,
+            )
+        }
+        return if (renderImagePreviewTexture(texture, resolved, previewState)) {
+            imagePreviewBuffer?.colorBufferTexture?.let { previewTexture ->
+                TexturePreviewHandle(
+                    id = previewTexture.textureObjectHandle,
+                    width = previewTexture.width,
+                    height = previewTexture.height,
+                    v0 = 1f,
+                    v1 = 0f,
+                )
+            }
+        } else {
+            TexturePreviewHandle(
+                id = texture.textureObjectHandle,
+                width = texture.width,
+                height = texture.height,
+            )
+        }
+    }
+
+    private fun renderImagePreviewTexture(
+        texture: Texture,
+        resolved: ResolvedPreview,
+        previewState: SkinResourceVisualPreviewState,
+    ): Boolean {
+        val region = resolved.region ?: return false
+        val textureWidth = texture.width.coerceAtLeast(1)
+        val textureHeight = texture.height.coerceAtLeast(1)
+        val renderKey =
+            buildString {
+                append(loadedTexturePath)
+                append(':').append(region.name)
+                append(':').append(region.x).append(',').append(region.y).append(',').append(region.width).append(',').append(region.height)
+                append(':').append(previewState.showRegionBounds)
+                append(':').append(previewState.showRegionLabels)
+            }
+        val buffer =
+            imagePreviewBuffer
+                ?.takeIf { existing ->
+                    existing.width == textureWidth && existing.height == textureHeight
+                }
+                ?: FrameBuffer(Pixmap.Format.RGBA8888, textureWidth, textureHeight, false).also { newBuffer ->
+                    imagePreviewBuffer?.dispose()
+                    imagePreviewBuffer = newBuffer
+                }
+        if (imagePreviewRenderKey == renderKey) return true
+
+        val previousViewport = BufferUtils.newIntBuffer(4)
+        Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, previousViewport)
+        val regionBottom = (textureHeight - region.y - region.height).toFloat()
+        val labelText = region.name
+        val oldLabelColor = Color(overlayLabelFont.color)
+        var beganBuffer = false
+        return runCatching {
+            buffer.begin()
+            beganBuffer = true
+            Gdx.gl.glClearColor(0f, 0f, 0f, 0f)
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+
+            previewMatrix.setToOrtho2D(0f, 0f, textureWidth.toFloat(), textureHeight.toFloat())
+            batch.projectionMatrix = previewMatrix
+            overlayShapes.projectionMatrix = previewMatrix
+
+            batch.begin()
+            batch.color = Color.WHITE
+            batch.draw(texture, 0f, 0f, textureWidth.toFloat(), textureHeight.toFloat())
+            batch.end()
+
+            Gdx.gl.glEnable(GL20.GL_BLEND)
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+
+            overlayShapes.begin(ShapeRenderer.ShapeType.Filled)
+            overlayShapes.color = SelectedRegionFillColor
+            overlayShapes.rect(region.x.toFloat(), regionBottom, region.width.toFloat(), region.height.toFloat())
+            overlayShapes.end()
+
+            if (previewState.showRegionBounds) {
+                overlayShapes.begin(ShapeRenderer.ShapeType.Line)
+                overlayShapes.color = SelectedRegionBorderColor
+                overlayShapes.rect(region.x.toFloat(), regionBottom, region.width.toFloat(), region.height.toFloat())
+                overlayShapes.end()
+            }
+
+            if (previewState.showRegionLabels) {
+                overlayLabelFont.color = SelectedRegionLabelColor
+                glyphLayout.setText(overlayLabelFont, labelText)
+                batch.begin()
+                overlayLabelFont.draw(
+                    batch,
+                    glyphLayout,
+                    region.x.toFloat() + LabelPadding,
+                    (regionBottom + region.height + glyphLayout.height + LabelPadding).coerceAtMost(textureHeight.toFloat() - LabelPadding),
+                )
+                batch.end()
+            }
+
+            buffer.end()
+            beganBuffer = false
+            imagePreviewRenderKey = renderKey
+            true
+        }.getOrElse {
+            if (beganBuffer) buffer.end()
+            false
+        }.also {
+            overlayLabelFont.color = oldLabelColor
+            Gdx.gl.glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3])
+        }
+    }
+
     private fun parseColor(values: Map<String, String>): Pair<Color, String>? {
         val color = SkinColorValueParser.parse(values) ?: return null
         return Color(color.r, color.g, color.b, color.a) to color.displayValue
@@ -551,5 +676,9 @@ class GdxSkinResourcePreview(
         private const val FontPreviewTextureWidth = 640
         private const val FontPreviewTextureHeight = 260
         private const val FontPreviewPadding = 16f
+        private const val LabelPadding = 6f
+        private val SelectedRegionFillColor = Color(0.1f, 0.7f, 1f, 0.22f)
+        private val SelectedRegionBorderColor = Color(0.1f, 0.85f, 1f, 0.95f)
+        private val SelectedRegionLabelColor = Color(0.95f, 0.98f, 1f, 1f)
     }
 }

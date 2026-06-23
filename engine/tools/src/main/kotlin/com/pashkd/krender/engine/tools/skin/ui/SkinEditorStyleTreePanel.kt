@@ -1,5 +1,11 @@
-package com.pashkd.krender.engine.tools.skin
+package com.pashkd.krender.engine.tools.skin.ui
 
+import com.pashkd.krender.engine.tools.skin.SkinEditorOperations
+import com.pashkd.krender.engine.tools.skin.SkinEditorPanelIds
+import com.pashkd.krender.engine.tools.skin.SkinEditorState
+import com.pashkd.krender.engine.tools.skin.SkinStyleTemplates
+import com.pashkd.krender.engine.tools.skin.activeStyles
+import com.pashkd.krender.engine.tools.skin.readBuffer
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger

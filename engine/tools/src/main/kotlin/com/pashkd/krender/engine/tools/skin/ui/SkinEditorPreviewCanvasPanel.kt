@@ -1,5 +1,12 @@
-package com.pashkd.krender.engine.tools.skin
+package com.pashkd.krender.engine.tools.skin.ui
 
+import com.pashkd.krender.engine.tools.skin.PreviewScales
+import com.pashkd.krender.engine.tools.skin.SkinEditorCanvasRect
+import com.pashkd.krender.engine.tools.skin.SkinEditorOperations
+import com.pashkd.krender.engine.tools.skin.SkinEditorPanelIds
+import com.pashkd.krender.engine.tools.skin.SkinEditorState
+import com.pashkd.krender.engine.tools.skin.SkinPreviewScreenPresets
+import com.pashkd.krender.engine.tools.skin.formatPreviewScale
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -26,7 +33,6 @@ class SkinEditorPreviewCanvasPanel(
             return
         }
 
-        ImGui.textUnformatted("Scene2D preview Actors: ${state.previewInfo.actorCount}")
         val selectedPreset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
         ImGui.textUnformatted("Resolution:")
         ImGui.sameLine()
@@ -55,6 +61,7 @@ class SkinEditorPreviewCanvasPanel(
         ImGui.textUnformatted("Show Bounding Box:")
         ImGui.sameLine()
         if (ImGui.checkbox("##skin_editor_canvas_bounds", showBounds)) operations.setShowBounds(showBounds[0])
+        ImGui.textUnformatted("Canvas: ${state.canvasRect.width.toInt()} x ${state.canvasRect.height.toInt()}")
         ImGui.separator()
 
         val min = ImGui.cursorScreenPos

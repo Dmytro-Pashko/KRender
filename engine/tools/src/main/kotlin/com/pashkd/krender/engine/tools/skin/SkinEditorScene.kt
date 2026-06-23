@@ -9,6 +9,14 @@ import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.skin.gdx.GdxSkinEditorPreview
 import com.pashkd.krender.engine.tools.skin.gdx.GdxSkinResourcePreview
 import com.pashkd.krender.engine.tools.skin.gdx.SkinReloadService
+import com.pashkd.krender.engine.tools.skin.ui.SkinEditorInspectorPanel
+import com.pashkd.krender.engine.tools.skin.ui.SkinEditorPreviewCanvasPanel
+import com.pashkd.krender.engine.tools.skin.ui.SkinEditorPreviewControlsPanel
+import com.pashkd.krender.engine.tools.skin.ui.SkinEditorProblemsPanel
+import com.pashkd.krender.engine.tools.skin.ui.SkinEditorResourceBrowserPanel
+import com.pashkd.krender.engine.tools.skin.ui.SkinEditorStyleInspectorPanel
+import com.pashkd.krender.engine.tools.skin.ui.SkinEditorStyleTreePanel
+import com.pashkd.krender.engine.tools.skin.ui.SkinEditorToolbarPanel
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -156,8 +164,8 @@ class SkinEditorScene(
             )
             addPanel(
                 uiSystem,
-                "StyleEditor",
-                SkinEditorStyleEditorPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger),
+                "StyleInspector",
+                SkinEditorStyleInspectorPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger),
             )
             addPanel(
                 uiSystem,
