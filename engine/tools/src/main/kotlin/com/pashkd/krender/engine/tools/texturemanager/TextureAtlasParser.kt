@@ -17,7 +17,7 @@ class TextureAtlasParser {
             val pages = mutableListOf<MutablePage>()
             var currentPage: MutablePage? = null
             var currentRegion: MutableRegion? = null
-            var expectPageName = true
+            var section = AtlasParseSection.ExpectPage
 
             file.readLines(StandardCharsets.UTF_8).forEachIndexed { index, rawLine ->
                 val lineNumber = index + 1
@@ -25,26 +25,26 @@ class TextureAtlasParser {
                 when {
                     trimmed.isEmpty() -> {
                         currentRegion = null
-                        if (currentPage != null) {
-                            expectPageName = false
-                        }
+                        currentPage = null
+                        section = AtlasParseSection.ExpectPage
                     }
 
                     !rawLine.first().isWhitespace() && ':' !in trimmed -> {
-                        if (currentPage == null || expectPageName) {
+                        if (section == AtlasParseSection.ExpectPage || currentPage == null) {
                             currentPage = MutablePage(name = trimmed)
-                            pages += currentPage!!
+                            pages += currentPage
                             currentRegion = null
-                            expectPageName = false
+                            section = AtlasParseSection.PageProperties
                         } else {
-                            val pageName = currentPage?.name ?: "<unknown>"
+                            val pageName = currentPage.name
                             currentRegion =
                                 MutableRegion(
                                     name = trimmed,
                                     atlasPath = normalizePath(file.path),
                                     pageName = pageName,
                                 )
-                            currentPage?.regions?.add(currentRegion!!)
+                            currentPage.regions += currentRegion
+                            section = AtlasParseSection.RegionProperties
                         }
                     }
 
@@ -53,9 +53,10 @@ class TextureAtlasParser {
                         val value = trimmed.substringAfter(':').trim()
                         if (key.isBlank()) return@forEachIndexed
                         if (currentRegion != null) {
-                            currentRegion!!.details[key] = value
+                            currentRegion.details[key] = value
                         } else if (currentPage != null) {
-                            currentPage!!.details[key] = value
+                            currentPage.details[key] = value
+                            section = AtlasParseSection.PageProperties
                         } else {
                             diagnostics +=
                                 TextureManagerDiagnostic(
@@ -260,4 +261,10 @@ class TextureAtlasParser {
         val pageName: String,
         val details: LinkedHashMap<String, String> = linkedMapOf(),
     )
+
+    private enum class AtlasParseSection {
+        ExpectPage,
+        PageProperties,
+        RegionProperties,
+    }
 }

@@ -12,6 +12,12 @@ class TextureManagerOperations(
 ) {
     fun openPath(path: String) {
         val normalized = path.trim().replace('\\', '/').ifBlank { null }
+        if (normalized != state.currentInputPath) {
+            state.clearPreviewSelection()
+            engine.logger.info(TAG) {
+                "Texture Manager input path changed old='${state.currentInputPath ?: "<none>"}' new='${normalized ?: "<none>"}'; selection reset"
+            }
+        }
         state.currentInputPath = normalized
         state.pendingPathInput = normalized.orEmpty()
         state.reloadRequested = true
@@ -187,16 +193,34 @@ internal fun TextureManagerState.selectedRegionsForPage(): List<TextureAtlasRegi
         .orEmpty()
 
 internal fun TextureManagerState.selectedPreviewTexturePath(): String? {
-    val asset = selectedAsset() ?: return project.selectedTexturePath ?: project.selectedAtlasPath
+    val asset = selectedAsset()
+    if (asset == null) {
+        project.selectedTexturePath?.let { return it }
+        val atlasPath = project.selectedAtlasPath ?: return null
+        return resolveAtlasPreviewTexturePath(
+            atlasPath = atlasPath,
+            atlas = project.atlasDocuments[atlasPath],
+            selectedPageName = selectedAtlasPageName,
+        )
+    }
     return when (asset.kind) {
         TextureManagerAssetKind.Texture -> asset.path
-        TextureManagerAssetKind.Atlas -> {
-            val atlas = project.atlasDocuments[asset.path] ?: return null
-            val pageName = selectedAtlasPageName ?: atlas.pages.firstOrNull()?.name ?: return null
-            val pageFile = File(File(asset.path).parentFile, pageName)
-            normalizePath(pageFile.path)
-        }
+        TextureManagerAssetKind.Atlas -> resolveAtlasPreviewTexturePath(asset.path, project.atlasDocuments[asset.path], selectedAtlasPageName)
         else -> null
     }
 }
 
+internal fun resolveAtlasPreviewTexturePath(
+    atlasPath: String,
+    atlas: TextureAtlasDocument?,
+    selectedPageName: String?,
+): String? {
+    val pageName = selectedPageName ?: atlas?.pages?.firstOrNull()?.name ?: return null
+    val atlasFile = File(atlasPath)
+    val pageFile = File(pageName)
+    if (pageFile.isAbsolute) {
+        return normalizePath(pageFile.path)
+    }
+    val parent = atlasFile.parentFile ?: return null
+    return normalizePath(File(parent, pageName).path)
+}

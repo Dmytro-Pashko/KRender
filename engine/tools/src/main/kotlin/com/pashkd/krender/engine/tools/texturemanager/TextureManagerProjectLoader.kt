@@ -49,6 +49,7 @@ class TextureManagerProjectLoader(
         val diagnostics = mutableListOf<TextureManagerDiagnostic>()
         val rootDirectory = if (resolved.isDirectory) resolved else resolved.parentFile ?: resolved.absoluteFile.parentFile
         val discoveredFiles = scanRoot(rootDirectory)
+        diagnostics += discoveredFiles.diagnostics
         val atlasDocuments =
             discoveredFiles.atlases.associate { file ->
                 val atlas = atlasParser.parse(file)
@@ -142,9 +143,36 @@ class TextureManagerProjectLoader(
         val textures = mutableListOf<File>()
         val atlases = mutableListOf<File>()
         val metadata = mutableListOf<File>()
+        val diagnostics = mutableListOf<TextureManagerDiagnostic>()
+        var scannedFiles = 0
         rootDirectory
             .walkTopDown()
+            .onEnter { directory ->
+                val skip =
+                    directory != rootDirectory &&
+                        (directory.isHidden || directory.name in IgnoredDirectoryNames)
+                if (skip) {
+                    logger.debug(TAG) { "Skipping Texture Manager directory '${normalizePath(directory.path)}'" }
+                }
+                !skip
+            }
             .filter(File::isFile)
+            .takeWhile { file ->
+                scannedFiles++
+                if (scannedFiles > MaxScannedFiles) {
+                    diagnostics +=
+                        TextureManagerDiagnostic(
+                            severity = TextureManagerDiagnosticSeverity.Warning,
+                            category = TextureManagerDiagnosticCategory.FileSystem,
+                            message = "Directory scan limit reached at $MaxScannedFiles files.",
+                            source = normalizePath(rootDirectory.path),
+                        )
+                    logger.warn(TAG) { "Texture Manager scan limit reached root='${normalizePath(rootDirectory.path)}' limit=$MaxScannedFiles" }
+                    false
+                } else {
+                    true
+                }
+            }
             .forEach { file ->
                 when {
                     file.name.endsWith(".krmeta", ignoreCase = true) -> metadata += file
@@ -156,6 +184,7 @@ class TextureManagerProjectLoader(
             textures = textures.sortedBy { file -> file.name },
             atlases = atlases.sortedBy { file -> file.name },
             metadata = metadata.sortedBy { file -> file.name },
+            diagnostics = diagnostics,
         )
     }
 
@@ -196,12 +225,15 @@ class TextureManagerProjectLoader(
         val textures: List<File> = emptyList(),
         val atlases: List<File> = emptyList(),
         val metadata: List<File> = emptyList(),
+        val diagnostics: List<TextureManagerDiagnostic> = emptyList(),
     )
 
     companion object {
         private const val TAG = "TextureManagerLoader"
+        private const val MaxScannedFiles = 5_000
 
         private val SupportedTextureExtensions = setOf("png", "jpg", "jpeg", "ktx", "webp")
+        private val IgnoredDirectoryNames = setOf(".git", ".gradle", "build", "out")
 
         fun isTextureFile(file: File): Boolean = file.isFile && file.extension.lowercase() in SupportedTextureExtensions
 

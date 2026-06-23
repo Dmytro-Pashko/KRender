@@ -24,6 +24,14 @@ class GdxTextureManagerPreview(
             unloadTexture()
             return TextureManagerPreviewInfo(statusMessage = "Select a texture or atlas page to preview.")
         }
+        if (texturePath.endsWith(".atlas", ignoreCase = true)) {
+            logger.warn(TAG) { "Rejected atlas descriptor as preview texture path='$texturePath'" }
+            return TextureManagerPreviewInfo(
+                resolvedTexturePath = texturePath,
+                atlasPageName = atlasPageName,
+                statusMessage = "Atlas preview could not resolve a page texture.",
+            )
+        }
         if (!ensureTextureLoaded(texturePath)) {
             return TextureManagerPreviewInfo(
                 resolvedTexturePath = texturePath,
@@ -97,4 +105,3 @@ class GdxTextureManagerPreview(
         private const val TAG = "TextureManagerPreview"
     }
 }
-

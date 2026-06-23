@@ -158,3 +158,10 @@ data class TextureManagerState(
     var reloadRequested: Boolean = false,
 )
 
+internal fun TextureManagerState.clearPreviewSelection() {
+    selectedAssetId = null
+    selectedAtlasPageName = null
+    selectedRegionId = null
+    hoveredRegionId = null
+    previewInfo = TextureManagerPreviewInfo()
+}

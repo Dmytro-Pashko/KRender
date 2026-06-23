@@ -71,12 +71,17 @@ class TextureManagerScene(
         val result = loader.load(editorState.currentInputPath)
         editorState.project = result.project
         editorState.diagnostics = result.diagnostics
-        if (editorState.project.assets.isNotEmpty() && editorState.selectedAssetId == null) {
-            val preferredPath = editorState.project.selectedTexturePath ?: editorState.project.selectedAtlasPath
-            val preferredAsset = preferredPath?.let { path -> editorState.project.assets.firstOrNull { it.path == path } }
-            editorState.selectedAssetId = preferredAsset?.id ?: editorState.project.assets.first().id
+        val selectedAssetStillExists =
+            editorState.selectedAssetId?.let { selectedId ->
+                editorState.project.assets.any { asset -> asset.id == selectedId }
+            } ?: false
+        if (!selectedAssetStillExists && editorState.selectedAssetId != null) {
+            engine.logger.info(TAG) {
+                "Texture Manager cleared stale selection asset='${editorState.selectedAssetId?.value}' after reload"
+            }
+            editorState.clearPreviewSelection()
         }
-        editorState.selectedAssetId?.let { operations.selectAsset(it) }
+        ensureValidSelectionAfterReload()
         editorState.statusMessage =
             when {
                 editorState.project.rootDirectory == null -> "Open a texture, atlas, or directory to begin."
@@ -84,6 +89,29 @@ class TextureManagerScene(
                 editorState.diagnostics.any { it.severity == TextureManagerDiagnosticSeverity.Warning } -> "Loaded with warnings."
                 else -> "Texture Manager ready."
             }
+        engine.logger.info(TAG) {
+            "Texture Manager reload completed assets=${editorState.project.assets.size} textures=${editorState.project.discoveredTextureFiles.size} atlases=${editorState.project.discoveredAtlasFiles.size} diagnostics=${editorState.diagnostics.size}"
+        }
+    }
+
+    private fun ensureValidSelectionAfterReload() {
+        val validAssetId =
+            editorState.selectedAssetId?.takeIf { selectedId ->
+                editorState.project.assets.any { asset -> asset.id == selectedId }
+            } ?: preferredAssetId()
+
+        if (validAssetId != null) {
+            operations.selectAsset(validAssetId)
+            engine.logger.info(TAG) { "Texture Manager reload selected asset='${validAssetId.value}'" }
+        } else {
+            editorState.clearPreviewSelection()
+        }
+    }
+
+    private fun preferredAssetId(): TextureAssetId? {
+        val preferredPath = editorState.project.selectedTexturePath ?: editorState.project.selectedAtlasPath
+        val preferredAsset = preferredPath?.let { path -> editorState.project.assets.firstOrNull { asset -> asset.path == path } }
+        return preferredAsset?.id ?: editorState.project.assets.firstOrNull()?.id
     }
 
     private fun createUiSystem(): UiSystem {
@@ -139,6 +167,9 @@ private class TextureManagerPreviewSyncSystem(
     private val preview: GdxTextureManagerPreview,
     private val logger: com.pashkd.krender.engine.api.Logger,
 ) : System() {
+    private var lastResolvedPreviewKey: String? = null
+    private var lastMissingPreviewKey: String? = null
+
     override fun update(
         world: SceneWorld,
         dt: Float,
@@ -146,14 +177,51 @@ private class TextureManagerPreviewSyncSystem(
         val previewPath = state.selectedPreviewTexturePath()
         val asset = state.selectedAsset()
         val atlasPage = state.selectedAtlasPageName
+        logPreviewResolution(asset?.path, previewPath, atlasPage)
         state.previewInfo =
             preview.update(
                 texturePath = previewPath,
                 atlasPageName = atlasPage,
                 selectedAssetPath = asset?.path,
             )
-        if (state.previewInfo.texturePreviewHandle == null && previewPath != null) {
-            logger.warn(TAG) { "Texture preview unavailable path='$previewPath'" }
+    }
+
+    private fun logPreviewResolution(
+        assetPath: String?,
+        previewPath: String?,
+        atlasPageName: String?,
+    ) {
+        if (previewPath != null) {
+            val resolutionKey = "${assetPath.orEmpty()}|${atlasPageName.orEmpty()}|$previewPath"
+            if (lastResolvedPreviewKey != resolutionKey) {
+                lastResolvedPreviewKey = resolutionKey
+                lastMissingPreviewKey = null
+                if (assetPath?.endsWith(".atlas", ignoreCase = true) == true || state.project.selectedAtlasPath != null) {
+                    logger.info(TAG) {
+                        "Texture Manager resolved atlas preview page='${atlasPageName ?: "<first>"}' asset='${assetPath ?: state.project.selectedAtlasPath ?: "<none>"}' texture='$previewPath'"
+                    }
+                }
+            }
+            return
+        }
+
+        val atlasPath = assetPath?.takeIf { it.endsWith(".atlas", ignoreCase = true) } ?: state.project.selectedAtlasPath
+        if (atlasPath != null) {
+            val missingKey = "${atlasPath}|${atlasPageName.orEmpty()}"
+            if (lastMissingPreviewKey != missingKey) {
+                lastMissingPreviewKey = missingKey
+                lastResolvedPreviewKey = null
+                val atlasDocument = state.project.atlasDocuments[atlasPath]
+                val reason =
+                    when {
+                        atlasDocument == null -> "atlas document missing"
+                        atlasDocument.pages.isEmpty() -> "atlas has no pages"
+                        else -> "page texture path could not be resolved"
+                    }
+                logger.warn(TAG) {
+                    "Texture Manager could not resolve atlas preview asset='$atlasPath' page='${atlasPageName ?: "<first>"}': $reason"
+                }
+            }
         }
     }
 
