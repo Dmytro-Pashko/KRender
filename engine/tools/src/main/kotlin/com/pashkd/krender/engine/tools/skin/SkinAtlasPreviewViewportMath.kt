@@ -105,6 +105,7 @@ internal fun screenToImageYTopLeft(
     layout: ResourcePreviewViewportLayout,
 ): Float = (screenY - layout.imageY) / layout.effectiveZoom
 
+@Suppress("ReturnCount")
 internal fun parseAtlasRegionHitInfo(resource: SkinResourceInfo): AtlasRegionHitInfo? {
     val xy = resource.details["xy"]?.parseIntPair() ?: return null
     val size = resource.details["size"]?.parseIntPair() ?: return null
@@ -154,6 +155,7 @@ internal fun hitTestAtlasRegion(
 ): AtlasRegionHitInfo? {
     val imageX = screenToImageX(mouseX, layout)
     val imageY = screenToImageYTopLeft(mouseY, layout)
+    @Suppress("ComplexCondition")
     if (imageX < 0f || imageY < 0f || imageX > imageWidth || imageY > imageHeight) return null
     return regions
         .filter { region ->
@@ -164,6 +166,7 @@ internal fun hitTestAtlasRegion(
         }.minWithOrNull(compareBy<AtlasRegionHitInfo>({ it.area }, { it.resource.name }))
 }
 
+@Suppress("ReturnCount")
 internal fun String.parseIntPair(): Pair<Int, Int>? {
     val parts = split(',').map(String::trim)
     if (parts.size < 2) return null

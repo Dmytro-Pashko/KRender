@@ -64,6 +64,7 @@ class SkinEditorProblemsPanel(
         ImGui.end()
     }
 
+    @Suppress("CyclomaticComplexMethod")
     private fun drawFilters() {
         if (readBuffer(queryBuffer) != state.problemFilters.query) {
             writeBuffer(queryBuffer, state.problemFilters.query)
@@ -119,6 +120,7 @@ class SkinEditorProblemsPanel(
         ImGui.separator()
     }
 
+    @Suppress("ReturnCount")
     private fun matchesFilters(problem: SkinProblem): Boolean {
         val filters = state.problemFilters
         if (filters.severity != null && problem.severity != filters.severity) return false

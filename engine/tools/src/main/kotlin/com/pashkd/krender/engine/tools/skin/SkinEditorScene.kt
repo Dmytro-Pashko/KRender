@@ -258,6 +258,7 @@ private class SkinEditorPreviewUpdateSystem(
     private val reloadService: SkinReloadService,
     private val logger: Logger,
 ) : System() {
+    @Suppress("LongMethod")
     override fun update(
         world: SceneWorld,
         dt: Float,

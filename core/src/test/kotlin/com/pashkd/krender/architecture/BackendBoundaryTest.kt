@@ -197,7 +197,10 @@ class BackendBoundaryTest {
         val KNOWN_TOOL_GDX_IMPORTS =
             setOf(
                 "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/terraineditor/TerrainMaterialPreviewBaker.kt",
+                "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/skin/gdx/GdxBitmapFontPreviewLoader.kt",
                 "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/skin/gdx/GdxSkinEditorPreview.kt",
+                "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/skin/gdx/GdxSkinResourcePreview.kt",
+                "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/skin/gdx/GdxSkinStyleEditApplier.kt",
                 "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/skin/gdx/SafeWidgetBuilder.kt",
                 "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/skin/gdx/SkinReloadService.kt",
                 "engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/uicomposer/gdx/GdxUiComposerSkinMetadataReader.kt",

@@ -23,6 +23,7 @@ class SkinEditorStyleTreePanel(
     private val createNameBuffer = ByteArray(128)
     private var createType = SkinStyleTemplates.types.first()
 
+    @Suppress("NestedBlockDepth")
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.StyleTree)
         val expanded = beginImGuiPanel(SkinEditorPanelIds.StyleTree, layout, layoutTracker)

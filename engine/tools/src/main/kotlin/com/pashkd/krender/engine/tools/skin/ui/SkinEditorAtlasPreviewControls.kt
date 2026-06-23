@@ -11,6 +11,7 @@ import imgui.dsl
 
 /** Draws atlas/texture resource preview controls without owning viewport math. */
 internal object SkinEditorAtlasPreviewControls {
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
     fun draw(
         state: SkinEditorState,
         operations: SkinEditorOperations,

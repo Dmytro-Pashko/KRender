@@ -31,6 +31,7 @@ class SkinEditorPreviewCanvasPanel(
     private var lastPointerScreenX = Float.NaN
     private var lastPointerScreenY = Float.NaN
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.PreviewCanvas)
         ImGui.setNextWindowBgAlpha(0f)
@@ -127,6 +128,7 @@ class SkinEditorPreviewCanvasPanel(
         ImGui.end()
     }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     private fun handleCanvasInteraction() {
         val io = ImGui.io
         val hovered = ImGui.isItemHovered()
@@ -143,6 +145,7 @@ class SkinEditorPreviewCanvasPanel(
         if (previewClickPending && io.mouseDown[0]) {
             previewClickDragDistance += hypot(io.mouseDelta.x, io.mouseDelta.y)
         }
+        @Suppress("ComplexCondition")
         if (hovered && io.keyCtrl && io.mouseDown[1] && (io.mouseDelta.x != 0f || io.mouseDelta.y != 0f)) {
             operations.panPreviewCamera(io.mouseDelta.x, io.mouseDelta.y)
             previewClickPending = false

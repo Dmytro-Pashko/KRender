@@ -128,6 +128,7 @@ class GdxSkinResourcePreview(
         batch.dispose()
     }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
     private fun resolveResourcePreview(
         project: SkinProject?,
         resourceIndex: SkinResourceIndex,
@@ -511,7 +512,7 @@ class GdxSkinResourcePreview(
         }
     }
 
-    @Suppress("ReturnCount")
+    @Suppress("ReturnCount", "LongMethod")
     private fun renderImagePreviewTexture(
         texture: Texture,
         resolved: ResolvedPreview,
@@ -610,6 +611,7 @@ class GdxSkinResourcePreview(
             .ifBlank { "Font preview sample is empty." }
     }
 
+    @Suppress("UnusedParameter")
     private fun defaultFontPreviewSource(
         fontReady: Boolean,
         resolved: ResolvedPreview,

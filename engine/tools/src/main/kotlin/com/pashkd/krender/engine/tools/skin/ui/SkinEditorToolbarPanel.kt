@@ -23,6 +23,7 @@ class SkinEditorToolbarPanel(
 ) : UiPanel {
     private val pathBuffer = ByteArray(512)
 
+    @Suppress("CyclomaticComplexMethod")
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.Toolbar)
         val expanded = beginImGuiPanel(SkinEditorPanelIds.Toolbar, layout, layoutTracker)

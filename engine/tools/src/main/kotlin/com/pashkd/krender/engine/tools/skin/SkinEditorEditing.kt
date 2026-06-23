@@ -16,10 +16,6 @@ package com.pashkd.krender.engine.tools.skin
  * writer must consume [SkinEditSession.toEditedSnapshot] only. The writer must
  * not depend on ImGui panels, GDX preview adapters, runtime texture handles,
  * or UI buffers.
- */
-
-/**
- * In-memory edit projection built from one loaded/indexed skin.
  *
  * [baseStyleIndex] and [baseResourceIndex] preserve the loaded state, while
  * [styles] and [resources] are mutable editor projections used by preview and
@@ -279,8 +275,6 @@ fun SkinEditSession.activeStyles(): List<EditableStyle> =
         .sortedWith(compareBy({ style -> style.key.type }, { style -> style.key.name }))
 
 fun SkinEditSession.findEditableStyle(key: StyleKey?): EditableStyle? = key?.let(styles::get)?.takeUnless(EditableStyle::deleted)
-
-/** Returns an immutable deep copy suitable for a future JSON writer or diff builder. */
 
 /**
  * Returns the writer-ready edit projection.

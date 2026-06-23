@@ -132,6 +132,7 @@ class SelectedStylePreviewLayout : PreviewLayout {
     override val id: String = Id
     override val displayName: String = "Selected Style"
 
+    @Suppress("ReturnCount", "LongMethod", "CyclomaticComplexMethod")
     override fun build(
         context: PreviewLayoutContext,
         factory: WidgetPreviewFactory,

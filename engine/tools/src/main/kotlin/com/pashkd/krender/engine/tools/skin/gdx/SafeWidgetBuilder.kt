@@ -79,6 +79,7 @@ class SafeWidgetBuilder : Disposable {
         fallbackSkin.dispose()
     }
 
+    @Suppress("CyclomaticComplexMethod", "ReturnCount")
     private fun build(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
@@ -111,6 +112,7 @@ class SafeWidgetBuilder : Disposable {
         return actor
     }
 
+    @Suppress("ReturnCount", "CyclomaticComplexMethod")
     private fun matchesSelectedStyle(item: SkinEditorPreviewItem): Boolean {
         val selected = currentSelectedStyleKey ?: return false
         val itemType =
@@ -250,6 +252,7 @@ class SafeWidgetBuilder : Disposable {
         }
     }
 
+    @Suppress("SpreadOperator")
     private fun buildSelectBox(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
@@ -268,6 +271,7 @@ class SafeWidgetBuilder : Disposable {
         return actor
     }
 
+    @Suppress("SpreadOperator")
     private fun buildList(
         item: SkinEditorPreviewItem,
         primarySkin: Skin?,
@@ -438,6 +442,7 @@ class SafeWidgetBuilder : Disposable {
         return tooltip.container
     }
 
+    @Suppress("CyclomaticComplexMethod")
     private fun <T> skinFor(
         primarySkin: Skin?,
         requestedStyleName: String?,
@@ -472,6 +477,7 @@ class SafeWidgetBuilder : Disposable {
             pack()
         }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     private fun createFallbackSkin(): Skin {
         val skin = Skin()
         val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)

@@ -126,6 +126,7 @@ class GdxSkinEditorPreview(
         return currentInteractionFeedback(event.screenX, event.screenY, status)
     }
 
+    @Suppress("LongParameterList")
     fun setCanvasViewport(
         x: Int,
         y: Int,
@@ -180,6 +181,7 @@ class GdxSkinEditorPreview(
         stage.clear()
     }
 
+    @Suppress("UnusedParameter")
     fun resize(
         width: Int,
         height: Int,

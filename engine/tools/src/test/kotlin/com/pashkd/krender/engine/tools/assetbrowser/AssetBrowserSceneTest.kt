@@ -112,6 +112,8 @@ private class RecordingEditorToolLauncher : EditorToolLauncher {
 
     override fun launchSceneEditorWithScene(scenePath: String) = error("not used")
 
+    override fun launchSkinEditor(skinPath: String?) = error("not used")
+
     override fun launchUiComposer(uiScenePath: String) {
         uiComposerPath = uiScenePath
     }

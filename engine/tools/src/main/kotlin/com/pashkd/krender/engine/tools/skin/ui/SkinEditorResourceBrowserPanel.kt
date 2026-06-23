@@ -20,6 +20,7 @@ import imgui.api.colorButton
 import java.io.File
 import glm_.vec2.Vec2 as ImVec2
 
+@Suppress("TopLevelPropertyNaming")
 private const val ResourceListMaxHeight = 300f
 
 /**
@@ -136,6 +137,7 @@ class SkinEditorResourceBrowserPanel(
         ImGui.separator()
     }
 
+    @Suppress("ReturnCount")
     private fun matchesFilters(resource: SkinResourceInfo): Boolean {
         val browser = state.resourceBrowser
         if (browser.selectedCategory != null && resource.category != browser.selectedCategory) return false

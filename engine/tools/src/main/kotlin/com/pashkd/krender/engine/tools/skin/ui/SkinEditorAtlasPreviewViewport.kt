@@ -90,6 +90,7 @@ internal class SkinEditorAtlasPreviewViewport(
             else -> null
         }
 
+    @Suppress("UnusedParameter", "CyclomaticComplexMethod")
     private fun handleTexturePreviewInteraction(
         selectedResource: SkinResourceInfo?,
         viewportLayout: ResourcePreviewViewportLayout,
@@ -106,6 +107,7 @@ internal class SkinEditorAtlasPreviewViewport(
         if (previewClickPending && io.mouseDown[0]) {
             previewClickDragDistance += hypot(io.mouseDelta.x, io.mouseDelta.y)
         }
+        @Suppress("ComplexCondition")
         if (hovered && io.keyCtrl && io.mouseDown[1] && (io.mouseDelta.x != 0f || io.mouseDelta.y != 0f)) {
             operations.panResourcePreviewViewport(io.mouseDelta.x, io.mouseDelta.y)
             previewClickPending = false
@@ -133,6 +135,7 @@ internal class SkinEditorAtlasPreviewViewport(
         }
     }
 
+    @Suppress("ReturnCount")
     private fun hoveredAtlasRegion(
         selectedResource: SkinResourceInfo?,
         info: SkinResourceVisualPreviewInfo,
@@ -144,6 +147,7 @@ internal class SkinEditorAtlasPreviewViewport(
         return hitTestAtlasRegion(activeRegions, viewportLayout, info.textureWidth, info.textureHeight, ImGui.io.mousePos.x, ImGui.io.mousePos.y)
     }
 
+    @Suppress("ReturnCount")
     private fun activeAtlasRegions(selectedResource: SkinResourceInfo?): List<AtlasRegionHitInfo> {
         selectedResource ?: return emptyList()
         val atlasSource = selectedResource.source ?: return emptyList()

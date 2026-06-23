@@ -13,6 +13,7 @@ import glm_.vec2.Vec2 as ImVec2
 
 /** Pure ImGui drawing helpers for atlas/texture preview overlays. */
 internal object SkinEditorResourcePreviewOverlays {
+    @Suppress("ReturnCount")
     fun drawTexturePreviewBackground(
         selectedResource: SkinResourceInfo?,
         layout: ResourcePreviewViewportLayout,

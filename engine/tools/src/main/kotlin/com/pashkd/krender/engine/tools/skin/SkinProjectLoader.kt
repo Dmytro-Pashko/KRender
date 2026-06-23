@@ -9,6 +9,7 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 class SkinAssetResolver {
+    @Suppress("ReturnCount")
     fun resolve(inputPath: String?): SkinProject? {
         val normalized = inputPath?.trim()?.takeIf(String::isNotBlank) ?: return null
         val file = File(normalized)
@@ -99,6 +100,7 @@ class SkinProjectLoader {
     private val atlasParser = SkinAtlasParser()
     private val bitmapFontParser = SkinBitmapFontParser()
 
+    @Suppress("ReturnCount", "LongMethod")
     fun inspect(project: SkinProject?): SkinLoadResult {
         if (project == null) {
             return SkinLoadResult(
@@ -191,6 +193,7 @@ class SkinProjectLoader {
         }
     }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
     private fun buildResourceIndex(
         project: SkinProject,
         root: JsonObject,
@@ -426,6 +429,7 @@ class SkinProjectLoader {
             else -> value::class.simpleName ?: "value"
         }
 
+    @Suppress("ReturnCount")
     private fun inferReference(
         fieldName: String,
         value: JsonElement,

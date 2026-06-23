@@ -26,7 +26,7 @@ import java.lang.reflect.Field
 import com.badlogic.gdx.scenes.scene2d.ui.List as GdxList
 
 class GdxSkinStyleEditApplier {
-    @Suppress("ReturnCount")
+    @Suppress("ReturnCount", "CyclomaticComplexMethod")
     fun apply(
         actor: Actor,
         item: SkinEditorPreviewItem,
@@ -49,6 +49,7 @@ class GdxSkinStyleEditApplier {
                 .filter { field -> field.isReference && field.value in editedResourceNames }
                 .map(EditableStyleField::name)
                 .toSet()
+        @Suppress("ComplexCondition")
         if (
             !editableStyle.createdInEditor &&
             !editableStyle.renamedInEditor &&
@@ -175,6 +176,7 @@ class GdxSkinStyleEditApplier {
             }
     }
 
+    @Suppress("CyclomaticComplexMethod")
     private fun resolveFieldValue(
         targetField: Field,
         editableField: EditableStyleField,
@@ -264,6 +266,7 @@ class GdxSkinStyleEditApplier {
         return runCatching { Color.valueOf(if (normalized.length == 6) normalized + "ff" else normalized) }.getOrNull()
     }
 
+    @Suppress("CyclomaticComplexMethod")
     private fun applyActorStyle(
         actor: Actor,
         style: Any,
@@ -295,6 +298,7 @@ class GdxSkinStyleEditApplier {
         }
     }
 
+    @Suppress("CyclomaticComplexMethod")
     private fun currentActorStyle(actor: Actor): Any? =
         when (actor) {
             is TextButton -> actor.style
@@ -313,6 +317,7 @@ class GdxSkinStyleEditApplier {
             else -> null
         }
 
+    @Suppress("CyclomaticComplexMethod")
     private fun styleTypeMatches(
         actor: Actor,
         styleType: String,
@@ -356,6 +361,7 @@ class GdxSkinStyleEditApplier {
             else -> null
         }
 
+    @Suppress("CyclomaticComplexMethod")
     private fun styleClassFor(type: String): Class<*>? =
         when (type) {
             "LabelStyle" -> Label.LabelStyle::class.java

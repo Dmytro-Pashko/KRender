@@ -4,15 +4,34 @@ import imgui.ImGui
 import java.io.File
 import java.nio.charset.StandardCharsets
 
+@Suppress("TopLevelPropertyNaming")
 internal val PreviewScales = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f)
+
+@Suppress("TopLevelPropertyNaming")
 internal val FontPreviewScales = listOf(0.5f, 1f, 1.5f, 2f)
+
+@Suppress("TopLevelPropertyNaming")
 internal const val MaxInspectorAtlasRegions = 100
+
+@Suppress("TopLevelPropertyNaming")
 internal const val ResourceSearchWidth = 300f
+
+@Suppress("TopLevelPropertyNaming")
 internal const val MaxInlineResourcePreviewHeight = 320f
+
+@Suppress("TopLevelPropertyNaming")
 internal const val MinInlineResourcePreviewScale = 0.05f
+
+@Suppress("TopLevelPropertyNaming")
 internal const val FontPreviewTextHeight = 96f
+
+@Suppress("TopLevelPropertyNaming")
 internal const val ResourcePreviewViewportHeight = 360f
+
+@Suppress("TopLevelPropertyNaming")
 internal const val ResourcePreviewClickDragThreshold = 4f
+
+@Suppress("TopLevelPropertyNaming")
 internal const val MinResourcePreviewGridScreenSpacing = 8f
 
 internal fun formatPreviewScale(scale: Float): String = "${(scale * 100f).toInt()}%"

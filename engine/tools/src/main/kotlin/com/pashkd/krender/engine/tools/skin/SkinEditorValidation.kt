@@ -11,6 +11,7 @@ data class SkinValidationContext(
 )
 
 class AtlasValidator : SkinValidator {
+    @Suppress("LongMethod")
     override fun validate(context: SkinValidationContext): List<SkinProblem> {
         val project = context.loadResult.project ?: return emptyList()
         val resourceIndex = context.loadResult.resourceIndex
@@ -97,6 +98,7 @@ class AtlasValidator : SkinValidator {
             .filter { texture -> texture.details["discoveredFile"] == "true" }
             .forEach { texture ->
                 val file = texture.source?.substringBefore('#')?.let(::File)
+                @Suppress("ComplexCondition")
                 if (file == null || !file.isFile || !file.canRead() || file.length() <= 0L) {
                     problems +=
                         SkinProblem(
@@ -122,6 +124,7 @@ class AtlasValidator : SkinValidator {
 }
 
 class FontValidator : SkinValidator {
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     override fun validate(context: SkinValidationContext): List<SkinProblem> {
         val fontReferences =
             context.loadResult.styleIndex.styles
@@ -203,6 +206,7 @@ class FontValidator : SkinValidator {
                         resourceKey = font.key,
                     )
             }
+            @Suppress("ComplexCondition")
             if (
                 matchedFile != null &&
                 matchedFile != "<none>" &&
@@ -547,7 +551,15 @@ private val ExcludedUnusedCategories =
         SkinResourceCategory.AtlasRegion,
         SkinResourceCategory.Unknown,
     )
+
+@Suppress("TopLevelPropertyNaming")
 private val UnsupportedFontPreviewExtensions = setOf("ttf", "otf")
+
+@Suppress("TopLevelPropertyNaming")
 private const val MaxGlyphMetadataLength = 96
+
+@Suppress("TopLevelPropertyNaming")
 private const val MaxAtlasRegionProblems = 25
+
+@Suppress("TopLevelPropertyNaming")
 private const val MaxUnusedResourceProblems = 25

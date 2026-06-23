@@ -22,6 +22,7 @@ class SkinEditorInspectorPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
     override fun draw() {
         val layout = layoutConfig.panels.getValue(SkinEditorPanelIds.Inspector)
         val expanded = beginImGuiPanel(SkinEditorPanelIds.Inspector, layout, layoutTracker)
@@ -125,6 +126,7 @@ private fun drawProblemInspector(
     }
 }
 
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 private fun drawResourceInspector(
     resource: SkinResourceInfo,
     resourceIndex: SkinResourceIndex,

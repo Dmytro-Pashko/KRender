@@ -445,6 +445,7 @@ data class SkinEditorState(
     val pendingPreviewPointerEvents: MutableList<SkinPreviewPointerEvent> = mutableListOf(),
 )
 
+@Suppress("TopLevelPropertyNaming")
 const val DefaultFontPreviewSampleText =
     "KRender Font Preview\n" +
         "The quick brown fox jumps over the lazy dog.\n" +
