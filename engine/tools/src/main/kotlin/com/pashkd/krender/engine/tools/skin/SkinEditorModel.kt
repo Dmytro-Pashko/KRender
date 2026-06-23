@@ -106,7 +106,16 @@ enum class SkinResourceVisualPreviewZoomMode {
     Percent50,
     Percent100,
     Percent200,
+    Custom,
 }
+
+data class SkinResourcePreviewViewportState(
+    var panX: Float = 0f,
+    var panY: Float = 0f,
+    var zoom: Float = 1f,
+    var clickSelectRegionEnabled: Boolean = true,
+    var contentKey: String? = null,
+)
 
 data class SkinFontPreviewState(
     var sampleText: String = DefaultFontPreviewSampleText,
@@ -127,6 +136,7 @@ data class SkinResourceVisualPreviewState(
     var showRegionBounds: Boolean = true,
     var showRegionLabels: Boolean = false,
     var selectedAtlasRegionName: String? = null,
+    var viewport: SkinResourcePreviewViewportState = SkinResourcePreviewViewportState(),
     var fontPreview: SkinFontPreviewState = SkinFontPreviewState(),
 )
 

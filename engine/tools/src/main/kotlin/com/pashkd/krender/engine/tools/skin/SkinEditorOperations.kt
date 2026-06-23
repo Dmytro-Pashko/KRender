@@ -162,12 +162,18 @@ class SkinEditorOperations(
 
     fun setResourcePreviewZoomMode(zoomMode: SkinResourceVisualPreviewZoomMode) {
         state.resourceVisualPreview.zoomMode = zoomMode
-        state.statusMessage = "Resource preview zoom set to ${formatResourceZoom(zoomMode)}."
+        when (zoomMode) {
+            SkinResourceVisualPreviewZoomMode.Fit -> resetResourcePreviewViewport()
+            SkinResourceVisualPreviewZoomMode.Percent50 -> setResourcePreviewViewportZoom(0.5f, updateMode = false)
+            SkinResourceVisualPreviewZoomMode.Percent100 -> setResourcePreviewViewportZoom(1f, updateMode = false)
+            SkinResourceVisualPreviewZoomMode.Percent200 -> setResourcePreviewViewportZoom(2f, updateMode = false)
+            SkinResourceVisualPreviewZoomMode.Custom -> state.statusMessage = "Resource preview zoom set to Custom."
+        }
+        state.resourceVisualPreview.zoomMode = zoomMode
     }
 
     fun resetResourcePreviewZoom() {
-        state.resourceVisualPreview.zoomMode = SkinResourceVisualPreviewZoomMode.Fit
-        state.statusMessage = "Resource preview zoom reset to Fit."
+        resetResourcePreviewViewport()
     }
 
     fun setShowResourceRegionBounds(showBounds: Boolean) {
@@ -180,12 +186,76 @@ class SkinEditorOperations(
         state.statusMessage = if (showLabels) "Resource preview labels enabled." else "Resource preview labels hidden."
     }
 
-    fun selectAtlasRegionPreview(regionName: String?) {
+    fun selectAtlasRegionPreview(
+        regionName: String?,
+        preferredSource: String? = null,
+        preferredPage: String? = null,
+    ) {
+        selectAtlasRegionByName(regionName, preferredSource, preferredPage)
+    }
+
+    fun setResourcePreviewViewportZoom(
+        value: Float,
+        updateMode: Boolean = true,
+    ) {
+        state.resourceVisualPreview.viewport.zoom = value.coerceIn(MinResourcePreviewZoom, MaxResourcePreviewZoom)
+        if (updateMode) {
+            state.resourceVisualPreview.zoomMode = SkinResourceVisualPreviewZoomMode.Custom
+        }
+        state.statusMessage = "Resource preview zoom set to ${formatScale(state.resourceVisualPreview.viewport.zoom)}."
+    }
+
+    fun panResourcePreviewViewport(
+        deltaX: Float,
+        deltaY: Float,
+    ) {
+        state.resourceVisualPreview.viewport.panX += deltaX
+        state.resourceVisualPreview.viewport.panY += deltaY
+    }
+
+    fun resetResourcePreviewViewport() {
+        state.resourceVisualPreview.viewport.panX = 0f
+        state.resourceVisualPreview.viewport.panY = 0f
+        state.resourceVisualPreview.viewport.zoom = 1f
+        state.resourceVisualPreview.zoomMode = SkinResourceVisualPreviewZoomMode.Fit
+        state.statusMessage = "Resource preview view reset to Fit."
+    }
+
+    fun setAtlasClickSelectionEnabled(enabled: Boolean) {
+        state.resourceVisualPreview.viewport.clickSelectRegionEnabled = enabled
+        state.statusMessage = if (enabled) "Atlas click selection enabled." else "Atlas click selection disabled."
+    }
+
+    fun selectAtlasRegionByName(
+        regionName: String?,
+        preferredSource: String? = null,
+        preferredPage: String? = null,
+    ) {
         state.resourceVisualPreview.selectedAtlasRegionName = regionName?.takeIf(String::isNotBlank)
+        val selectedRegionName = state.resourceVisualPreview.selectedAtlasRegionName
+        if (selectedRegionName != null) {
+            state.loadResult.resourceIndex.atlasRegions.firstOrNull { region ->
+                region.name == selectedRegionName &&
+                    (preferredSource == null || region.source == preferredSource) &&
+                    (preferredPage == null || region.details["page"] == preferredPage)
+            }?.let { region ->
+                state.selectedResourceKey = region.key
+            }
+        }
         state.statusMessage =
-            state.resourceVisualPreview.selectedAtlasRegionName?.let { name ->
+            selectedRegionName?.let { name ->
                 "Atlas preview region set to '$name'."
             } ?: "Atlas preview region cleared."
+    }
+
+    fun syncResourcePreviewViewportContent(contentKey: String?) {
+        val viewport = state.resourceVisualPreview.viewport
+        if (viewport.contentKey == contentKey) return
+        viewport.contentKey = contentKey
+        viewport.panX = 0f
+        viewport.panY = 0f
+        viewport.zoom = 1f
+        state.resourceVisualPreview.zoomMode = SkinResourceVisualPreviewZoomMode.Fit
     }
 
     fun setFontPreviewScale(scale: Float) {
@@ -230,5 +300,11 @@ class SkinEditorOperations(
             SkinResourceVisualPreviewZoomMode.Percent50 -> "50%"
             SkinResourceVisualPreviewZoomMode.Percent100 -> "100%"
             SkinResourceVisualPreviewZoomMode.Percent200 -> "200%"
+            SkinResourceVisualPreviewZoomMode.Custom -> "Custom"
         }
+
+    private companion object {
+        private const val MinResourcePreviewZoom = 0.1f
+        private const val MaxResourcePreviewZoom = 8f
+    }
 }

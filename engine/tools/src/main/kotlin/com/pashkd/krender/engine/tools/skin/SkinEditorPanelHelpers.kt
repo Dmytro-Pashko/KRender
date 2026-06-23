@@ -11,6 +11,8 @@ internal const val ResourceSearchWidth = 300f
 internal const val MaxInlineResourcePreviewHeight = 320f
 internal const val MinInlineResourcePreviewScale = 0.05f
 internal const val FontPreviewTextHeight = 96f
+internal const val ResourcePreviewViewportHeight = 360f
+internal const val ResourcePreviewClickDragThreshold = 4f
 
 internal fun formatPreviewScale(scale: Float): String = "${(scale * 100f).toInt()}%"
 
@@ -20,6 +22,7 @@ internal fun formatResourcePreviewZoom(zoomMode: SkinResourceVisualPreviewZoomMo
         SkinResourceVisualPreviewZoomMode.Percent50 -> "50%"
         SkinResourceVisualPreviewZoomMode.Percent100 -> "100%"
         SkinResourceVisualPreviewZoomMode.Percent200 -> "200%"
+        SkinResourceVisualPreviewZoomMode.Custom -> "Custom"
     }
 
 internal fun parseResourceColor(values: Map<String, String>): FloatArray? {
@@ -76,6 +79,103 @@ internal fun String.shortSource(): String {
     val suffix = substringAfter('#', missingDelimiterValue = "")
     val fileName = File(normalized).name.ifBlank { normalized }
     return if (suffix.isBlank()) fileName else "$fileName#$suffix"
+}
+
+internal data class ResourcePreviewViewportLayout(
+    val viewportX: Float,
+    val viewportY: Float,
+    val viewportWidth: Float,
+    val viewportHeight: Float,
+    val imageX: Float,
+    val imageY: Float,
+    val imageWidth: Float,
+    val imageHeight: Float,
+    val effectiveZoom: Float,
+)
+
+internal data class AtlasRegionHitInfo(
+    val resource: SkinResourceInfo,
+    val pageName: String?,
+    val x: Int,
+    val y: Int,
+    val width: Int,
+    val height: Int,
+) {
+    val area: Int get() = width * height
+}
+
+internal fun computeFitZoom(
+    viewportWidth: Float,
+    viewportHeight: Float,
+    imageWidth: Int,
+    imageHeight: Int,
+): Float =
+    minOf(
+        viewportWidth / imageWidth.coerceAtLeast(1).toFloat(),
+        viewportHeight / imageHeight.coerceAtLeast(1).toFloat(),
+    ).coerceAtLeast(MinInlineResourcePreviewScale)
+
+internal fun computeResourcePreviewViewportLayout(
+    viewportX: Float,
+    viewportY: Float,
+    viewportWidth: Float,
+    viewportHeight: Float,
+    imageWidth: Int,
+    imageHeight: Int,
+    previewState: SkinResourceVisualPreviewState,
+): ResourcePreviewViewportLayout {
+    val fitZoom = computeFitZoom(viewportWidth, viewportHeight, imageWidth, imageHeight)
+    val effectiveZoom =
+        when (previewState.zoomMode) {
+            SkinResourceVisualPreviewZoomMode.Fit -> fitZoom
+            else -> previewState.viewport.zoom.coerceAtLeast(MinInlineResourcePreviewScale)
+        }
+    val renderedWidth = imageWidth * effectiveZoom
+    val renderedHeight = imageHeight * effectiveZoom
+    val baseX = viewportX + (viewportWidth - renderedWidth) * 0.5f
+    val baseY = viewportY + (viewportHeight - renderedHeight) * 0.5f
+    return ResourcePreviewViewportLayout(
+        viewportX = viewportX,
+        viewportY = viewportY,
+        viewportWidth = viewportWidth,
+        viewportHeight = viewportHeight,
+        imageX = baseX + previewState.viewport.panX,
+        imageY = baseY + previewState.viewport.panY,
+        imageWidth = renderedWidth,
+        imageHeight = renderedHeight,
+        effectiveZoom = effectiveZoom,
+    )
+}
+
+internal fun screenToImageX(
+    screenX: Float,
+    layout: ResourcePreviewViewportLayout,
+): Float = (screenX - layout.imageX) / layout.effectiveZoom
+
+internal fun screenToImageYTopLeft(
+    screenY: Float,
+    layout: ResourcePreviewViewportLayout,
+): Float = (screenY - layout.imageY) / layout.effectiveZoom
+
+internal fun parseAtlasRegionHitInfo(resource: SkinResourceInfo): AtlasRegionHitInfo? {
+    val xy = resource.details["xy"]?.parseIntPair() ?: return null
+    val size = resource.details["size"]?.parseIntPair() ?: return null
+    return AtlasRegionHitInfo(
+        resource = resource,
+        pageName = resource.details["page"]?.takeIf(String::isNotBlank),
+        x = xy.first,
+        y = xy.second,
+        width = size.first,
+        height = size.second,
+    )
+}
+
+internal fun String.parseIntPair(): Pair<Int, Int>? {
+    val parts = split(',').map(String::trim)
+    if (parts.size < 2) return null
+    val first = parts[0].toIntOrNull() ?: return null
+    val second = parts[1].toIntOrNull() ?: return null
+    return first to second
 }
 
 private val AvailablePreviewCategories =
