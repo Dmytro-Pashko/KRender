@@ -39,6 +39,22 @@ class TextureManagerToolsPanel(
             return
         }
 
+        drawPreviewTools()
+        ImGui.separator()
+        val packingPlan = drawAtlasPackingSection()
+        ImGui.separator()
+        drawTextureImportSection()
+        ImGui.separator()
+        drawAtlasDescriptorExportSection(packingPlan)
+
+        ImGui.separator()
+        textLine("Mouse wheel: zoom")
+        textLine("RMB drag or Pan mode: pan")
+        textLine("LMB on region: select")
+        ImGui.end()
+    }
+
+    private fun drawPreviewTools() {
         if (ImGui.beginCombo("Mode##texture_manager_tool_mode", state.toolMode.name)) {
             TextureManagerToolMode.entries.forEach { mode ->
                 if (ImGui.selectable(mode.name, state.toolMode == mode)) {
@@ -94,8 +110,9 @@ class TextureManagerToolsPanel(
         if (ImGui.checkbox("Show Nine-patch Guides##texture_manager_nine_patch_guides", ninePatchGuides)) {
             operations.setShowNinePatchGuides(ninePatchGuides[0])
         }
+    }
 
-        ImGui.separator()
+    private fun drawAtlasPackingSection(): com.pashkd.krender.engine.tools.texturemanager.TextureAtlasPackingPlan? {
         textLine("Atlas Packing Draft")
         drawPageSizeCombo(
             label = "Max Width##texture_manager_packing_width",
@@ -125,8 +142,10 @@ class TextureManagerToolsPanel(
         textLine("Skipped: ${packingPlan?.skippedCount ?: 0}")
         textLine("Pages: ${packingPlan?.pages?.size ?: 0}")
         textLine("Diagnostics: ${state.packing.lastResult.diagnostics.size}")
+        return packingPlan
+    }
 
-        ImGui.separator()
+    private fun drawTextureImportSection() {
         textLine("Texture Import")
         ImGui.textUnformatted("Source Path")
         ImGui.setNextItemWidth(-1f)
@@ -149,8 +168,9 @@ class TextureManagerToolsPanel(
             textLine(result.message)
             result.writtenPaths.forEach(::textLine)
         }
+    }
 
-        ImGui.separator()
+    private fun drawAtlasDescriptorExportSection(packingPlan: com.pashkd.krender.engine.tools.texturemanager.TextureAtlasPackingPlan?) {
         textLine("Atlas Descriptor Export")
         ImGui.textUnformatted("Export Directory")
         ImGui.setNextItemWidth(-1f)
@@ -179,12 +199,6 @@ class TextureManagerToolsPanel(
             textLine(result.message)
             result.writtenPaths.forEach(::textLine)
         }
-
-        ImGui.separator()
-        textLine("Mouse wheel: zoom")
-        textLine("RMB drag or Pan mode: pan")
-        textLine("LMB on region: select")
-        ImGui.end()
     }
 
     private fun syncBuffersIfNeeded() {

@@ -349,10 +349,9 @@ class TextureManagerProjectLoader(
         private const val TAG = "TextureManagerLoader"
         private const val MaxScannedFiles = 5_000
 
-        private val SupportedTextureExtensions = setOf("png", "jpg", "jpeg", "ktx", "webp")
         private val IgnoredDirectoryNames = setOf(".git", ".gradle", "build", "out")
 
-        fun isTextureFile(file: File): Boolean = file.isFile && file.extension.lowercase() in SupportedTextureExtensions
+        fun isTextureFile(file: File): Boolean = isSupportedTextureFile(file)
 
         fun isAtlasFile(file: File): Boolean = file.isFile && file.extension.equals("atlas", ignoreCase = true)
     }

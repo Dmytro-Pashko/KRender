@@ -10,9 +10,9 @@ class TextureManagerOperations(
     private val engine: EngineContext,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val packingPlanner: TextureAtlasPackingPlanner = TextureAtlasPackingPlanner(),
-    private val importService: TextureManagerImportService = TextureManagerImportService(engine.logger),
-    private val descriptorExporter: TextureAtlasDescriptorExporter = TextureAtlasDescriptorExporter(engine.logger, engine.sceneFiles),
 ) {
+    private val importExportOperations = TextureManagerImportExportOperations(state, engine, openPath = ::openPath)
+
     fun openPath(path: String) {
         val normalized = path.trim().replace('\\', '/').ifBlank { null }
         if (normalized != state.currentInputPath) {
@@ -318,46 +318,16 @@ class TextureManagerOperations(
     }
 
     fun importTexture() {
-        val assetRoot = engine.assetRegistry.baseDir()
-        val result =
-            importService.importTexture(
-                assetRoot = assetRoot,
-                sourcePath = state.importExport.importSourcePath,
-                targetDirectory = state.importExport.importTargetDirectory.ifBlank { "textures" },
-                overwrite = state.importExport.importOverwrite,
-            )
-        state.importExport.lastImportResult = result
-        state.statusMessage = result.message
-        if (result.success) {
-            val importedPath = result.writtenPaths.firstOrNull()
-            if (importedPath != null) {
-                openPath(importedPath)
-            }
-        }
+        importExportOperations.importTexture()
     }
 
     fun exportAtlasDescriptorDraft() {
-        val plan = state.selectedPackingPlan()
-        if (plan == null) {
-            val result = TextureManagerFileWriteResult(success = false, message = "Run a packing dry-run before exporting an atlas descriptor.")
-            state.importExport.lastExportResult = result
-            state.statusMessage = result.message
-            engine.logger.warn(TAG) { "Texture Manager descriptor export requested without a packing plan" }
-            return
-        }
-        val result =
-            descriptorExporter.exportDescriptorDraft(
-                assetRoot = engine.assetRegistry.baseDir(),
-                exportDirectory = state.importExport.exportDirectory.ifBlank { "atlases" },
-                exportBaseName = state.importExport.exportBaseName,
-                overwrite = state.importExport.exportOverwrite,
-                plan = plan,
-            )
-        state.importExport.lastExportResult = result
-        state.statusMessage = result.message
+        importExportOperations.exportAtlasDescriptorDraft()
     }
 
-    fun importTexturePlaceholder() = importTexture()
+    fun showImportTextureHelp() {
+        importExportOperations.showImportTextureHelp()
+    }
 
     fun saveMetadataPlaceholder() = placeholder("Save Metadata")
 

@@ -44,7 +44,7 @@ class TextureAtlasDescriptorExporter(
             logger.info(TAG) { "Texture Manager descriptor export succeeded path='$atlasPath'" }
             TextureManagerFileWriteResult(
                 success = true,
-                message = "Atlas descriptor draft exported. Packed page image export is deferred.",
+                message = "Atlas descriptor draft exported. Packed page image generation is deferred.",
                 writtenPaths = listOf(atlasPath),
             )
         }.getOrElse { error ->

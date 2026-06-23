@@ -74,10 +74,6 @@ class TextureManagerImportService(
         private const val TAG = "TextureImportService"
 
         private fun isSupportedImportTexture(file: File): Boolean =
-            file.isFile &&
-                (
-                    file.extension.lowercase() in setOf("png", "jpg", "jpeg", "ktx", "webp") ||
-                        isNinePatchTexturePath(file.name)
-                )
+            isSupportedTextureFile(file)
     }
 }

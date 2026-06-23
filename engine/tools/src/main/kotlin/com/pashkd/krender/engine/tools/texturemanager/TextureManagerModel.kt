@@ -15,10 +15,7 @@ enum class TextureManagerToolMode {
     SelectRegion,
     Pan,
     Zoom,
-    MoveRegion,
-    ResizeRegion,
     NinePatch,
-    CreateRegion,
 }
 
 enum class TexturePreviewZoomMode {

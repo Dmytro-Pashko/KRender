@@ -48,8 +48,8 @@ class TextureManagerToolbarPanel(
             operations.reload()
         }
         ImGui.sameLine()
-        if (ImGui.button("Import Texture##texture_manager_import")) {
-            operations.importTexture()
+        if (ImGui.button("Import Texture...##texture_manager_import")) {
+            operations.showImportTextureHelp()
         }
         ImGui.sameLine()
         if (ImGui.button("Save Metadata##texture_manager_save_metadata")) {
