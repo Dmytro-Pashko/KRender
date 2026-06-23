@@ -133,7 +133,7 @@ class TextureManagerOperations(
             minOf(
                 canvas.width / regionWidth.toFloat(),
                 canvas.height / regionHeight.toFloat(),
-            ).coerceIn(0.05f, 8f) * 0.9f
+            ).times(0.9f).coerceIn(0.05f, 8f)
 
         val imageWidth = textureWidth * zoom
         val imageHeight = textureHeight * zoom

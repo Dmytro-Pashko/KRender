@@ -78,8 +78,9 @@ class TextureManagerAtlasRegionsPanel(
             drawPageSummary(atlas, currentPage)
         }
 
+        val regions = visibleRegions(atlas)
         ImGui.beginChild("texture_manager_regions_list", ImVec2(0f, 0f), true)
-        visibleRegions(atlas).forEach { region ->
+        regions.forEach { region ->
             val selected = state.selectedRegionId == region.id
             val sizeText = region.size?.let { "${it.first} x ${it.second}" } ?: "<unknown>"
             if (ImGui.selectable("${region.id.regionName} [$sizeText]##${region.id.regionName}_${region.id.pageName}", selected)) {
@@ -90,7 +91,7 @@ class TextureManagerAtlasRegionsPanel(
                 operations.fitSelectedRegion()
             }
         }
-        if (visibleRegions(atlas).isEmpty()) {
+        if (regions.isEmpty()) {
             ImGui.textUnformatted("No atlas regions match the current filter.")
         }
         ImGui.endChild()

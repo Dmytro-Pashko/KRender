@@ -261,17 +261,6 @@ class TextureManagerProjectLoader(
         pageMetadata: TextureManagerTextureInfo?,
         diagnostics: MutableList<TextureManagerDiagnostic>,
     ) {
-        regions.groupBy { region -> region.id.regionName }
-            .filterValues { grouped -> grouped.size > 1 }
-            .forEach { (name, _) ->
-                diagnostics +=
-                    TextureManagerDiagnostic(
-                        severity = TextureManagerDiagnosticSeverity.Warning,
-                        category = TextureManagerDiagnosticCategory.Atlas,
-                        message = "Duplicate region name '$name' on page '$pageName'.",
-                        source = normalizePath(atlasFile.path),
-                    )
-            }
         regions.forEach { region ->
             if (region.xy == null) {
                 diagnostics +=

@@ -5,8 +5,8 @@ import com.pashkd.krender.engine.tools.texturemanager.TextureManagerOperations
 import com.pashkd.krender.engine.tools.texturemanager.TextureManagerPanelIds
 import com.pashkd.krender.engine.tools.texturemanager.TextureManagerState
 import com.pashkd.krender.engine.tools.texturemanager.TextureManagerToolMode
+import com.pashkd.krender.engine.tools.texturemanager.AtlasRegionId
 import com.pashkd.krender.engine.tools.texturemanager.computeTexturePreviewViewportLayout
-import com.pashkd.krender.engine.tools.texturemanager.formatZoomMode
 import com.pashkd.krender.engine.tools.texturemanager.hitTestAtlasRegion
 import com.pashkd.krender.engine.tools.texturemanager.screenToTexturePixelX
 import com.pashkd.krender.engine.tools.texturemanager.screenToTexturePixelY
@@ -30,7 +30,8 @@ class TextureManagerPreviewCanvasPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    private var pendingSelectRegionId: com.pashkd.krender.engine.tools.texturemanager.AtlasRegionId? = null
+    private var pendingSelectRegionId: AtlasRegionId? = null
+    private var pendingSelectWasDoubleClick = false
     private var clickDragDistance = 0f
     private var cursorTextureX: Int? = null
     private var cursorTextureY: Int? = null
@@ -103,6 +104,7 @@ class TextureManagerPreviewCanvasPanel(
             cursorTextureY = null
             cursorRegionX = null
             cursorRegionY = null
+            resetPendingSelection()
             return
         }
         updateCursorMetrics(viewportLayout)
@@ -114,6 +116,7 @@ class TextureManagerPreviewCanvasPanel(
         ) {
             operations.panPreview(io.mouseDelta.x, io.mouseDelta.y)
             clickDragDistance += kotlin.math.abs(io.mouseDelta.x) + kotlin.math.abs(io.mouseDelta.y)
+            pendingSelectWasDoubleClick = false
             pendingSelectRegionId = null
         }
         val hoveredRegion =
@@ -132,14 +135,17 @@ class TextureManagerPreviewCanvasPanel(
         }
         if (io.mouseClicked[0]) {
             pendingSelectRegionId = hoveredRegion?.id
+            pendingSelectWasDoubleClick = ImGui.run { MouseButton.Left.isDoubleClicked }
             clickDragDistance = 0f
         }
         if (pendingSelectRegionId != null && io.mouseReleased[0] && clickDragDistance < ClickDragThreshold) {
             operations.selectRegion(pendingSelectRegionId)
-            if (ImGui.run { MouseButton.Left.isDoubleClicked }) {
+            if (pendingSelectWasDoubleClick) {
                 operations.fitSelectedRegion()
             }
-            pendingSelectRegionId = null
+            resetPendingSelection()
+        } else if (io.mouseReleased[0]) {
+            resetPendingSelection()
         }
     }
 
@@ -149,12 +155,18 @@ class TextureManagerPreviewCanvasPanel(
         val textureY = screenToTexturePixelY(io.mousePos.y, viewportLayout)
         cursorTextureX =
             textureX
-                .takeIf { x -> x >= 0f && x <= state.previewInfo.textureWidth }
+                .takeIf { x -> x >= 0f && x < state.previewInfo.textureWidth }
                 ?.toInt()
         cursorTextureY =
             textureY
-                .takeIf { y -> y >= 0f && y <= state.previewInfo.textureHeight }
+                .takeIf { y -> y >= 0f && y < state.previewInfo.textureHeight }
                 ?.toInt()
+    }
+
+    private fun resetPendingSelection() {
+        pendingSelectRegionId = null
+        pendingSelectWasDoubleClick = false
+        clickDragDistance = 0f
     }
 
     private fun drawStatusLine() {

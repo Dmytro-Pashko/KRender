@@ -129,12 +129,6 @@ internal fun hitTestAtlasRegion(
         }
 }
 
-internal fun formatRegionMetrics(metrics: TextureAtlasRegionMetrics): String {
-    val area = metrics.areaPixels?.toString() ?: "<unknown>"
-    val outside = if (metrics.outsidePageBounds) " outside bounds" else ""
-    return "$area px$outside"
-}
-
 internal fun formatZoomMode(mode: TexturePreviewZoomMode): String =
     when (mode) {
         TexturePreviewZoomMode.Fit -> "Fit"
