@@ -103,6 +103,7 @@ class SafeWidgetBuilder : Disposable {
                 PreviewWidgetKind.Tree -> buildTree(item, primarySkin, issues)
                 PreviewWidgetKind.TextTooltip -> buildTextTooltip(item, primarySkin, issues)
             }
+        actor.name = item.key
         styleEditApplier.apply(actor, item, primarySkin, editSession, issues)
         if (matchesSelectedStyle(item)) {
             selectedStyleActors += actor

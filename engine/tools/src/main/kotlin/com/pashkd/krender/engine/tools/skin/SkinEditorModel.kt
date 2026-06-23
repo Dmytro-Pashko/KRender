@@ -332,6 +332,50 @@ data class SkinPreviewCameraState(
     var zoom: Float = 1f,
 )
 
+data class SkinPreviewInteractionState(
+    var inputEnabled: Boolean = true,
+    var hoveredActorPath: String? = null,
+    var focusedActorPath: String? = null,
+    var lastInputStatus: String? = null,
+    var cursorCanvasX: Float? = null,
+    var cursorCanvasY: Float? = null,
+    var cursorStageX: Float? = null,
+    var cursorStageY: Float? = null,
+)
+
+enum class SkinPreviewPointerEventType {
+    Move,
+    Down,
+    Drag,
+    Up,
+    Scroll,
+}
+
+enum class SkinPreviewPointerButton {
+    Left,
+    Right,
+    Middle,
+}
+
+data class SkinPreviewPointerEvent(
+    val type: SkinPreviewPointerEventType,
+    val screenX: Float,
+    val screenY: Float,
+    val button: SkinPreviewPointerButton,
+    val pointer: Int = 0,
+    val scrollAmountY: Float = 0f,
+)
+
+data class SkinPreviewInteractionFeedback(
+    val hoveredActorPath: String? = null,
+    val focusedActorPath: String? = null,
+    val lastInputStatus: String? = null,
+    val cursorCanvasX: Float? = null,
+    val cursorCanvasY: Float? = null,
+    val cursorStageX: Float? = null,
+    val cursorStageY: Float? = null,
+)
+
 /**
  * Scene2D Preview Canvas UI state.
  *
@@ -341,9 +385,11 @@ data class SkinPreviewCameraState(
 data class SkinPreviewSettings(
     var screenPresetId: String = SkinPreviewScreenPresets.DefaultId,
     var scale: Float = 1f,
+    var showCheckerboard: Boolean = true,
     var showBounds: Boolean = false,
     var highlightSelectedStyle: Boolean = true,
     var camera: SkinPreviewCameraState = SkinPreviewCameraState(),
+    var interaction: SkinPreviewInteractionState = SkinPreviewInteractionState(),
     var showFallbackWarnings: Boolean = true,
     var text: SkinPreviewTextSettings = SkinPreviewTextSettings(),
 )
@@ -396,6 +442,7 @@ data class SkinEditorState(
     var reloadRequested: Boolean = false,
     var statusMessage: String = "Skin Editor ready.",
     var previewInfo: SkinEditorPreviewStageInfo = SkinEditorPreviewStageInfo(),
+    val pendingPreviewPointerEvents: MutableList<SkinPreviewPointerEvent> = mutableListOf(),
 )
 
 const val DefaultFontPreviewSampleText =

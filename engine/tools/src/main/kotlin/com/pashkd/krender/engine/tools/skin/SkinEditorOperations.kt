@@ -143,9 +143,50 @@ class SkinEditorOperations(
         updatePreviewStatus(if (showBounds) "Preview bounds enabled." else "Preview bounds hidden.")
     }
 
+    fun setPreviewCheckerboardEnabled(enabled: Boolean) {
+        state.previewSettings.showCheckerboard = enabled
+        state.statusMessage = if (enabled) "Preview checkerboard enabled." else "Preview checkerboard hidden."
+    }
+
     fun setHighlightSelectedStyle(enabled: Boolean) {
         state.previewSettings.highlightSelectedStyle = enabled
         state.statusMessage = if (enabled) "Selected style highlight enabled." else "Selected style highlight hidden."
+    }
+
+    fun setCanvasInteractionEnabled(enabled: Boolean) {
+        state.previewSettings.interaction.inputEnabled = enabled
+        state.previewSettings.interaction.lastInputStatus =
+            if (enabled) {
+                "Widget interaction enabled. Keyboard input is deferred."
+            } else {
+                "Widget interaction disabled."
+            }
+        state.statusMessage = state.previewSettings.interaction.lastInputStatus.orEmpty()
+    }
+
+    fun queuePreviewPointerEvent(event: SkinPreviewPointerEvent) {
+        state.pendingPreviewPointerEvents += event
+    }
+
+    fun clearPreviewInteractionFeedback() {
+        state.previewSettings.interaction.hoveredActorPath = null
+        state.previewSettings.interaction.focusedActorPath = null
+        state.previewSettings.interaction.cursorCanvasX = null
+        state.previewSettings.interaction.cursorCanvasY = null
+        state.previewSettings.interaction.cursorStageX = null
+        state.previewSettings.interaction.cursorStageY = null
+    }
+
+    fun updatePreviewInteractionFeedback(feedback: SkinPreviewInteractionFeedback) {
+        state.previewSettings.interaction.hoveredActorPath = feedback.hoveredActorPath
+        state.previewSettings.interaction.focusedActorPath = feedback.focusedActorPath
+        state.previewSettings.interaction.cursorCanvasX = feedback.cursorCanvasX
+        state.previewSettings.interaction.cursorCanvasY = feedback.cursorCanvasY
+        state.previewSettings.interaction.cursorStageX = feedback.cursorStageX
+        state.previewSettings.interaction.cursorStageY = feedback.cursorStageY
+        feedback.lastInputStatus?.let { status ->
+            state.previewSettings.interaction.lastInputStatus = status
+        }
     }
 
     fun panPreviewCamera(

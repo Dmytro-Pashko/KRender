@@ -126,6 +126,14 @@ class SkinEditorScene(
         editorState.selectedProblemIndex =
             editorState.loadResult.problems.indices.firstOrNull()
                 .takeIf { editorState.selectedStyleKey == null && editorState.selectedResourceKey == null }
+        editorState.pendingPreviewPointerEvents.clear()
+        editorState.previewSettings.interaction.hoveredActorPath = null
+        editorState.previewSettings.interaction.focusedActorPath = null
+        editorState.previewSettings.interaction.lastInputStatus = null
+        editorState.previewSettings.interaction.cursorCanvasX = null
+        editorState.previewSettings.interaction.cursorCanvasY = null
+        editorState.previewSettings.interaction.cursorStageX = null
+        editorState.previewSettings.interaction.cursorStageY = null
     }
 
     private fun createUiSystem(): UiSystem {
@@ -242,6 +250,7 @@ private class SkinEditorPreviewUpdateSystem(
                 logicalWidth = preset.width,
                 logicalHeight = preset.height,
                 scale = state.previewSettings.scale,
+                showCheckerboard = state.previewSettings.showCheckerboard,
                 showBounds = state.previewSettings.showBounds,
                 highlightSelectedStyle = state.previewSettings.highlightSelectedStyle,
                 cameraPanX = state.previewSettings.camera.panX,
@@ -250,6 +259,24 @@ private class SkinEditorPreviewUpdateSystem(
             )
         } else {
             preview.clearCanvasViewport()
+        }
+        if (state.pendingPreviewPointerEvents.isNotEmpty()) {
+            var latestFeedback: SkinPreviewInteractionFeedback? = null
+            state.pendingPreviewPointerEvents.forEach { event ->
+                latestFeedback = preview.handlePointerEvent(event)
+            }
+            state.pendingPreviewPointerEvents.clear()
+            latestFeedback?.let { feedback ->
+                state.previewSettings.interaction.hoveredActorPath = feedback.hoveredActorPath
+                state.previewSettings.interaction.focusedActorPath = feedback.focusedActorPath
+                state.previewSettings.interaction.cursorCanvasX = feedback.cursorCanvasX
+                state.previewSettings.interaction.cursorCanvasY = feedback.cursorCanvasY
+                state.previewSettings.interaction.cursorStageX = feedback.cursorStageX
+                state.previewSettings.interaction.cursorStageY = feedback.cursorStageY
+                feedback.lastInputStatus?.let { status ->
+                    state.previewSettings.interaction.lastInputStatus = status
+                }
+            }
         }
         if (state.previewDirty) {
             val layout = previewLayouts.layoutOrDefault(state.previewLayoutId)

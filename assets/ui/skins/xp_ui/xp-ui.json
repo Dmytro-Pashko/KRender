@@ -258,7 +258,6 @@
 		"titleFontColor": "white"
 	},
 	"loading": {
-		"background": "loading-window",
 		"titleFont": "title"
 	},
 	"dialog": {
