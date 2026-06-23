@@ -82,6 +82,10 @@ class TextureManagerToolsPanel(
         if (ImGui.checkbox("Bounds##texture_manager_bounds", bounds)) {
             operations.setShowBounds(bounds[0])
         }
+        val ninePatchGuides = booleanArrayOf(state.preview.showNinePatchGuides)
+        if (ImGui.checkbox("Show Nine-patch Guides##texture_manager_nine_patch_guides", ninePatchGuides)) {
+            operations.setShowNinePatchGuides(ninePatchGuides[0])
+        }
 
         ImGui.separator()
         textLine("Mouse wheel: zoom")

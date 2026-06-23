@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.tools.texturemanager.TextureManagerState
 import com.pashkd.krender.engine.tools.texturemanager.computeRegionMetrics
 import com.pashkd.krender.engine.tools.texturemanager.selectedAsset
 import com.pashkd.krender.engine.tools.texturemanager.selectedAtlasDocument
+import com.pashkd.krender.engine.tools.texturemanager.selectedNinePatchDocument
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -51,6 +52,22 @@ class TextureManagerInspectorPanel(
         }
         asset.metadataPath?.let { path -> textLine(".krmeta: $path") } ?: textLine(".krmeta: <missing>")
         textLine("Metadata present: ${if (asset.metadataPath != null) "yes" else "no"}")
+        state.selectedNinePatchDocument()?.let { document ->
+            ImGui.separator()
+            textLine("Nine-patch: yes")
+            textLine("Image size: ${document.imageWidth} x ${document.imageHeight}")
+            textLine("Drawable size: ${document.contentWidth} x ${document.contentHeight}")
+            textLine("Stretch X: ${formatSegments(document.stretchX)}")
+            textLine("Stretch Y: ${formatSegments(document.stretchY)}")
+            textLine("Padding X: ${formatSegment(document.paddingX)}")
+            textLine("Padding Y: ${formatSegment(document.paddingY)}")
+            textLine("Validation issues: ${document.issues.size}")
+            document.issues.forEach { issue ->
+                textLine("${issue.severity.name}: ${issue.message}")
+            }
+        } ?: run {
+            textLine("Nine-patch: ${if (asset.fileName.endsWith(".9.png", ignoreCase = true)) "unavailable" else "no"}")
+        }
         if (asset.registryMetadata.isNotEmpty()) {
             ImGui.separator()
             textLine("Indexed metadata")
@@ -104,6 +121,16 @@ class TextureManagerInspectorPanel(
     }
 
     private fun formatUv(value: Float): String = "%.4f".format(value)
+
+    private fun formatSegment(segment: com.pashkd.krender.engine.tools.texturemanager.NinePatchSegment?): String =
+        segment?.let { "${it.start}..${it.endInclusive}" } ?: "<none>"
+
+    private fun formatSegments(segments: List<com.pashkd.krender.engine.tools.texturemanager.NinePatchSegment>): String =
+        if (segments.isEmpty()) {
+            "<none>"
+        } else {
+            segments.joinToString { segment -> "${segment.start}..${segment.endInclusive}" }
+        }
 
     companion object {
         private val ModifiedAtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")

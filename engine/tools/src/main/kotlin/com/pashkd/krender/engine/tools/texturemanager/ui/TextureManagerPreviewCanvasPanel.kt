@@ -10,6 +10,7 @@ import com.pashkd.krender.engine.tools.texturemanager.computeTexturePreviewViewp
 import com.pashkd.krender.engine.tools.texturemanager.hitTestAtlasRegion
 import com.pashkd.krender.engine.tools.texturemanager.screenToTexturePixelX
 import com.pashkd.krender.engine.tools.texturemanager.screenToTexturePixelY
+import com.pashkd.krender.engine.tools.texturemanager.selectedNinePatchDocument
 import com.pashkd.krender.engine.tools.texturemanager.selectedRegionsForPage
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -82,6 +83,11 @@ class TextureManagerPreviewCanvasPanel(
             if (state.preview.showBounds && regions.isNotEmpty()) {
                 TextureManagerPreviewOverlays.drawRegionBounds(regions, viewportLayout, selectedRegion, hoveredRegion)
                 selectedRegion?.let { region -> TextureManagerPreviewOverlays.labelRegion(region, viewportLayout) }
+            }
+            if (state.preview.showNinePatchGuides) {
+                state.selectedNinePatchDocument()?.let { document ->
+                    TextureManagerPreviewOverlays.drawNinePatchGuides(document, viewportLayout)
+                }
             }
             handleInteraction(viewportLayout, regions)
         } else {
@@ -175,6 +181,7 @@ class TextureManagerPreviewCanvasPanel(
                 com.pashkd.krender.engine.tools.texturemanager.TexturePreviewZoomMode.Fit -> "Fit"
                 else -> "${(state.preview.viewport.zoom * 100f).toInt()}%"
             }
+        val ninePatchText = if (state.selectedNinePatchDocument() != null) "Nine-patch" else "Texture"
         val cursorText =
             if (cursorTextureX != null && cursorTextureY != null) {
                 "Cursor: ${cursorTextureX}, ${cursorTextureY}"
@@ -191,7 +198,7 @@ class TextureManagerPreviewCanvasPanel(
             }
         textLine("Zoom: $zoomPercent")
         ImGui.sameLine()
-        textLine("Texture: ${state.previewInfo.textureWidth} x ${state.previewInfo.textureHeight}")
+        textLine("$ninePatchText: ${state.previewInfo.textureWidth} x ${state.previewInfo.textureHeight}")
         ImGui.sameLine()
         textLine(cursorText)
         ImGui.sameLine()

@@ -196,6 +196,11 @@ class TextureManagerOperations(
         state.statusMessage = if (enabled) "Bounds enabled." else "Bounds hidden."
     }
 
+    fun setShowNinePatchGuides(enabled: Boolean) {
+        state.preview.showNinePatchGuides = enabled
+        state.statusMessage = if (enabled) "Nine-patch guides enabled." else "Nine-patch guides hidden."
+    }
+
     fun importTexturePlaceholder() = placeholder("Import Texture")
 
     fun saveMetadataPlaceholder() = placeholder("Save Metadata")
@@ -236,6 +241,11 @@ class TextureManagerOperations(
 internal fun TextureManagerState.selectedAsset(): TextureManagerAssetDescriptor? = project.assets.firstOrNull { it.id == selectedAssetId }
 
 internal fun TextureManagerState.selectedAtlasDocument(): TextureAtlasDocument? = selectedAsset()?.takeIf { it.kind == TextureManagerAssetKind.Atlas }?.let { asset -> project.atlasDocuments[asset.path] }
+
+internal fun TextureManagerState.selectedNinePatchDocument(): NinePatchDocument? =
+    selectedAsset()
+        ?.takeIf { asset -> asset.kind == TextureManagerAssetKind.Texture }
+        ?.let { asset -> project.ninePatchDocuments[asset.path] }
 
 internal fun TextureManagerState.selectedRegionsForPage(): List<TextureAtlasRegion> =
     selectedAtlasDocument()

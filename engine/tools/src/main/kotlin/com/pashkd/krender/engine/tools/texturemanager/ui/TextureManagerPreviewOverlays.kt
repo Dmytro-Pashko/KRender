@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.tools.texturemanager.ui
 
+import com.pashkd.krender.engine.tools.texturemanager.NinePatchDocument
+import com.pashkd.krender.engine.tools.texturemanager.NinePatchSegment
 import com.pashkd.krender.engine.tools.texturemanager.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.texturemanager.TexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.texturemanager.TextureRegionScreenRect
@@ -77,6 +79,59 @@ internal object TextureManagerPreviewOverlays {
         drawList.addText(ImVec2(rect.minX + 4f, rect.minY + 4f), LabelColor, region.id.regionName)
     }
 
+    fun drawNinePatchGuides(
+        document: NinePatchDocument,
+        layout: TexturePreviewViewportLayout,
+    ) {
+        val drawList = ImGui.windowDrawList
+        val drawableMinX = layout.imageX + layout.effectiveZoom
+        val drawableMinY = layout.imageY + layout.effectiveZoom
+        val drawableMaxX = layout.imageX + (document.imageWidth - 1) * layout.effectiveZoom
+        val drawableMaxY = layout.imageY + (document.imageHeight - 1) * layout.effectiveZoom
+        drawList.addRect(
+            ImVec2(drawableMinX, drawableMinY),
+            ImVec2(drawableMaxX, drawableMaxY),
+            NinePatchContentColor,
+            0f,
+            thickness = 2f,
+        )
+
+        document.stretchX.forEach { segment ->
+            drawHorizontalGuide(segment, layout.imageY + layout.effectiveZoom * 0.5f, NinePatchStretchXColor, layout)
+        }
+        document.paddingX?.let { segment ->
+            drawHorizontalGuide(segment, layout.imageY + (document.imageHeight - 0.5f) * layout.effectiveZoom, NinePatchPaddingColor, layout)
+        }
+        document.stretchY.forEach { segment ->
+            drawVerticalGuide(segment, layout.imageX + layout.effectiveZoom * 0.5f, NinePatchStretchYColor, layout)
+        }
+        document.paddingY?.let { segment ->
+            drawVerticalGuide(segment, layout.imageX + (document.imageWidth - 0.5f) * layout.effectiveZoom, NinePatchPaddingColor, layout)
+        }
+    }
+
+    private fun drawHorizontalGuide(
+        segment: NinePatchSegment,
+        y: Float,
+        color: Int,
+        layout: TexturePreviewViewportLayout,
+    ) {
+        val startX = layout.imageX + (segment.start + 1f) * layout.effectiveZoom
+        val endX = layout.imageX + (segment.endInclusive + 2f) * layout.effectiveZoom
+        ImGui.windowDrawList.addLine(ImVec2(startX, y), ImVec2(endX, y), color, 3f)
+    }
+
+    private fun drawVerticalGuide(
+        segment: NinePatchSegment,
+        x: Float,
+        color: Int,
+        layout: TexturePreviewViewportLayout,
+    ) {
+        val startY = layout.imageY + (segment.start + 1f) * layout.effectiveZoom
+        val endY = layout.imageY + (segment.endInclusive + 2f) * layout.effectiveZoom
+        ImGui.windowDrawList.addLine(ImVec2(x, startY), ImVec2(x, endY), color, 3f)
+    }
+
     private val CheckerLight = packImColor(104, 104, 104, 255)
     private val CheckerDark = packImColor(72, 72, 72, 255)
     private val GridColor = packImColor(255, 255, 255, 48)
@@ -84,4 +139,8 @@ internal object TextureManagerPreviewOverlays {
     private val HoverColor = packImColor(64, 173, 255, 220)
     private val SelectedColor = packImColor(255, 92, 92, 255)
     private val LabelColor = packImColor(255, 255, 255, 255)
+    private val NinePatchContentColor = packImColor(255, 255, 255, 180)
+    private val NinePatchStretchXColor = packImColor(255, 184, 77, 255)
+    private val NinePatchStretchYColor = packImColor(77, 184, 255, 255)
+    private val NinePatchPaddingColor = packImColor(111, 230, 153, 255)
 }

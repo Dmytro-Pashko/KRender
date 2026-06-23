@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
+import com.pashkd.krender.engine.tools.texturemanager.gdx.GdxNinePatchPixelReader
 import com.pashkd.krender.engine.tools.texturemanager.gdx.GdxTextureManagerPreview
 import com.pashkd.krender.engine.tools.texturemanager.ui.TextureManagerAssetBrowserPanel
 import com.pashkd.krender.engine.tools.texturemanager.ui.TextureManagerAtlasRegionsPanel
@@ -47,7 +48,12 @@ class TextureManagerScene(
             ).load(engine.logger, engine.sceneFiles)
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         operations = TextureManagerOperations(editorState, engine, layoutTracker)
-        loader = TextureManagerProjectLoader(engine.logger, engine.assetRegistry)
+        loader =
+            TextureManagerProjectLoader(
+                logger = engine.logger,
+                assetRegistry = engine.assetRegistry,
+                ninePatchPixelReader = GdxNinePatchPixelReader(),
+            )
         preview = GdxTextureManagerPreview(engine.logger)
         editorState.pendingPathInput = editorState.currentInputPath.orEmpty()
         reloadProject()

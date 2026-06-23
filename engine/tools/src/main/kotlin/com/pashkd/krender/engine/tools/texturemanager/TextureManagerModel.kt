@@ -69,6 +69,7 @@ data class TextureManagerProject(
     val discoveredMetadataFiles: List<File> = emptyList(),
     val assets: List<TextureManagerAssetDescriptor> = emptyList(),
     val atlasDocuments: Map<String, TextureAtlasDocument> = emptyMap(),
+    val ninePatchDocuments: Map<String, NinePatchDocument> = emptyMap(),
 )
 
 data class TextureAtlasDocument(
@@ -110,6 +111,7 @@ data class TextureManagerPreviewState(
     var showCheckerboard: Boolean = true,
     var showGrid: Boolean = false,
     var showBounds: Boolean = true,
+    var showNinePatchGuides: Boolean = true,
 )
 
 data class TextureManagerCanvasRect(

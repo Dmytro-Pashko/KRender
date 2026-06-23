@@ -9,6 +9,8 @@ class TextureManagerProjectLoader(
     private val assetRegistry: AssetRegistryService,
     private val atlasParser: TextureAtlasParser = TextureAtlasParser(),
     private val metadataService: TextureMetadataService = TextureMetadataService(),
+    private val ninePatchParser: NinePatchParser = NinePatchParser(),
+    private val ninePatchPixelReader: NinePatchPixelReader? = null,
 ) {
     /**
      * Resolves the user-provided path, classifies it by type/extension, scans a
@@ -57,6 +59,7 @@ class TextureManagerProjectLoader(
                 atlas.diagnostics.forEach(diagnostics::add)
                 normalizePath(file.path) to atlas
             }
+        val ninePatchDocuments = loadNinePatchDocuments(discoveredFiles.textures, diagnostics)
 
         val assets =
             buildList {
@@ -111,6 +114,7 @@ class TextureManagerProjectLoader(
                     discoveredMetadataFiles = discoveredFiles.metadata,
                     assets = assets,
                     atlasDocuments = atlasDocuments,
+                    ninePatchDocuments = ninePatchDocuments,
                 ),
             diagnostics = diagnostics,
         )
@@ -197,6 +201,39 @@ class TextureManagerProjectLoader(
             textureInfo = if (kind == TextureManagerAssetKind.Texture) metadataService.read(file) else null,
             registryMetadata = registryDescriptor?.metadata ?: emptyMap(),
         )
+    }
+
+    private fun loadNinePatchDocuments(
+        textures: List<File>,
+        diagnostics: MutableList<TextureManagerDiagnostic>,
+    ): Map<String, NinePatchDocument> {
+        val reader = ninePatchPixelReader ?: return emptyMap()
+        return textures
+            .filter { file -> isNinePatchTexturePath(file.name) }
+            .associate { file ->
+                val normalizedPath = normalizePath(file.path)
+                logger.info(TAG) { "Detected Nine-patch texture path='$normalizedPath'" }
+                val document = ninePatchParser.parse(normalizedPath, reader)
+                document.issues.forEach { issue ->
+                    diagnostics +=
+                        TextureManagerDiagnostic(
+                            severity = issue.toDiagnosticSeverity(),
+                            category = TextureManagerDiagnosticCategory.Texture,
+                            message = issue.message,
+                            source = normalizedPath,
+                        )
+                }
+                if (document.readable) {
+                    logger.info(TAG) {
+                        "Parsed Nine-patch path='$normalizedPath' stretchX=${document.stretchX.size} stretchY=${document.stretchY.size} issues=${document.issues.size}"
+                    }
+                } else {
+                    logger.warn(TAG) {
+                        "Nine-patch parse failed path='$normalizedPath' issues=${document.issues.size}"
+                    }
+                }
+                normalizedPath to document
+            }
     }
 
     private fun resolveAtlasPage(
@@ -327,3 +364,9 @@ data class TextureManagerLoadResult(
 )
 
 internal fun normalizePath(path: String): String = path.replace('\\', '/')
+
+private fun NinePatchValidationIssue.toDiagnosticSeverity(): TextureManagerDiagnosticSeverity =
+    when (severity) {
+        NinePatchValidationSeverity.Warning -> TextureManagerDiagnosticSeverity.Warning
+        NinePatchValidationSeverity.Error -> TextureManagerDiagnosticSeverity.Error
+    }
