@@ -37,6 +37,9 @@ class TextureManagerScene(
 
     override fun show() {
         engine.logger.info(TAG) { "Showing Texture Manager path='${editorState.currentInputPath ?: "<none>"}'" }
+        editorState.currentInputPath?.let { path ->
+            engine.logger.info(TAG) { "Texture Manager received launch path='$path'" }
+        }
         val layoutConfig =
             ImGuiLayoutConfigLoader(
                 assetPath = TextureManagerUiLayoutDefaults.assetPath,

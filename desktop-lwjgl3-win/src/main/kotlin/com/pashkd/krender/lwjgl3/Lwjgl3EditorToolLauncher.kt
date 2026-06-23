@@ -52,6 +52,14 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
+    override fun launchTextureManager(texturePath: String) {
+        launch(
+            scene = "texture-manager",
+            pathProperty = "krender.texture.path" to normalizePath(texturePath),
+            failureMessage = "Texture Manager launch failed",
+        )
+    }
+
     /**
      * Launches UiComposerScene for a `.krui` UiScene asset.
      */

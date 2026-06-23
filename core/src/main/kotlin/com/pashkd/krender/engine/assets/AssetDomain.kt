@@ -42,6 +42,7 @@ enum class AssetType {
     ObjModel,
     GdxModel,
     Texture,
+    Atlas,
     Skybox,
     Terrain,
 

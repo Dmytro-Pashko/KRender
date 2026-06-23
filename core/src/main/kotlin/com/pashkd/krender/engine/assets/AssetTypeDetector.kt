@@ -16,6 +16,7 @@ object AssetTypeDetector {
             extension == "obj" -> AssetTypeDetection(AssetType.ObjModel, AssetCategory.Model)
             extension == "g3db" || extension == "g3dj" -> AssetTypeDetection(AssetType.GdxModel, AssetCategory.Model)
             extension in textureExtensions -> AssetTypeDetection(AssetType.Texture, AssetCategory.Texture)
+            extension == "atlas" -> AssetTypeDetection(AssetType.Atlas, AssetCategory.Texture)
             extension == "krskybox" -> AssetTypeDetection(AssetType.Skybox, AssetCategory.Skybox)
             lowerPath.startsWith("terrains/") && extension == "json" ->
                 AssetTypeDetection(
@@ -47,7 +48,7 @@ object AssetTypeDetector {
         }
     }
 
-    private val textureExtensions = setOf("png", "jpg", "jpeg", "webp")
+    private val textureExtensions = setOf("png", "jpg", "jpeg", "ktx", "webp")
 }
 
 /**

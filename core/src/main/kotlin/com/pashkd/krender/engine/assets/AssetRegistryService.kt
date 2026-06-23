@@ -155,7 +155,7 @@ class LocalAssetRegistryService(
                 put("importSettings", encodeImportSettings(document.importSettings))
                 document.importerId?.let { put("importerId", it) }
                 putAll(importer?.readMetadata(file) ?: emptyMap())
-                putAll(textureMetadata(file, category))
+                putAll(textureMetadata(file, category, type))
                 putAll(terrainMetadata(file, category))
                 putAll(sceneMetadata(file, category))
             }
@@ -204,8 +204,9 @@ class LocalAssetRegistryService(
     private fun textureMetadata(
         file: File,
         category: AssetCategory,
+        type: AssetType,
     ): Map<String, String> {
-        if (category != AssetCategory.Texture) return emptyMap()
+        if (category != AssetCategory.Texture || type != AssetType.Texture) return emptyMap()
         val texture = TextureMetadataReader.read(file) ?: return emptyMap()
         return mapOf(
             "textureResolution" to "${texture.width}x${texture.height}",

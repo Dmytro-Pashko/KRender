@@ -50,6 +50,7 @@ class AssetBrowserScene : Scene("asset_browser") {
                 register(ModelViewerAssetTool())
                 register(AnimationViewerAssetTool())
                 register(TerrainEditorAssetTool())
+                register(TextureManagerAssetTool())
                 register(SkinEditorAssetTool())
                 register(UiComposerAssetTool())
                 register(SceneEditorAssetTool())
@@ -403,6 +404,39 @@ class TerrainEditorAssetTool : AssetTool {
 
     companion object {
         private const val TAG = "TerrainEditorAssetTool"
+    }
+}
+
+/**
+ * Opens supported texture and atlas assets in Texture Manager.
+ */
+class TextureManagerAssetTool : AssetTool {
+    override val id = "texture-manager"
+    override val displayName = "Open in Texture Manager"
+    override val supportedCategories = setOf(AssetCategory.Texture)
+
+    override fun canOpen(asset: AssetDescriptor): Boolean =
+        asset.category == AssetCategory.Texture &&
+            (asset.type == AssetType.Texture || asset.type == AssetType.Atlas)
+
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
+        val path = normalizedAssetPath(asset)
+        if (!canOpen(asset)) {
+            context.logger.warn(TAG) {
+                "Rejected unsupported Texture Manager asset path='$path' category=${asset.category} type=${asset.type}"
+            }
+            return
+        }
+        context.logger.info(TAG) { "Opening asset '$path' in Texture Manager" }
+        context.editorToolLauncher.launchTextureManager(path)
+        context.logger.info(TAG) { "Texture Manager launch requested path='$path'" }
+    }
+
+    companion object {
+        private const val TAG = "TextureManagerAssetTool"
     }
 }
 
