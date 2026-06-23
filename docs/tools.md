@@ -307,6 +307,103 @@ Example:
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=ui-composer -Pkrender.ui.scene.path=ui/example.krui
 ```
 
+### Skin Editor
+
+The Skin Editor is a standalone Scene2D Skin inspection and editing tool for LibGDX/Scene2D skin JSON and `.uiskin` assets. It is focused on inspecting styles, resources, diagnostics, atlas regions, fonts, colors, and preview widgets, while also supporting draft style/resource editing and saving those edits back to the loaded skin file.
+
+Supported files and assets:
+
+- Scene2D skin `.json`
+- Scene2D skin `.uiskin`
+- Same-folder dependencies such as `.atlas`, `.png`, `.jpg`, `.jpeg`, `.webp`, `.fnt`, `.ttf`, and `.otf`
+- Imported or discovered skins under `assets/ui/skins/...`
+
+Major panels:
+
+- Toolbar
+  Skin path, Reload, Discard Edits, Save Changes, Save/Reset Panel Layout, status, and dirty state.
+- Styles
+  Style tree grouped by Scene2D style type with counts and selected-style navigation.
+- Style Inspector
+  Selected style details, editable fields, field add/remove/reset, create/duplicate/rename/delete style actions, and pending changes.
+- Resources
+  Resource search/filtering, category browsing, selected resource details, and resource preview.
+- Problems
+  Diagnostics/validation issues with severity/category filtering and selection links to related style/resource context.
+- Preview Canvas
+  Scene2D widget preview with screen preset, scale, checkerboard, bounds, selected-style highlight, and widget interaction.
+- Preview Controls
+  Widget layout presets, preview text samples, and fallback warning controls.
+
+Main features:
+
+- Load and reload Scene2D skin descriptors.
+- Index styles and resources without requiring manual JSON inspection.
+- Browse styles by Scene2D type and name.
+- Browse resources with search and category filters.
+- Inspect style fields and resource references.
+- Diagnose missing resources, invalid references, duplicate resources, color/font/atlas issues, and unused resources.
+- Preview common widgets using the current skin.
+- Preview the selected style inside the Scene2D canvas.
+- Interact with Scene2D widgets in the Preview Canvas using `LMB`.
+- Pan the preview camera with `Ctrl + RMB drag`.
+- Zoom the preview camera with `Ctrl + mouse wheel`.
+- Toggle Scene2D bounds, selected-style highlight, and preview checkerboard.
+- Preview atlas and texture resources.
+- Use an interactive atlas viewport with pan/zoom, click-to-select atlas region, checkerboard, grid, all-region bounds, hover highlight, and region selection.
+- Preview bitmap fonts with editable sample text.
+- Preview color resources.
+- Use an in-memory edit workflow for field edits, add/remove/reset field, color resource edits, create/duplicate/rename/delete style, and pending change review.
+- Save draft style/resource edits back to the loaded skin JSON or `.uiskin` file.
+
+#### Save workflow
+
+- Edits remain draft/in-memory until `Save Changes`.
+- `Save Changes` writes draft style/resource edits to the loaded skin file.
+- A `.bak` backup is created beside the skin file before write.
+- The backup is the latest-save backup and may be overwritten by subsequent saves.
+- After a successful save, the tool reloads the skin and the edit state becomes clean.
+- `Save Panel Layout` is separate from `Save Changes`.
+- `Discard Edits` discards in-memory draft changes only.
+
+`Save Changes` does not save:
+
+- panel layout state
+- preview camera state
+- atlas preview viewport state
+- Scene2D widget interaction state
+- atlas, texture, or font binary assets
+
+#### Current scope / limitations
+
+- Skin Editor is not a full Skin Composer replacement.
+- It does not pack atlases.
+- It does not create or edit texture regions.
+- It does not edit bitmap font glyphs.
+- It does not import external skin packages inside the tool.
+- Keyboard text input inside the preview may still be limited.
+- Saving may rewrite JSON in KRender pretty JSON format.
+
+Required properties:
+
+- `krender.scene=skin-editor`
+
+Optional properties:
+
+- `krender.skin.path=<path>`
+
+Example:
+
+```sh
+./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=skin-editor -Pkrender.skin.path=ui/skins/xp_ui/xp-ui.json
+```
+
+If `krender.skin.path` is omitted, Skin Editor starts in an empty/no-skin state until a skin path is provided.
+
+Screenshots:
+
+_To be added._
+
 ## Related Route
 
 ### Scene Player

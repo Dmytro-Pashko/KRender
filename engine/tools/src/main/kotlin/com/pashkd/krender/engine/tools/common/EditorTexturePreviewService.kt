@@ -25,6 +25,7 @@ sealed interface TexturePreviewResult {
 class EditorTexturePreviewService(
     private val assets: AssetService,
 ) {
+    @Suppress("ReturnCount")
     fun preview(path: String?): TexturePreviewResult {
         if (path == null) {
             return TexturePreviewResult.Unavailable(

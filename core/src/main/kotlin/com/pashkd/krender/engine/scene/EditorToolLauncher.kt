@@ -12,6 +12,8 @@ interface EditorToolLauncher {
 
     fun launchSceneEditorWithScene(scenePath: String)
 
+    fun launchSkinEditor(skinPath: String?)
+
     /**
      * Opens a `.krui` UiScene in the UI Composer route.
      *
@@ -40,6 +42,10 @@ object UnsupportedEditorToolLauncher : EditorToolLauncher {
     }
 
     override fun launchSceneEditorWithScene(scenePath: String) {
+        unsupported()
+    }
+
+    override fun launchSkinEditor(skinPath: String?) {
         unsupported()
     }
 

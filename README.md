@@ -2,7 +2,7 @@
 
 ![KRender SDK banner](docs/images/KRender_banner.png)
 
-KRender SDK is a Kotlin + libGDX engine workspace built around a backend-neutral core, a separate LibGDX runtime backend module, a dedicated scene player module, and standalone editor tools for assets, models, animations, terrain, scenes, and UI documents.
+KRender SDK is a Kotlin + libGDX engine workspace built around a backend-neutral core, a separate LibGDX runtime backend module, a dedicated scene player module, and standalone editor tools for assets, models, animations, terrain, scenes, UI documents, and Scene2D Skin/style assets.
 
 Hosted documentation: [dmytro-pashko.github.io/KRender](https://dmytro-pashko.github.io/KRender)
 
@@ -37,7 +37,7 @@ into dedicated `games/` and `apps/` modules so the engine/SDK and a sample clien
 - **Rendering pipeline**, including models, terrain meshes, debug grids, axes, bounding boxes, wireframes, lights, and
   UI overlays.
 - **Scene Player** for runtime playback of `.krscene` scene documents.
-- **Editor tools** for browsing assets and inspecting or authoring models, animations, terrain, scenes, and UI documents.
+- **Editor tools** for browsing assets and inspecting or authoring models, animations, terrain, scenes, UI documents, and Scene2D Skin/style assets.
 
 ## Repository Structure
 
@@ -68,7 +68,7 @@ flowchart LR
         ScenePlayer["Scene-player\n.krscene playback"]
     end
     subgraph SDKTools["Tools"]
-        Tools["Editor tools[Models, animations, terrain, scenes, UI]"]
+        Tools["Editor tools[Models, animations, terrain, scenes, UI, skins/styles]"]
     end
     subgraph BackendComponent["Backends"]
         Backend["LibGDX backend"]

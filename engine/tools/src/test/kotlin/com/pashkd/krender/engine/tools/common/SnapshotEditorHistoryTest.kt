@@ -2,10 +2,10 @@ package com.pashkd.krender.engine.tools.common
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.test.assertFailsWith
 
 class SnapshotEditorHistoryTest {
     @Test

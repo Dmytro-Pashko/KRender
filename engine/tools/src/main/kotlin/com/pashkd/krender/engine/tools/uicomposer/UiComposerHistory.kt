@@ -46,13 +46,9 @@ class UiComposerHistory(
         delegate.recordBeforeChange(entry.toSnapshotEntry())
     }
 
-    fun undo(current: UiComposerHistoryEntry): UiComposerHistoryEntry? {
-        return delegate.undo(current.toSnapshotEntry())?.toUiComposerEntry()
-    }
+    fun undo(current: UiComposerHistoryEntry): UiComposerHistoryEntry? = delegate.undo(current.toSnapshotEntry())?.toUiComposerEntry()
 
-    fun redo(current: UiComposerHistoryEntry): UiComposerHistoryEntry? {
-        return delegate.redo(current.toSnapshotEntry())?.toUiComposerEntry()
-    }
+    fun redo(current: UiComposerHistoryEntry): UiComposerHistoryEntry? = delegate.redo(current.toSnapshotEntry())?.toUiComposerEntry()
 }
 
 private fun UiComposerHistoryEntry.toSnapshotEntry(): SnapshotEditorHistoryEntry<UiSceneDocument, String?> =
