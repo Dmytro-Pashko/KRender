@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:c82d1bb3-1d22-43ff-a2ba-bbeff1929697",
+  "type": "Atlas",
+  "category": "Texture",
+  "displayName": "metal-ui",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:32c194cb-4346-4801-bfdd-4d0ebc7db1db",
+  "type": "Scene2DSkin",
+  "category": "UI",
+  "displayName": "metal-ui",
+  "tags": [],
+  "importerId": "scene2d-skin",
+  "importSettings": {}
+}

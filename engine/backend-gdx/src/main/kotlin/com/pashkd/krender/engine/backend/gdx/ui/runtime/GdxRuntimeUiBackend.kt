@@ -29,7 +29,7 @@ class GdxRuntimeUiBackend(
 ) : RuntimeUiBackend {
     companion object {
         private const val TAG = "GdxRuntimeUiBackend"
-        private const val DefaultSkinPath = "ui/skins/default_ui.json"
+        private const val DefaultSkinPath = "ui/skins/default/uiskin.json"
     }
 
     private val skin = Skin(Gdx.files.internal(defaultSkinPath))

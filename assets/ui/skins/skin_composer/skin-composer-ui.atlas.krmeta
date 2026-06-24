@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:ea5b859f-a43a-4b1b-a029-09f03f20ffe7",
+  "type": "Atlas",
+  "category": "Texture",
+  "displayName": "skin-composer-ui",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}
