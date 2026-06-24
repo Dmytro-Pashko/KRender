@@ -8,7 +8,9 @@ import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.ui.UiCaptureState
 import com.pashkd.krender.engine.ui.UiService
+import com.pashkd.krender.engine.ui.UiTextureTint
 import glm_.vec2.Vec2
+import glm_.vec4.Vec4
 import imgui.*
 import imgui.ImGui.image
 import imgui.classes.Context
@@ -125,6 +127,7 @@ class GdxImGuiService(
         handle: TexturePreviewHandle,
         width: Float,
         height: Float,
+        tint: UiTextureTint,
     ): Boolean =
         withContext {
             if (handle.id <= 0 || width <= 0f || height <= 0f) return@withContext false
@@ -133,6 +136,8 @@ class GdxImGuiService(
                 Vec2(width, height),
                 Vec2(handle.u0, handle.v0),
                 Vec2(handle.u1, handle.v1),
+                Vec4(tint.red, tint.green, tint.blue, tint.alpha),
+                Vec4(0f, 0f, 0f, 0f),
             )
             true
         }

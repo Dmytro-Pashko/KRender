@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorColor
 import imgui.ImGui
 import java.nio.charset.StandardCharsets
 
@@ -28,6 +29,14 @@ internal fun packImColor(
         (blue.coerceIn(0, 255) shl 16) or
         (green.coerceIn(0, 255) shl 8) or
         red.coerceIn(0, 255)
+
+internal fun packImColor(color: TextureAtlasEditorColor): Int =
+    packImColor(
+        red = (color.red.coerceIn(0f, 1f) * 255f).toInt(),
+        green = (color.green.coerceIn(0f, 1f) * 255f).toInt(),
+        blue = (color.blue.coerceIn(0f, 1f) * 255f).toInt(),
+        alpha = (color.alpha.coerceIn(0f, 1f) * 255f).toInt(),
+    )
 
 internal fun formatBytes(bytes: Long): String =
     when {

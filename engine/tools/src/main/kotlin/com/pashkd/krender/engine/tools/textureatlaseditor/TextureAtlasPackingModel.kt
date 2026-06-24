@@ -7,7 +7,7 @@ data class TextureAtlasPackingSettings(
     var extrude: Int = 0,
     var allowRotation: Boolean = false,
     var trimWhitespace: Boolean = false,
-    var includeNinePatch: Boolean = false,
+    var includeNinePatch: Boolean = true,
 )
 
 data class TextureAtlasPackingInput(

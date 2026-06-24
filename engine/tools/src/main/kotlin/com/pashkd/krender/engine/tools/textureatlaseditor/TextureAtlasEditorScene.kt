@@ -6,6 +6,7 @@ import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.assets.importing.AwtFileDialogService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasCanvasMode.FinalPackedAtlas
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxNinePatchPixelReader
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxTextureAtlasSaveService
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxTextureAtlasEditorPreview
@@ -276,14 +277,23 @@ private class TextureAtlasEditorPreviewSyncSystem(
         dt: Float,
     ) {
         val previewPath = state.selectedPreviewTexturePath()
+        val previewSlice = state.selectedPreviewSlice()
         val asset = state.selectedAsset()
         val atlasPage = state.selectedAtlasPageName
-        logPreviewResolution(asset?.path, previewPath, atlasPage)
+        val packedPage = state.selectedPackingPage().takeIf { state.preview.canvasMode == FinalPackedAtlas }
+        if (state.preview.canvasMode != FinalPackedAtlas) {
+            logPreviewResolution(asset?.path, previewPath, atlasPage)
+        } else {
+            lastResolvedPreviewKey = null
+            lastMissingPreviewKey = null
+        }
         state.previewInfo =
             preview.update(
                 texturePath = previewPath,
                 atlasPageName = atlasPage,
                 selectedAssetPath = asset?.path,
+                previewSlice = previewSlice,
+                packedPage = packedPage,
             )
     }
 

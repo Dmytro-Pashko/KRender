@@ -32,6 +32,13 @@ enum class TextureAtlasCanvasMode {
     FinalPackedAtlas,
 }
 
+data class TextureAtlasEditorColor(
+    val red: Float = 1f,
+    val green: Float = 1f,
+    val blue: Float = 1f,
+    val alpha: Float = 1f,
+)
+
 data class TextureAtlasEditorTextureInfo(
     val width: Int? = null,
     val height: Int? = null,
@@ -109,6 +116,7 @@ data class TextureAtlasEditorPreviewState(
     var viewport: TextureAtlasEditorPreviewViewportState = TextureAtlasEditorPreviewViewportState(),
     var showCheckerboard: Boolean = true,
     var showGrid: Boolean = false,
+    var gridColor: TextureAtlasEditorColor = TextureAtlasEditorColor(red = 1f, green = 1f, blue = 1f, alpha = 0.19f),
     var showBounds: Boolean = true,
     var showNinePatchGuides: Boolean = true,
 )
@@ -121,6 +129,13 @@ data class TextureAtlasEditorCanvasRect(
 ) {
     val isValid: Boolean get() = width > 1f && height > 1f
 }
+
+data class TextureAtlasEditorPreviewSlice(
+    val sourceX: Int,
+    val sourceY: Int,
+    val width: Int,
+    val height: Int,
+)
 
 data class TextureAtlasEditorPreviewInfo(
     val resolvedTexturePath: String? = null,

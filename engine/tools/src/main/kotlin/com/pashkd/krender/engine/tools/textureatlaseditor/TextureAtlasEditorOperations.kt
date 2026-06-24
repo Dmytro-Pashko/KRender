@@ -108,6 +108,9 @@ class TextureAtlasEditorOperations(
     fun selectResource(resourceId: String?) {
         state.resources.selectedResourceId = resourceId
         val resource = state.selectedResource()
+        if (resource !is FontAtlasResource) {
+            state.fontPreview.selectedFontResourceId = null
+        }
         when (resource) {
             is ImageAtlasResource -> {
                 state.selectedAtlasPageName = resource.atlasRegionId?.pageName ?: state.selectedAtlasPageName
@@ -116,6 +119,18 @@ class TextureAtlasEditorOperations(
             is NinePatchAtlasResource -> {
                 state.selectedAtlasPageName = resource.atlasRegionId?.pageName ?: state.selectedAtlasPageName
                 state.selectedRegionId = resource.atlasRegionId
+            }
+            is FontAtlasResource -> {
+                state.fontPreview.selectedFontResourceId = resource.id
+                val pageCount = state.project.fontDocuments[resource.documentPath]?.pages?.size ?: 0
+                state.fontPreview.selectedPageIndex =
+                    state.fontPreview.selectedPageIndex
+                        .coerceIn(0, (pageCount - 1).coerceAtLeast(0))
+                state.fontPreview.selectedGlyphId = null
+                if (state.preview.canvasMode != TextureAtlasCanvasMode.FontPreview) {
+                    state.preview.canvasMode = TextureAtlasCanvasMode.FontPreview
+                }
+                state.selectedRegionId = null
             }
             else -> {
                 state.selectedRegionId = null
@@ -141,6 +156,15 @@ class TextureAtlasEditorOperations(
     }
 
     fun setCanvasMode(mode: TextureAtlasCanvasMode) {
+        if (mode == TextureAtlasCanvasMode.FontPreview && state.selectedResource() !is FontAtlasResource) {
+            state.resources.items
+                .firstOrNull { resource -> resource is FontAtlasResource }
+                ?.let { resource ->
+                    selectResource(resource.id)
+                    state.statusMessage = "Previewing font page and glyph bounds."
+                    return
+                }
+        }
         if (state.preview.canvasMode == mode) return
         state.preview.canvasMode = mode
         state.statusMessage =
@@ -167,7 +191,7 @@ class TextureAtlasEditorOperations(
         value: Float,
         updateMode: Boolean = true,
     ) {
-        state.preview.customZoom = value.coerceIn(0.05f, 8f)
+        state.preview.customZoom = value.coerceIn(MinPreviewZoom, MaxPreviewZoom)
         state.preview.viewport.zoom = state.preview.customZoom
         if (updateMode) {
             state.preview.zoomMode = TexturePreviewZoomMode.Custom
@@ -180,6 +204,10 @@ class TextureAtlasEditorOperations(
      * canvas and preview dimensions are available.
      */
     fun fitSelectedRegion() {
+        if (state.preview.canvasMode == TextureAtlasCanvasMode.FinalPackedAtlas) {
+            fitSelectedPackedRegion()
+            return
+        }
         val regionId = state.selectedRegionId
         val atlas = state.selectedAtlasDocument()
         val region = atlas?.regions?.firstOrNull { candidate -> candidate.id == regionId }
@@ -204,7 +232,7 @@ class TextureAtlasEditorOperations(
             minOf(
                 canvas.width / regionWidth.toFloat(),
                 canvas.height / regionHeight.toFloat(),
-            ).times(0.9f).coerceIn(0.05f, 8f)
+            ).times(0.9f).coerceIn(MinPreviewZoom, MaxPreviewZoom)
 
         val imageWidth = textureWidth * zoom
         val imageHeight = textureHeight * zoom
@@ -260,6 +288,15 @@ class TextureAtlasEditorOperations(
     fun setShowGrid(enabled: Boolean) {
         state.preview.showGrid = enabled
         state.statusMessage = if (enabled) "Grid enabled." else "Grid hidden."
+    }
+
+    fun setGridColor(
+        red: Float,
+        green: Float,
+        blue: Float,
+        alpha: Float,
+    ) {
+        state.preview.gridColor = TextureAtlasEditorColor(red, green, blue, alpha)
     }
 
     fun setShowBounds(enabled: Boolean) {
@@ -671,6 +708,12 @@ class TextureAtlasEditorOperations(
     }
 
     private fun syncSelectedResourceFromRegion(regionId: AtlasRegionId?) {
+        if (regionId == null) {
+            if (state.selectedResource()?.atlasRegionIdOrNull() != null) {
+                state.resources.selectedResourceId = null
+            }
+            return
+        }
         state.resources.selectedResourceId =
             state.resources.items
                 .firstOrNull { resource -> resource.atlasRegionIdOrNull() == regionId }
@@ -752,6 +795,15 @@ class TextureAtlasEditorOperations(
 
     fun setFontPreviewPage(pageIndex: Int) {
         state.fontPreview.selectedPageIndex = pageIndex
+    }
+
+    fun setFontPreviewTint(
+        red: Float,
+        green: Float,
+        blue: Float,
+        alpha: Float,
+    ) {
+        state.fontPreview.tintColor = TextureAtlasEditorColor(red, green, blue, alpha)
     }
 
     fun setFontSampleText(text: String) {
@@ -914,8 +966,55 @@ class TextureAtlasEditorOperations(
         state.ninePatchEditor.validationIssues = issues
     }
 
+    private fun fitSelectedPackedRegion() {
+        val region = state.selectedPackingRegion()
+        if (region == null) {
+            state.statusMessage = "Select a packed region to focus it."
+            return
+        }
+        val canvas = state.canvasRect
+        val textureWidth = state.previewInfo.textureWidth
+        val textureHeight = state.previewInfo.textureHeight
+        if (!canvas.isValid || textureWidth <= 0 || textureHeight <= 0) {
+            engine.logger.warn(TAG) {
+                "Texture Atlas Editor fitSelectedPackedRegion ignored region='${region.displayName}' because canvas or packed preview dimensions were unavailable"
+            }
+            state.statusMessage = "Preview must be visible before focusing a packed region."
+            return
+        }
+
+        val regionWidth = region.width.coerceAtLeast(1)
+        val regionHeight = region.height.coerceAtLeast(1)
+        val zoom =
+            minOf(
+                canvas.width / regionWidth.toFloat(),
+                canvas.height / regionHeight.toFloat(),
+            ).times(0.9f).coerceIn(MinPreviewZoom, MaxPreviewZoom)
+
+        val imageWidth = textureWidth * zoom
+        val imageHeight = textureHeight * zoom
+        val baseImageX = canvas.x + (canvas.width - imageWidth) * 0.5f
+        val baseImageY = canvas.y + (canvas.height - imageHeight) * 0.5f
+        val regionCenterX = region.x + regionWidth * 0.5f
+        val regionCenterY = region.y + regionHeight * 0.5f
+        val desiredCenterX = canvas.x + canvas.width * 0.5f
+        val desiredCenterY = canvas.y + canvas.height * 0.5f
+
+        state.preview.customZoom = zoom
+        state.preview.viewport.zoom = zoom
+        state.preview.zoomMode = TexturePreviewZoomMode.Custom
+        state.preview.viewport.panX = desiredCenterX - (baseImageX + regionCenterX * zoom)
+        state.preview.viewport.panY = desiredCenterY - (baseImageY + regionCenterY * zoom)
+        state.statusMessage = "Focused packed region '${region.displayName}'."
+        engine.logger.info(TAG) {
+            "Texture Atlas Editor fit packed region='${region.displayName}' page=${region.pageIndex} zoom=$zoom"
+        }
+    }
+
     companion object {
         private const val TAG = "TextureAtlasEditorOps"
+        private const val MinPreviewZoom = 0.05f
+        private const val MaxPreviewZoom = 20f
     }
 }
 
@@ -959,9 +1058,23 @@ internal fun TextureAtlasEditorState.selectedPackingRegion(): TextureAtlasPackin
         ?.regions
         ?.firstOrNull { region -> region.id == packing.selectedRegionId }
 
+internal fun TextureAtlasEditorState.selectedPreviewSlice(): TextureAtlasEditorPreviewSlice? {
+    if (preview.canvasMode != TextureAtlasCanvasMode.NinePatch) return null
+    val resource = selectedResource() as? NinePatchAtlasResource ?: return null
+    val width = resource.sourceWidth ?: selectedNinePatchDocument()?.contentWidth ?: return null
+    val height = resource.sourceHeight ?: selectedNinePatchDocument()?.contentHeight ?: return null
+    if (width <= 0 || height <= 0) return null
+    return TextureAtlasEditorPreviewSlice(
+        sourceX = resource.sourceX,
+        sourceY = resource.sourceY,
+        width = width,
+        height = height,
+    )
+}
+
 internal fun TextureAtlasEditorState.selectedPreviewTexturePath(): String? {
     when (preview.canvasMode) {
-        TextureAtlasCanvasMode.FinalPackedAtlas -> Unit
+        TextureAtlasCanvasMode.FinalPackedAtlas -> return null
         TextureAtlasCanvasMode.FontPreview -> {
             val fontResource = selectedResource() as? FontAtlasResource
             if (fontResource != null) {

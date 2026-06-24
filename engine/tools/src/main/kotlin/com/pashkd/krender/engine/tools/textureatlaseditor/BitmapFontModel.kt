@@ -77,6 +77,7 @@ data class FontPreviewState(
     var sampleText: String = "The quick brown fox jumps over the lazy dog 0123456789",
     var glyphFilter: String = "",
     var showGlyphBounds: Boolean = true,
+    var tintColor: TextureAtlasEditorColor = TextureAtlasEditorColor(),
 )
 
 data class SampleTextLayout(

@@ -10,16 +10,16 @@
     "textureManagerPreview": {
       "title": "Preview Canvas",
       "x": 476,
-      "y": 179,
+      "y": 182,
       "width": 862,
       "height": 941
     },
     "textureManagerInspector": {
       "title": "Inspector",
-      "x": 1343,
-      "y": 403,
-      "width": 409,
-      "height": 940
+      "x": 1345,
+      "y": 589,
+      "width": 404,
+      "height": 751
     },
     "textureManagerRegions": {
       "title": "Atlas Resources",
@@ -32,8 +32,8 @@
       "title": "Tools",
       "x": 1344,
       "y": 3,
-      "width": 410,
-      "height": 395
+      "width": 403,
+      "height": 584
     },
     "textureManagerDiagnostics": {
       "title": "Diagnostics",
