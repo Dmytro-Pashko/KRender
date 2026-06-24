@@ -295,7 +295,7 @@ class TextureAtlasEditorOperations(
         }
         val resource = createResourceFromTextureSource(sourceFile)
         appendResource(resource)
-        state.importExport.importSourcePath = localNormalizePath(sourceFile.path)
+        state.importExport.importSourcePath = normalizePath(sourceFile.path)
         state.statusMessage = "Added ${resource.type.name.lowercase()} resource '${resource.name}'."
         engine.logger.info(TAG) { "Texture Atlas Editor added resource id='${resource.id}' source='${resource.sourcePathOrNull() ?: "<none>"}'" }
     }
@@ -306,7 +306,7 @@ class TextureAtlasEditorOperations(
         val result = state.importExport.lastImportResult
         if (result !== before && result?.success == true) {
             result.writtenPaths.firstOrNull()?.let { path ->
-                val normalized = localNormalizePath(path)
+                val normalized = normalizePath(path)
                 val resource = createResourceFromTextureSource(File(normalized))
                 appendResource(resource)
                 state.importExport.importSourcePath = normalized
@@ -341,7 +341,7 @@ class TextureAtlasEditorOperations(
                 .firstOrNull()
                 ?.id
         syncSelectedRegionFromResource()
-        state.statusMessage = "Deleted resource '${resource.name}' from the working atlas."
+        state.statusMessage = "Deleted resource '${resource.name}' from the working atlas draft. Pack and Save to write changes."
         engine.logger.info(TAG) {
             "Texture Atlas Editor deleted resource id='${resource.id}' type=${resource.type}"
         }
@@ -600,12 +600,12 @@ class TextureAtlasEditorOperations(
             TextureAtlasEditorPathValidator.resolveAssetPath(assetRoot, trimmed)
                 ?: File(trimmed).takeIf { candidate -> candidate.isAbsolute && candidate.isFile && TextureAtlasEditorPathValidator.isInsideRoot(assetRoot, candidate) }
                 ?: return null
-        if (!file.isFile || !isSupportedTextureImportFileLocal(file)) return null
+        if (!file.isFile || !isSupportedTextureImportFile(file)) return null
         return file
     }
 
     private fun createResourceFromTextureSource(sourceFile: File): TextureAtlasResource {
-        val normalized = localNormalizePath(sourceFile.path)
+        val normalized = normalizePath(sourceFile.path)
         val ninePatch = state.project.ninePatchDocuments[normalized]
         val info = textureMetadataService.read(sourceFile)
         val baseName =
@@ -816,11 +816,6 @@ private fun guideSegmentsToAtlasInsets(
     )
 }
 
-private fun localNormalizePath(path: String): String = path.replace('\\', '/')
-
-private fun isSupportedTextureImportFileLocal(file: File): Boolean =
-    file.isFile && file.extension.lowercase() in setOf("png", "bmp", "jpg", "jpeg", "ktx", "webp")
-
 private fun isNinePatchTexturePathLocal(path: String): Boolean = path.endsWith(".9.png", ignoreCase = true)
 
 internal fun resolveAtlasPreviewTexturePath(
@@ -832,8 +827,8 @@ internal fun resolveAtlasPreviewTexturePath(
     val atlasFile = File(atlasPath)
     val pageFile = File(pageName)
     if (pageFile.isAbsolute) {
-        return localNormalizePath(pageFile.path)
+        return normalizePath(pageFile.path)
     }
     val parent = atlasFile.parentFile ?: return null
-    return localNormalizePath(File(parent, pageName).path)
+    return normalizePath(File(parent, pageName).path)
 }

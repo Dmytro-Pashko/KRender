@@ -17,20 +17,20 @@ class TextureAtlasEditorImportExportOperations(
     fun browseImportTexture() {
         val selected = fileDialogService.openFile(TextureImportDialogFilters)
         if (selected.isNullOrBlank()) return
-        state.importExport.importSourcePath = localNormalizePath(selected)
+        state.importExport.importSourcePath = normalizePath(selected)
         if (state.importExport.targetPath.isBlank() || state.importExport.targetPath.endsWith(".atlas", ignoreCase = true)) {
             state.importExport.targetPath = suggestedImportTargetPath(selected)
         }
         state.statusMessage = "Selected import source '${File(selected).name}'."
-        engine.logger.info(TAG) { "Texture Atlas Editor import source selected path='${localNormalizePath(selected)}'" }
+        engine.logger.info(TAG) { "Texture Atlas Editor import source selected path='${normalizePath(selected)}'" }
     }
 
     fun browseTextureSourceOnly() {
         val selected = fileDialogService.openFile(TextureImportDialogFilters)
         if (selected.isNullOrBlank()) return
-        state.importExport.importSourcePath = localNormalizePath(selected)
+        state.importExport.importSourcePath = normalizePath(selected)
         state.statusMessage = "Selected region source '${File(selected).name}'."
-        engine.logger.info(TAG) { "Texture Atlas Editor region source selected path='${localNormalizePath(selected)}'" }
+        engine.logger.info(TAG) { "Texture Atlas Editor region source selected path='${normalizePath(selected)}'" }
     }
 
     fun importTexture() {
@@ -51,7 +51,7 @@ class TextureAtlasEditorImportExportOperations(
         state.statusMessage = result.message
         if (result.success) {
             result.writtenPaths.firstOrNull()?.let { writtenPath ->
-                val normalized = localNormalizePath(writtenPath)
+                val normalized = normalizePath(writtenPath)
                 state.importExport.importSourcePath = normalized
             }
         }
@@ -90,7 +90,21 @@ class TextureAtlasEditorImportExportOperations(
         }
     }
 
-    private fun suggestedImportTargetPath(sourcePath: String): String = localNormalizePath("textures/${File(sourcePath).name}")
+    private fun suggestedImportTargetPath(sourcePath: String): String {
+        val atlasDir = atlasRelativeTextureDirectory()
+        return normalizePath("$atlasDir${File(sourcePath).name}")
+    }
+
+    private fun atlasRelativeTextureDirectory(): String {
+        val atlasPath =
+            state.currentInputPath
+                ?.takeIf { it.endsWith(".atlas", ignoreCase = true) }
+        if (atlasPath != null) {
+            val parent = File(atlasPath).parent?.replace('\\', '/')?.let { "$it/" }.orEmpty()
+            return "${parent}textures/"
+        }
+        return "textures/"
+    }
 
     private fun defaultAtlasTargetPath(): String =
         state.project.selectedAtlasPath
@@ -99,13 +113,11 @@ class TextureAtlasEditorImportExportOperations(
 
     companion object {
         private const val TAG = "TextureAtlasEditorImportExportOps"
-        private val TextureImportExtensions = setOf("png", "bmp", "jpg", "jpeg", "ktx", "webp")
 
         private val TextureImportDialogFilters =
             listOf(
-                FileDialogFilter("Textures", TextureImportExtensions.toList()),
+                FileDialogFilter("Textures", TextureAtlasEditorImportTextureExtensions.toList()),
             )
     }
 }
 
-private fun localNormalizePath(path: String): String = path.replace('\\', '/')
