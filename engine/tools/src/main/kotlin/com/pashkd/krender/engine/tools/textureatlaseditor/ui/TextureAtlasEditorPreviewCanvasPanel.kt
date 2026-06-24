@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
 import com.pashkd.krender.engine.tools.textureatlaseditor.AtlasRegionId
+import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasCanvasMode
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorCanvasRect
@@ -13,7 +14,9 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureRegionScreenRec
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewZoomMode
 import com.pashkd.krender.engine.tools.textureatlaseditor.isNinePatchTexturePath
+import com.pashkd.krender.engine.tools.textureatlaseditor.layoutSampleText
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasNinePatchRegion
+import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedNinePatchDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPage
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPlan
@@ -86,10 +89,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
             TextureAtlasCanvasMode.TextureAtlas,
             TextureAtlasCanvasMode.NinePatch,
             -> drawTexturePreviewCanvas()
-            TextureAtlasCanvasMode.FontPreview -> {
-                clearCursorMetrics()
-                wrappedTextLine("Font preview is not implemented yet.")
-            }
+            TextureAtlasCanvasMode.FontPreview -> drawFontPreviewCanvas()
             TextureAtlasCanvasMode.FinalPackedAtlas -> drawPackedAtlasPreviewCanvas()
         }
 
@@ -115,7 +115,15 @@ class TextureAtlasEditorPreviewCanvasPanel(
             return
         }
         if (state.preview.canvasMode == TextureAtlasCanvasMode.FontPreview) {
-            textLine("Font preview mode is reserved for future atlas font resources.")
+            val showGlyphs = booleanArrayOf(state.fontPreview.showGlyphBounds)
+            if (ImGui.checkbox("Show Glyph Bounds##font_show_glyphs", showGlyphs)) {
+                state.fontPreview.showGlyphBounds = showGlyphs[0]
+            }
+            ImGui.sameLine()
+            val checker = booleanArrayOf(state.preview.showCheckerboard)
+            if (ImGui.checkbox("Checkerboard##font_checker", checker)) {
+                operations.setShowCheckerboard(checker[0])
+            }
             return
         }
         val checker = booleanArrayOf(state.preview.showCheckerboard)
@@ -188,7 +196,27 @@ class TextureAtlasEditorPreviewCanvasPanel(
                     ImGui.endCombo()
                 }
             }
-            TextureAtlasCanvasMode.FontPreview -> textLine("Font preview is not implemented yet.")
+            TextureAtlasCanvasMode.FontPreview -> {
+                val document = state.selectedFontDocument()
+                if (document != null && document.pages.size > 1) {
+                    val currentPageName = document.pages.getOrNull(state.fontPreview.selectedPageIndex)?.file ?: "page 0"
+                    if (ImGui.beginCombo("Font Page##font_action_page", currentPageName)) {
+                        document.pages.forEachIndexed { index, page ->
+                            if (ImGui.selectable("${page.id}: ${page.file}", state.fontPreview.selectedPageIndex == index)) {
+                                operations.setFontPreviewPage(index)
+                            }
+                        }
+                        ImGui.endCombo()
+                    }
+                }
+                if (ImGui.button("Fit##font_fit")) {
+                    operations.fitPreview()
+                }
+                ImGui.sameLine()
+                if (ImGui.button("Reset Camera##font_reset_camera")) {
+                    operations.resetPreviewCamera()
+                }
+            }
         }
     }
 
@@ -287,6 +315,65 @@ class TextureAtlasEditorPreviewCanvasPanel(
             pendingSelectPackingRegionId = null
             clickDragDistance = 0f
         }
+    }
+
+    private fun drawFontPreviewCanvas() {
+        clearCursorMetrics()
+        val resource = state.selectedResource()
+        if (resource !is FontAtlasResource) {
+            wrappedTextLine("Select a font resource to preview glyphs.")
+            return
+        }
+        val document = state.selectedFontDocument()
+        if (document == null || !document.readable) {
+            wrappedTextLine("Font descriptor is not readable or was not loaded.")
+            document?.diagnostics?.take(5)?.forEach { diag -> wrappedTextLine("${diag.severity.name}: ${diag.message}") }
+            return
+        }
+
+        val handle = state.previewInfo.texturePreviewHandle
+        if (handle != null && state.previewInfo.textureWidth > 0 && state.previewInfo.textureHeight > 0) {
+            val viewportLayout = computeTexturePreviewViewportLayout(
+                rect = state.canvasRect,
+                textureWidth = state.previewInfo.textureWidth,
+                textureHeight = state.previewInfo.textureHeight,
+                previewState = state.preview,
+            )
+            if (state.preview.showCheckerboard) {
+                TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
+            }
+            ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
+            ui.drawTexturePreview(handle, viewportLayout.imageWidth, viewportLayout.imageHeight)
+            if (state.fontPreview.showGlyphBounds) {
+                val pageIndex = state.fontPreview.selectedPageIndex
+                val pageGlyphs = document.glyphs.filter { it.page == (document.pages.getOrNull(pageIndex)?.id ?: 0) }
+                TextureAtlasEditorPreviewOverlays.drawFontGlyphBounds(
+                    glyphs = pageGlyphs,
+                    layout = viewportLayout,
+                    selectedGlyphId = state.fontPreview.selectedGlyphId,
+                    hoveredGlyphId = state.fontPreview.hoveredGlyphId,
+                )
+            }
+            ImGui.cursorScreenPos = ImVec2(state.canvasRect.x, state.canvasRect.y)
+            ImGui.invisibleButton("##texture_atlas_editor_font_canvas_hit", ImVec2(state.canvasRect.width, state.canvasRect.height))
+            if (ImGui.isItemHovered()) {
+                val io = ImGui.io
+                if (io.mouseWheel != 0f) {
+                    operations.setPreviewZoom(state.preview.customZoom * (1f + io.mouseWheel * 0.1f))
+                }
+                if (MouseButton.Right.isDragging() && (io.mouseDelta.x != 0f || io.mouseDelta.y != 0f)) {
+                    operations.panPreview(io.mouseDelta.x, io.mouseDelta.y)
+                }
+            }
+        } else {
+            wrappedTextLine(state.previewInfo.statusMessage)
+        }
+
+        val sampleLayout = layoutSampleText(state.fontPreview.sampleText, document)
+        if (sampleLayout.missingCodepoints.isNotEmpty()) {
+            wrappedTextLine("Missing glyphs for codepoints: ${sampleLayout.missingCodepoints.take(10).joinToString()}")
+        }
+        wrappedTextLine("Sample text layout: ${sampleLayout.totalWidth}px wide, ${sampleLayout.lineHeight}px line height, ${sampleLayout.glyphPlacements.size} glyphs placed.")
     }
 
     private fun handleTextureInteraction(
@@ -417,7 +504,15 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 textLine("Hovered: $hoveredText | Selected: $selectedText | Page: ${page?.name ?: "<none>"}")
                 wrappedTextLine("Pack Texture Atlas keeps results in memory until Save Texture Atlas writes files explicitly.")
             }
-            TextureAtlasCanvasMode.FontPreview -> wrappedTextLine("Font preview is not implemented yet.")
+            TextureAtlasCanvasMode.FontPreview -> {
+                val document = state.selectedFontDocument()
+                val face = document?.info?.face ?: "<unknown>"
+                val glyphCount = document?.glyphs?.size ?: 0
+                val selectedGlyph = state.fontPreview.selectedGlyphId?.let { id -> document?.glyphs?.firstOrNull { it.id == id } }
+                val selectedText = selectedGlyph?.let { g -> "id=${g.id} '${g.char ?: "?"}' [${g.width}x${g.height}]" } ?: "<none>"
+                textLine("Font: $face | Glyphs: $glyphCount | Page: ${state.fontPreview.selectedPageIndex} | Selected: $selectedText")
+                wrappedTextLine("Wheel: zoom. RMB drag: pan. Select glyphs in Inspector panel.")
+            }
         }
     }
 

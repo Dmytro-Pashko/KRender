@@ -11,6 +11,7 @@ class TextureAtlasEditorProjectLoader(
     private val metadataService: TextureMetadataService = TextureMetadataService(),
     private val ninePatchParser: NinePatchParser = NinePatchParser(),
     private val ninePatchPixelReader: NinePatchPixelReader? = null,
+    private val bitmapFontParser: BitmapFontParser = BitmapFontParser(),
 ) {
     /**
      * Resolves the user-provided path, classifies it by type/extension, scans a
@@ -66,6 +67,7 @@ class TextureAtlasEditorProjectLoader(
                 normalizeAssetPath(file.path) to atlas
             }
         val ninePatchDocuments = loadNinePatchDocuments(discoveredFiles.textures, diagnostics)
+        val fontDocuments = loadFontDocuments(discoveredFiles.fonts, diagnostics)
 
         val assets =
             buildList {
@@ -119,8 +121,10 @@ class TextureAtlasEditorProjectLoader(
                     discoveredAtlasFiles = discoveredFiles.atlases,
                     discoveredMetadataFiles = discoveredFiles.metadata,
                     assets = assets,
+                    discoveredFontFiles = discoveredFiles.fonts,
                     atlasDocuments = atlasDocuments,
                     ninePatchDocuments = ninePatchDocuments,
+                    fontDocuments = fontDocuments,
                 ),
             diagnostics = diagnostics,
         )
@@ -141,6 +145,7 @@ class TextureAtlasEditorProjectLoader(
         val textures = mutableListOf<File>()
         val atlases = mutableListOf<File>()
         val metadata = mutableListOf<File>()
+        val fonts = mutableListOf<File>()
         val diagnostics = mutableListOf<TextureAtlasEditorDiagnostic>()
         var scannedFiles = 0
         rootDirectory
@@ -175,6 +180,7 @@ class TextureAtlasEditorProjectLoader(
                 when {
                     file.name.endsWith(".krmeta", ignoreCase = true) -> metadata += file
                     isAtlasFile(file) -> atlases += file
+                    isFontFile(file) -> fonts += file
                     isTextureFile(file) -> textures += file
                 }
             }
@@ -182,6 +188,7 @@ class TextureAtlasEditorProjectLoader(
             textures = textures.sortedBy { file -> file.name },
             atlases = atlases.sortedBy { file -> file.name },
             metadata = metadata.sortedBy { file -> file.name },
+            fonts = fonts.sortedBy { file -> file.name },
             diagnostics = diagnostics,
         )
     }
@@ -344,10 +351,37 @@ class TextureAtlasEditorProjectLoader(
         }
     }
 
+    private fun loadFontDocuments(
+        fonts: List<File>,
+        diagnostics: MutableList<TextureAtlasEditorDiagnostic>,
+    ): Map<String, BitmapFontDocument> =
+        fonts.associate { file ->
+            val normalizedPath = normalizeAssetPath(file.path)
+            logger.info(TAG) { "Detected font file path='$normalizedPath'" }
+            val document = bitmapFontParser.parse(file)
+            document.diagnostics.forEach { fontDiag ->
+                diagnostics += TextureAtlasEditorDiagnostic(
+                    severity = fontDiag.severity,
+                    category = TextureAtlasEditorDiagnosticCategory.Font,
+                    message = fontDiag.message,
+                    source = fontDiag.source ?: normalizedPath,
+                )
+            }
+            if (document.readable) {
+                logger.info(TAG) {
+                    "Parsed font path='$normalizedPath' glyphs=${document.glyphs.size} pages=${document.pages.size} kernings=${document.kernings.size}"
+                }
+            } else {
+                logger.warn(TAG) { "Font parse failed path='$normalizedPath' diagnostics=${document.diagnostics.size}" }
+            }
+            normalizedPath to document
+        }
+
     private data class ScanResult(
         val textures: List<File> = emptyList(),
         val atlases: List<File> = emptyList(),
         val metadata: List<File> = emptyList(),
+        val fonts: List<File> = emptyList(),
         val diagnostics: List<TextureAtlasEditorDiagnostic> = emptyList(),
     )
 
@@ -360,6 +394,8 @@ class TextureAtlasEditorProjectLoader(
         fun isTextureFile(file: File): Boolean = isSupportedTextureFile(file)
 
         fun isAtlasFile(file: File): Boolean = file.isFile && file.extension.equals("atlas", ignoreCase = true)
+
+        fun isFontFile(file: File): Boolean = file.isFile && file.extension.equals("fnt", ignoreCase = true)
     }
 }
 

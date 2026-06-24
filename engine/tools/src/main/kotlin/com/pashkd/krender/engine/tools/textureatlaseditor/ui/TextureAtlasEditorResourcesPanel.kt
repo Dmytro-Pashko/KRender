@@ -131,6 +131,18 @@ class TextureAtlasEditorResourcesPanel(
             writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
         }
         ImGui.sameLine()
+        val fontPaths = state.project.fontDocuments.keys.toList()
+        if (fontPaths.isNotEmpty()) {
+            if (ImGui.beginCombo("Add Font##texture_atlas_editor_add_font", "<select .fnt>")) {
+                fontPaths.forEach { fntPath ->
+                    val label = java.io.File(fntPath).name
+                    if (ImGui.selectable(label, false)) {
+                        operations.addFontResourceFromPath(fntPath)
+                    }
+                }
+                ImGui.endCombo()
+            }
+        }
         if (state.selectedResource() == null) ImGui.beginDisabled()
         if (ImGui.button("Delete Resource##texture_atlas_editor_resource_delete")) {
             operations.deleteSelectedResource()
@@ -238,7 +250,7 @@ private fun TextureAtlasResource.sizeLabel(): String =
         is ImageAtlasResource -> sourceWidth?.let { width -> sourceHeight?.let { height -> " [$width x $height]" } }.orEmpty()
         is NinePatchAtlasResource -> sourceWidth?.let { width -> sourceHeight?.let { height -> " [$width x $height]" } }.orEmpty()
         is ColorAtlasResource -> " [$width x $height]"
-        is FontAtlasResource -> ""
+        is FontAtlasResource -> " [${glyphCount}g]"
     }
 
 private fun TextureAtlasResourceType.label(): String =

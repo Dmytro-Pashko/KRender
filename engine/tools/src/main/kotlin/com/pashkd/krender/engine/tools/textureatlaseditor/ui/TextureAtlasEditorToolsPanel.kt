@@ -1,8 +1,10 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
+import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
+import com.pashkd.krender.engine.tools.textureatlaseditor.selectedResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPlan
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -30,6 +32,8 @@ class TextureAtlasEditorToolsPanel(
         val packingPlan = drawAtlasPackingSection()
         ImGui.separator()
         drawSaveSection(packingPlan)
+        ImGui.separator()
+        drawFontExportSection()
         ImGui.end()
     }
 
@@ -87,6 +91,20 @@ class TextureAtlasEditorToolsPanel(
             textLine(result.message)
             result.writtenPaths.forEach(::textLine)
         }
+    }
+
+    private fun drawFontExportSection() {
+        val isFontSelected = state.selectedResource() is FontAtlasResource
+        textLine("Font Export")
+        if (!isFontSelected) {
+            textLine("Select a font resource to enable export.")
+            textLine("TTF/OTF generation is deferred.")
+            return
+        }
+        if (ImGui.button("Export Bitmap Font##tools_export_font")) {
+            operations.exportBitmapFont()
+        }
+        textLine("TTF/OTF generation is deferred.")
     }
 
     private fun drawPageSizeCombo(

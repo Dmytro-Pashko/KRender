@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
+import com.pashkd.krender.engine.tools.textureatlaseditor.BitmapFontGlyph
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDraft
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchSegment
@@ -257,6 +258,31 @@ internal object TextureAtlasEditorPreviewOverlays {
     private val PackedHoverRegionColor = packImColor(111, 230, 153, 180)
     private val PackedSelectedRegionColor = packImColor(255, 184, 77, 180)
     private val PackedRegionOutlineColor = packImColor(255, 255, 255, 200)
+    private val GlyphBoundsColor = packImColor(200, 200, 200, 80)
+    private val GlyphSelectedColor = packImColor(255, 92, 92, 200)
+    private val GlyphHoveredColor = packImColor(64, 173, 255, 180)
+
+    fun drawFontGlyphBounds(
+        glyphs: List<BitmapFontGlyph>,
+        layout: TexturePreviewViewportLayout,
+        selectedGlyphId: Int?,
+        hoveredGlyphId: Int?,
+    ) {
+        val drawList = ImGui.windowDrawList
+        glyphs.forEach { glyph ->
+            if (glyph.width <= 0 || glyph.height <= 0) return@forEach
+            val minX = layout.imageX + glyph.x * layout.effectiveZoom
+            val minY = layout.imageY + glyph.y * layout.effectiveZoom
+            val maxX = minX + glyph.width * layout.effectiveZoom
+            val maxY = minY + glyph.height * layout.effectiveZoom
+            val color = when (glyph.id) {
+                selectedGlyphId -> GlyphSelectedColor
+                hoveredGlyphId -> GlyphHoveredColor
+                else -> GlyphBoundsColor
+            }
+            drawList.addRect(ImVec2(minX, minY), ImVec2(maxX, maxY), color, 0f, thickness = 1f)
+        }
+    }
 }
 
 internal data class PackedAtlasPreviewLayout(

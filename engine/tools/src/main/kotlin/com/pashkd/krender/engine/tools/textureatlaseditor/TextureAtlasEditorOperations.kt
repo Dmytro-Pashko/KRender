@@ -147,7 +147,7 @@ class TextureAtlasEditorOperations(
             when (mode) {
                 TextureAtlasCanvasMode.TextureAtlas -> "Previewing atlas pages and regions."
                 TextureAtlasCanvasMode.NinePatch -> "Previewing Nine-patch resources."
-                TextureAtlasCanvasMode.FontPreview -> "Font preview is not implemented yet."
+                TextureAtlasCanvasMode.FontPreview -> "Previewing font page and glyph bounds."
                 TextureAtlasCanvasMode.FinalPackedAtlas -> "Previewing the current packed atlas plan."
             }
     }
@@ -717,6 +717,90 @@ class TextureAtlasEditorOperations(
         }
     }
 
+    // ── Font resource operations ──────────────────────────────────────────
+
+    fun addFontResourceFromPath(fntPath: String) {
+        val document = state.project.fontDocuments[fntPath]
+        if (document == null || !document.readable) {
+            state.statusMessage = "Cannot add font resource: .fnt file not found or not readable."
+            return
+        }
+        val face = document.info?.face ?: File(fntPath).nameWithoutExtension
+        val id = "resource:font:$fntPath"
+        if (state.resources.items.any { it.id == id }) {
+            state.statusMessage = "Font resource for '$face' already exists."
+            return
+        }
+        val resource = FontAtlasResource(
+            id = id,
+            name = face,
+            sourcePath = fntPath,
+            documentPath = fntPath,
+            pageTexturePaths = document.pages.mapNotNull { it.resolvedPath },
+            glyphCount = document.glyphs.size,
+            kerningCount = document.kernings.size,
+        )
+        state.resources.items = state.resources.items + resource
+        selectResource(resource.id)
+        state.statusMessage = "Added font resource '$face' with ${document.glyphs.size} glyphs."
+        engine.logger.info(TAG) { "Font resource added id='${resource.id}' face='$face' glyphs=${document.glyphs.size}" }
+    }
+
+    fun selectFontGlyph(glyphId: Int?) {
+        state.fontPreview.selectedGlyphId = glyphId
+    }
+
+    fun setFontPreviewPage(pageIndex: Int) {
+        state.fontPreview.selectedPageIndex = pageIndex
+    }
+
+    fun setFontSampleText(text: String) {
+        state.fontPreview.sampleText = text
+    }
+
+    fun setFontGlyphFilter(filter: String) {
+        state.fontPreview.glyphFilter = filter
+    }
+
+    fun exportBitmapFont() {
+        val resource = state.selectedResource()
+        if (resource !is FontAtlasResource) {
+            state.statusMessage = "Select a font resource before exporting."
+            return
+        }
+        val document = state.project.fontDocuments[resource.documentPath]
+        if (document == null || !document.readable) {
+            state.statusMessage = "Cannot export font: descriptor is not readable."
+            return
+        }
+        val targetPath = state.importExport.targetPath
+            .takeIf { it.endsWith(".fnt", ignoreCase = true) }
+            ?: defaultFontExportPath(resource)
+        val assetRoot = engine.assetRegistry.baseDir()
+        val writer = BitmapFontWriter()
+        val result = writer.write(
+            assetRoot = assetRoot,
+            targetPath = targetPath,
+            document = document,
+            overwrite = state.importExport.saveOverwrite,
+        )
+        state.importExport.lastExportResult = result
+        state.statusMessage = result.message
+        if (result.success) {
+            state.importExport.targetPath = targetPath
+            engine.logger.info(TAG) { "Font exported path='$targetPath' glyphs=${document.glyphs.size}" }
+        } else {
+            engine.logger.warn(TAG) { "Font export failed path='$targetPath': ${result.message}" }
+        }
+    }
+
+    private fun defaultFontExportPath(resource: FontAtlasResource): String {
+        val sourcePath = resource.documentPath
+        val parent = File(sourcePath).parent?.replace('\\', '/')?.let { "$it/" } ?: ""
+        val baseName = File(sourcePath).nameWithoutExtension.ifBlank { resource.name }
+        return "${parent}${baseName}_export.fnt"
+    }
+
     // ── NinePatch draft editing ──────────────────────────────────────────
 
     fun beginNinePatchEditing(resourceId: String) {
@@ -848,6 +932,11 @@ internal fun TextureAtlasEditorState.selectedNinePatchDocument(): NinePatchDocum
         ?.let { previewPath -> project.ninePatchDocuments[previewPath] }
         ?: selectedPreviewTexturePath()?.let { previewPath -> project.ninePatchDocuments[previewPath] }
 
+internal fun TextureAtlasEditorState.selectedFontDocument(): BitmapFontDocument? {
+    val resource = selectedResource() as? FontAtlasResource ?: return null
+    return project.fontDocuments[resource.documentPath]
+}
+
 internal fun TextureAtlasEditorState.selectedAtlasNinePatchRegion(): TextureAtlasRegion? =
     selectedAtlasDocument()
         ?.regions
@@ -872,9 +961,16 @@ internal fun TextureAtlasEditorState.selectedPackingRegion(): TextureAtlasPackin
 
 internal fun TextureAtlasEditorState.selectedPreviewTexturePath(): String? {
     when (preview.canvasMode) {
-        TextureAtlasCanvasMode.FinalPackedAtlas,
-        TextureAtlasCanvasMode.FontPreview,
-        -> return null
+        TextureAtlasCanvasMode.FinalPackedAtlas -> return null
+        TextureAtlasCanvasMode.FontPreview -> {
+            val fontResource = selectedResource() as? FontAtlasResource
+            if (fontResource != null) {
+                val doc = project.fontDocuments[fontResource.documentPath]
+                val page = doc?.pages?.getOrNull(fontPreview.selectedPageIndex) ?: doc?.pages?.firstOrNull()
+                return page?.resolvedPath
+            }
+            return null
+        }
         TextureAtlasCanvasMode.NinePatch -> {
             selectedResource()?.sourcePathOrNull()?.let { return it }
         }

@@ -63,9 +63,11 @@ data class TextureAtlasEditorProject(
     val discoveredTextureFiles: List<File> = emptyList(),
     val discoveredAtlasFiles: List<File> = emptyList(),
     val discoveredMetadataFiles: List<File> = emptyList(),
+    val discoveredFontFiles: List<File> = emptyList(),
     val assets: List<TextureAtlasEditorAssetDescriptor> = emptyList(),
     val atlasDocuments: Map<String, TextureAtlasDocument> = emptyMap(),
     val ninePatchDocuments: Map<String, NinePatchDocument> = emptyMap(),
+    val fontDocuments: Map<String, BitmapFontDocument> = emptyMap(),
 )
 
 data class TextureAtlasDocument(
@@ -164,6 +166,7 @@ data class TextureAtlasEditorState(
     var importExport: TextureAtlasEditorImportExportState = TextureAtlasEditorImportExportState(),
     var diagnosticsFilter: TextureAtlasEditorDiagnosticsFilterState = TextureAtlasEditorDiagnosticsFilterState(),
     var ninePatchEditor: NinePatchEditorState = NinePatchEditorState(),
+    var fontPreview: FontPreviewState = FontPreviewState(),
     var statusMessage: String = "Texture Atlas Editor ready.",
     var reloadRequested: Boolean = false,
 )

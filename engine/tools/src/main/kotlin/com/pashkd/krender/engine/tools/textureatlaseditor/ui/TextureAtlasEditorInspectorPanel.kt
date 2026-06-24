@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
+import com.pashkd.krender.engine.tools.textureatlaseditor.BitmapFontGlyph
 import com.pashkd.krender.engine.tools.textureatlaseditor.ColorAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.ImageAtlasResource
@@ -13,6 +14,7 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorStat
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAsset
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasNinePatchRegion
+import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedNinePatchDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPlan
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingRegion
@@ -64,12 +66,16 @@ class TextureAtlasEditorInspectorPanel(
                     textLine("Size: ${resource.width} x ${resource.height}")
                 }
                 is FontAtlasResource -> {
-                    textLine("Source: ${resource.sourcePath ?: "<not set>"}")
+                    textLine("Source: ${resource.sourcePath}")
+                    textLine("Glyphs: ${resource.glyphCount}")
+                    textLine("Kernings: ${resource.kerningCount}")
+                    textLine("Pages: ${resource.pageTexturePaths.size}")
                 }
             }
             ImGui.separator()
         }
         drawNinePatchEditorSection()
+        drawFontInspectorSection()
         if (asset != null) {
             textLine("File: ${asset.fileName}")
             textLine("Path: ${asset.path}")
@@ -201,6 +207,119 @@ class TextureAtlasEditorInspectorPanel(
             segments.joinToString { segment -> "${segment.start}..${segment.endInclusive}" }
         }
 
+    private val fontSampleBuf = ByteArray(256)
+    private var fontSampleSynced = false
+    private val fontGlyphFilterBuf = ByteArray(64)
+
+    private fun drawFontInspectorSection() {
+        val resource = state.selectedResource() as? FontAtlasResource ?: return
+        val document = state.selectedFontDocument() ?: return
+        ImGui.separator()
+        textLine("Font Inspector: ${resource.name}")
+
+        val info = document.info
+        if (info != null) {
+            textLine("Face: ${info.face ?: "<unknown>"}")
+            textLine("Size: ${info.size ?: "?"}")
+            if (info.bold) textLine("Bold: yes")
+            if (info.italic) textLine("Italic: yes")
+        }
+        val common = document.common
+        if (common != null) {
+            textLine("Line height: ${common.lineHeight}")
+            textLine("Base: ${common.base}")
+            textLine("Scale: ${common.scaleW} x ${common.scaleH}")
+        }
+        textLine("Pages: ${document.pages.size}")
+        textLine("Glyphs: ${document.glyphs.size}")
+        textLine("Kernings: ${document.kernings.size}")
+
+        if (document.pages.size > 1) {
+            val currentPageName = document.pages.getOrNull(state.fontPreview.selectedPageIndex)?.file ?: "page 0"
+            if (ImGui.beginCombo("Page##font_page_select", currentPageName)) {
+                document.pages.forEachIndexed { index, page ->
+                    if (ImGui.selectable("${page.id}: ${page.file}", state.fontPreview.selectedPageIndex == index)) {
+                        operations.setFontPreviewPage(index)
+                    }
+                }
+                ImGui.endCombo()
+            }
+        }
+
+        if (!fontSampleSynced) {
+            writeBuffer(fontSampleBuf, state.fontPreview.sampleText)
+            writeBuffer(fontGlyphFilterBuf, state.fontPreview.glyphFilter)
+            fontSampleSynced = true
+        }
+        textLine("Sample text")
+        ImGui.setNextItemWidth(ImGui.contentRegionAvail.x)
+        if (ImGui.inputText("##font_sample_text", fontSampleBuf)) {
+            operations.setFontSampleText(readBuffer(fontSampleBuf))
+        }
+
+        textLine("Filter glyphs")
+        ImGui.setNextItemWidth(120f)
+        if (ImGui.inputText("##font_glyph_filter", fontGlyphFilterBuf)) {
+            operations.setFontGlyphFilter(readBuffer(fontGlyphFilterBuf))
+        }
+
+        val filter = state.fontPreview.glyphFilter.lowercase()
+        val filteredGlyphs = if (filter.isBlank()) {
+            document.glyphs.take(MaxVisibleGlyphs)
+        } else {
+            document.glyphs.filter { glyph ->
+                glyph.id.toString().contains(filter) ||
+                    glyph.char?.lowercase()?.contains(filter) == true
+            }.take(MaxVisibleGlyphs)
+        }
+        ImGui.beginChild("font_glyph_list", glm_.vec2.Vec2(0f, 150f), true)
+        filteredGlyphs.forEach { glyph ->
+            val label = glyphLabel(glyph)
+            val selected = state.fontPreview.selectedGlyphId == glyph.id
+            if (ImGui.selectable(label, selected)) {
+                operations.selectFontGlyph(glyph.id)
+            }
+        }
+        if (filteredGlyphs.isEmpty()) {
+            textLine("No glyphs match filter.")
+        }
+        ImGui.endChild()
+
+        state.fontPreview.selectedGlyphId?.let { glyphId ->
+            document.glyphs.firstOrNull { it.id == glyphId }?.let { glyph ->
+                ImGui.separator()
+                textLine("Glyph: ${glyphLabel(glyph)}")
+                textLine("Position: ${glyph.x}, ${glyph.y}")
+                textLine("Size: ${glyph.width} x ${glyph.height}")
+                textLine("Offset: ${glyph.xOffset}, ${glyph.yOffset}")
+                textLine("xAdvance: ${glyph.xAdvance}")
+                textLine("Page: ${glyph.page}")
+                textLine("Channel: ${glyph.channel}")
+                val kerningsForGlyph = document.kernings.filter { it.first == glyphId || it.second == glyphId }
+                if (kerningsForGlyph.isNotEmpty()) {
+                    textLine("Kerning pairs: ${kerningsForGlyph.size}")
+                    kerningsForGlyph.take(5).forEach { k ->
+                        textLine("  ${k.first} -> ${k.second}: ${k.amount}")
+                    }
+                }
+            }
+        }
+
+        if (document.diagnostics.isNotEmpty()) {
+            ImGui.separator()
+            textLine("Font diagnostics: ${document.diagnostics.size}")
+            document.diagnostics.take(10).forEach { diag ->
+                textLine("${diag.severity.name}: ${diag.message}")
+            }
+        }
+        ImGui.separator()
+    }
+
+    private fun glyphLabel(glyph: BitmapFontGlyph): String {
+        val charDisplay = glyph.char?.takeIf { it.isNotBlank() && it.first().code > 32 }?.let { " '$it'" } ?: ""
+        return "id=${glyph.id}$charDisplay [${glyph.width}x${glyph.height}]##glyph_${glyph.id}"
+    }
+
     private val npBuf = ByteArray(NpBufSize)
     private var lastSyncedDraftKey: String? = null
 
@@ -302,6 +421,7 @@ class TextureAtlasEditorInspectorPanel(
     companion object {
         private val ModifiedAtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         private const val NpBufSize = 16
+        private const val MaxVisibleGlyphs = 200
     }
 }
 

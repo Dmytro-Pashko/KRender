@@ -13,6 +13,7 @@ enum class TextureAtlasEditorDiagnosticCategory {
     Atlas,
     Metadata,
     Preview,
+    Font,
 }
 
 data class TextureAtlasEditorDiagnostic(

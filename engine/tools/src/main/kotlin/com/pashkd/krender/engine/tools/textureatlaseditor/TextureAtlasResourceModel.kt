@@ -56,7 +56,11 @@ data class ColorAtlasResource(
 data class FontAtlasResource(
     override val id: String,
     override val name: String,
-    val sourcePath: String? = null,
+    val sourcePath: String,
+    val documentPath: String = sourcePath,
+    val pageTexturePaths: List<String> = emptyList(),
+    val glyphCount: Int = 0,
+    val kerningCount: Int = 0,
 ) : TextureAtlasResource {
     override val type: TextureAtlasResourceType = TextureAtlasResourceType.Font
 }
