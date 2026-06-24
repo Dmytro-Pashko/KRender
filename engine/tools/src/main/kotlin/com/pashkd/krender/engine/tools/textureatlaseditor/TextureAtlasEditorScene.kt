@@ -222,7 +222,7 @@ class TextureAtlasEditorScene(
         return UiSystem(engine.ui).also { uiSystem ->
             addPanel(uiSystem, "Toolbar", TextureAtlasEditorToolbarPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Preview", TextureAtlasEditorPreviewCanvasPanel(editorState, operations, engine.ui, layoutConfig, layoutTracker, eventLogger))
-            addPanel(uiSystem, "Inspector", TextureAtlasEditorInspectorPanel(editorState, layoutConfig, layoutTracker, eventLogger))
+            addPanel(uiSystem, "Inspector", TextureAtlasEditorInspectorPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Resources", TextureAtlasEditorResourcesPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Tools", TextureAtlasEditorToolsPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Diagnostics", TextureAtlasEditorDiagnosticsPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))

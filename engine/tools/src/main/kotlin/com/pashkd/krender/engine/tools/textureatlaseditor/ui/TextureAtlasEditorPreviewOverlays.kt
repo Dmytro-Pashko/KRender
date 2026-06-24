@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
+import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDraft
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchSegment
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorCanvasRect
@@ -110,6 +111,59 @@ internal object TextureAtlasEditorPreviewOverlays {
         document.paddingY?.let { segment ->
             drawVerticalGuide(segment, layout.imageX + (document.imageWidth - 0.5f) * layout.effectiveZoom, NinePatchPaddingColor, layout)
         }
+    }
+
+    fun drawNinePatchDraftGuides(
+        draft: NinePatchDraft,
+        layout: TexturePreviewViewportLayout,
+        isNinePngSource: Boolean,
+    ) {
+        val drawList = ImGui.windowDrawList
+        val contentOffsetPx = if (isNinePngSource) 1f else 0f
+        val contentMinX = layout.imageX + contentOffsetPx * layout.effectiveZoom
+        val contentMinY = layout.imageY + contentOffsetPx * layout.effectiveZoom
+        val contentMaxX = contentMinX + draft.contentWidth * layout.effectiveZoom
+        val contentMaxY = contentMinY + draft.contentHeight * layout.effectiveZoom
+        drawList.addRect(
+            ImVec2(contentMinX, contentMinY),
+            ImVec2(contentMaxX, contentMaxY),
+            NinePatchContentColor,
+            0f,
+            thickness = 2f,
+        )
+
+        drawDraftHorizontalGuide(draft.stretchX, contentMinX, contentMinY - 4f * layout.effectiveZoom.coerceAtLeast(1f), NinePatchStretchXColor, layout)
+        drawDraftVerticalGuide(draft.stretchY, contentMinY, contentMinX - 4f * layout.effectiveZoom.coerceAtLeast(1f), NinePatchStretchYColor, layout)
+        draft.paddingX?.let { segment ->
+            drawDraftHorizontalGuide(segment, contentMinX, contentMaxY + 2f * layout.effectiveZoom.coerceAtLeast(1f), NinePatchPaddingColor, layout)
+        }
+        draft.paddingY?.let { segment ->
+            drawDraftVerticalGuide(segment, contentMinY, contentMaxX + 2f * layout.effectiveZoom.coerceAtLeast(1f), NinePatchPaddingColor, layout)
+        }
+    }
+
+    private fun drawDraftHorizontalGuide(
+        segment: NinePatchSegment,
+        contentMinX: Float,
+        y: Float,
+        color: Int,
+        layout: TexturePreviewViewportLayout,
+    ) {
+        val startX = contentMinX + segment.start * layout.effectiveZoom
+        val endX = contentMinX + (segment.start + segment.length) * layout.effectiveZoom
+        ImGui.windowDrawList.addLine(ImVec2(startX, y), ImVec2(endX, y), color, 3f)
+    }
+
+    private fun drawDraftVerticalGuide(
+        segment: NinePatchSegment,
+        contentMinY: Float,
+        x: Float,
+        color: Int,
+        layout: TexturePreviewViewportLayout,
+    ) {
+        val startY = contentMinY + segment.start * layout.effectiveZoom
+        val endY = contentMinY + (segment.start + segment.length) * layout.effectiveZoom
+        ImGui.windowDrawList.addLine(ImVec2(x, startY), ImVec2(x, endY), color, 3f)
     }
 
     private fun drawHorizontalGuide(

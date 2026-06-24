@@ -163,6 +163,7 @@ data class TextureAtlasEditorState(
     var packing: TextureAtlasPackingState = TextureAtlasPackingState(),
     var importExport: TextureAtlasEditorImportExportState = TextureAtlasEditorImportExportState(),
     var diagnosticsFilter: TextureAtlasEditorDiagnosticsFilterState = TextureAtlasEditorDiagnosticsFilterState(),
+    var ninePatchEditor: NinePatchEditorState = NinePatchEditorState(),
     var statusMessage: String = "Texture Atlas Editor ready.",
     var reloadRequested: Boolean = false,
 )

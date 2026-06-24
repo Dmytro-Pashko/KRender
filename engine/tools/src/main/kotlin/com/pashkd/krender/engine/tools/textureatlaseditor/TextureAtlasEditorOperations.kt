@@ -122,6 +122,11 @@ class TextureAtlasEditorOperations(
             }
         }
         syncSelectedPackingFromCurrentSelection()
+        if (resource is NinePatchAtlasResource) {
+            beginNinePatchEditing(resource.id)
+        } else if (state.ninePatchEditor.selectedResourceId != null) {
+            state.ninePatchEditor = NinePatchEditorState()
+        }
         if (resource != null) {
             state.statusMessage = "Selected ${resource.type.name.lowercase()} resource '${resource.name}'."
             engine.logger.info(TAG) { "Texture Atlas Editor selected resource id='${resource.id}' type=${resource.type}" }
@@ -710,6 +715,119 @@ class TextureAtlasEditorOperations(
             state.packing.selectedPageIndex = 0
             state.packing.selectedRegionId = plan.pages.firstOrNull()?.regions?.firstOrNull()?.id
         }
+    }
+
+    // ── NinePatch draft editing ──────────────────────────────────────────
+
+    fun beginNinePatchEditing(resourceId: String) {
+        val resource = state.resources.items.firstOrNull { it.id == resourceId }
+        if (resource !is NinePatchAtlasResource) {
+            state.ninePatchEditor = NinePatchEditorState()
+            return
+        }
+        val document = state.project.ninePatchDocuments[resource.sourcePath]
+        val draft = buildNinePatchDraft(resource, document)
+        if (draft == null) {
+            state.ninePatchEditor = NinePatchEditorState(
+                selectedResourceId = resourceId,
+                validationIssues = listOf(
+                    NinePatchValidationIssue(NinePatchValidationSeverity.Error, "Cannot determine content dimensions for this resource."),
+                ),
+            )
+            state.statusMessage = "Cannot edit Nine-patch: content dimensions are unavailable."
+            return
+        }
+        val issues = validateNinePatchDraft(draft)
+        state.ninePatchEditor = NinePatchEditorState(
+            selectedResourceId = resourceId,
+            draft = draft,
+            dirty = false,
+            validationIssues = issues,
+        )
+        engine.logger.info(TAG) {
+            "NinePatch editing started resource='${resource.name}' content=${draft.contentWidth}x${draft.contentHeight} issues=${issues.size}"
+        }
+    }
+
+    fun updateNinePatchStretchX(start: Int, length: Int) {
+        val draft = state.ninePatchEditor.draft ?: return
+        val updated = draft.copy(stretchX = NinePatchSegment(start = start, length = length))
+        applyDraftUpdate(updated)
+    }
+
+    fun updateNinePatchStretchY(start: Int, length: Int) {
+        val draft = state.ninePatchEditor.draft ?: return
+        val updated = draft.copy(stretchY = NinePatchSegment(start = start, length = length))
+        applyDraftUpdate(updated)
+    }
+
+    fun updateNinePatchPaddingX(start: Int?, length: Int?) {
+        val draft = state.ninePatchEditor.draft ?: return
+        val paddingX = if (start != null && length != null) NinePatchSegment(start = start, length = length) else null
+        val updated = draft.copy(paddingX = paddingX)
+        applyDraftUpdate(updated)
+    }
+
+    fun updateNinePatchPaddingY(start: Int?, length: Int?) {
+        val draft = state.ninePatchEditor.draft ?: return
+        val paddingY = if (start != null && length != null) NinePatchSegment(start = start, length = length) else null
+        val updated = draft.copy(paddingY = paddingY)
+        applyDraftUpdate(updated)
+    }
+
+    fun clearNinePatchPadding() {
+        val draft = state.ninePatchEditor.draft ?: return
+        val updated = draft.copy(paddingX = null, paddingY = null)
+        applyDraftUpdate(updated)
+        state.statusMessage = "Cleared Nine-patch padding guides."
+    }
+
+    fun useFullNinePatchStretch() {
+        val draft = state.ninePatchEditor.draft ?: return
+        val updated = draft.copy(
+            stretchX = NinePatchSegment(start = 0, length = draft.contentWidth),
+            stretchY = NinePatchSegment(start = 0, length = draft.contentHeight),
+        )
+        applyDraftUpdate(updated)
+        state.statusMessage = "Set Nine-patch stretch to full content bounds."
+    }
+
+    fun resetNinePatchDraft() {
+        val resourceId = state.ninePatchEditor.selectedResourceId ?: return
+        beginNinePatchEditing(resourceId)
+        state.statusMessage = "Reset Nine-patch draft from source."
+    }
+
+    fun applyNinePatchDraft() {
+        val draft = state.ninePatchEditor.draft ?: return
+        val resourceId = state.ninePatchEditor.selectedResourceId ?: return
+        val issues = validateNinePatchDraft(draft)
+        state.ninePatchEditor.validationIssues = issues
+        if (issues.any { it.severity == NinePatchValidationSeverity.Error }) {
+            state.statusMessage = "Cannot apply Nine-patch draft: there are validation errors."
+            return
+        }
+        val resource = state.resources.items.firstOrNull { it.id == resourceId }
+        if (resource !is NinePatchAtlasResource) return
+        val updatedResource = resource.copy(
+            split = draft.toSplitList(),
+            pad = draft.toPadList(),
+        )
+        state.resources.items = state.resources.items.map { item ->
+            if (item.id == resourceId) updatedResource else item
+        }
+        state.ninePatchEditor.dirty = false
+        state.statusMessage = "Applied Nine-patch draft to resource '${resource.name}'. Pack and Save to write atlas output."
+        engine.logger.info(TAG) {
+            "NinePatch draft applied resource='${resource.name}' split=${updatedResource.split} pad=${updatedResource.pad}"
+        }
+    }
+
+    private fun applyDraftUpdate(updated: NinePatchDraft) {
+        val issues = validateNinePatchDraft(updated)
+        state.ninePatchEditor.draft = updated
+        state.ninePatchEditor.dirty = true
+        state.ninePatchEditor.validationIssues = issues
     }
 
     companion object {

@@ -12,6 +12,7 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureRegionScreenRect
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewZoomMode
+import com.pashkd.krender.engine.tools.textureatlaseditor.isNinePatchTexturePath
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasNinePatchRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedNinePatchDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPage
@@ -224,8 +225,14 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 selectedRegion?.let { region -> TextureAtlasEditorPreviewOverlays.labelRegion(region, viewportLayout) }
             }
             if (state.preview.showNinePatchGuides) {
-                state.selectedNinePatchDocument()?.let { document ->
-                    TextureAtlasEditorPreviewOverlays.drawNinePatchGuides(document, viewportLayout)
+                val draft = state.ninePatchEditor.draft
+                if (state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch && draft != null) {
+                    val isNinePng = isNinePatchTexturePath(draft.sourcePath)
+                    TextureAtlasEditorPreviewOverlays.drawNinePatchDraftGuides(draft, viewportLayout, isNinePng)
+                } else {
+                    state.selectedNinePatchDocument()?.let { document ->
+                        TextureAtlasEditorPreviewOverlays.drawNinePatchGuides(document, viewportLayout)
+                    }
                 }
             }
             ImGui.cursorScreenPos = ImVec2(state.canvasRect.x, state.canvasRect.y)

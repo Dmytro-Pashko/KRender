@@ -4,6 +4,9 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.ColorAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.ImageAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchAtlasResource
+import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchEditorState
+import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchValidationSeverity
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
@@ -27,6 +30,7 @@ import java.time.format.DateTimeFormatter
 
 class TextureAtlasEditorInspectorPanel(
     private val state: TextureAtlasEditorState,
+    private val operations: TextureAtlasEditorOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
@@ -65,6 +69,7 @@ class TextureAtlasEditorInspectorPanel(
             }
             ImGui.separator()
         }
+        drawNinePatchEditorSection()
         if (asset != null) {
             textLine("File: ${asset.fileName}")
             textLine("Path: ${asset.path}")
@@ -196,8 +201,107 @@ class TextureAtlasEditorInspectorPanel(
             segments.joinToString { segment -> "${segment.start}..${segment.endInclusive}" }
         }
 
+    private val npBuf = ByteArray(NpBufSize)
+    private var lastSyncedDraftKey: String? = null
+
+    private fun drawNinePatchEditorSection() {
+        val editor = state.ninePatchEditor
+        val draft = editor.draft ?: return
+        val resourceId = editor.selectedResourceId ?: return
+        val resource = state.resources.items.firstOrNull { it.id == resourceId } as? NinePatchAtlasResource ?: return
+
+        ImGui.separator()
+        textLine("Nine-patch Editor: ${resource.name}")
+        textLine("Content: ${draft.contentWidth} x ${draft.contentHeight}")
+        if (editor.dirty) textLine("Status: modified (unsaved)")
+
+        textLine("Stretch X: start=${draft.stretchX.start}  length=${draft.stretchX.length}")
+        drawIntField("SX Start##np_sx_s", draft.stretchX.start) { v ->
+            operations.updateNinePatchStretchX(v, draft.stretchX.length)
+        }
+        ImGui.sameLine()
+        drawIntField("SX Len##np_sx_l", draft.stretchX.length) { v ->
+            operations.updateNinePatchStretchX(draft.stretchX.start, v)
+        }
+
+        textLine("Stretch Y: start=${draft.stretchY.start}  length=${draft.stretchY.length}")
+        drawIntField("SY Start##np_sy_s", draft.stretchY.start) { v ->
+            operations.updateNinePatchStretchY(v, draft.stretchY.length)
+        }
+        ImGui.sameLine()
+        drawIntField("SY Len##np_sy_l", draft.stretchY.length) { v ->
+            operations.updateNinePatchStretchY(draft.stretchY.start, v)
+        }
+
+        val hasPadX = draft.paddingX != null
+        val hasPadY = draft.paddingY != null
+        textLine("Padding X: ${draft.paddingX?.let { "start=${it.start}  length=${it.length}" } ?: "(unset)"}")
+        if (hasPadX) {
+            drawIntField("PX Start##np_px_s", draft.paddingX!!.start) { v ->
+                operations.updateNinePatchPaddingX(v, draft.paddingX!!.length)
+            }
+            ImGui.sameLine()
+            drawIntField("PX Len##np_px_l", draft.paddingX!!.length) { v ->
+                operations.updateNinePatchPaddingX(draft.paddingX!!.start, v)
+            }
+        } else {
+            if (ImGui.button("Set Padding X##np_set_px")) {
+                operations.updateNinePatchPaddingX(0, draft.contentWidth)
+            }
+        }
+
+        textLine("Padding Y: ${draft.paddingY?.let { "start=${it.start}  length=${it.length}" } ?: "(unset)"}")
+        if (hasPadY) {
+            drawIntField("PY Start##np_py_s", draft.paddingY!!.start) { v ->
+                operations.updateNinePatchPaddingY(v, draft.paddingY!!.length)
+            }
+            ImGui.sameLine()
+            drawIntField("PY Len##np_py_l", draft.paddingY!!.length) { v ->
+                operations.updateNinePatchPaddingY(draft.paddingY!!.start, v)
+            }
+        } else {
+            if (ImGui.button("Set Padding Y##np_set_py")) {
+                operations.updateNinePatchPaddingY(0, draft.contentHeight)
+            }
+        }
+
+        if (ImGui.button("Apply Draft##np_apply")) {
+            operations.applyNinePatchDraft()
+        }
+        ImGui.sameLine()
+        if (ImGui.button("Reset##np_reset")) {
+            operations.resetNinePatchDraft()
+        }
+        ImGui.sameLine()
+        if (ImGui.button("Full Stretch##np_full")) {
+            operations.useFullNinePatchStretch()
+        }
+        ImGui.sameLine()
+        if (ImGui.button("Clear Padding##np_clear_pad")) {
+            operations.clearNinePatchPadding()
+        }
+
+        if (editor.validationIssues.isNotEmpty()) {
+            ImGui.separator()
+            editor.validationIssues.forEach { issue ->
+                val prefix = if (issue.severity == NinePatchValidationSeverity.Error) "Error" else "Warning"
+                textLine("$prefix: ${issue.message}")
+            }
+        }
+        ImGui.separator()
+    }
+
+    private inline fun drawIntField(label: String, currentValue: Int, crossinline onChange: (Int) -> Unit) {
+        writeBuffer(npBuf, currentValue.toString())
+        ImGui.setNextItemWidth(80f)
+        if (ImGui.inputText(label, npBuf)) {
+            readBuffer(npBuf).trim().toIntOrNull()?.let { parsed -> onChange(parsed) }
+        }
+    }
+
     companion object {
         private val ModifiedAtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        private const val NpBufSize = 16
     }
 }
 
