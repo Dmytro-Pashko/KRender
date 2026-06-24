@@ -9,11 +9,10 @@ import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxNinePatchPixelReader
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxTextureAtlasSaveService
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxTextureAtlasEditorPreview
-import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorAtlasRegionsPanel
 import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorDiagnosticsPanel
 import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorInspectorPanel
-import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorPackingPanel
 import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorPreviewCanvasPanel
+import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorResourcesPanel
 import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorToolbarPanel
 import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorToolsPanel
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
@@ -89,8 +88,8 @@ class TextureAtlasEditorScene(
         val result = loader.load(editorState.currentInputPath)
         editorState.project = result.project
         editorState.diagnostics = result.diagnostics
-        syncPackingSourcesWithProject()
         syncPackingSettingsFromAtlas()
+        rebuildResources()
         val selectedAssetStillExists =
             editorState.selectedAssetId?.let { selectedId ->
                 editorState.project.assets.any { asset -> asset.id == selectedId }
@@ -135,18 +134,6 @@ class TextureAtlasEditorScene(
 
     private fun loadedPathLabel(): String = "'${editorState.project.resolvedInputPath ?: editorState.currentInputPath ?: "<unknown>"}'"
 
-    private fun syncPackingSourcesWithProject() {
-        val texturePaths =
-            editorState.project.assets
-                .filter { asset -> asset.kind == TextureAtlasEditorAssetKind.Texture }
-                .map { asset -> asset.path }
-                .toSet()
-        editorState.packing.includedTexturePaths =
-            editorState.packing.includedTexturePaths.filter { path ->
-                path in texturePaths || java.io.File(path).isFile
-            }.toSet()
-    }
-
     private fun ensureValidSelectionAfterReload() {
         val validAssetId =
             editorState.selectedAssetId?.takeIf { selectedId ->
@@ -167,15 +154,76 @@ class TextureAtlasEditorScene(
         return preferredAsset?.id ?: editorState.project.assets.firstOrNull()?.id
     }
 
+    private fun rebuildResources() {
+        val atlasPath = editorState.project.selectedAtlasPath
+        val atlasDocument = atlasPath?.let { path -> editorState.project.atlasDocuments[path] }
+        val carryOverResources =
+            editorState.resources.items.filter { resource ->
+                resource.atlasRegionIdOrNull() == null &&
+                    resource.sourcePathOrNull()?.let { path -> java.io.File(path).isFile } != false
+            }
+        val atlasResources =
+            atlasDocument
+                ?.regions
+                ?.mapIndexedNotNull { index, region ->
+                    val sourcePath =
+                        resolveAtlasPreviewTexturePath(
+                            atlasPath = region.id.atlasPath,
+                            atlas = atlasDocument,
+                            selectedPageName = region.id.pageName,
+                        ) ?: return@mapIndexedNotNull null
+                    val size = region.size
+                    val xy = region.xy
+                    if (size == null || xy == null) return@mapIndexedNotNull null
+                    val resourceId = "resource:${region.id.atlasPath}:${region.id.pageName}:${region.id.regionName}:${region.index ?: index}"
+                    if (region.split.isNotEmpty() || region.pad.isNotEmpty()) {
+                        NinePatchAtlasResource(
+                            id = resourceId,
+                            name = region.id.regionName,
+                            sourcePath = sourcePath,
+                            sourceX = xy.first,
+                            sourceY = xy.second,
+                            sourceWidth = size.first,
+                            sourceHeight = size.second,
+                            split = region.split,
+                            pad = region.pad,
+                            atlasRegionId = region.id,
+                            atlasIndex = region.index,
+                        )
+                    } else {
+                        ImageAtlasResource(
+                            id = resourceId,
+                            name = region.id.regionName,
+                            sourcePath = sourcePath,
+                            sourceX = xy.first,
+                            sourceY = xy.second,
+                            sourceWidth = size.first,
+                            sourceHeight = size.second,
+                            atlasRegionId = region.id,
+                            atlasIndex = region.index,
+                        )
+                    }
+                }.orEmpty()
+        val rebuiltItems = atlasResources + carryOverResources
+        val selectedResourceId =
+            editorState.resources.selectedResourceId?.takeIf { selectedId ->
+                rebuiltItems.any { resource -> resource.id == selectedId }
+            } ?: rebuiltItems.firstOrNull()?.id
+        editorState.resources =
+            TextureAtlasResourceState(
+                items = rebuiltItems,
+                selectedResourceId = selectedResourceId,
+            )
+    }
+
     private fun createUiSystem(): UiSystem {
         val layoutConfig = layoutTracker.currentConfig()
         val eventLogger = ImGuiWindowEventLogger(engine.logger, "TextureAtlasEditorUi")
         return UiSystem(engine.ui).also { uiSystem ->
             addPanel(uiSystem, "Toolbar", TextureAtlasEditorToolbarPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Preview", TextureAtlasEditorPreviewCanvasPanel(editorState, operations, engine.ui, layoutConfig, layoutTracker, eventLogger))
-            addPanel(uiSystem, "Packing", TextureAtlasEditorPackingPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Inspector", TextureAtlasEditorInspectorPanel(editorState, layoutConfig, layoutTracker, eventLogger))
-            addPanel(uiSystem, "Regions", TextureAtlasEditorAtlasRegionsPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
+            addPanel(uiSystem, "Resources", TextureAtlasEditorResourcesPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Tools", TextureAtlasEditorToolsPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Diagnostics", TextureAtlasEditorDiagnosticsPanel(editorState, operations, layoutConfig, layoutTracker, eventLogger))
             addPanel(

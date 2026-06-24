@@ -78,7 +78,6 @@ data class TextureAtlasPackingResult(
 
 data class TextureAtlasPackingState(
     var settings: TextureAtlasPackingSettings = TextureAtlasPackingSettings(),
-    var includedTexturePaths: Set<String> = emptySet(),
     var lastResult: TextureAtlasPackingResult = TextureAtlasPackingResult(),
     var selectedPageIndex: Int = 0,
     var selectedRegionId: String? = null,

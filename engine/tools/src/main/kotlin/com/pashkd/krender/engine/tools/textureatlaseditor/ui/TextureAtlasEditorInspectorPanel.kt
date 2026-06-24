@@ -1,20 +1,26 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
+import com.pashkd.krender.engine.tools.textureatlaseditor.ColorAtlasResource
+import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
+import com.pashkd.krender.engine.tools.textureatlaseditor.ImageAtlasResource
+import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
-import com.pashkd.krender.engine.tools.textureatlaseditor.computeRegionMetrics
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAsset
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasNinePatchRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedNinePatchDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPlan
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingRegion
+import com.pashkd.krender.engine.tools.textureatlaseditor.selectedResource
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
+import glm_.vec2.Vec2 as ImVec2
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -27,7 +33,7 @@ class TextureAtlasEditorInspectorPanel(
 ) : UiPanel {
     override fun draw() {
         val layout = layoutConfig.panels.getValue(TextureAtlasEditorPanelIds.Inspector)
-        val expanded = beginImGuiPanel(TextureAtlasEditorPanelIds.Inspector, layout, layoutTracker)
+        val expanded = beginPanel(TextureAtlasEditorPanelIds.Inspector, layout, layoutTracker)
         eventLogger.observe(TextureAtlasEditorPanelIds.Inspector, layout.title)
         if (!expanded) {
             ImGui.end()
@@ -35,6 +41,30 @@ class TextureAtlasEditorInspectorPanel(
         }
 
         val asset = state.selectedAsset()
+        state.selectedResource()?.let { resource ->
+            textLine("Resource: ${resource.name}")
+            textLine("Resource type: ${resource.type.name}")
+            when (resource) {
+                is ImageAtlasResource -> {
+                    textLine("Source: ${resource.sourcePath}")
+                    textLine("Source rect: ${resource.sourceX}, ${resource.sourceY}, ${resource.sourceWidth ?: "?"}, ${resource.sourceHeight ?: "?"}")
+                }
+                is NinePatchAtlasResource -> {
+                    textLine("Source: ${resource.sourcePath}")
+                    textLine("Source rect: ${resource.sourceX}, ${resource.sourceY}, ${resource.sourceWidth ?: "?"}, ${resource.sourceHeight ?: "?"}")
+                    textLine("Split: ${resource.split.joinToString().ifBlank { "<none>" }}")
+                    textLine("Pad: ${resource.pad.joinToString().ifBlank { "<none>" }}")
+                }
+                is ColorAtlasResource -> {
+                    textLine("Color RGBA: 0x${resource.rgba.toUInt().toString(16).uppercase()}")
+                    textLine("Size: ${resource.width} x ${resource.height}")
+                }
+                is FontAtlasResource -> {
+                    textLine("Source: ${resource.sourcePath ?: "<not set>"}")
+                }
+            }
+            ImGui.separator()
+        }
         if (asset != null) {
             textLine("File: ${asset.fileName}")
             textLine("Path: ${asset.path}")
@@ -48,9 +78,16 @@ class TextureAtlasEditorInspectorPanel(
             if (state.previewInfo.textureWidth > 0 && state.previewInfo.textureHeight > 0) {
                 textLine("Preview dimensions: ${state.previewInfo.textureWidth} x ${state.previewInfo.textureHeight}")
             }
-            asset.metadataPath?.let { path -> textLine(".krmeta: $path") } ?: textLine(".krmeta: <missing>")
+            if (asset.metadataPath != null) {
+                textLine(".krmeta: ${asset.metadataPath}")
+            } else {
+                textLine(".krmeta: <missing>")
+            }
             textLine("Metadata present: ${if (asset.metadataPath != null) "yes" else "no"}")
-            state.selectedNinePatchDocument()?.let { document ->
+            val selectedNinePatchDocument = state.selectedNinePatchDocument()
+            val selectedAtlasNinePatchRegion = state.selectedAtlasNinePatchRegion()
+            if (selectedNinePatchDocument != null) {
+                val document = selectedNinePatchDocument
                 ImGui.separator()
                 textLine("Nine-patch: yes")
                 textLine("Image size: ${document.imageWidth} x ${document.imageHeight}")
@@ -63,14 +100,15 @@ class TextureAtlasEditorInspectorPanel(
                 document.issues.forEach { issue ->
                     textLine("${issue.severity.name}: ${issue.message}")
                 }
-            } ?: state.selectedAtlasNinePatchRegion()?.let { region ->
+            } else if (selectedAtlasNinePatchRegion != null) {
+                val region = selectedAtlasNinePatchRegion
                 ImGui.separator()
                 textLine("Nine-patch: atlas region")
                 textLine("Region: ${region.id.regionName}")
                 textLine("Page: ${region.id.pageName}")
                 textLine("Split: ${region.split.joinToString().ifBlank { "<none>" }}")
                 textLine("Pad: ${region.pad.joinToString().ifBlank { "<none>" }}")
-            } ?: run {
+            } else {
                 textLine("Nine-patch: ${if (asset.fileName.endsWith(".9.png", ignoreCase = true)) "unavailable" else "no"}")
             }
             if (asset.registryMetadata.isNotEmpty()) {
@@ -161,4 +199,53 @@ class TextureAtlasEditorInspectorPanel(
     companion object {
         private val ModifiedAtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     }
+}
+
+private data class InspectorRegionMetrics(
+    val areaPixels: Int? = null,
+    val u0: Float? = null,
+    val v0: Float? = null,
+    val u1: Float? = null,
+    val v1: Float? = null,
+    val outsidePageBounds: Boolean = false,
+)
+
+private fun computeRegionMetrics(
+    region: TextureAtlasRegion,
+    textureWidth: Int,
+    textureHeight: Int,
+): InspectorRegionMetrics {
+    val xy = region.xy
+    val size = region.size
+    val area = size?.let { dimensions -> dimensions.first * dimensions.second }
+    if (xy == null || size == null || textureWidth <= 0 || textureHeight <= 0) {
+        return InspectorRegionMetrics(areaPixels = area)
+    }
+    val right = xy.first + size.first
+    val bottom = xy.second + size.second
+    return InspectorRegionMetrics(
+        areaPixels = area,
+        u0 = xy.first / textureWidth.toFloat(),
+        v0 = xy.second / textureHeight.toFloat(),
+        u1 = right / textureWidth.toFloat(),
+        v1 = bottom / textureHeight.toFloat(),
+        outsidePageBounds = xy.first < 0 || xy.second < 0 || right > textureWidth || bottom > textureHeight,
+    )
+}
+
+private fun beginPanel(
+    panelId: String,
+    layout: ImGuiPanelLayout,
+    tracker: ImGuiLayoutRuntimeTracker,
+): Boolean {
+    tracker.consumeRestoreLayout(panelId)?.let { restored ->
+        ImGui.setNextWindowPos(ImVec2(restored.x, restored.y))
+        ImGui.setNextWindowSize(ImVec2(restored.width, restored.height))
+    } ?: run {
+        ImGui.setNextWindowPos(ImVec2(layout.x, layout.y), imgui.Cond.FirstUseEver)
+        ImGui.setNextWindowSize(ImVec2(layout.width, layout.height), imgui.Cond.FirstUseEver)
+    }
+    val expanded = ImGui.begin("${layout.title}###$panelId")
+    tracker.capture(panelId)
+    return expanded
 }

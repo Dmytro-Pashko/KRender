@@ -14,13 +14,6 @@
       "width": 983,
       "height": 965
     },
-    "textureManagerPacking": {
-      "title": "Packing Preview",
-      "x": 1343,
-      "y": 874,
-      "width": 810,
-      "height": 471
-    },
     "textureManagerInspector": {
       "title": "Inspector",
       "x": 2,
@@ -29,7 +22,7 @@
       "height": 963
     },
     "textureManagerRegions": {
-      "title": "Atlas Regions",
+      "title": "Atlas Resources",
       "x": 1346,
       "y": 179,
       "width": 403,
@@ -55,13 +48,6 @@
       "y": 1120,
       "width": 1334,
       "height": 230
-    },
-    "textureManagerAssets": {
-      "title": "Assets",
-      "x": 4,
-      "y": 146,
-      "width": 343,
-      "height": 622
     }
   }
 }

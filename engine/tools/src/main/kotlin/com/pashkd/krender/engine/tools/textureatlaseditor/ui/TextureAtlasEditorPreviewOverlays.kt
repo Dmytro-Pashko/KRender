@@ -2,10 +2,12 @@ package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchSegment
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorCanvasRect
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingPage
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureRegionScreenRect
-import com.pashkd.krender.engine.tools.textureatlaseditor.atlasRegionScreenRect
 import imgui.ImGui
 import glm_.vec2.Vec2 as ImVec2
 
@@ -132,6 +134,59 @@ internal object TextureAtlasEditorPreviewOverlays {
         ImGui.windowDrawList.addLine(ImVec2(x, startY), ImVec2(x, endY), color, 3f)
     }
 
+    fun drawPackedAtlasPage(
+        page: TextureAtlasPackingPage,
+        canvasRect: TextureAtlasEditorCanvasRect,
+        selectedRegionId: String?,
+        hoveredRegionId: String?,
+    ): PackedAtlasPreviewLayout {
+        val drawList = ImGui.windowDrawList
+        val scale =
+            minOf(
+                (canvasRect.width - 16f) / page.width.toFloat(),
+                (canvasRect.height - 16f) / page.height.toFloat(),
+            ).coerceAtLeast(0.05f)
+        val pageWidth = page.width * scale
+        val pageHeight = page.height * scale
+        val pageX = canvasRect.x + (canvasRect.width - pageWidth) * 0.5f
+        val pageY = canvasRect.y + (canvasRect.height - pageHeight) * 0.5f
+        drawList.addRect(ImVec2(pageX, pageY), ImVec2(pageX + pageWidth, pageY + pageHeight), PackedPageColor, 0f, thickness = 2f)
+        val regionRects =
+            page.regions.associateWith { region ->
+                val minX = pageX + region.x * scale
+                val minY = pageY + region.y * scale
+                val maxX = minX + region.width * scale
+                val maxY = minY + region.height * scale
+                val color =
+                    when (region.id) {
+                        selectedRegionId -> PackedSelectedRegionColor
+                        hoveredRegionId -> PackedHoverRegionColor
+                        else -> PackedRegionColor
+                    }
+                drawList.addRectFilled(ImVec2(minX, minY), ImVec2(maxX, maxY), color)
+                drawList.addRect(ImVec2(minX, minY), ImVec2(maxX, maxY), PackedRegionOutlineColor, 0f, thickness = 1.5f)
+                PackedRegionScreenRect(region = region, minX = minX, minY = minY, maxX = maxX, maxY = maxY)
+            }
+        return PackedAtlasPreviewLayout(
+            page = page,
+            pageX = pageX,
+            pageY = pageY,
+            pageWidth = pageWidth,
+            pageHeight = pageHeight,
+            scale = scale,
+            regionRects = regionRects.values.toList(),
+        )
+    }
+
+    fun hitTestPackedRegion(
+        layout: PackedAtlasPreviewLayout,
+        screenX: Float,
+        screenY: Float,
+    ): TextureAtlasPackingRegion? =
+        layout.regionRects.firstOrNull { rect ->
+            screenX >= rect.minX && screenX <= rect.maxX && screenY >= rect.minY && screenY <= rect.maxY
+        }?.region
+
     private val CheckerLight = packImColor(104, 104, 104, 255)
     private val CheckerDark = packImColor(72, 72, 72, 255)
     private val GridColor = packImColor(255, 255, 255, 48)
@@ -143,4 +198,43 @@ internal object TextureAtlasEditorPreviewOverlays {
     private val NinePatchStretchXColor = packImColor(255, 184, 77, 255)
     private val NinePatchStretchYColor = packImColor(77, 184, 255, 255)
     private val NinePatchPaddingColor = packImColor(111, 230, 153, 255)
+    private val PackedPageColor = packImColor(255, 255, 255, 220)
+    private val PackedRegionColor = packImColor(77, 184, 255, 120)
+    private val PackedHoverRegionColor = packImColor(111, 230, 153, 180)
+    private val PackedSelectedRegionColor = packImColor(255, 184, 77, 180)
+    private val PackedRegionOutlineColor = packImColor(255, 255, 255, 200)
+}
+
+internal data class PackedAtlasPreviewLayout(
+    val page: TextureAtlasPackingPage,
+    val pageX: Float,
+    val pageY: Float,
+    val pageWidth: Float,
+    val pageHeight: Float,
+    val scale: Float,
+    val regionRects: List<PackedRegionScreenRect>,
+)
+
+internal data class PackedRegionScreenRect(
+    val region: TextureAtlasPackingRegion,
+    val minX: Float,
+    val minY: Float,
+    val maxX: Float,
+    val maxY: Float,
+)
+
+private fun atlasRegionScreenRect(
+    region: TextureAtlasRegion,
+    layout: TexturePreviewViewportLayout,
+): TextureRegionScreenRect? {
+    val xy = region.xy ?: return null
+    val size = region.size ?: return null
+    val minX = layout.imageX + xy.first * layout.effectiveZoom
+    val minY = layout.imageY + xy.second * layout.effectiveZoom
+    return TextureRegionScreenRect(
+        minX = minX,
+        minY = minY,
+        maxX = minX + size.first * layout.effectiveZoom,
+        maxY = minY + size.second * layout.effectiveZoom,
+    )
 }

@@ -25,6 +25,13 @@ enum class TextureAtlasRegionSortMode {
     AreaDescending,
 }
 
+enum class TextureAtlasCanvasMode {
+    TextureAtlas,
+    NinePatch,
+    FontPreview,
+    FinalPackedAtlas,
+}
+
 data class TextureAtlasEditorTextureInfo(
     val width: Int? = null,
     val height: Int? = null,
@@ -94,6 +101,7 @@ data class TextureAtlasEditorPreviewViewportState(
 )
 
 data class TextureAtlasEditorPreviewState(
+    var canvasMode: TextureAtlasCanvasMode = TextureAtlasCanvasMode.TextureAtlas,
     var zoomMode: TexturePreviewZoomMode = TexturePreviewZoomMode.Fit,
     var customZoom: Float = 1f,
     var viewport: TextureAtlasEditorPreviewViewportState = TextureAtlasEditorPreviewViewportState(),
@@ -146,6 +154,7 @@ data class TextureAtlasEditorState(
     var selectedAtlasPageName: String? = null,
     var selectedRegionId: AtlasRegionId? = null,
     var hoveredRegionId: AtlasRegionId? = null,
+    var resources: TextureAtlasResourceState = TextureAtlasResourceState(),
     var preview: TextureAtlasEditorPreviewState = TextureAtlasEditorPreviewState(),
     var previewInfo: TextureAtlasEditorPreviewInfo = TextureAtlasEditorPreviewInfo(),
     var canvasRect: TextureAtlasEditorCanvasRect = TextureAtlasEditorCanvasRect(),
@@ -163,5 +172,6 @@ internal fun TextureAtlasEditorState.clearPreviewSelection() {
     selectedAtlasPageName = null
     selectedRegionId = null
     hoveredRegionId = null
+    resources.selectedResourceId = null
     previewInfo = TextureAtlasEditorPreviewInfo()
 }
