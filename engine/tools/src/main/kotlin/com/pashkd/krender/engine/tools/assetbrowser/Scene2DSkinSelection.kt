@@ -13,6 +13,7 @@ enum class CreatableAssetKind(
     val targetDirectory: String,
     val extension: String,
 ) {
+    Atlas("Texture Atlas", AssetType.Atlas, AssetCategory.Texture, "atlases", "atlas"),
     UiScene("UI Scene", AssetType.UiScene, AssetCategory.UI, "ui/scenes", "krui"),
     Terrain("Terrain", AssetType.Terrain, AssetCategory.Terrain, "terrains", "json"),
     Scene("Scene", AssetType.Scene, AssetCategory.Scene, "scenes", "krscene"),
@@ -22,6 +23,8 @@ data class CreateAssetDraft(
     val kind: CreatableAssetKind = CreatableAssetKind.UiScene,
     val name: String = "",
     val uiSceneSkinPath: String = DefaultUiSceneSkinPath,
+    val atlasWidth: Int = 1024,
+    val atlasHeight: Int = 1024,
 )
 
 internal fun defaultCreateAssetDraft(assets: List<AssetDescriptor>): CreateAssetDraft = CreateAssetDraft(uiSceneSkinPath = defaultUiSceneSkinPath(assets))
@@ -64,6 +67,7 @@ internal fun defaultAssetBaseName(
     category: AssetCategory,
 ): String =
     when (type) {
+        AssetType.Atlas -> "new_atlas"
         AssetType.UiScene -> "new_ui_scene"
         AssetType.Terrain -> "new_terrain"
         AssetType.Scene -> "new_scene"
@@ -77,6 +81,13 @@ internal fun sanitizedAssetName(
 
 internal fun createAssetDefaultParams(draft: CreateAssetDraft): List<String> =
     when (draft.kind) {
+        CreatableAssetKind.Atlas ->
+            listOf(
+                "Page size: ${draft.atlasWidth} x ${draft.atlasHeight}",
+                "Format: RGBA8888",
+                "Filter: Nearest",
+            )
+
         CreatableAssetKind.UiScene ->
             listOf(
                 "Skin: ${normalizedUiSceneSkinPath(draft.uiSceneSkinPath)}",

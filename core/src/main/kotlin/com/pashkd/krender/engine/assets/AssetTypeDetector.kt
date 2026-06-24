@@ -48,7 +48,7 @@ object AssetTypeDetector {
         }
     }
 
-    private val textureExtensions = setOf("png", "jpg", "jpeg", "ktx", "webp")
+    private val textureExtensions = setOf("png", "bmp", "jpg", "jpeg", "ktx", "webp")
 }
 
 /**

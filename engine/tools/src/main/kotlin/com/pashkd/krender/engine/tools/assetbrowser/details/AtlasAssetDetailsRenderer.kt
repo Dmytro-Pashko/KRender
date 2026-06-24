@@ -13,8 +13,8 @@ class AtlasAssetDetailsRenderer : AssetDetailsRenderer {
         context: AssetDetailsRenderContext,
     ) {
         ImGui.textUnformatted("Atlas")
-        assetBrowserTextLine("Atlas pages and regions are inspected in Texture Manager.")
-        assetBrowserTextLine("Open with Texture Manager to inspect pages and regions.")
+        assetBrowserTextLine("Atlas pages and regions are edited in Texture Atlas Editor.")
+        assetBrowserTextLine("Open with Texture Atlas Editor to inspect, pack, and save regions.")
         asset.metadata["sourcePath"]?.let { sourcePath ->
             assetBrowserTextLine("Source path: $sourcePath")
         }

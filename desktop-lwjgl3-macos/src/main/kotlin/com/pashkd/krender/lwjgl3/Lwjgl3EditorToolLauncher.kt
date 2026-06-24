@@ -52,11 +52,11 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
-    override fun launchTextureManager(texturePath: String) {
+    override fun launchTextureAtlasEditor(atlasPath: String) {
         launch(
-            scene = "texture-manager",
-            pathProperty = "krender.texture.path" to normalizePath(texturePath),
-            failureMessage = "Texture Manager launch failed",
+            scene = "texture-atlas-editor",
+            pathProperty = "krender.texture.atlas.path" to normalizePath(atlasPath),
+            failureMessage = "Texture Atlas Editor launch failed",
         )
     }
 

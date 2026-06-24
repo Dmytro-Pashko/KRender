@@ -50,6 +50,7 @@ class CreateAssetDialog(
         ImGui.popItemWidth()
         ImGui.sameLine()
         assetBrowserTextLine(".${state.createDraft.kind.extension}")
+        drawCreateAtlasSizeSelector()
         drawCreateUiSceneSkinSelector()
 
         ImGui.separator()
@@ -112,6 +113,36 @@ class CreateAssetDialog(
         ImGui.endCombo()
     }
 
+    private fun drawCreateAtlasSizeSelector() {
+        if (state.createDraft.kind != CreatableAssetKind.Atlas) return
+        drawPageSizeCombo(
+            label = "Width##${panelId}_create_atlas_width",
+            selected = state.createDraft.atlasWidth,
+        ) { value ->
+            state.createDraft = state.createDraft.copy(atlasWidth = value)
+        }
+        drawPageSizeCombo(
+            label = "Height##${panelId}_create_atlas_height",
+            selected = state.createDraft.atlasHeight,
+        ) { value ->
+            state.createDraft = state.createDraft.copy(atlasHeight = value)
+        }
+    }
+
+    private fun drawPageSizeCombo(
+        label: String,
+        selected: Int,
+        onSelect: (Int) -> Unit,
+    ) {
+        if (!ImGui.beginCombo(label, selected.toString())) return
+        PageSizeOptions.forEach { option ->
+            if (ImGui.selectable(option.toString(), option == selected)) {
+                onSelect(option)
+            }
+        }
+        ImGui.endCombo()
+    }
+
     private fun drawCreateAssetMetadata() {
         val draft = state.createDraft.withSyncedDefaults(state.assets)
         val path = createAssetRelativePath(draft)
@@ -127,5 +158,6 @@ class CreateAssetDialog(
 
     companion object {
         private const val TextInputBufferSize = 256
+        private val PageSizeOptions = intArrayOf(128, 256, 512, 1024, 2048, 4096)
     }
 }

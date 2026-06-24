@@ -94,8 +94,8 @@ object SceneConfigPresets {
                 ),
         )
 
-    /** Current Texture Manager preset. Kept separate for future divergence. */
-    val TextureManager =
+    /** Current Texture Atlas Editor preset. Kept separate for future divergence. */
+    val TextureAtlasEditor =
         SceneConfig(
             viewport =
                 RuntimeViewportConfig(

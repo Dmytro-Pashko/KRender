@@ -1,0 +1,67 @@
+{
+  "panels": {
+    "textureManagerToolbar": {
+      "title": "Texture Atlas Editor Toolbar",
+      "x": 2,
+      "y": 3,
+      "width": 555,
+      "height": 173
+    },
+    "textureManagerPreview": {
+      "title": "Preview Canvas",
+      "x": 359,
+      "y": 180,
+      "width": 983,
+      "height": 965
+    },
+    "textureManagerPacking": {
+      "title": "Packing Preview",
+      "x": 1343,
+      "y": 874,
+      "width": 810,
+      "height": 471
+    },
+    "textureManagerInspector": {
+      "title": "Inspector",
+      "x": 2,
+      "y": 179,
+      "width": 354,
+      "height": 963
+    },
+    "textureManagerRegions": {
+      "title": "Atlas Regions",
+      "x": 1346,
+      "y": 179,
+      "width": 403,
+      "height": 690
+    },
+    "textureManagerTools": {
+      "title": "Tools",
+      "x": 1754,
+      "y": 2,
+      "width": 401,
+      "height": 869
+    },
+    "textureManagerDiagnostics": {
+      "title": "Diagnostics",
+      "x": 561,
+      "y": 3,
+      "width": 1188,
+      "height": 171
+    },
+    "runtimeLogs": {
+      "title": "Runtime Logs",
+      "x": 5,
+      "y": 1120,
+      "width": 1334,
+      "height": 230
+    },
+    "textureManagerAssets": {
+      "title": "Assets",
+      "x": 4,
+      "y": 146,
+      "width": 343,
+      "height": 622
+    }
+  }
+}

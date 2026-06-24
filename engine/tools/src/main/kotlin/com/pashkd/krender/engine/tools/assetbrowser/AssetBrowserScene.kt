@@ -12,6 +12,7 @@ import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainPersistence
+import com.pashkd.krender.engine.tools.assetbrowser.creation.createAtlasAsset
 import com.pashkd.krender.engine.ui.editor.*
 
 /**
@@ -50,8 +51,7 @@ class AssetBrowserScene : Scene("asset_browser") {
                 register(ModelViewerAssetTool())
                 register(AnimationViewerAssetTool())
                 register(TerrainEditorAssetTool())
-                register(TextureManagerAtlasAssetTool())
-                register(TextureManagerTextureAssetTool())
+                register(TextureAtlasEditorAtlasAssetTool())
                 register(SkinEditorAssetTool())
                 register(UiComposerAssetTool())
                 register(SceneEditorAssetTool())
@@ -189,6 +189,13 @@ private class SceneOperationsHandler(
     private val logger: Logger,
 ) : AssetBrowserOperationsHandler {
     override fun create(draft: CreateAssetDraft) {
+        if (draft.kind == CreatableAssetKind.Atlas) {
+            consumeResult(createAtlasAsset(draft, engineProvider().assetRegistry.baseDir(), logger))
+            if (state.errorMessage == null) {
+                state.refreshRequested = true
+            }
+            return
+        }
         consumeResult(
             operations.create(
                 CreateAssetRequest(
@@ -409,14 +416,14 @@ class TerrainEditorAssetTool : AssetTool {
     }
 }
 
-class TextureManagerAtlasAssetTool : AssetTool {
-    override val id = "texture-manager-atlas"
-    override val displayName = "Open in Texture Manager"
+class TextureAtlasEditorAtlasAssetTool : AssetTool {
+    override val id = "texture-atlas-editor-atlas"
+    override val displayName = "Open in Texture Atlas Editor"
     override val supportedCategories = setOf(AssetCategory.Texture)
 
     /**
-     * Atlas assets default to Texture Manager because it is the only tool that
-     * surfaces page and region inspection in the current read-only workflow.
+     * Atlas assets default to Texture Atlas Editor because it owns the atlas
+     * region inspection and packing workflow.
      */
     override val defaultAction = true
 
@@ -425,28 +432,10 @@ class TextureManagerAtlasAssetTool : AssetTool {
     override fun open(
         asset: AssetDescriptor,
         context: EngineContext,
-    ) = launchTextureManagerAsset(asset, context, TAG)
+    ) = launchTextureAtlasEditorAsset(asset, context, TAG)
 
     companion object {
-        private const val TAG = "TextureManagerAtlasTool"
-    }
-}
-
-class TextureManagerTextureAssetTool : AssetTool {
-    override val id = "texture-manager-texture"
-    override val displayName = "Open in Texture Manager"
-    override val supportedCategories = setOf(AssetCategory.Texture)
-    override val defaultAction = false
-
-    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Texture && asset.type == AssetType.Texture
-
-    override fun open(
-        asset: AssetDescriptor,
-        context: EngineContext,
-    ) = launchTextureManagerAsset(asset, context, TAG)
-
-    companion object {
-        private const val TAG = "TextureManagerTextureTool"
+        private const val TAG = "TextureAtlasEditorAtlasTool"
     }
 }
 
@@ -549,20 +538,20 @@ class SceneRuntimeAssetTool : AssetTool {
     }
 }
 
-private fun launchTextureManagerAsset(
+private fun launchTextureAtlasEditorAsset(
     asset: AssetDescriptor,
     context: EngineContext,
     tag: String,
 ) {
     val path = normalizedAssetPath(asset)
-    if (asset.category != AssetCategory.Texture || (asset.type != AssetType.Texture && asset.type != AssetType.Atlas)) {
+    if (asset.category != AssetCategory.Texture || asset.type != AssetType.Atlas) {
         context.logger.warn(tag) {
-            "Rejected unsupported Texture Manager asset path='$path' category=${asset.category} type=${asset.type}"
+            "Rejected unsupported Texture Atlas Editor asset path='$path' category=${asset.category} type=${asset.type}"
         }
         return
     }
-    context.editorToolLauncher.launchTextureManager(path)
-    context.logger.info(tag) { "Texture Manager launch requested path='$path'" }
+    context.editorToolLauncher.launchTextureAtlasEditor(path)
+    context.logger.info(tag) { "Texture Atlas Editor launch requested path='$path'" }
 }
 
 private fun normalizedAssetPath(asset: AssetDescriptor): String = asset.path.trim().replace('\\', '/')
