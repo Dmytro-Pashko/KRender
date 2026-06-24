@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
+import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAsset
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -61,6 +62,16 @@ class TextureAtlasEditorToolbarPanel(
         textLine("Input: ${state.currentInputPath ?: "<none>"}")
         state.project.resolvedInputPath?.let { path -> textLine("Resolved: $path") }
         state.project.rootDirectory?.let { root -> textLine("Root: ${root.path.replace('\\', '/')}") }
+        state.selectedAsset()?.let { asset ->
+            ImGui.separator()
+            textLine("File: ${asset.fileName}  |  ${asset.extension.ifBlank { "?" }}  |  ${formatBytes(asset.sizeBytes)}")
+            asset.textureInfo?.let { info ->
+                textLine("Dimensions: ${info.width ?: "?"} x ${info.height ?: "?"}  Format: ${info.colorFormat ?: "?"}")
+            }
+            if (state.previewInfo.textureWidth > 0 && state.previewInfo.textureHeight > 0) {
+                textLine("Preview: ${state.previewInfo.textureWidth} x ${state.previewInfo.textureHeight}")
+            }
+        }
         ImGui.end()
     }
 

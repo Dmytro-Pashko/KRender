@@ -961,7 +961,7 @@ internal fun TextureAtlasEditorState.selectedPackingRegion(): TextureAtlasPackin
 
 internal fun TextureAtlasEditorState.selectedPreviewTexturePath(): String? {
     when (preview.canvasMode) {
-        TextureAtlasCanvasMode.FinalPackedAtlas -> return null
+        TextureAtlasCanvasMode.FinalPackedAtlas -> Unit
         TextureAtlasCanvasMode.FontPreview -> {
             val fontResource = selectedResource() as? FontAtlasResource
             if (fontResource != null) {

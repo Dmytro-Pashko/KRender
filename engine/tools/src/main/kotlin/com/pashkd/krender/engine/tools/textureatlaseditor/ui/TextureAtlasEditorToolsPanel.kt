@@ -4,6 +4,7 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
+import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPlan
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
@@ -30,6 +31,8 @@ class TextureAtlasEditorToolsPanel(
         }
 
         val packingPlan = drawAtlasPackingSection()
+        ImGui.separator()
+        drawAtlasInfoSection()
         ImGui.separator()
         drawSaveSection(packingPlan)
         ImGui.separator()
@@ -79,6 +82,19 @@ class TextureAtlasEditorToolsPanel(
         textLine("Pages: ${currentPlan?.pages?.size ?: 0}")
         textLine("Diagnostics: ${state.packing.lastResult.diagnostics.size}")
         return currentPlan
+    }
+
+    private fun drawAtlasInfoSection() {
+        val atlas = state.selectedAtlasDocument() ?: return
+        textLine("Texture Atlas Info")
+        textLine("Pages: ${atlas.pages.size}")
+        textLine("Regions: ${atlas.regions.size}")
+        state.selectedAtlasPageName?.let { pageName ->
+            textLine("Selected page: $pageName")
+            atlas.pages.firstOrNull { page -> page.name == pageName }?.details?.forEach { (key, value) ->
+                textLine("$key: $value")
+            }
+        }
     }
 
     private fun drawSaveSection(packingPlan: com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingPlan?) {

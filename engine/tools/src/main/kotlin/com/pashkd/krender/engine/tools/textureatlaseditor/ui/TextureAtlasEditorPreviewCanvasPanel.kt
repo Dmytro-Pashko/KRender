@@ -15,6 +15,7 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewport
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewZoomMode
 import com.pashkd.krender.engine.tools.textureatlaseditor.isNinePatchTexturePath
 import com.pashkd.krender.engine.tools.textureatlaseditor.layoutSampleText
+import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasNinePatchRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedNinePatchDocument
@@ -99,6 +100,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
     private fun drawCanvasModeRow() {
         val currentMode = state.preview.canvasMode
+        ImGui.setNextItemWidth(300f)
         if (ImGui.beginCombo("Mode##texture_atlas_editor_canvas_mode", formatCanvasMode(currentMode))) {
             TextureAtlasCanvasMode.entries.forEach { mode ->
                 if (ImGui.selectable(formatCanvasMode(mode), currentMode == mode)) {
@@ -111,7 +113,27 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
     private fun drawOptionRow() {
         if (state.preview.canvasMode == TextureAtlasCanvasMode.FinalPackedAtlas) {
-            textLine("Final packed atlas preview renders the current in-memory packing plan.")
+            val checker = booleanArrayOf(state.preview.showCheckerboard)
+            if (ImGui.checkbox("Checkerboard##atlas_preview_checker", checker)) {
+                operations.setShowCheckerboard(checker[0])
+            }
+            ImGui.sameLine()
+            val bounds = booleanArrayOf(state.preview.showBounds)
+            if (ImGui.checkbox("Bounds##atlas_preview_bounds", bounds)) {
+                operations.setShowBounds(bounds[0])
+            }
+            return
+        }
+        if (state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch) {
+            val checker = booleanArrayOf(state.preview.showCheckerboard)
+            if (ImGui.checkbox("Checkerboard##np_editor_checker", checker)) {
+                operations.setShowCheckerboard(checker[0])
+            }
+            ImGui.sameLine()
+            val guides = booleanArrayOf(state.preview.showNinePatchGuides)
+            if (ImGui.checkbox("Show Guides##np_editor_guides", guides)) {
+                operations.setShowNinePatchGuides(guides[0])
+            }
             return
         }
         if (state.preview.canvasMode == TextureAtlasCanvasMode.FontPreview) {
@@ -149,9 +171,16 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
     private fun drawActionRow() {
         when (state.preview.canvasMode) {
-            TextureAtlasCanvasMode.TextureAtlas,
-            TextureAtlasCanvasMode.NinePatch,
-            -> {
+            TextureAtlasCanvasMode.NinePatch -> {
+                if (ImGui.button("Fit##np_fit")) {
+                    operations.fitPreview()
+                }
+                ImGui.sameLine()
+                if (ImGui.button("Reset Camera##np_reset_camera")) {
+                    operations.resetPreviewCamera()
+                }
+            }
+            TextureAtlasCanvasMode.TextureAtlas -> {
                 ImGui.setNextItemWidth(180f)
                 if (ImGui.beginCombo("Zoom Mode##texture_atlas_editor_zoom_mode", formatZoomMode(state.preview.zoomMode))) {
                     TexturePreviewZoomMode.entries.forEach { mode ->
@@ -181,25 +210,36 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 }
             }
             TextureAtlasCanvasMode.FinalPackedAtlas -> {
-                val plan = state.selectedPackingPlan()
-                if (plan == null || plan.pages.isEmpty()) {
-                    textLine("Pack Texture Atlas to preview the final packed atlas.")
-                    return
-                }
-                val selectedPageName = state.selectedPackingPage()?.name ?: plan.pages.first().name
-                if (ImGui.beginCombo("Packed Page##texture_atlas_editor_packed_page", selectedPageName)) {
-                    plan.pages.forEachIndexed { index, page ->
-                        if (ImGui.selectable(page.name, state.packing.selectedPageIndex == index)) {
-                            operations.selectPackingPage(index)
+                val atlas = state.selectedAtlasDocument()
+                if (atlas != null && atlas.pages.size > 1) {
+                    val currentPage = state.selectedAtlasPageName ?: atlas.pages.first().name
+                    ImGui.setNextItemWidth(300f)
+                    if (ImGui.beginCombo("Atlas Page##atlas_preview_page", currentPage)) {
+                        atlas.pages.forEach { page ->
+                            if (ImGui.selectable(page.name, currentPage == page.name)) {
+                                operations.selectAtlasPage(page.name)
+                            }
                         }
+                        ImGui.endCombo()
                     }
-                    ImGui.endCombo()
+                }
+                if (ImGui.button("Fit##atlas_preview_fit")) {
+                    operations.fitPreview()
+                }
+                ImGui.sameLine()
+                if (ImGui.button("Reset Camera##atlas_preview_reset")) {
+                    operations.resetPreviewCamera()
+                }
+                ImGui.sameLine()
+                if (ImGui.button("Focus Region##atlas_preview_focus")) {
+                    operations.fitSelectedRegion()
                 }
             }
             TextureAtlasCanvasMode.FontPreview -> {
                 val document = state.selectedFontDocument()
                 if (document != null && document.pages.size > 1) {
                     val currentPageName = document.pages.getOrNull(state.fontPreview.selectedPageIndex)?.file ?: "page 0"
+                    ImGui.setNextItemWidth(300f)
                     if (ImGui.beginCombo("Font Page##font_action_page", currentPageName)) {
                         document.pages.forEachIndexed { index, page ->
                             if (ImGui.selectable("${page.id}: ${page.file}", state.fontPreview.selectedPageIndex == index)) {
@@ -221,8 +261,9 @@ class TextureAtlasEditorPreviewCanvasPanel(
     }
 
     private fun drawTexturePreviewCanvas() {
+        val isNinePatchMode = state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch
         val selectedResource = state.selectedResource()
-        if (state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch && selectedResource !is NinePatchAtlasResource) {
+        if (isNinePatchMode && selectedResource !is NinePatchAtlasResource) {
             clearCursorMetrics()
             wrappedTextLine("Select a Nine-patch resource to edit guides.")
             return
@@ -242,22 +283,25 @@ class TextureAtlasEditorPreviewCanvasPanel(
             }
             ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
             ui.drawTexturePreview(handle, viewportLayout.imageWidth, viewportLayout.imageHeight)
-            val regions = state.selectedRegionsForPage()
-            val selectedRegion = regions.firstOrNull { region -> region.id == state.selectedRegionId }
-            val hoveredRegion = regions.firstOrNull { region -> region.id == state.hoveredRegionId }
-            if (state.preview.showGrid) {
-                TextureAtlasEditorPreviewOverlays.drawGrid(viewportLayout)
-            }
-            if (state.preview.showBounds && regions.isNotEmpty()) {
-                TextureAtlasEditorPreviewOverlays.drawRegionBounds(regions, viewportLayout, selectedRegion, hoveredRegion)
-                selectedRegion?.let { region -> TextureAtlasEditorPreviewOverlays.labelRegion(region, viewportLayout) }
-            }
-            if (state.preview.showNinePatchGuides) {
+
+            if (isNinePatchMode) {
                 val draft = state.ninePatchEditor.draft
-                if (state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch && draft != null) {
+                if (draft != null) {
                     val isNinePng = isNinePatchTexturePath(draft.sourcePath)
                     TextureAtlasEditorPreviewOverlays.drawNinePatchDraftGuides(draft, viewportLayout, isNinePng)
-                } else {
+                }
+            } else {
+                val regions = state.selectedRegionsForPage()
+                val selectedRegion = regions.firstOrNull { region -> region.id == state.selectedRegionId }
+                val hoveredRegion = regions.firstOrNull { region -> region.id == state.hoveredRegionId }
+                if (state.preview.showGrid) {
+                    TextureAtlasEditorPreviewOverlays.drawGrid(viewportLayout)
+                }
+                if (state.preview.showBounds && regions.isNotEmpty()) {
+                    TextureAtlasEditorPreviewOverlays.drawRegionBounds(regions, viewportLayout, selectedRegion, hoveredRegion)
+                    selectedRegion?.let { region -> TextureAtlasEditorPreviewOverlays.labelRegion(region, viewportLayout) }
+                }
+                if (state.preview.showNinePatchGuides) {
                     state.selectedNinePatchDocument()?.let { document ->
                         TextureAtlasEditorPreviewOverlays.drawNinePatchGuides(document, viewportLayout)
                     }
@@ -265,7 +309,8 @@ class TextureAtlasEditorPreviewCanvasPanel(
             }
             ImGui.cursorScreenPos = ImVec2(state.canvasRect.x, state.canvasRect.y)
             ImGui.invisibleButton("##texture_atlas_editor_preview_canvas_hit", ImVec2(state.canvasRect.width, state.canvasRect.height))
-            handleTextureInteraction(viewportLayout, regions, allowRegionSelection = state.preview.canvasMode == TextureAtlasCanvasMode.TextureAtlas)
+            val interactionRegions = if (isNinePatchMode) emptyList() else state.selectedRegionsForPage()
+            handleTextureInteraction(viewportLayout, interactionRegions, allowRegionSelection = !isNinePatchMode)
         } else {
             clearCursorMetrics()
             wrappedTextLine(state.previewInfo.statusMessage)
@@ -274,11 +319,38 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
     private fun drawPackedAtlasPreviewCanvas() {
         clearCursorMetrics()
+
+        val handle = state.previewInfo.texturePreviewHandle
+        if (handle != null && state.previewInfo.textureWidth > 0 && state.previewInfo.textureHeight > 0) {
+            val viewportLayout = computeTexturePreviewViewportLayout(
+                rect = state.canvasRect,
+                textureWidth = state.previewInfo.textureWidth,
+                textureHeight = state.previewInfo.textureHeight,
+                previewState = state.preview,
+            )
+            if (state.preview.showCheckerboard) {
+                TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
+            }
+            ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
+            ui.drawTexturePreview(handle, viewportLayout.imageWidth, viewportLayout.imageHeight)
+            val regions = state.selectedRegionsForPage()
+            val selectedRegion = regions.firstOrNull { region -> region.id == state.selectedRegionId }
+            val hoveredRegion = regions.firstOrNull { region -> region.id == state.hoveredRegionId }
+            if (state.preview.showBounds && regions.isNotEmpty()) {
+                TextureAtlasEditorPreviewOverlays.drawRegionBounds(regions, viewportLayout, selectedRegion, hoveredRegion)
+                selectedRegion?.let { region -> TextureAtlasEditorPreviewOverlays.labelRegion(region, viewportLayout) }
+            }
+            ImGui.cursorScreenPos = ImVec2(state.canvasRect.x, state.canvasRect.y)
+            ImGui.invisibleButton("##texture_atlas_editor_atlas_preview_hit", ImVec2(state.canvasRect.width, state.canvasRect.height))
+            handleTextureInteraction(viewportLayout, regions, allowRegionSelection = true)
+            return
+        }
+
         val page = state.selectedPackingPage()
         if (page == null) {
             hoveredPackingRegionId = null
             pendingSelectPackingRegionId = null
-            wrappedTextLine("Pack Texture Atlas to preview the final packed atlas.")
+            wrappedTextLine("Pack Texture Atlas or select an atlas page to preview.")
             return
         }
 
@@ -527,10 +599,10 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
 private fun formatCanvasMode(mode: TextureAtlasCanvasMode): String =
     when (mode) {
-        TextureAtlasCanvasMode.TextureAtlas -> "Texture Atlas"
-        TextureAtlasCanvasMode.NinePatch -> "NinePatch"
-        TextureAtlasCanvasMode.FontPreview -> "Font Preview"
-        TextureAtlasCanvasMode.FinalPackedAtlas -> "Final Packed Atlas"
+        TextureAtlasCanvasMode.TextureAtlas -> "Texture Atlas File"
+        TextureAtlasCanvasMode.NinePatch -> "NinePatch Editor"
+        TextureAtlasCanvasMode.FontPreview -> "Font Editor"
+        TextureAtlasCanvasMode.FinalPackedAtlas -> "Atlas Preview"
     }
 
 private fun beginPanel(
