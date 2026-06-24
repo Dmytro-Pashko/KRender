@@ -130,19 +130,6 @@ class TextureAtlasEditorResourcesPanel(
             operations.importAndAddImageResource()
             writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
         }
-        ImGui.sameLine()
-        val fontPaths = state.project.fontDocuments.keys.toList()
-        if (fontPaths.isNotEmpty()) {
-            if (ImGui.beginCombo("Add Font##texture_atlas_editor_add_font", "<select .fnt>")) {
-                fontPaths.forEach { fntPath ->
-                    val label = java.io.File(fntPath).name
-                    if (ImGui.selectable(label, false)) {
-                        operations.addFontResourceFromPath(fntPath)
-                    }
-                }
-                ImGui.endCombo()
-            }
-        }
         if (state.selectedResource() == null) ImGui.beginDisabled()
         if (ImGui.button("Delete Resource##texture_atlas_editor_resource_delete")) {
             operations.deleteSelectedResource()

@@ -116,6 +116,7 @@ data class TextureAtlasEditorPreviewState(
     var viewport: TextureAtlasEditorPreviewViewportState = TextureAtlasEditorPreviewViewportState(),
     var showCheckerboard: Boolean = true,
     var showGrid: Boolean = false,
+    var gridSpacingPixels: Int = 32,
     var gridColor: TextureAtlasEditorColor = TextureAtlasEditorColor(red = 1f, green = 1f, blue = 1f, alpha = 0.19f),
     var showBounds: Boolean = true,
     var showNinePatchGuides: Boolean = true,

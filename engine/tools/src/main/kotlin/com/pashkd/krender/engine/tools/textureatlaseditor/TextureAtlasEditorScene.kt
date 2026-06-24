@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.assets.importing.AwtFileDialogService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasCanvasMode.FinalPackedAtlas
+import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxNinePatchPixelReader
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxTextureAtlasSaveService
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxTextureAtlasEditorPreview
@@ -160,6 +161,7 @@ class TextureAtlasEditorScene(
         val atlasDocument = atlasPath?.let { path -> editorState.project.atlasDocuments[path] }
         val carryOverResources =
             editorState.resources.items.filter { resource ->
+                resource !is FontAtlasResource &&
                 resource.atlasRegionIdOrNull() == null &&
                     resource.sourcePathOrNull()?.let { path -> java.io.File(path).isFile } != false
             }
@@ -205,7 +207,21 @@ class TextureAtlasEditorScene(
                         )
                     }
                 }.orEmpty()
-        val rebuiltItems = atlasResources + carryOverResources
+        val fontResources =
+            editorState.project.fontDocuments.entries
+                .sortedBy { (path, document) -> (document.info?.face ?: java.io.File(path).nameWithoutExtension).lowercase() }
+                .map { (path, document) ->
+                    FontAtlasResource(
+                        id = "resource:font:$path",
+                        name = document.info?.face ?: java.io.File(path).nameWithoutExtension,
+                        sourcePath = path,
+                        documentPath = path,
+                        pageTexturePaths = document.pages.mapNotNull { page -> page.resolvedPath },
+                        glyphCount = document.glyphs.size,
+                        kerningCount = document.kernings.size,
+                    )
+                }
+        val rebuiltItems = atlasResources + fontResources + carryOverResources
         val selectedResourceId =
             editorState.resources.selectedResourceId?.takeIf { selectedId ->
                 rebuiltItems.any { resource -> resource.id == selectedId }

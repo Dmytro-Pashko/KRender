@@ -169,7 +169,7 @@ class TextureAtlasEditorOperations(
         state.preview.canvasMode = mode
         state.statusMessage =
             when (mode) {
-                TextureAtlasCanvasMode.TextureAtlas -> "Previewing atlas pages and regions."
+                TextureAtlasCanvasMode.TextureAtlas -> "Previewing atlas file pages and regions."
                 TextureAtlasCanvasMode.NinePatch -> "Previewing Nine-patch resources."
                 TextureAtlasCanvasMode.FontPreview -> "Previewing font page and glyph bounds."
                 TextureAtlasCanvasMode.FinalPackedAtlas -> "Previewing the current packed atlas plan."
@@ -297,6 +297,10 @@ class TextureAtlasEditorOperations(
         alpha: Float,
     ) {
         state.preview.gridColor = TextureAtlasEditorColor(red, green, blue, alpha)
+    }
+
+    fun setGridSpacingPixels(value: Int) {
+        state.preview.gridSpacingPixels = value.coerceIn(MinGridSpacingPixels, MaxGridSpacingPixels)
     }
 
     fun setShowBounds(enabled: Boolean) {
@@ -1014,7 +1018,9 @@ class TextureAtlasEditorOperations(
     companion object {
         private const val TAG = "TextureAtlasEditorOps"
         private const val MinPreviewZoom = 0.05f
-        private const val MaxPreviewZoom = 20f
+        private const val MaxPreviewZoom = 25f
+        private const val MinGridSpacingPixels = 4
+        private const val MaxGridSpacingPixels = 512
     }
 }
 

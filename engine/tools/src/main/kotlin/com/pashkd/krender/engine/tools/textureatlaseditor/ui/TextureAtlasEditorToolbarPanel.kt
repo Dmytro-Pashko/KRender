@@ -61,7 +61,6 @@ class TextureAtlasEditorToolbarPanel(
         wrappedTextLine(state.statusMessage)
         textLine("Input: ${state.currentInputPath ?: "<none>"}")
         state.project.resolvedInputPath?.let { path -> textLine("Resolved: $path") }
-        state.project.rootDirectory?.let { root -> textLine("Root: ${root.path.replace('\\', '/')}") }
         state.selectedAsset()?.let { asset ->
             ImGui.separator()
             textLine("File: ${asset.fileName}  |  ${asset.extension.ifBlank { "?" }}  |  ${formatBytes(asset.sizeBytes)}")

@@ -19,7 +19,6 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.layoutSampleText
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasNinePatchRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontDocument
-import com.pashkd.krender.engine.tools.textureatlaseditor.selectedNinePatchDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPage
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPlan
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingRegion
@@ -118,42 +117,24 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
     private fun drawOptionRow() {
         if (state.preview.canvasMode == TextureAtlasCanvasMode.FinalPackedAtlas) {
-            val checker = booleanArrayOf(state.preview.showCheckerboard)
-            if (ImGui.checkbox("Checkerboard##atlas_preview_checker", checker)) {
-                operations.setShowCheckerboard(checker[0])
-            }
-            ImGui.sameLine()
-            val grid = booleanArrayOf(state.preview.showGrid)
-            if (ImGui.checkbox("Grid##atlas_preview_grid", grid)) {
-                operations.setShowGrid(grid[0])
-            }
-            ImGui.sameLine()
-            val bounds = booleanArrayOf(state.preview.showBounds)
-            if (ImGui.checkbox("Bounds##atlas_preview_bounds", bounds)) {
-                operations.setShowBounds(bounds[0])
-            }
-            if (state.preview.showGrid) {
-                drawGridColorEditor("atlas_preview")
-            }
+            drawSharedPreviewOptionToggles(
+                checkerId = "atlas_preview_checker",
+                gridId = "atlas_preview_grid",
+                boundsId = "atlas_preview_bounds",
+                showBoundsToggle = true,
+            )
             return
         }
         if (state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch) {
-            val checker = booleanArrayOf(state.preview.showCheckerboard)
-            if (ImGui.checkbox("Checkerboard##np_editor_checker", checker)) {
-                operations.setShowCheckerboard(checker[0])
-            }
-            ImGui.sameLine()
-            val grid = booleanArrayOf(state.preview.showGrid)
-            if (ImGui.checkbox("Grid##np_editor_grid", grid)) {
-                operations.setShowGrid(grid[0])
-            }
+            drawSharedPreviewOptionToggles(
+                checkerId = "np_editor_checker",
+                gridId = "np_editor_grid",
+                showBoundsToggle = false,
+            )
             ImGui.sameLine()
             val guides = booleanArrayOf(state.preview.showNinePatchGuides)
             if (ImGui.checkbox("Show Guides##np_editor_guides", guides)) {
                 operations.setShowNinePatchGuides(guides[0])
-            }
-            if (state.preview.showGrid) {
-                drawGridColorEditor("np_editor")
             }
             return
         }
@@ -163,43 +144,20 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 state.fontPreview.showGlyphBounds = showGlyphs[0]
             }
             ImGui.sameLine()
-            val checker = booleanArrayOf(state.preview.showCheckerboard)
-            if (ImGui.checkbox("Checkerboard##font_checker", checker)) {
-                operations.setShowCheckerboard(checker[0])
-            }
-            ImGui.sameLine()
-            val grid = booleanArrayOf(state.preview.showGrid)
-            if (ImGui.checkbox("Grid##font_grid", grid)) {
-                operations.setShowGrid(grid[0])
-            }
+            drawSharedPreviewOptionToggles(
+                checkerId = "font_checker",
+                gridId = "font_grid",
+                showBoundsToggle = false,
+            )
             drawFontTintEditor()
-            if (state.preview.showGrid) {
-                drawGridColorEditor("font_preview")
-            }
             return
         }
-        val checker = booleanArrayOf(state.preview.showCheckerboard)
-        if (ImGui.checkbox("Checkerboard##texture_atlas_editor_checker", checker)) {
-            operations.setShowCheckerboard(checker[0])
-        }
-        ImGui.sameLine()
-        val grid = booleanArrayOf(state.preview.showGrid)
-        if (ImGui.checkbox("Grid##texture_atlas_editor_grid", grid)) {
-            operations.setShowGrid(grid[0])
-        }
-        ImGui.sameLine()
-        val bounds = booleanArrayOf(state.preview.showBounds)
-        if (ImGui.checkbox("Bounds##texture_atlas_editor_bounds", bounds)) {
-            operations.setShowBounds(bounds[0])
-        }
-        ImGui.sameLine()
-        val ninePatchGuides = booleanArrayOf(state.preview.showNinePatchGuides)
-        if (ImGui.checkbox("Show Nine-patch Guides##texture_atlas_editor_nine_patch_guides", ninePatchGuides)) {
-            operations.setShowNinePatchGuides(ninePatchGuides[0])
-        }
-        if (state.preview.showGrid) {
-            drawGridColorEditor("texture_atlas")
-        }
+        drawSharedPreviewOptionToggles(
+            checkerId = "texture_atlas_editor_checker",
+            gridId = "texture_atlas_editor_grid",
+            boundsId = "texture_atlas_editor_bounds",
+            showBoundsToggle = true,
+        )
     }
 
     private fun drawActionRow() {
@@ -302,13 +260,17 @@ class TextureAtlasEditorPreviewCanvasPanel(
             if (state.preview.showCheckerboard) {
                 TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
             }
-            if (isNinePatchMode && state.preview.showGrid) {
-                TextureAtlasEditorPreviewOverlays.drawGrid(viewportLayout, color = packImColor(state.preview.gridColor))
-            }
             ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
             ui.drawTexturePreview(handle, viewportLayout.imageWidth, viewportLayout.imageHeight)
 
             if (isNinePatchMode) {
+                if (state.preview.showGrid) {
+                    TextureAtlasEditorPreviewOverlays.drawGrid(
+                        viewportLayout,
+                        spacingPixels = state.preview.gridSpacingPixels,
+                        color = packImColor(state.preview.gridColor),
+                    )
+                }
                 val draft = state.ninePatchEditor.draft
                 if (draft != null && state.preview.showNinePatchGuides) {
                     val overlay = TextureAtlasEditorPreviewOverlays.buildNinePatchDraftOverlay(draft, viewportLayout)
@@ -319,16 +281,15 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 val selectedRegion = regions.firstOrNull { region -> region.id == state.selectedRegionId }
                 val hoveredRegion = regions.firstOrNull { region -> region.id == state.hoveredRegionId }
                 if (state.preview.showGrid) {
-                    TextureAtlasEditorPreviewOverlays.drawGrid(viewportLayout, color = packImColor(state.preview.gridColor))
+                    TextureAtlasEditorPreviewOverlays.drawGrid(
+                        viewportLayout,
+                        spacingPixels = state.preview.gridSpacingPixels,
+                        color = packImColor(state.preview.gridColor),
+                    )
                 }
                 if (state.preview.showBounds && regions.isNotEmpty()) {
                     TextureAtlasEditorPreviewOverlays.drawRegionBounds(regions, viewportLayout, selectedRegion, hoveredRegion)
                     selectedRegion?.let { region -> TextureAtlasEditorPreviewOverlays.labelRegion(region, viewportLayout) }
-                }
-                if (state.preview.showNinePatchGuides) {
-                    state.selectedNinePatchDocument()?.let { document ->
-                        TextureAtlasEditorPreviewOverlays.drawNinePatchGuides(document, viewportLayout)
-                    }
                 }
             }
             ImGui.cursorScreenPos = ImVec2(state.canvasRect.x, state.canvasRect.y)
@@ -367,7 +328,11 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
             }
             if (state.preview.showGrid) {
-                TextureAtlasEditorPreviewOverlays.drawGrid(viewportLayout, color = packImColor(state.preview.gridColor))
+                TextureAtlasEditorPreviewOverlays.drawGrid(
+                    viewportLayout,
+                    spacingPixels = state.preview.gridSpacingPixels,
+                    color = packImColor(state.preview.gridColor),
+                )
             }
             ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
             ui.drawTexturePreview(handle, viewportLayout.imageWidth, viewportLayout.imageHeight)
@@ -537,7 +502,11 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
             }
             if (state.preview.showGrid) {
-                TextureAtlasEditorPreviewOverlays.drawGrid(viewportLayout, color = packImColor(state.preview.gridColor))
+                TextureAtlasEditorPreviewOverlays.drawGrid(
+                    viewportLayout,
+                    spacingPixels = state.preview.gridSpacingPixels,
+                    color = packImColor(state.preview.gridColor),
+                )
             }
             ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
             ui.drawTexturePreview(
@@ -679,7 +648,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
                     when {
                         state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch -> "Nine-patch"
                         state.selectedAtlasNinePatchRegion() != null -> "Atlas Region"
-                        else -> "Texture Atlas"
+                        else -> "Atlas File"
                     }
                 val cursorText =
                     if (cursorTextureX != null && cursorTextureY != null) {
@@ -754,6 +723,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
     companion object {
         private const val ClickDragThreshold = 6f
         private const val NinePatchCanvasPaddingPixels = 100
+        private val GridSpacingOptions = intArrayOf(4, 8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512)
     }
 
     private fun drawGridColorEditor(idSuffix: String) {
@@ -770,6 +740,19 @@ class TextureAtlasEditorPreviewCanvasPanel(
             }
         ) {
             Unit
+        }
+    }
+
+    private fun drawGridSizeEditor(idSuffix: String) {
+        ImGui.setNextItemWidth(140f)
+        val currentValue = state.preview.gridSpacingPixels
+        if (ImGui.beginCombo("Grid Size##$idSuffix", currentValue.toString())) {
+            GridSpacingOptions.forEach { option ->
+                if (ImGui.selectable(option.toString(), option == currentValue)) {
+                    operations.setGridSpacingPixels(option)
+                }
+            }
+            ImGui.endCombo()
         }
     }
 
@@ -803,9 +786,37 @@ class TextureAtlasEditorPreviewCanvasPanel(
         if (state.preview.zoomMode == TexturePreviewZoomMode.Custom) {
             ImGui.sameLine()
             ImGui.setNextItemWidth(120f)
-            if (slider("Custom##${idPrefix}_custom_zoom", state.preview::customZoom, 0.05f, 20f, "%.2f", SliderFlag.AlwaysClamp)) {
+            if (slider("Custom##${idPrefix}_custom_zoom", state.preview::customZoom, 0.05f, 25f, "%.2f", SliderFlag.AlwaysClamp)) {
                 operations.setPreviewZoom(state.preview.customZoom)
             }
+        }
+    }
+
+    private fun drawSharedPreviewOptionToggles(
+        checkerId: String,
+        gridId: String,
+        boundsId: String = "",
+        showBoundsToggle: Boolean,
+    ) {
+        val checker = booleanArrayOf(state.preview.showCheckerboard)
+        if (ImGui.checkbox("Checkerboard##$checkerId", checker)) {
+            operations.setShowCheckerboard(checker[0])
+        }
+        ImGui.sameLine()
+        val grid = booleanArrayOf(state.preview.showGrid)
+        if (ImGui.checkbox("Grid##$gridId", grid)) {
+            operations.setShowGrid(grid[0])
+        }
+        if (showBoundsToggle) {
+            ImGui.sameLine()
+            val bounds = booleanArrayOf(state.preview.showBounds)
+            if (ImGui.checkbox("Bounds##$boundsId", bounds)) {
+                operations.setShowBounds(bounds[0])
+            }
+        }
+        if (state.preview.showGrid) {
+            drawGridColorEditor(gridId)
+            drawGridSizeEditor(gridId)
         }
     }
 
@@ -900,7 +911,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
 private fun formatCanvasMode(mode: TextureAtlasCanvasMode): String =
     when (mode) {
-        TextureAtlasCanvasMode.TextureAtlas -> "Texture Atlas File"
+        TextureAtlasCanvasMode.TextureAtlas -> "Atlas File"
         TextureAtlasCanvasMode.NinePatch -> "NinePatch Editor"
         TextureAtlasCanvasMode.FontPreview -> "Font Editor"
         TextureAtlasCanvasMode.FinalPackedAtlas -> "Atlas Preview"
@@ -943,7 +954,7 @@ private fun computeTexturePreviewViewportLayout(
             TexturePreviewZoomMode.Percent50 -> 0.5f
             TexturePreviewZoomMode.Percent100 -> 1f
             TexturePreviewZoomMode.Percent200 -> 2f
-            TexturePreviewZoomMode.Custom -> previewState.customZoom.coerceIn(0.05f, 20f)
+            TexturePreviewZoomMode.Custom -> previewState.customZoom.coerceIn(0.05f, 25f)
         }
     val imageWidth = textureWidth * effectiveZoom
     val imageHeight = textureHeight * effectiveZoom

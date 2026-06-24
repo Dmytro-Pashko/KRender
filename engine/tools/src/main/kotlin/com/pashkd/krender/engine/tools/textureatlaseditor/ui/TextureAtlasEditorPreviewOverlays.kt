@@ -65,13 +65,22 @@ internal object TextureAtlasEditorPreviewOverlays {
         val drawList = ImGui.windowDrawList
         regions.forEach { region ->
             val rect = atlasRegionScreenRect(region, layout) ?: return@forEach
-            val color =
+            val strokeColor =
                 when {
                     selectedRegion?.id == region.id -> SelectedColor
                     hoveredRegion?.id == region.id -> HoverColor
                     else -> BoundsColor
                 }
-            drawList.addRect(ImVec2(rect.minX, rect.minY), ImVec2(rect.maxX, rect.maxY), color, 0f, thickness = 2f)
+            val fillColor =
+                when {
+                    selectedRegion?.id == region.id -> SelectedFillColor
+                    hoveredRegion?.id == region.id -> HoverFillColor
+                    else -> null
+                }
+            fillColor?.let { color ->
+                drawList.addRectFilled(ImVec2(rect.minX, rect.minY), ImVec2(rect.maxX, rect.maxY), color)
+            }
+            drawList.addRect(ImVec2(rect.minX, rect.minY), ImVec2(rect.maxX, rect.maxY), strokeColor, 0f, thickness = 2f)
         }
     }
 
@@ -429,7 +438,9 @@ internal object TextureAtlasEditorPreviewOverlays {
     private val CheckerDark = packImColor(72, 72, 72, 255)
     private val GridColor = packImColor(255, 255, 255, 48)
     private val BoundsColor = packImColor(255, 214, 102, 180)
+    private val HoverFillColor = packImColor(64, 173, 255, 56)
     private val HoverColor = packImColor(64, 173, 255, 220)
+    private val SelectedFillColor = packImColor(255, 92, 92, 56)
     private val SelectedColor = packImColor(255, 92, 92, 255)
     private val LabelColor = packImColor(255, 255, 255, 255)
     private val NinePatchContentColor = packImColor(255, 255, 255, 180)
