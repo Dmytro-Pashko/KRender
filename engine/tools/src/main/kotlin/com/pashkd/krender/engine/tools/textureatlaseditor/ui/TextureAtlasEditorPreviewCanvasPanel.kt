@@ -50,6 +50,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
     private var cursorRegionX: Int? = null
     private var cursorRegionY: Int? = null
     private var hoveredPackingRegionId: String? = null
+    private var pendingSelectPackingRegionId: String? = null
 
     override fun draw() {
         val layout = layoutConfig.panels.getValue(TextureAtlasEditorPanelIds.Preview)
@@ -241,6 +242,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
         val page = state.selectedPackingPage()
         if (page == null) {
             hoveredPackingRegionId = null
+            pendingSelectPackingRegionId = null
             wrappedTextLine("Pack Texture Atlas to preview the final packed atlas.")
             return
         }
@@ -257,12 +259,26 @@ class TextureAtlasEditorPreviewCanvasPanel(
         val io = ImGui.io
         if (!ImGui.isItemHovered()) {
             hoveredPackingRegionId = null
+            pendingSelectPackingRegionId = null
             return
         }
         val hoveredRegion = TextureAtlasEditorPreviewOverlays.hitTestPackedRegion(layout, io.mousePos.x, io.mousePos.y)
         hoveredPackingRegionId = hoveredRegion?.id
-        if (io.mouseClicked[0] && hoveredRegion != null) {
-            operations.selectPackingRegion(hoveredRegion.id)
+        if (io.mouseClicked[0]) {
+            pendingSelectPackingRegionId = hoveredRegion?.id
+            clickDragDistance = 0f
+        }
+        if (MouseButton.Right.isDragging() && (io.mouseDelta.x != 0f || io.mouseDelta.y != 0f)) {
+            clickDragDistance += kotlin.math.abs(io.mouseDelta.x) + kotlin.math.abs(io.mouseDelta.y)
+            pendingSelectPackingRegionId = null
+        }
+        if (pendingSelectPackingRegionId != null && io.mouseReleased[0] && clickDragDistance < ClickDragThreshold) {
+            operations.selectPackingRegion(pendingSelectPackingRegionId)
+            pendingSelectPackingRegionId = null
+            clickDragDistance = 0f
+        } else if (io.mouseReleased[0]) {
+            pendingSelectPackingRegionId = null
+            clickDragDistance = 0f
         }
     }
 
@@ -392,7 +408,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 val selectedText = state.selectedPackingRegion()?.displayName ?: "<none>"
                 textLine("Pages: ${plan?.pages?.size ?: 0} | Packed: ${plan?.packedRegionCount ?: 0} | Skipped: ${plan?.skippedCount ?: 0}")
                 textLine("Hovered: $hoveredText | Selected: $selectedText | Page: ${page?.name ?: "<none>"}")
-                wrappedTextLine("Pack Texture Atlas keeps results in memory until Save Packed Atlas writes files explicitly.")
+                wrappedTextLine("Pack Texture Atlas keeps results in memory until Save Texture Atlas writes files explicitly.")
             }
             TextureAtlasCanvasMode.FontPreview -> wrappedTextLine("Font preview is not implemented yet.")
         }

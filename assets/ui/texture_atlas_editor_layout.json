@@ -9,45 +9,45 @@
     },
     "textureManagerPreview": {
       "title": "Preview Canvas",
-      "x": 359,
-      "y": 180,
-      "width": 983,
-      "height": 965
+      "x": 476,
+      "y": 179,
+      "width": 862,
+      "height": 941
     },
     "textureManagerInspector": {
       "title": "Inspector",
-      "x": 2,
-      "y": 179,
-      "width": 354,
-      "height": 963
+      "x": 1343,
+      "y": 403,
+      "width": 409,
+      "height": 940
     },
     "textureManagerRegions": {
       "title": "Atlas Resources",
-      "x": 1346,
-      "y": 179,
-      "width": 403,
-      "height": 690
+      "x": 2,
+      "y": 180,
+      "width": 472,
+      "height": 937
     },
     "textureManagerTools": {
       "title": "Tools",
-      "x": 1754,
-      "y": 2,
-      "width": 401,
-      "height": 869
+      "x": 1344,
+      "y": 3,
+      "width": 410,
+      "height": 395
     },
     "textureManagerDiagnostics": {
       "title": "Diagnostics",
-      "x": 561,
+      "x": 560,
       "y": 3,
-      "width": 1188,
-      "height": 171
+      "width": 780,
+      "height": 173
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
-      "x": 5,
+      "x": 3,
       "y": 1120,
-      "width": 1334,
-      "height": 230
+      "width": 1343,
+      "height": 225
     }
   }
 }

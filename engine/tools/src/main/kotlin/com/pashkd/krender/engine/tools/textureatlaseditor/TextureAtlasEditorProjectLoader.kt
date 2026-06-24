@@ -63,7 +63,7 @@ class TextureAtlasEditorProjectLoader(
                 val atlas = enrichAtlasDocument(file, atlasParser.parse(file), diagnostics)
                 logger.info(TAG) { "Parsed atlas '${normalizePath(file.path)}' pages=${atlas.pages.size} regions=${atlas.regions.size} readable=${atlas.readable}" }
                 atlas.diagnostics.forEach(diagnostics::add)
-                normalizePath(file.path) to atlas
+                normalizeAssetPath(file.path) to atlas
             }
         val ninePatchDocuments = loadNinePatchDocuments(discoveredFiles.textures, diagnostics)
 
@@ -80,8 +80,8 @@ class TextureAtlasEditorProjectLoader(
         val selectedAsset =
             when {
                 resolved.isDirectory -> null
-                isTextureFile(resolved) -> normalizePath(resolved.path)
-                isAtlasFile(resolved) -> normalizePath(resolved.path)
+                isTextureFile(resolved) -> normalizeAssetPath(resolved.path)
+                isAtlasFile(resolved) -> normalizeAssetPath(resolved.path)
                 else -> null
             }
         if (!resolved.isDirectory && !isTextureFile(resolved) && !isAtlasFile(resolved)) {
@@ -190,7 +190,7 @@ class TextureAtlasEditorProjectLoader(
         file: File,
         kind: TextureAtlasEditorAssetKind,
     ): TextureAtlasEditorAssetDescriptor {
-        val normalizedPath = normalizePath(file.path)
+        val normalizedPath = normalizeAssetPath(file.path)
         val metadataFile = File(file.parentFile, "${file.name}.krmeta").takeIf(File::isFile)
         val registryDescriptor =
             assetRegistry.findByPath(normalizedPath.removePrefix(normalizePath(assetRegistry.baseDir().path)).trimStart('/'))
@@ -217,7 +217,7 @@ class TextureAtlasEditorProjectLoader(
         return textures
             .filter { file -> isNinePatchTexturePath(file.name) }
             .associate { file ->
-                val normalizedPath = normalizePath(file.path)
+                val normalizedPath = normalizeAssetPath(file.path)
                 logger.info(TAG) { "Detected Nine-patch texture path='$normalizedPath'" }
                 val document = ninePatchParser.parse(normalizedPath, reader)
                 document.issues.forEach { issue ->
@@ -369,6 +369,8 @@ data class TextureAtlasEditorLoadResult(
 )
 
 internal fun normalizePath(path: String): String = path.replace('\\', '/')
+
+private fun normalizeAssetPath(path: String): String = normalizePath(path).removePrefix("./")
 
 private fun NinePatchValidationIssue.toDiagnosticSeverity(): TextureAtlasEditorDiagnosticSeverity =
     when (severity) {

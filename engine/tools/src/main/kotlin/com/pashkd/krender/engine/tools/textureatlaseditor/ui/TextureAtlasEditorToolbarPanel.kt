@@ -21,7 +21,7 @@ class TextureAtlasEditorToolbarPanel(
     private var synced = false
 
     override fun draw() {
-        if (!synced) {
+        if (!synced || readBuffer(pathBuffer) != state.pendingPathInput) {
             writeBuffer(pathBuffer, state.pendingPathInput)
             synced = true
         }
@@ -36,13 +36,9 @@ class TextureAtlasEditorToolbarPanel(
         ImGui.textUnformatted("Path")
         ImGui.sameLine()
         ImGui.setNextItemWidth(300f)
-        if (ImGui.inputText("##texture_atlas_editor_path", pathBuffer)) {
-            state.pendingPathInput = readBuffer(pathBuffer)
-        }
-        ImGui.sameLine()
-        if (ImGui.button("Open##texture_atlas_editor_open")) {
-            operations.openPath(state.pendingPathInput)
-        }
+        ImGui.beginDisabled()
+        ImGui.inputText("##texture_atlas_editor_path", pathBuffer)
+        ImGui.endDisabled()
 
         if (ImGui.button("Reload##texture_atlas_editor_reload")) {
             operations.reload()
