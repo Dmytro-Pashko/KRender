@@ -18,7 +18,9 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Architecture: architecture.md
-  - Tools: tools.md
+  - Tools:
+      - Overview: tools.md
+      - Texture Atlas Editor: tools/texture_atlas_editor.md
   - Git Workflow: git-flow.md
   - Quality:
       - Static Analysis: quality/static-analysis.md

@@ -9,8 +9,8 @@ engine:tools -> core
 ```
 
 `engine:tools` is intended to stay backend-neutral editor/tool logic. It currently carries a small temporary
-GDX dependency for explicitly allowlisted editor-preview adapters (`TerrainMaterialPreviewBaker` and
-`uicomposer/gdx/*`). Do not add new GDX imports casually; justify any exception in `BackendBoundaryTest`.
+GDX dependency for explicitly allowlisted editor-preview adapters (`TerrainMaterialPreviewBaker`,
+`textureatlaseditor/gdx/*`, `skin/gdx/*`, and `uicomposer/gdx/*`). Do not add new GDX imports casually; justify any exception in `BackendBoundaryTest`.
 The preferred follow-up is to move this adapter layer to a dedicated module such as `engine:tools-gdx`.
 
 Tool routes are selected with `krender.scene`. When running through `:desktop-lwjgl3-win:run`, `:desktop-lwjgl3-macos:run`, or `:desktop-lwjgl3-linux:run`, pass route properties with Gradle `-P` flags; the launcher forwards supported properties to JVM system properties. Asset paths are relative to the `assets/` working directory unless the current launcher documents otherwise.
@@ -403,6 +403,67 @@ If `krender.skin.path` is omitted, Skin Editor starts in an empty/no-skin state 
 Screenshots:
 
 _To be added._
+
+### Texture Atlas Editor
+
+The Texture Atlas Editor is an atlas-centric tool for packing image, NinePatch, and BitmapFont resources into libGDX texture atlases. The opened `.atlas` file is the root working document.
+
+Features:
+
+- Open and preview existing `.atlas` files with page and region browsing.
+- View a unified resource list of Image, NinePatch, and Font resources derived from atlas regions and discovered `.fnt` files.
+- Import image textures from outside the asset root.
+- Add existing image textures as packable resources.
+- Import BitmapFont `.fnt` descriptors and their page textures next to the atlas.
+- Create NinePatch resources from Image resources with interactive split/pad guide editing.
+- Preview NinePatch stretch behavior at configurable target sizes (Actual, Button, Panel, Custom).
+- Preview BitmapFont pages, glyph bounds, and sample text rendering.
+- Pack all resources into an in-memory atlas layout with configurable page size, padding, and NinePatch inclusion.
+- Preview the packed atlas output before saving.
+- Explicitly save the packed atlas as `.atlas` descriptor + PNG page files.
+- Optionally pack BitmapFont page images into the atlas. When enabled, a separate `*_packed.fnt` descriptor is written during save with atlas-relative glyph coordinates. The original imported `.fnt` is never modified.
+- Export individual resources as standalone PNG or `.9.png` files.
+- Rename and delete resources from the working draft.
+- View diagnostics for atlas parsing, font parsing, NinePatch validation, and packing results.
+- Pan, zoom, fit, and focus regions in the preview canvas. Toggle checkerboard, grid, bounds, and NinePatch guide overlays.
+
+File write safety:
+
+- **Pack Texture Atlas** is in-memory only and does not write files.
+- **Save Texture Atlas** is the explicit write action for `.atlas` + PNG pages.
+- **Add Font** is an explicit import action that copies `.fnt` + page PNGs next to the atlas.
+- **Import Image** is an explicit file copy action.
+- **Export Resource** is an explicit file write action.
+- Preview, selection, canvas mode switching, and packing preview do not write files.
+- The tool does not generate `.krmeta` files.
+
+Current limitations:
+
+- The packing algorithm is a shelf-based packer. MaxRects or other advanced strategies are not yet implemented.
+- The `Allow Rotation` setting is accepted but not applied during packing.
+- Multi-page BitmapFont packing is not supported. Fonts with more than one page are skipped with a diagnostic warning.
+- BitmapFont generation from TTF/OTF is not part of Texture Atlas Editor. Font generation will belong to a future Bitmap Font Editor.
+- Sample text preview does not handle newlines.
+
+Screenshots:
+
+_Screenshots will be added later._
+
+Required properties:
+
+- `krender.scene=texture-atlas-editor`
+
+Optional properties:
+
+- `krender.atlas.path=<path>`
+
+Example:
+
+```sh
+./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=texture-atlas-editor -Pkrender.atlas.path=ui/skins/default/uiskin.atlas
+```
+
+If `krender.atlas.path` is omitted, the tool starts in an empty state until an atlas path is provided.
 
 ## Related Route
 
