@@ -122,11 +122,11 @@ class TextureAtlasEditorResourcesPanel(
             operations.browseRegionTextureSource()
             writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
         }
-        if (ImGui.button("Add Image Resource##texture_atlas_editor_resource_add")) {
+        if (ImGui.button("Add Existing Image##texture_atlas_editor_resource_add")) {
             operations.addImageResourceFromPath()
         }
         ImGui.sameLine()
-        if (ImGui.button("Import & Add Image##texture_atlas_editor_resource_import_add")) {
+        if (ImGui.button("Import Image Into Assets##texture_atlas_editor_resource_import_add")) {
             operations.importAndAddImageResource()
             writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
         }
