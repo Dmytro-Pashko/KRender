@@ -44,8 +44,24 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
+    override fun launchSkinEditor(skinPath: String?) {
+        launch(
+            scene = "skin-editor",
+            pathProperty = skinPath?.let { "krender.skin.path" to normalizePath(it) },
+            failureMessage = "Skin Editor launch failed",
+        )
+    }
+
+    override fun launchTextureAtlasEditor(atlasPath: String) {
+        launch(
+            scene = "texture-atlas-editor",
+            pathProperty = "krender.texture.atlas.path" to normalizePath(atlasPath),
+            failureMessage = "Texture Atlas Editor launch failed",
+        )
+    }
+
     /**
-     * Launches the temporary UiComposerScene placeholder for a `.krui` UiScene asset.
+     * Launches UiComposerScene for a `.krui` UiScene asset.
      */
     override fun launchUiComposer(uiScenePath: String) {
         launch(
@@ -57,15 +73,13 @@ class Lwjgl3EditorToolLauncher(
 
     private fun launch(
         scene: String,
-        pathProperty: Pair<String, String>,
+        pathProperty: Pair<String, String>?,
         failureMessage: String,
     ) {
+        val properties = linkedMapOf("krender.scene" to scene)
+        pathProperty?.let { properties += it }
         processLauncher.launch(
-            properties =
-                linkedMapOf(
-                    "krender.scene" to scene,
-                    pathProperty,
-                ),
+            properties = properties,
             failureMessage = failureMessage,
         )
     }

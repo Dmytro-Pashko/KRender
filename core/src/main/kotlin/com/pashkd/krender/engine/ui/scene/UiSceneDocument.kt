@@ -1,11 +1,11 @@
 package com.pashkd.krender.engine.ui.scene
 
 /**
- * Serialized UI scene document used by KRender runtime UI and the future UI Composer.
+ * Serialized UI scene document used by KRender runtime UI and UI Composer.
  *
  * This shared UI-pipeline model is intentionally not a full Scene2D Actor serializer.
  * It describes a small, stable subset of widgets that KRender can build at runtime
- * and edit later in the UI Composer. The [skin] is a project-relative path to an
+ * and edit in UI Composer. The [skin] is a project-relative path to an
  * existing Scene2D Skin file; this phase does not support Skin editing or asset ids.
  * [bindings] describe the expected data keys for this UI scene and provide
  * editor preview defaults. Runtime systems are still expected to provide their
@@ -19,7 +19,7 @@ data class UiSceneDocument(
     val root: UiSceneNode,
 ) {
     companion object {
-        /** Current `.krui` schema version understood by runtime and future editor code. */
+        /** Current `.krui` schema version understood by runtime and UI Composer. */
         const val CurrentSchemaVersion = 1
     }
 }
@@ -56,8 +56,8 @@ data class UiSceneBindingDefinition(
 /**
  * Explicit Scene2D widget subset supported by the `.krui` MVP.
  *
- * This shared enum is used by both the runtime Scene2D builder and the future
- * UiComposerScene editor. KRender does not attempt arbitrary Actor serialization
+ * This shared enum is used by both the runtime Scene2D builder and
+ * UiComposerScene. KRender does not attempt arbitrary Actor serialization
  * in this phase; adding more widgets should be a deliberate schema change.
  */
 enum class UiSceneNodeType {
@@ -84,7 +84,7 @@ enum class UiSceneTableOrientation {
 }
 
 /**
- * One generic `.krui` node used by runtime loading and the future UI Composer.
+ * One generic `.krui` node used by runtime loading and UI Composer.
  *
  * The schema keeps JSON simple and editor-friendly while limiting behavior to a
  * small Scene2D subset. Styles and backgrounds are referenced by existing Skin
@@ -128,7 +128,7 @@ data class UiSceneNode(
  * Backend-neutral alignment values stored in `.krui`.
  *
  * The GDX Scene2D runtime builder maps these values to LibGDX Align flags, while
- * the future UiComposerScene can use the same values without importing LibGDX.
+ * UiComposerScene can use the same values without importing LibGDX.
  */
 enum class UiSceneAlign {
     TopLeft,
@@ -158,7 +158,7 @@ enum class UiSceneScaling {
 /**
  * Backend-neutral spacing model used for `.krui` padding.
  *
- * The model exists in the shared UI pipeline so runtime and future UiComposerScene
+ * The model exists in the shared UI pipeline so runtime and UiComposerScene
  * code can agree on layout inputs while still letting Scene2D perform layout.
  */
 data class UiSceneSpacing(

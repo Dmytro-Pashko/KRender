@@ -12,6 +12,13 @@ data class UiCaptureState(
     val keyboard: Boolean = false,
 )
 
+data class UiTextureTint(
+    val red: Float = 1f,
+    val green: Float = 1f,
+    val blue: Float = 1f,
+    val alpha: Float = 1f,
+)
+
 /**
  * Shared contract for frame-based UI backends.
  */
@@ -39,6 +46,7 @@ interface UiContext {
         handle: TexturePreviewHandle,
         width: Float,
         height: Float,
+        tint: UiTextureTint = UiTextureTint(),
     ): Boolean = false
 
     /** Releases all resources owned by the UI backend. */

@@ -28,7 +28,7 @@ Skin-backed styles/backgrounds and Asset-Registry-backed Image textures.
 | `engine/tools/.../uicomposer/UiComposerScene.kt` | Composition; document load/reload, preview rebuild, save, undo/redo, canvas interaction system. |
 | `engine/tools/.../uicomposer/UiComposerModel.kt` | Editor document + preview state used by the tool and preview adapter. |
 | `engine/tools/.../uicomposer/UiComposerOperations.kt` | Edit/save/undo/redo operations. |
-| `engine/tools/.../uicomposer/UiComposerDocumentEditing.kt`, `UiComposerHistory.kt` | Structure editing + history helpers. |
+| `engine/tools/.../uicomposer/UiComposerDocumentEditing.kt`, `UiComposerHistory.kt` | Structure editing + UiComposer-facing wrappers over the shared snapshot history utility. |
 | `engine/tools/.../uicomposer/UiComposerPanels.kt` | Toolbar, preview canvas, hierarchy, structure, inspector, scene bindings, diagnostics panels. |
 | `engine/tools/.../uicomposer/UiComposerStyleValidation.kt`, `UiComposerBindingHelpers.kt` | Style/binding validation helpers. |
 | `engine/ui/scene/UiSceneDocument.kt`, `UiSceneSerializer.kt`, `UiSceneValidation.kt` | Shared `.krui` model + validators (also used by runtime UI). |
@@ -61,8 +61,8 @@ Scene2D preview after the main renderer and before ImGui.
 ## Data Flow
 
 1. `show()` builds state, a `UiComposerDocumentLoader` (over `engine.sceneFiles::readText`), the
-   backend `GdxUiScenePreview`, a Skin metadata reader, and a **local** `LocalAssetRegistryService`
-   used only for the Image texture picker.
+   backend `GdxUiScenePreview`, a Skin metadata reader, and an
+   `UiComposerTextureOptionsProvider` over `engine.assetRegistry` for the Image texture picker.
 2. `reloadDocumentAndPreview()` decodes `.krui`, refreshes Skin metadata + validation buckets,
    and rebuilds the Scene2D preview.
 3. Per frame, `update()` handles deferred save/reload/rebuild/undo-redo requests; the canvas
@@ -88,7 +88,7 @@ document (`ui/skins/...`). Texture assets (for Image node texture picking).
 - Undo/redo (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z) and save.
 - Node selection via hierarchy and selection-only canvas hit-testing; hover highlight.
 - Ctrl+drag camera pan and mouse-wheel zoom on the preview canvas.
-- Skin-backed style/background pickers; Asset Registry-backed Image texture picking.
+- Skin-backed style/background pickers; Asset Registry-backed Image texture picking delegated through shared editor asset-picker utilities.
 - Style / texture / binding validation diagnostics.
 
 ## Missing / Incomplete Features
@@ -102,10 +102,6 @@ a simple toolbar state.
 
 ## Known Problems
 
-- Uses a **local** `LocalAssetRegistryService` for the texture picker because `EngineContext`
-  exposes the runtime `AssetService`, not a shared `AssetRegistryService`. The code itself flags
-  this as something to replace with a shared registry once Asset Browser and Composer align.
-- Stale "placeholder" comments elsewhere misrepresent this tool's current capabilities.
 - The preview is the one place a tool draws Scene2D directly via a backend hook
   (`overlayRender`) — keep that plumbing contained to editor/backend code.
 
@@ -127,8 +123,6 @@ a simple toolbar state.
 
 ## Recommended Improvements
 
-- Replace the local texture registry with a shared engine `AssetRegistryService` on
-  `EngineContext`.
 - Update stale comments carefully when they misdescribe current UI Composer scope or routing.
 
 ## Related Code Patterns

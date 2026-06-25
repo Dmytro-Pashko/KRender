@@ -12,6 +12,7 @@ import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainPersistence
+import com.pashkd.krender.engine.tools.assetbrowser.creation.createAtlasAsset
 import com.pashkd.krender.engine.ui.editor.*
 
 /**
@@ -50,6 +51,8 @@ class AssetBrowserScene : Scene("asset_browser") {
                 register(ModelViewerAssetTool())
                 register(AnimationViewerAssetTool())
                 register(TerrainEditorAssetTool())
+                register(TextureAtlasEditorAtlasAssetTool())
+                register(SkinEditorAssetTool())
                 register(UiComposerAssetTool())
                 register(SceneEditorAssetTool())
                 register(SceneRuntimeAssetTool())
@@ -158,7 +161,7 @@ class AssetBrowserScene : Scene("asset_browser") {
             }
             return
         }
-        engine.logger.info(TAG) { "Opening asset '${asset.path}' with tool '${tool.id}'" }
+        engine.logger.info(TAG) { "Asset Browser default action selected tool='${tool.id}' path='${asset.path}' type=${asset.type}" }
         try {
             tool.open(asset, engine)
             browserState.statusMessage = "Opened ${tool.displayName}: ${asset.path}"
@@ -186,6 +189,13 @@ private class SceneOperationsHandler(
     private val logger: Logger,
 ) : AssetBrowserOperationsHandler {
     override fun create(draft: CreateAssetDraft) {
+        if (draft.kind == CreatableAssetKind.Atlas) {
+            consumeResult(createAtlasAsset(draft, engineProvider().assetRegistry.baseDir(), logger))
+            if (state.errorMessage == null) {
+                state.refreshRequested = true
+            }
+            return
+        }
         consumeResult(
             operations.create(
                 CreateAssetRequest(
@@ -244,6 +254,7 @@ private class SceneOperationsHandler(
             return
         }
         try {
+            logger.info(TAG) { "Asset Browser Open With selected tool='${tool.id}' path='${asset.path}' type=${asset.type}" }
             tool.open(asset, engineProvider())
             state.statusMessage = "Opened ${tool.displayName}: ${asset.path}"
             logger.info(TAG) { "Open with succeeded tool='${tool.id}' path='${asset.path}'" }
@@ -405,13 +416,36 @@ class TerrainEditorAssetTool : AssetTool {
     }
 }
 
+class TextureAtlasEditorAtlasAssetTool : AssetTool {
+    override val id = "texture-atlas-editor-atlas"
+    override val displayName = "Open in Texture Atlas Editor"
+    override val supportedCategories = setOf(AssetCategory.Scene2D)
+
+    /**
+     * Atlas assets default to Texture Atlas Editor because it owns the atlas
+     * region inspection and packing workflow.
+     */
+    override val defaultAction = true
+
+    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Scene2D && asset.type == AssetType.Atlas
+
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) = launchTextureAtlasEditorAsset(asset, context, TAG)
+
+    companion object {
+        private const val TAG = "TextureAtlasEditorAtlasTool"
+    }
+}
+
 /**
- * Opens `.krui` UiScene assets through the temporary UI Composer route.
+ * Opens `.krui` UiScene assets in UI Composer.
  *
  * This tool belongs to editor/tool routing: it connects Asset Browser's UiScene metadata to
- * UiComposerScene so future composer work has a stable launch path. It intentionally does not
- * implement preview rendering, hierarchy/inspector editing, bounds overlays, Skin editing,
- * drag/drop editing, save/open workflows, or asset-id based references.
+ * UiComposerScene for validation, preview, hierarchy/inspector editing, undo/redo, and save
+ * workflows. Current UI Composer limitations still apply, including no canvas drag/drop authoring,
+ * no Skin editing, and no asset-id references.
  */
 class UiComposerAssetTool : AssetTool {
     override val id = "ui-composer"
@@ -421,19 +455,40 @@ class UiComposerAssetTool : AssetTool {
     override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.UI && asset.type == AssetType.UiScene
 
     /**
-     * Launches the placeholder composer window for the selected UiScene path.
+     * Launches UI Composer for the selected UiScene path.
      */
     override fun open(
         asset: AssetDescriptor,
         context: EngineContext,
     ) {
         val path = normalizedAssetPath(asset)
-        context.logger.info(TAG) { "Opening UiScene asset '$path' in UI Composer placeholder" }
+        context.logger.info(TAG) { "Opening UiScene asset '$path' in UI Composer" }
         context.editorToolLauncher.launchUiComposer(path)
     }
 
     companion object {
         private const val TAG = "UiComposerAssetTool"
+    }
+}
+
+class SkinEditorAssetTool : AssetTool {
+    override val id = "skin-editor"
+    override val displayName = "Open in Skin Editor"
+    override val supportedCategories = setOf(AssetCategory.Scene2D)
+
+    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Scene2D && asset.type == AssetType.Scene2DSkin
+
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Opening Scene2D Skin asset '$path' in Skin Editor" }
+        context.editorToolLauncher.launchSkinEditor(path)
+    }
+
+    companion object {
+        private const val TAG = "SkinEditorAssetTool"
     }
 }
 
@@ -481,6 +536,22 @@ class SceneRuntimeAssetTool : AssetTool {
     companion object {
         private const val TAG = "SceneRuntimeAssetTool"
     }
+}
+
+private fun launchTextureAtlasEditorAsset(
+    asset: AssetDescriptor,
+    context: EngineContext,
+    tag: String,
+) {
+    val path = normalizedAssetPath(asset)
+    if (asset.category != AssetCategory.Scene2D || asset.type != AssetType.Atlas) {
+        context.logger.warn(tag) {
+            "Rejected unsupported Texture Atlas Editor asset path='$path' category=${asset.category} type=${asset.type}"
+        }
+        return
+    }
+    context.editorToolLauncher.launchTextureAtlasEditor(path)
+    context.logger.info(tag) { "Texture Atlas Editor launch requested path='$path'" }
 }
 
 private fun normalizedAssetPath(asset: AssetDescriptor): String = asset.path.trim().replace('\\', '/')

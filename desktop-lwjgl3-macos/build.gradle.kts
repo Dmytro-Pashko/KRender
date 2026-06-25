@@ -91,6 +91,7 @@ val forwardedRouteProperties =
         "krender.scene",
         "krender.model.path",
         "krender.model",
+        "krender.texture.atlas.path",
         "krender.scene.path",
         "krender.scene.name",
         "krender.terrain.path",
@@ -163,13 +164,13 @@ extensions.configure<ConstruoPluginExtension>("construo") {
         architecture.set(Target.Architecture.AARCH64)
         jdkUrl.set("https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.10%2B7/OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.10_7.tar.gz")
         identifier.set("com.pashkd.krender.$appName")
-        macIcon.set(project.file("icons/logo.icns"))
+        macIcon.set(rootProject.file("assets/logo/Krender_logo.icns"))
     }
     targets.register("macX64", Target.MacOs::class.java) {
         architecture.set(Target.Architecture.X86_64)
         jdkUrl.set("https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.10%2B7/OpenJDK21U-jdk_x64_mac_hotspot_21.0.10_7.tar.gz")
         identifier.set("com.pashkd.krender.$appName")
-        macIcon.set(project.file("icons/logo.icns"))
+        macIcon.set(rootProject.file("assets/logo/Krender_logo.icns"))
     }
 }
 

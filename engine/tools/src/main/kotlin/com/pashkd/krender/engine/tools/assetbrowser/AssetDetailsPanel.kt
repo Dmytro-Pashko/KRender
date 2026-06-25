@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.canOpenWithTools
 import com.pashkd.krender.engine.tools.assetbrowser.details.AssetDetailsRenderContext
+import com.pashkd.krender.engine.tools.assetbrowser.details.AtlasAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.GenericAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.ModelAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.Scene2DSkinAssetDetailsRenderer
@@ -12,6 +13,7 @@ import com.pashkd.krender.engine.tools.assetbrowser.details.SceneAssetDetailsRen
 import com.pashkd.krender.engine.tools.assetbrowser.details.TerrainAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.TextureAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.UiSceneAssetDetailsRenderer
+import com.pashkd.krender.engine.tools.common.EditorTexturePreviewService
 import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.dsl
@@ -29,8 +31,11 @@ class AssetDetailsPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker? = null,
     private val operations: AssetBrowserOperationsHandler = AssetBrowserOperationsHandler.NoOp,
 ) : UiPanel {
+    private val texturePreviews = EditorTexturePreviewService(assets)
+
     private val renderers =
         listOf(
+            AtlasAssetDetailsRenderer(),
             TextureAssetDetailsRenderer(),
             ModelAssetDetailsRenderer(),
             TerrainAssetDetailsRenderer(),
@@ -63,6 +68,7 @@ class AssetDetailsPanel(
             AssetDetailsRenderContext(
                 state = state,
                 assets = assets,
+                texturePreviews = texturePreviews,
                 ui = ui,
                 operations = operations,
                 panelId = panelId,

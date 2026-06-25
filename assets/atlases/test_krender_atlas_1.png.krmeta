@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:c23e9411-6329-4312-bbe8-4a835e27fad3",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "test_krender_atlas_1",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

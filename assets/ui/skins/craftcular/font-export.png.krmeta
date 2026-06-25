@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:6a0c165a-a1da-424e-b69b-a29e60150a55",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "font-export",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

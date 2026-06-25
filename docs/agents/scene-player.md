@@ -24,12 +24,12 @@ Scene Player is the non-editor runtime/player route for `.krscene` files. It loa
 
 | File | Responsibility |
 |---|---|
-| `engine/scene-player/.../ScenePlayerScene.kt` | Scene lifecycle, dependency scheduling, descriptor loading, runtime build logging. |
-| `engine/scene-player/.../ScenePlayerBuilder.kt` | Applies scene descriptors to the world and wires runtime render/terrain/environment systems. |
-| `engine/scene-player/.../ScenePlayerModule.kt` | Route-to-scene factory for player aliases. |
-| `core/.../engine/scene/SceneSerializer.kt` | Decodes and applies `.krscene` scene descriptors. |
-| `core/.../engine/scene/RuntimeSceneValidator.kt` | Dependency validation and active-camera / active-terrain requirements. |
-| `core/.../engine/terrain/RuntimeTerrainService.kt` | Runtime terrain preparation for active terrain entities. |
+| `ScenePlayerScene.kt` | Scene lifecycle, dependency scheduling, descriptor loading, runtime build logging. |
+| `ScenePlayerBuilder.kt` | Applies scene descriptors to the world and wires runtime render/terrain/environment systems. |
+| `ScenePlayerModule.kt` | Route-to-scene factory for player aliases. |
+| `SceneSerializer.kt` | Decodes and applies `.krscene` scene descriptors. |
+| `RuntimeSceneValidator.kt` | Dependency validation and active-camera / active-terrain requirements. |
+| `RuntimeTerrainService.kt` | Runtime terrain preparation for active terrain entities. |
 
 ## Behavior Notes
 

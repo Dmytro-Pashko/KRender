@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:c96917e1-83d9-49e0-b367-31a715ef3d79",
+  "type": "Atlas",
+  "category": "Scene2D",
+  "displayName": "craftacular-ui",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}

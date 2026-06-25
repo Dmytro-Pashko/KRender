@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:8157ce4a-e97c-43a2-8606-23be2661cd11",
+  "type": "Font",
+  "category": "Scene2D",
+  "displayName": "font-label",
+  "tags": [],
+  "importerId": "scene2d-font",
+  "importSettings": {}
+}

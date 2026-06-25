@@ -26,6 +26,7 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 | `engine/tools/.../assetbrowser/AssetBrowserPanels.kt` | `AssetControlsPanel`, `AssetBrowserPanel`, `AssetDetailsPanel`. |
 | `engine/tools/.../assetbrowser/AssetBrowserLayout.kt` | `AssetBrowserUiLayoutDefaults` (panel layout config). |
 | `engine/tools/.../assetbrowser/AssetBrowserUiOperations.kt` | UI-side operations helper. |
+| `engine/tools/.../common/EditorTexturePreviewService.kt` | Shared editor-facing texture preview handle/status lookup used by texture details and other tools. |
 | `engine/assets/AssetRegistryService.kt` | `LocalAssetRegistryService` — filesystem scan + `.krmeta`. |
 | `engine/assets/AssetOperationsService.kt` | `LocalAssetOperationsService` — create/rename/duplicate/delete/reveal. |
 | `engine/tools/.../assetbrowser/AssetToolRegistry.kt` | Maps assets to `AssetTool`s; resolves default + "open with" tools. |
@@ -86,13 +87,13 @@ All discovered categories (`AssetDomain.kt`): `Model`, `Texture`, `Skybox`, `Mat
 - Model metadata preview (triangle/vertex/material counts via `ModelAssetInfo`).
 - Create / rename / duplicate / delete / reveal operations with sensible default content
   (skybox, scene, terrain, `.krui`, material templates).
+- `.krui` UI assets route to UI Composer for validation, Scene2D preview, hierarchy/inspector editing, undo/redo, and save workflows.
 - "Open" (default tool) and "Open with" (alternate tools) per asset.
 
 ## Missing / Incomplete Features
 
 - No thumbnail/texture grid previews in the list (text + metadata only).
 - No drag/drop, multi-select, or batch operations.
-- UI assets only route to the **placeholder** UI Composer (see its doc).
 - No audio/script tooling despite the categories existing.
 
 ## Known Problems

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:20c33400-7f4b-494f-b3fd-7f92bda34178",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "skin-composer-ui_origin",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

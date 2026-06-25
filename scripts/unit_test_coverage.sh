@@ -34,18 +34,26 @@ else
   GRADLE_BASE=("${GRADLEW_SH}" "--no-daemon" "--console=plain")
 fi
 
-declare -A STEP_EXIT_CODES
-declare -A STEP_COMMANDS
+STEP_EXIT_CODES=""
+TESTS_CMD=""
+COVERAGE_CMD=""
 
 run_step() {
   local step_name="$1"
   shift
   local log_file="${LOG_DIR}/${step_name}.log"
-  STEP_COMMANDS["${step_name}"]="${GRADLE_BASE[*]} $*"
-  echo "Running ${step_name}: ${STEP_COMMANDS[${step_name}]}"
+  local cmd="${GRADLE_BASE[*]} $*"
+  case "${step_name}" in
+    tests) TESTS_CMD="${cmd}" ;;
+    coverage) COVERAGE_CMD="${cmd}" ;;
+  esac
+  echo "Running ${step_name}: ${cmd}"
   "${GRADLE_BASE[@]}" "$@" >"${log_file}" 2>&1
   local exit_code=$?
-  STEP_EXIT_CODES["${step_name}"]=${exit_code}
+  case "${step_name}" in
+    tests) STEP_EXIT_CODES="${exit_code}" ;;
+    coverage) STEP_EXIT_CODES="${STEP_EXIT_CODES}:${exit_code}" ;;
+  esac
   if [[ ${exit_code} -eq 0 ]]; then
     echo "PASS ${step_name}"
   else
@@ -54,8 +62,7 @@ run_step() {
 }
 
 status_label() {
-  local step_name="$1"
-  local exit_code="${STEP_EXIT_CODES[${step_name}]:-999}"
+  local exit_code="$1"
   if [[ "${exit_code}" == "999" ]]; then
     echo "SKIPPED"
   elif [[ ${exit_code} -eq 0 ]]; then
@@ -70,12 +77,13 @@ run_step "coverage" unitTestCoverageReport
 
 OVERALL="PASS"
 FINAL_EXIT=0
-for step_name in "tests" "coverage"; do
-  if [[ "$(status_label "${step_name}")" == "FAIL" ]]; then
-    OVERALL="FAIL"
-    FINAL_EXIT=1
-  fi
-done
+TESTS_EXIT=$(echo "${STEP_EXIT_CODES}" | cut -d: -f1)
+COVERAGE_EXIT=$(echo "${STEP_EXIT_CODES}" | cut -d: -f2)
+
+if [[ ${TESTS_EXIT} -ne 0 || ${COVERAGE_EXIT} -ne 0 ]]; then
+  OVERALL="FAIL"
+  FINAL_EXIT=1
+fi
 
 GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 {
@@ -87,8 +95,8 @@ GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   echo
   echo "| Check | Result | Command |"
   echo "|---|---|---|"
-  echo "| Unit tests | $(status_label "tests") | \`${STEP_COMMANDS[tests]}\` |"
-  echo "| Coverage | $(status_label "coverage") | \`${STEP_COMMANDS[coverage]}\` |"
+  echo "| Unit tests | $(status_label "${TESTS_EXIT}") | \`${TESTS_CMD}\` |"
+  echo "| Coverage | $(status_label "${COVERAGE_EXIT}") | \`${COVERAGE_CMD}\` |"
   echo
   echo "Reports:"
   echo

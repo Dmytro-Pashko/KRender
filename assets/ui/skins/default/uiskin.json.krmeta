@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:65b7f7f4-a2cc-40f4-9304-afd576c5d85b",
+  "type": "Scene2DSkin",
+  "category": "Scene2D",
+  "displayName": "uiskin",
+  "tags": [],
+  "importerId": "scene2d-skin",
+  "importSettings": {}
+}

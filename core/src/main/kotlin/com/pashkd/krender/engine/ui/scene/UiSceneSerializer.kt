@@ -7,7 +7,7 @@ import kotlinx.serialization.json.*
  * JSON codec for the shared `.krui` document format.
  *
  * This serializer belongs to the shared UI pipeline: runtime loaders use it to
- * build Scene2D actors, and the future UI Composer will use the same stable JSON
+ * build Scene2D actors, and UI Composer uses the same stable JSON
  * shape when editing documents. The format remains an explicit MVP subset of
  * Scene2D widgets and does not serialize arbitrary Actor state or Skin styles.
  */

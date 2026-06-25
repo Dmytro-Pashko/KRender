@@ -145,9 +145,10 @@ class LocalAssetRegistryService(
         val extension = file.extension.lowercase()
         val displayName = document.displayName.takeIf(String::isNotBlank) ?: file.nameWithoutExtension
         val type = enumValueOrNull<AssetType>(document.type)?.takeUnless { it == AssetType.Unknown } ?: detection.type
-        val category =
+        val storedCategory =
             enumValueOrNull<AssetCategory>(document.category)?.takeUnless { it == AssetCategory.Other }
                 ?: detection.category
+        val category = canonicalCategoryFor(type, storedCategory)
         val descriptorMetadata =
             buildMap<String, String> {
                 put("displayName", displayName)
@@ -155,7 +156,7 @@ class LocalAssetRegistryService(
                 put("importSettings", encodeImportSettings(document.importSettings))
                 document.importerId?.let { put("importerId", it) }
                 putAll(importer?.readMetadata(file) ?: emptyMap())
-                putAll(textureMetadata(file, category))
+                putAll(textureMetadata(file, category, type))
                 putAll(terrainMetadata(file, category))
                 putAll(sceneMetadata(file, category))
             }
@@ -201,11 +202,25 @@ class LocalAssetRegistryService(
         return settings.entries.joinToString(prefix = "{", postfix = "}") { (k, v) -> "$k=$v" }
     }
 
+    private fun canonicalCategoryFor(
+        type: AssetType,
+        category: AssetCategory,
+    ): AssetCategory =
+        when (type) {
+            AssetType.Atlas,
+            AssetType.Font,
+            AssetType.Scene2DSkin,
+            -> AssetCategory.Scene2D
+
+            else -> category
+        }
+
     private fun textureMetadata(
         file: File,
         category: AssetCategory,
+        type: AssetType,
     ): Map<String, String> {
-        if (category != AssetCategory.Texture) return emptyMap()
+        if (category != AssetCategory.Texture || type != AssetType.Texture) return emptyMap()
         val texture = TextureMetadataReader.read(file) ?: return emptyMap()
         return mapOf(
             "textureResolution" to "${texture.width}x${texture.height}",
@@ -323,13 +338,19 @@ class LocalAssetRegistryService(
          *
          * The `ui/scenes` entry exists so `.krui` UiScene documents under `assets/ui/scenes` are indexed by
          * Asset Browser. `ui/skins` indexes LibGDX Scene2D Skin JSON descriptors for `.krui` creation and
-         * future Skin tooling. These are asset-indexing routes only; they do not enable UI Composer editing,
-         * preview rendering, Skin editing, drag/drop editing, or asset-id based references.
+         * `atlases` keeps Texture Atlas Editor outputs discoverable after in-editor asset creation.
+         * Those `.atlas` files are routed as managed Scene2D assets so they show up immediately for browsing,
+         * reopening in the atlas editor, and downstream picker workflows.
+         *
+         * Indexing keeps these assets discoverable for routing, validation,
+         * preview, hierarchy/inspector editing, and save workflows, while current limitations such as no
+         * Skin editing and no asset-id based references still apply.
          */
         val DefaultRootPaths =
             listOf(
                 "model",
                 "textures",
+                "atlases",
                 "skyboxes",
                 "materials",
                 "terrains",

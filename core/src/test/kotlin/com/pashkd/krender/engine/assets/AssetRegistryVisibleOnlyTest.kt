@@ -54,11 +54,36 @@ class AssetRegistryVisibleOnlyTest {
         val asset = snapshot.assets.singleOrNull { descriptor -> descriptor.path == "ui/skins/craftacular-ui.json" }
 
         assertNotNull(asset)
-        assertEquals(AssetCategory.UI, asset.category)
+        assertEquals(AssetCategory.Scene2D, asset.category)
         assertEquals(AssetType.Scene2DSkin, asset.type)
         assertTrue(asset.isManagedAsset())
         assertEquals("ok", asset.metadata["skinStatus"])
         assertTrue(skinDir.resolve("craftacular-ui.json.krmeta").toFile().exists())
+    }
+
+    @Test
+    fun `atlas assets under atlases root are indexed as managed scene2d assets`() {
+        val baseDir = Files.createTempDirectory("krender-managed-atlas-test")
+        val atlasDir = baseDir.resolve("atlases").createDirectories()
+        atlasDir.resolve("test_atlas.atlas").writeText(
+            """
+            test_atlas_1.png
+            size: 1024, 1024
+            format: RGBA8888
+            filter: Nearest, Nearest
+            repeat: none
+            """.trimIndent(),
+            StandardCharsets.UTF_8,
+        )
+
+        val snapshot = registry(baseDir.toFile()).scanSnapshot()
+        val asset = snapshot.assets.singleOrNull { descriptor -> descriptor.path == "atlases/test_atlas.atlas" }
+
+        assertNotNull(asset)
+        assertEquals(AssetCategory.Scene2D, asset.category)
+        assertEquals(AssetType.Atlas, asset.type)
+        assertTrue(asset.isManagedAsset())
+        assertTrue(atlasDir.resolve("test_atlas.atlas.krmeta").toFile().exists())
     }
 
     @Test
@@ -91,7 +116,7 @@ class AssetRegistryVisibleOnlyTest {
 
     @Test
     fun `json detection remains path specific`() {
-        assertDetection("ui/skins/craftacular-ui.json", AssetType.Scene2DSkin, AssetCategory.UI)
+        assertDetection("ui/skins/craftacular-ui.json", AssetType.Scene2DSkin, AssetCategory.Scene2D)
         assertDetection("ui/scenes/main.krui", AssetType.UiScene, AssetCategory.UI)
         assertDetection("materials/foo.json", AssetType.Material, AssetCategory.Material)
         assertDetection("terrains/foo.json", AssetType.Terrain, AssetCategory.Terrain)
@@ -105,7 +130,7 @@ class AssetRegistryVisibleOnlyTest {
             logger = logger,
             importers = AssetImporterRegistry.withDefaults(logger),
             baseDirectory = baseDir,
-            rootPaths = listOf("assets", "ui/scenes", "ui/skins", "materials", "terrains", "scenes"),
+            rootPaths = listOf("assets", "atlases", "ui/scenes", "ui/skins", "materials", "terrains", "scenes"),
         )
     }
 

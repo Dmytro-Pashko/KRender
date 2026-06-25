@@ -1,9 +1,10 @@
 package com.pashkd.krender.engine.tools.uicomposer
 
-import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TexturePreviewHandle
+import com.pashkd.krender.engine.tools.common.EditorTexturePreviewService
+import com.pashkd.krender.engine.tools.common.TexturePreviewResult
 import com.pashkd.krender.engine.ui.editor.*
 import com.pashkd.krender.engine.ui.scene.*
 import imgui.ImGui
@@ -488,6 +489,7 @@ class UiComposerInspectorPanel(
 ) : UiPanel {
     private val editBuffers = mutableMapOf<String, ByteArray>()
     private val loggedPreviewDiagnostics = mutableSetOf<String>()
+    private val texturePreviewService = EditorTexturePreviewService(assets)
 
     /** Draws document details or selected-node scalar editing controls. */
     override fun draw() {
@@ -1056,23 +1058,27 @@ class UiComposerInspectorPanel(
     }
 
     private fun drawTexturePreview(path: String) {
-        val handle = assets.texturePreviewHandle(path)
-        if (handle == null) {
-            val reason = texturePreviewUnavailableReason(path)
-            ImGui.textWrapped("Texture preview unavailable: $reason")
-            logPreviewDiagnosticOnce(
-                key = "texture:$path:$reason",
-                message = "UiComposer actor texture preview unavailable path='$path': $reason",
-            )
-            return
-        }
+        when (val preview = texturePreviewService.preview(path)) {
+            is TexturePreviewResult.Unavailable -> {
+                val reason = preview.reason
+                ImGui.textWrapped("Texture preview unavailable: $reason")
+                logPreviewDiagnosticOnce(
+                    key = "texture:${preview.path}:$reason",
+                    message = "UiComposer actor texture preview unavailable path='${preview.path}': $reason",
+                )
+                return
+            }
 
-        drawPreviewHandle(
-            handle = handle,
-            failureKey = "texture:$path:draw-failed:${handle.id}",
-            failureMessage = { reason -> "UiComposer actor texture preview draw failed path='$path': $reason" },
-        )
-        property("Image size", previewHandleSize(handle))
+            is TexturePreviewResult.Available -> {
+                val handle = preview.handle
+                drawPreviewHandle(
+                    handle = handle,
+                    failureKey = "texture:$path:draw-failed:${handle.id}",
+                    failureMessage = { reason -> "UiComposer actor texture preview draw failed path='$path': $reason" },
+                )
+                property("Image size", previewHandleSize(handle))
+            }
+        }
     }
 
     private fun drawBackgroundPreview(drawableName: String) {
@@ -1205,17 +1211,6 @@ class UiComposerInspectorPanel(
     }
 
     private fun textureExists(path: String): Boolean = state.textureOptions.any { option -> option.path == path }
-
-    private fun texturePreviewUnavailableReason(path: String): String {
-        val registered = textureExists(path)
-        val loadState = runCatching { assets.isLoaded(AssetRef.texture(path)) }
-        return when {
-            !registered -> "path is missing from Asset Registry."
-            loadState.isFailure -> "AssetService load state check failed: ${loadState.exceptionOrNull()?.message ?: "unknown error"}."
-            loadState.getOrDefault(false) -> "AssetService reports the texture is loaded, but the backend returned no preview handle."
-            else -> "path is registered, but the texture is not loaded by AssetService yet."
-        }
-    }
 
     private fun previewHandleSize(handle: TexturePreviewHandle): String = "${handle.width} x ${handle.height}"
 

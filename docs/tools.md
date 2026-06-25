@@ -9,8 +9,8 @@ engine:tools -> core
 ```
 
 `engine:tools` is intended to stay backend-neutral editor/tool logic. It currently carries a small temporary
-GDX dependency for explicitly allowlisted editor-preview adapters (`TerrainMaterialPreviewBaker` and
-`uicomposer/gdx/*`). Do not add new GDX imports casually; justify any exception in `BackendBoundaryTest`.
+GDX dependency for explicitly allowlisted editor-preview adapters (`TerrainMaterialPreviewBaker`,
+`textureatlaseditor/gdx/*`, `skin/gdx/*`, and `uicomposer/gdx/*`). Do not add new GDX imports casually; justify any exception in `BackendBoundaryTest`.
 The preferred follow-up is to move this adapter layer to a dedicated module such as `engine:tools-gdx`.
 
 Tool routes are selected with `krender.scene`. When running through `:desktop-lwjgl3-win:run`, `:desktop-lwjgl3-macos:run`, or `:desktop-lwjgl3-linux:run`, pass route properties with Gradle `-P` flags; the launcher forwards supported properties to JVM system properties. Asset paths are relative to the `assets/` working directory unless the current launcher documents otherwise.
@@ -288,7 +288,7 @@ Example:
 
 ### UI Composer
 
-The UI Composer is the `.krui` document tool. Its scope stays focused on inspection, validation, preview, and document-oriented structure workflows rather than a full drag/drop UI authoring suite.
+The UI Composer is the `.krui` document editor and preview tool. Its current scope covers validation, Scene2D preview, selected-node scalar editing, hierarchy-driven structure editing, save, undo/redo, hierarchy or canvas selection, Skin-backed style/background picking, and Asset Registry-backed Image texture picking. It remains a document-oriented workflow rather than a full drag/drop UI authoring suite.
 
 Screenshots:
 
@@ -306,6 +306,164 @@ Example:
 ```sh
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=ui-composer -Pkrender.ui.scene.path=ui/example.krui
 ```
+
+### Skin Editor
+
+The Skin Editor is a standalone Scene2D Skin inspection and editing tool for LibGDX/Scene2D skin JSON and `.uiskin` assets. It is focused on inspecting styles, resources, diagnostics, atlas regions, fonts, colors, and preview widgets, while also supporting draft style/resource editing and saving those edits back to the loaded skin file.
+
+Supported files and assets:
+
+- Scene2D skin `.json`
+- Scene2D skin `.uiskin`
+- Same-folder dependencies such as `.atlas`, `.png`, `.jpg`, `.jpeg`, `.webp`, `.fnt`, `.ttf`, and `.otf`
+- Imported or discovered skins under `assets/ui/skins/...`
+
+Major panels:
+
+- Toolbar
+  Skin path, Reload, Discard Edits, Save Changes, Save/Reset Panel Layout, status, and dirty state.
+- Styles
+  Style tree grouped by Scene2D style type with counts and selected-style navigation.
+- Style Inspector
+  Selected style details, editable fields, field add/remove/reset, create/duplicate/rename/delete style actions, and pending changes.
+- Resources
+  Resource search/filtering, category browsing, selected resource details, and resource preview.
+- Problems
+  Diagnostics/validation issues with severity/category filtering and selection links to related style/resource context.
+- Preview Canvas
+  Scene2D widget preview with screen preset, scale, checkerboard, bounds, selected-style highlight, and widget interaction.
+- Preview Controls
+  Widget layout presets, preview text samples, and fallback warning controls.
+
+Main features:
+
+- Load and reload Scene2D skin descriptors.
+- Index styles and resources without requiring manual JSON inspection.
+- Browse styles by Scene2D type and name.
+- Browse resources with search and category filters.
+- Inspect style fields and resource references.
+- Diagnose missing resources, invalid references, duplicate resources, color/font/atlas issues, and unused resources.
+- Preview common widgets using the current skin.
+- Preview the selected style inside the Scene2D canvas.
+- Interact with Scene2D widgets in the Preview Canvas using `LMB`.
+- Pan the preview camera with `Ctrl + RMB drag`.
+- Zoom the preview camera with `Ctrl + mouse wheel`.
+- Toggle Scene2D bounds, selected-style highlight, and preview checkerboard.
+- Preview atlas and texture resources.
+- Use an interactive atlas viewport with pan/zoom, click-to-select atlas region, checkerboard, grid, all-region bounds, hover highlight, and region selection.
+- Preview bitmap fonts with editable sample text.
+- Preview color resources.
+- Use an in-memory edit workflow for field edits, add/remove/reset field, color resource edits, create/duplicate/rename/delete style, and pending change review.
+- Save draft style/resource edits back to the loaded skin JSON or `.uiskin` file.
+
+#### Save workflow
+
+- Edits remain draft/in-memory until `Save Changes`.
+- `Save Changes` writes draft style/resource edits to the loaded skin file.
+- A `.bak` backup is created beside the skin file before write.
+- The backup is the latest-save backup and may be overwritten by subsequent saves.
+- After a successful save, the tool reloads the skin and the edit state becomes clean.
+- `Save Panel Layout` is separate from `Save Changes`.
+- `Discard Edits` discards in-memory draft changes only.
+
+`Save Changes` does not save:
+
+- panel layout state
+- preview camera state
+- atlas preview viewport state
+- Scene2D widget interaction state
+- atlas, texture, or font binary assets
+
+#### Current scope / limitations
+
+- Skin Editor is not a full Skin Composer replacement.
+- It does not pack atlases.
+- It does not create or edit texture regions.
+- It does not edit bitmap font glyphs.
+- It does not import external skin packages inside the tool.
+- Keyboard text input inside the preview may still be limited.
+- Saving may rewrite JSON in KRender pretty JSON format.
+
+Required properties:
+
+- `krender.scene=skin-editor`
+
+Optional properties:
+
+- `krender.skin.path=<path>`
+
+Example:
+
+```sh
+./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=skin-editor -Pkrender.skin.path=ui/skins/xp_ui/xp-ui.json
+```
+
+If `krender.skin.path` is omitted, Skin Editor starts in an empty/no-skin state until a skin path is provided.
+
+Screenshots:
+
+_To be added._
+
+### Texture Atlas Editor
+
+The Texture Atlas Editor is an atlas-centric tool for packing image, NinePatch, and BitmapFont resources into libGDX texture atlases. The opened `.atlas` file is the root working document.
+
+Features:
+
+- Open and preview existing `.atlas` files with page and region browsing.
+- View a unified resource list of Image, NinePatch, and Font resources derived from atlas regions and discovered `.fnt` files.
+- Import image textures from outside the asset root.
+- Add existing image textures as packable resources.
+- Import BitmapFont `.fnt` descriptors and their page textures next to the atlas.
+- Create NinePatch resources from Image resources with interactive split/pad guide editing.
+- Preview NinePatch stretch behavior at configurable target sizes (Actual, Button, Panel, Custom).
+- Preview BitmapFont pages, glyph bounds, and sample text rendering.
+- Pack all resources into an in-memory atlas layout with configurable page size, padding, and NinePatch inclusion.
+- Preview the packed atlas output before saving.
+- Explicitly save the packed atlas as `.atlas` descriptor + PNG page files.
+- Optionally pack BitmapFont page images into the atlas. When enabled, a separate `*_packed.fnt` descriptor is written during save with atlas-relative glyph coordinates. The original imported `.fnt` is never modified.
+- Export individual resources as standalone PNG or `.9.png` files.
+- Rename and delete resources from the working draft.
+- View diagnostics for atlas parsing, font parsing, NinePatch validation, and packing results.
+- Pan, zoom, fit, and focus regions in the preview canvas. Toggle checkerboard, grid, bounds, and NinePatch guide overlays.
+
+File write safety:
+
+- **Pack Texture Atlas** is in-memory only and does not write files.
+- **Save Texture Atlas** is the explicit write action for `.atlas` + PNG pages.
+- **Add Font** is an explicit import action that copies `.fnt` + page PNGs next to the atlas.
+- **Import Image** is an explicit file copy action.
+- **Export Resource** is an explicit file write action.
+- Preview, selection, canvas mode switching, and packing preview do not write files.
+- The tool does not generate `.krmeta` files.
+
+Current limitations:
+
+- The packing algorithm is a shelf-based packer. MaxRects or other advanced strategies are not yet implemented.
+- The `Allow Rotation` setting is accepted but not applied during packing.
+- Multi-page BitmapFont packing is not supported. Fonts with more than one page are skipped with a diagnostic warning.
+- BitmapFont generation from TTF/OTF is not part of Texture Atlas Editor. Font generation will belong to a future Bitmap Font Editor.
+- Sample text preview does not handle newlines.
+
+Screenshots:
+
+_Screenshots will be added later._
+
+Required properties:
+
+- `krender.scene=texture-atlas-editor`
+
+Optional properties:
+
+- `krender.atlas.path=<path>`
+
+Example:
+
+```sh
+./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=texture-atlas-editor -Pkrender.atlas.path=ui/skins/default/uiskin.atlas
+```
+
+If `krender.atlas.path` is omitted, the tool starts in an empty state until an atlas path is provided.
 
 ## Related Route
 

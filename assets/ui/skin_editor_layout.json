@@ -1,0 +1,67 @@
+{
+  "panels": {
+    "skinEditorToolbar": {
+      "title": "Skin Editor Toolbar",
+      "x": 2,
+      "y": 4,
+      "width": 377,
+      "height": 242
+    },
+    "skinEditorStyleTree": {
+      "title": "Styles",
+      "x": 1323,
+      "y": 4,
+      "width": 423,
+      "height": 508
+    },
+    "skinEditorResourceBrowser": {
+      "title": "Resources",
+      "x": 1748,
+      "y": 3,
+      "width": 508,
+      "height": 1343
+    },
+    "skinEditorProblems": {
+      "title": "Problems",
+      "x": 3,
+      "y": 884,
+      "width": 1317,
+      "height": 243
+    },
+    "skinEditorPreviewCanvas": {
+      "title": "Preview Canvas",
+      "x": 381,
+      "y": 4,
+      "width": 941,
+      "height": 878
+    },
+    "skinEditorInspector": {
+      "title": "Inspector",
+      "x": 2,
+      "y": 571,
+      "width": 378,
+      "height": 310
+    },
+    "skinEditorStyleEditor": {
+      "title": "Style Editor",
+      "x": 1321,
+      "y": 513,
+      "width": 423,
+      "height": 835
+    },
+    "skinEditorPreviewControls": {
+      "title": "Preview Controls",
+      "x": 2,
+      "y": 249,
+      "width": 378,
+      "height": 319
+    },
+    "runtimeLogs": {
+      "title": "Runtime Logs",
+      "x": 4,
+      "y": 1129,
+      "width": 1315,
+      "height": 218
+    }
+  }
+}

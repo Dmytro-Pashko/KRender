@@ -71,30 +71,39 @@ Detekt uses:
 config/detekt/baseline.xml
 ```
 
-The baseline is temporary technical debt for pre-existing findings. Keep `ignoreFailures = false` so new findings stay visible. Regenerate the baseline only when you intentionally accept the current finding set:
+The baseline is still configured in Gradle, but it should be kept in sync with the current codebase. Keep
+`ignoreFailures = false` so new findings stay visible. After fixing previously baselined issues, regenerate the
+baseline so resolved entries are removed instead of lingering in `baseline.xml`:
 
 ```bash
 ./gradlew detektBaseline
 ```
 
-Reduce the baseline over time by fixing findings and then regenerating it from a cleaner codebase.
+Review the resulting diff before committing it. The goal is to shrink the baseline over time and eventually remove it
+when the suppressed backlog is gone.
 
-## Boundary Rules
-
-Static analysis must not weaken the core/backend boundary. `BackendBoundaryTest` scans `core`, `engine:tools`,
-`engine:scene-player`, `engine:backend-gdx`, `games:woolboy`, `apps:woolboy-desktop`,
-`desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, `desktop-lwjgl3-linux`, and `android`.
-It allows GDX imports only in the backend/launcher/app modules plus the explicit temporary `engine:tools`
-editor-preview adapter allowlist. Gradle dependency boundary tests keep backend dependencies out of `core`,
-`engine:scene-player`, and gameplay modules, and verify that the platform desktop launchers depend directly on the
-runtime modules they host. New allowlist entries should not be added just to make verification pass.
 
 ## CI Readiness
 
-As of June 11, 2026, this repository does not contain `.github/workflows/*.yml`. When CI is added, run:
+This repository already has GitHub Actions workflows under `.github/workflows/`:
+
+- `release.yml` runs pull-request validation for full Kotlin compile, JVM tests, Detekt, docs build, and desktop artifact builds.
+- `pages.yml` builds and deploys the MkDocs site to GitHub Pages from `master`.
+
+The current docs build installs dependencies from:
+
+```text
+requirements-docs.txt
+```
+
+The current CI/static-analysis entry points are:
 
 ```bash
 ./scripts/static-analysis.sh
+./gradlew detekt
+mkdocs build --strict
 ```
 
-Keep static-analysis setup changes separate from large runtime or architecture refactors so failures stay attributable to the tooling rollout.
+There is not currently a dedicated single `quality-checks.yml` workflow; quality validation is split across the
+release and pages workflows. Keep static-analysis setup changes separate from large runtime or architecture refactors
+so failures stay attributable to tooling changes.

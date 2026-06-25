@@ -6,10 +6,21 @@ repo_name: Dmytro-Pashko/KRender
 docs_dir: docs
 theme:
   name: readthedocs
+plugins:
+  - search
+  - mermaid2
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid
 nav:
   - Home: index.md
   - Architecture: architecture.md
-  - Tools: tools.md
+  - Tools:
+      - Overview: tools.md
+      - Texture Atlas Editor: tools/texture_atlas_editor.md
   - Git Workflow: git-flow.md
   - Quality:
       - Static Analysis: quality/static-analysis.md

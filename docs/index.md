@@ -84,20 +84,6 @@ The root `assets/` directory remains the shared asset tree for the editor/runtim
 
 The desktop launcher modules intentionally duplicate a small amount of bootstrap code. Keeping platform launchers local to `desktop-lwjgl3-win`, `desktop-lwjgl3-macos`, and `desktop-lwjgl3-linux` makes startup and packaging behavior easier to inspect.
 
-The intended dependency direction is:
-
-```text
-engine:tools -> core
-engine:scene-player -> core
-engine:backend-gdx -> core
-desktop-lwjgl3-win -> core + engine:backend-gdx + engine:tools + engine:scene-player
-desktop-lwjgl3-macos -> core + engine:backend-gdx + engine:tools + engine:scene-player
-desktop-lwjgl3-linux -> core + engine:backend-gdx + engine:tools + engine:scene-player
-android -> core + engine:backend-gdx + engine:scene-player
-games:woolboy -> core
-apps:woolboy-desktop -> games:woolboy + core + engine:backend-gdx
-```
-
 ## Repository
 
 - Source repository: [Dmytro-Pashko/KRender](https://github.com/Dmytro-Pashko/KRender)

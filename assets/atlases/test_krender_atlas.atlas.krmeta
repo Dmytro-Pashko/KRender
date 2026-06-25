@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:edd730b7-1e85-450d-8ce4-e7084432ecb7",
+  "type": "Atlas",
+  "category": "Scene2D",
+  "displayName": "test_krender_atlas",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}

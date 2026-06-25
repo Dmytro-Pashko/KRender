@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:bb71cd98-78a3-4922-ba89-cc5ba64b716f",
+  "type": "Scene2DSkin",
+  "category": "Scene2D",
+  "displayName": "craftacular-ui",
+  "tags": [],
+  "importerId": "scene2d-skin",
+  "importSettings": {}
+}

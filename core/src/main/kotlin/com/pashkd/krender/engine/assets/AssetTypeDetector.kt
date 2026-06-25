@@ -16,6 +16,8 @@ object AssetTypeDetector {
             extension == "obj" -> AssetTypeDetection(AssetType.ObjModel, AssetCategory.Model)
             extension == "g3db" || extension == "g3dj" -> AssetTypeDetection(AssetType.GdxModel, AssetCategory.Model)
             extension in textureExtensions -> AssetTypeDetection(AssetType.Texture, AssetCategory.Texture)
+            extension == "atlas" -> AssetTypeDetection(AssetType.Atlas, AssetCategory.Scene2D)
+            extension == "fnt" || extension == "ttf" || extension == "otf" -> AssetTypeDetection(AssetType.Font, AssetCategory.Scene2D)
             extension == "krskybox" -> AssetTypeDetection(AssetType.Skybox, AssetCategory.Skybox)
             lowerPath.startsWith("terrains/") && extension == "json" ->
                 AssetTypeDetection(
@@ -26,7 +28,7 @@ object AssetTypeDetector {
             lowerPath.startsWith("ui/skins/") && extension == "json" ->
                 AssetTypeDetection(
                     AssetType.Scene2DSkin,
-                    AssetCategory.UI,
+                    AssetCategory.Scene2D,
                 )
 
             extension == "krui" -> AssetTypeDetection(AssetType.UiScene, AssetCategory.UI)
@@ -47,7 +49,7 @@ object AssetTypeDetector {
         }
     }
 
-    private val textureExtensions = setOf("png", "jpg", "jpeg", "webp")
+    private val textureExtensions = setOf("png", "bmp", "jpg", "jpeg", "ktx", "webp")
 }
 
 /**

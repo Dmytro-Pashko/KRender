@@ -99,7 +99,10 @@ internal class GdxAppLogSink : LogSink {
             LogLevel.Trace, LogLevel.Debug -> Gdx.app.debug(entry.tag, entry.message)
             LogLevel.Info -> Gdx.app.log(entry.tag, entry.message)
             LogLevel.Warn -> Gdx.app.log(entry.tag, "WARN: ${entry.message}")
-            LogLevel.Error -> Gdx.app.error(entry.tag, entry.message, entry.error)
+            LogLevel.Error ->
+                entry.error?.let { error ->
+                    Gdx.app.error(entry.tag, entry.message, error)
+                } ?: Gdx.app.error(entry.tag, entry.message)
         }
     }
 }

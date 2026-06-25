@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.tools.uicomposer
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
+import com.pashkd.krender.engine.tools.common.EditorAssetPickerCatalog
 import com.pashkd.krender.engine.tools.uicomposer.gdx.GdxUiComposerSkinMetadataReader
 import com.pashkd.krender.engine.tools.uicomposer.gdx.GdxUiScenePreview
 import com.pashkd.krender.engine.ui.editor.*
@@ -220,8 +221,7 @@ class UiComposerScene(
             composerState.textureOptions.forEach { option ->
                 engine.assets.queue(AssetRef.texture(option.path))
             }
-            composerState.textureAssetTypesByPath =
-                engine.assetRegistry.assets.associate { asset -> asset.path to asset.type }
+            composerState.textureAssetTypesByPath = EditorAssetPickerCatalog(engine.assetRegistry).assetTypeByPath()
             composerState.document?.let { document ->
                 refreshUiComposerValidationBuckets(composerState, document)
             }

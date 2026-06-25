@@ -1,12 +1,13 @@
 package com.pashkd.krender.engine.tools.assetbrowser.details
 
-import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
+import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.tools.assetbrowser.assetBrowserTextLine
+import com.pashkd.krender.engine.tools.common.TexturePreviewResult
 import imgui.ImGui
 
 class TextureAssetDetailsRenderer : AssetDetailsRenderer {
-    override fun supports(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Texture
+    override fun supports(asset: AssetDescriptor): Boolean = asset.type == AssetType.Texture
 
     override fun render(
         asset: AssetDescriptor,
@@ -24,16 +25,21 @@ class TextureAssetDetailsRenderer : AssetDetailsRenderer {
         asset: AssetDescriptor,
         context: AssetDetailsRenderContext,
     ) {
-        val handle = context.assets.texturePreviewHandle(asset.path)
-        if (handle == null) {
-            assetBrowserTextLine("Preview unavailable.")
-            return
+        when (val preview = context.texturePreviews.preview(asset.path)) {
+            is TexturePreviewResult.Unavailable -> {
+                assetBrowserTextLine("Preview unavailable.")
+                return
+            }
+
+            is TexturePreviewResult.Available -> {
+                val handle = preview.handle
+                if (!context.ui.drawTexturePreview(handle, TexturePreviewSize, TexturePreviewSize)) {
+                    assetBrowserTextLine("Preview unavailable.")
+                    return
+                }
+                assetBrowserTextLine("Preview size: ${TexturePreviewSize.toInt()} x ${TexturePreviewSize.toInt()}")
+            }
         }
-        if (!context.ui.drawTexturePreview(handle, TexturePreviewSize, TexturePreviewSize)) {
-            assetBrowserTextLine("Preview unavailable.")
-            return
-        }
-        assetBrowserTextLine("Preview size: ${TexturePreviewSize.toInt()} x ${TexturePreviewSize.toInt()}")
     }
 
     companion object {

@@ -10,8 +10,9 @@ import java.nio.charset.StandardCharsets
  *
  * This type belongs to asset indexing and asset metadata, not runtime UI. It lets the browser show
  * document id, Skin path, schema version, and validation diagnostics without building Scene2D actors.
- * It intentionally does not implement preview rendering, hierarchy editing, bounds overlays, Skin editing,
- * drag/drop editing, or asset-id based references; those belong to the future UiComposerScene phase.
+ * Full preview and editing belong to UiComposerScene; this metadata reader stays focused on lightweight
+ * indexing and diagnostics only. Current UI Composer limitations such as no Skin editing and no asset-id
+ * references are documented there rather than duplicated in Asset Browser metadata code.
  */
 data class UiSceneAssetMetadata(
     val documentId: String? = null,

@@ -26,7 +26,7 @@ scenes, and systems do not spread `Gdx.*` calls through the project.
 
 Beyond the runtime engine, the repository ships a set of **ImGui-based editor tools**
 that run as standalone scenes (Asset Browser, Model Viewer, Animation Viewer,
-Terrain Editor, Scene Editor, and a placeholder UI Composer). These tools are
+Terrain Editor, Scene Editor, Skin Editor, and a UI Composer `.krui` editor/preview tool). These tools are
 first-class products built on the same engine primitives.
 
 - Language: Kotlin `2.2.21`, JVM target 11.
@@ -120,7 +120,7 @@ that is injected at startup (`GdxEngineApplication` → `LibGdxBackend`).
 |---|---|
 | `core` | Backend-neutral engine/runtime API, data, and shared services such as assets, terrain, scene files, serializers, and `.krui` documents. |
 | `engine:backend-gdx` | LibGDX backend adapter and all Gdx/OpenGL/gdx-gltf implementation code. Depends on `core`. |
-| `engine:tools` | Editor tool module containing Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, UI Composer, tool routing, and editor-only helpers. It is mostly backend-neutral, with a small explicitly allowlisted temporary GDX editor-preview adapter layer. |
+| `engine:tools` | Editor tool module containing Asset Browser, Model Viewer, Animation Viewer, Terrain Editor, Scene Editor, Skin Editor, UI Composer, tool routing, and editor-only helpers. It is mostly backend-neutral, with a small explicitly allowlisted temporary GDX editor-preview adapter layer. |
 | `engine:scene-player` | Runtime/player module containing `ScenePlayerScene`, `ScenePlayerBuilder`, `ScenePlayerModule`, preferred `scene-player` routing plus legacy aliases. It does not own a GDX entry point. |
 | `desktop-lwjgl3-win` | Windows desktop SDK host application. Owns `WinLwjgl3Launcher`, `WinStartupPolicy`, `DesktopMain`, secondary JVM launchers, Windows run config, Windows JAR packaging, and the Windows Construo target. |
 | `desktop-lwjgl3-macos` | macOS desktop SDK host application. Owns `MacOsLwjgl3Launcher`, `MacOsStartupPolicy`, `DesktopMain`, secondary JVM launchers, macOS run config, macOS JAR packaging, and macOS Construo targets. |
@@ -351,9 +351,14 @@ terrain with layers, material preview baking, and persistence. → `docs/agents/
 (`.krscene`): hierarchy, inspector, selection, gizmos, environment, asset panel.
 → `docs/agents/tools/scene-editor.md`
 
+### Skin Editor
+`engine/tools/.../skin/SkinEditorScene.kt` (+ sibling editing/model/preview/save files in `engine:tools`). Inspects and edits Scene2D Skin JSON / `.uiskin`
+assets: styles, resources, diagnostics, atlas/font/color previews, Scene2D widget preview, and save workflow.
+→ `docs/agents/tools/skin-editor.md`
+
 ### UI Composer
 `engine/tools/.../uicomposer/UiComposerScene.kt` (+ scene/layout/panel/operations/model helpers and preview adapter in `engine:tools`). Opens
-`.krui` UiScene assets for validation-focused preview and inspection workflows. → `docs/agents/tools/ui-composer.md`
+`.krui` UiScene assets for validation, Scene2D preview, hierarchy/inspector editing, undo/redo, and save workflows. → `docs/agents/tools/ui-composer.md`
 
 ### Non-tool scenes
 Scene Player (`engine:scene-player/.../ScenePlayerScene.kt`) is not an editor tool. It handles
