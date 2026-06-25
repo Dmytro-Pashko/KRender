@@ -9,22 +9,28 @@ class SkinEditorOperations(
     private val engine: EngineContext,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
 ) {
-    private val editService = SkinEditService(state)
+    private val editService = SkinEditService(state, engine.logger)
     private val saveService = SkinStyleSaveService(engine.logger, engine.sceneFiles)
 
     // Load and navigation commands.
     fun requestReload() {
         state.reloadRequested = true
+        engine.logger.info(TAG) { "Skin Editor reload requested path='${state.currentInputPath ?: "<none>"}' dirty=${state.editSession.dirty} pendingChanges=${state.editSession.changes.size}" }
     }
 
     fun requestExit() {
+        engine.logger.info(TAG) { "Skin Editor exit requested path='${state.currentInputPath ?: "<none>"}' dirty=${state.editSession.dirty} pendingChanges=${state.editSession.changes.size}" }
         engine.requestExit()
     }
 
     fun openPath(path: String) {
+        val previousPath = state.currentInputPath
         state.currentInputPath = path.trim().replace('\\', '/').ifBlank { null }
         state.pendingPathInput = state.currentInputPath.orEmpty()
         state.reloadRequested = true
+        engine.logger.info(TAG) {
+            "Skin Editor openPath old='${previousPath ?: "<none>"}' new='${state.currentInputPath ?: "<none>"}' dirty=${state.editSession.dirty} pendingChanges=${state.editSession.changes.size}"
+        }
     }
 
     fun selectStyle(styleKey: StyleKey) {
@@ -76,6 +82,9 @@ class SkinEditorOperations(
         if (result.success) {
             state.pendingStatusAfterReload = result.message
             state.reloadRequested = true
+        }
+        engine.logger.info(TAG) {
+            "Skin Editor saveChanges result success=${result.success} file='${result.file?.path ?: "<none>"}' backup='${result.backupFile?.path ?: "<none>"}' savedChanges=${result.savedChangeCount} pendingChangesBeforeSave=${state.editSession.changes.size}"
         }
     }
 
@@ -417,5 +426,6 @@ class SkinEditorOperations(
         private const val MaxResourcePreviewZoom = 8f
         private const val MinPreviewCameraZoom = 0.25f
         private const val MaxPreviewCameraZoom = 4f
+        private const val TAG = "SkinEditorOps"
     }
 }

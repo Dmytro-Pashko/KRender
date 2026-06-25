@@ -54,7 +54,7 @@ class SkinStyleSaveService(
             val encoded = KRenderJson.Pretty.encodeToString(JsonObject.serializer(), updatedRoot)
             files.writeText(skinFile.path, encoded)
             logger.info(TAG) {
-                "Saved Skin Editor draft changes file='${skinFile.path}' changes=${snapshot.changes.size} backup='${backupFile.path}'"
+                "Saved Skin Editor draft changes file='${skinFile.path}' backup='${backupFile.path}' changes=${snapshot.changes.size} stylesSaved=${snapshot.styles.size} stylesDeleted=${snapshot.deletedStyles.size} resourcesSaved=${snapshot.resources.size} resourcesDeleted=${snapshot.deletedResources.size} bytes=${encoded.length} summary=${snapshot.describeChanges()}"
             }
             SkinStyleSaveResult(
                 success = true,
@@ -184,12 +184,16 @@ class SkinStyleSaveService(
         val handled = linkedSetOf<String>()
         existingStyleObject.keys.forEach { fieldName ->
             val field = style.fields[fieldName] ?: return@forEach
-            ordered[fieldName] = fieldToJson(field)
+            fieldToJsonOrNull(field)?.let { json ->
+                ordered[fieldName] = json
+            }
             handled += fieldName
         }
         style.fields.values.forEach { field ->
             if (field.name in handled) return@forEach
-            ordered[field.name] = fieldToJson(field)
+            fieldToJsonOrNull(field)?.let { json ->
+                ordered[field.name] = json
+            }
         }
         return JsonObject(ordered)
     }
@@ -221,12 +225,17 @@ class SkinStyleSaveService(
         return JsonObject(objectFields)
     }
 
-    private fun fieldToJson(field: EditableStyleField): JsonElement =
-        if (field.isReference) {
-            JsonPrimitive(field.value)
-        } else {
-            scalarToJson(field.value, preserveColorHexString = field.referenceCategory == SkinResourceCategory.Color)
+    private fun fieldToJsonOrNull(field: EditableStyleField): JsonElement? {
+        val trimmed = field.value.trim()
+        if (trimmed.isEmpty()) {
+            return null
         }
+        return if (field.isReference) {
+            JsonPrimitive(trimmed)
+        } else {
+            scalarToJson(trimmed, preserveColorHexString = field.referenceCategory == SkinResourceCategory.Color)
+        }
+    }
 
     @Suppress("ReturnCount")
     private fun scalarToJson(
@@ -289,3 +298,20 @@ class SkinStyleSaveService(
             )
     }
 }
+
+private fun SkinEditedSnapshot.describeChanges(): String =
+    changes.joinToString(separator = " | ") { change ->
+        buildString {
+            append(change.type.name)
+            append(":")
+            append(change.styleKey?.let { "${it.type}.${it.name}" } ?: change.resourceKey?.let { "${it.category}.${it.name}" } ?: "<unknown>")
+            change.fieldName?.let { fieldName -> append(".$fieldName") }
+            if (change.oldValue != null || change.newValue != null) {
+                append("[")
+                append(change.oldValue ?: "<null>")
+                append(" -> ")
+                append(change.newValue ?: "<null>")
+                append("]")
+            }
+        }
+    }

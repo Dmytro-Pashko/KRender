@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor
 
+import com.pashkd.krender.engine.api.Logger
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
@@ -11,7 +12,9 @@ import javax.imageio.ImageIO
  * resources are reconstructed as `.9.png` images so their split/pad metadata
  * stays visible and reusable outside the atlas.
  */
-internal class TextureAtlasRegionExportService {
+internal class TextureAtlasRegionExportService(
+    private val logger: Logger? = null,
+) {
     fun exportResource(
         assetRoot: File,
         atlasFile: File?,
@@ -29,6 +32,9 @@ internal class TextureAtlasRegionExportService {
                     success = false,
                     message = "Cannot resolve export path for the selected resource.",
                 )
+        logger?.info(TAG) {
+            "Texture Atlas Editor export requested resource='${resource.name}' type=${resource.type} target='${normalizePath(targetFile.path)}' atlas='${atlasFile?.let { normalizePath(it.path) } ?: "<none>"}'"
+        }
         return runCatching {
             targetFile.parentFile?.mkdirs()
             when (resource) {
@@ -37,7 +43,20 @@ internal class TextureAtlasRegionExportService {
                 is FontAtlasResource -> exportImageLikeResource(resource, targetFile)
                 is ColorAtlasResource -> exportColorResource(resource, targetFile)
             }
+        }.onSuccess { result ->
+            if (result.success) {
+                logger?.info(TAG) {
+                    "Texture Atlas Editor export completed resource='${resource.name}' writtenPaths=${result.writtenPaths.joinToString()} message='${result.message}'"
+                }
+            } else {
+                logger?.warn(TAG) {
+                    "Texture Atlas Editor export failed resource='${resource.name}' message='${result.message}'"
+                }
+            }
         }.getOrElse { error ->
+            logger?.warn(TAG, error) {
+                "Texture Atlas Editor export crashed resource='${resource.name}' target='${normalizePath(targetFile.path)}': ${error.message}"
+            }
             TextureAtlasEditorFileWriteResult(
                 success = false,
                 message = "Failed to export resource: ${error.message ?: "unknown error"}.",
@@ -260,6 +279,7 @@ internal class TextureAtlasRegionExportService {
     )
 
     companion object {
+        private const val TAG = "TextureAtlasRegionExport"
         private val InvalidFileNameChars = Regex("[\\\\/:*?\"<>|]+")
     }
 }

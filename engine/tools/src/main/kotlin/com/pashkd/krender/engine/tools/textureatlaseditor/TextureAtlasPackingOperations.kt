@@ -10,22 +10,27 @@ internal class TextureAtlasPackingOperations(
     private val textureMetadataService: TextureMetadataService = TextureMetadataService(),
 ) {
     fun setPackingMaxPageWidth(value: Int) {
+        engine.logger.info(TAG) { "Texture Atlas Editor packing maxPageWidth changed old=${state.packing.settings.maxPageWidth} new=$value" }
         state.packing.settings.maxPageWidth = value
     }
 
     fun setPackingMaxPageHeight(value: Int) {
+        engine.logger.info(TAG) { "Texture Atlas Editor packing maxPageHeight changed old=${state.packing.settings.maxPageHeight} new=$value" }
         state.packing.settings.maxPageHeight = value
     }
 
     fun setPackingPadding(value: Int) {
+        engine.logger.info(TAG) { "Texture Atlas Editor packing padding changed old=${state.packing.settings.padding} new=$value" }
         state.packing.settings.padding = value
     }
 
     fun setPackingAllowRotation(enabled: Boolean) {
+        engine.logger.info(TAG) { "Texture Atlas Editor packing allowRotation changed old=${state.packing.settings.allowRotation} new=$enabled" }
         state.packing.settings.allowRotation = enabled
     }
 
     fun setPackingIncludeNinePatch(enabled: Boolean) {
+        engine.logger.info(TAG) { "Texture Atlas Editor packing includeNinePatch changed old=${state.packing.settings.includeNinePatch} new=$enabled" }
         state.packing.settings.includeNinePatch = enabled
     }
 

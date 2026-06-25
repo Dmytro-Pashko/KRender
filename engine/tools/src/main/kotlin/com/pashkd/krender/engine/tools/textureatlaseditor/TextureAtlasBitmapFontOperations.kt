@@ -15,11 +15,13 @@ internal class TextureAtlasBitmapFontOperations(
         val document = state.project.fontDocuments[fntPath]
         if (document == null || !document.readable) {
             state.statusMessage = "Cannot add font resource: .fnt file not found or not readable."
+            engine.logger.warn(TAG) { "Rejected Texture Atlas Editor add font resource path='$fntPath' because document was unreadable" }
             return
         }
         val resource = createFontAtlasResource(fntPath, document)
         if (state.resources.items.any { it.id == resource.id }) {
             state.statusMessage = "Font resource for '${resource.name}' already exists."
+            engine.logger.warn(TAG) { "Rejected Texture Atlas Editor add font resource path='$fntPath' because resource id='${resource.id}' already exists" }
             return
         }
         state.resources.items = state.resources.items + resource
@@ -32,16 +34,19 @@ internal class TextureAtlasBitmapFontOperations(
         val normalizedSource = fntPath.trim().replace('\\', '/')
         if (normalizedSource.isBlank()) {
             state.statusMessage = "Choose a .fnt file before adding a font."
+            engine.logger.warn(TAG) { "Rejected Texture Atlas Editor import font because source path was blank" }
             return
         }
         val sourceFile = File(normalizedSource)
         if (!sourceFile.isFile || !sourceFile.name.endsWith(".fnt", ignoreCase = true)) {
             state.statusMessage = "Choose a readable .fnt file before adding a font."
+            engine.logger.warn(TAG) { "Rejected Texture Atlas Editor import font because source file was invalid path='$normalizedSource'" }
             return
         }
         val atlasPath = state.project.selectedAtlasPath ?: state.currentInputPath?.takeIf { it.endsWith(".atlas", ignoreCase = true) }
         if (atlasPath == null) {
             state.statusMessage = "Open a texture atlas before importing bitmap fonts."
+            engine.logger.warn(TAG) { "Rejected Texture Atlas Editor import font path='$normalizedSource' because no atlas was open" }
             return
         }
         val atlasFile =
@@ -49,6 +54,7 @@ internal class TextureAtlasBitmapFontOperations(
                 ?: File(atlasPath).takeIf(File::isFile)
                 ?: run {
                     state.statusMessage = "The current texture atlas path is not available for font import."
+                    engine.logger.warn(TAG) { "Rejected Texture Atlas Editor import font path='$normalizedSource' because atlas path='$atlasPath' could not be resolved" }
                     return
                 }
         val document = BitmapFontParser().parse(sourceFile)
@@ -64,6 +70,7 @@ internal class TextureAtlasBitmapFontOperations(
         }
         val atlasDirectory = atlasFile.parentFile ?: run {
             state.statusMessage = "Cannot import bitmap font because the atlas directory is unavailable."
+            engine.logger.warn(TAG) { "Rejected Texture Atlas Editor import font path='$normalizedSource' because atlas directory was unavailable" }
             return
         }
         val importTargets = chooseImportTargets(atlasDirectory, sourceFile.nameWithoutExtension, document.pages.size)
@@ -147,11 +154,13 @@ internal class TextureAtlasBitmapFontOperations(
         val resource = state.selectedResource()
         if (resource !is FontAtlasResource) {
             state.statusMessage = "Select a font resource before exporting."
+            engine.logger.warn(TAG) { "Rejected Texture Atlas Editor export font because selected resource was not a font" }
             return
         }
         val document = state.project.fontDocuments[resource.documentPath]
         if (document == null || !document.readable) {
             state.statusMessage = "Cannot export font: descriptor is not readable."
+            engine.logger.warn(TAG) { "Rejected Texture Atlas Editor export font resource id='${resource.id}' document='${resource.documentPath}' because descriptor was unreadable" }
             return
         }
         val targetPath = state.importExport.targetPath
@@ -195,6 +204,9 @@ internal class TextureAtlasBitmapFontOperations(
             } else {
                 "Font '${resource.name}' will remain external to the atlas."
             }
+        engine.logger.info(TAG) {
+            "Texture Atlas Editor font pack option changed resource id='${resource.id}' name='${resource.name}' enabled=$enabled"
+        }
     }
 
     fun savePackedFontDescriptors(
@@ -223,10 +235,12 @@ internal class TextureAtlasBitmapFontOperations(
             val document = state.project.fontDocuments[resource.documentPath]
             if (document == null || !document.readable) {
                 failures += "Descriptor for '${resource.name}' is unreadable."
+                engine.logger.warn(TAG) { "Skipped packed font descriptor rewrite resource id='${resource.id}' because descriptor was unreadable" }
                 return@forEach
             }
             if (document.pages.size != 1) {
                 failures += "Font '${resource.name}' uses multiple pages and cannot be rewritten safely yet."
+                engine.logger.warn(TAG) { "Skipped packed font descriptor rewrite resource id='${resource.id}' because pages=${document.pages.size} are unsupported" }
                 return@forEach
             }
             val packedRegion =
@@ -235,11 +249,13 @@ internal class TextureAtlasBitmapFontOperations(
                     .firstOrNull { region -> region.fontResourceId == resource.id }
             if (packedRegion == null) {
                 failures += "Font page for '${resource.name}' was not packed into the atlas."
+                engine.logger.warn(TAG) { "Skipped packed font descriptor rewrite resource id='${resource.id}' because no packed region was found" }
                 return@forEach
             }
             val packedPage = plan.pages.getOrNull(packedRegion.pageIndex)
             if (packedPage == null) {
                 failures += "Packed atlas page for '${resource.name}' could not be resolved."
+                engine.logger.warn(TAG) { "Skipped packed font descriptor rewrite resource id='${resource.id}' because packed page index=${packedRegion.pageIndex} was missing" }
                 return@forEach
             }
             val rewritten =
@@ -277,6 +293,7 @@ internal class TextureAtlasBitmapFontOperations(
                 )
             if (!result.success) {
                 failures += "Font '${resource.name}' could not be rewritten: ${result.message}"
+                engine.logger.warn(TAG) { "Packed font descriptor rewrite failed resource id='${resource.id}' message='${result.message}'" }
                 return@forEach
             }
             val refreshedDocument = BitmapFontParser().parse(File(resource.documentPath))
@@ -285,6 +302,9 @@ internal class TextureAtlasBitmapFontOperations(
                     fontDocuments = state.project.fontDocuments + (resource.documentPath to refreshedDocument),
                 )
             writtenPaths += result.writtenPaths
+            engine.logger.info(TAG) {
+                "Rewrote packed font descriptor resource id='${resource.id}' document='${resource.documentPath}' atlasPage='${pageNames[packedRegion.pageIndex]}' glyphs=${document.glyphs.size} offset=${packedRegion.x},${packedRegion.y}"
+            }
         }
 
         return if (failures.isEmpty()) {

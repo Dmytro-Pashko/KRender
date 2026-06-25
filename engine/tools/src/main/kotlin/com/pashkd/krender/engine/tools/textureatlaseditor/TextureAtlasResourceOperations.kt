@@ -10,12 +10,13 @@ internal class TextureAtlasResourceOperations(
     private val importTexture: () -> Unit,
     private val selectResource: (String?) -> Unit,
     private val textureMetadataService: TextureMetadataService = TextureMetadataService(),
-    private val regionExportService: TextureAtlasRegionExportService = TextureAtlasRegionExportService(),
+    private val regionExportService: TextureAtlasRegionExportService = TextureAtlasRegionExportService(engine.logger),
 ) {
     fun addImageResourceFromPath(path: String = state.importExport.importSourcePath) {
         val sourceFile = resolveTextureSource(path)
         if (sourceFile == null) {
             state.statusMessage = "Choose an existing texture inside the asset root before adding a resource."
+            engine.logger.warn(TAG) { "Texture Atlas Editor rejected add resource because source was invalid path='${path.trim()}'" }
             return
         }
         val resource = createResourceFromTextureSource(sourceFile)
@@ -38,6 +39,9 @@ internal class TextureAtlasResourceOperations(
                 state.dirty = true
                 state.importExport.importSourcePath = normalized
                 state.statusMessage = "Imported and added ${resource.type.name.lowercase()} resource '${resource.name}'."
+                engine.logger.info(TAG) {
+                    "Texture Atlas Editor imported and added resource id='${resource.id}' type=${resource.type} source='$normalized' dirty=${state.dirty}"
+                }
             }
         }
     }
@@ -46,6 +50,7 @@ internal class TextureAtlasResourceOperations(
         val resource = state.selectedResource()
         if (resource == null) {
             state.statusMessage = "Select a resource before deleting it."
+            engine.logger.warn(TAG) { "Texture Atlas Editor rejected delete resource because nothing was selected" }
             return
         }
         val regionId = resource.atlasRegionIdOrNull()
@@ -79,6 +84,7 @@ internal class TextureAtlasResourceOperations(
         val resource = state.selectedResource()
         if (resource == null) {
             state.statusMessage = "Select a resource before exporting it."
+            engine.logger.warn(TAG) { "Texture Atlas Editor rejected export resource because nothing was selected" }
             return
         }
         val atlasFile = state.selectedAtlasDocument()?.file
@@ -105,20 +111,24 @@ internal class TextureAtlasResourceOperations(
         val resource = state.selectedResource()
         if (resource == null) {
             state.statusMessage = "Select an image resource before creating a Nine-patch."
+            engine.logger.warn(TAG) { "Texture Atlas Editor rejected NinePatch creation because no resource was selected" }
             return
         }
         if (resource is NinePatchAtlasResource) {
             state.statusMessage = "Selected resource is already a Nine-patch."
+            engine.logger.warn(TAG) { "Texture Atlas Editor skipped NinePatch creation because resource id='${resource.id}' is already NinePatch" }
             return
         }
         if (resource !is ImageAtlasResource) {
             state.statusMessage = "Nine-patch creation currently supports image resources and atlas texture regions only."
+            engine.logger.warn(TAG) { "Texture Atlas Editor rejected NinePatch creation because resource id='${resource.id}' type=${resource.type} is unsupported" }
             return
         }
         val width = resource.sourceWidth ?: textureMetadataService.read(File(resource.sourcePath))?.width
         val height = resource.sourceHeight ?: textureMetadataService.read(File(resource.sourcePath))?.height
         if (width == null || height == null || width <= 0 || height <= 0) {
             state.statusMessage = "Cannot create a Nine-patch because the image size is unknown."
+            engine.logger.warn(TAG) { "Texture Atlas Editor rejected NinePatch creation because dimensions were unavailable resource id='${resource.id}' source='${resource.sourcePath}'" }
             return
         }
         val ninePatch =
@@ -151,15 +161,18 @@ internal class TextureAtlasResourceOperations(
         val resource = state.selectedResource()
         if (resource == null) {
             state.statusMessage = "Select a resource before renaming it."
+            engine.logger.warn(TAG) { "Texture Atlas Editor rejected rename because nothing was selected" }
             return
         }
         if (trimmed.isBlank()) {
             state.statusMessage = "Resource name must not be empty."
+            engine.logger.warn(TAG) { "Texture Atlas Editor rejected rename because target name was blank resource id='${resource.id}'" }
             return
         }
         if (trimmed == resource.name) return
         if (state.resources.items.any { candidate -> candidate.id != resource.id && candidate.name.equals(trimmed, ignoreCase = true) }) {
             state.statusMessage = "A resource named '$trimmed' already exists."
+            engine.logger.warn(TAG) { "Texture Atlas Editor rejected rename because target name already exists resource id='${resource.id}' target='$trimmed'" }
             return
         }
         val updatedResource = resource.withName(trimmed)

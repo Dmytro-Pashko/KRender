@@ -49,6 +49,9 @@ class TextureAtlasEditorImportExportOperations(
                 .takeUnless { path -> path.isBlank() || path.endsWith(".atlas", ignoreCase = true) }
                 ?: suggestedImportTargetPath(state.importExport.importSourcePath)
         state.importExport.targetPath = targetPath
+        engine.logger.info(TAG) {
+            "Texture Atlas Editor import requested source='${state.importExport.importSourcePath}' target='$targetPath' overwrite=${state.importExport.importOverwrite} assetRoot='${normalizePath(assetRoot.path)}'"
+        }
         val result =
             importService.importTexture(
                 assetRoot = assetRoot,
@@ -62,6 +65,13 @@ class TextureAtlasEditorImportExportOperations(
             result.writtenPaths.firstOrNull()?.let { writtenPath ->
                 val normalized = normalizePath(writtenPath)
                 state.importExport.importSourcePath = normalized
+            }
+            engine.logger.info(TAG) {
+                "Texture Atlas Editor import completed target='$targetPath' writtenPaths=${result.writtenPaths.joinToString()} message='${result.message}'"
+            }
+        } else {
+            engine.logger.warn(TAG) {
+                "Texture Atlas Editor import failed source='${state.importExport.importSourcePath}' target='$targetPath' message='${result.message}'"
             }
         }
     }
@@ -94,6 +104,9 @@ class TextureAtlasEditorImportExportOperations(
             state.importExport.targetPath
                 .takeIf { path -> path.endsWith(".atlas", ignoreCase = true) }
                 ?: defaultAtlasTargetPath()
+        engine.logger.info(TAG) {
+            "Texture Atlas Editor atlas save requested target='$targetPath' overwrite=${state.importExport.saveOverwrite} pages=${plan.pages.size} packedRegions=${plan.packedRegionCount}"
+        }
         val result =
             atlasSaveService.savePackedAtlas(
                 assetRoot = engine.assetRegistry.baseDir(),
@@ -114,10 +127,26 @@ class TextureAtlasEditorImportExportOperations(
                     } else {
                         "${result.message} ${fontRewriteResult.message}"
                     }
+                if (fontRewriteResult.success) {
+                    engine.logger.info(TAG) {
+                        "Texture Atlas Editor packed font descriptor rewrite completed target='$targetPath' writtenPaths=${fontRewriteResult.writtenPaths.joinToString()} message='${fontRewriteResult.message}'"
+                    }
+                } else {
+                    engine.logger.warn(TAG) {
+                        "Texture Atlas Editor packed font descriptor rewrite failed target='$targetPath' message='${fontRewriteResult.message}'"
+                    }
+                }
             }
             state.dirty = false
             state.importExport.targetPath = targetPath
+            engine.logger.info(TAG) {
+                "Texture Atlas Editor atlas save completed target='$targetPath' writtenPaths=${result.writtenPaths.joinToString()} dirty=${state.dirty}"
+            }
             openPath(targetPath)
+        } else {
+            engine.logger.warn(TAG) {
+                "Texture Atlas Editor atlas save failed target='$targetPath' message='${result.message}'"
+            }
         }
     }
 

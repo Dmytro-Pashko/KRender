@@ -55,11 +55,15 @@ class GdxTextureAtlasSaveService(
                 writePage(pageFile, page, ninePatchDocuments)
                 writtenPaths += normalizePath(pageFile.path)
                 pageNames += pageFile.name
+                logger.info(TAG) {
+                    "Texture Atlas Editor wrote packed atlas page index=${page.index} file='${normalizePath(pageFile.path)}' size=${page.width}x${page.height} regions=${page.regions.size}"
+                }
             }
-            atlasFile.writeText(buildDescriptor(plan, pageNames, ninePatchDocuments), Charsets.UTF_8)
+            val descriptor = buildDescriptor(plan, pageNames, ninePatchDocuments)
+            atlasFile.writeText(descriptor, Charsets.UTF_8)
             writtenPaths += normalizePath(atlasFile.path)
             logger.info(TAG) {
-                "Saved packed Texture Atlas Editor atlas path='${normalizePath(atlasFile.path)}' pages=${plan.pages.size} regions=${plan.packedRegionCount}"
+                "Saved packed Texture Atlas Editor atlas path='${normalizePath(atlasFile.path)}' pages=${plan.pages.size} regions=${plan.packedRegionCount} pageFiles=${pageNames.joinToString()} descriptorBytes=${descriptor.toByteArray(Charsets.UTF_8).size}"
             }
             TextureAtlasEditorFileWriteResult(
                 success = true,

@@ -38,23 +38,31 @@ internal class TextureAtlasNinePatchOperations(
 
     fun updateNinePatchStretchX(start: Int, length: Int) {
         val draft = state.ninePatchEditor.draft ?: return
+        engine.logger.info(TAG) { "Texture Atlas Editor NinePatch draft stretchX update resource='${state.ninePatchEditor.selectedResourceId ?: "<none>"}' old=${draft.stretchX.start}:${draft.stretchX.length} new=$start:$length" }
         applyDraftUpdate(draft.copy(stretchX = NinePatchSegment(start = start, length = length)))
     }
 
     fun updateNinePatchStretchY(start: Int, length: Int) {
         val draft = state.ninePatchEditor.draft ?: return
+        engine.logger.info(TAG) { "Texture Atlas Editor NinePatch draft stretchY update resource='${state.ninePatchEditor.selectedResourceId ?: "<none>"}' old=${draft.stretchY.start}:${draft.stretchY.length} new=$start:$length" }
         applyDraftUpdate(draft.copy(stretchY = NinePatchSegment(start = start, length = length)))
     }
 
     fun updateNinePatchPaddingX(start: Int?, length: Int?) {
         val draft = state.ninePatchEditor.draft ?: return
         val paddingX = if (start != null && length != null) NinePatchSegment(start = start, length = length) else null
+        engine.logger.info(TAG) {
+            "Texture Atlas Editor NinePatch draft paddingX update resource='${state.ninePatchEditor.selectedResourceId ?: "<none>"}' old=${draft.paddingX?.start}:${draft.paddingX?.length} new=${paddingX?.start}:${paddingX?.length}"
+        }
         applyDraftUpdate(draft.copy(paddingX = paddingX))
     }
 
     fun updateNinePatchPaddingY(start: Int?, length: Int?) {
         val draft = state.ninePatchEditor.draft ?: return
         val paddingY = if (start != null && length != null) NinePatchSegment(start = start, length = length) else null
+        engine.logger.info(TAG) {
+            "Texture Atlas Editor NinePatch draft paddingY update resource='${state.ninePatchEditor.selectedResourceId ?: "<none>"}' old=${draft.paddingY?.start}:${draft.paddingY?.length} new=${paddingY?.start}:${paddingY?.length}"
+        }
         applyDraftUpdate(draft.copy(paddingY = paddingY))
     }
 
