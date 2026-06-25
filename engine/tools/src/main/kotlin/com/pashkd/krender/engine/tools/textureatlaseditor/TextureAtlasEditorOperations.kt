@@ -456,6 +456,10 @@ class TextureAtlasEditorOperations(
         state.importExport.importSourcePath = path
     }
 
+    fun setFontSourcePath(path: String) {
+        state.importExport.fontSourcePath = path
+    }
+
     fun setTargetPath(path: String) {
         state.importExport.targetPath = path
     }
@@ -496,6 +500,10 @@ class TextureAtlasEditorOperations(
         importExportOperations.browseTextureSourceOnly()
     }
 
+    fun browseFontDescriptor() {
+        importExportOperations.browseFontDescriptor()
+    }
+
     fun saveUiLayout() {
         ImGuiLayoutConfigCodec.save(TextureAtlasEditorUiLayoutDefaults.assetPath, layoutTracker.currentConfig(), engine.sceneFiles)
         state.statusMessage = "Panel layout saved."
@@ -516,6 +524,8 @@ class TextureAtlasEditorOperations(
     }
 
     fun addFontResourceFromPath(fntPath: String) = fontOperations.addFontResourceFromPath(fntPath)
+
+    fun importFontResourceFromPath(path: String = state.importExport.fontSourcePath) = fontOperations.importFontResourceFromPath(path)
 
     fun selectFontGlyph(glyphId: Int?) = fontOperations.selectFontGlyph(glyphId)
 

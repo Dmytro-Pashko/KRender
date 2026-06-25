@@ -33,6 +33,14 @@ class TextureAtlasEditorImportExportOperations(
         engine.logger.info(TAG) { "Texture Atlas Editor region source selected path='${normalizePath(selected)}'" }
     }
 
+    fun browseFontDescriptor() {
+        val selected = fileDialogService.openFile(FontImportDialogFilters)
+        if (selected.isNullOrBlank()) return
+        state.importExport.fontSourcePath = normalizePath(selected)
+        state.statusMessage = "Selected bitmap font source '${File(selected).name}'."
+        engine.logger.info(TAG) { "Texture Atlas Editor bitmap font source selected path='${normalizePath(selected)}'" }
+    }
+
     fun importTexture() {
         val assetRoot = engine.assetRegistry.baseDir()
         val targetPath =
@@ -128,6 +136,11 @@ class TextureAtlasEditorImportExportOperations(
         private val TextureImportDialogFilters =
             listOf(
                 FileDialogFilter("Textures", TextureAtlasEditorImportTextureExtensions.toList()),
+            )
+
+        private val FontImportDialogFilters =
+            listOf(
+                FileDialogFilter("Bitmap Fonts", listOf("fnt")),
             )
     }
 }

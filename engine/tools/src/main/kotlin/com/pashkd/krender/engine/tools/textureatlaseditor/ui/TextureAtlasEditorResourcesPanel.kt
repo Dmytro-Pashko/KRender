@@ -30,15 +30,18 @@ class TextureAtlasEditorResourcesPanel(
 ) : UiPanel {
     private val queryBuffer = ByteArray(BufferSize)
     private val textureSourceBuffer = ByteArray(BufferSize)
+    private val fontSourceBuffer = ByteArray(BufferSize)
     private var synced = false
 
     override fun draw() {
         if (!synced) {
             writeBuffer(queryBuffer, state.atlasBrowser.query)
             writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
+            writeBuffer(fontSourceBuffer, state.importExport.fontSourcePath)
             synced = true
         }
         syncTextureSourceBuffer()
+        syncFontSourceBuffer()
         val layout = layoutConfig.panels.getValue(TextureAtlasEditorPanelIds.Regions)
         val expanded = beginPanel(TextureAtlasEditorPanelIds.Regions, layout, layoutTracker)
         eventLogger.observe(TextureAtlasEditorPanelIds.Regions, layout.title)
@@ -129,6 +132,20 @@ class TextureAtlasEditorResourcesPanel(
             operations.importAndAddImageResource()
             writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
         }
+        textLine("Bitmap Font Source")
+        ImGui.setNextItemWidth(ImGui.contentRegionAvail.x - 92f)
+        if (ImGui.inputText("##texture_atlas_editor_font_source", fontSourceBuffer)) {
+            operations.setFontSourcePath(readBuffer(fontSourceBuffer))
+        }
+        ImGui.sameLine()
+        if (ImGui.button("Browse##texture_atlas_editor_font_source_browse")) {
+            operations.browseFontDescriptor()
+            writeBuffer(fontSourceBuffer, state.importExport.fontSourcePath)
+        }
+        if (ImGui.button("Add Font##texture_atlas_editor_resource_add_font")) {
+            operations.importFontResourceFromPath()
+            writeBuffer(fontSourceBuffer, state.importExport.fontSourcePath)
+        }
         val selectedResource = state.selectedResource()
         val canCreateNinePatch = selectedResource is ImageAtlasResource
         if (!canCreateNinePatch) ImGui.beginDisabled()
@@ -147,6 +164,12 @@ class TextureAtlasEditorResourcesPanel(
     private fun syncTextureSourceBuffer() {
         if (readBuffer(textureSourceBuffer) != state.importExport.importSourcePath) {
             writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
+        }
+    }
+
+    private fun syncFontSourceBuffer() {
+        if (readBuffer(fontSourceBuffer) != state.importExport.fontSourcePath) {
+            writeBuffer(fontSourceBuffer, state.importExport.fontSourcePath)
         }
     }
 

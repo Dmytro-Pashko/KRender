@@ -8,6 +8,7 @@ data class TextureAtlasEditorFileWriteResult(
 
 data class TextureAtlasEditorImportExportState(
     var importSourcePath: String = "",
+    var fontSourcePath: String = "",
     var targetPath: String = "",
     var exportResourcePath: String = "",
     var importOverwrite: Boolean = false,
