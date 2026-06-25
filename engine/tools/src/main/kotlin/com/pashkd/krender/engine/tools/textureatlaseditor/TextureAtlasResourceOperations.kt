@@ -327,7 +327,6 @@ private fun TextureAtlasResource.withName(name: String): TextureAtlasResource =
         is ImageAtlasResource -> copy(name = name)
         is NinePatchAtlasResource -> copy(name = name)
         is FontAtlasResource -> copy(name = name)
-        is ColorAtlasResource -> copy(name = name)
     }
 
 private fun TextureAtlasResource.withAtlasRegionId(regionId: AtlasRegionId): TextureAtlasResource =
@@ -335,5 +334,4 @@ private fun TextureAtlasResource.withAtlasRegionId(regionId: AtlasRegionId): Tex
         is ImageAtlasResource -> copy(atlasRegionId = regionId)
         is NinePatchAtlasResource -> copy(atlasRegionId = regionId)
         is FontAtlasResource -> copy(atlasRegionId = regionId)
-        is ColorAtlasResource -> this
     }

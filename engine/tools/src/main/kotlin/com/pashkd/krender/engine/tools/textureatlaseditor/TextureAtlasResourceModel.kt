@@ -4,7 +4,6 @@ enum class TextureAtlasResourceType {
     Image,
     NinePatch,
     Font,
-    Color,
 }
 
 sealed interface TextureAtlasResource {
@@ -41,16 +40,6 @@ data class NinePatchAtlasResource(
     val atlasIndex: Int? = null,
 ) : TextureAtlasResource {
     override val type: TextureAtlasResourceType = TextureAtlasResourceType.NinePatch
-}
-
-data class ColorAtlasResource(
-    override val id: String,
-    override val name: String,
-    val rgba: Int,
-    val width: Int = 1,
-    val height: Int = 1,
-) : TextureAtlasResource {
-    override val type: TextureAtlasResourceType = TextureAtlasResourceType.Color
 }
 
 data class FontAtlasResource(

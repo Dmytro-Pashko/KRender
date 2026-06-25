@@ -176,7 +176,6 @@ class TextureAtlasEditorResourcesPanel(
 
     private fun visibleResources(): List<TextureAtlasResource> =
         state.resources.items
-            .filterNot { resource -> resource.type == TextureAtlasResourceType.Color }
             .filter { resource ->
                 val query = state.atlasBrowser.query
                 val pageName = resource.atlasRegionIdOrNull()?.pageName
@@ -277,7 +276,6 @@ private fun TextureAtlasResourceType.label(): String =
         TextureAtlasResourceType.Image -> "Image"
         TextureAtlasResourceType.NinePatch -> "NinePatch"
         TextureAtlasResourceType.Font -> "Font"
-        TextureAtlasResourceType.Color -> "Hidden"
     }
 
 private fun TextureAtlasResourceType.sortOrder(): Int =
@@ -285,7 +283,6 @@ private fun TextureAtlasResourceType.sortOrder(): Int =
         TextureAtlasResourceType.Image -> 0
         TextureAtlasResourceType.NinePatch -> 1
         TextureAtlasResourceType.Font -> 2
-        TextureAtlasResourceType.Color -> 3
     }
 
 private fun TextureAtlasRegionSortMode.label(): String =

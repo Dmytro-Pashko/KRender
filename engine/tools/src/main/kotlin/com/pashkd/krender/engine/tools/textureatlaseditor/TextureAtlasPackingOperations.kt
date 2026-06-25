@@ -184,15 +184,6 @@ internal class TextureAtlasPackingOperations(
             when (resource) {
                 is ImageAtlasResource -> listOfNotNull(imageResourcePackingInput(resource, diagnostics))
                 is NinePatchAtlasResource -> listOfNotNull(ninePatchResourcePackingInput(resource, diagnostics))
-                is ColorAtlasResource -> {
-                    diagnostics +=
-                        TextureAtlasPackingDiagnostic(
-                            severity = TextureAtlasEditorDiagnosticSeverity.Warning,
-                            message = "Color resources are not packable yet.",
-                            sourcePath = resource.name,
-                        )
-                    emptyList()
-                }
                 is FontAtlasResource -> fontResourcePackingInputs(resource, diagnostics)
             }
         }

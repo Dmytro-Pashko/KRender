@@ -41,7 +41,6 @@ internal class TextureAtlasRegionExportService(
                 is ImageAtlasResource -> exportImageLikeResource(resource, targetFile)
                 is NinePatchAtlasResource -> exportNinePatchResource(resource, targetFile)
                 is FontAtlasResource -> exportImageLikeResource(resource, targetFile)
-                is ColorAtlasResource -> exportColorResource(resource, targetFile)
             }
         }.onSuccess { result ->
             if (result.success) {
@@ -95,7 +94,6 @@ internal class TextureAtlasRegionExportService(
             is FontAtlasResource -> resource.atlasTexturePath?.let(::File) ?: resource.pageTexturePaths.firstOrNull()?.let(::File)
             is ImageAtlasResource -> File(resource.sourcePath)
             is NinePatchAtlasResource -> File(resource.sourcePath)
-            is ColorAtlasResource -> null
         }?.takeIf(File::isFile)
 
     private fun exportNinePatchResource(
@@ -129,30 +127,6 @@ internal class TextureAtlasRegionExportService(
         return TextureAtlasEditorFileWriteResult(
             success = true,
             message = "Exported Nine-patch '${resource.name}' to '${normalizePath(targetFile.path)}'.",
-            writtenPaths = listOf(normalizePath(targetFile.path)),
-        )
-    }
-
-    private fun exportColorResource(
-        resource: ColorAtlasResource,
-        targetFile: File,
-    ): TextureAtlasEditorFileWriteResult {
-        val image =
-            BufferedImage(
-                resource.width.coerceAtLeast(1),
-                resource.height.coerceAtLeast(1),
-                BufferedImage.TYPE_INT_ARGB,
-            )
-        val argb = resource.rgba
-        for (y in 0 until image.height) {
-            for (x in 0 until image.width) {
-                image.setRGB(x, y, argb)
-            }
-        }
-        require(ImageIO.write(image, "png", targetFile)) { "PNG writer is unavailable." }
-        return TextureAtlasEditorFileWriteResult(
-            success = true,
-            message = "Exported color '${resource.name}' to '${normalizePath(targetFile.path)}'.",
             writtenPaths = listOf(normalizePath(targetFile.path)),
         )
     }
@@ -192,28 +166,24 @@ internal class TextureAtlasRegionExportService(
                 is ImageAtlasResource -> resource.sourceX
                 is NinePatchAtlasResource -> resource.sourceX
                 is FontAtlasResource -> resource.sourceX
-                is ColorAtlasResource -> 0
             }
         val rawY =
             when (resource) {
                 is ImageAtlasResource -> resource.sourceY
                 is NinePatchAtlasResource -> resource.sourceY
                 is FontAtlasResource -> resource.sourceY
-                is ColorAtlasResource -> 0
             }
         val rawWidth =
             when (resource) {
                 is ImageAtlasResource -> resource.sourceWidth
                 is NinePatchAtlasResource -> resource.sourceWidth
                 is FontAtlasResource -> resource.sourceWidth
-                is ColorAtlasResource -> resource.width
             } ?: (sourceImage.width - rawX)
         val rawHeight =
             when (resource) {
                 is ImageAtlasResource -> resource.sourceHeight
                 is NinePatchAtlasResource -> resource.sourceHeight
                 is FontAtlasResource -> resource.sourceHeight
-                is ColorAtlasResource -> resource.height
             } ?: (sourceImage.height - rawY)
 
         val x = rawX.coerceIn(0, sourceImage.width.coerceAtLeast(1) - 1)

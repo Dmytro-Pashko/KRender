@@ -134,7 +134,6 @@ internal fun TextureAtlasResource.sourcePathOrNull(): String? =
         is ImageAtlasResource -> sourcePath
         is NinePatchAtlasResource -> sourcePath
         is FontAtlasResource -> sourcePath
-        is ColorAtlasResource -> null
     }
 
 internal fun NinePatchDocument.splitInts(): List<Int> =
