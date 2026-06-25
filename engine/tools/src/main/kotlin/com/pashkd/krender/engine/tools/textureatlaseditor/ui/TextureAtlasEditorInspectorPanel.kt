@@ -18,6 +18,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
 import glm_.vec2.Vec2 as ImVec2
 
@@ -33,7 +34,7 @@ class TextureAtlasEditorInspectorPanel(
 
     override fun draw() {
         val layout = layoutConfig.panels.getValue(TextureAtlasEditorPanelIds.Inspector)
-        val expanded = beginPanel(TextureAtlasEditorPanelIds.Inspector, layout, layoutTracker)
+        val expanded = beginImGuiPanel(TextureAtlasEditorPanelIds.Inspector, layout, layoutTracker)
         eventLogger.observe(TextureAtlasEditorPanelIds.Inspector, layout.title)
         if (!expanded) {
             ImGui.end()
@@ -325,19 +326,3 @@ class TextureAtlasEditorInspectorPanel(
     }
 }
 
-private fun beginPanel(
-    panelId: String,
-    layout: ImGuiPanelLayout,
-    tracker: ImGuiLayoutRuntimeTracker,
-): Boolean {
-    tracker.consumeRestoreLayout(panelId)?.let { restored ->
-        ImGui.setNextWindowPos(ImVec2(restored.x, restored.y))
-        ImGui.setNextWindowSize(ImVec2(restored.width, restored.height))
-    } ?: run {
-        ImGui.setNextWindowPos(ImVec2(layout.x, layout.y), imgui.Cond.FirstUseEver)
-        ImGui.setNextWindowSize(ImVec2(layout.width, layout.height), imgui.Cond.FirstUseEver)
-    }
-    val expanded = ImGui.begin("${layout.title}###$panelId")
-    tracker.capture(panelId)
-    return expanded
-}
