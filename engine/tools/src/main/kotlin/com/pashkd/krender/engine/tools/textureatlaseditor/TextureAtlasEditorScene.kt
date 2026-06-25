@@ -36,6 +36,7 @@ class TextureAtlasEditorScene(
     private lateinit var operations: TextureAtlasEditorOperations
     private lateinit var loader: TextureAtlasEditorProjectLoader
     private lateinit var preview: GdxTextureAtlasEditorPreview
+    private val resourceBuilder = TextureAtlasResourceBuilder()
 
     init {
         editorState = TextureAtlasEditorState(currentInputPath = initialAtlasPath?.trim()?.replace('\\', '/'))
@@ -94,7 +95,7 @@ class TextureAtlasEditorScene(
         editorState.diagnostics = result.diagnostics
         editorState.dirty = false
         syncPackingSettingsFromAtlas()
-        rebuildResources()
+        editorState.resources = resourceBuilder.rebuild(editorState.project, editorState.resources)
         val selectedAssetStillExists =
             editorState.selectedAssetId?.let { selectedId ->
                 editorState.project.assets.any { asset -> asset.id == selectedId }
@@ -157,80 +158,6 @@ class TextureAtlasEditorScene(
         val preferredPath = editorState.project.selectedTexturePath ?: editorState.project.selectedAtlasPath
         val preferredAsset = preferredPath?.let { path -> editorState.project.assets.firstOrNull { asset -> asset.path == path } }
         return preferredAsset?.id ?: editorState.project.assets.firstOrNull()?.id
-    }
-
-    private fun rebuildResources() {
-        val atlasPath = editorState.project.selectedAtlasPath
-        val atlasDocument = atlasPath?.let { path -> editorState.project.atlasDocuments[path] }
-        val selectedAtlasDirectory = atlasPath?.substringBeforeLast('/', "")
-        val carryOverResources =
-            editorState.resources.items.filter { resource ->
-                resource !is FontAtlasResource &&
-                resource.atlasRegionIdOrNull() == null &&
-                    resource.sourcePathOrNull()?.let { path -> java.io.File(path).isFile } != false
-            }
-        val atlasResources =
-            atlasDocument
-                ?.regions
-                ?.mapIndexedNotNull { index, region ->
-                    val sourcePath =
-                        resolveAtlasPreviewTexturePath(
-                            atlasPath = region.id.atlasPath,
-                            atlas = atlasDocument,
-                            selectedPageName = region.id.pageName,
-                        ) ?: return@mapIndexedNotNull null
-                    val size = region.size
-                    val xy = region.xy
-                    if (size == null || xy == null) return@mapIndexedNotNull null
-                    val resourceId = "resource:${region.id.atlasPath}:${region.id.pageName}:${region.id.regionName}:${region.index ?: index}"
-                    if (region.split.isNotEmpty() || region.pad.isNotEmpty()) {
-                        NinePatchAtlasResource(
-                            id = resourceId,
-                            name = region.id.regionName,
-                            sourcePath = sourcePath,
-                            sourceX = xy.first,
-                            sourceY = xy.second,
-                            sourceWidth = size.first,
-                            sourceHeight = size.second,
-                            split = region.split,
-                            pad = region.pad,
-                            atlasRegionId = region.id,
-                            atlasIndex = region.index,
-                        )
-                    } else {
-                        ImageAtlasResource(
-                            id = resourceId,
-                            name = region.id.regionName,
-                            sourcePath = sourcePath,
-                            sourceX = xy.first,
-                            sourceY = xy.second,
-                            sourceWidth = size.first,
-                            sourceHeight = size.second,
-                            atlasRegionId = region.id,
-                            atlasIndex = region.index,
-                        )
-                    }
-                }.orEmpty()
-        val fontResources =
-            editorState.project.fontDocuments.entries
-                .asSequence()
-                .filter { (path, _) ->
-                    val fontDirectory = path.substringBeforeLast('/', "")
-                    selectedAtlasDirectory != null && fontDirectory == selectedAtlasDirectory
-                }
-                .sortedBy { (path, _) -> java.io.File(path).nameWithoutExtension.lowercase() }
-                .map { (path, document) -> createFontAtlasResource(path, document) }
-                .toList()
-        val rebuiltItems = atlasResources + fontResources + carryOverResources
-        val selectedResourceId =
-            editorState.resources.selectedResourceId?.takeIf { selectedId ->
-                rebuiltItems.any { resource -> resource.id == selectedId }
-            } ?: rebuiltItems.firstOrNull()?.id
-        editorState.resources =
-            TextureAtlasResourceState(
-                items = rebuiltItems,
-                selectedResourceId = selectedResourceId,
-            )
     }
 
     private fun createUiSystem(): UiSystem {
