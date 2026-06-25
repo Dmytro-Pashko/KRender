@@ -30,6 +30,12 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPlan
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedRegionsForPage
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedResource
+import com.pashkd.krender.engine.tools.textureatlaseditor.atlasRegionScreenRect
+import com.pashkd.krender.engine.tools.textureatlaseditor.computeTexturePreviewViewportLayout
+import com.pashkd.krender.engine.tools.textureatlaseditor.formatZoomMode
+import com.pashkd.krender.engine.tools.textureatlaseditor.hitTestAtlasRegion
+import com.pashkd.krender.engine.tools.textureatlaseditor.screenToTexturePixelX
+import com.pashkd.krender.engine.tools.textureatlaseditor.screenToTexturePixelY
 import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.ui.UiTextureTint
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
@@ -37,6 +43,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ColorEditFlag
 import imgui.ImGui
 import imgui.MouseButton
@@ -80,7 +87,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
     override fun draw() {
         val layout = layoutConfig.panels.getValue(TextureAtlasEditorPanelIds.Preview)
-        val expanded = beginPanel(TextureAtlasEditorPanelIds.Preview, layout, layoutTracker)
+        val expanded = beginImGuiPanel(TextureAtlasEditorPanelIds.Preview, layout, layoutTracker)
         eventLogger.observe(TextureAtlasEditorPanelIds.Preview, layout.title)
         if (!expanded) {
             state.canvasRect = TextureAtlasEditorCanvasRect()
@@ -1231,92 +1238,6 @@ private fun TextureAtlasNinePatchStretchPreset.label(): String =
         TextureAtlasNinePatchStretchPreset.Custom -> "Custom"
     }
 
-private fun beginPanel(
-    panelId: String,
-    layout: ImGuiPanelLayout,
-    tracker: ImGuiLayoutRuntimeTracker,
-): Boolean {
-    tracker.consumeRestoreLayout(panelId)?.let { restored ->
-        ImGui.setNextWindowPos(ImVec2(restored.x, restored.y))
-        ImGui.setNextWindowSize(ImVec2(restored.width, restored.height))
-    } ?: run {
-        ImGui.setNextWindowPos(ImVec2(layout.x, layout.y), imgui.Cond.FirstUseEver)
-        ImGui.setNextWindowSize(ImVec2(layout.width, layout.height), imgui.Cond.FirstUseEver)
-    }
-    val expanded = ImGui.begin("${layout.title}###$panelId")
-    tracker.capture(panelId)
-    return expanded
-}
-
-private fun computeTexturePreviewViewportLayout(
-    rect: TextureAtlasEditorCanvasRect,
-    textureWidth: Int,
-    textureHeight: Int,
-    previewState: TextureAtlasEditorPreviewState,
-    contentPaddingPixels: Int = 0,
-): TexturePreviewViewportLayout {
-    val surfaceWidth =
-        when (previewState.surfaceMode) {
-            TexturePreviewSurfaceMode.Actual -> textureWidth
-            TexturePreviewSurfaceMode.Padding -> textureWidth + PreviewSurfacePaddingPixels * 2
-            TexturePreviewSurfaceMode.Custom -> previewState.customCanvasWidth.coerceAtLeast(1)
-        }
-    val surfaceHeight =
-        when (previewState.surfaceMode) {
-            TexturePreviewSurfaceMode.Actual -> textureHeight
-            TexturePreviewSurfaceMode.Padding -> textureHeight + PreviewSurfacePaddingPixels * 2
-            TexturePreviewSurfaceMode.Custom -> previewState.customCanvasHeight.coerceAtLeast(1)
-        }
-    val viewportWidth = maxOf(surfaceWidth, textureWidth + contentPaddingPixels * 2)
-    val viewportHeight = maxOf(surfaceHeight, textureHeight + contentPaddingPixels * 2)
-    val fitZoom =
-        minOf(
-            rect.width / viewportWidth.coerceAtLeast(1).toFloat(),
-            rect.height / viewportHeight.coerceAtLeast(1).toFloat(),
-        ).coerceAtLeast(0.05f)
-    val surfaceBaseZoom = 1f
-    val effectiveZoom =
-        when (previewState.zoomMode) {
-            TexturePreviewZoomMode.Fit -> fitZoom
-            TexturePreviewZoomMode.Percent50 -> surfaceBaseZoom * 0.5f
-            TexturePreviewZoomMode.Percent100 -> surfaceBaseZoom
-            TexturePreviewZoomMode.Percent200 -> surfaceBaseZoom * 2f
-            TexturePreviewZoomMode.Custom -> surfaceBaseZoom * previewState.customZoom.coerceIn(0.05f, 25f)
-        }
-    val imageWidth = textureWidth * effectiveZoom
-    val imageHeight = textureHeight * effectiveZoom
-    val viewportImageWidth = viewportWidth * effectiveZoom
-    val viewportImageHeight = viewportHeight * effectiveZoom
-    val imagePaddingX = ((viewportWidth - textureWidth) * 0.5f) * effectiveZoom
-    val imagePaddingY = ((viewportHeight - textureHeight) * 0.5f) * effectiveZoom
-    val imageX = rect.x + (rect.width - viewportImageWidth) * 0.5f + previewState.viewport.panX + imagePaddingX
-    val imageY = rect.y + (rect.height - viewportImageHeight) * 0.5f + previewState.viewport.panY + imagePaddingY
-    return TexturePreviewViewportLayout(
-        viewportX = rect.x,
-        viewportY = rect.y,
-        viewportWidth = rect.width,
-        viewportHeight = rect.height,
-        surfaceX = rect.x + (rect.width - viewportImageWidth) * 0.5f + previewState.viewport.panX,
-        surfaceY = rect.y + (rect.height - viewportImageHeight) * 0.5f + previewState.viewport.panY,
-        surfaceWidth = viewportImageWidth,
-        surfaceHeight = viewportImageHeight,
-        imageX = imageX,
-        imageY = imageY,
-        imageWidth = imageWidth,
-        imageHeight = imageHeight,
-        effectiveZoom = effectiveZoom,
-    )
-}
-
-private fun formatZoomMode(mode: TexturePreviewZoomMode): String =
-    when (mode) {
-        TexturePreviewZoomMode.Fit -> "Fit"
-        TexturePreviewZoomMode.Percent50 -> "50%"
-        TexturePreviewZoomMode.Percent100 -> "100%"
-        TexturePreviewZoomMode.Percent200 -> "200%"
-        TexturePreviewZoomMode.Custom -> "Custom"
-    }
-
 private fun TexturePreviewSurfaceMode.label(): String =
     when (this) {
         TexturePreviewSurfaceMode.Actual -> "Actual"
@@ -1324,47 +1245,4 @@ private fun TexturePreviewSurfaceMode.label(): String =
         TexturePreviewSurfaceMode.Custom -> "Custom"
     }
 
-private const val PreviewSurfacePaddingPixels = 100
-
 private fun parseCustomCanvasDimension(buffer: ByteArray): Int? = readBuffer(buffer).trim().toIntOrNull()
-
-private fun atlasRegionScreenRect(
-    region: TextureAtlasRegion,
-    layout: TexturePreviewViewportLayout,
-): TextureRegionScreenRect? {
-    val xy = region.xy ?: return null
-    val size = region.size ?: return null
-    val minX = layout.imageX + xy.first * layout.effectiveZoom
-    val minY = layout.imageY + xy.second * layout.effectiveZoom
-    return TextureRegionScreenRect(
-        minX = minX,
-        minY = minY,
-        maxX = minX + size.first * layout.effectiveZoom,
-        maxY = minY + size.second * layout.effectiveZoom,
-    )
-}
-
-private fun hitTestAtlasRegion(
-    regions: List<TextureAtlasRegion>,
-    layout: TexturePreviewViewportLayout,
-    mouseX: Float,
-    mouseY: Float,
-): TextureAtlasRegion? =
-    regions
-        .filter { region ->
-            val rect = atlasRegionScreenRect(region, layout) ?: return@filter false
-            mouseX >= rect.minX && mouseX <= rect.maxX && mouseY >= rect.minY && mouseY <= rect.maxY
-        }.minByOrNull { region ->
-            val size = region.size ?: (Int.MAX_VALUE to Int.MAX_VALUE)
-            size.first * size.second
-        }
-
-private fun screenToTexturePixelX(
-    screenX: Float,
-    layout: TexturePreviewViewportLayout,
-): Float = (screenX - layout.imageX) / layout.effectiveZoom
-
-private fun screenToTexturePixelY(
-    screenY: Float,
-    layout: TexturePreviewViewportLayout,
-): Float = (screenY - layout.imageY) / layout.effectiveZoom

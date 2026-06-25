@@ -32,38 +32,60 @@ internal data class TextureAtlasRegionMetrics(
     val outsidePageBounds: Boolean = false,
 )
 
+internal const val PreviewSurfacePaddingPixels = 100
+
 internal fun computeTexturePreviewViewportLayout(
     rect: TextureAtlasEditorCanvasRect,
     textureWidth: Int,
     textureHeight: Int,
     previewState: TextureAtlasEditorPreviewState,
+    contentPaddingPixels: Int = 0,
 ): TexturePreviewViewportLayout {
+    val surfaceWidth =
+        when (previewState.surfaceMode) {
+            TexturePreviewSurfaceMode.Actual -> textureWidth
+            TexturePreviewSurfaceMode.Padding -> textureWidth + PreviewSurfacePaddingPixels * 2
+            TexturePreviewSurfaceMode.Custom -> previewState.customCanvasWidth.coerceAtLeast(1)
+        }
+    val surfaceHeight =
+        when (previewState.surfaceMode) {
+            TexturePreviewSurfaceMode.Actual -> textureHeight
+            TexturePreviewSurfaceMode.Padding -> textureHeight + PreviewSurfacePaddingPixels * 2
+            TexturePreviewSurfaceMode.Custom -> previewState.customCanvasHeight.coerceAtLeast(1)
+        }
+    val viewportWidth = maxOf(surfaceWidth, textureWidth + contentPaddingPixels * 2)
+    val viewportHeight = maxOf(surfaceHeight, textureHeight + contentPaddingPixels * 2)
     val fitZoom =
         minOf(
-            rect.width / textureWidth.coerceAtLeast(1).toFloat(),
-            rect.height / textureHeight.coerceAtLeast(1).toFloat(),
+            rect.width / viewportWidth.coerceAtLeast(1).toFloat(),
+            rect.height / viewportHeight.coerceAtLeast(1).toFloat(),
         ).coerceAtLeast(MinPreviewScale)
+    val surfaceBaseZoom = 1f
     val effectiveZoom =
         when (previewState.zoomMode) {
             TexturePreviewZoomMode.Fit -> fitZoom
-            TexturePreviewZoomMode.Percent50 -> 0.5f
-            TexturePreviewZoomMode.Percent100 -> 1f
-            TexturePreviewZoomMode.Percent200 -> 2f
-            TexturePreviewZoomMode.Custom -> previewState.customZoom.coerceAtLeast(MinPreviewScale)
+            TexturePreviewZoomMode.Percent50 -> surfaceBaseZoom * 0.5f
+            TexturePreviewZoomMode.Percent100 -> surfaceBaseZoom
+            TexturePreviewZoomMode.Percent200 -> surfaceBaseZoom * 2f
+            TexturePreviewZoomMode.Custom -> surfaceBaseZoom * previewState.customZoom.coerceIn(MinPreviewScale, 25f)
         }
     val imageWidth = textureWidth * effectiveZoom
     val imageHeight = textureHeight * effectiveZoom
-    val imageX = rect.x + (rect.width - imageWidth) * 0.5f + previewState.viewport.panX
-    val imageY = rect.y + (rect.height - imageHeight) * 0.5f + previewState.viewport.panY
+    val viewportImageWidth = viewportWidth * effectiveZoom
+    val viewportImageHeight = viewportHeight * effectiveZoom
+    val imagePaddingX = ((viewportWidth - textureWidth) * 0.5f) * effectiveZoom
+    val imagePaddingY = ((viewportHeight - textureHeight) * 0.5f) * effectiveZoom
+    val imageX = rect.x + (rect.width - viewportImageWidth) * 0.5f + previewState.viewport.panX + imagePaddingX
+    val imageY = rect.y + (rect.height - viewportImageHeight) * 0.5f + previewState.viewport.panY + imagePaddingY
     return TexturePreviewViewportLayout(
         viewportX = rect.x,
         viewportY = rect.y,
         viewportWidth = rect.width,
         viewportHeight = rect.height,
-        surfaceX = imageX,
-        surfaceY = imageY,
-        surfaceWidth = imageWidth,
-        surfaceHeight = imageHeight,
+        surfaceX = rect.x + (rect.width - viewportImageWidth) * 0.5f + previewState.viewport.panX,
+        surfaceY = rect.y + (rect.height - viewportImageHeight) * 0.5f + previewState.viewport.panY,
+        surfaceWidth = viewportImageWidth,
+        surfaceHeight = viewportImageHeight,
         imageX = imageX,
         imageY = imageY,
         imageWidth = imageWidth,
