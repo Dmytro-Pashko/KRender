@@ -13,8 +13,10 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPrev
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureRegionScreenRect
+import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewSurfaceMode
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewZoomMode
+import com.pashkd.krender.engine.tools.textureatlaseditor.isShowingPackedAtlasPreview
 import com.pashkd.krender.engine.tools.textureatlaseditor.layoutSampleText
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasNinePatchRegion
@@ -51,6 +53,12 @@ class TextureAtlasEditorPreviewCanvasPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val fontSampleBuf = ByteArray(256)
+    private val customCanvasWidthBuf = ByteArray(16)
+    private val customCanvasHeightBuf = ByteArray(16)
+    private var fontSampleSynced = false
+    private var lastSyncedCustomCanvasWidth: Int? = null
+    private var lastSyncedCustomCanvasHeight: Int? = null
     private var pendingSelectRegionId: AtlasRegionId? = null
     private var pendingSelectWasDoubleClick = false
     private var clickDragDistance = 0f
@@ -107,7 +115,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
         val currentMode = state.preview.canvasMode
         ImGui.setNextItemWidth(300f)
         if (ImGui.beginCombo("Mode##texture_atlas_editor_canvas_mode", formatCanvasMode(currentMode))) {
-            TextureAtlasCanvasMode.entries.forEach { mode ->
+            listOf(TextureAtlasCanvasMode.TextureAtlas, TextureAtlasCanvasMode.NinePatch, TextureAtlasCanvasMode.FontPreview).forEach { mode ->
                 if (ImGui.selectable(formatCanvasMode(mode), currentMode == mode)) {
                     operations.setCanvasMode(mode)
                 }
@@ -117,15 +125,6 @@ class TextureAtlasEditorPreviewCanvasPanel(
     }
 
     private fun drawOptionRow() {
-        if (state.preview.canvasMode == TextureAtlasCanvasMode.FinalPackedAtlas) {
-            drawSharedPreviewOptionToggles(
-                checkerId = "atlas_preview_checker",
-                gridId = "atlas_preview_grid",
-                boundsId = "atlas_preview_bounds",
-                showBoundsToggle = true,
-            )
-            return
-        }
         if (state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch) {
             drawSharedPreviewOptionToggles(
                 checkerId = "np_editor_checker",
@@ -137,6 +136,8 @@ class TextureAtlasEditorPreviewCanvasPanel(
             if (ImGui.checkbox("Show Guides##np_editor_guides", guides)) {
                 operations.setShowNinePatchGuides(guides[0])
             }
+            drawPreviewSurfaceModeCombo("np_surface")
+            drawCustomCanvasSizeEditors("np_surface")
             return
         }
         if (state.preview.canvasMode == TextureAtlasCanvasMode.FontPreview) {
@@ -151,6 +152,18 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 showBoundsToggle = false,
             )
             drawFontTintEditor()
+            drawPreviewSurfaceModeCombo("font_surface")
+            drawCustomCanvasSizeEditors("font_surface")
+            syncFontSampleBuffer()
+            textLine("Sample Text")
+            ImGui.setNextItemWidth(ImGui.contentRegionAvail.x)
+            if (ImGui.inputText("##font_canvas_sample_text", fontSampleBuf)) {
+                operations.setFontSampleText(readBuffer(fontSampleBuf))
+            }
+            val samplePreviewToggle = booleanArrayOf(state.fontPreview.showSampleTextPreview)
+            if (ImGui.checkbox("Sample Text Preview##font_canvas_sample_preview_toggle", samplePreviewToggle)) {
+                operations.setFontSampleTextPreviewEnabled(samplePreviewToggle[0])
+            }
             return
         }
         drawSharedPreviewOptionToggles(
@@ -159,6 +172,16 @@ class TextureAtlasEditorPreviewCanvasPanel(
             boundsId = "texture_atlas_editor_bounds",
             showBoundsToggle = true,
         )
+        ImGui.sameLine()
+        val canShowPacked = state.selectedPackingPlan()?.packedRegionCount?.let { it > 0 } == true
+        if (!canShowPacked) ImGui.beginDisabled()
+        val packedPreview = booleanArrayOf(state.preview.showPackedAtlasPreview)
+        if (ImGui.checkbox("Preview Packed Atlas##texture_atlas_editor_packed_preview_toggle", packedPreview)) {
+            operations.setShowPackedAtlasPreview(packedPreview[0])
+        }
+        if (!canShowPacked) ImGui.endDisabled()
+        drawPreviewSurfaceModeCombo("atlas_surface")
+        drawCustomCanvasSizeEditors("atlas_surface")
     }
 
     private fun drawActionRow() {
@@ -173,6 +196,22 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 }
             }
             TextureAtlasCanvasMode.TextureAtlas -> {
+                if (state.isShowingPackedAtlasPreview()) {
+                    val plan = state.selectedPackingPlan()
+                    val selectedPage = state.selectedPackingPage()
+                    if (plan != null && plan.pages.size > 1) {
+                        val currentPage = selectedPage?.name ?: plan.pages.first().name
+                        ImGui.setNextItemWidth(300f)
+                        if (ImGui.beginCombo("Atlas Page##atlas_preview_page", currentPage)) {
+                            plan.pages.forEach { page ->
+                                if (ImGui.selectable(page.name, currentPage == page.name)) {
+                                    operations.selectPackingPage(page.index)
+                                }
+                            }
+                            ImGui.endCombo()
+                        }
+                    }
+                }
                 drawZoomControls("texture_atlas_editor")
                 if (ImGui.button("Fit##texture_atlas_editor_fit")) {
                     operations.fitPreview()
@@ -182,7 +221,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
                     operations.resetPreviewCamera()
                 }
                 ImGui.sameLine()
-                if (ImGui.button("Focus Selected Region##texture_atlas_editor_focus_region")) {
+                if (ImGui.button(if (state.isShowingPackedAtlasPreview()) "Focus Region##texture_atlas_editor_focus_region" else "Focus Selected Region##texture_atlas_editor_focus_region")) {
                     operations.fitSelectedRegion()
                 }
             }
@@ -240,6 +279,10 @@ class TextureAtlasEditorPreviewCanvasPanel(
     }
 
     private fun drawTexturePreviewCanvas() {
+        if (state.isShowingPackedAtlasPreview()) {
+            drawPackedAtlasPreviewCanvas()
+            return
+        }
         val isNinePatchMode = state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch
         val selectedResource = state.selectedResource()
         if (isNinePatchMode && selectedResource !is NinePatchAtlasResource) {
@@ -328,6 +371,8 @@ class TextureAtlasEditorPreviewCanvasPanel(
             if (state.preview.showCheckerboard) {
                 TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
             }
+            ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
+            ui.drawTexturePreview(handle, viewportLayout.imageWidth, viewportLayout.imageHeight)
             if (state.preview.showGrid) {
                 TextureAtlasEditorPreviewOverlays.drawGrid(
                     viewportLayout,
@@ -335,8 +380,6 @@ class TextureAtlasEditorPreviewCanvasPanel(
                     color = packImColor(state.preview.gridColor),
                 )
             }
-            ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
-            ui.drawTexturePreview(handle, viewportLayout.imageWidth, viewportLayout.imageHeight)
             if (state.preview.showBounds) {
                 TextureAtlasEditorPreviewOverlays.drawPackedRegionBounds(
                     regions = page.regions,
@@ -494,22 +537,17 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
         val handle = state.previewInfo.texturePreviewHandle
         val sampleLayout = layoutSampleText(state.fontPreview.sampleText, document)
-        if (handle != null && state.previewInfo.textureWidth > 0 && state.previewInfo.textureHeight > 0) {
+        val previewWidth = if (state.fontPreview.showSampleTextPreview) sampleLayout.boundsWidth.coerceAtLeast(1) else state.previewInfo.textureWidth
+        val previewHeight = if (state.fontPreview.showSampleTextPreview) sampleLayout.boundsHeight.coerceAtLeast(1) else state.previewInfo.textureHeight
+        if (handle != null && previewWidth > 0 && previewHeight > 0) {
             val viewportLayout = computeTexturePreviewViewportLayout(
                 rect = state.canvasRect,
-                textureWidth = state.previewInfo.textureWidth,
-                textureHeight = state.previewInfo.textureHeight,
+                textureWidth = previewWidth,
+                textureHeight = previewHeight,
                 previewState = state.preview,
             )
             if (state.preview.showCheckerboard) {
                 TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
-            }
-            if (state.preview.showGrid) {
-                TextureAtlasEditorPreviewOverlays.drawGrid(
-                    viewportLayout,
-                    spacingPixels = state.preview.gridSpacingPixels,
-                    color = packImColor(state.preview.gridColor),
-                )
             }
             if (state.fontPreview.showSampleTextPreview) {
                 TextureAtlasEditorPreviewOverlays.drawFontSampleText(
@@ -530,6 +568,13 @@ class TextureAtlasEditorPreviewCanvasPanel(
                         blue = state.fontPreview.tintColor.blue,
                         alpha = state.fontPreview.tintColor.alpha,
                     ),
+                )
+            }
+            if (state.preview.showGrid) {
+                TextureAtlasEditorPreviewOverlays.drawGrid(
+                    viewportLayout,
+                    spacingPixels = state.preview.gridSpacingPixels,
+                    color = packImColor(state.preview.gridColor),
                 )
             }
             if (!state.fontPreview.showSampleTextPreview && state.fontPreview.showGlyphBounds) {
@@ -653,6 +698,10 @@ class TextureAtlasEditorPreviewCanvasPanel(
             TextureAtlasCanvasMode.TextureAtlas,
             TextureAtlasCanvasMode.NinePatch,
             -> {
+                if (state.isShowingPackedAtlasPreview()) {
+                    drawPackedAtlasStatusLine()
+                    return
+                }
                 val zoomPercent =
                     when (state.preview.zoomMode) {
                         TexturePreviewZoomMode.Fit -> "Fit"
@@ -691,33 +740,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
                     wrappedTextLine("Guide colors: orange = horizontal stretch, blue = vertical stretch, green = content padding. Drag the square handles to change the guide bounds.")
                 }
             }
-            TextureAtlasCanvasMode.FinalPackedAtlas -> {
-                val page = state.selectedPackingPage()
-                val plan = state.selectedPackingPlan()
-                val zoomPercent =
-                    when (state.preview.zoomMode) {
-                        TexturePreviewZoomMode.Fit -> "Fit"
-                        else -> "${(state.preview.viewport.zoom * 100f).toInt()}%"
-                    }
-                val cursorText =
-                    if (cursorTextureX != null && cursorTextureY != null) {
-                        "Cursor: ${cursorTextureX}, ${cursorTextureY}"
-                    } else {
-                        "Cursor: <outside>"
-                    }
-                val regionCursorText =
-                    if (cursorRegionX != null && cursorRegionY != null) {
-                        "Region: ${cursorRegionX}, ${cursorRegionY}"
-                    } else {
-                        "Region: <n/a>"
-                    }
-                val hoveredText =
-                    page?.regions?.firstOrNull { region -> region.id == hoveredPackingRegionId }?.displayName ?: "<none>"
-                val selectedText = state.selectedPackingRegion()?.displayName ?: "<none>"
-                textLine("Pages: ${plan?.pages?.size ?: 0} | Packed: ${plan?.packedRegionCount ?: 0} | Skipped: ${plan?.skippedCount ?: 0} | Zoom: $zoomPercent | Texture: ${state.previewInfo.textureWidth} x ${state.previewInfo.textureHeight}")
-                textLine("Hovered: $hoveredText | Selected: $selectedText | Page: ${page?.name ?: "<none>"} | $cursorText | $regionCursorText")
-                wrappedTextLine("Wheel: zoom only. RMB drag: pan. LMB on packed region: select. Save Texture Atlas writes files explicitly.")
-            }
+            TextureAtlasCanvasMode.FinalPackedAtlas -> drawPackedAtlasStatusLine()
             TextureAtlasCanvasMode.FontPreview -> {
                 val document = state.selectedFontDocument()
                 val face = document?.info?.face ?: "<unknown>"
@@ -732,7 +755,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
                     }
                 val previewMode = if (state.fontPreview.showSampleTextPreview) "Sample Text" else "Full Font"
                 textLine("Font: $face | Glyphs: $glyphCount | Page: ${state.fontPreview.selectedPageIndex} | Preview: $previewMode | Selected: $selectedText | $cursorText")
-                wrappedTextLine("Wheel: zoom only. RMB drag: pan. Use Preview Tint to recolor the font preview and Inspector to switch between full font and sample text preview.")
+                wrappedTextLine("Wheel: zoom only. RMB drag: pan. Use Preview Tint to recolor the font preview and Preview panel controls to switch between full font and sample text preview.")
             }
         }
     }
@@ -741,10 +764,38 @@ class TextureAtlasEditorPreviewCanvasPanel(
         drawStatusLine()
     }
 
+    private fun drawPackedAtlasStatusLine() {
+        val page = state.selectedPackingPage()
+        val plan = state.selectedPackingPlan()
+        val zoomPercent =
+            when (state.preview.zoomMode) {
+                TexturePreviewZoomMode.Fit -> "Fit"
+                else -> "${(state.preview.viewport.zoom * 100f).toInt()}%"
+            }
+        val cursorText =
+            if (cursorTextureX != null && cursorTextureY != null) {
+                "Cursor: ${cursorTextureX}, ${cursorTextureY}"
+            } else {
+                "Cursor: <outside>"
+            }
+        val regionCursorText =
+            if (cursorRegionX != null && cursorRegionY != null) {
+                "Region: ${cursorRegionX}, ${cursorRegionY}"
+            } else {
+                "Region: <n/a>"
+            }
+        val hoveredText =
+            page?.regions?.firstOrNull { region -> region.id == hoveredPackingRegionId }?.displayName ?: "<none>"
+        val selectedText = state.selectedPackingRegion()?.displayName ?: "<none>"
+        textLine("Pages: ${plan?.pages?.size ?: 0} | Packed: ${plan?.packedRegionCount ?: 0} | Skipped: ${plan?.skippedCount ?: 0} | Zoom: $zoomPercent | Texture: ${state.previewInfo.textureWidth} x ${state.previewInfo.textureHeight}")
+        textLine("Hovered: $hoveredText | Selected: $selectedText | Page: ${page?.name ?: "<none>"} | $cursorText | $regionCursorText")
+        wrappedTextLine("Wheel: zoom only. RMB drag: pan. LMB on packed region: select. Save Texture Atlas writes files explicitly.")
+    }
+
     companion object {
         private const val ClickDragThreshold = 6f
         private const val NinePatchCanvasPaddingPixels = 100
-        private val GridSpacingOptions = intArrayOf(4, 8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512)
+        private val GridSpacingOptions = intArrayOf(1, 2, 4, 8, 16, 32, 64)
         private val PickerOnlyColorEditFlags = ColorEditFlag.NoInputs
     }
 
@@ -797,6 +848,24 @@ class TextureAtlasEditorPreviewCanvasPanel(
         }
     }
 
+    private fun syncFontSampleBuffer() {
+        if (!fontSampleSynced || readBuffer(fontSampleBuf) != state.fontPreview.sampleText) {
+            writeBuffer(fontSampleBuf, state.fontPreview.sampleText)
+            fontSampleSynced = true
+        }
+    }
+
+    private fun syncCustomCanvasSizeBuffers() {
+        if (lastSyncedCustomCanvasWidth != state.preview.customCanvasWidth) {
+            writeBuffer(customCanvasWidthBuf, state.preview.customCanvasWidth.toString())
+            lastSyncedCustomCanvasWidth = state.preview.customCanvasWidth
+        }
+        if (lastSyncedCustomCanvasHeight != state.preview.customCanvasHeight) {
+            writeBuffer(customCanvasHeightBuf, state.preview.customCanvasHeight.toString())
+            lastSyncedCustomCanvasHeight = state.preview.customCanvasHeight
+        }
+    }
+
     private fun drawZoomControls(idPrefix: String) {
         ImGui.setNextItemWidth(180f)
         if (ImGui.beginCombo("Zoom Mode##${idPrefix}_zoom_mode", formatZoomMode(state.preview.zoomMode))) {
@@ -810,9 +879,41 @@ class TextureAtlasEditorPreviewCanvasPanel(
         if (state.preview.zoomMode == TexturePreviewZoomMode.Custom) {
             ImGui.sameLine()
             ImGui.setNextItemWidth(120f)
-            if (slider("Custom##${idPrefix}_custom_zoom", state.preview::customZoom, 0.05f, 25f, "%.2f", SliderFlag.AlwaysClamp)) {
+            if (slider("Custom##${idPrefix}_custom_zoom", state.preview::customZoom, 0.05f, 30f, "%.2f", SliderFlag.AlwaysClamp)) {
                 operations.setPreviewZoom(state.preview.customZoom)
             }
+        }
+    }
+
+    private fun drawPreviewSurfaceModeCombo(idPrefix: String) {
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(140f)
+        if (ImGui.beginCombo("Canvas##${idPrefix}_surface_mode", state.preview.surfaceMode.label())) {
+            TexturePreviewSurfaceMode.entries.forEach { mode ->
+                if (ImGui.selectable(mode.label(), state.preview.surfaceMode == mode)) {
+                    operations.setPreviewSurfaceMode(mode)
+                }
+            }
+            ImGui.endCombo()
+        }
+    }
+
+    private fun drawCustomCanvasSizeEditors(idPrefix: String) {
+        if (state.preview.surfaceMode != TexturePreviewSurfaceMode.Custom) return
+        syncCustomCanvasSizeBuffers()
+        ImGui.sameLine()
+        textLine("Size")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(80f)
+        if (ImGui.inputText("##${idPrefix}_custom_canvas_width", customCanvasWidthBuf)) {
+            parseCustomCanvasDimension(customCanvasWidthBuf)?.let(operations::setCustomCanvasWidth)
+        }
+        ImGui.sameLine()
+        textLine("x")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(80f)
+        if (ImGui.inputText("##${idPrefix}_custom_canvas_height", customCanvasHeightBuf)) {
+            parseCustomCanvasDimension(customCanvasHeightBuf)?.let(operations::setCustomCanvasHeight)
         }
     }
 
@@ -839,8 +940,10 @@ class TextureAtlasEditorPreviewCanvasPanel(
             }
         }
         if (state.preview.showGrid) {
-            drawGridColorEditor(gridId)
+            ImGui.sameLine()
             drawGridSizeEditor(gridId)
+            ImGui.sameLine()
+            drawGridColorEditor(gridId)
         }
     }
 
@@ -937,7 +1040,7 @@ private fun formatCanvasMode(mode: TextureAtlasCanvasMode): String =
     when (mode) {
         TextureAtlasCanvasMode.TextureAtlas -> "Atlas File"
         TextureAtlasCanvasMode.NinePatch -> "NinePatch Editor"
-        TextureAtlasCanvasMode.FontPreview -> "Font Editor"
+        TextureAtlasCanvasMode.FontPreview -> "Font Preview"
         TextureAtlasCanvasMode.FinalPackedAtlas -> "Atlas Preview"
     }
 
@@ -965,32 +1068,51 @@ private fun computeTexturePreviewViewportLayout(
     previewState: TextureAtlasEditorPreviewState,
     contentPaddingPixels: Int = 0,
 ): TexturePreviewViewportLayout {
-    val paddedWidth = textureWidth + contentPaddingPixels * 2
-    val paddedHeight = textureHeight + contentPaddingPixels * 2
+    val surfaceWidth =
+        when (previewState.surfaceMode) {
+            TexturePreviewSurfaceMode.Actual -> textureWidth
+            TexturePreviewSurfaceMode.Padding -> textureWidth + PreviewSurfacePaddingPixels * 2
+            TexturePreviewSurfaceMode.Custom -> previewState.customCanvasWidth.coerceAtLeast(1)
+        }
+    val surfaceHeight =
+        when (previewState.surfaceMode) {
+            TexturePreviewSurfaceMode.Actual -> textureHeight
+            TexturePreviewSurfaceMode.Padding -> textureHeight + PreviewSurfacePaddingPixels * 2
+            TexturePreviewSurfaceMode.Custom -> previewState.customCanvasHeight.coerceAtLeast(1)
+        }
+    val viewportWidth = maxOf(surfaceWidth, textureWidth + contentPaddingPixels * 2)
+    val viewportHeight = maxOf(surfaceHeight, textureHeight + contentPaddingPixels * 2)
     val fitZoom =
         minOf(
-            rect.width / paddedWidth.coerceAtLeast(1).toFloat(),
-            rect.height / paddedHeight.coerceAtLeast(1).toFloat(),
+            rect.width / viewportWidth.coerceAtLeast(1).toFloat(),
+            rect.height / viewportHeight.coerceAtLeast(1).toFloat(),
         ).coerceAtLeast(0.05f)
+    val surfaceBaseZoom = 1f
     val effectiveZoom =
         when (previewState.zoomMode) {
             TexturePreviewZoomMode.Fit -> fitZoom
-            TexturePreviewZoomMode.Percent50 -> 0.5f
-            TexturePreviewZoomMode.Percent100 -> 1f
-            TexturePreviewZoomMode.Percent200 -> 2f
-            TexturePreviewZoomMode.Custom -> previewState.customZoom.coerceIn(0.05f, 25f)
+            TexturePreviewZoomMode.Percent50 -> surfaceBaseZoom * 0.5f
+            TexturePreviewZoomMode.Percent100 -> surfaceBaseZoom
+            TexturePreviewZoomMode.Percent200 -> surfaceBaseZoom * 2f
+            TexturePreviewZoomMode.Custom -> surfaceBaseZoom * previewState.customZoom.coerceIn(0.05f, 25f)
         }
     val imageWidth = textureWidth * effectiveZoom
     val imageHeight = textureHeight * effectiveZoom
-    val paddedImageWidth = paddedWidth * effectiveZoom
-    val paddedImageHeight = paddedHeight * effectiveZoom
-    val imageX = rect.x + (rect.width - paddedImageWidth) * 0.5f + previewState.viewport.panX + contentPaddingPixels * effectiveZoom
-    val imageY = rect.y + (rect.height - paddedImageHeight) * 0.5f + previewState.viewport.panY + contentPaddingPixels * effectiveZoom
+    val viewportImageWidth = viewportWidth * effectiveZoom
+    val viewportImageHeight = viewportHeight * effectiveZoom
+    val imagePaddingX = ((viewportWidth - textureWidth) * 0.5f) * effectiveZoom
+    val imagePaddingY = ((viewportHeight - textureHeight) * 0.5f) * effectiveZoom
+    val imageX = rect.x + (rect.width - viewportImageWidth) * 0.5f + previewState.viewport.panX + imagePaddingX
+    val imageY = rect.y + (rect.height - viewportImageHeight) * 0.5f + previewState.viewport.panY + imagePaddingY
     return TexturePreviewViewportLayout(
         viewportX = rect.x,
         viewportY = rect.y,
         viewportWidth = rect.width,
         viewportHeight = rect.height,
+        surfaceX = rect.x + (rect.width - viewportImageWidth) * 0.5f + previewState.viewport.panX,
+        surfaceY = rect.y + (rect.height - viewportImageHeight) * 0.5f + previewState.viewport.panY,
+        surfaceWidth = viewportImageWidth,
+        surfaceHeight = viewportImageHeight,
         imageX = imageX,
         imageY = imageY,
         imageWidth = imageWidth,
@@ -1007,6 +1129,17 @@ private fun formatZoomMode(mode: TexturePreviewZoomMode): String =
         TexturePreviewZoomMode.Percent200 -> "200%"
         TexturePreviewZoomMode.Custom -> "Custom"
     }
+
+private fun TexturePreviewSurfaceMode.label(): String =
+    when (this) {
+        TexturePreviewSurfaceMode.Actual -> "Actual"
+        TexturePreviewSurfaceMode.Padding -> "Padding"
+        TexturePreviewSurfaceMode.Custom -> "Custom"
+    }
+
+private const val PreviewSurfacePaddingPixels = 100
+
+private fun parseCustomCanvasDimension(buffer: ByteArray): Int? = readBuffer(buffer).trim().toIntOrNull()
 
 private fun atlasRegionScreenRect(
     region: TextureAtlasRegion,

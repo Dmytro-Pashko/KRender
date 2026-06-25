@@ -85,6 +85,7 @@ class TextureAtlasEditorImportExportOperations(
         state.importExport.lastExportResult = result
         state.statusMessage = result.message
         if (result.success) {
+            state.dirty = false
             state.importExport.targetPath = targetPath
             openPath(targetPath)
         }
@@ -120,4 +121,3 @@ class TextureAtlasEditorImportExportOperations(
             )
     }
 }
-

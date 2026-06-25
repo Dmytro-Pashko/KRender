@@ -18,6 +18,12 @@ enum class TexturePreviewZoomMode {
     Custom,
 }
 
+enum class TexturePreviewSurfaceMode {
+    Actual,
+    Padding,
+    Custom,
+}
+
 enum class TextureAtlasRegionSortMode {
     Name,
     Type,
@@ -113,7 +119,10 @@ data class TextureAtlasEditorPreviewViewportState(
 data class TextureAtlasEditorPreviewState(
     var canvasMode: TextureAtlasCanvasMode = TextureAtlasCanvasMode.TextureAtlas,
     var zoomMode: TexturePreviewZoomMode = TexturePreviewZoomMode.Fit,
+    var surfaceMode: TexturePreviewSurfaceMode = TexturePreviewSurfaceMode.Actual,
     var customZoom: Float = 1f,
+    var customCanvasWidth: Int = 512,
+    var customCanvasHeight: Int = 512,
     var viewport: TextureAtlasEditorPreviewViewportState = TextureAtlasEditorPreviewViewportState(),
     var showCheckerboard: Boolean = true,
     var showGrid: Boolean = false,
@@ -121,6 +130,7 @@ data class TextureAtlasEditorPreviewState(
     var gridColor: TextureAtlasEditorColor = TextureAtlasEditorColor(red = 1f, green = 1f, blue = 1f, alpha = 0.19f),
     var showBounds: Boolean = true,
     var showNinePatchGuides: Boolean = true,
+    var showPackedAtlasPreview: Boolean = false,
 )
 
 data class TextureAtlasEditorCanvasRect(
@@ -185,6 +195,7 @@ data class TextureAtlasEditorState(
     var ninePatchEditor: NinePatchEditorState = NinePatchEditorState(),
     var fontPreview: FontPreviewState = FontPreviewState(),
     var statusMessage: String = "Texture Atlas Editor ready.",
+    var dirty: Boolean = false,
     var reloadRequested: Boolean = false,
 )
 

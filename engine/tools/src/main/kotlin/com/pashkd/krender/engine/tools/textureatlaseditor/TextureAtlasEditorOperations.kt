@@ -72,6 +72,7 @@ class TextureAtlasEditorOperations(
         if (normalized?.endsWith(".atlas", ignoreCase = true) == true) {
             state.importExport.targetPath = normalized
         }
+        state.preview.showPackedAtlasPreview = false
         state.reloadRequested = true
         engine.logger.info(TAG) { "Texture Atlas Editor openPath path='${normalized ?: "<none>"}'" }
     }
@@ -196,12 +197,47 @@ class TextureAtlasEditorOperations(
         }
         if (state.preview.canvasMode == mode) return
         state.preview.canvasMode = mode
+        if (mode != TextureAtlasCanvasMode.TextureAtlas) {
+            state.preview.showPackedAtlasPreview = false
+        }
         state.statusMessage =
             when (mode) {
                 TextureAtlasCanvasMode.TextureAtlas -> "Previewing atlas file pages and regions."
                 TextureAtlasCanvasMode.NinePatch -> "Previewing Nine-patch resources."
                 TextureAtlasCanvasMode.FontPreview -> "Previewing font page and glyph bounds."
                 TextureAtlasCanvasMode.FinalPackedAtlas -> "Previewing the current packed atlas plan."
+            }
+    }
+
+    fun setPreviewSurfaceMode(mode: TexturePreviewSurfaceMode) {
+        if (state.preview.surfaceMode == mode) return
+        state.preview.surfaceMode = mode
+        state.statusMessage =
+            "Canvas viewport mode set to ${
+                when (mode) {
+                    TexturePreviewSurfaceMode.Actual -> "Actual"
+                    TexturePreviewSurfaceMode.Padding -> "Padding"
+                    TexturePreviewSurfaceMode.Custom -> "Custom"
+                }
+            }."
+    }
+
+    fun setCustomCanvasWidth(value: Int) {
+        state.preview.customCanvasWidth = value.coerceIn(TextureAtlasMinCanvasDimensionPixels, TextureAtlasMaxCanvasDimensionPixels)
+    }
+
+    fun setCustomCanvasHeight(value: Int) {
+        state.preview.customCanvasHeight = value.coerceIn(TextureAtlasMinCanvasDimensionPixels, TextureAtlasMaxCanvasDimensionPixels)
+    }
+
+    fun setShowPackedAtlasPreview(enabled: Boolean) {
+        if (state.preview.showPackedAtlasPreview == enabled) return
+        state.preview.showPackedAtlasPreview = enabled
+        state.statusMessage =
+            if (enabled) {
+                "Previewing the current packed atlas plan."
+            } else {
+                "Previewing atlas file pages and regions."
             }
     }
 
@@ -233,7 +269,7 @@ class TextureAtlasEditorOperations(
      * canvas and preview dimensions are available.
      */
     fun fitSelectedRegion() {
-        if (state.preview.canvasMode == TextureAtlasCanvasMode.FinalPackedAtlas) {
+        if (state.isShowingPackedAtlasPreview() || state.preview.canvasMode == TextureAtlasCanvasMode.FinalPackedAtlas) {
             packingOperations.fitSelectedPackedRegion()
             return
         }
@@ -357,6 +393,8 @@ class TextureAtlasEditorOperations(
     fun importAndAddImageResource() = resourceOperations.importAndAddImageResource()
 
     fun deleteSelectedResource() = resourceOperations.deleteSelectedResource()
+
+    fun renameSelectedResource(name: String) = resourceOperations.renameSelectedResource(name)
 
     fun exportSelectedResourcePng() = resourceOperations.exportSelectedResourcePng()
 

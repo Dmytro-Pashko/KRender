@@ -99,6 +99,7 @@ internal class TextureAtlasNinePatchOperations(
         state.resources.items = state.resources.items.map { item ->
             if (item.id == resourceId) updatedResource else item
         }
+        state.dirty = true
         state.ninePatchEditor.dirty = false
         state.statusMessage = "Applied Nine-patch draft to resource '${resource.name}'. Pack and Save to write atlas output."
         engine.logger.info(TAG) {

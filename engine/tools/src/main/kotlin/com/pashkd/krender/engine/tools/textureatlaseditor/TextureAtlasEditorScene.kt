@@ -90,6 +90,7 @@ class TextureAtlasEditorScene(
         val result = loader.load(editorState.currentInputPath)
         editorState.project = result.project
         editorState.diagnostics = result.diagnostics
+        editorState.dirty = false
         syncPackingSettingsFromAtlas()
         rebuildResources()
         val selectedAssetStillExists =
@@ -336,8 +337,9 @@ private class TextureAtlasEditorPreviewSyncSystem(
         val previewSlice = state.selectedPreviewSlice()
         val asset = state.selectedAsset()
         val atlasPage = state.selectedAtlasPageName
-        val packedPage = state.selectedPackingPage().takeIf { state.preview.canvasMode == FinalPackedAtlas }
-        if (state.preview.canvasMode != FinalPackedAtlas) {
+        val showPackedPreview = state.isShowingPackedAtlasPreview() || state.preview.canvasMode == FinalPackedAtlas
+        val packedPage = state.selectedPackingPage().takeIf { showPackedPreview }
+        if (!showPackedPreview) {
             logPreviewResolution(asset?.path, previewPath, atlasPage)
         } else {
             lastResolvedPreviewKey = null

@@ -20,6 +20,7 @@ internal class TextureAtlasResourceOperations(
         }
         val resource = createResourceFromTextureSource(sourceFile)
         appendResource(resource)
+        state.dirty = true
         state.importExport.importSourcePath = normalizePath(sourceFile.path)
         state.statusMessage = "Added ${resource.type.name.lowercase()} resource '${resource.name}'."
         engine.logger.info(TAG) { "Texture Atlas Editor added resource id='${resource.id}' source='${resource.sourcePathOrNull() ?: "<none>"}'" }
@@ -34,6 +35,7 @@ internal class TextureAtlasResourceOperations(
                 val normalized = normalizePath(path)
                 val resource = createResourceFromTextureSource(File(normalized))
                 appendResource(resource)
+                state.dirty = true
                 state.importExport.importSourcePath = normalized
                 state.statusMessage = "Imported and added ${resource.type.name.lowercase()} resource '${resource.name}'."
             }
@@ -65,6 +67,7 @@ internal class TextureAtlasResourceOperations(
             state.resources.items
                 .firstOrNull()
                 ?.id
+        state.dirty = true
         selectionCoordinator.syncSelectedRegionFromResource()
         state.statusMessage = "Deleted resource '${resource.name}' from the working atlas draft. Pack and Save to write changes."
         engine.logger.info(TAG) {
@@ -134,12 +137,40 @@ internal class TextureAtlasResourceOperations(
             )
         replaceResource(ninePatch)
         selectResource(ninePatch.id)
+        state.dirty = true
         state.statusMessage = "Created Nine-patch resource '${ninePatch.name}'. Adjust split and padding in the inspector."
         engine.logger.info(TAG) { "Texture Atlas Editor converted image resource id='${resource.id}' into NinePatch" }
     }
 
     fun createBitmapFontPlaceholder() {
         state.statusMessage = "Create Bitmap Font is planned but not implemented yet."
+    }
+
+    fun renameSelectedResource(name: String) {
+        val trimmed = name.trim()
+        val resource = state.selectedResource()
+        if (resource == null) {
+            state.statusMessage = "Select a resource before renaming it."
+            return
+        }
+        if (trimmed.isBlank()) {
+            state.statusMessage = "Resource name must not be empty."
+            return
+        }
+        if (trimmed == resource.name) return
+        if (state.resources.items.any { candidate -> candidate.id != resource.id && candidate.name.equals(trimmed, ignoreCase = true) }) {
+            state.statusMessage = "A resource named '$trimmed' already exists."
+            return
+        }
+        val updatedResource = resource.withName(trimmed)
+        replaceResource(updatedResource)
+        val regionId = resource.atlasRegionIdOrNull()
+        if (regionId != null) {
+            renameAtlasRegion(regionId, trimmed)
+        }
+        state.dirty = true
+        state.statusMessage = "Renamed resource '${resource.name}' to '$trimmed'."
+        engine.logger.info(TAG) { "Texture Atlas Editor renamed resource id='${resource.id}' from='${resource.name}' to='$trimmed'" }
     }
 
     fun suggestedExportResourcePath(resource: TextureAtlasResource? = state.selectedResource()): String {
@@ -213,6 +244,36 @@ internal class TextureAtlasResourceOperations(
             }
     }
 
+    private fun renameAtlasRegion(
+        regionId: AtlasRegionId,
+        name: String,
+    ) {
+        val atlasPath = regionId.atlasPath
+        val atlas = state.project.atlasDocuments[atlasPath] ?: return
+        val updatedRegions =
+            atlas.regions.map { region ->
+                if (region.id != regionId) {
+                    region
+                } else {
+                    region.copy(
+                        id = region.id.copy(regionName = name),
+                    )
+                }
+            }
+        state.project =
+            state.project.copy(
+                atlasDocuments = state.project.atlasDocuments + (atlasPath to atlas.copy(regions = updatedRegions)),
+            )
+        val updatedRegionId = regionId.copy(regionName = name)
+        if (state.selectedRegionId == regionId) {
+            state.selectedRegionId = updatedRegionId
+        }
+        state.resources.items =
+            state.resources.items.map { item ->
+                if (item.atlasRegionIdOrNull() != regionId) item else item.withAtlasRegionId(updatedRegionId)
+            }
+    }
+
     private fun uniqueResourceId(baseId: String): String {
         if (state.resources.items.none { resource -> resource.id == baseId }) return baseId
         var index = 2
@@ -247,3 +308,19 @@ private fun safeFileStem(name: String): String =
         .trim()
         .replace(Regex("[\\\\/:*?\"<>|]+"), "_")
         .ifBlank { "region" }
+
+private fun TextureAtlasResource.withName(name: String): TextureAtlasResource =
+    when (this) {
+        is ImageAtlasResource -> copy(name = name)
+        is NinePatchAtlasResource -> copy(name = name)
+        is FontAtlasResource -> copy(name = name)
+        is ColorAtlasResource -> copy(name = name)
+    }
+
+private fun TextureAtlasResource.withAtlasRegionId(regionId: AtlasRegionId): TextureAtlasResource =
+    when (this) {
+        is ImageAtlasResource -> copy(atlasRegionId = regionId)
+        is NinePatchAtlasResource -> copy(atlasRegionId = regionId)
+        is FontAtlasResource -> copy(atlasRegionId = regionId)
+        is ColorAtlasResource -> this
+    }

@@ -85,6 +85,10 @@ data class SampleTextLayout(
     val glyphPlacements: List<SampleTextGlyphPlacement> = emptyList(),
     val totalWidth: Int = 0,
     val lineHeight: Int = 0,
+    val boundsMinX: Int = 0,
+    val boundsMinY: Int = 0,
+    val boundsWidth: Int = 0,
+    val boundsHeight: Int = 0,
     val missingCodepoints: List<Int> = emptyList(),
 )
 

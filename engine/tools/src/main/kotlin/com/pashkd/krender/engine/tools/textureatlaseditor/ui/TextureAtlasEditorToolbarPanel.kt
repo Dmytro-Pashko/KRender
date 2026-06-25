@@ -45,6 +45,7 @@ class TextureAtlasEditorToolbarPanel(
 
         ImGui.separator()
         wrappedTextLine(state.statusMessage)
+        textLine("Dirty: ${if (state.dirty) "yes" else "no"}")
         textLine("Atlas Path: ${state.currentInputPath ?: "<none>"}")
         state.project.resolvedInputPath?.let { path -> textLine("Resolved: $path") }
         state.selectedAsset()?.let { asset ->

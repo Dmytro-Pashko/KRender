@@ -20,14 +20,14 @@ internal object TextureAtlasEditorPreviewOverlays {
         val drawList = ImGui.windowDrawList
         val tile = (16f * layout.effectiveZoom).coerceIn(8f, 32f)
         var row = 0
-        var y = layout.imageY
-        while (y < layout.imageY + layout.imageHeight) {
+        var y = layout.surfaceY
+        while (y < layout.surfaceY + layout.surfaceHeight) {
             var column = 0
-            var x = layout.imageX
-            while (x < layout.imageX + layout.imageWidth) {
+            var x = layout.surfaceX
+            while (x < layout.surfaceX + layout.surfaceWidth) {
                 drawList.addRectFilled(
                     ImVec2(x, y),
-                    ImVec2(minOf(x + tile, layout.imageX + layout.imageWidth), minOf(y + tile, layout.imageY + layout.imageHeight)),
+                    ImVec2(minOf(x + tile, layout.surfaceX + layout.surfaceWidth), minOf(y + tile, layout.surfaceY + layout.surfaceHeight)),
                     if ((row + column) % 2 == 0) CheckerLight else CheckerDark,
                 )
                 x += tile
@@ -46,14 +46,14 @@ internal object TextureAtlasEditorPreviewOverlays {
         val spacing = spacingPixels * layout.effectiveZoom
         if (spacing < 8f) return
         val drawList = ImGui.windowDrawList
-        var x = layout.imageX
-        while (x <= layout.imageX + layout.imageWidth) {
-            drawList.addLine(ImVec2(x, layout.imageY), ImVec2(x, layout.imageY + layout.imageHeight), color, 1f)
+        var x = layout.surfaceX
+        while (x <= layout.surfaceX + layout.surfaceWidth) {
+            drawList.addLine(ImVec2(x, layout.surfaceY), ImVec2(x, layout.surfaceY + layout.surfaceHeight), color, 1f)
             x += spacing
         }
-        var y = layout.imageY
-        while (y <= layout.imageY + layout.imageHeight) {
-            drawList.addLine(ImVec2(layout.imageX, y), ImVec2(layout.imageX + layout.imageWidth, y), color, 1f)
+        var y = layout.surfaceY
+        while (y <= layout.surfaceY + layout.surfaceHeight) {
+            drawList.addLine(ImVec2(layout.surfaceX, y), ImVec2(layout.surfaceX + layout.surfaceWidth, y), color, 1f)
             y += spacing
         }
     }
@@ -490,9 +490,8 @@ internal object TextureAtlasEditorPreviewOverlays {
     ) {
         if (sampleLayout.glyphPlacements.isEmpty() || handle.width <= 0 || handle.height <= 0) return
         val drawList = ImGui.windowDrawList
-        val padding = 8f
-        val originX = layout.imageX + padding
-        val originY = layout.imageY + padding
+        val originX = layout.imageX - sampleLayout.boundsMinX * layout.effectiveZoom
+        val originY = layout.imageY - sampleLayout.boundsMinY * layout.effectiveZoom
         val uSpan = handle.u1 - handle.u0
         val vSpan = handle.v1 - handle.v0
         sampleLayout.glyphPlacements.forEach { placement ->

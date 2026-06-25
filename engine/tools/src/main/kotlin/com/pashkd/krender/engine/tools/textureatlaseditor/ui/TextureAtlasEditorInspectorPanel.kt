@@ -29,6 +29,9 @@ class TextureAtlasEditorInspectorPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val resourceNameBuf = ByteArray(256)
+    private var resourceNameKey: String? = null
+
     override fun draw() {
         val layout = layoutConfig.panels.getValue(TextureAtlasEditorPanelIds.Inspector)
         val expanded = beginPanel(TextureAtlasEditorPanelIds.Inspector, layout, layoutTracker)
@@ -39,8 +42,15 @@ class TextureAtlasEditorInspectorPanel(
         }
 
         state.selectedResource()?.let { resource ->
+            syncResourceNameBuffer(resource)
             textLine("Resource: ${resource.name}")
             textLine("Type: ${resource.type.name}")
+            ImGui.setNextItemWidth(minOf(300f, (ImGui.contentRegionAvail.x - 80f).coerceAtLeast(120f)))
+            ImGui.inputText("Name##atlas_resource_name", resourceNameBuf)
+            ImGui.sameLine()
+            if (ImGui.button("Rename##atlas_resource_rename")) {
+                operations.renameSelectedResource(readBuffer(resourceNameBuf))
+            }
             when (resource) {
                 is ImageAtlasResource -> {
                     textLine("Source: ${resource.sourcePath}")
@@ -136,20 +146,9 @@ class TextureAtlasEditorInspectorPanel(
         }
 
         if (!fontSampleSynced) {
-            writeBuffer(fontSampleBuf, state.fontPreview.sampleText)
             writeBuffer(fontGlyphFilterBuf, state.fontPreview.glyphFilter)
             fontSampleSynced = true
         }
-        textLine("Sample text")
-        ImGui.setNextItemWidth(ImGui.contentRegionAvail.x)
-        if (ImGui.inputText("##font_sample_text", fontSampleBuf)) {
-            operations.setFontSampleText(readBuffer(fontSampleBuf))
-        }
-        val samplePreviewToggle = booleanArrayOf(state.fontPreview.showSampleTextPreview)
-        if (ImGui.checkbox("Sample Text Preview##font_sample_preview_toggle", samplePreviewToggle)) {
-            operations.setFontSampleTextPreviewEnabled(samplePreviewToggle[0])
-        }
-
         textLine("Filter glyphs")
         ImGui.setNextItemWidth(120f)
         if (ImGui.inputText("##font_glyph_filter", fontGlyphFilterBuf)) {
@@ -308,6 +307,13 @@ class TextureAtlasEditorInspectorPanel(
         ImGui.setNextItemWidth(80f)
         if (ImGui.inputText(label, npBuf)) {
             readBuffer(npBuf).trim().toIntOrNull()?.let { parsed -> onChange(parsed) }
+        }
+    }
+
+    private fun syncResourceNameBuffer(resource: com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasResource) {
+        if (resourceNameKey != resource.id || readBuffer(resourceNameBuf) != resource.name) {
+            writeBuffer(resourceNameBuf, resource.name)
+            resourceNameKey = resource.id
         }
     }
 

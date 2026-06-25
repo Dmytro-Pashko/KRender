@@ -3,9 +3,14 @@ package com.pashkd.krender.engine.tools.textureatlaseditor
 import java.io.File
 
 internal const val TextureAtlasMinPreviewZoom = 0.05f
-internal const val TextureAtlasMaxPreviewZoom = 25f
-internal const val TextureAtlasMinGridSpacingPixels = 4
+internal const val TextureAtlasMaxPreviewZoom = 30f
+internal const val TextureAtlasMinGridSpacingPixels = 1
 internal const val TextureAtlasMaxGridSpacingPixels = 512
+internal const val TextureAtlasMinCanvasDimensionPixels = 1
+internal const val TextureAtlasMaxCanvasDimensionPixels = 8192
+
+internal fun TextureAtlasEditorState.isShowingPackedAtlasPreview(): Boolean =
+    preview.canvasMode == TextureAtlasCanvasMode.TextureAtlas && preview.showPackedAtlasPreview
 
 internal fun TextureAtlasEditorState.selectedAsset(): TextureAtlasEditorAssetDescriptor? = project.assets.firstOrNull { it.id == selectedAssetId }
 
@@ -72,16 +77,7 @@ internal fun TextureAtlasEditorState.selectedPreviewSlice(): TextureAtlasEditorP
             )
         }
         TextureAtlasCanvasMode.FontPreview -> {
-            val resource = selectedResource() as? FontAtlasResource ?: return null
-            val width = resource.sourceWidth ?: return null
-            val height = resource.sourceHeight ?: return null
-            if (width <= 0 || height <= 0) return null
-            TextureAtlasEditorPreviewSlice(
-                sourceX = resource.sourceX,
-                sourceY = resource.sourceY,
-                width = width,
-                height = height,
-            )
+            null
         }
         else -> null
     }
@@ -93,10 +89,8 @@ internal fun TextureAtlasEditorState.selectedPreviewTexturePath(): String? {
         TextureAtlasCanvasMode.FontPreview -> {
             val fontResource = selectedResource() as? FontAtlasResource
             if (fontResource != null) {
+                selectedFontPageTexturePath()?.let { return it }
                 fontResource.atlasTexturePath?.let { return it }
-                val doc = project.fontDocuments[fontResource.documentPath]
-                val page = doc?.pages?.getOrNull(fontPreview.selectedPageIndex) ?: doc?.pages?.firstOrNull()
-                return page?.resolvedPath
             }
             return null
         }
@@ -105,6 +99,7 @@ internal fun TextureAtlasEditorState.selectedPreviewTexturePath(): String? {
         }
         TextureAtlasCanvasMode.TextureAtlas -> Unit
     }
+    if (isShowingPackedAtlasPreview()) return null
     val asset = selectedAsset()
     if (asset == null) {
         project.selectedTexturePath?.let { return it }

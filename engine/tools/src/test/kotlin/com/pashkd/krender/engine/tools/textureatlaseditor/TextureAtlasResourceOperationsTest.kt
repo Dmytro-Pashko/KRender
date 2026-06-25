@@ -31,7 +31,7 @@ import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
 import com.pashkd.krender.engine.viewport.RuntimeViewportService
 import com.pashkd.krender.engine.window.InMemoryWindowService
 import com.pashkd.krender.engine.window.WindowService
-import com.pashkd.krender.test.newTestRuntimeUiService
+import com.pashkd.krender.test.NoOpRuntimeUiBackend
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import java.awt.image.BufferedImage
@@ -40,6 +40,7 @@ import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class TextureAtlasResourceOperationsTest {
     @Test
@@ -83,6 +84,76 @@ class TextureAtlasResourceOperationsTest {
             root.deleteRecursively()
         }
     }
+
+    @Test
+    fun `rename selected resource updates atlas region and marks editor dirty`() {
+        val root = createTempDir(prefix = "krender-atlas-resource-rename-test-")
+        try {
+            val atlasPath = normalizePath(File(root, "ui.atlas").path)
+            val regionId = AtlasRegionId(atlasPath = atlasPath, pageName = "ui.png", regionName = "button")
+            val state =
+                TextureAtlasEditorState(
+                    selectedAssetId = TextureAssetId(atlasPath),
+                    project =
+                        TextureAtlasEditorProject(
+                            assets =
+                                listOf(
+                                    TextureAtlasEditorAssetDescriptor(
+                                        id = TextureAssetId(atlasPath),
+                                        path = atlasPath,
+                                        displayName = "ui.atlas",
+                                        kind = TextureAtlasEditorAssetKind.Atlas,
+                                        extension = "atlas",
+                                        sizeBytes = 0,
+                                        modifiedAtMillis = 0,
+                                    ),
+                                ),
+                            atlasDocuments =
+                                mapOf(
+                                    atlasPath to
+                                        TextureAtlasDocument(
+                                            file = File(atlasPath),
+                                            pages = listOf(TextureAtlasPage("ui.png")),
+                                            regions = listOf(TextureAtlasRegion(id = regionId)),
+                                        ),
+                                ),
+                        ),
+                    resources =
+                        TextureAtlasResourceState(
+                            items =
+                                listOf(
+                                    ImageAtlasResource(
+                                        id = "button",
+                                        name = "button",
+                                        sourcePath = atlasPath,
+                                        atlasRegionId = regionId,
+                                    ),
+                                ),
+                            selectedResourceId = "button",
+                        ),
+                    selectedRegionId = regionId,
+                )
+            val operations =
+                TextureAtlasResourceOperations(
+                    state = state,
+                    engine = TestTextureAtlasEngineContext(root),
+                    selectionCoordinator = TextureAtlasEditorSelectionCoordinator(state),
+                    importTexture = {},
+                    selectResource = { state.resources.selectedResourceId = it },
+                )
+
+            operations.renameSelectedResource("button_primary")
+
+            val renamed = state.selectedResource() as ImageAtlasResource
+            assertEquals("button_primary", renamed.name)
+            assertEquals("button_primary", renamed.atlasRegionId?.regionName)
+            assertEquals("button_primary", state.selectedRegionId?.regionName)
+            assertEquals("button_primary", state.selectedAtlasDocument()?.regions?.firstOrNull()?.id?.regionName)
+            assertTrue(state.dirty)
+        } finally {
+            root.deleteRecursively()
+        }
+    }
 }
 
 private class TestTextureAtlasEngineContext(
@@ -98,7 +169,7 @@ private class TestTextureAtlasEngineContext(
     override val ui: UiService = NoOpUiService()
     override val logger: Logger = EngineLogService()
     override val logs: LogService = logger as LogService
-    override val runtimeUi: RuntimeUiService = newTestRuntimeUiService(logger)
+    override val runtimeUi: RuntimeUiService = RuntimeUiService(NoOpRuntimeUiBackend(), logger)
     override val events: EventBus = EventBus()
     override val runtimeStats: RuntimeStatsService = FrameRuntimeStatsService()
     override val profiler = FrameProfilerService()

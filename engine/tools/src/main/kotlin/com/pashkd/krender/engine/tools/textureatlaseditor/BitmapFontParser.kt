@@ -251,6 +251,10 @@ internal fun layoutSampleText(
     val placements = mutableListOf<SampleTextGlyphPlacement>()
     val missing = mutableListOf<Int>()
     var cursorX = 0
+    var minX = Int.MAX_VALUE
+    var minY = Int.MAX_VALUE
+    var maxX = Int.MIN_VALUE
+    var maxY = Int.MIN_VALUE
     text.forEach { ch ->
         val codepoint = ch.code
         val glyph = glyphMap[codepoint]
@@ -258,17 +262,30 @@ internal fun layoutSampleText(
             missing += codepoint
             return@forEach
         }
+        val glyphX = cursorX + glyph.xOffset
+        val glyphY = glyph.yOffset
         placements += SampleTextGlyphPlacement(
             glyph = glyph,
-            x = cursorX + glyph.xOffset,
-            y = glyph.yOffset,
+            x = glyphX,
+            y = glyphY,
         )
+        if (glyph.width > 0 && glyph.height > 0) {
+            minX = minOf(minX, glyphX)
+            minY = minOf(minY, glyphY)
+            maxX = maxOf(maxX, glyphX + glyph.width)
+            maxY = maxOf(maxY, glyphY + glyph.height)
+        }
         cursorX += glyph.xAdvance
     }
+    val hasBounds = minX != Int.MAX_VALUE && minY != Int.MAX_VALUE && maxX != Int.MIN_VALUE && maxY != Int.MIN_VALUE
     return SampleTextLayout(
         glyphPlacements = placements,
         totalWidth = cursorX,
         lineHeight = common.lineHeight,
+        boundsMinX = if (hasBounds) minX else 0,
+        boundsMinY = if (hasBounds) minY else 0,
+        boundsWidth = if (hasBounds) (maxX - minX).coerceAtLeast(0) else 0,
+        boundsHeight = if (hasBounds) (maxY - minY).coerceAtLeast(0) else 0,
         missingCodepoints = missing.distinct(),
     )
 }
