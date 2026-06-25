@@ -5,8 +5,8 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.ImageAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegionSortMode
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasResourceType
@@ -14,7 +14,6 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.resolveAtlasPreviewTex
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedResource
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
@@ -212,8 +211,14 @@ class TextureAtlasEditorResourcesPanel(
             }
         textLine("Page texture: $texturePath")
         textLine("Page exists: ${if (exists) "yes" else "missing"}")
-        val width = page.details["textureWidth"] ?: state.previewInfo.textureWidth.takeIf { state.previewInfo.atlasPageName == pageName && it > 0 }?.toString()
-        val height = page.details["textureHeight"] ?: state.previewInfo.textureHeight.takeIf { state.previewInfo.atlasPageName == pageName && it > 0 }?.toString()
+        val width =
+            page.details["textureWidth"] ?: state.previewInfo.textureWidth
+                .takeIf { state.previewInfo.atlasPageName == pageName && it > 0 }
+                ?.toString()
+        val height =
+            page.details["textureHeight"] ?: state.previewInfo.textureHeight
+                .takeIf { state.previewInfo.atlasPageName == pageName && it > 0 }
+                ?.toString()
         textLine("Page size: ${width ?: "?"} x ${height ?: "?"}")
         textLine("Regions on page: $pageRegionCount")
         textLine("Resources on page: $pageResourceCount")
@@ -311,4 +316,3 @@ private fun computeRegionMetrics(
     }
     return ResourceRegionMetrics(areaPixels = area)
 }
-

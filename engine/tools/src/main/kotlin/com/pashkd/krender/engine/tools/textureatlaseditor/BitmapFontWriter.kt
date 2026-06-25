@@ -17,8 +17,9 @@ class BitmapFontWriter {
         overwrite: Boolean,
         pageFileOverrides: Map<Int, String> = emptyMap(),
     ): TextureAtlasEditorFileWriteResult {
-        val targetFile = TextureAtlasEditorPathValidator.resolveAssetPath(assetRoot, targetPath)
-            ?: return failure("Font export target path must stay inside the asset root.")
+        val targetFile =
+            TextureAtlasEditorPathValidator.resolveAssetPath(assetRoot, targetPath)
+                ?: return failure("Font export target path must stay inside the asset root.")
         if (!targetFile.name.endsWith(".fnt", ignoreCase = true)) {
             return failure("Font export target must end with '.fnt'.")
         }
@@ -44,65 +45,65 @@ class BitmapFontWriter {
     private fun buildFntText(
         document: BitmapFontDocument,
         pageFileOverrides: Map<Int, String>,
-    ): String = buildString {
-        val info = document.info
-        if (info != null) {
-            append("info")
-            info.face?.let { append(" face=\"$it\"") }
-            info.size?.let { append(" size=$it") }
-            append(" bold=${if (info.bold) 1 else 0}")
-            append(" italic=${if (info.italic) 1 else 0}")
-            info.charset?.let { append(" charset=\"$it\"") }
-            append(" unicode=${if (info.unicode) 1 else 0}")
-            info.stretchH?.let { append(" stretchH=$it") }
-            append(" smooth=${if (info.smooth) 1 else 0}")
-            info.aa?.let { append(" aa=$it") }
-            if (info.padding.isNotEmpty()) append(" padding=${info.padding.joinToString(",")}")
-            if (info.spacing.isNotEmpty()) append(" spacing=${info.spacing.joinToString(",")}")
-            appendLine()
-        }
+    ): String =
+        buildString {
+            val info = document.info
+            if (info != null) {
+                append("info")
+                info.face?.let { append(" face=\"$it\"") }
+                info.size?.let { append(" size=$it") }
+                append(" bold=${if (info.bold) 1 else 0}")
+                append(" italic=${if (info.italic) 1 else 0}")
+                info.charset?.let { append(" charset=\"$it\"") }
+                append(" unicode=${if (info.unicode) 1 else 0}")
+                info.stretchH?.let { append(" stretchH=$it") }
+                append(" smooth=${if (info.smooth) 1 else 0}")
+                info.aa?.let { append(" aa=$it") }
+                if (info.padding.isNotEmpty()) append(" padding=${info.padding.joinToString(",")}")
+                if (info.spacing.isNotEmpty()) append(" spacing=${info.spacing.joinToString(",")}")
+                appendLine()
+            }
 
-        val common = document.common
-        if (common != null) {
-            append("common")
-            append(" lineHeight=${common.lineHeight}")
-            append(" base=${common.base}")
-            append(" scaleW=${common.scaleW}")
-            append(" scaleH=${common.scaleH}")
-            append(" pages=${common.pages}")
-            append(" packed=${if (common.packed) 1 else 0}")
-            appendLine()
-        }
+            val common = document.common
+            if (common != null) {
+                append("common")
+                append(" lineHeight=${common.lineHeight}")
+                append(" base=${common.base}")
+                append(" scaleW=${common.scaleW}")
+                append(" scaleH=${common.scaleH}")
+                append(" pages=${common.pages}")
+                append(" packed=${if (common.packed) 1 else 0}")
+                appendLine()
+            }
 
-        document.pages.forEach { page ->
-            val pageFile = pageFileOverrides[page.id] ?: page.file
-            appendLine("page id=${page.id} file=\"$pageFile\"")
-        }
+            document.pages.forEach { page ->
+                val pageFile = pageFileOverrides[page.id] ?: page.file
+                appendLine("page id=${page.id} file=\"$pageFile\"")
+            }
 
-        appendLine("chars count=${document.glyphs.size}")
-        document.glyphs.forEach { glyph ->
-            append("char id=${glyph.id}")
-            append(" x=${glyph.x}")
-            append(" y=${glyph.y}")
-            append(" width=${glyph.width}")
-            append(" height=${glyph.height}")
-            append(" xoffset=${glyph.xOffset}")
-            append(" yoffset=${glyph.yOffset}")
-            append(" xadvance=${glyph.xAdvance}")
-            append(" page=${glyph.page}")
-            append(" chnl=${glyph.channel}")
-            glyph.char?.let { append(" letter=\"$it\"") }
-            appendLine()
-        }
+            appendLine("chars count=${document.glyphs.size}")
+            document.glyphs.forEach { glyph ->
+                append("char id=${glyph.id}")
+                append(" x=${glyph.x}")
+                append(" y=${glyph.y}")
+                append(" width=${glyph.width}")
+                append(" height=${glyph.height}")
+                append(" xoffset=${glyph.xOffset}")
+                append(" yoffset=${glyph.yOffset}")
+                append(" xadvance=${glyph.xAdvance}")
+                append(" page=${glyph.page}")
+                append(" chnl=${glyph.channel}")
+                glyph.char?.let { append(" letter=\"$it\"") }
+                appendLine()
+            }
 
-        if (document.kernings.isNotEmpty()) {
-            appendLine("kernings count=${document.kernings.size}")
-            document.kernings.forEach { kerning ->
-                appendLine("kerning first=${kerning.first} second=${kerning.second} amount=${kerning.amount}")
+            if (document.kernings.isNotEmpty()) {
+                appendLine("kernings count=${document.kernings.size}")
+                document.kernings.forEach { kerning ->
+                    appendLine("kerning first=${kerning.first} second=${kerning.second} amount=${kerning.amount}")
+                }
             }
         }
-    }
 
-    private fun failure(message: String): TextureAtlasEditorFileWriteResult =
-        TextureAtlasEditorFileWriteResult(success = false, message = message)
+    private fun failure(message: String): TextureAtlasEditorFileWriteResult = TextureAtlasEditorFileWriteResult(success = false, message = message)
 }

@@ -68,16 +68,18 @@ internal class TextureAtlasBitmapFontOperations(
             engine.logger.warn(TAG) { "Bitmap font import rejected because one or more pages were missing path='$normalizedSource'" }
             return
         }
-        val atlasDirectory = atlasFile.parentFile ?: run {
-            state.statusMessage = "Cannot import bitmap font because the atlas directory is unavailable."
-            engine.logger.warn(TAG) { "Rejected Texture Atlas Editor import font path='$normalizedSource' because atlas directory was unavailable" }
-            return
-        }
+        val atlasDirectory =
+            atlasFile.parentFile ?: run {
+                state.statusMessage = "Cannot import bitmap font because the atlas directory is unavailable."
+                engine.logger.warn(TAG) { "Rejected Texture Atlas Editor import font path='$normalizedSource' because atlas directory was unavailable" }
+                return
+            }
         val importTargets = chooseImportTargets(atlasDirectory, sourceFile.nameWithoutExtension, document.pages.size)
         val descriptorOverrides =
-            document.pages.mapIndexed { index, page ->
-                page.id to importTargets.pageFiles[index].name
-            }.toMap()
+            document.pages
+                .mapIndexed { index, page ->
+                    page.id to importTargets.pageFiles[index].name
+                }.toMap()
         runCatching {
             importTargets.pageFiles.forEachIndexed { index, targetFile ->
                 val sourcePage = document.pages[index].resolvedPath?.let(::File) ?: error("Missing page source.")
@@ -163,15 +165,17 @@ internal class TextureAtlasBitmapFontOperations(
             engine.logger.warn(TAG) { "Rejected Texture Atlas Editor export font resource id='${resource.id}' document='${resource.documentPath}' because descriptor was unreadable" }
             return
         }
-        val targetPath = state.importExport.targetPath
-            .takeIf { it.endsWith(".fnt", ignoreCase = true) }
-            ?: defaultFontExportPath(resource)
-        val result = writer.write(
-            assetRoot = engine.assetRegistry.baseDir(),
-            targetPath = targetPath,
-            document = document,
-            overwrite = state.importExport.saveOverwrite,
-        )
+        val targetPath =
+            state.importExport.targetPath
+                .takeIf { it.endsWith(".fnt", ignoreCase = true) }
+                ?: defaultFontExportPath(resource)
+        val result =
+            writer.write(
+                assetRoot = engine.assetRegistry.baseDir(),
+                targetPath = targetPath,
+                document = document,
+                overwrite = state.importExport.saveOverwrite,
+            )
         state.importExport.lastExportResult = result
         state.statusMessage = result.message
         if (result.success) {

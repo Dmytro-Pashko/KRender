@@ -191,7 +191,11 @@ internal class TextureAtlasResourceOperations(
         val atlasFile = state.selectedAtlasDocument()?.file
         val exportDirectory =
             atlasFile?.parentFile?.resolve("export")
-                ?: selected.sourcePathOrNull()?.let(::File)?.parentFile?.resolve("export")
+                ?: selected
+                    .sourcePathOrNull()
+                    ?.let(::File)
+                    ?.parentFile
+                    ?.resolve("export")
                 ?: return ""
         val fileName =
             when (selected) {

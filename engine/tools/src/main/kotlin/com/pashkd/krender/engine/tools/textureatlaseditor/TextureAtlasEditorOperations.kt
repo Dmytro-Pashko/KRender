@@ -127,7 +127,8 @@ class TextureAtlasEditorOperations(
         state.selectedAtlasPageName = pageName
         val atlas = state.selectedAtlasDocument()
         state.selectedRegionId =
-            atlas?.regions
+            atlas
+                ?.regions
                 ?.firstOrNull { region -> region.id.pageName == pageName }
                 ?.id
         selectionCoordinator.syncSelectedResourceFromRegion(state.selectedRegionId)
@@ -167,7 +168,10 @@ class TextureAtlasEditorOperations(
             }
             is FontAtlasResource -> {
                 state.fontPreview.selectedFontResourceId = resource.id
-                val pageCount = state.project.fontDocuments[resource.documentPath]?.pages?.size ?: 0
+                val pageCount =
+                    state.project.fontDocuments[resource.documentPath]
+                        ?.pages
+                        ?.size ?: 0
                 state.fontPreview.selectedPageIndex =
                     state.fontPreview.selectedPageIndex
                         .coerceIn(0, (pageCount - 1).coerceAtLeast(0))
@@ -551,13 +555,25 @@ class TextureAtlasEditorOperations(
 
     fun beginNinePatchEditing(resourceId: String) = ninePatchOperations.beginNinePatchEditing(resourceId)
 
-    fun updateNinePatchStretchX(start: Int, length: Int) = ninePatchOperations.updateNinePatchStretchX(start, length)
+    fun updateNinePatchStretchX(
+        start: Int,
+        length: Int,
+    ) = ninePatchOperations.updateNinePatchStretchX(start, length)
 
-    fun updateNinePatchStretchY(start: Int, length: Int) = ninePatchOperations.updateNinePatchStretchY(start, length)
+    fun updateNinePatchStretchY(
+        start: Int,
+        length: Int,
+    ) = ninePatchOperations.updateNinePatchStretchY(start, length)
 
-    fun updateNinePatchPaddingX(start: Int?, length: Int?) = ninePatchOperations.updateNinePatchPaddingX(start, length)
+    fun updateNinePatchPaddingX(
+        start: Int?,
+        length: Int?,
+    ) = ninePatchOperations.updateNinePatchPaddingX(start, length)
 
-    fun updateNinePatchPaddingY(start: Int?, length: Int?) = ninePatchOperations.updateNinePatchPaddingY(start, length)
+    fun updateNinePatchPaddingY(
+        start: Int?,
+        length: Int?,
+    ) = ninePatchOperations.updateNinePatchPaddingY(start, length)
 
     fun clearNinePatchPadding() = ninePatchOperations.clearNinePatchPadding()
 

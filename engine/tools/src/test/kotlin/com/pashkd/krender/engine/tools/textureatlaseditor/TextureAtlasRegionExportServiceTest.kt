@@ -12,7 +12,11 @@ class TextureAtlasRegionExportServiceTest {
     fun `export image resource writes cropped png into atlas export directory`() {
         val root = createTempDir(prefix = "krender-atlas-export-test-")
         try {
-            val atlasFile = File(root, "atlases/ui.atlas").apply { parentFile.mkdirs(); writeText("ui.png\n") }
+            val atlasFile =
+                File(root, "atlases/ui.atlas").apply {
+                    parentFile.mkdirs()
+                    writeText("ui.png\n")
+                }
             val textureFile = File(root, "atlases/ui.png")
             val image = BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB)
             image.setRGB(2, 3, 0xFF12AB34.toInt())
@@ -50,7 +54,11 @@ class TextureAtlasRegionExportServiceTest {
     fun `export nine patch resource reconstructs 9png guides`() {
         val root = createTempDir(prefix = "krender-atlas-ninepatch-export-test-")
         try {
-            val atlasFile = File(root, "atlases/ui.atlas").apply { parentFile.mkdirs(); writeText("ui.png\n") }
+            val atlasFile =
+                File(root, "atlases/ui.atlas").apply {
+                    parentFile.mkdirs()
+                    writeText("ui.png\n")
+                }
             val textureFile = File(root, "atlases/ui.png")
             val image = BufferedImage(6, 6, BufferedImage.TYPE_INT_ARGB)
             image.setRGB(1, 1, 0xFFFF0000.toInt())

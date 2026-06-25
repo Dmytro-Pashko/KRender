@@ -9,20 +9,21 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasCanvasMode
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorCanvasRect
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPreviewState
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchPreviewType
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchPreset
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchPreview
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureRegionScreenRect
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewSurfaceMode
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewZoomMode
 import com.pashkd.krender.engine.tools.textureatlaseditor.buildNinePatchStretchPreview
+import com.pashkd.krender.engine.tools.textureatlaseditor.computeTexturePreviewViewportLayout
+import com.pashkd.krender.engine.tools.textureatlaseditor.formatZoomMode
+import com.pashkd.krender.engine.tools.textureatlaseditor.hitTestAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.isShowingPackedAtlasPreview
 import com.pashkd.krender.engine.tools.textureatlaseditor.layoutSampleText
-import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
+import com.pashkd.krender.engine.tools.textureatlaseditor.screenToTexturePixelX
+import com.pashkd.krender.engine.tools.textureatlaseditor.screenToTexturePixelY
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasNinePatchRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPage
@@ -30,16 +31,9 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPlan
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedRegionsForPage
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedResource
-import com.pashkd.krender.engine.tools.textureatlaseditor.atlasRegionScreenRect
-import com.pashkd.krender.engine.tools.textureatlaseditor.computeTexturePreviewViewportLayout
-import com.pashkd.krender.engine.tools.textureatlaseditor.formatZoomMode
-import com.pashkd.krender.engine.tools.textureatlaseditor.hitTestAtlasRegion
-import com.pashkd.krender.engine.tools.textureatlaseditor.screenToTexturePixelX
-import com.pashkd.krender.engine.tools.textureatlaseditor.screenToTexturePixelY
 import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.ui.UiTextureTint
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
@@ -52,9 +46,9 @@ import imgui.WindowFlag
 import imgui.api.colorEdit4
 import imgui.api.slider
 import imgui.or
-import glm_.vec2.Vec2 as ImVec2
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import glm_.vec2.Vec2 as ImVec2
 
 class TextureAtlasEditorPreviewCanvasPanel(
     private val state: TextureAtlasEditorState,
@@ -615,12 +609,13 @@ class TextureAtlasEditorPreviewCanvasPanel(
         val previewWidth = if (state.fontPreview.showSampleTextPreview) sampleLayout.boundsWidth.coerceAtLeast(1) else state.previewInfo.textureWidth
         val previewHeight = if (state.fontPreview.showSampleTextPreview) sampleLayout.boundsHeight.coerceAtLeast(1) else state.previewInfo.textureHeight
         if (handle != null && previewWidth > 0 && previewHeight > 0) {
-            val viewportLayout = computeTexturePreviewViewportLayout(
-                rect = state.canvasRect,
-                textureWidth = previewWidth,
-                textureHeight = previewHeight,
-                previewState = state.preview,
-            )
+            val viewportLayout =
+                computeTexturePreviewViewportLayout(
+                    rect = state.canvasRect,
+                    textureWidth = previewWidth,
+                    textureHeight = previewHeight,
+                    previewState = state.preview,
+                )
             if (state.preview.showCheckerboard) {
                 TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
             }
@@ -790,13 +785,13 @@ class TextureAtlasEditorPreviewCanvasPanel(
                     }
                 val cursorText =
                     if (cursorTextureX != null && cursorTextureY != null) {
-                        "Cursor: ${cursorTextureX}, ${cursorTextureY}"
+                        "Cursor: $cursorTextureX, $cursorTextureY"
                     } else {
                         "Cursor: <outside>"
                     }
                 val regionCursorText =
                     if (cursorRegionX != null && cursorRegionY != null) {
-                        "Region: ${cursorRegionX}, ${cursorRegionY}"
+                        "Region: $cursorRegionX, $cursorRegionY"
                     } else {
                         "Region: <n/a>"
                     }
@@ -836,7 +831,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 val selectedText = selectedGlyph?.let { g -> "id=${g.id} '${g.char ?: "?"}' [${g.width}x${g.height}]" } ?: "<none>"
                 val cursorText =
                     if (cursorTextureX != null && cursorTextureY != null) {
-                        "Cursor: ${cursorTextureX}, ${cursorTextureY}"
+                        "Cursor: $cursorTextureX, $cursorTextureY"
                     } else {
                         "Cursor: <outside>"
                     }
@@ -853,7 +848,12 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
     private fun drawNinePatchPreviewTypeCombo() {
         ImGui.setNextItemWidth(220f)
-        if (ImGui.beginCombo("Preview Type##np_preview_type", state.preview.ninePatchStretch.previewType.label())) {
+        if (ImGui.beginCombo(
+                "Preview Type##np_preview_type",
+                state.preview.ninePatchStretch.previewType
+                    .label(),
+            )
+        ) {
             TextureAtlasNinePatchPreviewType.entries.forEach { type ->
                 if (ImGui.selectable(type.label(), state.preview.ninePatchStretch.previewType == type)) {
                     operations.setNinePatchPreviewType(type)
@@ -866,7 +866,12 @@ class TextureAtlasEditorPreviewCanvasPanel(
     private fun drawNinePatchStretchControls() {
         ImGui.sameLine()
         ImGui.setNextItemWidth(140f)
-        if (ImGui.beginCombo("Preset##np_stretch_preset", state.preview.ninePatchStretch.preset.label())) {
+        if (ImGui.beginCombo(
+                "Preset##np_stretch_preset",
+                state.preview.ninePatchStretch.preset
+                    .label(),
+            )
+        ) {
             TextureAtlasNinePatchStretchPreset.entries.forEach { preset ->
                 if (ImGui.selectable(preset.label(), state.preview.ninePatchStretch.preset == preset)) {
                     operations.setNinePatchStretchPreset(preset)
@@ -914,13 +919,13 @@ class TextureAtlasEditorPreviewCanvasPanel(
             }
         val cursorText =
             if (cursorTextureX != null && cursorTextureY != null) {
-                "Cursor: ${cursorTextureX}, ${cursorTextureY}"
+                "Cursor: $cursorTextureX, $cursorTextureY"
             } else {
                 "Cursor: <outside>"
             }
         val regionCursorText =
             if (cursorRegionX != null && cursorRegionY != null) {
-                "Region: ${cursorRegionX}, ${cursorRegionY}"
+                "Region: $cursorRegionX, $cursorRegionY"
             } else {
                 "Region: <n/a>"
             }

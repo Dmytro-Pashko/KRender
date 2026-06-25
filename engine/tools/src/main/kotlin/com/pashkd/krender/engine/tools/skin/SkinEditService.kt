@@ -54,7 +54,7 @@ class SkinEditService(
             ),
         )
         logger.info(TAG) {
-            "Updated Skin Editor style field style='${style.key.type}.${style.key.name}' field='$fieldName' old='${oldValue}' new='${value}' reference=${field.isReference}"
+            "Updated Skin Editor style field style='${style.key.type}.${style.key.name}' field='$fieldName' old='$oldValue' new='$value' reference=${field.isReference}"
         }
     }
 
@@ -300,7 +300,7 @@ class SkinEditService(
             ),
         )
         logger.info(TAG) {
-            "Updated Skin Editor resource field resource='${resource.key.category}.${resource.key.name}' field='$fieldName' old='${oldValue.orEmpty()}' new='${value}'"
+            "Updated Skin Editor resource field resource='${resource.key.category}.${resource.key.name}' field='$fieldName' old='${oldValue.orEmpty()}' new='$value'"
         }
     }
 

@@ -159,17 +159,18 @@ class TextureAtlasParser {
         val offset = parseIntPair(region.details["offset"], file, regionId, "offset", diagnostics)
         val split = parseIntList(region.details["split"], file, regionId, "split", diagnostics)
         val pad = parseIntList(region.details["pad"], file, regionId, "pad", diagnostics)
-        val index = region.details["index"]?.toIntOrNull().also { parsed ->
-            if (region.details["index"] != null && parsed == null) {
-                diagnostics +=
-                    TextureAtlasEditorDiagnostic(
-                        severity = TextureAtlasEditorDiagnosticSeverity.Warning,
-                        category = TextureAtlasEditorDiagnosticCategory.Atlas,
-                        message = "Malformed 'index' for region '${regionId.regionName}'.",
-                        source = regionId.atlasPath,
-                    )
+        val index =
+            region.details["index"]?.toIntOrNull().also { parsed ->
+                if (region.details["index"] != null && parsed == null) {
+                    diagnostics +=
+                        TextureAtlasEditorDiagnostic(
+                            severity = TextureAtlasEditorDiagnosticSeverity.Warning,
+                            category = TextureAtlasEditorDiagnosticCategory.Atlas,
+                            message = "Malformed 'index' for region '${regionId.regionName}'.",
+                            source = regionId.atlasPath,
+                        )
+                }
             }
-        }
 
         if (size == null || size.first <= 0 || size.second <= 0) {
             diagnostics +=

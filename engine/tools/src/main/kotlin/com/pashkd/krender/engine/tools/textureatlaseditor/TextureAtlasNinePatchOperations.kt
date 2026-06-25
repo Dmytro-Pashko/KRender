@@ -15,40 +15,52 @@ internal class TextureAtlasNinePatchOperations(
         val document = state.project.ninePatchDocuments[resource.sourcePath]
         val draft = buildNinePatchDraft(resource, document)
         if (draft == null) {
-            state.ninePatchEditor = NinePatchEditorState(
-                selectedResourceId = resourceId,
-                validationIssues = listOf(
-                    NinePatchValidationIssue(NinePatchValidationSeverity.Error, "Cannot determine content dimensions for this resource."),
-                ),
-            )
+            state.ninePatchEditor =
+                NinePatchEditorState(
+                    selectedResourceId = resourceId,
+                    validationIssues =
+                        listOf(
+                            NinePatchValidationIssue(NinePatchValidationSeverity.Error, "Cannot determine content dimensions for this resource."),
+                        ),
+                )
             state.statusMessage = "Cannot edit Nine-patch: content dimensions are unavailable."
             return
         }
         val issues = validateNinePatchDraft(draft)
-        state.ninePatchEditor = NinePatchEditorState(
-            selectedResourceId = resourceId,
-            draft = draft,
-            dirty = false,
-            validationIssues = issues,
-        )
+        state.ninePatchEditor =
+            NinePatchEditorState(
+                selectedResourceId = resourceId,
+                draft = draft,
+                dirty = false,
+                validationIssues = issues,
+            )
         engine.logger.info(TAG) {
             "NinePatch editing started resource='${resource.name}' content=${draft.contentWidth}x${draft.contentHeight} issues=${issues.size}"
         }
     }
 
-    fun updateNinePatchStretchX(start: Int, length: Int) {
+    fun updateNinePatchStretchX(
+        start: Int,
+        length: Int,
+    ) {
         val draft = state.ninePatchEditor.draft ?: return
         engine.logger.info(TAG) { "Texture Atlas Editor NinePatch draft stretchX update resource='${state.ninePatchEditor.selectedResourceId ?: "<none>"}' old=${draft.stretchX.start}:${draft.stretchX.length} new=$start:$length" }
         applyDraftUpdate(draft.copy(stretchX = NinePatchSegment(start = start, length = length)))
     }
 
-    fun updateNinePatchStretchY(start: Int, length: Int) {
+    fun updateNinePatchStretchY(
+        start: Int,
+        length: Int,
+    ) {
         val draft = state.ninePatchEditor.draft ?: return
         engine.logger.info(TAG) { "Texture Atlas Editor NinePatch draft stretchY update resource='${state.ninePatchEditor.selectedResourceId ?: "<none>"}' old=${draft.stretchY.start}:${draft.stretchY.length} new=$start:$length" }
         applyDraftUpdate(draft.copy(stretchY = NinePatchSegment(start = start, length = length)))
     }
 
-    fun updateNinePatchPaddingX(start: Int?, length: Int?) {
+    fun updateNinePatchPaddingX(
+        start: Int?,
+        length: Int?,
+    ) {
         val draft = state.ninePatchEditor.draft ?: return
         val paddingX = if (start != null && length != null) NinePatchSegment(start = start, length = length) else null
         engine.logger.info(TAG) {
@@ -57,7 +69,10 @@ internal class TextureAtlasNinePatchOperations(
         applyDraftUpdate(draft.copy(paddingX = paddingX))
     }
 
-    fun updateNinePatchPaddingY(start: Int?, length: Int?) {
+    fun updateNinePatchPaddingY(
+        start: Int?,
+        length: Int?,
+    ) {
         val draft = state.ninePatchEditor.draft ?: return
         val paddingY = if (start != null && length != null) NinePatchSegment(start = start, length = length) else null
         engine.logger.info(TAG) {
@@ -100,13 +115,15 @@ internal class TextureAtlasNinePatchOperations(
         }
         val resource = state.resources.items.firstOrNull { it.id == resourceId }
         if (resource !is NinePatchAtlasResource) return
-        val updatedResource = resource.copy(
-            split = draft.toSplitList(),
-            pad = draft.toPadList(),
-        )
-        state.resources.items = state.resources.items.map { item ->
-            if (item.id == resourceId) updatedResource else item
-        }
+        val updatedResource =
+            resource.copy(
+                split = draft.toSplitList(),
+                pad = draft.toPadList(),
+            )
+        state.resources.items =
+            state.resources.items.map { item ->
+                if (item.id == resourceId) updatedResource else item
+            }
         state.dirty = true
         state.ninePatchEditor.dirty = false
         state.statusMessage = "Applied Nine-patch draft to resource '${resource.name}'. Pack and Save to write atlas output."

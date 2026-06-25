@@ -33,11 +33,12 @@ internal class TextureAtlasEditorSelectionCoordinator(
     }
 
     fun syncSelectedPackingFromCurrentSelection() {
-        val plan = state.selectedPackingPlan() ?: run {
-            state.packing.selectedRegionId = null
-            state.packing.selectedPageIndex = 0
-            return
-        }
+        val plan =
+            state.selectedPackingPlan() ?: run {
+                state.packing.selectedRegionId = null
+                state.packing.selectedPageIndex = 0
+                return
+            }
         val resource = state.selectedResource()
         val selectedRegion =
             when {
@@ -60,7 +61,12 @@ internal class TextureAtlasEditorSelectionCoordinator(
             state.packing.selectedRegionId = selectedRegion.id
         } else if (plan.pages.none { page -> page.regions.any { region -> region.id == state.packing.selectedRegionId } }) {
             state.packing.selectedPageIndex = 0
-            state.packing.selectedRegionId = plan.pages.firstOrNull()?.regions?.firstOrNull()?.id
+            state.packing.selectedRegionId =
+                plan.pages
+                    .firstOrNull()
+                    ?.regions
+                    ?.firstOrNull()
+                    ?.id
         }
     }
 }

@@ -1,19 +1,19 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
+import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.tools.textureatlaseditor.BitmapFontGlyph
-import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDraft
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDocument
+import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDraft
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchSegment
+import com.pashkd.krender.engine.tools.textureatlaseditor.SampleTextLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorCanvasRect
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchPreview
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchRect
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingPage
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchPreview
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchRect
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureRegionScreenRect
-import com.pashkd.krender.engine.tools.textureatlaseditor.SampleTextLayout
-import com.pashkd.krender.engine.api.TexturePreviewHandle
 import imgui.ImGui
 import glm_.vec2.Vec2 as ImVec2
 
@@ -269,8 +269,10 @@ internal object TextureAtlasEditorPreviewOverlays {
         ).asReversed()
             .flatMap { guide -> listOf(guide.startHandle, guide.endHandle) }
             .firstOrNull { handle ->
-                screenX >= handle.minX && screenX <= handle.maxX &&
-                    screenY >= handle.minY && screenY <= handle.maxY
+                screenX >= handle.minX &&
+                    screenX <= handle.maxX &&
+                    screenY >= handle.minY &&
+                    screenY <= handle.maxY
             }?.id
 
     private fun drawDraftGuide(
@@ -468,9 +470,10 @@ internal object TextureAtlasEditorPreviewOverlays {
         screenX: Float,
         screenY: Float,
     ): TextureAtlasPackingRegion? =
-        layout.regionRects.firstOrNull { rect ->
-            screenX >= rect.minX && screenX <= rect.maxX && screenY >= rect.minY && screenY <= rect.maxY
-        }?.region
+        layout.regionRects
+            .firstOrNull { rect ->
+                screenX >= rect.minX && screenX <= rect.maxX && screenY >= rect.minY && screenY <= rect.maxY
+            }?.region
 
     fun drawPackedRegionBounds(
         regions: List<TextureAtlasPackingRegion>,
@@ -542,11 +545,12 @@ internal object TextureAtlasEditorPreviewOverlays {
             val minY = layout.imageY + (glyph.y - offsetY) * layout.effectiveZoom
             val maxX = minX + glyph.width * layout.effectiveZoom
             val maxY = minY + glyph.height * layout.effectiveZoom
-            val color = when (glyph.id) {
-                selectedGlyphId -> GlyphSelectedColor
-                hoveredGlyphId -> GlyphHoveredColor
-                else -> GlyphBoundsColor
-            }
+            val color =
+                when (glyph.id) {
+                    selectedGlyphId -> GlyphSelectedColor
+                    hoveredGlyphId -> GlyphHoveredColor
+                    else -> GlyphBoundsColor
+                }
             drawList.addRect(ImVec2(minX, minY), ImVec2(maxX, maxY), color, 0f, thickness = 1f)
         }
     }

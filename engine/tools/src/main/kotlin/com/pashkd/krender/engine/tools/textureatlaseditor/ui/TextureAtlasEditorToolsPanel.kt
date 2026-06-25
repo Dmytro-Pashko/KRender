@@ -131,6 +131,7 @@ class TextureAtlasEditorToolsPanel(
             result.writtenPaths.forEach(::textLine)
         }
     }
+
     private fun drawPageSizeCombo(
         label: String,
         value: Int,

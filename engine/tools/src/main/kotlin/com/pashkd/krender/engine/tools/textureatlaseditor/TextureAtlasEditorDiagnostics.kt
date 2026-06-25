@@ -22,4 +22,3 @@ data class TextureAtlasEditorDiagnostic(
     val message: String,
     val source: String? = null,
 )
-

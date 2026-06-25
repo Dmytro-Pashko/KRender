@@ -143,7 +143,11 @@ internal class TextureAtlasRegionExportService(
         }
         val exportDirectory =
             atlasFile?.parentFile?.resolve("export")
-                ?: resource.sourcePathOrNull()?.let(::File)?.parentFile?.resolve("export")
+                ?: resource
+                    .sourcePathOrNull()
+                    ?.let(::File)
+                    ?.parentFile
+                    ?.resolve("export")
                 ?: return null
         return TextureAtlasEditorPathValidator.resolveAssetPath(
             assetRoot,

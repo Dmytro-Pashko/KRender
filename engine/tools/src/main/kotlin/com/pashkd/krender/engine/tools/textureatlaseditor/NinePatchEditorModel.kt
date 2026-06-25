@@ -155,18 +155,20 @@ private fun validateSegment(
     issues: MutableList<NinePatchValidationIssue>,
 ) {
     if (segment.length <= 0) {
-        issues += NinePatchValidationIssue(
-            if (required) NinePatchValidationSeverity.Error else NinePatchValidationSeverity.Warning,
-            "$label length must be positive (got ${segment.length}).",
-        )
+        issues +=
+            NinePatchValidationIssue(
+                if (required) NinePatchValidationSeverity.Error else NinePatchValidationSeverity.Warning,
+                "$label length must be positive (got ${segment.length}).",
+            )
     }
     if (segment.start < 0) {
         issues += NinePatchValidationIssue(NinePatchValidationSeverity.Error, "$label start must not be negative (got ${segment.start}).")
     }
     if (segment.start + segment.length > maxSize) {
-        issues += NinePatchValidationIssue(
-            NinePatchValidationSeverity.Error,
-            "$label extends beyond content bounds (${segment.start}+${segment.length} > $maxSize).",
-        )
+        issues +=
+            NinePatchValidationIssue(
+                NinePatchValidationSeverity.Error,
+                "$label extends beyond content bounds (${segment.start}+${segment.length} > $maxSize).",
+            )
     }
 }

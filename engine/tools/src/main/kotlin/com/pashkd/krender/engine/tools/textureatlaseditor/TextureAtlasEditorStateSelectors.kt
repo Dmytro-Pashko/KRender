@@ -9,8 +9,7 @@ internal const val TextureAtlasMaxGridSpacingPixels = 512
 internal const val TextureAtlasMinCanvasDimensionPixels = 1
 internal const val TextureAtlasMaxCanvasDimensionPixels = 8192
 
-internal fun TextureAtlasEditorState.isShowingPackedAtlasPreview(): Boolean =
-    preview.canvasMode == TextureAtlasCanvasMode.TextureAtlas && preview.showPackedAtlasPreview
+internal fun TextureAtlasEditorState.isShowingPackedAtlasPreview(): Boolean = preview.canvasMode == TextureAtlasCanvasMode.TextureAtlas && preview.showPackedAtlasPreview
 
 internal fun TextureAtlasEditorState.hasUnappliedNinePatchDraft(): Boolean = ninePatchEditor.dirty
 
@@ -18,8 +17,7 @@ internal fun TextureAtlasEditorState.hasUnsavedChanges(): Boolean = dirty || has
 
 internal fun TextureAtlasEditorState.selectedAsset(): TextureAtlasEditorAssetDescriptor? = project.assets.firstOrNull { it.id == selectedAssetId }
 
-internal fun TextureAtlasEditorState.selectedResource(): TextureAtlasResource? =
-    resources.items.firstOrNull { resource -> resource.id == resources.selectedResourceId }
+internal fun TextureAtlasEditorState.selectedResource(): TextureAtlasResource? = resources.items.firstOrNull { resource -> resource.id == resources.selectedResourceId }
 
 internal fun TextureAtlasEditorState.selectedAtlasDocument(): TextureAtlasDocument? =
     selectedAsset()
@@ -59,7 +57,10 @@ internal fun TextureAtlasEditorState.selectedRegionsForPage(): List<TextureAtlas
 
 internal fun TextureAtlasEditorState.selectedPackingPlan(): TextureAtlasPackingPlan? = packing.lastResult.plan
 
-internal fun TextureAtlasEditorState.selectedPackingPage(): TextureAtlasPackingPage? = packing.lastResult.plan?.pages?.getOrNull(packing.selectedPageIndex)
+internal fun TextureAtlasEditorState.selectedPackingPage(): TextureAtlasPackingPage? =
+    packing.lastResult.plan
+        ?.pages
+        ?.getOrNull(packing.selectedPageIndex)
 
 internal fun TextureAtlasEditorState.selectedPackingRegion(): TextureAtlasPackingRegion? =
     selectedPackingPage()
@@ -136,11 +137,9 @@ internal fun TextureAtlasResource.sourcePathOrNull(): String? =
         is FontAtlasResource -> sourcePath
     }
 
-internal fun NinePatchDocument.splitInts(): List<Int> =
-    guideSegmentsToAtlasInsets(stretchX.firstOrNull(), stretchY.firstOrNull(), contentWidth, contentHeight)
+internal fun NinePatchDocument.splitInts(): List<Int> = guideSegmentsToAtlasInsets(stretchX.firstOrNull(), stretchY.firstOrNull(), contentWidth, contentHeight)
 
-internal fun NinePatchDocument.padInts(): List<Int> =
-    guideSegmentsToAtlasInsets(paddingX, paddingY, contentWidth, contentHeight)
+internal fun NinePatchDocument.padInts(): List<Int> = guideSegmentsToAtlasInsets(paddingX, paddingY, contentWidth, contentHeight)
 
 private fun guideSegmentsToAtlasInsets(
     horizontal: NinePatchSegment?,

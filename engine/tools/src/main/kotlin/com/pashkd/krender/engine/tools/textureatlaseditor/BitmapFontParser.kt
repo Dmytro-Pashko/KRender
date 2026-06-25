@@ -22,7 +22,10 @@ class BitmapFontParser {
         }
     }
 
-    private fun buildDocument(fntFile: File, lines: List<String>): BitmapFontDocument {
+    private fun buildDocument(
+        fntFile: File,
+        lines: List<String>,
+    ): BitmapFontDocument {
         val diagnostics = mutableListOf<BitmapFontDiagnostic>()
         val fntPath = normalizePath(fntFile.path)
         var info: BitmapFontInfo? = null
@@ -42,12 +45,13 @@ class BitmapFontParser {
                 "info" -> info = parseInfo(attrs)
                 "common" -> common = parseCommon(attrs, diagnostics, fntPath)
                 "page" -> parsePage(attrs, fntFile, diagnostics, fntPath)?.let { pages += it }
-                "char" -> parseGlyph(attrs, diagnostics, fntPath, lineIndex)?.let { glyph ->
-                    if (!seenGlyphIds.add(glyph.id)) {
-                        diagnostics += diag(TextureAtlasEditorDiagnosticSeverity.Warning, "Duplicate glyph id=${glyph.id}.", fntPath)
+                "char" ->
+                    parseGlyph(attrs, diagnostics, fntPath, lineIndex)?.let { glyph ->
+                        if (!seenGlyphIds.add(glyph.id)) {
+                            diagnostics += diag(TextureAtlasEditorDiagnosticSeverity.Warning, "Duplicate glyph id=${glyph.id}.", fntPath)
+                        }
+                        glyphs += glyph
                     }
-                    glyphs += glyph
-                }
                 "kerning" -> parseKerning(attrs, diagnostics, fntPath)?.let { kernings += it }
                 "chars", "kernings" -> Unit
                 else -> Unit
@@ -210,18 +214,23 @@ class BitmapFontParser {
         }
     }
 
-    private fun errorDocument(file: File, message: String): BitmapFontDocument =
+    private fun errorDocument(
+        file: File,
+        message: String,
+    ): BitmapFontDocument =
         BitmapFontDocument(
             file = file,
             diagnostics = listOf(diag(TextureAtlasEditorDiagnosticSeverity.Error, message, normalizePath(file.path))),
             readable = false,
         )
 
-    private fun diag(severity: TextureAtlasEditorDiagnosticSeverity, message: String, source: String? = null) =
-        BitmapFontDiagnostic(severity = severity, message = message, source = source)
+    private fun diag(
+        severity: TextureAtlasEditorDiagnosticSeverity,
+        message: String,
+        source: String? = null,
+    ) = BitmapFontDiagnostic(severity = severity, message = message, source = source)
 
-    private fun isBinaryFnt(firstLine: String): Boolean =
-        firstLine.length >= 4 && firstLine[0].code == 0 && firstLine[1].code == 0 && firstLine[2].code == 0
+    private fun isBinaryFnt(firstLine: String): Boolean = firstLine.length >= 4 && firstLine[0].code == 0 && firstLine[1].code == 0 && firstLine[2].code == 0
 
     companion object {
         private val AttrPattern = Regex("""(\w+)=("[^"]*"|\S+)""")
@@ -231,11 +240,12 @@ class BitmapFontParser {
             AttrPattern.findAll(text).forEach { match ->
                 val key = match.groupValues[1]
                 val rawValue = match.groupValues[2]
-                result[key] = if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
-                    rawValue.substring(1, rawValue.length - 1)
-                } else {
-                    rawValue
-                }
+                result[key] =
+                    if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+                        rawValue.substring(1, rawValue.length - 1)
+                    } else {
+                        rawValue
+                    }
             }
             return result
         }
@@ -264,11 +274,12 @@ internal fun layoutSampleText(
         }
         val glyphX = cursorX + glyph.xOffset
         val glyphY = glyph.yOffset
-        placements += SampleTextGlyphPlacement(
-            glyph = glyph,
-            x = glyphX,
-            y = glyphY,
-        )
+        placements +=
+            SampleTextGlyphPlacement(
+                glyph = glyph,
+                x = glyphX,
+                y = glyphY,
+            )
         if (glyph.width > 0 && glyph.height > 0) {
             minX = minOf(minX, glyphX)
             minY = minOf(minY, glyphY)

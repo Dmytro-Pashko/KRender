@@ -148,7 +148,15 @@ class TextureAtlasResourceOperationsTest {
             assertEquals("button_primary", renamed.name)
             assertEquals("button_primary", renamed.atlasRegionId?.regionName)
             assertEquals("button_primary", state.selectedRegionId?.regionName)
-            assertEquals("button_primary", state.selectedAtlasDocument()?.regions?.firstOrNull()?.id?.regionName)
+            assertEquals(
+                "button_primary",
+                state
+                    .selectedAtlasDocument()
+                    ?.regions
+                    ?.firstOrNull()
+                    ?.id
+                    ?.regionName,
+            )
             assertTrue(state.dirty)
         } finally {
             root.deleteRecursively()

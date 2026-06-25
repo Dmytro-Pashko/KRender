@@ -3,11 +3,11 @@ package com.pashkd.krender.engine.tools.assetbrowser.creation
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.AssetOperationResult
 import com.pashkd.krender.engine.tools.assetbrowser.CreateAssetDraft
-import com.pashkd.krender.engine.tools.assetbrowser.createAssetBaseName
 import com.pashkd.krender.engine.tools.assetbrowser.assetBrowserNormalizePath
+import com.pashkd.krender.engine.tools.assetbrowser.createAssetBaseName
+import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
-import java.awt.image.BufferedImage
 
 internal fun createAtlasAsset(
     draft: CreateAssetDraft,

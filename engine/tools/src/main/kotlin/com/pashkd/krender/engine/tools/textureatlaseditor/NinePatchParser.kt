@@ -185,10 +185,11 @@ class NinePatchParser {
             segments += NinePatchSegment(start = start, length = (image.width - 1) - start - 1)
         }
         if (invalidPositions.isNotEmpty()) {
-            issues += issue(
-                NinePatchValidationSeverity.Warning,
-                "The $label guide contains non-black opaque pixels at drawable positions ${invalidPositions.joinToString(", ")}.",
-            )
+            issues +=
+                issue(
+                    NinePatchValidationSeverity.Warning,
+                    "The $label guide contains non-black opaque pixels at drawable positions ${invalidPositions.joinToString(", ")}.",
+                )
         }
         return ParsedGuide(segments)
     }
@@ -222,10 +223,11 @@ class NinePatchParser {
             segments += NinePatchSegment(start = start, length = (image.height - 1) - start - 1)
         }
         if (invalidPositions.isNotEmpty()) {
-            issues += issue(
-                NinePatchValidationSeverity.Warning,
-                "The $label guide contains non-black opaque pixels at drawable positions ${invalidPositions.joinToString(", ")}.",
-            )
+            issues +=
+                issue(
+                    NinePatchValidationSeverity.Warning,
+                    "The $label guide contains non-black opaque pixels at drawable positions ${invalidPositions.joinToString(", ")}.",
+                )
         }
         return ParsedGuide(segments)
     }
@@ -258,10 +260,11 @@ class NinePatchParser {
         issues: MutableList<NinePatchValidationIssue>,
     ): NinePatchSegment? {
         if (segments.size > 1) {
-            issues += issue(
-                NinePatchValidationSeverity.Warning,
-                "Multiple content/padding guide segments were found on the $borderLabel border; using the first segment only.",
-            )
+            issues +=
+                issue(
+                    NinePatchValidationSeverity.Warning,
+                    "Multiple content/padding guide segments were found on the $borderLabel border; using the first segment only.",
+                )
         }
         return segments.firstOrNull()
     }
@@ -272,14 +275,16 @@ class NinePatchParser {
         label: String,
         issues: MutableList<NinePatchValidationIssue>,
     ) {
-        segments.filter { segment ->
-            segment.length <= 0 || segment.start < 0 || segment.endInclusive >= size
-        }.forEach { segment ->
-            issues += issue(
-                NinePatchValidationSeverity.Warning,
-                "$label segment ${segment.start}..${segment.endInclusive} is outside drawable bounds.",
-            )
-        }
+        segments
+            .filter { segment ->
+                segment.length <= 0 || segment.start < 0 || segment.endInclusive >= size
+            }.forEach { segment ->
+                issues +=
+                    issue(
+                        NinePatchValidationSeverity.Warning,
+                        "$label segment ${segment.start}..${segment.endInclusive} is outside drawable bounds.",
+                    )
+            }
     }
 
     private fun classifyArgbPixel(pixel: Int): GuidePixel {

@@ -4,7 +4,6 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.BitmapFontGlyph
 import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.ImageAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchAtlasResource
-import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchEditorState
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchValidationSeverity
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
@@ -14,13 +13,11 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontPageTexturePath
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedResource
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
-import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
-import glm_.vec2.Vec2 as ImVec2
 
 class TextureAtlasEditorInspectorPanel(
     private val state: TextureAtlasEditorState,
@@ -159,14 +156,16 @@ class TextureAtlasEditorInspectorPanel(
         }
 
         val filter = state.fontPreview.glyphFilter.lowercase()
-        val filteredGlyphs = if (filter.isBlank()) {
-            document.glyphs.take(MaxVisibleGlyphs)
-        } else {
-            document.glyphs.filter { glyph ->
-                glyph.id.toString().contains(filter) ||
-                    glyph.char?.lowercase()?.contains(filter) == true
-            }.take(MaxVisibleGlyphs)
-        }
+        val filteredGlyphs =
+            if (filter.isBlank()) {
+                document.glyphs.take(MaxVisibleGlyphs)
+            } else {
+                document.glyphs
+                    .filter { glyph ->
+                        glyph.id.toString().contains(filter) ||
+                            glyph.char?.lowercase()?.contains(filter) == true
+                    }.take(MaxVisibleGlyphs)
+            }
         ImGui.beginChild("font_glyph_list", glm_.vec2.Vec2(0f, 150f), true)
         filteredGlyphs.forEach { glyph ->
             val label = glyphLabel(glyph)
@@ -305,7 +304,11 @@ class TextureAtlasEditorInspectorPanel(
         ImGui.separator()
     }
 
-    private inline fun drawIntField(label: String, currentValue: Int, crossinline onChange: (Int) -> Unit) {
+    private inline fun drawIntField(
+        label: String,
+        currentValue: Int,
+        crossinline onChange: (Int) -> Unit,
+    ) {
         writeBuffer(npBuf, currentValue.toString())
         ImGui.setNextItemWidth(80f)
         if (ImGui.inputText(label, npBuf)) {
@@ -325,4 +328,3 @@ class TextureAtlasEditorInspectorPanel(
         private const val MaxVisibleGlyphs = 200
     }
 }
-

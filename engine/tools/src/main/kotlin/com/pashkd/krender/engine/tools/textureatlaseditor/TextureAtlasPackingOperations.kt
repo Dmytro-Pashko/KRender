@@ -45,7 +45,13 @@ internal class TextureAtlasPackingOperations(
         val mergedDiagnostics = diagnostics + result.diagnostics
         state.packing.lastResult = result.copy(diagnostics = mergedDiagnostics)
         state.packing.selectedPageIndex = 0
-        state.packing.selectedRegionId = result.plan?.pages?.firstOrNull()?.regions?.firstOrNull()?.id
+        state.packing.selectedRegionId =
+            result.plan
+                ?.pages
+                ?.firstOrNull()
+                ?.regions
+                ?.firstOrNull()
+                ?.id
         val pages = result.plan?.pages?.size ?: 0
         val regions = result.plan?.packedRegionCount ?: 0
         val skipped = result.plan?.skippedCount ?: 0
@@ -57,7 +63,10 @@ internal class TextureAtlasPackingOperations(
 
     fun selectPackingPage(index: Int) {
         state.packing.selectedPageIndex = index
-        val page = state.packing.lastResult.plan?.pages?.getOrNull(index)
+        val page =
+            state.packing.lastResult.plan
+                ?.pages
+                ?.getOrNull(index)
         state.packing.selectedRegionId = page?.regions?.firstOrNull()?.id
         state.statusMessage = if (page != null) "Selected packing page '${page.name}'." else "Packing page selection cleared."
     }

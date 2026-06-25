@@ -6,9 +6,9 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.utils.Disposable
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TexturePreviewHandle
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingPage
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPreviewSlice
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPreviewInfo
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPreviewSlice
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingPage
 import java.io.File
 
 class GdxTextureAtlasEditorPreview(

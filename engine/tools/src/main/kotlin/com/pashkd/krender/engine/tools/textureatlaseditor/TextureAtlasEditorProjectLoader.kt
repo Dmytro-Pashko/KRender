@@ -158,8 +158,7 @@ class TextureAtlasEditorProjectLoader(
                     logger.debug(TAG) { "Skipping Texture Atlas Editor directory '${normalizePath(directory.path)}'" }
                 }
                 !skip
-            }
-            .filter(File::isFile)
+            }.filter(File::isFile)
             .takeWhile { file ->
                 scannedFiles++
                 if (scannedFiles > MaxScannedFiles) {
@@ -175,8 +174,7 @@ class TextureAtlasEditorProjectLoader(
                 } else {
                     true
                 }
-            }
-            .forEach { file ->
+            }.forEach { file ->
                 when {
                     file.name.endsWith(".krmeta", ignoreCase = true) -> metadata += file
                     isAtlasFile(file) -> atlases += file
@@ -360,12 +358,13 @@ class TextureAtlasEditorProjectLoader(
             logger.info(TAG) { "Detected font file path='$normalizedPath'" }
             val document = bitmapFontParser.parse(file)
             document.diagnostics.forEach { fontDiag ->
-                diagnostics += TextureAtlasEditorDiagnostic(
-                    severity = fontDiag.severity,
-                    category = TextureAtlasEditorDiagnosticCategory.Font,
-                    message = fontDiag.message,
-                    source = fontDiag.source ?: normalizedPath,
-                )
+                diagnostics +=
+                    TextureAtlasEditorDiagnostic(
+                        severity = fontDiag.severity,
+                        category = TextureAtlasEditorDiagnosticCategory.Font,
+                        message = fontDiag.message,
+                        source = fontDiag.source ?: normalizedPath,
+                    )
             }
             if (document.readable) {
                 logger.info(TAG) {

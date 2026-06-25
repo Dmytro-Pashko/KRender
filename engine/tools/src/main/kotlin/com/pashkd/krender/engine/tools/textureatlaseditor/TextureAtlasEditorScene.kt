@@ -7,11 +7,11 @@ import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.assets.importing.NoOpFileDialogService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasCanvasMode.FinalPackedAtlas
 import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasCanvasMode.FinalPackedAtlas
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxNinePatchPixelReader
-import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxTextureAtlasSaveService
 import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxTextureAtlasEditorPreview
+import com.pashkd.krender.engine.tools.textureatlaseditor.gdx.GdxTextureAtlasSaveService
 import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorDiagnosticsPanel
 import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorInspectorPanel
 import com.pashkd.krender.engine.tools.textureatlaseditor.ui.TextureAtlasEditorPreviewCanvasPanel
@@ -157,7 +157,9 @@ class TextureAtlasEditorScene(
     private fun preferredAssetId(): TextureAssetId? {
         val preferredPath = editorState.project.selectedTexturePath ?: editorState.project.selectedAtlasPath
         val preferredAsset = preferredPath?.let { path -> editorState.project.assets.firstOrNull { asset -> asset.path == path } }
-        return preferredAsset?.id ?: editorState.project.assets.firstOrNull()?.id
+        return preferredAsset?.id ?: editorState.project.assets
+            .firstOrNull()
+            ?.id
     }
 
     private fun createUiSystem(): UiSystem {
@@ -262,7 +264,7 @@ private class TextureAtlasEditorPreviewSyncSystem(
 
         val atlasPath = assetPath?.takeIf { it.endsWith(".atlas", ignoreCase = true) } ?: state.project.selectedAtlasPath
         if (atlasPath != null) {
-            val missingKey = "${atlasPath}|${atlasPageName.orEmpty()}"
+            val missingKey = "$atlasPath|${atlasPageName.orEmpty()}"
             if (lastMissingPreviewKey != missingKey) {
                 lastMissingPreviewKey = missingKey
                 lastResolvedPreviewKey = null

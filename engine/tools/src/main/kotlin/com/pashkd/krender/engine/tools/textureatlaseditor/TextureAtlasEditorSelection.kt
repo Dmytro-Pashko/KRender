@@ -10,4 +10,3 @@ data class AtlasRegionId(
     val pageName: String,
     val regionName: String,
 )
-

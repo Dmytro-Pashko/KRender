@@ -160,7 +160,11 @@ class TextureAtlasEditorImportExportOperations(
             state.currentInputPath
                 ?.takeIf { it.endsWith(".atlas", ignoreCase = true) }
         if (atlasPath != null) {
-            return File(atlasPath).parent?.replace('\\', '/')?.let { "$it/" }.orEmpty()
+            return File(atlasPath)
+                .parent
+                ?.replace('\\', '/')
+                ?.let { "$it/" }
+                .orEmpty()
         }
         return "textures/"
     }

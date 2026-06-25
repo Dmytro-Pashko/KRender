@@ -64,8 +64,7 @@ class TextureAtlasResourceBuilder {
                 .filter { (path, _) ->
                     val fontDirectory = path.substringBeforeLast('/', "")
                     selectedAtlasDirectory != null && fontDirectory == selectedAtlasDirectory
-                }
-                .sortedBy { (path, _) -> File(path).nameWithoutExtension.lowercase() }
+                }.sortedBy { (path, _) -> File(path).nameWithoutExtension.lowercase() }
                 .map { (path, document) -> createFontAtlasResource(path, document) }
                 .toList()
         val rebuiltItems = atlasResources + fontResources + carryOverResources
