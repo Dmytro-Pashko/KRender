@@ -14,6 +14,8 @@ interface EditorToolLauncher {
 
     fun launchSkinEditor(skinPath: String?)
 
+    fun launchTextureAtlasEditor(atlasPath: String)
+
     /**
      * Opens a `.krui` UiScene in the UI Composer route.
      *
@@ -46,6 +48,10 @@ object UnsupportedEditorToolLauncher : EditorToolLauncher {
     }
 
     override fun launchSkinEditor(skinPath: String?) {
+        unsupported()
+    }
+
+    override fun launchTextureAtlasEditor(atlasPath: String) {
         unsupported()
     }
 

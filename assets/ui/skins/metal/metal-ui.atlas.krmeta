@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:4f7755f5-2735-4fed-84b2-814de9f5f120",
+  "type": "Atlas",
+  "category": "Scene2D",
+  "displayName": "metal-ui",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}

@@ -46,6 +46,7 @@ private fun logStartup(args: Array<String>) {
             appendLine("krender.scene=${System.getProperty("krender.scene")}")
             appendLine("krender.model.path=${System.getProperty("krender.model.path")}")
             appendLine("krender.model=${System.getProperty("krender.model")}")
+            appendLine("krender.texture.atlas.path=${System.getProperty("krender.texture.atlas.path")}")
             appendLine("krender.scene.path=${System.getProperty("krender.scene.path")}")
             appendLine("java.version=${System.getProperty("java.version")}")
             appendLine(

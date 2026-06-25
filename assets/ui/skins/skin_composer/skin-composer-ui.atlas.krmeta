@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:973830ab-fc7d-42d5-97a9-0afe883464df",
+  "type": "Atlas",
+  "category": "Scene2D",
+  "displayName": "skin-composer-ui",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}

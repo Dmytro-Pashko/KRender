@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:3fb53d9e-cadc-4d77-944d-8b1b2dcd034d",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "font-bold-export",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

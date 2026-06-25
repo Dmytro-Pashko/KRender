@@ -19,7 +19,7 @@ open class GdxEngineApplication(
     private val runtimeWindowLauncherFactory: (Logger) -> RuntimeWindowLauncher = { UnsupportedRuntimeWindowLauncher },
     private val editorToolLauncherFactory: (Logger) -> EditorToolLauncher = { UnsupportedEditorToolLauncher },
     private val runtimeUiActorFactoryProvider: RuntimeUiActorFactoryProvider = RuntimeUiActorFactoryProvider.Empty,
-    private val runtimeUiDefaultSkinPath: String = "ui/skins/default_ui.json",
+    private val runtimeUiDefaultSkinPath: String = "ui/skins/default/uiskin.json",
 ) : ApplicationAdapter() {
     private lateinit var backend: LibGdxBackend
     private lateinit var runtime: EngineRuntime

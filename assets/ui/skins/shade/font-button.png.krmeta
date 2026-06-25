@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:f05a3103-55ee-4c2f-962d-dfe0b625aede",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "font-button",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

@@ -60,8 +60,8 @@ class AwtFileDialogService : FileDialogService {
 
 val AssetImportFileDialogFilters =
     listOf(
-        FileDialogFilter("All supported assets", listOf("png", "jpg", "jpeg", "webp", "glb", "json")),
-        FileDialogFilter("Textures", listOf("png", "jpg", "jpeg", "webp")),
+        FileDialogFilter("All supported assets", listOf("png", "bmp", "jpg", "jpeg", "ktx", "webp", "glb", "json")),
+        FileDialogFilter("Textures", listOf("png", "bmp", "jpg", "jpeg", "ktx", "webp")),
         FileDialogFilter("Binary model", listOf("glb")),
         FileDialogFilter("Scene2D Skin", listOf("json")),
     )

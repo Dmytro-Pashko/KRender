@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:2cbb159d-6790-4c6f-a17a-7c208a9076b8",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "metal-ui_1",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

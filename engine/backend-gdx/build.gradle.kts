@@ -23,3 +23,21 @@ dependencies {
         implementation("io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion")
     }
 }
+
+tasks.register<JavaExec>("normalizeScene2DSkins") {
+    group = "tools"
+    description = "Normalizes libGDX Scene2D skin files into strict JSON."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.pashkd.krender.engine.backend.gdx.tools.Scene2DSkinNormalizer")
+
+    val defaultPath = rootProject.file("assets/ui/skins").absolutePath
+    val targetPath = providers.gradleProperty("scene2dSkinPath").orElse(defaultPath)
+    val dryRun = providers.gradleProperty("scene2dSkinDryRun").map(String::toBoolean).orElse(false)
+
+    doFirst {
+        args = mutableListOf(targetPath.get())
+        if (dryRun.get()) {
+            args("--dry-run")
+        }
+    }
+}

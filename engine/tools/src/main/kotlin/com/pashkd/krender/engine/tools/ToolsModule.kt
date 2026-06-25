@@ -1,11 +1,13 @@
 package com.pashkd.krender.engine.tools
 
 import com.pashkd.krender.engine.api.Scene
+import com.pashkd.krender.engine.assets.importing.AwtFileDialogService
 import com.pashkd.krender.engine.tools.animationviewer.AnimationViewerScene
 import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserScene
 import com.pashkd.krender.engine.tools.modelviewer.ModelViewerScene
 import com.pashkd.krender.engine.tools.sceneeditor.SceneEditorScene
 import com.pashkd.krender.engine.tools.skin.SkinEditorScene
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorScene
 import com.pashkd.krender.engine.tools.uicomposer.UiComposerScene
 
 object ToolsModule {
@@ -18,6 +20,7 @@ object ToolsModule {
         sceneNameOverride: String? = null,
         uiScenePath: String? = null,
         skinPath: String? = null,
+        atlasPath: String? = null,
     ): Scene? =
         when (sceneName.lowercase()) {
             "asset-browser" -> AssetBrowserScene()
@@ -29,6 +32,7 @@ object ToolsModule {
                 )
             "scene-editor" -> SceneEditorScene(scenePath = scenePath, initialSceneName = sceneNameOverride)
             "skin-editor" -> SkinEditorScene(initialSkinPath = skinPath)
+            "texture-atlas-editor" -> TextureAtlasEditorScene(initialAtlasPath = atlasPath, fileDialogService = AwtFileDialogService())
             "ui-composer" -> UiComposerScene(uiScenePath ?: throw missingProperty("krender.ui.scene.path", sceneName))
             else -> null
         }

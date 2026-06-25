@@ -28,11 +28,12 @@ class DesktopMain(
                 sceneNameOverride = configuredSceneNameOverride(),
                 uiScenePath = configuredUiScenePath(),
                 skinPath = configuredSkinPath(),
+                atlasPath = configuredTextureAtlasPath(),
             ) ?: ScenePlayerModule.createScene(
                 sceneName = requestedScene,
                 scenePath = scenePath,
             ) ?: throw IllegalArgumentException(
-                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, scene-player, scene-viewer, runtime-scene, model-viewer, animation-viewer, terrain-editor, skin-editor, ui-composer.",
+                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, scene-player, scene-viewer, runtime-scene, model-viewer, animation-viewer, terrain-editor, skin-editor, texture-atlas-editor, ui-composer.",
             )
         },
         runtimeWindowLauncherFactory = runtimeWindowLauncherFactory,
@@ -52,6 +53,8 @@ class DesktopMain(
         fun configuredUiScenePath(): String? = System.getProperty("krender.ui.scene.path")?.takeIf(String::isNotBlank)
 
         fun configuredSkinPath(): String? = System.getProperty("krender.skin.path")?.takeIf(String::isNotBlank)
+
+        fun configuredTextureAtlasPath(): String? = System.getProperty("krender.texture.atlas.path")?.takeIf(String::isNotBlank)
 
         fun configuredScenePath(): String? = System.getProperty("krender.scene.path")?.takeIf(String::isNotBlank)
 

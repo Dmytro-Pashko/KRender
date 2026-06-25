@@ -52,6 +52,14 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
+    override fun launchTextureAtlasEditor(atlasPath: String) {
+        launch(
+            scene = "texture-atlas-editor",
+            pathProperty = "krender.texture.atlas.path" to normalizePath(atlasPath),
+            failureMessage = "Texture Atlas Editor launch failed",
+        )
+    }
+
     /**
      * Launches UiComposerScene for a `.krui` UiScene asset.
      */
