@@ -70,6 +70,8 @@ class TextureAtlasEditorPreviewCanvasPanel(
     private var lastSyncedStretchTargetHeight: Int? = null
     private var pendingSelectRegionId: AtlasRegionId? = null
     private var pendingSelectWasDoubleClick = false
+    private var pendingSelectGlyphId: Int? = null
+    private var pendingSelectGlyphWasDoubleClick = false
     private var clickDragDistance = 0f
     private var cursorTextureX: Int? = null
     private var cursorTextureY: Int? = null
@@ -683,11 +685,46 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 }
                 if (ImGui.run { MouseButton.Right.isDragging() } && (io.mouseDelta.x != 0f || io.mouseDelta.y != 0f)) {
                     operations.panPreview(io.mouseDelta.x, io.mouseDelta.y)
+                    clickDragDistance += kotlin.math.abs(io.mouseDelta.x) + kotlin.math.abs(io.mouseDelta.y)
+                    pendingSelectGlyphId = null
+                    pendingSelectGlyphWasDoubleClick = false
+                }
+                if (!state.fontPreview.showSampleTextPreview && state.fontPreview.showGlyphBounds) {
+                    val pageId = document.pages.getOrNull(state.fontPreview.selectedPageIndex)?.id ?: 0
+                    val pageGlyphs = document.glyphs.filter { it.page == pageId }
+                    val hoveredGlyph =
+                        TextureAtlasEditorPreviewOverlays.hitTestFontGlyph(
+                            glyphs = pageGlyphs,
+                            layout = viewportLayout,
+                            screenX = io.mousePos.x,
+                            screenY = io.mousePos.y,
+                        )
+                    state.fontPreview.hoveredGlyphId = hoveredGlyph?.id
+                    if (io.mouseClicked[0]) {
+                        pendingSelectGlyphId = hoveredGlyph?.id
+                        pendingSelectGlyphWasDoubleClick = ImGui.run { MouseButton.Left.isDoubleClicked }
+                        clickDragDistance = 0f
+                    }
+                    if (pendingSelectGlyphId != null && io.mouseReleased[0] && clickDragDistance < ClickDragThreshold) {
+                        operations.selectFontGlyph(pendingSelectGlyphId)
+                        if (pendingSelectGlyphWasDoubleClick) {
+                            operations.fitSelectedFontGlyph(pendingSelectGlyphId)
+                        }
+                        resetPendingGlyphSelection()
+                    } else if (io.mouseReleased[0]) {
+                        resetPendingGlyphSelection()
+                    }
+                } else {
+                    state.fontPreview.hoveredGlyphId = null
+                    resetPendingGlyphSelection()
                 }
             } else {
+                state.fontPreview.hoveredGlyphId = null
+                resetPendingGlyphSelection()
                 clearCursorMetrics()
             }
         } else {
+            state.fontPreview.hoveredGlyphId = null
             wrappedTextLine(state.previewInfo.statusMessage)
         }
 
@@ -779,6 +816,11 @@ class TextureAtlasEditorPreviewCanvasPanel(
         clickDragDistance = 0f
     }
 
+    private fun resetPendingGlyphSelection() {
+        pendingSelectGlyphId = null
+        pendingSelectGlyphWasDoubleClick = false
+    }
+
     private fun drawStatusLine() {
         when (state.preview.canvasMode) {
             TextureAtlasCanvasMode.TextureAtlas,
@@ -843,7 +885,9 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 val document = state.selectedFontDocument()
                 val face = document?.info?.face ?: "<unknown>"
                 val glyphCount = document?.glyphs?.size ?: 0
+                val hoveredGlyph = state.fontPreview.hoveredGlyphId?.let { id -> document?.glyphs?.firstOrNull { it.id == id } }
                 val selectedGlyph = state.fontPreview.selectedGlyphId?.let { id -> document?.glyphs?.firstOrNull { it.id == id } }
+                val hoveredText = hoveredGlyph?.let { g -> "id=${g.id} '${g.char ?: "?"}' [${g.width}x${g.height}]" } ?: "<none>"
                 val selectedText = selectedGlyph?.let { g -> "id=${g.id} '${g.char ?: "?"}' [${g.width}x${g.height}]" } ?: "<none>"
                 val cursorText =
                     if (cursorTextureX != null && cursorTextureY != null) {
@@ -852,8 +896,9 @@ class TextureAtlasEditorPreviewCanvasPanel(
                         "Cursor: <outside>"
                     }
                 val previewMode = if (state.fontPreview.showSampleTextPreview) "Sample Text" else "Full Font"
-                textLine("Font: $face | Glyphs: $glyphCount | Page: ${state.fontPreview.selectedPageIndex} | Preview: $previewMode | Selected: $selectedText | $cursorText")
-                wrappedTextLine("Wheel: zoom only. RMB drag: pan. Use Preview Tint to recolor the font preview and Preview panel controls to switch between full font and sample text preview.")
+                textLine("Font: $face | Glyphs: $glyphCount | Page: ${state.fontPreview.selectedPageIndex} | Preview: $previewMode | $cursorText")
+                textLine("Hovered: $hoveredText | Selected: $selectedText")
+                wrappedTextLine("Wheel: zoom only. RMB drag: pan. LMB on glyph: select. Use Preview Tint to recolor the font preview and Preview panel controls to switch between full font and sample text preview.")
             }
         }
     }

@@ -68,6 +68,7 @@ and saved explicitly.
 - Import Image and Export Resource are explicit file operations.
 - Packed font descriptors are written as separate `*_packed.fnt` files. The original imported `.fnt` is never overwritten.
 - The tool does not generate `.krmeta` files.
+- The Resources panel import UI is intentionally a single shared import source field; image and font buttons reuse that path but still route through their existing dedicated operations.
 
 ## Scope Boundaries
 

@@ -545,15 +545,41 @@ internal object TextureAtlasEditorPreviewOverlays {
             val minY = layout.imageY + (glyph.y - offsetY) * layout.effectiveZoom
             val maxX = minX + glyph.width * layout.effectiveZoom
             val maxY = minY + glyph.height * layout.effectiveZoom
-            val color =
+            val strokeColor =
                 when (glyph.id) {
                     selectedGlyphId -> GlyphSelectedColor
                     hoveredGlyphId -> GlyphHoveredColor
                     else -> GlyphBoundsColor
                 }
-            drawList.addRect(ImVec2(minX, minY), ImVec2(maxX, maxY), color, 0f, thickness = 1f)
+            val fillColor =
+                when (glyph.id) {
+                    selectedGlyphId -> SelectedFillColor
+                    hoveredGlyphId -> HoverFillColor
+                    else -> null
+                }
+            fillColor?.let { color ->
+                drawList.addRectFilled(ImVec2(minX, minY), ImVec2(maxX, maxY), color)
+            }
+            drawList.addRect(ImVec2(minX, minY), ImVec2(maxX, maxY), strokeColor, 0f, thickness = 2f)
         }
     }
+
+    fun hitTestFontGlyph(
+        glyphs: List<BitmapFontGlyph>,
+        layout: TexturePreviewViewportLayout,
+        screenX: Float,
+        screenY: Float,
+        offsetX: Int = 0,
+        offsetY: Int = 0,
+    ): BitmapFontGlyph? =
+        glyphs.firstOrNull { glyph ->
+            if (glyph.width <= 0 || glyph.height <= 0) return@firstOrNull false
+            val minX = layout.imageX + (glyph.x - offsetX) * layout.effectiveZoom
+            val minY = layout.imageY + (glyph.y - offsetY) * layout.effectiveZoom
+            val maxX = minX + glyph.width * layout.effectiveZoom
+            val maxY = minY + glyph.height * layout.effectiveZoom
+            screenX >= minX && screenX <= maxX && screenY >= minY && screenY <= maxY
+        }
 
     fun drawFontSampleText(
         handle: TexturePreviewHandle,

@@ -337,6 +337,61 @@ class TextureAtlasEditorOperations(
         }
     }
 
+    fun fitSelectedFontGlyph(glyphId: Int? = state.fontPreview.selectedGlyphId) {
+        if (state.preview.canvasMode != TextureAtlasCanvasMode.FontPreview) {
+            state.statusMessage = "Switch to Font Preview before focusing a glyph."
+            return
+        }
+        if (state.fontPreview.showSampleTextPreview) {
+            state.statusMessage = "Disable Sample Text Preview before focusing a glyph."
+            return
+        }
+        val document = state.selectedFontDocument()
+        val pageId = document?.pages?.getOrNull(state.fontPreview.selectedPageIndex)?.id ?: 0
+        val glyph = document?.glyphs?.firstOrNull { candidate -> candidate.id == glyphId && candidate.page == pageId }
+        if (glyph == null || glyph.width <= 0 || glyph.height <= 0) {
+            state.statusMessage = "Select a glyph with valid bounds to focus it."
+            return
+        }
+        val canvas = state.canvasRect
+        val textureWidth = state.previewInfo.textureWidth
+        val textureHeight = state.previewInfo.textureHeight
+        if (!canvas.isValid || textureWidth <= 0 || textureHeight <= 0) {
+            engine.logger.warn(TAG) {
+                "Texture Atlas Editor fitSelectedFontGlyph ignored glyph='${glyph.id}' because canvas or preview dimensions were unavailable"
+            }
+            state.statusMessage = "Preview must be visible before focusing a glyph."
+            return
+        }
+
+        val glyphWidth = glyph.width.coerceAtLeast(1)
+        val glyphHeight = glyph.height.coerceAtLeast(1)
+        val zoom =
+            minOf(
+                canvas.width / glyphWidth.toFloat(),
+                canvas.height / glyphHeight.toFloat(),
+            ).times(0.9f).coerceIn(TextureAtlasMinPreviewZoom, TextureAtlasMaxPreviewZoom)
+
+        val imageWidth = textureWidth * zoom
+        val imageHeight = textureHeight * zoom
+        val baseImageX = canvas.x + (canvas.width - imageWidth) * 0.5f
+        val baseImageY = canvas.y + (canvas.height - imageHeight) * 0.5f
+        val glyphCenterX = glyph.x + glyphWidth * 0.5f
+        val glyphCenterY = glyph.y + glyphHeight * 0.5f
+        val desiredCenterX = canvas.x + canvas.width * 0.5f
+        val desiredCenterY = canvas.y + canvas.height * 0.5f
+
+        state.preview.customZoom = zoom
+        state.preview.viewport.zoom = zoom
+        state.preview.zoomMode = TexturePreviewZoomMode.Custom
+        state.preview.viewport.panX = desiredCenterX - (baseImageX + glyphCenterX * zoom)
+        state.preview.viewport.panY = desiredCenterY - (baseImageY + glyphCenterY * zoom)
+        state.statusMessage = "Focused glyph '${glyph.id}'."
+        engine.logger.info(TAG) {
+            "Texture Atlas Editor fit selected glyph='${glyph.id}' page=$pageId zoom=$zoom"
+        }
+    }
+
     fun panPreview(
         deltaX: Float,
         deltaY: Float,

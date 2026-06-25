@@ -28,7 +28,7 @@ Plain texture regions extracted from atlas pages or added manually from existing
 
 ### NinePatch Resources
 
-Atlas regions that carry `split` and `pad` metadata. NinePatch resources can be created from Image resources by choosing **Create NinePatch** in the Resources panel. Once created, split and padding guides can be edited interactively in the NinePatch Editor canvas mode.
+Atlas regions that carry `split` and `pad` metadata. NinePatch resources can be created from Image resources by choosing **Convert to NinePatch** in the Inspector panel. Once created, split and padding guides can be edited interactively in the NinePatch Editor canvas mode.
 
 ### BitmapFont Resources
 
@@ -46,6 +46,8 @@ The Preview Canvas panel provides four modes:
 - **Atlas Preview** — shows the current packed atlas plan as a composited texture with region bounds.
 
 All modes support pan (right-mouse-button drag), zoom (scroll wheel), fit, checkerboard background, pixel grid overlay, and region/glyph focus.
+
+The NinePatch Editor places **Preview Type** and the stretch-test **Preset** selector on the same row when the canvas is in stretch-test mode. Font Preview glyph bounds use the same baseline outline color as atlas region bounds in Atlas File mode.
 
 ## NinePatch Editor Mode
 
