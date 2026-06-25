@@ -36,6 +36,7 @@ class SkinEditorScene(
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
     private lateinit var operations: SkinEditorOperations
     private val previewLayouts = PreviewLayoutRegistry()
+    private var lastLoggedProblemsSignature: String? = null
 
     init {
         editorState = SkinEditorState(currentInputPath = initialSkinPath?.trim()?.replace('\\', '/'))
@@ -109,6 +110,7 @@ class SkinEditorScene(
         val pendingStatusOverride = editorState.pendingStatusAfterReload
         editorState.reloadRequested = false
         editorState.loadResult = reloadService.reload(editorState.currentInputPath)
+        logProblemsIfChanged(context = "reload")
         editorState.statusMessage =
             when {
                 editorState.loadResult.project == null -> "Select a Scene2D skin to begin."
@@ -120,6 +122,19 @@ class SkinEditorScene(
             editorState.statusMessage = status
             editorState.pendingStatusAfterReload = null
         }
+    }
+
+    private fun logProblemsIfChanged(context: String) {
+        val signature = skinProblemsSignature(editorState.loadResult.problems)
+        if (signature == lastLoggedProblemsSignature) return
+        lastLoggedProblemsSignature = signature
+        logSkinProblemsSnapshot(
+            logger = engine.logger,
+            tag = TAG,
+            context = context,
+            inputPath = editorState.currentInputPath,
+            problems = editorState.loadResult.problems,
+        )
     }
 
     private fun resetEditorStateAfterReload(
@@ -410,4 +425,50 @@ private class SkinResourcePreviewUpdateSystem(
                 editSession = state.editSession,
             )
     }
+}
+
+private fun skinProblemsSignature(problems: List<SkinProblem>): String =
+    problems.joinToString(separator = "\n") { problem ->
+        listOf(
+            problem.severity.name,
+            problem.category.name,
+            problem.message,
+            problem.source.orEmpty(),
+            problem.suggestedFix.orEmpty(),
+            problem.styleKey?.let { "${it.type}.${it.name}" }.orEmpty(),
+            problem.resourceKey?.name.orEmpty(),
+        ).joinToString("|")
+    }
+
+private fun logSkinProblemsSnapshot(
+    logger: Logger,
+    tag: String,
+    context: String,
+    inputPath: String?,
+    problems: List<SkinProblem>,
+) {
+    logger.info(tag) {
+        "Skin Editor problems snapshot context='$context' path='${inputPath ?: "<none>"}' count=${problems.size}"
+    }
+    problems.forEachIndexed { index, problem ->
+        val message = buildSkinProblemLogLine(context, inputPath, index, problem)
+        when (problem.severity) {
+            SkinProblemSeverity.Info -> logger.info(tag) { message }
+            SkinProblemSeverity.Warning -> logger.warn(tag) { message }
+            SkinProblemSeverity.Error -> logger.error(tag) { message }
+        }
+    }
+}
+
+private fun buildSkinProblemLogLine(
+    context: String,
+    inputPath: String?,
+    index: Int,
+    problem: SkinProblem,
+): String {
+    val source = problem.source?.let { " source='$it'" }.orEmpty()
+    val suggestedFix = problem.suggestedFix?.let { " suggestedFix='$it'" }.orEmpty()
+    val style = problem.styleKey?.let { " style='${it.type}.${it.name}'" }.orEmpty()
+    val resource = problem.resourceKey?.let { " resource='${it.category}.${it.name}'" }.orEmpty()
+    return "Skin Editor problem[$index] context='$context' path='${inputPath ?: "<none>"}' severity=${problem.severity} category=${problem.category}$style$resource$source suggestedMessage='${problem.message}'$suggestedFix"
 }

@@ -67,7 +67,9 @@ class SkinReloadService(
                         message = error.message ?: error::class.simpleName ?: "Unknown Skin load error.",
                         source = skinFile.path,
                     )
-                logger.warn(TAG, error) { "Skin Editor failed to load skin path='${skinFile.path}': ${error.message}" }
+                logger.warn(TAG, error) {
+                    "Skin Editor failed to load skin path='${skinFile.path}': ${error.message} causeChain=${error.describeCauseChain()}"
+                }
             }
         }
 
@@ -84,4 +86,15 @@ class SkinReloadService(
     private companion object {
         private const val TAG = "SkinReloadService"
     }
+}
+
+private fun Throwable.describeCauseChain(): String {
+    val visited = linkedSetOf<Throwable>()
+    val chain = mutableListOf<String>()
+    var current: Throwable? = this
+    while (current != null && visited.add(current)) {
+        chain += "${current::class.simpleName ?: current::class.java.name}('${current.message ?: "<no message>"}')"
+        current = current.cause
+    }
+    return chain.joinToString(" -> ")
 }
