@@ -52,7 +52,10 @@ class GdxTextureAtlasSaveService(
             val pageNames = mutableListOf<String>()
             plan.pages.forEachIndexed { index, page ->
                 val pageFile = pageFiles[index]
-                writePage(pageFile, page, ninePatchDocuments)
+                val pageFailures = writePage(pageFile, page, ninePatchDocuments)
+                if (pageFailures.isNotEmpty()) {
+                    return@runCatching failure("Atlas page ${page.index + 1} could not be written: ${pageFailures.joinToString(" ")}")
+                }
                 writtenPaths += normalizePath(pageFile.path)
                 pageNames += pageFile.name
                 logger.info(TAG) {
@@ -80,33 +83,51 @@ class GdxTextureAtlasSaveService(
         file: File,
         page: TextureAtlasPackingPage,
         ninePatchDocuments: Map<String, NinePatchDocument>,
-    ) {
+    ): List<String> {
+        val failures = mutableListOf<String>()
+        page.regions.forEach { region ->
+            val sourceFile = File(region.sourcePath)
+            if (!sourceFile.isFile) {
+                failures += "Region '${region.displayName}' source is missing: '${normalizePath(region.sourcePath)}'."
+                logger.warn(TAG) { "Atlas save pre-check failed: missing source path='${region.sourcePath}' region='${region.displayName}'" }
+            }
+        }
+        if (failures.isNotEmpty()) return failures
+
         val output = Pixmap(page.width, page.height, Pixmap.Format.RGBA8888)
         try {
             output.setColor(0f, 0f, 0f, 0f)
             output.fill()
             page.regions.forEach { region ->
-                val source = Pixmap(Gdx.files.absolute(region.sourcePath))
-                try {
-                    output.drawPixmap(
-                        source,
-                        region.sourceX,
-                        region.sourceY,
-                        region.sourceWidth,
-                        region.sourceHeight,
-                        region.x,
-                        region.y,
-                        region.width,
-                        region.height,
-                    )
-                } finally {
-                    source.dispose()
+                runCatching {
+                    Pixmap(Gdx.files.absolute(region.sourcePath))
+                }.onSuccess { source ->
+                    try {
+                        output.drawPixmap(
+                            source,
+                            region.sourceX,
+                            region.sourceY,
+                            region.sourceWidth,
+                            region.sourceHeight,
+                            region.x,
+                            region.y,
+                            region.width,
+                            region.height,
+                        )
+                    } finally {
+                        source.dispose()
+                    }
+                }.onFailure { error ->
+                    failures += "Region '${region.displayName}' source could not be read: ${error.message ?: "unknown error"}."
+                    logger.warn(TAG, error) { "Atlas save region load failed path='${region.sourcePath}' region='${region.displayName}': ${error.message}" }
                 }
             }
+            if (failures.isNotEmpty()) return failures
             PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), output)
         } finally {
             output.dispose()
         }
+        return failures
     }
 
     private fun buildDescriptor(
