@@ -508,6 +508,14 @@ class TextureAtlasEditorOperations(
 
     fun exportSelectedResourcePng() = resourceOperations.exportSelectedResourcePng()
 
+    fun exportSelectedResource() {
+        when (state.selectedResource()) {
+            is FontAtlasResource -> fontOperations.exportBitmapFont()
+            null -> state.statusMessage = "Select a resource before exporting it."
+            else -> resourceOperations.exportSelectedResourcePng()
+        }
+    }
+
     fun createNinePatchFromSelectedResource() = resourceOperations.createNinePatchFromSelectedResource()
 
     fun createBitmapFontPlaceholder() = resourceOperations.createBitmapFontPlaceholder()

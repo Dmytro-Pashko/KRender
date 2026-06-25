@@ -199,6 +199,7 @@ internal class TextureAtlasResourceOperations(
                 ?: return ""
         val fileName =
             when (selected) {
+                is FontAtlasResource -> "${safeFileStem(selected.name)}.fnt"
                 is NinePatchAtlasResource -> "${safeFileStem(selected.name)}.9.png"
                 else -> "${safeFileStem(selected.name)}.png"
             }

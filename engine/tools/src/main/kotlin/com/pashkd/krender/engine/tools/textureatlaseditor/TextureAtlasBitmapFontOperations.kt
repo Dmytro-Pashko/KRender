@@ -166,31 +166,123 @@ internal class TextureAtlasBitmapFontOperations(
             return
         }
         val targetPath =
-            state.importExport.targetPath
+            state.importExport.exportResourcePath
                 .takeIf { it.endsWith(".fnt", ignoreCase = true) }
+                ?: state.importExport.targetPath
+                    .takeIf { it.endsWith(".fnt", ignoreCase = true) }
                 ?: defaultFontExportPath(resource)
-        val result =
-            writer.write(
-                assetRoot = engine.assetRegistry.baseDir(),
-                targetPath = targetPath,
-                document = document,
-                overwrite = state.importExport.saveOverwrite,
-            )
+        val result = exportBitmapFontDocument(document, targetPath)
         state.importExport.lastExportResult = result
         state.statusMessage = result.message
         if (result.success) {
-            state.importExport.targetPath = targetPath
-            engine.logger.info(TAG) { "Font exported path='$targetPath' glyphs=${document.glyphs.size}" }
+            state.importExport.exportResourcePath = targetPath
+            engine.logger.info(TAG) {
+                "Font exported path='$targetPath' glyphs=${document.glyphs.size} writtenPaths=${result.writtenPaths.joinToString()}"
+            }
         } else {
             engine.logger.warn(TAG) { "Font export failed path='$targetPath': ${result.message}" }
         }
     }
 
+    private fun exportBitmapFontDocument(
+        document: BitmapFontDocument,
+        targetPath: String,
+    ): TextureAtlasEditorFileWriteResult {
+        if (document.pages.isEmpty()) {
+            return TextureAtlasEditorFileWriteResult(
+                success = false,
+                message = "Cannot export font: no bitmap pages were declared.",
+            )
+        }
+        val assetRoot = engine.assetRegistry.baseDir()
+        val targetFile =
+            TextureAtlasEditorPathValidator.resolveAssetPath(assetRoot, targetPath)
+                ?: return TextureAtlasEditorFileWriteResult(
+                    success = false,
+                    message = "Font export target path must stay inside the asset root.",
+                )
+        if (!targetFile.name.endsWith(".fnt", ignoreCase = true)) {
+            return TextureAtlasEditorFileWriteResult(
+                success = false,
+                message = "Font export target must end with '.fnt'.",
+            )
+        }
+
+        val pageTargets = chooseExportPageTargets(targetFile, document.pages)
+        val overwrite = state.importExport.saveOverwrite
+        if (!overwrite) {
+            if (targetFile.exists()) {
+                return TextureAtlasEditorFileWriteResult(
+                    success = false,
+                    message = "Font export target already exists and overwrite is disabled.",
+                )
+            }
+            val existingPage = pageTargets.firstOrNull(File::exists)
+            if (existingPage != null) {
+                return TextureAtlasEditorFileWriteResult(
+                    success = false,
+                    message = "Font export page '${normalizePath(existingPage.path)}' already exists and overwrite is disabled.",
+                )
+            }
+        }
+
+        val pageOverrides = mutableMapOf<Int, String>()
+        val writtenPaths = mutableListOf<String>()
+        return runCatching {
+            targetFile.parentFile?.mkdirs()
+            document.pages.forEachIndexed { index, page ->
+                val sourcePath = page.resolvedPath?.takeIf { page.exists }
+                    ?: error("Font page '${page.file}' is missing and cannot be exported.")
+                val sourceFile = File(sourcePath)
+                if (!sourceFile.isFile) {
+                    error("Font page '${page.file}' is missing and cannot be exported.")
+                }
+                val pageTarget = pageTargets[index]
+                Files.copy(sourceFile.toPath(), pageTarget.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                pageOverrides[page.id] = pageTarget.name
+                writtenPaths += normalizePath(pageTarget.path)
+            }
+            val descriptorResult =
+                writer.write(
+                    assetRoot = assetRoot,
+                    targetPath = normalizePath(targetFile.path),
+                    document = document,
+                    overwrite = overwrite,
+                    pageFileOverrides = pageOverrides,
+                )
+            if (!descriptorResult.success) {
+                error(descriptorResult.message)
+            }
+            TextureAtlasEditorFileWriteResult(
+                success = true,
+                message = "Exported bitmap font descriptor and page textures.",
+                writtenPaths = descriptorResult.writtenPaths + writtenPaths,
+            )
+        }.getOrElse { error ->
+            pageTargets.forEach { pageTarget ->
+                if (pageTarget.isFile) {
+                    pageTarget.delete()
+                }
+            }
+            TextureAtlasEditorFileWriteResult(
+                success = false,
+                message = error.message ?: "Font export failed.",
+            )
+        }
+    }
+
     private fun defaultFontExportPath(resource: FontAtlasResource): String {
-        val sourcePath = resource.documentPath
-        val parent = File(sourcePath).parent?.replace('\\', '/')?.let { "$it/" } ?: ""
-        val baseName = File(sourcePath).nameWithoutExtension.ifBlank { resource.name }
-        return "${parent}${baseName}_export.fnt"
+        val atlasFile = state.selectedAtlasDocument()?.file
+        val exportDirectory =
+            atlasFile?.parentFile?.resolve("export")
+                ?: resource.documentPath
+                    .let(::File)
+                    .parentFile
+                    ?.resolve("export")
+                ?: File(resource.documentPath).parentFile
+                ?: File(engine.assetRegistry.baseDir(), "export")
+        val baseName = sanitizeFontFileStem(resource.name)
+        return normalizePath(File(exportDirectory, "$baseName.fnt").path)
     }
 
     fun setPackFontInAtlas(enabled: Boolean) {
@@ -372,6 +464,25 @@ internal class TextureAtlasBitmapFontOperations(
         val fntFile: File,
         val pageFiles: List<File>,
     )
+
+    private fun chooseExportPageTargets(
+        targetFile: File,
+        pages: List<BitmapFontPage>,
+    ): List<File> {
+        val baseName = targetFile.nameWithoutExtension.ifBlank { "font" }
+        val directory = targetFile.parentFile ?: targetFile.absoluteFile.parentFile ?: File(".")
+        return pages.mapIndexed { index, page ->
+            val sourceName = page.resolvedPath?.let(::File)?.name ?: page.file
+            val extension = File(sourceName).extension.takeIf { it.isNotBlank() } ?: "png"
+            val fileName =
+                if (index == 0) {
+                    "$baseName.$extension"
+                } else {
+                    "${baseName}_$index.$extension"
+                }
+            File(directory, fileName)
+        }
+    }
 
     companion object {
         private const val TAG = "TextureAtlasFontOps"

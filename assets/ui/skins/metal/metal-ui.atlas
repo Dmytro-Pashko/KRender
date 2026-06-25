@@ -12,9 +12,16 @@ window
   split: 9, 9, 26, 4
   pad: 6, 6, 28, 6
   index: -1
-button
+Krender_logo_32
   rotate: false
   xy: 43, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+button
+  rotate: false
+  xy: 77, 2
   size: 82, 26
   orig: 82, 26
   offset: 0, 0
@@ -23,7 +30,7 @@ button
   index: -1
 button-over
   rotate: false
-  xy: 127, 2
+  xy: 161, 2
   size: 82, 26
   orig: 82, 26
   offset: 0, 0

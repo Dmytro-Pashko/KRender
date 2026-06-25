@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
+import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPlan
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedResource
@@ -60,11 +61,6 @@ class TextureAtlasEditorToolsPanel(
             onSelect = operations::setPackingMaxPageHeight,
         )
         drawPaddingCombo()
-        val allowRotation = booleanArrayOf(state.packing.settings.allowRotation)
-        if (ImGui.checkbox("Allow Rotation##texture_atlas_editor_packing_rotation", allowRotation)) {
-            operations.setPackingAllowRotation(allowRotation[0])
-        }
-        tooltipOnHover("Allows the packer to rotate regions when placing them on atlas pages.")
         val includeNinePatch = booleanArrayOf(state.packing.settings.includeNinePatch)
         if (ImGui.checkbox("Include NinePatch##texture_atlas_editor_packing_nine_patch", includeNinePatch)) {
             operations.setPackingIncludeNinePatch(includeNinePatch[0])
@@ -74,6 +70,7 @@ class TextureAtlasEditorToolsPanel(
         if (ImGui.checkbox("Overwrite Existing Atlas##texture_atlas_editor_save_overwrite", overwriteExistingAtlas)) {
             operations.setSaveOverwrite(overwriteExistingAtlas[0])
         }
+        tooltipOnHover("Replaces existing atlas files when saving the packed atlas.")
         if (ImGui.button("Pack Texture Atlas##texture_atlas_editor_packing_run")) {
             operations.packTextureAtlas()
         }
@@ -105,10 +102,16 @@ class TextureAtlasEditorToolsPanel(
         val canExport = state.selectedResource() != null
         if (!canExport) ImGui.beginDisabled()
         if (ImGui.button("Export Resource##texture_atlas_editor_export_resource")) {
-            operations.exportSelectedResourcePng()
+            operations.exportSelectedResource()
             writeBuffer(exportPathBuffer, state.importExport.exportResourcePath)
         }
-        tooltipOnHover("Exports the selected atlas resource to a PNG file.")
+        tooltipOnHover(
+            if (state.selectedResource() is FontAtlasResource) {
+                "Exports the selected bitmap font as a .fnt descriptor with its page textures."
+            } else {
+                "Exports the selected atlas resource to a PNG file."
+            },
+        )
         if (!canExport) ImGui.endDisabled()
     }
 
@@ -130,10 +133,6 @@ class TextureAtlasEditorToolsPanel(
             textLine("Pack the texture atlas with at least one region before saving.")
         } else {
             textLine("Packed atlas is ready to save.")
-        }
-        state.importExport.lastExportResult?.let { result ->
-            textLine(result.message)
-            result.writtenPaths.forEach(::textLine)
         }
     }
 

@@ -12,6 +12,13 @@ scroll-bg
   split: 0, 0, 14, 14
   pad: 0, 0, 0, 1
   index: -1
+Krender_logo_128
+  rotate: false
+  xy: 150, 2
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
 button
   rotate: false
   xy: 2, 150
