@@ -22,7 +22,7 @@ import kotlin.test.assertTrue
 class Scene2DSkinAssetIntegrationTest {
     @Test
     fun `asset type detector keeps json routes path specific`() {
-        assertDetection("ui/skins/craftacular-ui.json", AssetType.Scene2DSkin, AssetCategory.UI)
+        assertDetection("ui/skins/craftacular-ui.json", AssetType.Scene2DSkin, AssetCategory.Scene2D)
         assertDetection("ui/scenes/main_menu.krui", AssetType.UiScene, AssetCategory.UI)
         assertDetection("materials/foo.json", AssetType.Material, AssetCategory.Material)
         assertDetection("terrains/foo.json", AssetType.Terrain, AssetCategory.Terrain)
@@ -38,7 +38,7 @@ class Scene2DSkinAssetIntegrationTest {
         assertTrue(importer.canImport("ui/skins/craftacular-ui.json"))
         assertFalse(importer.canImport("materials/foo.json"))
         assertEquals(AssetType.Scene2DSkin, importer.outputType)
-        assertEquals(AssetCategory.UI, importer.outputCategory)
+        assertEquals(AssetCategory.Scene2D, importer.outputCategory)
     }
 
     @Test
@@ -70,7 +70,7 @@ class Scene2DSkinAssetIntegrationTest {
 
         assertNotNull(asset)
         assertEquals(AssetType.Scene2DSkin, asset.type)
-        assertEquals(AssetCategory.UI, asset.category)
+        assertEquals(AssetCategory.Scene2D, asset.category)
         assertEquals("ok", asset.metadata["skinStatus"])
         assertEquals("1", asset.metadata["skinLabelStyleCount"])
         assertTrue(skinDir.resolve("minimal.json.krmeta").toFile().exists())
@@ -246,7 +246,7 @@ class Scene2DSkinAssetIntegrationTest {
             id = AssetId("asset:$path"),
             name = path.substringAfterLast('/').substringBeforeLast('.'),
             path = path,
-            category = AssetCategory.UI,
+            category = AssetCategory.Scene2D,
             type = AssetType.Scene2DSkin,
             extension = "json",
             sizeBytes = 1L,

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:6cad01e3-65d5-4a7f-bb9f-825f3cbb5fe2",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "default",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

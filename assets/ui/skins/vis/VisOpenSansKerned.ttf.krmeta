@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:b9120b47-64d4-4a5d-a052-69bd729f9763",
+  "type": "Font",
+  "category": "Scene2D",
+  "displayName": "VisOpenSansKerned",
+  "tags": [],
+  "importerId": "scene2d-font",
+  "importSettings": {}
+}

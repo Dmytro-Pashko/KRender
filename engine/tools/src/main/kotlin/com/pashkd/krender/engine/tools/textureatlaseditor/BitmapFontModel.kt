@@ -75,6 +75,7 @@ data class FontPreviewState(
     var selectedGlyphId: Int? = null,
     var hoveredGlyphId: Int? = null,
     var sampleText: String = "The quick brown fox jumps over the lazy dog 0123456789",
+    var showSampleTextPreview: Boolean = false,
     var glyphFilter: String = "",
     var showGlyphBounds: Boolean = true,
     var tintColor: TextureAtlasEditorColor = TextureAtlasEditorColor(),

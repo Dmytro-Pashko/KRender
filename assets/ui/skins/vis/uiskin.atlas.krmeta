@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "asset:9a198de8-6166-49be-a57e-28ddecb0a328",
+  "id": "asset:f83b16fb-405b-4111-9421-600bc05887f2",
   "type": "Atlas",
-  "category": "Texture",
+  "category": "Scene2D",
   "displayName": "uiskin",
   "tags": [],
   "importerId": null,

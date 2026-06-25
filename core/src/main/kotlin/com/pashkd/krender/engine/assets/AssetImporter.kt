@@ -58,6 +58,7 @@ class AssetImporterRegistry(
                 register(ObjModelImporter())
                 register(GdxModelImporter())
                 register(TextureImporter())
+                register(Scene2DFontImporter())
                 register(SkyboxImporter())
                 register(TerrainImporter())
                 register(Scene2DSkinImporter(logger))
@@ -124,6 +125,19 @@ class TextureImporter : AssetImporter {
 }
 
 /**
+ * Scene2D-related font files (`.fnt`, `.ttf`, `.otf`).
+ */
+class Scene2DFontImporter : AssetImporter {
+    override val id = "scene2d-font"
+    override val displayName = "Scene2D Font"
+    override val supportedExtensions = setOf("fnt", "ttf", "otf")
+    override val outputType = AssetType.Font
+    override val outputCategory = AssetCategory.Scene2D
+
+    override fun canImport(path: String): Boolean = normalizedExtension(path) in supportedExtensions
+}
+
+/**
  * Scene skybox descriptors.
  */
 class SkyboxImporter : AssetImporter {
@@ -165,7 +179,7 @@ class Scene2DSkinImporter(
     override val displayName = "Scene2D Skin"
     override val supportedExtensions = setOf("json")
     override val outputType = AssetType.Scene2DSkin
-    override val outputCategory = AssetCategory.UI
+    override val outputCategory = AssetCategory.Scene2D
 
     override fun canImport(path: String): Boolean {
         val normalized = path.replace('\\', '/').lowercase()

@@ -59,6 +59,12 @@ data class FontAtlasResource(
     val sourcePath: String,
     val documentPath: String = sourcePath,
     val pageTexturePaths: List<String> = emptyList(),
+    val atlasTexturePath: String? = null,
+    val atlasRegionId: AtlasRegionId? = null,
+    val sourceX: Int = 0,
+    val sourceY: Int = 0,
+    val sourceWidth: Int? = null,
+    val sourceHeight: Int? = null,
     val glyphCount: Int = 0,
     val kerningCount: Int = 0,
 ) : TextureAtlasResource {

@@ -12,6 +12,7 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPane
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontDocument
+import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontPageTexturePath
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedResource
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
@@ -58,6 +59,12 @@ class TextureAtlasEditorInspectorPanel(
                 is FontAtlasResource -> {
                     textLine("Source: ${resource.sourcePath}")
                     textLine("Glyphs: ${resource.glyphCount}  Kernings: ${resource.kerningCount}  Pages: ${resource.pageTexturePaths.size}")
+                    state.selectedFontPageTexturePath()?.let { texturePath ->
+                        textLine("Font texture: $texturePath")
+                    }
+                    resource.atlasTexturePath?.let { atlasTexturePath ->
+                        textLine("Atlas texture: $atlasTexturePath")
+                    }
                 }
             }
             ImGui.separator()
@@ -124,6 +131,10 @@ class TextureAtlasEditorInspectorPanel(
             }
         }
 
+        state.selectedFontPageTexturePath()?.let { texturePath ->
+            textLine("Selected page texture: $texturePath")
+        }
+
         if (!fontSampleSynced) {
             writeBuffer(fontSampleBuf, state.fontPreview.sampleText)
             writeBuffer(fontGlyphFilterBuf, state.fontPreview.glyphFilter)
@@ -133,6 +144,10 @@ class TextureAtlasEditorInspectorPanel(
         ImGui.setNextItemWidth(ImGui.contentRegionAvail.x)
         if (ImGui.inputText("##font_sample_text", fontSampleBuf)) {
             operations.setFontSampleText(readBuffer(fontSampleBuf))
+        }
+        val samplePreviewToggle = booleanArrayOf(state.fontPreview.showSampleTextPreview)
+        if (ImGui.checkbox("Sample Text Preview##font_sample_preview_toggle", samplePreviewToggle)) {
+            operations.setFontSampleTextPreviewEnabled(samplePreviewToggle[0])
         }
 
         textLine("Filter glyphs")

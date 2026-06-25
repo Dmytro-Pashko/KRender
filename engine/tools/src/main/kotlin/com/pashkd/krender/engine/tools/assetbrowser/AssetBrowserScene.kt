@@ -419,7 +419,7 @@ class TerrainEditorAssetTool : AssetTool {
 class TextureAtlasEditorAtlasAssetTool : AssetTool {
     override val id = "texture-atlas-editor-atlas"
     override val displayName = "Open in Texture Atlas Editor"
-    override val supportedCategories = setOf(AssetCategory.Texture)
+    override val supportedCategories = setOf(AssetCategory.Scene2D)
 
     /**
      * Atlas assets default to Texture Atlas Editor because it owns the atlas
@@ -427,7 +427,7 @@ class TextureAtlasEditorAtlasAssetTool : AssetTool {
      */
     override val defaultAction = true
 
-    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Texture && asset.type == AssetType.Atlas
+    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Scene2D && asset.type == AssetType.Atlas
 
     override fun open(
         asset: AssetDescriptor,
@@ -474,9 +474,9 @@ class UiComposerAssetTool : AssetTool {
 class SkinEditorAssetTool : AssetTool {
     override val id = "skin-editor"
     override val displayName = "Open in Skin Editor"
-    override val supportedCategories = setOf(AssetCategory.UI)
+    override val supportedCategories = setOf(AssetCategory.Scene2D)
 
-    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.UI && asset.type == AssetType.Scene2DSkin
+    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Scene2D && asset.type == AssetType.Scene2DSkin
 
     override fun open(
         asset: AssetDescriptor,
@@ -544,7 +544,7 @@ private fun launchTextureAtlasEditorAsset(
     tag: String,
 ) {
     val path = normalizedAssetPath(asset)
-    if (asset.category != AssetCategory.Texture || asset.type != AssetType.Atlas) {
+    if (asset.category != AssetCategory.Scene2D || asset.type != AssetType.Atlas) {
         context.logger.warn(tag) {
             "Rejected unsupported Texture Atlas Editor asset path='$path' category=${asset.category} type=${asset.type}"
         }

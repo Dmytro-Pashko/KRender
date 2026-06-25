@@ -31,6 +31,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
+import imgui.ColorEditFlag
 import imgui.ImGui
 import imgui.MouseButton
 import imgui.SliderFlag
@@ -483,6 +484,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
             wrappedTextLine("Select a font resource to preview glyphs.")
             return
         }
+        state.hoveredRegionId = null
         val document = state.selectedFontDocument()
         if (document == null || !document.readable) {
             wrappedTextLine("Font descriptor is not readable or was not loaded.")
@@ -491,6 +493,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
         }
 
         val handle = state.previewInfo.texturePreviewHandle
+        val sampleLayout = layoutSampleText(state.fontPreview.sampleText, document)
         if (handle != null && state.previewInfo.textureWidth > 0 && state.previewInfo.textureHeight > 0) {
             val viewportLayout = computeTexturePreviewViewportLayout(
                 rect = state.canvasRect,
@@ -508,19 +511,28 @@ class TextureAtlasEditorPreviewCanvasPanel(
                     color = packImColor(state.preview.gridColor),
                 )
             }
-            ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
-            ui.drawTexturePreview(
-                handle,
-                viewportLayout.imageWidth,
-                viewportLayout.imageHeight,
-                UiTextureTint(
-                    red = state.fontPreview.tintColor.red,
-                    green = state.fontPreview.tintColor.green,
-                    blue = state.fontPreview.tintColor.blue,
-                    alpha = state.fontPreview.tintColor.alpha,
-                ),
-            )
-            if (state.fontPreview.showGlyphBounds) {
+            if (state.fontPreview.showSampleTextPreview) {
+                TextureAtlasEditorPreviewOverlays.drawFontSampleText(
+                    handle = handle,
+                    layout = viewportLayout,
+                    sampleLayout = sampleLayout,
+                    tintColor = packImColor(state.fontPreview.tintColor),
+                )
+            } else {
+                ImGui.cursorScreenPos = ImVec2(viewportLayout.imageX, viewportLayout.imageY)
+                ui.drawTexturePreview(
+                    handle,
+                    viewportLayout.imageWidth,
+                    viewportLayout.imageHeight,
+                    UiTextureTint(
+                        red = state.fontPreview.tintColor.red,
+                        green = state.fontPreview.tintColor.green,
+                        blue = state.fontPreview.tintColor.blue,
+                        alpha = state.fontPreview.tintColor.alpha,
+                    ),
+                )
+            }
+            if (!state.fontPreview.showSampleTextPreview && state.fontPreview.showGlyphBounds) {
                 val pageIndex = state.fontPreview.selectedPageIndex
                 val pageGlyphs = document.glyphs.filter { it.page == (document.pages.getOrNull(pageIndex)?.id ?: 0) }
                 TextureAtlasEditorPreviewOverlays.drawFontGlyphBounds(
@@ -534,18 +546,20 @@ class TextureAtlasEditorPreviewCanvasPanel(
             ImGui.invisibleButton("##texture_atlas_editor_font_canvas_hit", ImVec2(state.canvasRect.width, state.canvasRect.height))
             if (ImGui.isItemHovered()) {
                 val io = ImGui.io
+                updateCursorMetrics(viewportLayout)
                 if (io.mouseWheel != 0f) {
                     operations.setPreviewZoom(state.preview.customZoom * (1f + io.mouseWheel * 0.1f))
                 }
                 if (ImGui.run { MouseButton.Right.isDragging() } && (io.mouseDelta.x != 0f || io.mouseDelta.y != 0f)) {
                     operations.panPreview(io.mouseDelta.x, io.mouseDelta.y)
                 }
+            } else {
+                clearCursorMetrics()
             }
         } else {
             wrappedTextLine(state.previewInfo.statusMessage)
         }
 
-        val sampleLayout = layoutSampleText(state.fontPreview.sampleText, document)
         if (sampleLayout.missingCodepoints.isNotEmpty()) {
             wrappedTextLine("Missing glyphs for codepoints: ${sampleLayout.missingCodepoints.take(10).joinToString()}")
         }
@@ -710,8 +724,15 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 val glyphCount = document?.glyphs?.size ?: 0
                 val selectedGlyph = state.fontPreview.selectedGlyphId?.let { id -> document?.glyphs?.firstOrNull { it.id == id } }
                 val selectedText = selectedGlyph?.let { g -> "id=${g.id} '${g.char ?: "?"}' [${g.width}x${g.height}]" } ?: "<none>"
-                textLine("Font: $face | Glyphs: $glyphCount | Page: ${state.fontPreview.selectedPageIndex} | Selected: $selectedText")
-                wrappedTextLine("Wheel: zoom only. RMB drag: pan. Use Preview Tint to recolor the atlas page and Select glyphs in Inspector panel.")
+                val cursorText =
+                    if (cursorTextureX != null && cursorTextureY != null) {
+                        "Cursor: ${cursorTextureX}, ${cursorTextureY}"
+                    } else {
+                        "Cursor: <outside>"
+                    }
+                val previewMode = if (state.fontPreview.showSampleTextPreview) "Sample Text" else "Full Font"
+                textLine("Font: $face | Glyphs: $glyphCount | Page: ${state.fontPreview.selectedPageIndex} | Preview: $previewMode | Selected: $selectedText | $cursorText")
+                wrappedTextLine("Wheel: zoom only. RMB drag: pan. Use Preview Tint to recolor the font preview and Inspector to switch between full font and sample text preview.")
             }
         }
     }
@@ -724,6 +745,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
         private const val ClickDragThreshold = 6f
         private const val NinePatchCanvasPaddingPixels = 100
         private val GridSpacingOptions = intArrayOf(4, 8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512)
+        private val PickerOnlyColorEditFlags = ColorEditFlag.NoInputs
     }
 
     private fun drawGridColorEditor(idSuffix: String) {
@@ -735,6 +757,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 color.green,
                 color.blue,
                 color.alpha,
+                PickerOnlyColorEditFlags,
             ) { r, g, b, a ->
                 operations.setGridColor(r, g, b, a)
             }
@@ -765,6 +788,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 color.green,
                 color.blue,
                 color.alpha,
+                PickerOnlyColorEditFlags,
             ) { r, g, b, a ->
                 operations.setFontPreviewTint(r, g, b, a)
             }

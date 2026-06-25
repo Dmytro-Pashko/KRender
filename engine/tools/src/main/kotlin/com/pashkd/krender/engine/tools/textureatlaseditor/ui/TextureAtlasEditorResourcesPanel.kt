@@ -77,9 +77,9 @@ class TextureAtlasEditorResourcesPanel(
                 }
                 ImGui.endCombo()
             }
-            if (ImGui.beginCombo("Sort##texture_atlas_editor_resource_sort", state.atlasBrowser.sortMode.name)) {
+            if (ImGui.beginCombo("Sort##texture_atlas_editor_resource_sort", state.atlasBrowser.sortMode.label())) {
                 TextureAtlasRegionSortMode.entries.forEach { mode ->
-                    if (ImGui.selectable(mode.name, state.atlasBrowser.sortMode == mode)) {
+                    if (ImGui.selectable(mode.label(), state.atlasBrowser.sortMode == mode)) {
                         state.atlasBrowser.sortMode = mode
                     }
                 }
@@ -160,6 +160,7 @@ class TextureAtlasEditorResourcesPanel(
     private fun resourceComparator(): Comparator<TextureAtlasResource> =
         when (state.atlasBrowser.sortMode) {
             TextureAtlasRegionSortMode.Name -> compareBy({ it.name.lowercase() }, { it.atlasIndexOrMax() })
+            TextureAtlasRegionSortMode.Type -> compareBy<TextureAtlasResource>({ it.type.sortOrder() }, { it.name.lowercase() })
             TextureAtlasRegionSortMode.Index -> compareBy({ it.atlasIndexOrMax() }, { it.name.lowercase() })
             TextureAtlasRegionSortMode.AreaAscending ->
                 compareBy<TextureAtlasResource> { resource -> resource.areaOrMax() }.thenBy { it.name.lowercase() }
@@ -246,6 +247,23 @@ private fun TextureAtlasResourceType.label(): String =
         TextureAtlasResourceType.NinePatch -> "NinePatch"
         TextureAtlasResourceType.Font -> "Font"
         TextureAtlasResourceType.Color -> "Color"
+    }
+
+private fun TextureAtlasResourceType.sortOrder(): Int =
+    when (this) {
+        TextureAtlasResourceType.Image -> 0
+        TextureAtlasResourceType.NinePatch -> 1
+        TextureAtlasResourceType.Font -> 2
+        TextureAtlasResourceType.Color -> 3
+    }
+
+private fun TextureAtlasRegionSortMode.label(): String =
+    when (this) {
+        TextureAtlasRegionSortMode.Name -> "Name"
+        TextureAtlasRegionSortMode.Type -> "Type"
+        TextureAtlasRegionSortMode.Index -> "Index"
+        TextureAtlasRegionSortMode.AreaAscending -> "Area Asc"
+        TextureAtlasRegionSortMode.AreaDescending -> "Area Desc"
     }
 
 private data class ResourceRegionMetrics(

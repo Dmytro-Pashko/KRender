@@ -2,6 +2,13 @@ package com.pashkd.krender.engine.tools.textureatlaseditor
 
 import java.io.File
 
+/**
+ * Writes text BMFont descriptors without remapping glyph rectangles.
+ *
+ * Scene2D/Hiero `.fnt` glyph `x`/`y` values are local to the page texture
+ * declared by the matching `page` line. The exporter preserves those values so
+ * freshly exported fonts can keep their own page PNGs next to the descriptor.
+ */
 class BitmapFontWriter {
     fun write(
         assetRoot: File,
@@ -9,7 +16,6 @@ class BitmapFontWriter {
         document: BitmapFontDocument,
         overwrite: Boolean,
         pageFileOverrides: Map<Int, String> = emptyMap(),
-        glyphPositionOverrides: Map<Int, GlyphPositionOverride> = emptyMap(),
     ): TextureAtlasEditorFileWriteResult {
         val targetFile = TextureAtlasEditorPathValidator.resolveAssetPath(assetRoot, targetPath)
             ?: return failure("Font export target path must stay inside the asset root.")
@@ -22,7 +28,7 @@ class BitmapFontWriter {
 
         return runCatching {
             targetFile.parentFile?.mkdirs()
-            val content = buildFntText(document, pageFileOverrides, glyphPositionOverrides)
+            val content = buildFntText(document, pageFileOverrides)
             targetFile.writeText(content, Charsets.UTF_8)
             val normalizedTarget = normalizePath(targetFile.path)
             TextureAtlasEditorFileWriteResult(
@@ -38,7 +44,6 @@ class BitmapFontWriter {
     private fun buildFntText(
         document: BitmapFontDocument,
         pageFileOverrides: Map<Int, String>,
-        glyphPositionOverrides: Map<Int, GlyphPositionOverride>,
     ): String = buildString {
         val info = document.info
         if (info != null) {
@@ -76,21 +81,15 @@ class BitmapFontWriter {
 
         appendLine("chars count=${document.glyphs.size}")
         document.glyphs.forEach { glyph ->
-            val override = glyphPositionOverrides[glyph.id]
-            val x = override?.x ?: glyph.x
-            val y = override?.y ?: glyph.y
-            val width = override?.width ?: glyph.width
-            val height = override?.height ?: glyph.height
-            val page = override?.page ?: glyph.page
             append("char id=${glyph.id}")
-            append(" x=$x")
-            append(" y=$y")
-            append(" width=$width")
-            append(" height=$height")
+            append(" x=${glyph.x}")
+            append(" y=${glyph.y}")
+            append(" width=${glyph.width}")
+            append(" height=${glyph.height}")
             append(" xoffset=${glyph.xOffset}")
             append(" yoffset=${glyph.yOffset}")
             append(" xadvance=${glyph.xAdvance}")
-            append(" page=$page")
+            append(" page=${glyph.page}")
             append(" chnl=${glyph.channel}")
             glyph.char?.let { append(" letter=\"$it\"") }
             appendLine()
@@ -107,11 +106,3 @@ class BitmapFontWriter {
     private fun failure(message: String): TextureAtlasEditorFileWriteResult =
         TextureAtlasEditorFileWriteResult(success = false, message = message)
 }
-
-data class GlyphPositionOverride(
-    val x: Int,
-    val y: Int,
-    val width: Int,
-    val height: Int,
-    val page: Int,
-)

@@ -184,7 +184,7 @@ class LocalAssetImportService(
             when (fallbackType) {
                 AssetType.Texture -> AssetCategory.Texture
                 AssetType.GltfModel -> AssetCategory.Model
-                AssetType.Scene2DSkin -> AssetCategory.UI
+                AssetType.Scene2DSkin -> AssetCategory.Scene2D
                 else -> AssetCategory.Other
             }
         return ImportSpec(

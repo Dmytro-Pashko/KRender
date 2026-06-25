@@ -20,6 +20,7 @@ enum class AssetCategory(
     Skybox("Skybox", 2),
     Material("Material", 3),
     Terrain("Terrain", 4),
+    Scene2D("Scene2D", 5),
 
     /**
      * UI document category used by asset indexing and browser filters for KRender-native `.krui` UiScene files.
@@ -29,9 +30,9 @@ enum class AssetCategory(
      * no canvas drag/drop authoring, no actor resizing on canvas, no multi-select, no canvas-based
      * structure editing, no Skin editing, and no asset-id references.
      */
-    UI("UI", 5),
-    Scene("Scene", 6),
-    Other("Other", 7),
+    UI("UI", 6),
+    Scene("Scene", 7),
+    Other("Other", 8),
 }
 
 /**
@@ -43,6 +44,7 @@ enum class AssetType {
     GdxModel,
     Texture,
     Atlas,
+    Font,
     Skybox,
     Terrain,
 

@@ -18,14 +18,7 @@ class TextureAtlasEditorToolbarPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    private val pathBuffer = ByteArray(BufferSize)
-    private var synced = false
-
     override fun draw() {
-        if (!synced || readBuffer(pathBuffer) != state.pendingPathInput) {
-            writeBuffer(pathBuffer, state.pendingPathInput)
-            synced = true
-        }
         val layout = layoutConfig.panels.getValue(TextureAtlasEditorPanelIds.Toolbar)
         val expanded = beginImGuiPanel(TextureAtlasEditorPanelIds.Toolbar, layout, layoutTracker)
         eventLogger.observe(TextureAtlasEditorPanelIds.Toolbar, layout.title)
@@ -33,13 +26,6 @@ class TextureAtlasEditorToolbarPanel(
             ImGui.end()
             return
         }
-
-        ImGui.textUnformatted("Path")
-        ImGui.sameLine()
-        ImGui.setNextItemWidth(300f)
-        ImGui.beginDisabled()
-        ImGui.inputText("##texture_atlas_editor_path", pathBuffer)
-        ImGui.endDisabled()
 
         if (ImGui.button("Reload##texture_atlas_editor_reload")) {
             operations.reload()
@@ -59,7 +45,7 @@ class TextureAtlasEditorToolbarPanel(
 
         ImGui.separator()
         wrappedTextLine(state.statusMessage)
-        textLine("Input: ${state.currentInputPath ?: "<none>"}")
+        textLine("Atlas Path: ${state.currentInputPath ?: "<none>"}")
         state.project.resolvedInputPath?.let { path -> textLine("Resolved: $path") }
         state.selectedAsset()?.let { asset ->
             ImGui.separator()
@@ -72,9 +58,5 @@ class TextureAtlasEditorToolbarPanel(
             }
         }
         ImGui.end()
-    }
-
-    companion object {
-        private const val BufferSize = 1024
     }
 }

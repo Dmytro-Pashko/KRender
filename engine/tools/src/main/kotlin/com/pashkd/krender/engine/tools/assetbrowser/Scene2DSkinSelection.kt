@@ -13,7 +13,7 @@ enum class CreatableAssetKind(
     val targetDirectory: String,
     val extension: String,
 ) {
-    Atlas("Texture Atlas", AssetType.Atlas, AssetCategory.Texture, "atlases", "atlas"),
+    Atlas("Texture Atlas", AssetType.Atlas, AssetCategory.Scene2D, "atlases", "atlas"),
     UiScene("UI Scene", AssetType.UiScene, AssetCategory.UI, "ui/scenes", "krui"),
     Terrain("Terrain", AssetType.Terrain, AssetCategory.Terrain, "terrains", "json"),
     Scene("Scene", AssetType.Scene, AssetCategory.Scene, "scenes", "krscene"),
@@ -31,7 +31,7 @@ internal fun defaultCreateAssetDraft(assets: List<AssetDescriptor>): CreateAsset
 
 internal fun discoveredScene2DSkinAssets(assets: List<AssetDescriptor>): List<AssetDescriptor> =
     assets
-        .filter { asset -> asset.category == AssetCategory.UI && asset.type == AssetType.Scene2DSkin }
+        .filter { asset -> asset.category == AssetCategory.Scene2D && asset.type == AssetType.Scene2DSkin }
         .sortedBy { asset -> asset.path.lowercase() }
 
 internal fun defaultUiSceneSkinPath(assets: List<AssetDescriptor>): String =
@@ -85,7 +85,7 @@ internal fun createAssetDefaultParams(draft: CreateAssetDraft): List<String> =
             listOf(
                 "Page size: ${draft.atlasWidth} x ${draft.atlasHeight}",
                 "Format: RGBA8888",
-                "Filter: Nearest",
+                "Filter: Linear",
             )
 
         CreatableAssetKind.UiScene ->

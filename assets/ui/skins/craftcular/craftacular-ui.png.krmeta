@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:325331c9-a728-48f1-8c57-da1d2d240d18",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "craftacular-ui",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

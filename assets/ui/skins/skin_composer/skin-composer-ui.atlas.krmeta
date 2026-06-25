@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "asset:ea5b859f-a43a-4b1b-a029-09f03f20ffe7",
+  "id": "asset:973830ab-fc7d-42d5-97a9-0afe883464df",
   "type": "Atlas",
-  "category": "Texture",
+  "category": "Scene2D",
   "displayName": "skin-composer-ui",
   "tags": [],
   "importerId": null,

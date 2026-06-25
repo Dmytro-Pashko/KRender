@@ -1,0 +1,33 @@
+test_krender_atlas_1.png
+size: 970, 516
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+Krender_logo_512
+  rotate: false
+  xy: 2, 2
+  size: 512, 512
+  orig: 512, 512
+  offset: 0, 0
+  index: -1
+Krender_logo_256
+  rotate: false
+  xy: 516, 2
+  size: 256, 256
+  orig: 256, 256
+  offset: 0, 0
+  index: -1
+Krender_logo_128
+  rotate: false
+  xy: 774, 2
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+Krender_logo_64
+  rotate: false
+  xy: 904, 2
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1

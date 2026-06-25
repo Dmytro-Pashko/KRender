@@ -42,6 +42,8 @@ internal fun assetBrowserNormalizePath(path: String): String = path.replace('\\'
 internal fun assetBrowserIcon(asset: AssetDescriptor): String =
     when {
         asset.type == AssetType.Scene2DSkin -> "[Skin]"
+        asset.type == AssetType.Atlas -> "[Atlas]"
+        asset.type == AssetType.Font -> "[Font]"
         else ->
             when (asset.category) {
                 AssetCategory.Model -> "[M]"
@@ -49,6 +51,7 @@ internal fun assetBrowserIcon(asset: AssetDescriptor): String =
                 AssetCategory.Skybox -> "[Sky]"
                 AssetCategory.Material -> "[Mat]"
                 AssetCategory.Terrain -> "[Ter]"
+                AssetCategory.Scene2D -> "[S2D]"
                 AssetCategory.UI -> "[UI]"
                 AssetCategory.Scene -> "[Sc]"
                 AssetCategory.Other -> "[?]"
@@ -62,6 +65,7 @@ internal val SupportedBrowserCategories =
         AssetCategory.Skybox,
         AssetCategory.Material,
         AssetCategory.Terrain,
+        AssetCategory.Scene2D,
         AssetCategory.UI,
         AssetCategory.Scene,
         AssetCategory.Other,

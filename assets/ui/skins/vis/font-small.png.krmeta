@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:ae179bc0-946a-4bf9-98ba-e2a2288a1b4c",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "font-small",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

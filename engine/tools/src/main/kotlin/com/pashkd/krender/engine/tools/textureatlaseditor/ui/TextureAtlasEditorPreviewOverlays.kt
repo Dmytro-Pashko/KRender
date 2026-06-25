@@ -10,6 +10,8 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingReg
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureRegionScreenRect
+import com.pashkd.krender.engine.tools.textureatlaseditor.SampleTextLayout
+import com.pashkd.krender.engine.api.TexturePreviewHandle
 import imgui.ImGui
 import glm_.vec2.Vec2 as ImVec2
 
@@ -461,12 +463,14 @@ internal object TextureAtlasEditorPreviewOverlays {
         layout: TexturePreviewViewportLayout,
         selectedGlyphId: Int?,
         hoveredGlyphId: Int?,
+        offsetX: Int = 0,
+        offsetY: Int = 0,
     ) {
         val drawList = ImGui.windowDrawList
         glyphs.forEach { glyph ->
             if (glyph.width <= 0 || glyph.height <= 0) return@forEach
-            val minX = layout.imageX + glyph.x * layout.effectiveZoom
-            val minY = layout.imageY + glyph.y * layout.effectiveZoom
+            val minX = layout.imageX + (glyph.x - offsetX) * layout.effectiveZoom
+            val minY = layout.imageY + (glyph.y - offsetY) * layout.effectiveZoom
             val maxX = minX + glyph.width * layout.effectiveZoom
             val maxY = minY + glyph.height * layout.effectiveZoom
             val color = when (glyph.id) {
@@ -475,6 +479,41 @@ internal object TextureAtlasEditorPreviewOverlays {
                 else -> GlyphBoundsColor
             }
             drawList.addRect(ImVec2(minX, minY), ImVec2(maxX, maxY), color, 0f, thickness = 1f)
+        }
+    }
+
+    fun drawFontSampleText(
+        handle: TexturePreviewHandle,
+        layout: TexturePreviewViewportLayout,
+        sampleLayout: SampleTextLayout,
+        tintColor: Int = LabelColor,
+    ) {
+        if (sampleLayout.glyphPlacements.isEmpty() || handle.width <= 0 || handle.height <= 0) return
+        val drawList = ImGui.windowDrawList
+        val padding = 8f
+        val originX = layout.imageX + padding
+        val originY = layout.imageY + padding
+        val uSpan = handle.u1 - handle.u0
+        val vSpan = handle.v1 - handle.v0
+        sampleLayout.glyphPlacements.forEach { placement ->
+            val glyph = placement.glyph
+            if (glyph.width <= 0 || glyph.height <= 0) return@forEach
+            val minX = originX + placement.x * layout.effectiveZoom
+            val minY = originY + placement.y * layout.effectiveZoom
+            val maxX = minX + glyph.width * layout.effectiveZoom
+            val maxY = minY + glyph.height * layout.effectiveZoom
+            val u0 = handle.u0 + (glyph.x.toFloat() / handle.width.toFloat()) * uSpan
+            val v0 = handle.v0 + (glyph.y.toFloat() / handle.height.toFloat()) * vSpan
+            val u1 = handle.u0 + ((glyph.x + glyph.width).toFloat() / handle.width.toFloat()) * uSpan
+            val v1 = handle.v0 + ((glyph.y + glyph.height).toFloat() / handle.height.toFloat()) * vSpan
+            drawList.addImage(
+                handle.id,
+                ImVec2(minX, minY),
+                ImVec2(maxX, maxY),
+                ImVec2(u0, v0),
+                ImVec2(u1, v1),
+                tintColor,
+            )
         }
     }
 }

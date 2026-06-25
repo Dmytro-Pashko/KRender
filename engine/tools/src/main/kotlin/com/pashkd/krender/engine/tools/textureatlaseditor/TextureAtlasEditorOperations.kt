@@ -5,17 +5,24 @@ import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.assets.importing.NoOpFileDialogService
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import java.io.File
 
+/**
+ * Facade used by ImGui panels to mutate Texture Atlas Editor state.
+ *
+ * Feature-specific behavior lives in smaller operation classes. Keeping the UI
+ * on this facade avoids broad panel churn while preventing packing, font,
+ * resource, and Nine-patch workflows from growing into one class again.
+ */
 class TextureAtlasEditorOperations(
     private val state: TextureAtlasEditorState,
     private val engine: EngineContext,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
-    private val packingPlanner: TextureAtlasPackingPlanner = TextureAtlasPackingPlanner(),
-    private val textureMetadataService: TextureMetadataService = TextureMetadataService(),
+    packingPlanner: TextureAtlasPackingPlanner = TextureAtlasPackingPlanner(),
+    textureMetadataService: TextureMetadataService = TextureMetadataService(),
     fileDialogService: FileDialogService = NoOpFileDialogService,
     atlasSaveService: TextureAtlasSaveService = NoOpTextureAtlasSaveService,
 ) {
+    private val selectionCoordinator = TextureAtlasEditorSelectionCoordinator(state)
     private val importExportOperations =
         TextureAtlasEditorImportExportOperations(
             state = state,
@@ -24,6 +31,29 @@ class TextureAtlasEditorOperations(
             atlasSaveService = atlasSaveService,
             openPath = ::openPath,
         )
+    private val packingOperations =
+        TextureAtlasPackingOperations(
+            state = state,
+            engine = engine,
+            packingPlanner = packingPlanner,
+            textureMetadataService = textureMetadataService,
+        )
+    private val resourceOperations =
+        TextureAtlasResourceOperations(
+            state = state,
+            engine = engine,
+            selectionCoordinator = selectionCoordinator,
+            importTexture = ::importTexture,
+            selectResource = ::selectResource,
+            textureMetadataService = textureMetadataService,
+        )
+    private val fontOperations =
+        TextureAtlasBitmapFontOperations(
+            state = state,
+            engine = engine,
+            selectResource = ::selectResource,
+        )
+    private val ninePatchOperations = TextureAtlasNinePatchOperations(state, engine)
 
     fun openPath(path: String) {
         val normalized = path.trim().replace('\\', '/').ifBlank { null }
@@ -68,39 +98,39 @@ class TextureAtlasEditorOperations(
                 val atlas = state.project.atlasDocuments[asset.path]
                 state.selectedAtlasPageName = atlas?.pages?.firstOrNull()?.name
                 state.selectedRegionId = atlas?.regions?.firstOrNull()?.id
-                syncSelectedResourceFromRegion(state.selectedRegionId)
+                selectionCoordinator.syncSelectedResourceFromRegion(state.selectedRegionId)
                 state.importExport.targetPath = asset.path
             }
             else -> Unit
         }
-        syncSelectedPackingFromCurrentSelection()
+        selectionCoordinator.syncSelectedPackingFromCurrentSelection()
         state.statusMessage = "Selected ${asset.kind.name.lowercase()} '${asset.displayName}'."
         engine.logger.info(TAG) { "Texture Atlas Editor selected asset id='${assetId.value}' kind=${asset.kind}" }
     }
 
     fun selectAtlasPage(pageName: String) {
         state.selectedAtlasPageName = pageName
-        val atlas = selectedAtlasDocument()
+        val atlas = state.selectedAtlasDocument()
         state.selectedRegionId =
             atlas?.regions
                 ?.firstOrNull { region -> region.id.pageName == pageName }
                 ?.id
-        syncSelectedResourceFromRegion(state.selectedRegionId)
-        syncSelectedPackingFromCurrentSelection()
+        selectionCoordinator.syncSelectedResourceFromRegion(state.selectedRegionId)
+        selectionCoordinator.syncSelectedPackingFromCurrentSelection()
         state.statusMessage = "Selected atlas page '$pageName'."
         engine.logger.info(TAG) { "Texture Atlas Editor selected atlas page='$pageName'" }
     }
 
     fun selectRegion(regionId: AtlasRegionId?) {
         state.selectedRegionId = regionId
-        syncSelectedResourceFromRegion(regionId)
+        selectionCoordinator.syncSelectedResourceFromRegion(regionId)
         if (regionId != null) {
             state.selectedAtlasPageName = regionId.pageName
-            syncSelectedPackingFromCurrentSelection()
+            selectionCoordinator.syncSelectedPackingFromCurrentSelection()
             state.statusMessage = "Selected region '${regionId.regionName}'."
             engine.logger.info(TAG) { "Texture Atlas Editor selected region='${regionId.regionName}' page='${regionId.pageName}'" }
         } else {
-            syncSelectedPackingFromCurrentSelection()
+            selectionCoordinator.syncSelectedPackingFromCurrentSelection()
             state.statusMessage = "Region selection cleared."
         }
     }
@@ -127,16 +157,14 @@ class TextureAtlasEditorOperations(
                     state.fontPreview.selectedPageIndex
                         .coerceIn(0, (pageCount - 1).coerceAtLeast(0))
                 state.fontPreview.selectedGlyphId = null
-                if (state.preview.canvasMode != TextureAtlasCanvasMode.FontPreview) {
-                    state.preview.canvasMode = TextureAtlasCanvasMode.FontPreview
-                }
-                state.selectedRegionId = null
+                state.selectedAtlasPageName = resource.atlasRegionId?.pageName ?: state.selectedAtlasPageName
+                state.selectedRegionId = resource.atlasRegionId
             }
             else -> {
                 state.selectedRegionId = null
             }
         }
-        syncSelectedPackingFromCurrentSelection()
+        selectionCoordinator.syncSelectedPackingFromCurrentSelection()
         if (resource is NinePatchAtlasResource) {
             beginNinePatchEditing(resource.id)
         } else if (state.ninePatchEditor.selectedResourceId != null) {
@@ -191,7 +219,7 @@ class TextureAtlasEditorOperations(
         value: Float,
         updateMode: Boolean = true,
     ) {
-        state.preview.customZoom = value.coerceIn(MinPreviewZoom, MaxPreviewZoom)
+        state.preview.customZoom = value.coerceIn(TextureAtlasMinPreviewZoom, TextureAtlasMaxPreviewZoom)
         state.preview.viewport.zoom = state.preview.customZoom
         if (updateMode) {
             state.preview.zoomMode = TexturePreviewZoomMode.Custom
@@ -205,7 +233,7 @@ class TextureAtlasEditorOperations(
      */
     fun fitSelectedRegion() {
         if (state.preview.canvasMode == TextureAtlasCanvasMode.FinalPackedAtlas) {
-            fitSelectedPackedRegion()
+            packingOperations.fitSelectedPackedRegion()
             return
         }
         val regionId = state.selectedRegionId
@@ -232,7 +260,7 @@ class TextureAtlasEditorOperations(
             minOf(
                 canvas.width / regionWidth.toFloat(),
                 canvas.height / regionHeight.toFloat(),
-            ).times(0.9f).coerceIn(MinPreviewZoom, MaxPreviewZoom)
+            ).times(0.9f).coerceIn(TextureAtlasMinPreviewZoom, TextureAtlasMaxPreviewZoom)
 
         val imageWidth = textureWidth * zoom
         val imageHeight = textureHeight * zoom
@@ -300,7 +328,7 @@ class TextureAtlasEditorOperations(
     }
 
     fun setGridSpacingPixels(value: Int) {
-        state.preview.gridSpacingPixels = value.coerceIn(MinGridSpacingPixels, MaxGridSpacingPixels)
+        state.preview.gridSpacingPixels = value.coerceIn(TextureAtlasMinGridSpacingPixels, TextureAtlasMaxGridSpacingPixels)
     }
 
     fun setShowBounds(enabled: Boolean) {
@@ -313,85 +341,21 @@ class TextureAtlasEditorOperations(
         state.statusMessage = if (enabled) "Nine-patch guides enabled." else "Nine-patch guides hidden."
     }
 
-    fun setPackingMaxPageWidth(value: Int) {
-        state.packing.settings.maxPageWidth = value
-    }
+    fun setPackingMaxPageWidth(value: Int) = packingOperations.setPackingMaxPageWidth(value)
 
-    fun setPackingMaxPageHeight(value: Int) {
-        state.packing.settings.maxPageHeight = value
-    }
+    fun setPackingMaxPageHeight(value: Int) = packingOperations.setPackingMaxPageHeight(value)
 
-    fun setPackingPadding(value: Int) {
-        state.packing.settings.padding = value
-    }
+    fun setPackingPadding(value: Int) = packingOperations.setPackingPadding(value)
 
-    fun setPackingAllowRotation(enabled: Boolean) {
-        state.packing.settings.allowRotation = enabled
-    }
+    fun setPackingAllowRotation(enabled: Boolean) = packingOperations.setPackingAllowRotation(enabled)
 
-    fun setPackingIncludeNinePatch(enabled: Boolean) {
-        state.packing.settings.includeNinePatch = enabled
-    }
+    fun setPackingIncludeNinePatch(enabled: Boolean) = packingOperations.setPackingIncludeNinePatch(enabled)
 
-    fun addImageResourceFromPath(path: String = state.importExport.importSourcePath) {
-        val sourceFile = resolveTextureSource(path)
-        if (sourceFile == null) {
-            state.statusMessage = "Choose an existing texture inside the asset root before adding a resource."
-            return
-        }
-        val resource = createResourceFromTextureSource(sourceFile)
-        appendResource(resource)
-        state.importExport.importSourcePath = normalizePath(sourceFile.path)
-        state.statusMessage = "Added ${resource.type.name.lowercase()} resource '${resource.name}'."
-        engine.logger.info(TAG) { "Texture Atlas Editor added resource id='${resource.id}' source='${resource.sourcePathOrNull() ?: "<none>"}'" }
-    }
+    fun addImageResourceFromPath(path: String = state.importExport.importSourcePath) = resourceOperations.addImageResourceFromPath(path)
 
-    fun importAndAddImageResource() {
-        val before = state.importExport.lastImportResult
-        importTexture()
-        val result = state.importExport.lastImportResult
-        if (result !== before && result?.success == true) {
-            result.writtenPaths.firstOrNull()?.let { path ->
-                val normalized = normalizePath(path)
-                val resource = createResourceFromTextureSource(File(normalized))
-                appendResource(resource)
-                state.importExport.importSourcePath = normalized
-                state.statusMessage = "Imported and added ${resource.type.name.lowercase()} resource '${resource.name}'."
-            }
-        }
-    }
+    fun importAndAddImageResource() = resourceOperations.importAndAddImageResource()
 
-    fun deleteSelectedResource() {
-        val resource = state.selectedResource()
-        if (resource == null) {
-            state.statusMessage = "Select a resource before deleting it."
-            return
-        }
-        val regionId = resource.atlasRegionIdOrNull()
-        val selectedAsset = state.selectedAsset()?.takeIf { it.kind == TextureAtlasEditorAssetKind.Atlas }
-        if (regionId != null && selectedAsset != null) {
-            val atlas = state.selectedAtlasDocument()
-            if (atlas != null) {
-                val updatedRegions = atlas.regions.filterNot { region -> region.id == regionId }
-                if (updatedRegions.size != atlas.regions.size) {
-                    state.project =
-                        state.project.copy(
-                            atlasDocuments = state.project.atlasDocuments + (selectedAsset.path to atlas.copy(regions = updatedRegions)),
-                        )
-                }
-            }
-        }
-        state.resources.items = state.resources.items.filterNot { item -> item.id == resource.id }
-        state.resources.selectedResourceId =
-            state.resources.items
-                .firstOrNull()
-                ?.id
-        syncSelectedRegionFromResource()
-        state.statusMessage = "Deleted resource '${resource.name}' from the working atlas draft. Pack and Save to write changes."
-        engine.logger.info(TAG) {
-            "Texture Atlas Editor deleted resource id='${resource.id}' type=${resource.type}"
-        }
-    }
+    fun deleteSelectedResource() = resourceOperations.deleteSelectedResource()
 
     fun setImportSourcePath(path: String) {
         state.importExport.importSourcePath = path
@@ -409,52 +373,13 @@ class TextureAtlasEditorOperations(
         state.importExport.saveOverwrite = enabled
     }
 
-    fun packTextureAtlas() {
-        val settings = state.packing.settings.copy()
-        val diagnostics = mutableListOf<TextureAtlasPackingDiagnostic>()
-        val inputs = resourcePackingInputs(diagnostics).ifEmpty { atlasRegionPackingInputs(diagnostics) }
-        engine.logger.info(TAG) {
-            "Texture Atlas Editor packing started candidates=${inputs.size} max=${settings.maxPageWidth}x${settings.maxPageHeight} padding=${settings.padding} rotation=${settings.allowRotation} includeNinePatch=${settings.includeNinePatch}"
-        }
-        val result = packingPlanner.plan(inputs, settings)
-        val mergedDiagnostics = diagnostics + result.diagnostics
-        state.packing.lastResult = result.copy(diagnostics = mergedDiagnostics)
-        state.packing.selectedPageIndex = 0
-        state.packing.selectedRegionId = result.plan?.pages?.firstOrNull()?.regions?.firstOrNull()?.id
-        val pages = result.plan?.pages?.size ?: 0
-        val regions = result.plan?.packedRegionCount ?: 0
-        val skipped = result.plan?.skippedCount ?: 0
-        state.statusMessage = "Packed texture atlas preview produced $pages page(s), $regions region(s), skipped $skipped."
-        engine.logger.info(TAG) {
-            "Texture Atlas Editor packing completed pages=$pages regions=$regions skipped=$skipped diagnostics=${mergedDiagnostics.size}"
-        }
-    }
+    fun packTextureAtlas() = packingOperations.packTextureAtlas()
 
     fun runPackingDryRun() = packTextureAtlas()
 
-    fun selectPackingPage(index: Int) {
-        state.packing.selectedPageIndex = index
-        val page = state.packing.lastResult.plan?.pages?.getOrNull(index)
-        state.packing.selectedRegionId = page?.regions?.firstOrNull()?.id
-        state.statusMessage = if (page != null) "Selected packing page '${page.name}'." else "Packing page selection cleared."
-    }
+    fun selectPackingPage(index: Int) = packingOperations.selectPackingPage(index)
 
-    fun selectPackingRegion(regionId: String?) {
-        state.packing.selectedRegionId = regionId
-        val region = state.selectedPackingRegion()
-        if (region != null) {
-            state.resources.items
-                .firstOrNull { resource -> resource.sourcePathOrNull() == region.sourcePath && resource.name == region.regionName }
-                ?.let { resource ->
-                    state.resources.selectedResourceId = resource.id
-                    state.selectedRegionId = resource.atlasRegionIdOrNull()
-                    state.selectedAtlasPageName = resource.atlasRegionIdOrNull()?.pageName ?: state.selectedAtlasPageName
-                }
-            state.statusMessage = "Selected packed region '${region.displayName}'."
-        } else {
-            state.statusMessage = "Packed region selection cleared."
-        }
-    }
+    fun selectPackingRegion(regionId: String?) = packingOperations.selectPackingRegion(regionId)
 
     fun importTexture() {
         importExportOperations.importTexture()
@@ -486,682 +411,46 @@ class TextureAtlasEditorOperations(
         engine.requestExit()
     }
 
-    private fun selectedAtlasDocument(): TextureAtlasDocument? {
-        val asset = state.project.assets.firstOrNull { it.id == state.selectedAssetId } ?: return null
-        if (asset.kind != TextureAtlasEditorAssetKind.Atlas) return null
-        return state.project.atlasDocuments[asset.path]
-    }
+    fun addFontResourceFromPath(fntPath: String) = fontOperations.addFontResourceFromPath(fntPath)
 
-    private fun atlasRegionPackingInputs(diagnostics: MutableList<TextureAtlasPackingDiagnostic>): List<TextureAtlasPackingInput> {
-        val selectedAsset = state.selectedAsset()?.takeIf { it.kind == TextureAtlasEditorAssetKind.Atlas }
-        val atlas = state.selectedAtlasDocument()
-        if (selectedAsset == null || atlas == null) {
-            diagnostics +=
-                TextureAtlasPackingDiagnostic(
-                    severity = TextureAtlasEditorDiagnosticSeverity.Warning,
-                    message = "Open a texture atlas before packing regions.",
-                )
-            return emptyList()
-        }
-        return atlas.regions.mapNotNull { region ->
-            val xy = region.xy
-            val size = region.size
-            if (xy == null || size == null) {
-                diagnostics +=
-                    TextureAtlasPackingDiagnostic(
-                        severity = TextureAtlasEditorDiagnosticSeverity.Warning,
-                        message = "Atlas region is missing xy or size and was skipped.",
-                        sourcePath = "${region.id.pageName}:${region.id.regionName}",
-                    )
-                return@mapNotNull null
-            }
-            val sourcePath =
-                resolveAtlasPreviewTexturePath(selectedAsset.path, atlas, region.id.pageName)
-                    ?: run {
-                        diagnostics +=
-                            TextureAtlasPackingDiagnostic(
-                                severity = TextureAtlasEditorDiagnosticSeverity.Warning,
-                                message = "Atlas page texture could not be resolved and its region was skipped.",
-                                sourcePath = region.id.pageName,
-                            )
-                        return@mapNotNull null
-                    }
-            TextureAtlasPackingInput(
-                id = "atlas:${region.id.pageName}:${region.id.regionName}:${region.index ?: -1}",
-                sourcePath = sourcePath,
-                sourceX = xy.first,
-                sourceY = xy.second,
-                sourceWidth = size.first,
-                sourceHeight = size.second,
-                regionName = region.id.regionName,
-                displayName = region.id.regionName,
-                width = size.first,
-                height = size.second,
-                split = region.split,
-                pad = region.pad,
-                index = region.index,
-            )
-        }
-    }
+    fun selectFontGlyph(glyphId: Int?) = fontOperations.selectFontGlyph(glyphId)
 
-    private fun resourcePackingInputs(diagnostics: MutableList<TextureAtlasPackingDiagnostic>): List<TextureAtlasPackingInput> =
-        state.resources.items.mapNotNull { resource ->
-            when (resource) {
-                is ImageAtlasResource -> imageResourcePackingInput(resource, diagnostics)
-                is NinePatchAtlasResource -> ninePatchResourcePackingInput(resource, diagnostics)
-                is ColorAtlasResource -> {
-                    diagnostics +=
-                        TextureAtlasPackingDiagnostic(
-                            severity = TextureAtlasEditorDiagnosticSeverity.Warning,
-                            message = "Color resources are not packable yet.",
-                            sourcePath = resource.name,
-                        )
-                    null
-                }
-                is FontAtlasResource -> {
-                    diagnostics +=
-                        TextureAtlasPackingDiagnostic(
-                            severity = TextureAtlasEditorDiagnosticSeverity.Warning,
-                            message = "Font resources are not packable yet.",
-                            sourcePath = resource.sourcePath,
-                        )
-                    null
-                }
-            }
-        }
-
-    private fun imageResourcePackingInput(
-        resource: ImageAtlasResource,
-        diagnostics: MutableList<TextureAtlasPackingDiagnostic>,
-    ): TextureAtlasPackingInput? {
-        val file = File(resource.sourcePath)
-        val info = textureMetadataService.read(file)
-        val width = resource.sourceWidth ?: info?.width
-        val height = resource.sourceHeight ?: info?.height
-        if (!file.isFile || width == null || height == null) {
-            diagnostics +=
-                TextureAtlasPackingDiagnostic(
-                    severity = TextureAtlasEditorDiagnosticSeverity.Warning,
-                    message = "Image resource is missing or has unknown dimensions and was skipped.",
-                    sourcePath = resource.sourcePath,
-                )
-            return null
-        }
-        return TextureAtlasPackingInput(
-            id = resource.id,
-            sourcePath = resource.sourcePath,
-            sourceX = resource.sourceX,
-            sourceY = resource.sourceY,
-            sourceWidth = width,
-            sourceHeight = height,
-            regionName = resource.name,
-            displayName = resource.name,
-            width = width,
-            height = height,
-            index = resource.atlasIndex,
-        )
-    }
-
-    private fun ninePatchResourcePackingInput(
-        resource: NinePatchAtlasResource,
-        diagnostics: MutableList<TextureAtlasPackingDiagnostic>,
-    ): TextureAtlasPackingInput? {
-        val file = File(resource.sourcePath)
-        val info = textureMetadataService.read(file)
-        val document = state.project.ninePatchDocuments[resource.sourcePath]
-        val width = resource.sourceWidth ?: document?.contentWidth ?: info?.width
-        val height = resource.sourceHeight ?: document?.contentHeight ?: info?.height
-        if (!file.isFile || width == null || height == null) {
-            diagnostics +=
-                TextureAtlasPackingDiagnostic(
-                    severity = TextureAtlasEditorDiagnosticSeverity.Warning,
-                    message = "Nine-patch resource is missing or has unknown dimensions and was skipped.",
-                    sourcePath = resource.sourcePath,
-                )
-            return null
-        }
-        return TextureAtlasPackingInput(
-            id = resource.id,
-            sourcePath = resource.sourcePath,
-            sourceX = resource.sourceX,
-            sourceY = resource.sourceY,
-            sourceWidth = width,
-            sourceHeight = height,
-            regionName = resource.name,
-            displayName = resource.name,
-            width = width,
-            height = height,
-            isNinePatch = true,
-            split = resource.split.ifEmpty { document?.splitInts().orEmpty() },
-            pad = resource.pad.ifEmpty { document?.padInts().orEmpty() },
-            index = resource.atlasIndex,
-        )
-    }
-
-    private fun resolveTextureSource(path: String): File? {
-        val trimmed = path.trim().replace('\\', '/')
-        if (trimmed.isBlank()) return null
-        val assetRoot = engine.assetRegistry.baseDir()
-        val file =
-            TextureAtlasEditorPathValidator.resolveAssetPath(assetRoot, trimmed)
-                ?: File(trimmed).takeIf { candidate -> candidate.isAbsolute && candidate.isFile && TextureAtlasEditorPathValidator.isInsideRoot(assetRoot, candidate) }
-                ?: return null
-        if (!file.isFile || !isSupportedTextureImportFile(file)) return null
-        return file
-    }
-
-    private fun createResourceFromTextureSource(sourceFile: File): TextureAtlasResource {
-        val normalized = normalizePath(sourceFile.path)
-        val ninePatch = state.project.ninePatchDocuments[normalized]
-        val info = textureMetadataService.read(sourceFile)
-        val baseName =
-            sourceFile.name
-                .removeSuffix(".9.png")
-                .substringBeforeLast('.', sourceFile.nameWithoutExtension)
-                .ifBlank { sourceFile.nameWithoutExtension }
-        return if (ninePatch != null || isNinePatchTexturePathLocal(sourceFile.name)) {
-            NinePatchAtlasResource(
-                id = uniqueResourceId("resource:ninepatch:$normalized"),
-                name = uniqueResourceName(baseName),
-                sourcePath = normalized,
-                sourceX = if (ninePatch != null) 1 else 0,
-                sourceY = if (ninePatch != null) 1 else 0,
-                sourceWidth = ninePatch?.contentWidth ?: info?.width,
-                sourceHeight = ninePatch?.contentHeight ?: info?.height,
-                split = ninePatch?.splitInts().orEmpty(),
-                pad = ninePatch?.padInts().orEmpty(),
-            )
-        } else {
-            ImageAtlasResource(
-                id = uniqueResourceId("resource:image:$normalized"),
-                name = uniqueResourceName(baseName),
-                sourcePath = normalized,
-                sourceWidth = info?.width,
-                sourceHeight = info?.height,
-            )
-        }
-    }
-
-    private fun appendResource(resource: TextureAtlasResource) {
-        state.resources.items = state.resources.items + resource
-        selectResource(resource.id)
-    }
-
-    private fun uniqueResourceId(baseId: String): String {
-        if (state.resources.items.none { resource -> resource.id == baseId }) return baseId
-        var index = 2
-        while (true) {
-            val candidate = "$baseId#$index"
-            if (state.resources.items.none { resource -> resource.id == candidate }) {
-                return candidate
-            }
-            index++
-        }
-    }
-
-    private fun uniqueResourceName(baseName: String): String {
-        if (state.resources.items.none { resource -> resource.name == baseName }) return baseName
-        var index = 2
-        while (true) {
-            val candidate = "$baseName $index"
-            if (state.resources.items.none { resource -> resource.name == candidate }) {
-                return candidate
-            }
-            index++
-        }
-    }
-
-    private fun syncSelectedResourceFromRegion(regionId: AtlasRegionId?) {
-        if (regionId == null) {
-            if (state.selectedResource()?.atlasRegionIdOrNull() != null) {
-                state.resources.selectedResourceId = null
-            }
-            return
-        }
-        state.resources.selectedResourceId =
-            state.resources.items
-                .firstOrNull { resource -> resource.atlasRegionIdOrNull() == regionId }
-                ?.id
-                ?: state.resources.selectedResourceId
-    }
-
-    private fun syncSelectedRegionFromResource() {
-        val resource = state.selectedResource()
-        state.selectedRegionId = resource?.atlasRegionIdOrNull()
-        state.selectedAtlasPageName = resource?.atlasRegionIdOrNull()?.pageName ?: state.selectedAtlasPageName
-        syncSelectedPackingFromCurrentSelection()
-    }
-
-    private fun syncSelectedPackingFromCurrentSelection() {
-        val plan = state.selectedPackingPlan() ?: run {
-            state.packing.selectedRegionId = null
-            state.packing.selectedPageIndex = 0
-            return
-        }
-        val resource = state.selectedResource()
-        val selectedRegion =
-            when {
-                resource != null ->
-                    plan.pages
-                        .asSequence()
-                        .flatMap { page -> page.regions.asSequence() }
-                        .firstOrNull { packed ->
-                            packed.sourcePath == resource.sourcePathOrNull() && packed.regionName == resource.name
-                        }
-                state.selectedRegionId != null ->
-                    plan.pages
-                        .asSequence()
-                        .flatMap { page -> page.regions.asSequence() }
-                        .firstOrNull { packed -> packed.regionName == state.selectedRegionId?.regionName }
-                else -> null
-            }
-        if (selectedRegion != null) {
-            state.packing.selectedPageIndex = selectedRegion.pageIndex
-            state.packing.selectedRegionId = selectedRegion.id
-        } else if (plan.pages.none { page -> page.regions.any { region -> region.id == state.packing.selectedRegionId } }) {
-            state.packing.selectedPageIndex = 0
-            state.packing.selectedRegionId = plan.pages.firstOrNull()?.regions?.firstOrNull()?.id
-        }
-    }
-
-    // ── Font resource operations ──────────────────────────────────────────
-
-    fun addFontResourceFromPath(fntPath: String) {
-        val document = state.project.fontDocuments[fntPath]
-        if (document == null || !document.readable) {
-            state.statusMessage = "Cannot add font resource: .fnt file not found or not readable."
-            return
-        }
-        val face = document.info?.face ?: File(fntPath).nameWithoutExtension
-        val id = "resource:font:$fntPath"
-        if (state.resources.items.any { it.id == id }) {
-            state.statusMessage = "Font resource for '$face' already exists."
-            return
-        }
-        val resource = FontAtlasResource(
-            id = id,
-            name = face,
-            sourcePath = fntPath,
-            documentPath = fntPath,
-            pageTexturePaths = document.pages.mapNotNull { it.resolvedPath },
-            glyphCount = document.glyphs.size,
-            kerningCount = document.kernings.size,
-        )
-        state.resources.items = state.resources.items + resource
-        selectResource(resource.id)
-        state.statusMessage = "Added font resource '$face' with ${document.glyphs.size} glyphs."
-        engine.logger.info(TAG) { "Font resource added id='${resource.id}' face='$face' glyphs=${document.glyphs.size}" }
-    }
-
-    fun selectFontGlyph(glyphId: Int?) {
-        state.fontPreview.selectedGlyphId = glyphId
-    }
-
-    fun setFontPreviewPage(pageIndex: Int) {
-        state.fontPreview.selectedPageIndex = pageIndex
-    }
+    fun setFontPreviewPage(pageIndex: Int) = fontOperations.setFontPreviewPage(pageIndex)
 
     fun setFontPreviewTint(
         red: Float,
         green: Float,
         blue: Float,
         alpha: Float,
-    ) {
-        state.fontPreview.tintColor = TextureAtlasEditorColor(red, green, blue, alpha)
-    }
+    ) = fontOperations.setFontPreviewTint(red, green, blue, alpha)
 
-    fun setFontSampleText(text: String) {
-        state.fontPreview.sampleText = text
-    }
+    fun setFontSampleText(text: String) = fontOperations.setFontSampleText(text)
 
-    fun setFontGlyphFilter(filter: String) {
-        state.fontPreview.glyphFilter = filter
-    }
+    fun setFontSampleTextPreviewEnabled(enabled: Boolean) = fontOperations.setFontSampleTextPreviewEnabled(enabled)
 
-    fun exportBitmapFont() {
-        val resource = state.selectedResource()
-        if (resource !is FontAtlasResource) {
-            state.statusMessage = "Select a font resource before exporting."
-            return
-        }
-        val document = state.project.fontDocuments[resource.documentPath]
-        if (document == null || !document.readable) {
-            state.statusMessage = "Cannot export font: descriptor is not readable."
-            return
-        }
-        val targetPath = state.importExport.targetPath
-            .takeIf { it.endsWith(".fnt", ignoreCase = true) }
-            ?: defaultFontExportPath(resource)
-        val assetRoot = engine.assetRegistry.baseDir()
-        val writer = BitmapFontWriter()
-        val result = writer.write(
-            assetRoot = assetRoot,
-            targetPath = targetPath,
-            document = document,
-            overwrite = state.importExport.saveOverwrite,
-        )
-        state.importExport.lastExportResult = result
-        state.statusMessage = result.message
-        if (result.success) {
-            state.importExport.targetPath = targetPath
-            engine.logger.info(TAG) { "Font exported path='$targetPath' glyphs=${document.glyphs.size}" }
-        } else {
-            engine.logger.warn(TAG) { "Font export failed path='$targetPath': ${result.message}" }
-        }
-    }
+    fun setFontGlyphFilter(filter: String) = fontOperations.setFontGlyphFilter(filter)
 
-    private fun defaultFontExportPath(resource: FontAtlasResource): String {
-        val sourcePath = resource.documentPath
-        val parent = File(sourcePath).parent?.replace('\\', '/')?.let { "$it/" } ?: ""
-        val baseName = File(sourcePath).nameWithoutExtension.ifBlank { resource.name }
-        return "${parent}${baseName}_export.fnt"
-    }
+    fun exportBitmapFont() = fontOperations.exportBitmapFont()
 
-    // ── NinePatch draft editing ──────────────────────────────────────────
+    fun beginNinePatchEditing(resourceId: String) = ninePatchOperations.beginNinePatchEditing(resourceId)
 
-    fun beginNinePatchEditing(resourceId: String) {
-        val resource = state.resources.items.firstOrNull { it.id == resourceId }
-        if (resource !is NinePatchAtlasResource) {
-            state.ninePatchEditor = NinePatchEditorState()
-            return
-        }
-        val document = state.project.ninePatchDocuments[resource.sourcePath]
-        val draft = buildNinePatchDraft(resource, document)
-        if (draft == null) {
-            state.ninePatchEditor = NinePatchEditorState(
-                selectedResourceId = resourceId,
-                validationIssues = listOf(
-                    NinePatchValidationIssue(NinePatchValidationSeverity.Error, "Cannot determine content dimensions for this resource."),
-                ),
-            )
-            state.statusMessage = "Cannot edit Nine-patch: content dimensions are unavailable."
-            return
-        }
-        val issues = validateNinePatchDraft(draft)
-        state.ninePatchEditor = NinePatchEditorState(
-            selectedResourceId = resourceId,
-            draft = draft,
-            dirty = false,
-            validationIssues = issues,
-        )
-        engine.logger.info(TAG) {
-            "NinePatch editing started resource='${resource.name}' content=${draft.contentWidth}x${draft.contentHeight} issues=${issues.size}"
-        }
-    }
+    fun updateNinePatchStretchX(start: Int, length: Int) = ninePatchOperations.updateNinePatchStretchX(start, length)
 
-    fun updateNinePatchStretchX(start: Int, length: Int) {
-        val draft = state.ninePatchEditor.draft ?: return
-        val updated = draft.copy(stretchX = NinePatchSegment(start = start, length = length))
-        applyDraftUpdate(updated)
-    }
+    fun updateNinePatchStretchY(start: Int, length: Int) = ninePatchOperations.updateNinePatchStretchY(start, length)
 
-    fun updateNinePatchStretchY(start: Int, length: Int) {
-        val draft = state.ninePatchEditor.draft ?: return
-        val updated = draft.copy(stretchY = NinePatchSegment(start = start, length = length))
-        applyDraftUpdate(updated)
-    }
+    fun updateNinePatchPaddingX(start: Int?, length: Int?) = ninePatchOperations.updateNinePatchPaddingX(start, length)
 
-    fun updateNinePatchPaddingX(start: Int?, length: Int?) {
-        val draft = state.ninePatchEditor.draft ?: return
-        val paddingX = if (start != null && length != null) NinePatchSegment(start = start, length = length) else null
-        val updated = draft.copy(paddingX = paddingX)
-        applyDraftUpdate(updated)
-    }
+    fun updateNinePatchPaddingY(start: Int?, length: Int?) = ninePatchOperations.updateNinePatchPaddingY(start, length)
 
-    fun updateNinePatchPaddingY(start: Int?, length: Int?) {
-        val draft = state.ninePatchEditor.draft ?: return
-        val paddingY = if (start != null && length != null) NinePatchSegment(start = start, length = length) else null
-        val updated = draft.copy(paddingY = paddingY)
-        applyDraftUpdate(updated)
-    }
+    fun clearNinePatchPadding() = ninePatchOperations.clearNinePatchPadding()
 
-    fun clearNinePatchPadding() {
-        val draft = state.ninePatchEditor.draft ?: return
-        val updated = draft.copy(paddingX = null, paddingY = null)
-        applyDraftUpdate(updated)
-        state.statusMessage = "Cleared Nine-patch padding guides."
-    }
+    fun useFullNinePatchStretch() = ninePatchOperations.useFullNinePatchStretch()
 
-    fun useFullNinePatchStretch() {
-        val draft = state.ninePatchEditor.draft ?: return
-        val updated = draft.copy(
-            stretchX = NinePatchSegment(start = 0, length = draft.contentWidth),
-            stretchY = NinePatchSegment(start = 0, length = draft.contentHeight),
-        )
-        applyDraftUpdate(updated)
-        state.statusMessage = "Set Nine-patch stretch to full content bounds."
-    }
+    fun resetNinePatchDraft() = ninePatchOperations.resetNinePatchDraft()
 
-    fun resetNinePatchDraft() {
-        val resourceId = state.ninePatchEditor.selectedResourceId ?: return
-        beginNinePatchEditing(resourceId)
-        state.statusMessage = "Reset Nine-patch draft from source."
-    }
-
-    fun applyNinePatchDraft() {
-        val draft = state.ninePatchEditor.draft ?: return
-        val resourceId = state.ninePatchEditor.selectedResourceId ?: return
-        val issues = validateNinePatchDraft(draft)
-        state.ninePatchEditor.validationIssues = issues
-        if (issues.any { it.severity == NinePatchValidationSeverity.Error }) {
-            state.statusMessage = "Cannot apply Nine-patch draft: there are validation errors."
-            return
-        }
-        val resource = state.resources.items.firstOrNull { it.id == resourceId }
-        if (resource !is NinePatchAtlasResource) return
-        val updatedResource = resource.copy(
-            split = draft.toSplitList(),
-            pad = draft.toPadList(),
-        )
-        state.resources.items = state.resources.items.map { item ->
-            if (item.id == resourceId) updatedResource else item
-        }
-        state.ninePatchEditor.dirty = false
-        state.statusMessage = "Applied Nine-patch draft to resource '${resource.name}'. Pack and Save to write atlas output."
-        engine.logger.info(TAG) {
-            "NinePatch draft applied resource='${resource.name}' split=${updatedResource.split} pad=${updatedResource.pad}"
-        }
-    }
-
-    private fun applyDraftUpdate(updated: NinePatchDraft) {
-        val issues = validateNinePatchDraft(updated)
-        state.ninePatchEditor.draft = updated
-        state.ninePatchEditor.dirty = true
-        state.ninePatchEditor.validationIssues = issues
-    }
-
-    private fun fitSelectedPackedRegion() {
-        val region = state.selectedPackingRegion()
-        if (region == null) {
-            state.statusMessage = "Select a packed region to focus it."
-            return
-        }
-        val canvas = state.canvasRect
-        val textureWidth = state.previewInfo.textureWidth
-        val textureHeight = state.previewInfo.textureHeight
-        if (!canvas.isValid || textureWidth <= 0 || textureHeight <= 0) {
-            engine.logger.warn(TAG) {
-                "Texture Atlas Editor fitSelectedPackedRegion ignored region='${region.displayName}' because canvas or packed preview dimensions were unavailable"
-            }
-            state.statusMessage = "Preview must be visible before focusing a packed region."
-            return
-        }
-
-        val regionWidth = region.width.coerceAtLeast(1)
-        val regionHeight = region.height.coerceAtLeast(1)
-        val zoom =
-            minOf(
-                canvas.width / regionWidth.toFloat(),
-                canvas.height / regionHeight.toFloat(),
-            ).times(0.9f).coerceIn(MinPreviewZoom, MaxPreviewZoom)
-
-        val imageWidth = textureWidth * zoom
-        val imageHeight = textureHeight * zoom
-        val baseImageX = canvas.x + (canvas.width - imageWidth) * 0.5f
-        val baseImageY = canvas.y + (canvas.height - imageHeight) * 0.5f
-        val regionCenterX = region.x + regionWidth * 0.5f
-        val regionCenterY = region.y + regionHeight * 0.5f
-        val desiredCenterX = canvas.x + canvas.width * 0.5f
-        val desiredCenterY = canvas.y + canvas.height * 0.5f
-
-        state.preview.customZoom = zoom
-        state.preview.viewport.zoom = zoom
-        state.preview.zoomMode = TexturePreviewZoomMode.Custom
-        state.preview.viewport.panX = desiredCenterX - (baseImageX + regionCenterX * zoom)
-        state.preview.viewport.panY = desiredCenterY - (baseImageY + regionCenterY * zoom)
-        state.statusMessage = "Focused packed region '${region.displayName}'."
-        engine.logger.info(TAG) {
-            "Texture Atlas Editor fit packed region='${region.displayName}' page=${region.pageIndex} zoom=$zoom"
-        }
-    }
+    fun applyNinePatchDraft() = ninePatchOperations.applyNinePatchDraft()
 
     companion object {
         private const val TAG = "TextureAtlasEditorOps"
-        private const val MinPreviewZoom = 0.05f
-        private const val MaxPreviewZoom = 25f
-        private const val MinGridSpacingPixels = 4
-        private const val MaxGridSpacingPixels = 512
     }
-}
-
-internal fun TextureAtlasEditorState.selectedAsset(): TextureAtlasEditorAssetDescriptor? = project.assets.firstOrNull { it.id == selectedAssetId }
-
-internal fun TextureAtlasEditorState.selectedResource(): TextureAtlasResource? =
-    resources.items.firstOrNull { resource -> resource.id == resources.selectedResourceId }
-
-internal fun TextureAtlasEditorState.selectedAtlasDocument(): TextureAtlasDocument? = selectedAsset()?.takeIf { it.kind == TextureAtlasEditorAssetKind.Atlas }?.let { asset -> project.atlasDocuments[asset.path] }
-
-internal fun TextureAtlasEditorState.selectedNinePatchDocument(): NinePatchDocument? =
-    selectedResource()
-        ?.sourcePathOrNull()
-        ?.let { previewPath -> project.ninePatchDocuments[previewPath] }
-        ?: selectedPreviewTexturePath()?.let { previewPath -> project.ninePatchDocuments[previewPath] }
-
-internal fun TextureAtlasEditorState.selectedFontDocument(): BitmapFontDocument? {
-    val resource = selectedResource() as? FontAtlasResource ?: return null
-    return project.fontDocuments[resource.documentPath]
-}
-
-internal fun TextureAtlasEditorState.selectedAtlasNinePatchRegion(): TextureAtlasRegion? =
-    selectedAtlasDocument()
-        ?.regions
-        ?.firstOrNull { region ->
-            region.id == (selectedResource()?.atlasRegionIdOrNull() ?: selectedRegionId) && (region.split.isNotEmpty() || region.pad.isNotEmpty())
-        }
-
-internal fun TextureAtlasEditorState.selectedRegionsForPage(): List<TextureAtlasRegion> =
-    selectedAtlasDocument()
-        ?.regions
-        ?.filter { region -> selectedAtlasPageName == null || region.id.pageName == selectedAtlasPageName }
-        .orEmpty()
-
-internal fun TextureAtlasEditorState.selectedPackingPlan(): TextureAtlasPackingPlan? = packing.lastResult.plan
-
-internal fun TextureAtlasEditorState.selectedPackingPage(): TextureAtlasPackingPage? = packing.lastResult.plan?.pages?.getOrNull(packing.selectedPageIndex)
-
-internal fun TextureAtlasEditorState.selectedPackingRegion(): TextureAtlasPackingRegion? =
-    selectedPackingPage()
-        ?.regions
-        ?.firstOrNull { region -> region.id == packing.selectedRegionId }
-
-internal fun TextureAtlasEditorState.selectedPreviewSlice(): TextureAtlasEditorPreviewSlice? {
-    if (preview.canvasMode != TextureAtlasCanvasMode.NinePatch) return null
-    val resource = selectedResource() as? NinePatchAtlasResource ?: return null
-    val width = resource.sourceWidth ?: selectedNinePatchDocument()?.contentWidth ?: return null
-    val height = resource.sourceHeight ?: selectedNinePatchDocument()?.contentHeight ?: return null
-    if (width <= 0 || height <= 0) return null
-    return TextureAtlasEditorPreviewSlice(
-        sourceX = resource.sourceX,
-        sourceY = resource.sourceY,
-        width = width,
-        height = height,
-    )
-}
-
-internal fun TextureAtlasEditorState.selectedPreviewTexturePath(): String? {
-    when (preview.canvasMode) {
-        TextureAtlasCanvasMode.FinalPackedAtlas -> return null
-        TextureAtlasCanvasMode.FontPreview -> {
-            val fontResource = selectedResource() as? FontAtlasResource
-            if (fontResource != null) {
-                val doc = project.fontDocuments[fontResource.documentPath]
-                val page = doc?.pages?.getOrNull(fontPreview.selectedPageIndex) ?: doc?.pages?.firstOrNull()
-                return page?.resolvedPath
-            }
-            return null
-        }
-        TextureAtlasCanvasMode.NinePatch -> {
-            selectedResource()?.sourcePathOrNull()?.let { return it }
-        }
-        TextureAtlasCanvasMode.TextureAtlas -> Unit
-    }
-    val asset = selectedAsset()
-    if (asset == null) {
-        project.selectedTexturePath?.let { return it }
-        val atlasPath = project.selectedAtlasPath ?: return null
-        return resolveAtlasPreviewTexturePath(
-            atlasPath = atlasPath,
-            atlas = project.atlasDocuments[atlasPath],
-            selectedPageName = selectedAtlasPageName,
-        )
-    }
-    return when (asset.kind) {
-        TextureAtlasEditorAssetKind.Texture -> asset.path
-        TextureAtlasEditorAssetKind.Atlas -> resolveAtlasPreviewTexturePath(asset.path, project.atlasDocuments[asset.path], selectedAtlasPageName)
-        else -> null
-    }
-}
-
-internal fun TextureAtlasResource.atlasRegionIdOrNull(): AtlasRegionId? =
-    when (this) {
-        is ImageAtlasResource -> atlasRegionId
-        is NinePatchAtlasResource -> atlasRegionId
-        else -> null
-    }
-
-internal fun TextureAtlasResource.sourcePathOrNull(): String? =
-    when (this) {
-        is ImageAtlasResource -> sourcePath
-        is NinePatchAtlasResource -> sourcePath
-        is FontAtlasResource -> sourcePath
-        is ColorAtlasResource -> null
-    }
-
-private fun NinePatchDocument.splitInts(): List<Int> =
-    guideSegmentsToAtlasInsets(stretchX.firstOrNull(), stretchY.firstOrNull(), contentWidth, contentHeight)
-
-private fun NinePatchDocument.padInts(): List<Int> =
-    guideSegmentsToAtlasInsets(paddingX, paddingY, contentWidth, contentHeight)
-
-private fun guideSegmentsToAtlasInsets(
-    horizontal: NinePatchSegment?,
-    vertical: NinePatchSegment?,
-    contentWidth: Int,
-    contentHeight: Int,
-): List<Int> {
-    val horizontalSegment = horizontal ?: return emptyList()
-    val verticalSegment = vertical ?: return emptyList()
-    return listOf(
-        horizontalSegment.start,
-        contentWidth - (horizontalSegment.start + horizontalSegment.length),
-        verticalSegment.start,
-        contentHeight - (verticalSegment.start + verticalSegment.length),
-    )
-}
-
-private fun isNinePatchTexturePathLocal(path: String): Boolean = path.endsWith(".9.png", ignoreCase = true)
-
-internal fun resolveAtlasPreviewTexturePath(
-    atlasPath: String,
-    atlas: TextureAtlasDocument?,
-    selectedPageName: String?,
-): String? {
-    val pageName = selectedPageName ?: atlas?.pages?.firstOrNull()?.name ?: return null
-    val atlasFile = File(atlasPath)
-    val pageFile = File(pageName)
-    if (pageFile.isAbsolute) {
-        return normalizePath(pageFile.path)
-    }
-    val parent = atlasFile.parentFile ?: return null
-    return normalizePath(File(parent, pageName).path)
 }

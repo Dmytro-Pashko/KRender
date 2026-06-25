@@ -145,9 +145,10 @@ class LocalAssetRegistryService(
         val extension = file.extension.lowercase()
         val displayName = document.displayName.takeIf(String::isNotBlank) ?: file.nameWithoutExtension
         val type = enumValueOrNull<AssetType>(document.type)?.takeUnless { it == AssetType.Unknown } ?: detection.type
-        val category =
+        val storedCategory =
             enumValueOrNull<AssetCategory>(document.category)?.takeUnless { it == AssetCategory.Other }
                 ?: detection.category
+        val category = canonicalCategoryFor(type, storedCategory)
         val descriptorMetadata =
             buildMap<String, String> {
                 put("displayName", displayName)
@@ -200,6 +201,19 @@ class LocalAssetRegistryService(
         if (settings.isEmpty()) return "{}"
         return settings.entries.joinToString(prefix = "{", postfix = "}") { (k, v) -> "$k=$v" }
     }
+
+    private fun canonicalCategoryFor(
+        type: AssetType,
+        category: AssetCategory,
+    ): AssetCategory =
+        when (type) {
+            AssetType.Atlas,
+            AssetType.Font,
+            AssetType.Scene2DSkin,
+            -> AssetCategory.Scene2D
+
+            else -> category
+        }
 
     private fun textureMetadata(
         file: File,
@@ -324,7 +338,11 @@ class LocalAssetRegistryService(
          *
          * The `ui/scenes` entry exists so `.krui` UiScene documents under `assets/ui/scenes` are indexed by
          * Asset Browser. `ui/skins` indexes LibGDX Scene2D Skin JSON descriptors for `.krui` creation and
-         * UI Composer picker workflows. Indexing keeps these assets discoverable for routing, validation,
+         * `atlases` keeps Texture Atlas Editor outputs discoverable after in-editor asset creation.
+         * Those `.atlas` files are routed as managed Scene2D assets so they show up immediately for browsing,
+         * reopening in the atlas editor, and downstream picker workflows.
+         *
+         * Indexing keeps these assets discoverable for routing, validation,
          * preview, hierarchy/inspector editing, and save workflows, while current limitations such as no
          * Skin editing and no asset-id based references still apply.
          */
@@ -332,6 +350,7 @@ class LocalAssetRegistryService(
             listOf(
                 "model",
                 "textures",
+                "atlases",
                 "skyboxes",
                 "materials",
                 "terrains",
