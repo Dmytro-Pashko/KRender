@@ -29,19 +29,16 @@ class TextureAtlasEditorResourcesPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private val queryBuffer = ByteArray(BufferSize)
-    private val textureSourceBuffer = ByteArray(BufferSize)
-    private val fontSourceBuffer = ByteArray(BufferSize)
+    private val importSourceBuffer = ByteArray(BufferSize)
     private var synced = false
 
     override fun draw() {
         if (!synced) {
             writeBuffer(queryBuffer, state.atlasBrowser.query)
-            writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
-            writeBuffer(fontSourceBuffer, state.importExport.fontSourcePath)
+            writeBuffer(importSourceBuffer, currentImportSourcePath())
             synced = true
         }
-        syncTextureSourceBuffer()
-        syncFontSourceBuffer()
+        syncImportSourceBuffer()
         val layout = layoutConfig.panels.getValue(TextureAtlasEditorPanelIds.Regions)
         val expanded = beginImGuiPanel(TextureAtlasEditorPanelIds.Regions, layout, layoutTracker)
         eventLogger.observe(TextureAtlasEditorPanelIds.Regions, layout.title)
@@ -67,6 +64,7 @@ class TextureAtlasEditorResourcesPanel(
             state.atlasBrowser.query = ""
             writeBuffer(queryBuffer, "")
         }
+        tooltipOnHover("Clears the current resource search filter.")
         ImGui.separator()
 
         if (atlas.pages.isNotEmpty()) {
@@ -79,6 +77,7 @@ class TextureAtlasEditorResourcesPanel(
                 }
                 ImGui.endCombo()
             }
+            tooltipOnHover("Filters the resource list to atlas items from the selected page.")
             if (ImGui.beginCombo("Sort##texture_atlas_editor_resource_sort", state.atlasBrowser.sortMode.label())) {
                 TextureAtlasRegionSortMode.entries.forEach { mode ->
                     if (ImGui.selectable(mode.label(), state.atlasBrowser.sortMode == mode)) {
@@ -87,11 +86,13 @@ class TextureAtlasEditorResourcesPanel(
                 }
                 ImGui.endCombo()
             }
+            tooltipOnHover("Changes how atlas resources are ordered in the list.")
             drawPageSummary(atlas, currentPage)
         }
         drawResourceEditingControls()
 
         val resources = visibleResources()
+        textLine("Resources List")
         ImGui.beginChild("texture_atlas_editor_resources_list", ImVec2(0f, 0f), true)
         resources.forEach { resource ->
             val selected = state.resources.selectedResourceId == resource.id
@@ -114,64 +115,53 @@ class TextureAtlasEditorResourcesPanel(
     }
 
     private fun drawResourceEditingControls() {
-        textLine("Image Resource Source")
+        ImGui.separator()
+        textLine("Import Resource")
         ImGui.setNextItemWidth(ImGui.contentRegionAvail.x - 92f)
-        if (ImGui.inputText("##texture_atlas_editor_resource_source", textureSourceBuffer)) {
-            operations.setImportSourcePath(readBuffer(textureSourceBuffer))
+        if (ImGui.inputText("##texture_atlas_editor_import_resource_source", importSourceBuffer)) {
+            val path = readBuffer(importSourceBuffer)
+            operations.setImportSourcePath(path)
+            operations.setFontSourcePath(path)
         }
         ImGui.sameLine()
-        if (ImGui.button("Open##texture_atlas_editor_resource_source_open")) {
-            operations.browseRegionTextureSource()
-            writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
+        if (ImGui.button("Browse##texture_atlas_editor_import_resource_browse")) {
+            operations.browseImportResource()
+            writeBuffer(importSourceBuffer, currentImportSourcePath())
         }
-        if (ImGui.button("Add Existing Image##texture_atlas_editor_resource_add")) {
+        if (ImGui.button("Add Existing Asset##texture_atlas_editor_resource_add")) {
             operations.addImageResourceFromPath()
         }
+        tooltipOnHover("Adds the selected image file to the atlas resource list without copying it.")
         ImGui.sameLine()
-        if (ImGui.button("Import Image Into Assets##texture_atlas_editor_resource_import_add")) {
+        if (ImGui.button("Import Into Assets and Add##texture_atlas_editor_resource_import_add")) {
             operations.importAndAddImageResource()
-            writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
+            writeBuffer(importSourceBuffer, currentImportSourcePath())
         }
-        textLine("Bitmap Font Source")
-        ImGui.setNextItemWidth(ImGui.contentRegionAvail.x - 92f)
-        if (ImGui.inputText("##texture_atlas_editor_font_source", fontSourceBuffer)) {
-            operations.setFontSourcePath(readBuffer(fontSourceBuffer))
-        }
-        ImGui.sameLine()
-        if (ImGui.button("Browse##texture_atlas_editor_font_source_browse")) {
-            operations.browseFontDescriptor()
-            writeBuffer(fontSourceBuffer, state.importExport.fontSourcePath)
-        }
+        tooltipOnHover("Copies the selected image into assets and adds it as an atlas resource.")
         if (ImGui.button("Add Font##texture_atlas_editor_resource_add_font")) {
             operations.importFontResourceFromPath()
-            writeBuffer(fontSourceBuffer, state.importExport.fontSourcePath)
+            writeBuffer(importSourceBuffer, currentImportSourcePath())
         }
+        tooltipOnHover("Imports a bitmap font descriptor and adds it to the atlas resources.")
+        ImGui.separator()
         val selectedResource = state.selectedResource()
-        val canCreateNinePatch = selectedResource is ImageAtlasResource
-        if (!canCreateNinePatch) ImGui.beginDisabled()
-        if (ImGui.button("Create NinePatch##texture_atlas_editor_resource_create_ninepatch")) {
-            operations.createNinePatchFromSelectedResource()
-        }
-        if (!canCreateNinePatch) ImGui.endDisabled()
         if (selectedResource == null) ImGui.beginDisabled()
         if (ImGui.button("Delete Resource##texture_atlas_editor_resource_delete")) {
             operations.deleteSelectedResource()
         }
+        tooltipOnHover("Removes the selected resource from the atlas resource list.")
         if (selectedResource == null) ImGui.endDisabled()
         ImGui.separator()
     }
 
-    private fun syncTextureSourceBuffer() {
-        if (readBuffer(textureSourceBuffer) != state.importExport.importSourcePath) {
-            writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
+    private fun syncImportSourceBuffer() {
+        val currentPath = currentImportSourcePath()
+        if (readBuffer(importSourceBuffer) != currentPath) {
+            writeBuffer(importSourceBuffer, currentPath)
         }
     }
 
-    private fun syncFontSourceBuffer() {
-        if (readBuffer(fontSourceBuffer) != state.importExport.fontSourcePath) {
-            writeBuffer(fontSourceBuffer, state.importExport.fontSourcePath)
-        }
-    }
+    private fun currentImportSourcePath(): String = state.importExport.fontSourcePath.ifBlank { state.importExport.importSourcePath }
 
     private fun visibleResources(): List<TextureAtlasResource> =
         state.resources.items
@@ -190,11 +180,6 @@ class TextureAtlasEditorResourcesPanel(
         when (state.atlasBrowser.sortMode) {
             TextureAtlasRegionSortMode.Name -> compareBy({ it.name.lowercase() }, { it.atlasIndexOrMax() })
             TextureAtlasRegionSortMode.Type -> compareBy<TextureAtlasResource>({ it.type.sortOrder() }, { it.name.lowercase() })
-            TextureAtlasRegionSortMode.Index -> compareBy({ it.atlasIndexOrMax() }, { it.name.lowercase() })
-            TextureAtlasRegionSortMode.AreaAscending ->
-                compareBy<TextureAtlasResource> { resource -> resource.areaOrMax() }.thenBy { it.name.lowercase() }
-            TextureAtlasRegionSortMode.AreaDescending ->
-                compareByDescending<TextureAtlasResource> { resource -> resource.areaOrMin() }.thenBy { it.name.lowercase() }
         }
 
     private fun drawPageSummary(
@@ -252,22 +237,6 @@ private fun TextureAtlasResource.atlasIndexOrMax(): Int =
         else -> Int.MAX_VALUE
     }
 
-private fun TextureAtlasResource.areaOrMax(): Int =
-    when (this) {
-        is ImageAtlasResource -> (sourceWidth ?: Int.MAX_VALUE) * (sourceHeight ?: Int.MAX_VALUE)
-        is NinePatchAtlasResource -> (sourceWidth ?: Int.MAX_VALUE) * (sourceHeight ?: Int.MAX_VALUE)
-        is FontAtlasResource -> Int.MAX_VALUE
-        else -> Int.MAX_VALUE
-    }
-
-private fun TextureAtlasResource.areaOrMin(): Int =
-    when (this) {
-        is ImageAtlasResource -> (sourceWidth ?: Int.MIN_VALUE) * (sourceHeight ?: Int.MIN_VALUE)
-        is NinePatchAtlasResource -> (sourceWidth ?: Int.MIN_VALUE) * (sourceHeight ?: Int.MIN_VALUE)
-        is FontAtlasResource -> Int.MIN_VALUE
-        else -> Int.MIN_VALUE
-    }
-
 private fun TextureAtlasResource.sizeLabel(): String =
     when (this) {
         is ImageAtlasResource -> sourceWidth?.let { width -> sourceHeight?.let { height -> " [$width x $height]" } }.orEmpty()
@@ -294,9 +263,6 @@ private fun TextureAtlasRegionSortMode.label(): String =
     when (this) {
         TextureAtlasRegionSortMode.Name -> "Name"
         TextureAtlasRegionSortMode.Type -> "Type"
-        TextureAtlasRegionSortMode.Index -> "Index"
-        TextureAtlasRegionSortMode.AreaAscending -> "Area Asc"
-        TextureAtlasRegionSortMode.AreaDescending -> "Area Desc"
     }
 
 private data class ResourceRegionMetrics(

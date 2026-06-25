@@ -54,3 +54,9 @@ internal fun wrappedTextLine(value: String) {
     ImGui.textUnformatted(value)
     ImGui.popTextWrapPos()
 }
+
+internal fun tooltipOnHover(value: String) {
+    if (ImGui.isItemHovered()) {
+        ImGui.setTooltip(value)
+    }
+}

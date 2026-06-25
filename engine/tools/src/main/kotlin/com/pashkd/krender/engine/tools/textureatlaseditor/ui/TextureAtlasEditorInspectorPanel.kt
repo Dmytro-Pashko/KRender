@@ -48,10 +48,15 @@ class TextureAtlasEditorInspectorPanel(
             if (ImGui.button("Rename##atlas_resource_rename")) {
                 operations.renameSelectedResource(readBuffer(resourceNameBuf))
             }
+            tooltipOnHover("Applies the new resource name to the selected atlas item.")
             when (resource) {
                 is ImageAtlasResource -> {
                     textLine("Source: ${resource.sourcePath}")
                     textLine("Rect: ${resource.sourceX}, ${resource.sourceY}, ${resource.sourceWidth ?: "?"}, ${resource.sourceHeight ?: "?"}")
+                    if (ImGui.button("Convert to NinePatch##atlas_resource_convert_to_ninepatch")) {
+                        operations.createNinePatchFromSelectedResource()
+                    }
+                    tooltipOnHover("Converts the selected image resource into a NinePatch resource.")
                 }
                 is NinePatchAtlasResource -> {
                     textLine("Source: ${resource.sourcePath}")
@@ -224,7 +229,7 @@ class TextureAtlasEditorInspectorPanel(
         val resource = state.resources.items.firstOrNull { it.id == resourceId } as? NinePatchAtlasResource ?: return
 
         ImGui.separator()
-        textLine("Nine-patch Editor: ${resource.name}")
+        textLine("NinePatch Editor: ${resource.name}")
         textLine("Content: ${draft.contentWidth} x ${draft.contentHeight}")
         if (editor.dirty) textLine("Status: modified (unsaved)")
 
@@ -261,6 +266,7 @@ class TextureAtlasEditorInspectorPanel(
             if (ImGui.button("Set Padding X##np_set_px")) {
                 operations.updateNinePatchPaddingX(0, draft.contentWidth)
             }
+            tooltipOnHover("Creates a horizontal padding guide that spans the full content width.")
         }
 
         textLine("Padding Y: ${draft.paddingY?.let { "start=${it.start}  length=${it.length}" } ?: "(unset)"}")
@@ -276,23 +282,28 @@ class TextureAtlasEditorInspectorPanel(
             if (ImGui.button("Set Padding Y##np_set_py")) {
                 operations.updateNinePatchPaddingY(0, draft.contentHeight)
             }
+            tooltipOnHover("Creates a vertical padding guide that spans the full content height.")
         }
 
         if (ImGui.button("Apply Draft##np_apply")) {
             operations.applyNinePatchDraft()
         }
+        tooltipOnHover("Applies the current NinePatch draft to the selected resource.")
         ImGui.sameLine()
         if (ImGui.button("Reset##np_reset")) {
             operations.resetNinePatchDraft()
         }
+        tooltipOnHover("Resets the NinePatch draft back to the resource's current values.")
         ImGui.sameLine()
         if (ImGui.button("Full Stretch##np_full")) {
             operations.useFullNinePatchStretch()
         }
+        tooltipOnHover("Expands stretch guides to cover the full NinePatch content area.")
         ImGui.sameLine()
         if (ImGui.button("Clear Padding##np_clear_pad")) {
             operations.clearNinePatchPadding()
         }
+        tooltipOnHover("Removes the current NinePatch padding guides from the draft.")
 
         if (editor.validationIssues.isNotEmpty()) {
             ImGui.separator()

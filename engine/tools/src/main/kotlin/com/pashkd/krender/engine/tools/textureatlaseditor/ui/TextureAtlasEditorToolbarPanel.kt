@@ -32,18 +32,22 @@ class TextureAtlasEditorToolbarPanel(
         if (ImGui.button("Reload##texture_atlas_editor_reload")) {
             operations.reload()
         }
+        tooltipOnHover("Reloads the current atlas and refreshes the editor state.")
         ImGui.sameLine()
         if (ImGui.button("Save Layout##texture_atlas_editor_save_layout")) {
             operations.saveUiLayout()
         }
+        tooltipOnHover("Saves the current panel layout for this editor.")
         ImGui.sameLine()
         if (ImGui.button("Reset Layout##texture_atlas_editor_reset_layout")) {
             operations.restoreUiLayout()
         }
+        tooltipOnHover("Restores the default panel layout.")
         ImGui.sameLine()
         if (ImGui.button("Exit##texture_atlas_editor_exit")) {
             operations.requestExit()
         }
+        tooltipOnHover("Closes the Texture Atlas Editor window.")
 
         ImGui.separator()
         wrappedTextLine(state.statusMessage)
@@ -58,9 +62,6 @@ class TextureAtlasEditorToolbarPanel(
             textLine("File: ${asset.fileName}  |  ${asset.extension.ifBlank { "?" }}  |  ${formatBytes(asset.sizeBytes)}")
             asset.textureInfo?.let { info ->
                 textLine("Dimensions: ${info.width ?: "?"} x ${info.height ?: "?"}  Format: ${info.colorFormat ?: "?"}")
-            }
-            if (state.previewInfo.textureWidth > 0 && state.previewInfo.textureHeight > 0) {
-                textLine("Preview: ${state.previewInfo.textureWidth} x ${state.previewInfo.textureHeight}")
             }
         }
         ImGui.end()

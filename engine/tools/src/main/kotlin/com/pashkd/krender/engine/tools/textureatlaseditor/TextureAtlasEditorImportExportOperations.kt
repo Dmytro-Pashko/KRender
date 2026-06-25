@@ -42,6 +42,22 @@ class TextureAtlasEditorImportExportOperations(
         engine.logger.info(TAG) { "Texture Atlas Editor bitmap font source selected path='${normalizePath(selected)}'" }
     }
 
+    fun browseImportResource() {
+        val selected = fileDialogService.openFile(TextureImportDialogFilters + FontImportDialogFilters)
+        if (selected.isNullOrBlank()) return
+        val normalized = normalizePath(selected)
+        state.importExport.importSourcePath = normalized
+        state.importExport.fontSourcePath = normalized
+        if (
+            TextureAtlasEditorImportTextureExtensions.any { extension -> normalized.endsWith(".$extension", ignoreCase = true) } &&
+            (state.importExport.targetPath.isBlank() || state.importExport.targetPath.endsWith(".atlas", ignoreCase = true))
+        ) {
+            state.importExport.targetPath = suggestedImportTargetPath(selected)
+        }
+        state.statusMessage = "Selected import resource '${File(selected).name}'."
+        engine.logger.info(TAG) { "Texture Atlas Editor import resource selected path='$normalized'" }
+    }
+
     fun importTexture() {
         val assetRoot = engine.assetRegistry.baseDir()
         val targetPath =

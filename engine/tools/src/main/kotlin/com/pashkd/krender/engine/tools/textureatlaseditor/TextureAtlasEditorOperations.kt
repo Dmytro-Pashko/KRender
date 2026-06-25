@@ -509,6 +509,10 @@ class TextureAtlasEditorOperations(
         importExportOperations.browseFontDescriptor()
     }
 
+    fun browseImportResource() {
+        importExportOperations.browseImportResource()
+    }
+
     fun saveUiLayout() {
         ImGuiLayoutConfigCodec.save(TextureAtlasEditorUiLayoutDefaults.assetPath, layoutTracker.currentConfig(), engine.sceneFiles)
         state.statusMessage = "Panel layout saved."

@@ -526,7 +526,7 @@ internal object TextureAtlasEditorPreviewOverlays {
     private val PackedHoverRegionColor = packImColor(111, 230, 153, 180)
     private val PackedSelectedRegionColor = packImColor(255, 184, 77, 180)
     private val PackedRegionOutlineColor = packImColor(255, 255, 255, 200)
-    private val GlyphBoundsColor = packImColor(200, 200, 200, 80)
+    private val GlyphBoundsColor = BoundsColor
     private val GlyphSelectedColor = packImColor(255, 92, 92, 200)
     private val GlyphHoveredColor = packImColor(64, 173, 255, 180)
 

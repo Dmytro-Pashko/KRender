@@ -27,9 +27,6 @@ enum class TexturePreviewSurfaceMode {
 enum class TextureAtlasRegionSortMode {
     Name,
     Type,
-    Index,
-    AreaAscending,
-    AreaDescending,
 }
 
 enum class TextureAtlasCanvasMode {

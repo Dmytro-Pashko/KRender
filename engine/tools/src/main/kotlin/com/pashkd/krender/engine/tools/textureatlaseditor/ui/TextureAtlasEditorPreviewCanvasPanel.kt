@@ -131,11 +131,16 @@ class TextureAtlasEditorPreviewCanvasPanel(
             }
             ImGui.endCombo()
         }
+        tooltipOnHover("Switches the preview canvas between atlas, NinePatch, and font modes.")
     }
 
     private fun drawOptionRow() {
         if (state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch) {
             drawNinePatchPreviewTypeCombo()
+            if (state.preview.ninePatchStretch.previewType == TextureAtlasNinePatchPreviewType.StretchTest) {
+                ImGui.sameLine()
+                drawNinePatchStretchPresetCombo()
+            }
             drawSharedPreviewOptionToggles(
                 checkerId = "np_editor_checker",
                 gridId = "np_editor_grid",
@@ -147,6 +152,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 if (ImGui.checkbox("Show Guides##np_editor_guides", guides)) {
                     operations.setShowNinePatchGuides(guides[0])
                 }
+                tooltipOnHover("Shows or hides editable NinePatch guide handles in the source preview.")
                 drawPreviewSurfaceModeCombo("np_surface")
                 drawCustomCanvasSizeEditors("np_surface")
             } else {
@@ -159,6 +165,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
             if (ImGui.checkbox("Show Glyph Bounds##font_show_glyphs", showGlyphs)) {
                 state.fontPreview.showGlyphBounds = showGlyphs[0]
             }
+            tooltipOnHover("Shows glyph rectangles on the selected font texture page.")
             ImGui.sameLine()
             drawSharedPreviewOptionToggles(
                 checkerId = "font_checker",
@@ -193,6 +200,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
         if (ImGui.checkbox("Preview Packed Atlas##texture_atlas_editor_packed_preview_toggle", packedPreview)) {
             operations.setShowPackedAtlasPreview(packedPreview[0])
         }
+        tooltipOnHover("Overlays the current packed atlas plan in the preview without saving files.")
         if (!canShowPacked) ImGui.endDisabled()
         drawPreviewSurfaceModeCombo("atlas_surface")
         drawCustomCanvasSizeEditors("atlas_surface")
@@ -204,10 +212,12 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 if (ImGui.button("Fit##np_fit")) {
                     operations.fitPreview()
                 }
+                tooltipOnHover("Fits the current preview content inside the canvas.")
                 ImGui.sameLine()
                 if (ImGui.button("Reset Camera##np_reset_camera")) {
                     operations.resetPreviewCamera()
                 }
+                tooltipOnHover("Resets preview pan and zoom to the default camera state.")
             }
             TextureAtlasCanvasMode.TextureAtlas -> {
                 if (state.isShowingPackedAtlasPreview()) {
@@ -230,10 +240,12 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 if (ImGui.button("Fit##texture_atlas_editor_fit")) {
                     operations.fitPreview()
                 }
+                tooltipOnHover("Fits the current preview content inside the canvas.")
                 ImGui.sameLine()
                 if (ImGui.button("Reset Camera##texture_atlas_editor_reset_camera")) {
                     operations.resetPreviewCamera()
                 }
+                tooltipOnHover("Resets preview pan and zoom to the default camera state.")
                 ImGui.sameLine()
                 if (ImGui.button(if (state.isShowingPackedAtlasPreview()) "Focus Region##texture_atlas_editor_focus_region" else "Focus Selected Region##texture_atlas_editor_focus_region")) {
                     operations.fitSelectedRegion()
@@ -258,10 +270,12 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 if (ImGui.button("Fit##atlas_preview_fit")) {
                     operations.fitPreview()
                 }
+                tooltipOnHover("Fits the current preview content inside the canvas.")
                 ImGui.sameLine()
                 if (ImGui.button("Reset Camera##atlas_preview_reset")) {
                     operations.resetPreviewCamera()
                 }
+                tooltipOnHover("Resets preview pan and zoom to the default camera state.")
                 ImGui.sameLine()
                 if (ImGui.button("Focus Region##atlas_preview_focus")) {
                     operations.fitSelectedRegion()
@@ -284,10 +298,12 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 if (ImGui.button("Fit##font_fit")) {
                     operations.fitPreview()
                 }
+                tooltipOnHover("Fits the current preview content inside the canvas.")
                 ImGui.sameLine()
                 if (ImGui.button("Reset Camera##font_reset_camera")) {
                     operations.resetPreviewCamera()
                 }
+                tooltipOnHover("Resets preview pan and zoom to the default camera state.")
             }
         }
     }
@@ -301,7 +317,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
         val selectedResource = state.selectedResource()
         if (isNinePatchMode && selectedResource !is NinePatchAtlasResource) {
             clearCursorMetrics()
-            wrappedTextLine("Select a Nine-patch resource to edit guides.")
+            wrappedTextLine("Select a NinePatch resource to edit guides.")
             return
         }
 
@@ -804,7 +820,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
                         if (state.preview.ninePatchStretch.previewType == TextureAtlasNinePatchPreviewType.StretchTest) {
                             "Wheel: zoom only. RMB drag: pan. Stretch Test is preview-only and does not write files."
                         } else {
-                            "Wheel: zoom only. RMB drag: pan. LMB on guide handles: edit Nine-patch draft."
+                            "Wheel: zoom only. RMB drag: pan. LMB on guide handles: edit NinePatch draft."
                         }
                     } else {
                         "Wheel: zoom only. RMB drag: pan. LMB on region: select. Double-click region: focus."
@@ -861,24 +877,10 @@ class TextureAtlasEditorPreviewCanvasPanel(
             }
             ImGui.endCombo()
         }
+        tooltipOnHover("Changes the NinePatch preview between the source texture and stretch test.")
     }
 
     private fun drawNinePatchStretchControls() {
-        ImGui.sameLine()
-        ImGui.setNextItemWidth(140f)
-        if (ImGui.beginCombo(
-                "Preset##np_stretch_preset",
-                state.preview.ninePatchStretch.preset
-                    .label(),
-            )
-        ) {
-            TextureAtlasNinePatchStretchPreset.entries.forEach { preset ->
-                if (ImGui.selectable(preset.label(), state.preview.ninePatchStretch.preset == preset)) {
-                    operations.setNinePatchStretchPreset(preset)
-                }
-            }
-            ImGui.endCombo()
-        }
         syncStretchTargetBuffers()
         textLine("Target")
         ImGui.sameLine()
@@ -906,6 +908,22 @@ class TextureAtlasEditorPreviewCanvasPanel(
         val showPaddingRect = booleanArrayOf(state.preview.ninePatchStretch.showPaddingRect)
         if (ImGui.checkbox("Show Padding Rect##np_stretch_show_padding_rect", showPaddingRect)) {
             operations.setShowNinePatchStretchPaddingRect(showPaddingRect[0])
+        }
+    }
+
+    private fun drawNinePatchStretchPresetCombo() {
+        ImGui.setNextItemWidth(140f)
+        if (ImGui.beginCombo(
+                "Preset##np_stretch_preset",
+                state.preview.ninePatchStretch.preset.label(),
+            )
+        ) {
+            TextureAtlasNinePatchStretchPreset.entries.forEach { preset ->
+                if (ImGui.selectable(preset.label(), state.preview.ninePatchStretch.preset == preset)) {
+                    operations.setNinePatchStretchPreset(preset)
+                }
+            }
+            ImGui.endCombo()
         }
     }
 

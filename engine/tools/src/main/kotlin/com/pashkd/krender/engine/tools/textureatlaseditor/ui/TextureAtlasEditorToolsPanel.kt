@@ -64,10 +64,12 @@ class TextureAtlasEditorToolsPanel(
         if (ImGui.checkbox("Allow Rotation##texture_atlas_editor_packing_rotation", allowRotation)) {
             operations.setPackingAllowRotation(allowRotation[0])
         }
+        tooltipOnHover("Allows the packer to rotate regions when placing them on atlas pages.")
         val includeNinePatch = booleanArrayOf(state.packing.settings.includeNinePatch)
-        if (ImGui.checkbox("Include Nine-patch##texture_atlas_editor_packing_nine_patch", includeNinePatch)) {
+        if (ImGui.checkbox("Include NinePatch##texture_atlas_editor_packing_nine_patch", includeNinePatch)) {
             operations.setPackingIncludeNinePatch(includeNinePatch[0])
         }
+        tooltipOnHover("Includes NinePatch resources in the next packing pass.")
         val overwriteExistingAtlas = booleanArrayOf(state.importExport.saveOverwrite)
         if (ImGui.checkbox("Overwrite Existing Atlas##texture_atlas_editor_save_overwrite", overwriteExistingAtlas)) {
             operations.setSaveOverwrite(overwriteExistingAtlas[0])
@@ -75,12 +77,14 @@ class TextureAtlasEditorToolsPanel(
         if (ImGui.button("Pack Texture Atlas##texture_atlas_editor_packing_run")) {
             operations.packTextureAtlas()
         }
+        tooltipOnHover("Builds an in-memory packing plan for the current atlas resources.")
         ImGui.sameLine()
         val canSave = state.selectedPackingPlan()?.packedRegionCount?.let { it > 0 } == true
         if (!canSave) ImGui.beginDisabled()
         if (ImGui.button("Save Texture Atlas##texture_atlas_editor_save_atlas")) {
             operations.savePackedAtlas()
         }
+        tooltipOnHover("Writes the packed atlas descriptor and page textures to disk.")
         if (!canSave) ImGui.endDisabled()
         val currentPlan = state.selectedPackingPlan()
         textLine("Input count: ${currentPlan?.inputCount ?: 0}")
@@ -104,6 +108,7 @@ class TextureAtlasEditorToolsPanel(
             operations.exportSelectedResourcePng()
             writeBuffer(exportPathBuffer, state.importExport.exportResourcePath)
         }
+        tooltipOnHover("Exports the selected atlas resource to a PNG file.")
         if (!canExport) ImGui.endDisabled()
     }
 
@@ -144,6 +149,10 @@ class TextureAtlasEditorToolsPanel(
             }
         }
         ImGui.endCombo()
+        when {
+            label.startsWith("Max Width") -> tooltipOnHover("Sets the maximum packed atlas page width.")
+            label.startsWith("Max Height") -> tooltipOnHover("Sets the maximum packed atlas page height.")
+        }
     }
 
     private fun drawPaddingCombo() {
@@ -155,6 +164,7 @@ class TextureAtlasEditorToolsPanel(
             }
         }
         ImGui.endCombo()
+        tooltipOnHover("Sets the spacing between packed resources on atlas pages.")
     }
 
     private fun syncExportPathBuffer() {
