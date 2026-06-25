@@ -3,7 +3,8 @@ package com.pashkd.krender.engine.tools.textureatlaseditor
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.assets.importing.AwtFileDialogService
+import com.pashkd.krender.engine.assets.importing.FileDialogService
+import com.pashkd.krender.engine.assets.importing.NoOpFileDialogService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasCanvasMode.FinalPackedAtlas
@@ -26,6 +27,7 @@ import com.pashkd.krender.engine.ui.editor.UiSystem
 
 class TextureAtlasEditorScene(
     initialAtlasPath: String? = null,
+    private val fileDialogService: FileDialogService = NoOpFileDialogService,
 ) : Scene("texture_atlas_editor") {
     override val config: SceneConfig = SceneConfigPresets.TextureAtlasEditor
 
@@ -55,7 +57,7 @@ class TextureAtlasEditorScene(
                 editorState,
                 engine,
                 layoutTracker,
-                fileDialogService = AwtFileDialogService(),
+                fileDialogService = fileDialogService,
                 atlasSaveService = GdxTextureAtlasSaveService(engine.logger),
             )
         loader =
