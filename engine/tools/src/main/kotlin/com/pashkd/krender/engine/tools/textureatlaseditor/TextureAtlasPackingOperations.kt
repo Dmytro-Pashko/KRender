@@ -173,15 +173,12 @@ internal class TextureAtlasPackingOperations(
 
     /**
      * Converts editable draft resources into packable image slices.
-     *
-     * BMFont descriptors are intentionally excluded: their glyph coordinates are
-     * local to page textures and must not be remapped into the packed atlas page.
      */
     private fun resourcePackingInputs(diagnostics: MutableList<TextureAtlasPackingDiagnostic>): List<TextureAtlasPackingInput> =
-        state.resources.items.mapNotNull { resource ->
+        state.resources.items.flatMap { resource ->
             when (resource) {
-                is ImageAtlasResource -> imageResourcePackingInput(resource, diagnostics)
-                is NinePatchAtlasResource -> ninePatchResourcePackingInput(resource, diagnostics)
+                is ImageAtlasResource -> listOfNotNull(imageResourcePackingInput(resource, diagnostics))
+                is NinePatchAtlasResource -> listOfNotNull(ninePatchResourcePackingInput(resource, diagnostics))
                 is ColorAtlasResource -> {
                     diagnostics +=
                         TextureAtlasPackingDiagnostic(
@@ -189,17 +186,9 @@ internal class TextureAtlasPackingOperations(
                             message = "Color resources are not packable yet.",
                             sourcePath = resource.name,
                         )
-                    null
+                    emptyList()
                 }
-                is FontAtlasResource -> {
-                    diagnostics +=
-                        TextureAtlasPackingDiagnostic(
-                            severity = TextureAtlasEditorDiagnosticSeverity.Warning,
-                            message = "Font descriptors keep their own page textures and are not packed as atlas regions.",
-                            sourcePath = resource.sourcePath,
-                        )
-                    null
-                }
+                is FontAtlasResource -> fontResourcePackingInputs(resource, diagnostics)
             }
         }
 
@@ -268,6 +257,73 @@ internal class TextureAtlasPackingOperations(
             split = resource.split.ifEmpty { document?.splitInts().orEmpty() },
             pad = resource.pad.ifEmpty { document?.padInts().orEmpty() },
             index = resource.atlasIndex,
+        )
+    }
+
+    private fun fontResourcePackingInputs(
+        resource: FontAtlasResource,
+        diagnostics: MutableList<TextureAtlasPackingDiagnostic>,
+    ): List<TextureAtlasPackingInput> {
+        if (!resource.packInAtlas) {
+            return emptyList()
+        }
+        val document = state.project.fontDocuments[resource.documentPath]
+        if (document == null || !document.readable) {
+            diagnostics +=
+                TextureAtlasPackingDiagnostic(
+                    severity = TextureAtlasEditorDiagnosticSeverity.Warning,
+                    message = "Packed font was skipped because its descriptor could not be read.",
+                    sourcePath = resource.documentPath,
+                )
+            return emptyList()
+        }
+        if (document.pages.size != 1) {
+            diagnostics +=
+                TextureAtlasPackingDiagnostic(
+                    severity = TextureAtlasEditorDiagnosticSeverity.Warning,
+                    message = "Packed font rewrite currently supports single-page bitmap fonts only. The font was skipped.",
+                    sourcePath = resource.documentPath,
+                )
+            return emptyList()
+        }
+        val page = document.pages.first()
+        val pagePath = page.resolvedPath
+        if (pagePath.isNullOrBlank()) {
+            diagnostics +=
+                TextureAtlasPackingDiagnostic(
+                    severity = TextureAtlasEditorDiagnosticSeverity.Warning,
+                    message = "Packed font was skipped because its page texture path could not be resolved.",
+                    sourcePath = resource.documentPath,
+                )
+            return emptyList()
+        }
+        val pageFile = File(pagePath)
+        val pageInfo = textureMetadataService.read(pageFile)
+        val width = pageInfo?.width
+        val height = pageInfo?.height
+        if (!pageFile.isFile || width == null || height == null) {
+            diagnostics +=
+                TextureAtlasPackingDiagnostic(
+                    severity = TextureAtlasEditorDiagnosticSeverity.Warning,
+                    message = "Packed font was skipped because its page texture is missing or unreadable.",
+                    sourcePath = pagePath,
+                )
+            return emptyList()
+        }
+        return listOf(
+            TextureAtlasPackingInput(
+                id = "${resource.id}:page:${page.id}",
+                sourcePath = pagePath,
+                sourceWidth = width,
+                sourceHeight = height,
+                regionName = resource.name,
+                displayName = resource.name,
+                width = width,
+                height = height,
+                fontResourceId = resource.id,
+                fontDocumentPath = resource.documentPath,
+                fontPageId = page.id,
+            ),
         )
     }
 

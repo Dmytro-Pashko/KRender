@@ -9,6 +9,7 @@ import java.io.File
 class TextureAtlasEditorImportExportOperations(
     private val state: TextureAtlasEditorState,
     private val engine: EngineContext,
+    private val savePackedFontDescriptors: (String, TextureAtlasPackingPlan) -> TextureAtlasEditorFileWriteResult? = { _, _ -> null },
     private val fileDialogService: FileDialogService = NoOpFileDialogService,
     private val atlasSaveService: TextureAtlasSaveService = NoOpTextureAtlasSaveService,
     private val importService: TextureAtlasEditorImportService = TextureAtlasEditorImportService(engine.logger),
@@ -104,6 +105,16 @@ class TextureAtlasEditorImportExportOperations(
         state.importExport.lastExportResult = result
         state.statusMessage = result.message
         if (result.success) {
+            val fontRewriteResult = savePackedFontDescriptors(targetPath, plan)
+            if (fontRewriteResult != null) {
+                state.importExport.lastExportResult = fontRewriteResult
+                state.statusMessage =
+                    if (fontRewriteResult.success) {
+                        "${result.message} ${fontRewriteResult.message}"
+                    } else {
+                        "${result.message} ${fontRewriteResult.message}"
+                    }
+            }
             state.dirty = false
             state.importExport.targetPath = targetPath
             openPath(targetPath)

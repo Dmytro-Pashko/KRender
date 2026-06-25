@@ -25,6 +25,9 @@ data class TextureAtlasPackingInput(
     val split: List<Int> = emptyList(),
     val pad: List<Int> = emptyList(),
     val index: Int? = null,
+    val fontResourceId: String? = null,
+    val fontDocumentPath: String? = null,
+    val fontPageId: Int? = null,
 )
 
 data class TextureAtlasPackingRegion(
@@ -46,6 +49,9 @@ data class TextureAtlasPackingRegion(
     val split: List<Int> = emptyList(),
     val pad: List<Int> = emptyList(),
     val index: Int? = null,
+    val fontResourceId: String? = null,
+    val fontDocumentPath: String? = null,
+    val fontPageId: Int? = null,
 )
 
 data class TextureAtlasPackingPage(

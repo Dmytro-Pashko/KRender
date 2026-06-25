@@ -59,6 +59,7 @@ data class FontAtlasResource(
     val sourcePath: String,
     val documentPath: String = sourcePath,
     val pageTexturePaths: List<String> = emptyList(),
+    val packInAtlas: Boolean = false,
     val atlasTexturePath: String? = null,
     val atlasRegionId: AtlasRegionId? = null,
     val sourceX: Int = 0,

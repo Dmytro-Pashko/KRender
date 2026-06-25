@@ -180,6 +180,128 @@ internal class TextureAtlasBitmapFontOperations(
         return "${parent}${baseName}_export.fnt"
     }
 
+    fun setPackFontInAtlas(enabled: Boolean) {
+        val resource = state.selectedResource() as? FontAtlasResource ?: return
+        val updated = resource.copy(packInAtlas = enabled)
+        state.resources.items =
+            state.resources.items.map { item ->
+                if (item.id == resource.id) updated else item
+            }
+        selectResource(updated.id)
+        state.dirty = true
+        state.statusMessage =
+            if (enabled) {
+                "Font '${resource.name}' will be packed into the atlas on the next save."
+            } else {
+                "Font '${resource.name}' will remain external to the atlas."
+            }
+    }
+
+    fun savePackedFontDescriptors(
+        atlasTargetPath: String,
+        plan: TextureAtlasPackingPlan,
+    ): TextureAtlasEditorFileWriteResult? {
+        val assetRoot = engine.assetRegistry.baseDir()
+        val atlasFile =
+            TextureAtlasEditorPathValidator.resolveAssetPath(assetRoot, atlasTargetPath)
+                ?: return TextureAtlasEditorFileWriteResult(
+                    success = false,
+                    message = "Packed font descriptors were not updated because the atlas target path is outside the asset root.",
+                )
+        val pageNames = buildPackedAtlasPageNames(atlasFile, plan)
+        val fontResources =
+            state.resources.items
+                .filterIsInstance<FontAtlasResource>()
+                .filter { resource -> resource.packInAtlas }
+        if (fontResources.isEmpty()) {
+            return null
+        }
+
+        val failures = mutableListOf<String>()
+        val writtenPaths = mutableListOf<String>()
+        fontResources.forEach { resource ->
+            val document = state.project.fontDocuments[resource.documentPath]
+            if (document == null || !document.readable) {
+                failures += "Descriptor for '${resource.name}' is unreadable."
+                return@forEach
+            }
+            if (document.pages.size != 1) {
+                failures += "Font '${resource.name}' uses multiple pages and cannot be rewritten safely yet."
+                return@forEach
+            }
+            val packedRegion =
+                plan.pages
+                    .flatMap { page -> page.regions }
+                    .firstOrNull { region -> region.fontResourceId == resource.id }
+            if (packedRegion == null) {
+                failures += "Font page for '${resource.name}' was not packed into the atlas."
+                return@forEach
+            }
+            val packedPage = plan.pages.getOrNull(packedRegion.pageIndex)
+            if (packedPage == null) {
+                failures += "Packed atlas page for '${resource.name}' could not be resolved."
+                return@forEach
+            }
+            val rewritten =
+                document.copy(
+                    common =
+                        document.common?.copy(
+                            pages = 1,
+                            scaleW = packedPage.width,
+                            scaleH = packedPage.height,
+                        ),
+                    pages =
+                        listOf(
+                            BitmapFontPage(
+                                id = 0,
+                                file = pageNames[packedRegion.pageIndex] ?: return@forEach,
+                                resolvedPath = normalizePath(File(atlasFile.parentFile, pageNames[packedRegion.pageIndex]!!).path),
+                                exists = true,
+                            ),
+                        ),
+                    glyphs =
+                        document.glyphs.map { glyph ->
+                            glyph.copy(
+                                x = glyph.x + packedRegion.x,
+                                y = glyph.y + packedRegion.y,
+                                page = 0,
+                            )
+                        },
+                )
+            val result =
+                writer.write(
+                    assetRoot = assetRoot,
+                    targetPath = resource.documentPath,
+                    document = rewritten,
+                    overwrite = true,
+                )
+            if (!result.success) {
+                failures += "Font '${resource.name}' could not be rewritten: ${result.message}"
+                return@forEach
+            }
+            val refreshedDocument = BitmapFontParser().parse(File(resource.documentPath))
+            state.project =
+                state.project.copy(
+                    fontDocuments = state.project.fontDocuments + (resource.documentPath to refreshedDocument),
+                )
+            writtenPaths += result.writtenPaths
+        }
+
+        return if (failures.isEmpty()) {
+            TextureAtlasEditorFileWriteResult(
+                success = true,
+                message = "Updated packed bitmap font descriptors.",
+                writtenPaths = writtenPaths,
+            )
+        } else {
+            TextureAtlasEditorFileWriteResult(
+                success = false,
+                message = failures.joinToString(" "),
+                writtenPaths = writtenPaths,
+            )
+        }
+    }
+
     private fun chooseImportTargets(
         atlasDirectory: File,
         requestedBaseName: String,
@@ -224,6 +346,7 @@ internal class TextureAtlasBitmapFontOperations(
 internal fun createFontAtlasResource(
     fntPath: String,
     document: BitmapFontDocument,
+    packInAtlas: Boolean = false,
 ): FontAtlasResource {
     val normalizedPath = normalizePath(fntPath)
     val fontName = File(normalizedPath).nameWithoutExtension
@@ -233,6 +356,7 @@ internal fun createFontAtlasResource(
         sourcePath = normalizedPath,
         documentPath = normalizedPath,
         pageTexturePaths = document.pages.mapNotNull { it.resolvedPath },
+        packInAtlas = packInAtlas,
         glyphCount = document.glyphs.size,
         kerningCount = document.kernings.size,
     )
@@ -243,3 +367,13 @@ private fun sanitizeFontFileStem(name: String): String =
         .trim()
         .replace(Regex("[\\\\/:*?\"<>|]+"), "_")
         .ifBlank { "font" }
+
+private fun buildPackedAtlasPageNames(
+    atlasFile: File,
+    plan: TextureAtlasPackingPlan,
+): Map<Int, String> {
+    val baseName = atlasFile.nameWithoutExtension.ifBlank { "packed" }
+    return plan.pages.associate { page ->
+        page.index to "${baseName}_${page.index + 1}.png"
+    }
+}

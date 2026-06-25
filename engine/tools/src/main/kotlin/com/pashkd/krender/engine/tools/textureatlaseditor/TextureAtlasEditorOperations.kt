@@ -23,10 +23,17 @@ class TextureAtlasEditorOperations(
     atlasSaveService: TextureAtlasSaveService = NoOpTextureAtlasSaveService,
 ) {
     private val selectionCoordinator = TextureAtlasEditorSelectionCoordinator(state)
+    private val fontOperations =
+        TextureAtlasBitmapFontOperations(
+            state = state,
+            engine = engine,
+            selectResource = ::selectResource,
+        )
     private val importExportOperations =
         TextureAtlasEditorImportExportOperations(
             state = state,
             engine = engine,
+            savePackedFontDescriptors = fontOperations::savePackedFontDescriptors,
             fileDialogService = fileDialogService,
             atlasSaveService = atlasSaveService,
             openPath = ::openPath,
@@ -46,12 +53,6 @@ class TextureAtlasEditorOperations(
             importTexture = ::importTexture,
             selectResource = ::selectResource,
             textureMetadataService = textureMetadataService,
-        )
-    private val fontOperations =
-        TextureAtlasBitmapFontOperations(
-            state = state,
-            engine = engine,
-            selectResource = ::selectResource,
         )
     private val ninePatchOperations = TextureAtlasNinePatchOperations(state, engine)
 
@@ -545,6 +546,8 @@ class TextureAtlasEditorOperations(
     fun setFontGlyphFilter(filter: String) = fontOperations.setFontGlyphFilter(filter)
 
     fun exportBitmapFont() = fontOperations.exportBitmapFont()
+
+    fun setPackFontInAtlas(enabled: Boolean) = fontOperations.setPackFontInAtlas(enabled)
 
     fun beginNinePatchEditing(resourceId: String) = ninePatchOperations.beginNinePatchEditing(resourceId)
 

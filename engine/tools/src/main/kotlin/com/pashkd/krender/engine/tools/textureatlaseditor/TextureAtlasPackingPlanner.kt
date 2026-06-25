@@ -103,6 +103,9 @@ class TextureAtlasPackingPlanner {
                     split = input.split,
                     pad = input.pad,
                     index = input.index,
+                    fontResourceId = input.fontResourceId,
+                    fontDocumentPath = input.fontDocumentPath,
+                    fontPageId = input.fontPageId,
                 )
             cursorX += input.width + settings.padding
             shelfHeight = maxOf(shelfHeight, input.height)

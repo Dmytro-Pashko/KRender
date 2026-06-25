@@ -64,6 +64,10 @@ class TextureAtlasEditorInspectorPanel(
                 is FontAtlasResource -> {
                     textLine("Source: ${resource.sourcePath}")
                     textLine("Glyphs: ${resource.glyphCount}  Kernings: ${resource.kerningCount}  Pages: ${resource.pageTexturePaths.size}")
+                    val packInAtlas = booleanArrayOf(resource.packInAtlas)
+                    if (ImGui.checkbox("Pack font in atlas##atlas_font_pack_toggle", packInAtlas)) {
+                        operations.setPackFontInAtlas(packInAtlas[0])
+                    }
                     state.selectedFontPageTexturePath()?.let { texturePath ->
                         textLine("Font texture: $texturePath")
                     }
