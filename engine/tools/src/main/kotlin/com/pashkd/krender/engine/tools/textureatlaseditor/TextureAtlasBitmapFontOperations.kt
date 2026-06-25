@@ -258,6 +258,7 @@ internal class TextureAtlasBitmapFontOperations(
                 engine.logger.warn(TAG) { "Skipped packed font descriptor rewrite resource id='${resource.id}' because packed page index=${packedRegion.pageIndex} was missing" }
                 return@forEach
             }
+            val packedDescriptorPath = choosePackedDescriptorPath(resource.documentPath)
             val rewritten =
                 document.copy(
                     common =
@@ -287,30 +288,25 @@ internal class TextureAtlasBitmapFontOperations(
             val result =
                 writer.write(
                     assetRoot = assetRoot,
-                    targetPath = resource.documentPath,
+                    targetPath = packedDescriptorPath,
                     document = rewritten,
                     overwrite = true,
                 )
             if (!result.success) {
-                failures += "Font '${resource.name}' could not be rewritten: ${result.message}"
-                engine.logger.warn(TAG) { "Packed font descriptor rewrite failed resource id='${resource.id}' message='${result.message}'" }
+                failures += "Font '${resource.name}' packed descriptor could not be written: ${result.message}"
+                engine.logger.warn(TAG) { "Packed font descriptor write failed resource id='${resource.id}' target='$packedDescriptorPath' message='${result.message}'" }
                 return@forEach
             }
-            val refreshedDocument = BitmapFontParser().parse(File(resource.documentPath))
-            state.project =
-                state.project.copy(
-                    fontDocuments = state.project.fontDocuments + (resource.documentPath to refreshedDocument),
-                )
             writtenPaths += result.writtenPaths
             engine.logger.info(TAG) {
-                "Rewrote packed font descriptor resource id='${resource.id}' document='${resource.documentPath}' atlasPage='${pageNames[packedRegion.pageIndex]}' glyphs=${document.glyphs.size} offset=${packedRegion.x},${packedRegion.y}"
+                "Wrote packed font descriptor resource id='${resource.id}' source='${resource.documentPath}' packed='$packedDescriptorPath' atlasPage='${pageNames[packedRegion.pageIndex]}' glyphs=${document.glyphs.size} offset=${packedRegion.x},${packedRegion.y}"
             }
         }
 
         return if (failures.isEmpty()) {
             TextureAtlasEditorFileWriteResult(
                 success = true,
-                message = "Updated packed bitmap font descriptors.",
+                message = "Wrote packed bitmap font descriptors.",
                 writtenPaths = writtenPaths,
             )
         } else {
@@ -319,6 +315,21 @@ internal class TextureAtlasBitmapFontOperations(
                 message = failures.joinToString(" "),
                 writtenPaths = writtenPaths,
             )
+        }
+    }
+
+    private fun choosePackedDescriptorPath(sourceDocumentPath: String): String {
+        val sourceFile = File(sourceDocumentPath)
+        val parent = sourceFile.parent?.replace('\\', '/')?.let { "$it/" } ?: ""
+        val baseName = sourceFile.nameWithoutExtension.ifBlank { "font" }
+        val packedBase = "${baseName}_packed"
+        val candidate = "$parent$packedBase.fnt"
+        if (!File(candidate).exists()) return candidate
+        var suffix = 2
+        while (true) {
+            val numbered = "$parent${packedBase}_$suffix.fnt"
+            if (!File(numbered).exists()) return numbered
+            suffix++
         }
     }
 
