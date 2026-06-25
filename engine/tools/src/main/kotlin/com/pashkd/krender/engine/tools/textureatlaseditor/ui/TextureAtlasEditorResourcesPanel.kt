@@ -130,11 +130,21 @@ class TextureAtlasEditorResourcesPanel(
             operations.importAndAddImageResource()
             writeBuffer(textureSourceBuffer, state.importExport.importSourcePath)
         }
-        if (state.selectedResource() == null) ImGui.beginDisabled()
+        val selectedResource = state.selectedResource()
+        val canCreateNinePatch = selectedResource is ImageAtlasResource
+        if (!canCreateNinePatch) ImGui.beginDisabled()
+        if (ImGui.button("Create NinePatch##texture_atlas_editor_resource_create_ninepatch")) {
+            operations.createNinePatchFromSelectedResource()
+        }
+        if (!canCreateNinePatch) ImGui.endDisabled()
+        if (ImGui.button("Create Bitmap Font##texture_atlas_editor_resource_create_bitmap_font")) {
+            operations.createBitmapFontPlaceholder()
+        }
+        if (selectedResource == null) ImGui.beginDisabled()
         if (ImGui.button("Delete Resource##texture_atlas_editor_resource_delete")) {
             operations.deleteSelectedResource()
         }
-        if (state.selectedResource() == null) ImGui.endDisabled()
+        if (selectedResource == null) ImGui.endDisabled()
         ImGui.separator()
     }
 

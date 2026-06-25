@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPane
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedPackingPlan
+import com.pashkd.krender.engine.tools.textureatlaseditor.selectedResource
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -19,7 +20,15 @@ class TextureAtlasEditorToolsPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val exportPathBuffer = ByteArray(512)
+    private var synced = false
+
     override fun draw() {
+        if (!synced) {
+            writeBuffer(exportPathBuffer, state.importExport.exportResourcePath)
+            synced = true
+        }
+        syncExportPathBuffer()
         val layout = layoutConfig.panels.getValue(TextureAtlasEditorPanelIds.Tools)
         val expanded = beginImGuiPanel(TextureAtlasEditorPanelIds.Tools, layout, layoutTracker)
         eventLogger.observe(TextureAtlasEditorPanelIds.Tools, layout.title)
@@ -29,6 +38,8 @@ class TextureAtlasEditorToolsPanel(
         }
 
         val packingPlan = drawAtlasPackingSection()
+        ImGui.separator()
+        drawExportResourceSection()
         ImGui.separator()
         drawAtlasInfoSection()
         ImGui.separator()
@@ -80,6 +91,22 @@ class TextureAtlasEditorToolsPanel(
         return currentPlan
     }
 
+    private fun drawExportResourceSection() {
+        textLine("Export Resource")
+        textLine("Export Path")
+        ImGui.setNextItemWidth(ImGui.contentRegionAvail.x)
+        if (ImGui.inputText("##texture_atlas_editor_export_resource_path", exportPathBuffer)) {
+            operations.setExportResourcePath(readBuffer(exportPathBuffer))
+        }
+        val canExport = state.selectedResource() != null
+        if (!canExport) ImGui.beginDisabled()
+        if (ImGui.button("Export Resource##texture_atlas_editor_export_resource")) {
+            operations.exportSelectedResourcePng()
+            writeBuffer(exportPathBuffer, state.importExport.exportResourcePath)
+        }
+        if (!canExport) ImGui.endDisabled()
+    }
+
     private fun drawAtlasInfoSection() {
         val atlas = state.selectedAtlasDocument() ?: return
         textLine("Texture Atlas Info")
@@ -127,6 +154,12 @@ class TextureAtlasEditorToolsPanel(
             }
         }
         ImGui.endCombo()
+    }
+
+    private fun syncExportPathBuffer() {
+        if (readBuffer(exportPathBuffer) != state.importExport.exportResourcePath) {
+            writeBuffer(exportPathBuffer, state.importExport.exportResourcePath)
+        }
     }
 
     companion object {

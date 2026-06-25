@@ -9,6 +9,7 @@ data class TextureAtlasEditorFileWriteResult(
 data class TextureAtlasEditorImportExportState(
     var importSourcePath: String = "",
     var targetPath: String = "",
+    var exportResourcePath: String = "",
     var importOverwrite: Boolean = false,
     var saveOverwrite: Boolean = false,
     var lastImportResult: TextureAtlasEditorFileWriteResult? = null,

@@ -9,17 +9,17 @@
     },
     "textureManagerPreview": {
       "title": "Preview Canvas",
-      "x": 476,
-      "y": 182,
-      "width": 862,
-      "height": 941
+      "x": 478,
+      "y": 180,
+      "width": 860,
+      "height": 934
     },
     "textureManagerInspector": {
       "title": "Inspector",
-      "x": 1345,
-      "y": 589,
+      "x": 1344,
+      "y": 652,
       "width": 404,
-      "height": 751
+      "height": 690
     },
     "textureManagerRegions": {
       "title": "Atlas Resources",
@@ -32,8 +32,8 @@
       "title": "Tools",
       "x": 1344,
       "y": 3,
-      "width": 403,
-      "height": 584
+      "width": 405,
+      "height": 644
     },
     "textureManagerDiagnostics": {
       "title": "Diagnostics",
@@ -46,8 +46,8 @@
       "title": "Runtime Logs",
       "x": 3,
       "y": 1120,
-      "width": 1343,
-      "height": 225
+      "width": 1337,
+      "height": 221
     }
   }
 }

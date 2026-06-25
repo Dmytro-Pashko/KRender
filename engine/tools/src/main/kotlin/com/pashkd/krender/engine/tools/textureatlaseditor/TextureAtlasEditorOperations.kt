@@ -164,6 +164,7 @@ class TextureAtlasEditorOperations(
                 state.selectedRegionId = null
             }
         }
+        state.importExport.exportResourcePath = resourceOperations.suggestedExportResourcePath(resource)
         selectionCoordinator.syncSelectedPackingFromCurrentSelection()
         if (resource is NinePatchAtlasResource) {
             beginNinePatchEditing(resource.id)
@@ -357,12 +358,22 @@ class TextureAtlasEditorOperations(
 
     fun deleteSelectedResource() = resourceOperations.deleteSelectedResource()
 
+    fun exportSelectedResourcePng() = resourceOperations.exportSelectedResourcePng()
+
+    fun createNinePatchFromSelectedResource() = resourceOperations.createNinePatchFromSelectedResource()
+
+    fun createBitmapFontPlaceholder() = resourceOperations.createBitmapFontPlaceholder()
+
     fun setImportSourcePath(path: String) {
         state.importExport.importSourcePath = path
     }
 
     fun setTargetPath(path: String) {
         state.importExport.targetPath = path
+    }
+
+    fun setExportResourcePath(path: String) {
+        state.importExport.exportResourcePath = path
     }
 
     fun setImportOverwrite(enabled: Boolean) {
