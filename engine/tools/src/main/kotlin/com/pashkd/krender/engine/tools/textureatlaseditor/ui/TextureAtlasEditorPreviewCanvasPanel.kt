@@ -12,10 +12,14 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPane
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPreviewState
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchPreviewType
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchPreset
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchPreview
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureRegionScreenRect
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewSurfaceMode
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewZoomMode
+import com.pashkd.krender.engine.tools.textureatlaseditor.buildNinePatchStretchPreview
 import com.pashkd.krender.engine.tools.textureatlaseditor.isShowingPackedAtlasPreview
 import com.pashkd.krender.engine.tools.textureatlaseditor.layoutSampleText
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
@@ -56,9 +60,13 @@ class TextureAtlasEditorPreviewCanvasPanel(
     private val fontSampleBuf = ByteArray(256)
     private val customCanvasWidthBuf = ByteArray(16)
     private val customCanvasHeightBuf = ByteArray(16)
+    private val stretchTargetWidthBuf = ByteArray(16)
+    private val stretchTargetHeightBuf = ByteArray(16)
     private var fontSampleSynced = false
     private var lastSyncedCustomCanvasWidth: Int? = null
     private var lastSyncedCustomCanvasHeight: Int? = null
+    private var lastSyncedStretchTargetWidth: Int? = null
+    private var lastSyncedStretchTargetHeight: Int? = null
     private var pendingSelectRegionId: AtlasRegionId? = null
     private var pendingSelectWasDoubleClick = false
     private var clickDragDistance = 0f
@@ -126,18 +134,23 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
     private fun drawOptionRow() {
         if (state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch) {
+            drawNinePatchPreviewTypeCombo()
             drawSharedPreviewOptionToggles(
                 checkerId = "np_editor_checker",
                 gridId = "np_editor_grid",
                 showBoundsToggle = false,
             )
-            ImGui.sameLine()
-            val guides = booleanArrayOf(state.preview.showNinePatchGuides)
-            if (ImGui.checkbox("Show Guides##np_editor_guides", guides)) {
-                operations.setShowNinePatchGuides(guides[0])
+            if (state.preview.ninePatchStretch.previewType == TextureAtlasNinePatchPreviewType.Source) {
+                ImGui.sameLine()
+                val guides = booleanArrayOf(state.preview.showNinePatchGuides)
+                if (ImGui.checkbox("Show Guides##np_editor_guides", guides)) {
+                    operations.setShowNinePatchGuides(guides[0])
+                }
+                drawPreviewSurfaceModeCombo("np_surface")
+                drawCustomCanvasSizeEditors("np_surface")
+            } else {
+                drawNinePatchStretchControls()
             }
-            drawPreviewSurfaceModeCombo("np_surface")
-            drawCustomCanvasSizeEditors("np_surface")
             return
         }
         if (state.preview.canvasMode == TextureAtlasCanvasMode.FontPreview) {
@@ -293,6 +306,10 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
         val handle = state.previewInfo.texturePreviewHandle
         if (handle != null && state.previewInfo.textureWidth > 0 && state.previewInfo.textureHeight > 0) {
+            if (isNinePatchMode && state.preview.ninePatchStretch.previewType == TextureAtlasNinePatchPreviewType.StretchTest) {
+                drawNinePatchStretchCanvas(handle, state.ninePatchEditor.draft)
+                return
+            }
             val viewportLayout =
                 computeTexturePreviewViewportLayout(
                     rect = state.canvasRect,
@@ -347,6 +364,57 @@ class TextureAtlasEditorPreviewCanvasPanel(
             clearCursorMetrics()
             wrappedTextLine(state.previewInfo.statusMessage)
         }
+    }
+
+    private fun drawNinePatchStretchCanvas(
+        handle: com.pashkd.krender.engine.api.TexturePreviewHandle,
+        draft: NinePatchDraft?,
+    ) {
+        val preview = buildNinePatchStretchPreview(draft, state.preview.ninePatchStretch)
+        if (preview == null) {
+            clearCursorMetrics()
+            wrappedTextLine("Select a readable NinePatch resource to run a stretch test.")
+            return
+        }
+        val viewportLayout =
+            computeTexturePreviewViewportLayout(
+                rect = state.canvasRect,
+                textureWidth = preview.targetWidth,
+                textureHeight = preview.targetHeight,
+                previewState = state.preview.copy(surfaceMode = TexturePreviewSurfaceMode.Actual),
+            )
+        if (state.preview.showCheckerboard) {
+            TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
+        }
+        preview.slices.forEach { slice ->
+            ImGui.cursorScreenPos =
+                ImVec2(
+                    viewportLayout.imageX + slice.destinationX * viewportLayout.effectiveZoom,
+                    viewportLayout.imageY + slice.destinationY * viewportLayout.effectiveZoom,
+                )
+            ui.drawTexturePreview(
+                deriveSliceHandle(handle, slice.sourceX, slice.sourceY, slice.sourceWidth, slice.sourceHeight),
+                slice.destinationWidth * viewportLayout.effectiveZoom,
+                slice.destinationHeight * viewportLayout.effectiveZoom,
+            )
+        }
+        if (state.preview.showGrid) {
+            TextureAtlasEditorPreviewOverlays.drawGrid(
+                viewportLayout,
+                spacingPixels = state.preview.gridSpacingPixels,
+                color = packImColor(state.preview.gridColor),
+            )
+        }
+        TextureAtlasEditorPreviewOverlays.drawNinePatchStretchOverlays(
+            preview = preview,
+            layout = viewportLayout,
+            showSourceGuides = state.preview.ninePatchStretch.showSourceGuides,
+            showDestinationSlices = state.preview.ninePatchStretch.showDestinationSlices,
+            showPaddingRect = state.preview.ninePatchStretch.showPaddingRect,
+        )
+        ImGui.cursorScreenPos = ImVec2(state.canvasRect.x, state.canvasRect.y)
+        ImGui.invisibleButton("##texture_atlas_editor_ninepatch_stretch_canvas_hit", ImVec2(state.canvasRect.width, state.canvasRect.height))
+        handleTextureInteraction(viewportLayout, emptyList(), allowRegionSelection = false)
     }
 
     private fun drawPackedAtlasPreviewCanvas() {
@@ -731,13 +799,25 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 textLine("Hovered: $hoveredText | Selected: $selectedText")
                 wrappedTextLine(
                     if (state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch) {
-                        "Wheel: zoom only. RMB drag: pan. LMB on guide handles: edit Nine-patch draft."
+                        if (state.preview.ninePatchStretch.previewType == TextureAtlasNinePatchPreviewType.StretchTest) {
+                            "Wheel: zoom only. RMB drag: pan. Stretch Test is preview-only and does not write files."
+                        } else {
+                            "Wheel: zoom only. RMB drag: pan. LMB on guide handles: edit Nine-patch draft."
+                        }
                     } else {
                         "Wheel: zoom only. RMB drag: pan. LMB on region: select. Double-click region: focus."
                     },
                 )
                 if (state.preview.canvasMode == TextureAtlasCanvasMode.NinePatch) {
-                    wrappedTextLine("Guide colors: orange = horizontal stretch, blue = vertical stretch, green = content padding. Drag the square handles to change the guide bounds.")
+                    if (state.preview.ninePatchStretch.previewType == TextureAtlasNinePatchPreviewType.StretchTest) {
+                        val stretchPreview = buildNinePatchStretchPreview(state.ninePatchEditor.draft, state.preview.ninePatchStretch)
+                        wrappedTextLine("Guide colors: orange = horizontal stretch, blue = vertical stretch, green = content padding, white = destination slice boundaries.")
+                        stretchPreview?.warnings?.forEach { warning ->
+                            wrappedTextLine("Warning: $warning")
+                        }
+                    } else {
+                        wrappedTextLine("Guide colors: orange = horizontal stretch, blue = vertical stretch, green = content padding. Drag the square handles to change the guide bounds.")
+                    }
                 }
             }
             TextureAtlasCanvasMode.FinalPackedAtlas -> drawPackedAtlasStatusLine()
@@ -762,6 +842,59 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
     private fun drawStatusSection() {
         drawStatusLine()
+    }
+
+    private fun drawNinePatchPreviewTypeCombo() {
+        ImGui.setNextItemWidth(220f)
+        if (ImGui.beginCombo("Preview Type##np_preview_type", state.preview.ninePatchStretch.previewType.label())) {
+            TextureAtlasNinePatchPreviewType.entries.forEach { type ->
+                if (ImGui.selectable(type.label(), state.preview.ninePatchStretch.previewType == type)) {
+                    operations.setNinePatchPreviewType(type)
+                }
+            }
+            ImGui.endCombo()
+        }
+    }
+
+    private fun drawNinePatchStretchControls() {
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(140f)
+        if (ImGui.beginCombo("Preset##np_stretch_preset", state.preview.ninePatchStretch.preset.label())) {
+            TextureAtlasNinePatchStretchPreset.entries.forEach { preset ->
+                if (ImGui.selectable(preset.label(), state.preview.ninePatchStretch.preset == preset)) {
+                    operations.setNinePatchStretchPreset(preset)
+                }
+            }
+            ImGui.endCombo()
+        }
+        syncStretchTargetBuffers()
+        textLine("Target")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(80f)
+        if (ImGui.inputText("##np_stretch_target_width", stretchTargetWidthBuf)) {
+            parseCustomCanvasDimension(stretchTargetWidthBuf)?.let(operations::setNinePatchStretchTargetWidth)
+        }
+        ImGui.sameLine()
+        textLine("x")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(80f)
+        if (ImGui.inputText("##np_stretch_target_height", stretchTargetHeightBuf)) {
+            parseCustomCanvasDimension(stretchTargetHeightBuf)?.let(operations::setNinePatchStretchTargetHeight)
+        }
+        val showSourceGuides = booleanArrayOf(state.preview.ninePatchStretch.showSourceGuides)
+        if (ImGui.checkbox("Show Source Guides##np_stretch_show_source_guides", showSourceGuides)) {
+            operations.setShowNinePatchStretchSourceGuides(showSourceGuides[0])
+        }
+        ImGui.sameLine()
+        val showDestinationSlices = booleanArrayOf(state.preview.ninePatchStretch.showDestinationSlices)
+        if (ImGui.checkbox("Show Destination Slices##np_stretch_show_dest_slices", showDestinationSlices)) {
+            operations.setShowNinePatchStretchDestinationSlices(showDestinationSlices[0])
+        }
+        ImGui.sameLine()
+        val showPaddingRect = booleanArrayOf(state.preview.ninePatchStretch.showPaddingRect)
+        if (ImGui.checkbox("Show Padding Rect##np_stretch_show_padding_rect", showPaddingRect)) {
+            operations.setShowNinePatchStretchPaddingRect(showPaddingRect[0])
+        }
     }
 
     private fun drawPackedAtlasStatusLine() {
@@ -863,6 +996,20 @@ class TextureAtlasEditorPreviewCanvasPanel(
         if (lastSyncedCustomCanvasHeight != state.preview.customCanvasHeight) {
             writeBuffer(customCanvasHeightBuf, state.preview.customCanvasHeight.toString())
             lastSyncedCustomCanvasHeight = state.preview.customCanvasHeight
+        }
+    }
+
+    private fun syncStretchTargetBuffers() {
+        val preview = buildNinePatchStretchPreview(state.ninePatchEditor.draft, state.preview.ninePatchStretch)
+        val targetWidth = preview?.targetWidth ?: state.preview.ninePatchStretch.targetWidth
+        val targetHeight = preview?.targetHeight ?: state.preview.ninePatchStretch.targetHeight
+        if (lastSyncedStretchTargetWidth != targetWidth) {
+            writeBuffer(stretchTargetWidthBuf, targetWidth.toString())
+            lastSyncedStretchTargetWidth = targetWidth
+        }
+        if (lastSyncedStretchTargetHeight != targetHeight) {
+            writeBuffer(stretchTargetHeightBuf, targetHeight.toString())
+            lastSyncedStretchTargetHeight = targetHeight
         }
     }
 
@@ -1034,6 +1181,32 @@ class TextureAtlasEditorPreviewCanvasPanel(
             }
         }
     }
+
+    private fun deriveSliceHandle(
+        handle: com.pashkd.krender.engine.api.TexturePreviewHandle,
+        sourceX: Int,
+        sourceY: Int,
+        sourceWidth: Int,
+        sourceHeight: Int,
+    ): com.pashkd.krender.engine.api.TexturePreviewHandle {
+        val width = handle.width.coerceAtLeast(1).toFloat()
+        val height = handle.height.coerceAtLeast(1).toFloat()
+        val uSpan = handle.u1 - handle.u0
+        val vSpan = handle.v1 - handle.v0
+        val u0 = handle.u0 + (sourceX / width) * uSpan
+        val v0 = handle.v0 + (sourceY / height) * vSpan
+        val u1 = handle.u0 + ((sourceX + sourceWidth) / width) * uSpan
+        val v1 = handle.v0 + ((sourceY + sourceHeight) / height) * vSpan
+        return com.pashkd.krender.engine.api.TexturePreviewHandle(
+            id = handle.id,
+            width = sourceWidth,
+            height = sourceHeight,
+            u0 = u0,
+            v0 = v0,
+            u1 = u1,
+            v1 = v1,
+        )
+    }
 }
 
 private fun formatCanvasMode(mode: TextureAtlasCanvasMode): String =
@@ -1042,6 +1215,20 @@ private fun formatCanvasMode(mode: TextureAtlasCanvasMode): String =
         TextureAtlasCanvasMode.NinePatch -> "NinePatch Editor"
         TextureAtlasCanvasMode.FontPreview -> "Font Preview"
         TextureAtlasCanvasMode.FinalPackedAtlas -> "Atlas Preview"
+    }
+
+private fun TextureAtlasNinePatchPreviewType.label(): String =
+    when (this) {
+        TextureAtlasNinePatchPreviewType.Source -> "Source"
+        TextureAtlasNinePatchPreviewType.StretchTest -> "Stretch Test"
+    }
+
+private fun TextureAtlasNinePatchStretchPreset.label(): String =
+    when (this) {
+        TextureAtlasNinePatchStretchPreset.Actual -> "Actual"
+        TextureAtlasNinePatchStretchPreset.Button -> "Button"
+        TextureAtlasNinePatchStretchPreset.Panel -> "Panel"
+        TextureAtlasNinePatchStretchPreset.Custom -> "Custom"
     }
 
 private fun beginPanel(

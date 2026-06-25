@@ -8,6 +8,8 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorCanv
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingPage
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchPreview
+import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchRect
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureRegionScreenRect
 import com.pashkd.krender.engine.tools.textureatlaseditor.SampleTextLayout
@@ -144,6 +146,58 @@ internal object TextureAtlasEditorPreviewOverlays {
         overlay.paddingY?.let { guide -> drawDraftGuide(guide, highlightedHandle) }
     }
 
+    fun drawNinePatchStretchOverlays(
+        preview: TextureAtlasNinePatchStretchPreview,
+        layout: TexturePreviewViewportLayout,
+        showSourceGuides: Boolean,
+        showDestinationSlices: Boolean,
+        showPaddingRect: Boolean,
+    ) {
+        val drawList = ImGui.windowDrawList
+        drawList.addRect(
+            ImVec2(layout.imageX, layout.imageY),
+            ImVec2(layout.imageX + layout.imageWidth, layout.imageY + layout.imageHeight),
+            NinePatchContentColor,
+            0f,
+            thickness = 2f,
+        )
+        if (showDestinationSlices) {
+            preview.destinationVerticalCuts.forEach { cut ->
+                val x = layout.imageX + cut * layout.effectiveZoom
+                drawList.addLine(
+                    ImVec2(x, layout.imageY),
+                    ImVec2(x, layout.imageY + layout.imageHeight),
+                    NinePatchDestinationSliceColor,
+                    2f,
+                )
+            }
+            preview.destinationHorizontalCuts.forEach { cut ->
+                val y = layout.imageY + cut * layout.effectiveZoom
+                drawList.addLine(
+                    ImVec2(layout.imageX, y),
+                    ImVec2(layout.imageX + layout.imageWidth, y),
+                    NinePatchDestinationSliceColor,
+                    2f,
+                )
+            }
+        }
+        if (showPaddingRect) {
+            preview.paddingRect?.let { paddingRect ->
+                drawPaddingRect(paddingRect, layout)
+            }
+        }
+        if (showSourceGuides) {
+            val left = layout.imageX + preview.fixedLeft * layout.effectiveZoom
+            val right = layout.imageX + (preview.targetWidth - preview.fixedRight) * layout.effectiveZoom
+            val top = layout.imageY + preview.fixedTop * layout.effectiveZoom
+            val bottom = layout.imageY + (preview.targetHeight - preview.fixedBottom) * layout.effectiveZoom
+            drawList.addLine(ImVec2(left, layout.imageY), ImVec2(left, layout.imageY + layout.imageHeight), NinePatchStretchXColor, 1.5f)
+            drawList.addLine(ImVec2(right, layout.imageY), ImVec2(right, layout.imageY + layout.imageHeight), NinePatchStretchXColor, 1.5f)
+            drawList.addLine(ImVec2(layout.imageX, top), ImVec2(layout.imageX + layout.imageWidth, top), NinePatchStretchYColor, 1.5f)
+            drawList.addLine(ImVec2(layout.imageX, bottom), ImVec2(layout.imageX + layout.imageWidth, bottom), NinePatchStretchYColor, 1.5f)
+        }
+    }
+
     fun buildNinePatchDraftOverlay(
         draft: NinePatchDraft,
         layout: TexturePreviewViewportLayout,
@@ -243,6 +297,19 @@ internal object TextureAtlasEditorPreviewOverlays {
         val fillColor = if (highlighted) SelectedColor else color
         drawList.addRectFilled(ImVec2(handle.minX, handle.minY), ImVec2(handle.maxX, handle.maxY), fillColor, 2f)
         drawList.addRect(ImVec2(handle.minX, handle.minY), ImVec2(handle.maxX, handle.maxY), LabelColor, 2f, thickness = 1.5f)
+    }
+
+    private fun drawPaddingRect(
+        rect: TextureAtlasNinePatchStretchRect,
+        layout: TexturePreviewViewportLayout,
+    ) {
+        val minX = layout.imageX + rect.x * layout.effectiveZoom
+        val minY = layout.imageY + rect.y * layout.effectiveZoom
+        val maxX = minX + rect.width * layout.effectiveZoom
+        val maxY = minY + rect.height * layout.effectiveZoom
+        val drawList = ImGui.windowDrawList
+        drawList.addRectFilled(ImVec2(minX, minY), ImVec2(maxX, maxY), NinePatchPaddingFillColor)
+        drawList.addRect(ImVec2(minX, minY), ImVec2(maxX, maxY), NinePatchPaddingColor, 0f, thickness = 2f)
     }
 
     private fun buildHorizontalDraftGuide(
@@ -449,6 +516,8 @@ internal object TextureAtlasEditorPreviewOverlays {
     private val NinePatchStretchXColor = packImColor(255, 184, 77, 255)
     private val NinePatchStretchYColor = packImColor(77, 184, 255, 255)
     private val NinePatchPaddingColor = packImColor(111, 230, 153, 255)
+    private val NinePatchPaddingFillColor = packImColor(111, 230, 153, 48)
+    private val NinePatchDestinationSliceColor = packImColor(255, 255, 255, 120)
     private val PackedPageColor = packImColor(255, 255, 255, 220)
     private val PackedRegionColor = packImColor(77, 184, 255, 120)
     private val PackedHoverRegionColor = packImColor(111, 230, 153, 180)

@@ -131,6 +131,7 @@ data class TextureAtlasEditorPreviewState(
     var showBounds: Boolean = true,
     var showNinePatchGuides: Boolean = true,
     var showPackedAtlasPreview: Boolean = false,
+    var ninePatchStretch: TextureAtlasNinePatchStretchState = TextureAtlasNinePatchStretchState(),
 )
 
 data class TextureAtlasEditorCanvasRect(

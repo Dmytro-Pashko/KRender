@@ -391,6 +391,43 @@ class TextureAtlasEditorOperations(
         state.statusMessage = if (enabled) "Nine-patch guides enabled." else "Nine-patch guides hidden."
     }
 
+    fun setNinePatchPreviewType(type: TextureAtlasNinePatchPreviewType) {
+        if (state.preview.ninePatchStretch.previewType == type) return
+        state.preview.ninePatchStretch.previewType = type
+        state.statusMessage =
+            when (type) {
+                TextureAtlasNinePatchPreviewType.Source -> "Previewing the NinePatch source texture."
+                TextureAtlasNinePatchPreviewType.StretchTest -> "Previewing the stretched NinePatch result."
+            }
+    }
+
+    fun setNinePatchStretchPreset(preset: TextureAtlasNinePatchStretchPreset) {
+        state.preview.ninePatchStretch.preset = preset
+        state.statusMessage = "NinePatch stretch preset set to ${preset.name}."
+    }
+
+    fun setNinePatchStretchTargetWidth(value: Int) {
+        state.preview.ninePatchStretch.targetWidth = value.coerceIn(TextureAtlasMinCanvasDimensionPixels, TextureAtlasMaxCanvasDimensionPixels)
+        state.preview.ninePatchStretch.preset = TextureAtlasNinePatchStretchPreset.Custom
+    }
+
+    fun setNinePatchStretchTargetHeight(value: Int) {
+        state.preview.ninePatchStretch.targetHeight = value.coerceIn(TextureAtlasMinCanvasDimensionPixels, TextureAtlasMaxCanvasDimensionPixels)
+        state.preview.ninePatchStretch.preset = TextureAtlasNinePatchStretchPreset.Custom
+    }
+
+    fun setShowNinePatchStretchSourceGuides(enabled: Boolean) {
+        state.preview.ninePatchStretch.showSourceGuides = enabled
+    }
+
+    fun setShowNinePatchStretchDestinationSlices(enabled: Boolean) {
+        state.preview.ninePatchStretch.showDestinationSlices = enabled
+    }
+
+    fun setShowNinePatchStretchPaddingRect(enabled: Boolean) {
+        state.preview.ninePatchStretch.showPaddingRect = enabled
+    }
+
     fun setPackingMaxPageWidth(value: Int) = packingOperations.setPackingMaxPageWidth(value)
 
     fun setPackingMaxPageHeight(value: Int) = packingOperations.setPackingMaxPageHeight(value)
