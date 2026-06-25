@@ -1,6 +1,5 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
-import com.pashkd.krender.engine.tools.textureatlaseditor.ColorAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.ImageAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchAtlasResource
@@ -137,9 +136,6 @@ class TextureAtlasEditorResourcesPanel(
             operations.createNinePatchFromSelectedResource()
         }
         if (!canCreateNinePatch) ImGui.endDisabled()
-        if (ImGui.button("Create Bitmap Font##texture_atlas_editor_resource_create_bitmap_font")) {
-            operations.createBitmapFontPlaceholder()
-        }
         if (selectedResource == null) ImGui.beginDisabled()
         if (ImGui.button("Delete Resource##texture_atlas_editor_resource_delete")) {
             operations.deleteSelectedResource()
@@ -156,6 +152,7 @@ class TextureAtlasEditorResourcesPanel(
 
     private fun visibleResources(): List<TextureAtlasResource> =
         state.resources.items
+            .filterNot { resource -> resource.type == TextureAtlasResourceType.Color }
             .filter { resource ->
                 val query = state.atlasBrowser.query
                 val pageName = resource.atlasRegionIdOrNull()?.pageName
@@ -231,24 +228,24 @@ private fun TextureAtlasResource.areaOrMax(): Int =
     when (this) {
         is ImageAtlasResource -> (sourceWidth ?: Int.MAX_VALUE) * (sourceHeight ?: Int.MAX_VALUE)
         is NinePatchAtlasResource -> (sourceWidth ?: Int.MAX_VALUE) * (sourceHeight ?: Int.MAX_VALUE)
-        is ColorAtlasResource -> width * height
         is FontAtlasResource -> Int.MAX_VALUE
+        else -> Int.MAX_VALUE
     }
 
 private fun TextureAtlasResource.areaOrMin(): Int =
     when (this) {
         is ImageAtlasResource -> (sourceWidth ?: Int.MIN_VALUE) * (sourceHeight ?: Int.MIN_VALUE)
         is NinePatchAtlasResource -> (sourceWidth ?: Int.MIN_VALUE) * (sourceHeight ?: Int.MIN_VALUE)
-        is ColorAtlasResource -> width * height
         is FontAtlasResource -> Int.MIN_VALUE
+        else -> Int.MIN_VALUE
     }
 
 private fun TextureAtlasResource.sizeLabel(): String =
     when (this) {
         is ImageAtlasResource -> sourceWidth?.let { width -> sourceHeight?.let { height -> " [$width x $height]" } }.orEmpty()
         is NinePatchAtlasResource -> sourceWidth?.let { width -> sourceHeight?.let { height -> " [$width x $height]" } }.orEmpty()
-        is ColorAtlasResource -> " [$width x $height]"
         is FontAtlasResource -> " [${glyphCount}g]"
+        else -> ""
     }
 
 private fun TextureAtlasResourceType.label(): String =
@@ -256,7 +253,7 @@ private fun TextureAtlasResourceType.label(): String =
         TextureAtlasResourceType.Image -> "Image"
         TextureAtlasResourceType.NinePatch -> "NinePatch"
         TextureAtlasResourceType.Font -> "Font"
-        TextureAtlasResourceType.Color -> "Color"
+        TextureAtlasResourceType.Color -> "Hidden"
     }
 
 private fun TextureAtlasResourceType.sortOrder(): Int =

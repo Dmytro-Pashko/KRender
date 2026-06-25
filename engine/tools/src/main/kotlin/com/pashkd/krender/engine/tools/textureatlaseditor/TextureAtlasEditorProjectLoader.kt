@@ -27,7 +27,7 @@ class TextureAtlasEditorProjectLoader(
                         TextureAtlasEditorDiagnostic(
                             severity = TextureAtlasEditorDiagnosticSeverity.Info,
                             category = TextureAtlasEditorDiagnosticCategory.Input,
-                            message = "Open a texture, atlas, or directory to begin.",
+                            message = "Open a texture atlas to begin. Add textures and bitmap fonts as resources.",
                         ),
                     ),
             )

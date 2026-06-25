@@ -1,7 +1,6 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
 import com.pashkd.krender.engine.tools.textureatlaseditor.BitmapFontGlyph
-import com.pashkd.krender.engine.tools.textureatlaseditor.ColorAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.ImageAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchAtlasResource
@@ -62,10 +61,6 @@ class TextureAtlasEditorInspectorPanel(
                     textLine("Split: ${resource.split.joinToString().ifBlank { "<none>" }}")
                     textLine("Pad: ${resource.pad.joinToString().ifBlank { "<none>" }}")
                 }
-                is ColorAtlasResource -> {
-                    textLine("RGBA: 0x${resource.rgba.toUInt().toString(16).uppercase()}")
-                    textLine("Size: ${resource.width} x ${resource.height}")
-                }
                 is FontAtlasResource -> {
                     textLine("Source: ${resource.sourcePath}")
                     textLine("Glyphs: ${resource.glyphCount}  Kernings: ${resource.kerningCount}  Pages: ${resource.pageTexturePaths.size}")
@@ -75,6 +70,9 @@ class TextureAtlasEditorInspectorPanel(
                     resource.atlasTexturePath?.let { atlasTexturePath ->
                         textLine("Atlas texture: $atlasTexturePath")
                     }
+                }
+                else -> {
+                    textLine("This resource type is hidden from the final atlas workflow.")
                 }
             }
             ImGui.separator()

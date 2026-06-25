@@ -3,6 +3,8 @@ package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
+import com.pashkd.krender.engine.tools.textureatlaseditor.hasUnappliedNinePatchDraft
+import com.pashkd.krender.engine.tools.textureatlaseditor.hasUnsavedChanges
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAsset
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -45,7 +47,10 @@ class TextureAtlasEditorToolbarPanel(
 
         ImGui.separator()
         wrappedTextLine(state.statusMessage)
-        textLine("Dirty: ${if (state.dirty) "yes" else "no"}")
+        textLine("Dirty: ${if (state.hasUnsavedChanges()) "yes" else "no"}")
+        if (state.hasUnappliedNinePatchDraft()) {
+            textLine("Pending Draft: Apply or reset the current NinePatch edits before saving or reloading.")
+        }
         textLine("Atlas Path: ${state.currentInputPath ?: "<none>"}")
         state.project.resolvedInputPath?.let { path -> textLine("Resolved: $path") }
         state.selectedAsset()?.let { asset ->

@@ -146,14 +146,16 @@ internal class TextureAtlasRegionExportService {
     ): File? {
         val trimmed = targetPath?.trim()?.replace('\\', '/').orEmpty()
         if (trimmed.isNotBlank()) {
-            val explicit = File(trimmed)
-            return if (explicit.isAbsolute) explicit else File(assetRoot, trimmed)
+            return TextureAtlasEditorPathValidator.resolveAssetPath(assetRoot, trimmed)
         }
         val exportDirectory =
             atlasFile?.parentFile?.resolve("export")
                 ?: resource.sourcePathOrNull()?.let(::File)?.parentFile?.resolve("export")
                 ?: return null
-        return File(exportDirectory, defaultExportFileName(resource))
+        return TextureAtlasEditorPathValidator.resolveAssetPath(
+            assetRoot,
+            normalizePath(File(exportDirectory, defaultExportFileName(resource)).path),
+        )
     }
 
     private fun defaultExportFileName(resource: TextureAtlasResource): String =

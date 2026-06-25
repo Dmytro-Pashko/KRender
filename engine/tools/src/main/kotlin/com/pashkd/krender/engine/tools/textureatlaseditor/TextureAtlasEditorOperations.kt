@@ -57,6 +57,14 @@ class TextureAtlasEditorOperations(
 
     fun openPath(path: String) {
         val normalized = path.trim().replace('\\', '/').ifBlank { null }
+        if (normalized != state.currentInputPath && state.hasUnsavedChanges()) {
+            state.pendingPathInput = normalized.orEmpty()
+            state.statusMessage = "Unsaved atlas changes are still in progress. Save or reset the current draft before opening another atlas."
+            engine.logger.warn(TAG) {
+                "Texture Atlas Editor blocked openPath old='${state.currentInputPath ?: "<none>"}' new='${normalized ?: "<none>"}' because unsaved changes are present"
+            }
+            return
+        }
         if (normalized != state.currentInputPath) {
             state.clearPreviewSelection()
             state.resources = TextureAtlasResourceState()
@@ -78,6 +86,11 @@ class TextureAtlasEditorOperations(
     }
 
     fun reload() {
+        if (state.hasUnsavedChanges()) {
+            state.statusMessage = "Unsaved atlas changes are still in progress. Save or reset the current draft before reloading."
+            engine.logger.warn(TAG) { "Texture Atlas Editor blocked reload because unsaved changes are present" }
+            return
+        }
         state.reloadRequested = true
         state.statusMessage = "Reload requested."
     }
@@ -457,6 +470,11 @@ class TextureAtlasEditorOperations(
     }
 
     fun requestExit() {
+        if (state.hasUnsavedChanges()) {
+            state.statusMessage = "Unsaved atlas changes are still in progress. Save or reset the current draft before exiting."
+            engine.logger.warn(TAG) { "Texture Atlas Editor blocked exit because unsaved changes are present" }
+            return
+        }
         engine.requestExit()
     }
 

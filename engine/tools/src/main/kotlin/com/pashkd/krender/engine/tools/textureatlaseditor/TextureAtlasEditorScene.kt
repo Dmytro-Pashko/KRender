@@ -106,7 +106,7 @@ class TextureAtlasEditorScene(
         ensureValidSelectionAfterReload()
         editorState.statusMessage =
             when {
-                editorState.project.rootDirectory == null -> "Open a texture, atlas, or directory to begin."
+                editorState.project.rootDirectory == null -> "Open a texture atlas to begin. Add textures and bitmap fonts as resources."
                 editorState.diagnostics.any { it.severity == TextureAtlasEditorDiagnosticSeverity.Error } -> "Loaded ${loadedPathLabel()} with errors."
                 editorState.diagnostics.any { it.severity == TextureAtlasEditorDiagnosticSeverity.Warning } -> "Loaded ${loadedPathLabel()} with warnings."
                 editorState.currentInputPath != null -> "Loaded ${loadedPathLabel()}."

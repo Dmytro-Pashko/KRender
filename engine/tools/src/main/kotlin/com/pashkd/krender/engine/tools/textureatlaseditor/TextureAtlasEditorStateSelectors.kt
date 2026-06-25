@@ -12,6 +12,10 @@ internal const val TextureAtlasMaxCanvasDimensionPixels = 8192
 internal fun TextureAtlasEditorState.isShowingPackedAtlasPreview(): Boolean =
     preview.canvasMode == TextureAtlasCanvasMode.TextureAtlas && preview.showPackedAtlasPreview
 
+internal fun TextureAtlasEditorState.hasUnappliedNinePatchDraft(): Boolean = ninePatchEditor.dirty
+
+internal fun TextureAtlasEditorState.hasUnsavedChanges(): Boolean = dirty || hasUnappliedNinePatchDraft()
+
 internal fun TextureAtlasEditorState.selectedAsset(): TextureAtlasEditorAssetDescriptor? = project.assets.firstOrNull { it.id == selectedAssetId }
 
 internal fun TextureAtlasEditorState.selectedResource(): TextureAtlasResource? =

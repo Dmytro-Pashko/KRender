@@ -58,6 +58,17 @@ class TextureAtlasEditorImportExportOperations(
     }
 
     fun savePackedAtlas() {
+        if (state.hasUnappliedNinePatchDraft()) {
+            val result =
+                TextureAtlasEditorFileWriteResult(
+                    success = false,
+                    message = "Apply or reset the current NinePatch draft before saving the atlas.",
+                )
+            state.importExport.lastExportResult = result
+            state.statusMessage = result.message
+            engine.logger.warn(TAG) { "Texture Atlas Editor atlas save blocked because a NinePatch draft is still pending" }
+            return
+        }
         val plan = state.selectedPackingPlan()
         if (plan == null) {
             val result =
@@ -101,8 +112,7 @@ class TextureAtlasEditorImportExportOperations(
             state.currentInputPath
                 ?.takeIf { it.endsWith(".atlas", ignoreCase = true) }
         if (atlasPath != null) {
-            val parent = File(atlasPath).parent?.replace('\\', '/')?.let { "$it/" }.orEmpty()
-            return "${parent}textures/"
+            return File(atlasPath).parent?.replace('\\', '/')?.let { "$it/" }.orEmpty()
         }
         return "textures/"
     }
