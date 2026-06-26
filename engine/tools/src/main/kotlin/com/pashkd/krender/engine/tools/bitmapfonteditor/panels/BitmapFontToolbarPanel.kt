@@ -22,7 +22,12 @@ class BitmapFontToolbarPanel(
         val expanded = beginImGuiPanel(BitmapFontEditorPanelIds.Toolbar, panelLayout, layoutTracker)
         eventLogger.observe(BitmapFontEditorPanelIds.Toolbar, panelLayout.title)
         if (expanded) {
-            ImGui.text(state.statusMessage)
+            if (ImGui.button("Save##bfe_save")) {
+                controller.save()
+            }
+            ImGui.sameLine()
+            val dirtyLabel = if (state.dirty) " *" else ""
+            ImGui.text("${state.statusMessage}$dirtyLabel")
         }
         ImGui.end()
     }
