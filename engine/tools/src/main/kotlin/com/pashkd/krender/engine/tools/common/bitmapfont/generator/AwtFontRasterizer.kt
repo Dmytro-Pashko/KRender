@@ -167,11 +167,19 @@ class AwtFontRasterizer : FontRasterizer {
         config: BitmapFontGenerationConfig,
     ) {
         if (config.antialias) {
-            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         }
-        if (config.hinting) {
-            g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
-        }
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, config.textAntialiasing.toHintValue())
+        g.setRenderingHint(
+            RenderingHints.KEY_FRACTIONALMETRICS,
+            if (config.fractionalMetrics || config.hinting) {
+                RenderingHints.VALUE_FRACTIONALMETRICS_ON
+            } else {
+                RenderingHints.VALUE_FRACTIONALMETRICS_OFF
+            },
+        )
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, config.renderQuality.toHintValue())
+        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, config.strokeControl.toHintValue())
     }
 
     private fun extractRgbaBytes(
@@ -206,3 +214,29 @@ class AwtFontRasterizer : FontRasterizer {
         diagnostics = diagnostics,
     )
 }
+
+private fun AwtTextAntialiasingMode.toHintValue(): Any =
+    when (this) {
+        AwtTextAntialiasingMode.DEFAULT -> RenderingHints.VALUE_TEXT_ANTIALIAS_DEFAULT
+        AwtTextAntialiasingMode.OFF -> RenderingHints.VALUE_TEXT_ANTIALIAS_OFF
+        AwtTextAntialiasingMode.ON -> RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+        AwtTextAntialiasingMode.GASP -> RenderingHints.VALUE_TEXT_ANTIALIAS_GASP
+        AwtTextAntialiasingMode.LCD_HRGB -> RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB
+        AwtTextAntialiasingMode.LCD_HBGR -> RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HBGR
+        AwtTextAntialiasingMode.LCD_VRGB -> RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_VRGB
+        AwtTextAntialiasingMode.LCD_VBGR -> RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_VBGR
+    }
+
+private fun AwtRenderQualityMode.toHintValue(): Any =
+    when (this) {
+        AwtRenderQualityMode.DEFAULT -> RenderingHints.VALUE_RENDER_DEFAULT
+        AwtRenderQualityMode.QUALITY -> RenderingHints.VALUE_RENDER_QUALITY
+        AwtRenderQualityMode.SPEED -> RenderingHints.VALUE_RENDER_SPEED
+    }
+
+private fun AwtStrokeControlMode.toHintValue(): Any =
+    when (this) {
+        AwtStrokeControlMode.DEFAULT -> RenderingHints.VALUE_STROKE_DEFAULT
+        AwtStrokeControlMode.NORMALIZE -> RenderingHints.VALUE_STROKE_NORMALIZE
+        AwtStrokeControlMode.PURE -> RenderingHints.VALUE_STROKE_PURE
+    }

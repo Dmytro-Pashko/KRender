@@ -1,0 +1,53 @@
+{
+  "panels": {
+    "bfe_toolbar": {
+      "title": "Toolbar",
+      "x": 3,
+      "y": 5,
+      "width": 614,
+      "height": 184
+    },
+    "bfe_preview": {
+      "title": "Font Page Preview",
+      "x": 619,
+      "y": 199,
+      "width": 764,
+      "height": 821
+    },
+    "bfe_glyph_list": {
+      "title": "Glyph List",
+      "x": 3,
+      "y": 192,
+      "width": 177,
+      "height": 831
+    },
+    "bfe_inspector": {
+      "title": "Inspector",
+      "x": 180,
+      "y": 579,
+      "width": 435,
+      "height": 439
+    },
+    "bfe_generation": {
+      "title": "Tools",
+      "x": 182,
+      "y": 193,
+      "width": 432,
+      "height": 380
+    },
+    "bfe_diagnostics": {
+      "title": "Diagnostics",
+      "x": 621,
+      "y": 5,
+      "width": 763,
+      "height": 189
+    },
+    "bfe_logs": {
+      "title": "Logs",
+      "x": 0,
+      "y": 1028,
+      "width": 1383,
+      "height": 248
+    }
+  }
+}

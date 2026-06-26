@@ -4,8 +4,12 @@ import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorMetadata
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorState
 import com.pashkd.krender.engine.tools.common.bitmapfont.charset.CharsetPreset
+import com.pashkd.krender.engine.tools.common.bitmapfont.generator.AwtRenderQualityMode
+import com.pashkd.krender.engine.tools.common.bitmapfont.generator.AwtStrokeControlMode
+import com.pashkd.krender.engine.tools.common.bitmapfont.generator.AwtTextAntialiasingMode
 import com.pashkd.krender.engine.tools.common.bitmapfont.generator.BitmapFontGenerationConfig
 import com.pashkd.krender.engine.tools.common.bitmapfont.generator.BitmapFontGenerator
+import com.pashkd.krender.engine.tools.common.bitmapfont.generator.BitmapFontRasterizerType
 import com.pashkd.krender.engine.tools.common.bitmapfont.generator.FontGenerationDiagnostic
 import com.pashkd.krender.engine.tools.common.bitmapfont.generator.FontGenerationDiagnosticSeverity
 import com.pashkd.krender.engine.tools.common.bitmapfont.generator.FontPageImageWriter
@@ -20,8 +24,16 @@ class GenerateBitmapFontWorkflow(
 ) {
     private val generator = BitmapFontGenerator()
 
-    @Suppress("ReturnCount")
     fun generate() {
+        runGeneration(previewOnly = false)
+    }
+
+    fun preview() {
+        runGeneration(previewOnly = true)
+    }
+
+    @Suppress("ReturnCount")
+    private fun runGeneration(previewOnly: Boolean) {
         val metadata = state.metadata
         if (metadata == null) {
             state.statusMessage = "No metadata loaded. Create or open a .kfont.json first."
@@ -39,7 +51,6 @@ class GenerateBitmapFontWorkflow(
 
         val assetRoot = engine.assetRegistry.baseDir()
         val sourceAbsolute = File(assetRoot, metadata.sourceFont).absolutePath
-
         val config =
             BitmapFontGenerationConfig(
                 sourceFont = sourceAbsolute,
@@ -52,15 +63,20 @@ class GenerateBitmapFontWorkflow(
                 pageHeight = metadata.generation.pageHeight,
                 antialias = metadata.generation.antialias,
                 hinting = metadata.generation.hinting,
+                rasterizer = enumValueOrDefault(metadata.generation.rasterizer, BitmapFontRasterizerType.AWT),
+                textAntialiasing = enumValueOrDefault(metadata.generation.textAntialiasing, AwtTextAntialiasingMode.ON),
+                fractionalMetrics = metadata.generation.fractionalMetrics,
+                renderQuality = enumValueOrDefault(metadata.generation.renderQuality, AwtRenderQualityMode.QUALITY),
+                strokeControl = enumValueOrDefault(metadata.generation.strokeControl, AwtStrokeControlMode.DEFAULT),
             )
-
         val outputFntPath = metadata.outputFnt.ifBlank { deriveOutputFnt() }
         val outputPageName = File(outputFntPath).nameWithoutExtension + ".png"
 
-        engine.logger.info(TAG) { "Generating bitmap font source='${metadata.sourceFont}' size=${config.sizePx} page=${config.pageWidth}x${config.pageHeight}" }
+        engine.logger.info(TAG) {
+            "Generating bitmap font source='${metadata.sourceFont}' size=${config.sizePx} page=${config.pageWidth}x${config.pageHeight} previewOnly=$previewOnly"
+        }
 
         val result = generator.generate(config, outputFntPath, outputPageName)
-
         state.diagnostics = result.diagnostics.map { it.toBitmapFontDiagnostic() }
 
         if (!result.success || result.document == null) {
@@ -73,13 +89,25 @@ class GenerateBitmapFontWorkflow(
         state.generatedPageWidth = result.pageWidth
         state.generatedPageHeight = result.pageHeight
 
-        val updatedDocument = writePreviewPage(assetRoot, outputFntPath, outputPageName, result)
+        val updatedDocument =
+            if (previewOnly) {
+                writeTransientPreviewPage(assetRoot, outputPageName, result)
+            } else {
+                writePreviewPage(assetRoot, outputFntPath, outputPageName, result)
+            }
         state.document = updatedDocument ?: result.document
-        state.dirty = true
+        if (!previewOnly) {
+            state.dirty = true
+        }
 
-        state.statusMessage = "Generated ${result.document.glyphs.size} glyphs on ${result.pageWidth}x${result.pageHeight} page."
+        state.statusMessage =
+            if (previewOnly) {
+                "Previewed ${result.document.glyphs.size} glyphs on ${result.pageWidth}x${result.pageHeight} page."
+            } else {
+                "Generated ${result.document.glyphs.size} glyphs on ${result.pageWidth}x${result.pageHeight} page."
+            }
         engine.logger.info(TAG) {
-            "Bitmap font generated glyphs=${result.document.glyphs.size} page=${result.pageWidth}x${result.pageHeight}"
+            "Bitmap font ${if (previewOnly) "previewed" else "generated"} glyphs=${result.document.glyphs.size} page=${result.pageWidth}x${result.pageHeight}"
         }
     }
 
@@ -124,20 +152,9 @@ class GenerateBitmapFontWorkflow(
             return null
         }
         val resolvedPng = pngFile.absolutePath.replace('\\', '/')
-        engine.logger.info(TAG) { "Wrote preview page PNG to '$resolvedPng'" }
-        val relPath =
-            pngFile.absolutePath
-                .removePrefix(assetRoot.absolutePath)
-                .removePrefix("/")
-                .removePrefix("\\")
-                .replace('\\', '/')
-        val ref =
-            com.pashkd.krender.engine.api.AssetRef
-                .texture(relPath)
-        if (engine.assets.isLoaded(ref)) {
-            engine.assets.unload(ref)
-        }
-        engine.assets.queue(ref)
+        val relPath = relativeAssetPath(assetRoot, pngFile)
+        refreshPreviewTexture(relPath)
+        state.previewTexturePath = null
         return document.copy(
             pages =
                 listOf(
@@ -151,7 +168,63 @@ class GenerateBitmapFontWorkflow(
         )
     }
 
+    @Suppress("ReturnCount")
+    private fun writeTransientPreviewPage(
+        assetRoot: File,
+        outputPageName: String,
+        result: com.pashkd.krender.engine.tools.common.bitmapfont.generator.BitmapFontGenerationResult,
+    ): com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontDocument? {
+        val pageRgba = result.pageImageRgba ?: return null
+        val document = result.document ?: return null
+        val previewDir = File(assetRoot, "ui/.krender-preview/bitmap-font-editor")
+        previewDir.mkdirs()
+        val pngFile = File(previewDir, outputPageName)
+        val wrote = FontPageImageWriter.writePng(pageRgba, result.pageWidth, result.pageHeight, pngFile)
+        if (!wrote) {
+            engine.logger.warn(TAG) { "Failed to write transient preview page PNG to '${pngFile.path}'" }
+            return null
+        }
+        val relPath = relativeAssetPath(assetRoot, pngFile)
+        refreshPreviewTexture(relPath)
+        state.previewTexturePath = relPath
+        state.previewTextureRevision += 1L
+        return document.copy(
+            pages =
+                listOf(
+                    BitmapFontPage(
+                        id = 0,
+                        file = outputPageName,
+                        resolvedPath = pngFile.absolutePath.replace('\\', '/'),
+                        exists = true,
+                    ),
+                ),
+        )
+    }
+
+    private fun refreshPreviewTexture(relPath: String) {
+        val ref = com.pashkd.krender.engine.api.AssetRef.texture(relPath)
+        if (engine.assets.isLoaded(ref)) {
+            engine.assets.unload(ref)
+        }
+        engine.assets.queue(ref)
+    }
+
+    private fun relativeAssetPath(
+        assetRoot: File,
+        file: File,
+    ): String =
+        file.absolutePath
+            .removePrefix(assetRoot.absolutePath)
+            .removePrefix("/")
+            .removePrefix("\\")
+            .replace('\\', '/')
+
     private fun charsetPresetFromName(name: String): CharsetPreset = runCatching { CharsetPreset.valueOf(name) }.getOrDefault(CharsetPreset.ENGLISH_SYMBOLS_UKRAINIAN_CYRILLIC)
+
+    private inline fun <reified T : Enum<T>> enumValueOrDefault(
+        value: String,
+        fallback: T,
+    ): T = runCatching { enumValueOf<T>(value) }.getOrDefault(fallback)
 
     companion object {
         private const val TAG = "GenerateBitmapFontWf"

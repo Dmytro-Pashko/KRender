@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorMetadata
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorState
 import com.pashkd.krender.engine.tools.common.bitmapfont.generator.FontPageImageWriter
 import com.pashkd.krender.engine.tools.common.bitmapfont.io.BitmapFontWriter
+import com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontPage
 import java.io.File
 
 class SaveBitmapFontWorkflow(
@@ -83,6 +84,20 @@ class SaveBitmapFontWorkflow(
             }
         }
 
+        state.document =
+            document.copy(
+                pages =
+                    listOf(
+                        BitmapFontPage(
+                            id = 0,
+                            file = pageFileName,
+                            resolvedPath = File(fntFile.parentFile, pageFileName).absolutePath.replace('\\', '/'),
+                            exists = true,
+                        ),
+                    ),
+            )
+        state.previewTexturePath = null
+        state.previewTextureRevision = 0L
         state.dirty = false
         state.statusMessage = "Saved: ${writtenPaths.joinToString(", ") { File(it).name }}."
         engine.logger.info(TAG) { "Bitmap font saved paths=${writtenPaths.joinToString()}" }

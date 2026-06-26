@@ -38,6 +38,11 @@ data class BitmapFontGenerationMetadata(
     val pageHeight: Int = 512,
     val antialias: Boolean = true,
     val hinting: Boolean = true,
+    val rasterizer: String = "AWT",
+    val textAntialiasing: String = "ON",
+    val fractionalMetrics: Boolean = true,
+    val renderQuality: String = "QUALITY",
+    val strokeControl: String = "DEFAULT",
 )
 
 object BitmapFontEditorMetadataCodec {
@@ -66,6 +71,11 @@ object BitmapFontEditorMetadataCodec {
                         put("pageHeight", metadata.generation.pageHeight)
                         put("antialias", metadata.generation.antialias)
                         put("hinting", metadata.generation.hinting)
+                        put("rasterizer", metadata.generation.rasterizer)
+                        put("textAntialiasing", metadata.generation.textAntialiasing)
+                        put("fractionalMetrics", metadata.generation.fractionalMetrics)
+                        put("renderQuality", metadata.generation.renderQuality)
+                        put("strokeControl", metadata.generation.strokeControl)
                     },
                 )
             }
@@ -93,6 +103,15 @@ object BitmapFontEditorMetadataCodec {
                     pageHeight = gen["pageHeight"]?.jsonPrimitive?.intOrNull ?: 512,
                     antialias = gen["antialias"]?.jsonPrimitive?.booleanOrNull ?: true,
                     hinting = gen["hinting"]?.jsonPrimitive?.booleanOrNull ?: true,
+                    rasterizer = gen["rasterizer"]?.jsonPrimitive?.content ?: "AWT",
+                    textAntialiasing =
+                        gen["textAntialiasing"]?.jsonPrimitive?.content
+                            ?: if (gen["antialias"]?.jsonPrimitive?.booleanOrNull == false) "OFF" else "ON",
+                    fractionalMetrics =
+                        gen["fractionalMetrics"]?.jsonPrimitive?.booleanOrNull
+                            ?: (gen["hinting"]?.jsonPrimitive?.booleanOrNull ?: true),
+                    renderQuality = gen["renderQuality"]?.jsonPrimitive?.content ?: "QUALITY",
+                    strokeControl = gen["strokeControl"]?.jsonPrimitive?.content ?: "DEFAULT",
                 )
             } else {
                 BitmapFontGenerationMetadata()

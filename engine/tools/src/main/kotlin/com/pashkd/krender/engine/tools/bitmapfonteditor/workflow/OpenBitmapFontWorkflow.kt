@@ -40,6 +40,9 @@ class OpenBitmapFontWorkflow(
         }
         state.metadata = metadata
         state.metadataPath = metadataPath
+        state.resolvedInputPath = metaFile.canonicalPath.replace('\\', '/')
+        state.previewTexturePath = null
+        state.previewTextureRevision = 0L
         engine.logger.info(TAG) { "Loaded bitmap font metadata path='$metadataPath' sourceFont='${metadata.sourceFont}'" }
 
         if (metadata.outputFnt.isNotBlank()) {
@@ -49,6 +52,12 @@ class OpenBitmapFontWorkflow(
                 return
             }
         }
+        state.document = null
+        state.inputPath = null
+        state.resolvedFontPath = null
+        state.glyphSelection.selectedGlyphId = null
+        state.glyphSelection.hoveredGlyphId = null
+        state.selectedPageIndex = 0
         state.statusMessage = "Metadata loaded. Configure generation settings and generate."
     }
 
@@ -71,6 +80,12 @@ class OpenBitmapFontWorkflow(
         val document = parser.parse(fntFile)
         state.document = document
         state.inputPath = normalizedPath
+        state.resolvedFontPath = fntFile.canonicalPath.replace('\\', '/')
+        if (state.metadataPath == null) {
+            state.resolvedInputPath = state.resolvedFontPath
+        }
+        state.previewTexturePath = null
+        state.previewTextureRevision = 0L
         state.diagnostics = document.diagnostics
         state.glyphSelection.selectedGlyphId = null
         state.glyphSelection.hoveredGlyphId = null

@@ -37,7 +37,7 @@ object ToolsModule {
             "skin-editor" -> SkinEditorScene(initialSkinPath = skinPath)
             "texture-atlas-editor" -> TextureAtlasEditorScene(initialAtlasPath = atlasPath, fileDialogService = AwtFileDialogService())
             "ui-composer" -> UiComposerScene(uiScenePath ?: throw missingProperty("krender.ui.scene.path", sceneName))
-            "bitmap-font-editor" -> BitmapFontEditorScene(initialFontPath = fontPath)
+            "bitmap-font-editor" -> BitmapFontEditorScene(initialFontPath = fontPath, fileDialogService = AwtFileDialogService())
             else -> null
         }
 

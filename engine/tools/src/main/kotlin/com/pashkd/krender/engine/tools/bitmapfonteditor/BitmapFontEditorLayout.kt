@@ -24,7 +24,7 @@ object BitmapFontEditorUiLayoutDefaults {
                     BitmapFontEditorPanelIds.Preview to ImGuiPanelLayout("Font Page Preview", 0f, 28f, 1100f, 800f),
                     BitmapFontEditorPanelIds.GlyphList to ImGuiPanelLayout("Glyph List", 1100f, 28f, 330f, 500f),
                     BitmapFontEditorPanelIds.Inspector to ImGuiPanelLayout("Inspector", 1430f, 28f, 325f, 500f),
-                    BitmapFontEditorPanelIds.Generation to ImGuiPanelLayout("Generation", 1100f, 528f, 655f, 300f),
+                    BitmapFontEditorPanelIds.Generation to ImGuiPanelLayout("Tools", 1100f, 528f, 655f, 300f),
                     BitmapFontEditorPanelIds.Diagnostics to ImGuiPanelLayout("Diagnostics", 0f, 828f, 1100f, 200f),
                     BitmapFontEditorPanelIds.Logs to ImGuiPanelLayout("Logs", 0f, 1028f, 1755f, 250f),
                 ),

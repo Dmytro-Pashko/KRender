@@ -233,6 +233,8 @@ private object UnusedAtlasEditorToolLauncher : EditorToolLauncher {
     override fun launchTextureAtlasEditor(atlasPath: String) = error("not used")
 
     override fun launchUiComposer(uiScenePath: String) = error("not used")
+
+    override fun launchBitmapFontEditor(fontPath: String?) = error("not used")
 }
 
 private object UnusedAtlasTaskService : TaskService {

@@ -141,8 +141,8 @@ class BitmapFontGenerator(
                 face = faceName,
                 size = config.sizePx,
                 unicode = true,
-                smooth = config.antialias,
-                aa = if (config.antialias) 1 else 0,
+                smooth = config.smoothingEnabled,
+                aa = if (config.smoothingEnabled) 1 else 0,
                 padding = listOf(config.padding, config.padding, config.padding, config.padding),
                 spacing = listOf(config.spacing, config.spacing),
             )

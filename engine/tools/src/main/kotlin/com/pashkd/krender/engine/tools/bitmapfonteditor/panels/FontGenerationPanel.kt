@@ -1,10 +1,15 @@
 package com.pashkd.krender.engine.tools.bitmapfonteditor.panels
 
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorController
+import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorMetadata
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorPanelIds
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorState
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontGenerationMetadata
 import com.pashkd.krender.engine.tools.common.bitmapfont.charset.CharsetPreset
+import com.pashkd.krender.engine.tools.common.bitmapfont.generator.AwtRenderQualityMode
+import com.pashkd.krender.engine.tools.common.bitmapfont.generator.AwtStrokeControlMode
+import com.pashkd.krender.engine.tools.common.bitmapfont.generator.AwtTextAntialiasingMode
+import com.pashkd.krender.engine.tools.common.bitmapfont.generator.BitmapFontRasterizerType
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -32,31 +37,35 @@ class FontGenerationPanel(
             ImGui.end()
             return
         }
-        ImGui.text("Font Generation")
-        ImGui.separator()
-
         val gen = state.metadata?.generation ?: BitmapFontGenerationMetadata()
         if (!buffersSynced) {
-            syncBuffer(sourceFontBuf, state.metadata?.sourceFont ?: "")
-            syncBuffer(customCharsBuf, gen.customCharacters)
+            writeBuffer(sourceFontBuf, state.metadata?.sourceFont ?: "")
+            writeBuffer(customCharsBuf, gen.customCharacters)
             buffersSynced = true
         }
+        if (readBuffer(sourceFontBuf) != (state.metadata?.sourceFont ?: "")) {
+            writeBuffer(sourceFontBuf, state.metadata?.sourceFont ?: "")
+        }
+        if (readBuffer(customCharsBuf) != gen.customCharacters) {
+            writeBuffer(customCharsBuf, gen.customCharacters)
+        }
 
-        ImGui.text("Source Font (.ttf/.otf):")
-        ImGui.setNextItemWidth(ImGui.contentRegionAvail.x)
+        ImGui.text("Source Font (.ttf/.otf)")
+        ImGui.setNextItemWidth(300f)
         if (ImGui.inputText("##bfe_gen_source_font", sourceFontBuf)) {
             updateMetadata { copy(sourceFont = readBuffer(sourceFontBuf)) }
         }
-
-        val fontSizes = intArrayOf(8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72, 96, 128)
-        if (ImGui.beginCombo("Size (px)##bfe_gen_size", gen.sizePx.toString())) {
-            fontSizes.forEach { size ->
-                if (ImGui.selectable(size.toString(), gen.sizePx == size)) {
-                    updateGeneration { copy(sizePx = size) }
-                }
-            }
-            ImGui.endCombo()
+        ImGui.sameLine()
+        if (ImGui.button("Browse##bfe_gen_source_browse")) {
+            controller.browseSourceFont()
         }
+
+        drawIntCombo(
+            label = "Size (px)##bfe_gen_size",
+            value = gen.sizePx,
+            values = intArrayOf(8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72, 96, 128),
+            onSelect = { value -> updateGeneration { copy(sizePx = value) } },
+        )
 
         if (ImGui.beginCombo("Charset##bfe_gen_charset", charsetPresetFromName(gen.charsetPreset).displayName)) {
             CharsetPreset.entries.forEach { preset ->
@@ -68,63 +77,100 @@ class FontGenerationPanel(
         }
 
         if (charsetPresetFromName(gen.charsetPreset) == CharsetPreset.CUSTOM) {
-            ImGui.text("Custom Characters:")
+            ImGui.text("Custom Characters")
             ImGui.setNextItemWidth(ImGui.contentRegionAvail.x)
             if (ImGui.inputText("##bfe_gen_custom_chars", customCharsBuf)) {
                 updateGeneration { copy(customCharacters = readBuffer(customCharsBuf)) }
             }
         }
 
-        val paddingSizes = intArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8)
-        if (ImGui.beginCombo("Padding##bfe_gen_padding", gen.padding.toString())) {
-            paddingSizes.forEach { p ->
-                if (ImGui.selectable(p.toString(), gen.padding == p)) {
-                    updateGeneration { copy(padding = p) }
-                }
-            }
-            ImGui.endCombo()
-        }
+        drawIntCombo(
+            label = "Padding##bfe_gen_padding",
+            value = gen.padding,
+            values = intArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8),
+            onSelect = { value -> updateGeneration { copy(padding = value) } },
+        )
+        drawIntCombo(
+            label = "Spacing##bfe_gen_spacing",
+            value = gen.spacing,
+            values = intArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8),
+            onSelect = { value -> updateGeneration { copy(spacing = value) } },
+        )
 
-        if (ImGui.beginCombo("Spacing##bfe_gen_spacing", gen.spacing.toString())) {
-            paddingSizes.forEach { s ->
-                if (ImGui.selectable(s.toString(), gen.spacing == s)) {
-                    updateGeneration { copy(spacing = s) }
+        if (ImGui.beginCombo("Rasterizer##bfe_gen_rasterizer", gen.rasterizer)) {
+            BitmapFontRasterizerType.entries.forEach { type ->
+                if (ImGui.selectable(type.name, gen.rasterizer == type.name)) {
+                    updateGeneration { copy(rasterizer = type.name) }
                 }
             }
             ImGui.endCombo()
         }
+        tooltipOnHover("Current implementation supports AWT rasterization. The extra options below tune AWT text rendering hints.")
+
+        if (ImGui.beginCombo("Text AA##bfe_gen_text_aa", gen.textAntialiasing)) {
+            AwtTextAntialiasingMode.entries.forEach { mode ->
+                if (ImGui.selectable(mode.name, gen.textAntialiasing == mode.name)) {
+                    updateGeneration { copy(textAntialiasing = mode.name, antialias = mode != AwtTextAntialiasingMode.OFF) }
+                }
+            }
+            ImGui.endCombo()
+        }
+        tooltipOnHover("Controls AWT text anti-aliasing mode. LCD modes can noticeably change edge sharpness.")
+
+        val fractionalMetrics = booleanArrayOf(gen.fractionalMetrics)
+        if (ImGui.checkbox("Fractional Metrics##bfe_gen_fractional_metrics", fractionalMetrics)) {
+            updateGeneration { copy(fractionalMetrics = fractionalMetrics[0], hinting = fractionalMetrics[0]) }
+        }
+        tooltipOnHover("Uses sub-pixel glyph metrics. This changes advances, bounds, and glyph spacing.")
+
+        if (ImGui.beginCombo("Render Quality##bfe_gen_render_quality", gen.renderQuality)) {
+            AwtRenderQualityMode.entries.forEach { mode ->
+                if (ImGui.selectable(mode.name, gen.renderQuality == mode.name)) {
+                    updateGeneration { copy(renderQuality = mode.name) }
+                }
+            }
+            ImGui.endCombo()
+        }
+        tooltipOnHover("Controls the AWT render-quality hint. Quality can improve consistency, Speed can look rougher.")
+
+        if (ImGui.beginCombo("Stroke Control##bfe_gen_stroke_control", gen.strokeControl)) {
+            AwtStrokeControlMode.entries.forEach { mode ->
+                if (ImGui.selectable(mode.name, gen.strokeControl == mode.name)) {
+                    updateGeneration { copy(strokeControl = mode.name) }
+                }
+            }
+            ImGui.endCombo()
+        }
+        tooltipOnHover("Controls AWT stroke normalization. It can affect edge snapping and perceived glyph crispness.")
+
+        drawIntCombo(
+            label = "Page Width##bfe_gen_pw",
+            value = gen.pageWidth,
+            values = PageSizes,
+            onSelect = { value -> updateGeneration { copy(pageWidth = value) } },
+        )
+        drawIntCombo(
+            label = "Page Height##bfe_gen_ph",
+            value = gen.pageHeight,
+            values = PageSizes,
+            onSelect = { value -> updateGeneration { copy(pageHeight = value) } },
+        )
 
         ImGui.separator()
+        if (ImGui.button("Preview##bfe_gen_preview")) {
+            controller.preview()
+        }
+        tooltipOnHover("Generates a transient preview page and shows it in the preview canvas without saving project files.")
+        ImGui.sameLine()
         if (ImGui.button("Generate##bfe_gen_run")) {
             controller.generate()
         }
-        ImGui.separator()
-
-        val pageSizes = intArrayOf(128, 256, 512, 1024, 2048, 4096)
-        if (ImGui.beginCombo("Page Width##bfe_gen_pw", gen.pageWidth.toString())) {
-            pageSizes.forEach { size ->
-                if (ImGui.selectable(size.toString(), gen.pageWidth == size)) {
-                    updateGeneration { copy(pageWidth = size) }
-                }
-            }
-            ImGui.endCombo()
-        }
-        if (ImGui.beginCombo("Page Height##bfe_gen_ph", gen.pageHeight.toString())) {
-            pageSizes.forEach { size ->
-                if (ImGui.selectable(size.toString(), gen.pageHeight == size)) {
-                    updateGeneration { copy(pageHeight = size) }
-                }
-            }
-            ImGui.endCombo()
-        }
-
+        tooltipOnHover("Generates the working bitmap font document and preview page. Use Save Font to write files explicitly.")
         ImGui.end()
     }
 
-    private fun updateMetadata(block: com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorMetadata.() -> com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorMetadata) {
-        val current =
-            state.metadata ?: com.pashkd.krender.engine.tools.bitmapfonteditor
-                .BitmapFontEditorMetadata()
+    private fun updateMetadata(block: BitmapFontEditorMetadata.() -> BitmapFontEditorMetadata) {
+        val current = state.metadata ?: BitmapFontEditorMetadata()
         state.metadata = current.block()
         state.dirty = true
     }
@@ -135,17 +181,23 @@ class FontGenerationPanel(
 
     private fun charsetPresetFromName(name: String): CharsetPreset = CharsetPreset.entries.firstOrNull { it.name == name } ?: CharsetPreset.ENGLISH_SYMBOLS_UKRAINIAN_CYRILLIC
 
-    private fun syncBuffer(
-        buf: ByteArray,
-        text: String,
+    private fun drawIntCombo(
+        label: String,
+        value: Int,
+        values: IntArray,
+        onSelect: (Int) -> Unit,
     ) {
-        buf.fill(0)
-        val bytes = text.toByteArray(Charsets.UTF_8)
-        bytes.copyInto(buf, 0, 0, minOf(bytes.size, buf.size - 1))
+        if (ImGui.beginCombo(label, value.toString())) {
+            values.forEach { option ->
+                if (ImGui.selectable(option.toString(), option == value)) {
+                    onSelect(option)
+                }
+            }
+            ImGui.endCombo()
+        }
     }
 
-    private fun readBuffer(buf: ByteArray): String {
-        val nullIndex = buf.indexOf(0)
-        return if (nullIndex >= 0) String(buf, 0, nullIndex, Charsets.UTF_8) else String(buf, Charsets.UTF_8)
+    companion object {
+        private val PageSizes = intArrayOf(128, 256, 512, 1024, 2048, 4096)
     }
 }

@@ -3,6 +3,8 @@ package com.pashkd.krender.engine.tools.bitmapfonteditor
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
+import com.pashkd.krender.engine.assets.importing.FileDialogService
+import com.pashkd.krender.engine.assets.importing.NoOpFileDialogService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.bitmapfonteditor.panels.BitmapFontToolbarPanel
@@ -21,6 +23,7 @@ import com.pashkd.krender.engine.ui.editor.UiSystem
 
 class BitmapFontEditorScene(
     initialFontPath: String? = null,
+    private val fileDialogService: FileDialogService = NoOpFileDialogService,
 ) : Scene("bitmap_font_editor") {
     override val config: SceneConfig = SceneConfigPresets.BitmapFontEditor
 
@@ -38,7 +41,7 @@ class BitmapFontEditorScene(
                 fallback = BitmapFontEditorUiLayoutDefaults.config,
             ).load(engine.logger, engine.sceneFiles)
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
-        controller = BitmapFontEditorController(editorState, engine)
+        controller = BitmapFontEditorController(editorState, engine, layoutTracker, fileDialogService)
         openWorkflow = OpenBitmapFontWorkflow(editorState, engine)
         editorState.inputPath?.let { path -> openWorkflow.openFromPath(path) }
         world.systems.add(BitmapFontEditorPreviewSyncSystem(editorState, engine))
@@ -53,7 +56,7 @@ class BitmapFontEditorScene(
             addPanel(uiSystem, "Preview", FontPageCanvasPanel(editorState, controller, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "GlyphList", GlyphListPanel(editorState, controller, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Inspector", GlyphInspectorPanel(editorState, controller, layoutConfig, layoutTracker, eventLogger))
-            addPanel(uiSystem, "Generation", FontGenerationPanel(editorState, controller, layoutConfig, layoutTracker, eventLogger))
+            addPanel(uiSystem, "Tools", FontGenerationPanel(editorState, controller, layoutConfig, layoutTracker, eventLogger))
             addPanel(uiSystem, "Diagnostics", FontDiagnosticsPanel(editorState, layoutConfig, layoutTracker, eventLogger))
             addPanel(
                 uiSystem,
@@ -106,7 +109,7 @@ private class BitmapFontEditorPreviewSyncSystem(
         val document = state.document ?: return
         val pageIndex = state.selectedPageIndex.coerceIn(0, (document.pages.size - 1).coerceAtLeast(0))
         val page = document.pages.getOrNull(pageIndex) ?: return
-        val resolvedPath = page.resolvedPath ?: return
+        val resolvedPath = state.previewTexturePath?.let { path -> java.io.File(engine.assetRegistry.baseDir(), path).path } ?: page.resolvedPath ?: return
         val assetRoot = engine.assetRegistry.baseDir()
         val rootPath = assetRoot.canonicalPath.replace('\\', '/')
         val pagePath =
@@ -115,7 +118,7 @@ private class BitmapFontEditorPreviewSyncSystem(
                 .canonicalPath
                 .replace('\\', '/')
         val relPath = if (pagePath.startsWith(rootPath)) pagePath.removePrefix(rootPath).removePrefix("/") else return
-        if (relPath != lastPreviewPath) {
+        if (relPath != lastPreviewPath || state.previewTextureRevision > 0L) {
             lastPreviewPath = relPath
             val ref =
                 com.pashkd.krender.engine.api.AssetRef
@@ -128,5 +131,6 @@ private class BitmapFontEditorPreviewSyncSystem(
         state.texturePreviewHandle = handle
         state.textureWidth = handle?.width ?: document.common?.scaleW ?: 0
         state.textureHeight = handle?.height ?: document.common?.scaleH ?: 0
+        state.previewTextureRevision = 0L
     }
 }

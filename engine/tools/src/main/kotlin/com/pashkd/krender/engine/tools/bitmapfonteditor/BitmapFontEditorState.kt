@@ -14,6 +14,8 @@ class BitmapFontEditorState(
     var dirty: Boolean = false
     var statusMessage: String = "Bitmap Font Editor ready."
     var diagnostics: List<BitmapFontDiagnostic> = emptyList()
+    var resolvedInputPath: String? = null
+    var resolvedFontPath: String? = null
 
     var canvasRect: CanvasRect = CanvasRect()
     var preview: CanvasPreviewState = CanvasPreviewState()
@@ -22,6 +24,8 @@ class BitmapFontEditorState(
     var showSampleTextPreview: Boolean = false
     var showGlyphBounds: Boolean = true
     var selectedPageIndex: Int = 0
+    var previewTexturePath: String? = null
+    var previewTextureRevision: Long = 0L
 
     var texturePreviewHandle: TexturePreviewHandle? = null
     var textureWidth: Int = 0
@@ -33,4 +37,5 @@ class BitmapFontEditorState(
     var generatedPageRgba: ByteArray? = null
     var generatedPageWidth: Int = 0
     var generatedPageHeight: Int = 0
+    var pendingScrollToSelectedGlyph: Boolean = false
 }

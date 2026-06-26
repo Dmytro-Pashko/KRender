@@ -119,6 +119,8 @@ private class RecordingEditorToolLauncher : EditorToolLauncher {
     override fun launchUiComposer(uiScenePath: String) {
         uiComposerPath = uiScenePath
     }
+
+    override fun launchBitmapFontEditor(fontPath: String?) = error("not used")
 }
 
 private class TestToolEngineContext(
