@@ -373,9 +373,8 @@ private class GdxImGuiInputBridge(
             Input.Keys.HOME -> Key.Home
             Input.Keys.END -> Key.End
             Input.Keys.INSERT -> Key.Insert
-            Input.Keys.DEL -> Key.Delete
-            Input.Keys.FORWARD_DEL -> Key.Delete
             Input.Keys.BACKSPACE -> Key.Backspace
+            Input.Keys.FORWARD_DEL -> Key.Delete
             Input.Keys.SPACE -> Key.Space
             Input.Keys.ENTER -> Key.Enter
             Input.Keys.ESCAPE -> Key.Escape
