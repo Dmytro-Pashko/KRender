@@ -1,8 +1,11 @@
 package com.pashkd.krender.engine.tools.bitmapfonteditor
 
 import com.pashkd.krender.engine.api.Scene
+import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
+import com.pashkd.krender.engine.tools.bitmapfonteditor.workflow.OpenBitmapFontWorkflow
 import com.pashkd.krender.engine.tools.bitmapfonteditor.panels.BitmapFontToolbarPanel
 import com.pashkd.krender.engine.tools.bitmapfonteditor.panels.FontDiagnosticsPanel
 import com.pashkd.krender.engine.tools.bitmapfonteditor.panels.FontGenerationPanel
@@ -25,6 +28,8 @@ class BitmapFontEditorScene(
     private lateinit var controller: BitmapFontEditorController
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
 
+    private lateinit var openWorkflow: OpenBitmapFontWorkflow
+
     override fun show() {
         engine.logger.info(TAG) { "Showing Bitmap Font Editor path='${editorState.inputPath ?: "<none>"}'" }
         val layoutConfig =
@@ -34,6 +39,9 @@ class BitmapFontEditorScene(
             ).load(engine.logger, engine.sceneFiles)
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         controller = BitmapFontEditorController(editorState, engine)
+        openWorkflow = OpenBitmapFontWorkflow(editorState, engine)
+        editorState.inputPath?.let { path -> openWorkflow.openFromPath(path) }
+        world.systems.add(BitmapFontEditorPreviewSyncSystem(editorState, engine))
         world.systems.add(createUiSystem())
     }
 
@@ -81,5 +89,37 @@ class BitmapFontEditorScene(
 
     companion object {
         private const val TAG = "BitmapFontEditorScene"
+    }
+}
+
+private class BitmapFontEditorPreviewSyncSystem(
+    private val state: BitmapFontEditorState,
+    private val engine: com.pashkd.krender.engine.api.EngineContext,
+) : System() {
+    private var lastPreviewPath: String? = null
+
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
+        val document = state.document ?: return
+        val pageIndex = state.selectedPageIndex.coerceIn(0, (document.pages.size - 1).coerceAtLeast(0))
+        val page = document.pages.getOrNull(pageIndex) ?: return
+        val resolvedPath = page.resolvedPath ?: return
+        val assetRoot = engine.assetRegistry.baseDir()
+        val rootPath = assetRoot.canonicalPath.replace('\\', '/')
+        val pagePath = java.io.File(resolvedPath).canonicalPath.replace('\\', '/')
+        val relPath = if (pagePath.startsWith(rootPath)) pagePath.removePrefix(rootPath).removePrefix("/") else return
+        if (relPath != lastPreviewPath) {
+            lastPreviewPath = relPath
+            val ref = com.pashkd.krender.engine.api.AssetRef.texture(relPath)
+            if (!engine.assets.isLoaded(ref)) {
+                engine.assets.queue(ref)
+            }
+        }
+        val handle = engine.assets.texturePreviewHandle(relPath)
+        state.texturePreviewHandle = handle
+        state.textureWidth = handle?.width ?: document.common?.scaleW ?: 0
+        state.textureHeight = handle?.height ?: document.common?.scaleH ?: 0
     }
 }
