@@ -13,6 +13,7 @@ import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.tools.assetbrowser.creation.createAtlasAsset
+import com.pashkd.krender.engine.tools.assetbrowser.creation.createBitmapFontAsset
 import com.pashkd.krender.engine.ui.editor.*
 
 /**
@@ -192,6 +193,13 @@ private class SceneOperationsHandler(
     override fun create(draft: CreateAssetDraft) {
         if (draft.kind == CreatableAssetKind.Atlas) {
             consumeResult(createAtlasAsset(draft, engineProvider().assetRegistry.baseDir(), logger))
+            if (state.errorMessage == null) {
+                state.refreshRequested = true
+            }
+            return
+        }
+        if (draft.kind == CreatableAssetKind.BitmapFont) {
+            consumeResult(createBitmapFontAsset(draft, engineProvider(), logger))
             if (state.errorMessage == null) {
                 state.refreshRequested = true
             }
