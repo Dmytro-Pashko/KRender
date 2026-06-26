@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserScene
 import com.pashkd.krender.engine.tools.modelviewer.ModelViewerScene
 import com.pashkd.krender.engine.tools.sceneeditor.SceneEditorScene
 import com.pashkd.krender.engine.tools.skin.SkinEditorScene
+import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorScene
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorScene
 import com.pashkd.krender.engine.tools.uicomposer.UiComposerScene
 
@@ -21,6 +22,7 @@ object ToolsModule {
         uiScenePath: String? = null,
         skinPath: String? = null,
         atlasPath: String? = null,
+        fontPath: String? = null,
     ): Scene? =
         when (sceneName.lowercase()) {
             "asset-browser" -> AssetBrowserScene()
@@ -34,6 +36,7 @@ object ToolsModule {
             "skin-editor" -> SkinEditorScene(initialSkinPath = skinPath)
             "texture-atlas-editor" -> TextureAtlasEditorScene(initialAtlasPath = atlasPath, fileDialogService = AwtFileDialogService())
             "ui-composer" -> UiComposerScene(uiScenePath ?: throw missingProperty("krender.ui.scene.path", sceneName))
+            "bitmap-font-editor" -> BitmapFontEditorScene(initialFontPath = fontPath)
             else -> null
         }
 

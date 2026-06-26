@@ -25,6 +25,8 @@ interface EditorToolLauncher {
      * no Skin editing, and no asset-id references remain intentional.
      */
     fun launchUiComposer(uiScenePath: String)
+
+    fun launchBitmapFontEditor(fontPath: String?)
 }
 
 /**
@@ -56,6 +58,10 @@ object UnsupportedEditorToolLauncher : EditorToolLauncher {
     }
 
     override fun launchUiComposer(uiScenePath: String) {
+        unsupported()
+    }
+
+    override fun launchBitmapFontEditor(fontPath: String?) {
         unsupported()
     }
 

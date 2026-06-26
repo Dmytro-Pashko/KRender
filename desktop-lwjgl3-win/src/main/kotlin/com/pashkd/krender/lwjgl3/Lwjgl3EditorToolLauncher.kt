@@ -71,6 +71,14 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
+    override fun launchBitmapFontEditor(fontPath: String?) {
+        launch(
+            scene = "bitmap-font-editor",
+            pathProperty = fontPath?.let { "krender.font.path" to normalizePath(it) },
+            failureMessage = "Bitmap Font Editor launch failed",
+        )
+    }
+
     private fun launch(
         scene: String,
         pathProperty: Pair<String, String>?,
