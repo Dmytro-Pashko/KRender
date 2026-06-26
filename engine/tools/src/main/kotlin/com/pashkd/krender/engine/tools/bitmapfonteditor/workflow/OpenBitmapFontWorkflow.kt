@@ -2,6 +2,8 @@ package com.pashkd.krender.engine.tools.bitmapfonteditor.workflow
 
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.EngineContext
+import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorMetadata
+import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorMetadataCodec
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorState
 import com.pashkd.krender.engine.tools.common.bitmapfont.io.BitmapFontParser
 import java.io.File
@@ -12,7 +14,44 @@ class OpenBitmapFontWorkflow(
 ) {
     private val parser = BitmapFontParser()
 
-    fun openFromPath(fntPath: String) {
+    fun openFromPath(fontPath: String) {
+        val normalizedPath = fontPath.trim().replace('\\', '/')
+        if (normalizedPath.endsWith(".${BitmapFontEditorMetadata.EXTENSION}", ignoreCase = true)) {
+            openMetadata(normalizedPath)
+        } else {
+            openFnt(normalizedPath)
+        }
+    }
+
+    private fun openMetadata(metadataPath: String) {
+        val assetRoot = engine.assetRegistry.baseDir()
+        val metaFile = resolveFile(assetRoot, metadataPath)
+        if (metaFile == null || !metaFile.isFile) {
+            state.statusMessage = "Metadata file not found: '$metadataPath'."
+            engine.logger.warn(TAG) { "Open bitmap font metadata rejected: file not found path='$metadataPath'" }
+            return
+        }
+        val metadata = BitmapFontEditorMetadataCodec.load(metaFile)
+        if (metadata == null) {
+            state.statusMessage = "Failed to parse metadata: '$metadataPath'."
+            engine.logger.warn(TAG) { "Bitmap font metadata parse failed path='$metadataPath'" }
+            return
+        }
+        state.metadata = metadata
+        state.metadataPath = metadataPath
+        engine.logger.info(TAG) { "Loaded bitmap font metadata path='$metadataPath' sourceFont='${metadata.sourceFont}'" }
+
+        if (metadata.outputFnt.isNotBlank()) {
+            val fntFile = resolveFile(assetRoot, metadata.outputFnt)
+            if (fntFile != null && fntFile.isFile) {
+                openFnt(metadata.outputFnt)
+                return
+            }
+        }
+        state.statusMessage = "Metadata loaded. Configure generation settings and generate."
+    }
+
+    fun openFnt(fntPath: String) {
         val normalizedPath = fntPath.trim().replace('\\', '/')
         if (normalizedPath.isBlank()) {
             state.statusMessage = "No font path specified."

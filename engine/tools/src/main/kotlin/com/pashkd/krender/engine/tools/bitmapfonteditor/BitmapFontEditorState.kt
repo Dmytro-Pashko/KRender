@@ -26,4 +26,7 @@ class BitmapFontEditorState(
     var texturePreviewHandle: TexturePreviewHandle? = null
     var textureWidth: Int = 0
     var textureHeight: Int = 0
+
+    var metadata: BitmapFontEditorMetadata? = null
+    var metadataPath: String? = null
 }
