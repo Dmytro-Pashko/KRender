@@ -1,11 +1,17 @@
 package com.pashkd.krender.engine.tools.bitmapfonteditor
 
 import com.pashkd.krender.engine.api.EngineContext
+import com.pashkd.krender.engine.tools.bitmapfonteditor.workflow.GenerateBitmapFontWorkflow
 
 class BitmapFontEditorController(
     val state: BitmapFontEditorState,
     val engine: EngineContext,
 ) {
+    private val generateWorkflow = GenerateBitmapFontWorkflow(state, engine)
+
+    fun generate() {
+        generateWorkflow.generate()
+    }
     fun selectGlyph(glyphId: Int?) {
         state.glyphSelection.selectedGlyphId = glyphId
     }

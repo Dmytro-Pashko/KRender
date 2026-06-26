@@ -93,6 +93,12 @@ class FontGenerationPanel(
             ImGui.endCombo()
         }
 
+        ImGui.separator()
+        if (ImGui.button("Generate##bfe_gen_run")) {
+            controller.generate()
+        }
+        ImGui.separator()
+
         val pageSizes = intArrayOf(128, 256, 512, 1024, 2048, 4096)
         if (ImGui.beginCombo("Page Width##bfe_gen_pw", gen.pageWidth.toString())) {
             pageSizes.forEach { size ->

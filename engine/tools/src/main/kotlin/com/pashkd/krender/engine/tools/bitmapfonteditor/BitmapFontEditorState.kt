@@ -29,4 +29,8 @@ class BitmapFontEditorState(
 
     var metadata: BitmapFontEditorMetadata? = null
     var metadataPath: String? = null
+
+    var generatedPageRgba: ByteArray? = null
+    var generatedPageWidth: Int = 0
+    var generatedPageHeight: Int = 0
 }
