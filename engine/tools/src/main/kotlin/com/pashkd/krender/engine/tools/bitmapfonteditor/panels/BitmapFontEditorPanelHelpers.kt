@@ -30,6 +30,8 @@ internal fun wrappedTextLine(value: String) {
 
 internal fun tooltipOnHover(value: String) {
     if (ImGui.isItemHovered()) {
-        ImGui.setTooltip(value)
+        ImGui.beginTooltip()
+        ImGui.textUnformatted(value)
+        ImGui.endTooltip()
     }
 }

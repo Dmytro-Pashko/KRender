@@ -55,16 +55,19 @@ class FontGenerationPanel(
         if (ImGui.inputText("##bfe_gen_source_font", sourceFontBuf)) {
             updateMetadata { copy(sourceFont = readBuffer(sourceFontBuf)) }
         }
+        tooltipOnHover("Path to the source TTF or OTF font used for bitmap generation.")
         ImGui.sameLine()
         if (ImGui.button("Browse##bfe_gen_source_browse")) {
             controller.browseSourceFont()
         }
+        tooltipOnHover("Opens a file picker to choose a source TTF or OTF font.")
 
         drawIntCombo(
             label = "Size (px)##bfe_gen_size",
             value = gen.sizePx,
             values = intArrayOf(8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72, 96, 128),
             onSelect = { value -> updateGeneration { copy(sizePx = value) } },
+            tooltip = "Sets the rasterized font size in pixels.",
         )
 
         if (ImGui.beginCombo("Charset##bfe_gen_charset", charsetPresetFromName(gen.charsetPreset).displayName)) {
@@ -75,6 +78,7 @@ class FontGenerationPanel(
             }
             ImGui.endCombo()
         }
+        tooltipOnHover("Chooses which characters will be included in the generated bitmap font.")
 
         if (charsetPresetFromName(gen.charsetPreset) == CharsetPreset.CUSTOM) {
             ImGui.text("Custom Characters")
@@ -82,6 +86,7 @@ class FontGenerationPanel(
             if (ImGui.inputText("##bfe_gen_custom_chars", customCharsBuf)) {
                 updateGeneration { copy(customCharacters = readBuffer(customCharsBuf)) }
             }
+            tooltipOnHover("Exact set of characters to rasterize when Charset is set to Custom.")
         }
 
         drawIntCombo(
@@ -89,12 +94,14 @@ class FontGenerationPanel(
             value = gen.padding,
             values = intArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8),
             onSelect = { value -> updateGeneration { copy(padding = value) } },
+            tooltip = "Adds empty pixels around each glyph on the packed page.",
         )
         drawIntCombo(
             label = "Spacing##bfe_gen_spacing",
             value = gen.spacing,
             values = intArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8),
             onSelect = { value -> updateGeneration { copy(spacing = value) } },
+            tooltip = "Adds spacing between packed glyph rectangles on the page.",
         )
 
         if (ImGui.beginCombo("Rasterizer##bfe_gen_rasterizer", gen.rasterizer)) {
@@ -148,12 +155,14 @@ class FontGenerationPanel(
             value = gen.pageWidth,
             values = PageSizes,
             onSelect = { value -> updateGeneration { copy(pageWidth = value) } },
+            tooltip = "Sets the width of the generated bitmap-font page texture.",
         )
         drawIntCombo(
             label = "Page Height##bfe_gen_ph",
             value = gen.pageHeight,
             values = PageSizes,
             onSelect = { value -> updateGeneration { copy(pageHeight = value) } },
+            tooltip = "Sets the height of the generated bitmap-font page texture.",
         )
 
         ImGui.separator()
@@ -186,6 +195,7 @@ class FontGenerationPanel(
         value: Int,
         values: IntArray,
         onSelect: (Int) -> Unit,
+        tooltip: String,
     ) {
         if (ImGui.beginCombo(label, value.toString())) {
             values.forEach { option ->
@@ -195,6 +205,7 @@ class FontGenerationPanel(
             }
             ImGui.endCombo()
         }
+        tooltipOnHover(tooltip)
     }
 
     companion object {

@@ -30,39 +30,39 @@ class GlyphInspectorPanel(
         }
         val document = state.document
         if (document == null) {
-            ImGui.text("No font loaded.")
+            textLine("No font loaded.")
             ImGui.end()
             return
         }
         val data = buildFontInspectorData(document)
-        ImGui.text("Font Inspector")
+        textLine("Font Inspector")
         ImGui.separator()
-        data.face?.let { ImGui.text("Face: $it") }
-        data.size?.let { ImGui.text("Size: $it") }
-        if (data.bold) ImGui.text("Bold: yes")
-        if (data.italic) ImGui.text("Italic: yes")
-        ImGui.text("Line height: ${data.lineHeight}")
-        ImGui.text("Base: ${data.base}")
-        ImGui.text("Scale: ${data.scaleW} x ${data.scaleH}")
-        ImGui.text("Pages: ${data.pageCount}")
-        ImGui.text("Glyphs: ${data.glyphCount}")
-        ImGui.text("Kernings: ${data.kerningCount}")
+        data.face?.let { textLine("Face: $it") }
+        data.size?.let { textLine("Size: $it") }
+        if (data.bold) textLine("Bold: yes")
+        if (data.italic) textLine("Italic: yes")
+        textLine("Line height: ${data.lineHeight}")
+        textLine("Base: ${data.base}")
+        textLine("Scale: ${data.scaleW} x ${data.scaleH}")
+        textLine("Pages: ${data.pageCount}")
+        textLine("Glyphs: ${data.glyphCount}")
+        textLine("Kernings: ${data.kerningCount}")
 
         state.glyphSelection.selectedGlyphId?.let { glyphId ->
             document.glyphs.firstOrNull { it.id == glyphId }?.let { glyph ->
                 ImGui.separator()
-                ImGui.text("Selected Glyph: ${glyphDisplayLabel(glyph)}")
-                ImGui.text("Position: ${glyph.x}, ${glyph.y}")
-                ImGui.text("Size: ${glyph.width} x ${glyph.height}")
-                ImGui.text("Offset: ${glyph.xOffset}, ${glyph.yOffset}")
-                ImGui.text("xAdvance: ${glyph.xAdvance}")
-                ImGui.text("Page: ${glyph.page}")
-                ImGui.text("Channel: ${glyph.channel}")
+                textLine("Selected Glyph: ${glyphDisplayLabel(glyph)}")
+                textLine("Position: ${glyph.x}, ${glyph.y}")
+                textLine("Size: ${glyph.width} x ${glyph.height}")
+                textLine("Offset: ${glyph.xOffset}, ${glyph.yOffset}")
+                textLine("xAdvance: ${glyph.xAdvance}")
+                textLine("Page: ${glyph.page}")
+                textLine("Channel: ${glyph.channel}")
                 val kerningsForGlyph = document.kernings.filter { it.first == glyphId || it.second == glyphId }
                 if (kerningsForGlyph.isNotEmpty()) {
-                    ImGui.text("Kerning pairs: ${kerningsForGlyph.size}")
+                    textLine("Kerning pairs: ${kerningsForGlyph.size}")
                     kerningsForGlyph.take(5).forEach { k ->
-                        ImGui.text("  ${k.first} -> ${k.second}: ${k.amount}")
+                        textLine("  ${k.first} -> ${k.second}: ${k.amount}")
                     }
                 }
             }
@@ -70,7 +70,7 @@ class GlyphInspectorPanel(
 
         if (data.diagnosticCount > 0) {
             ImGui.separator()
-            ImGui.text("Diagnostics: ${data.diagnosticCount}")
+            textLine("Diagnostics: ${data.diagnosticCount}")
         }
         ImGui.end()
     }

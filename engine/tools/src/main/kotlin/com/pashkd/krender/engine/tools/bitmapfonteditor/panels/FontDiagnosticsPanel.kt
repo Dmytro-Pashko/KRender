@@ -25,13 +25,13 @@ class FontDiagnosticsPanel(
         }
         val diagnostics = state.diagnostics
         if (diagnostics.isEmpty()) {
-            ImGui.text("No diagnostics.")
+            textLine("No diagnostics.")
         } else {
-            ImGui.text("Diagnostics: ${diagnostics.size}")
+            textLine("Diagnostics: ${diagnostics.size}")
             ImGui.separator()
             diagnostics.forEach { diag ->
-                ImGui.text("[${diag.severity.name}] ${diag.message}")
-                diag.source?.let { source -> ImGui.text("  $source") }
+                textLine("[${diag.severity.name}] ${diag.message}")
+                diag.source?.let { source -> textLine("  $source") }
             }
         }
         ImGui.end()

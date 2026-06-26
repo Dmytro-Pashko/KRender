@@ -20,7 +20,7 @@ object BitmapFontEditorUiLayoutDefaults {
         ImGuiLayoutConfig(
             panels =
                 mapOf(
-                    BitmapFontEditorPanelIds.Toolbar to ImGuiPanelLayout("Toolbar", 0f, 0f, 1755f, 28f),
+                    BitmapFontEditorPanelIds.Toolbar to ImGuiPanelLayout("Font Editor Controls", 0f, 0f, 1755f, 28f),
                     BitmapFontEditorPanelIds.Preview to ImGuiPanelLayout("Font Page Preview", 0f, 28f, 1100f, 800f),
                     BitmapFontEditorPanelIds.GlyphList to ImGuiPanelLayout("Glyph List", 1100f, 28f, 330f, 500f),
                     BitmapFontEditorPanelIds.Inspector to ImGuiPanelLayout("Inspector", 1430f, 28f, 325f, 500f),

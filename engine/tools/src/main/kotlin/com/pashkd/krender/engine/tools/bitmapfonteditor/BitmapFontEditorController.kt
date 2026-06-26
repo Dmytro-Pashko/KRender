@@ -101,6 +101,8 @@ class BitmapFontEditorController(
 
     fun setSampleTextPreviewEnabled(enabled: Boolean) {
         state.showSampleTextPreview = enabled
+        state.statusMessage = if (enabled) "Preview mode set to Sample Text." else "Preview mode set to Font Page."
+        engine.logger.info(TAG) { "Bitmap Font Editor canvas mode changed samplePreview=$enabled" }
     }
 
     fun setShowGlyphBounds(show: Boolean) {
@@ -137,6 +139,9 @@ class BitmapFontEditorController(
         state.preview.viewport.panY = 0f
         state.preview.zoomMode = CanvasZoomMode.Fit
         state.statusMessage = "Preview fit to canvas."
+        engine.logger.info(TAG) {
+            "Bitmap Font Editor camera fit canvas=${state.canvasRect.width}x${state.canvasRect.height} texture=${state.textureWidth}x${state.textureHeight}"
+        }
     }
 
     fun resetPreviewCamera() {
@@ -146,6 +151,7 @@ class BitmapFontEditorController(
         state.preview.customZoom = 1f
         state.preview.zoomMode = CanvasZoomMode.Percent100
         state.statusMessage = "Preview camera reset."
+        engine.logger.info(TAG) { "Bitmap Font Editor camera reset pan=0,0 zoom=1.0 mode=${state.preview.zoomMode}" }
     }
 
     fun focusSelectedGlyph() {
@@ -185,6 +191,9 @@ class BitmapFontEditorController(
         state.preview.viewport.panX = desiredCenterX - (baseImageX + glyphCenterX * zoom)
         state.preview.viewport.panY = desiredCenterY - (baseImageY + glyphCenterY * zoom)
         state.statusMessage = "Focused glyph '${glyph.id}'."
+        engine.logger.info(TAG) {
+            "Bitmap Font Editor camera focus glyph=${glyph.id} page=$pageId zoom=$zoom pan=${state.preview.viewport.panX},${state.preview.viewport.panY}"
+        }
     }
 
     private fun normalizePath(path: String): String {

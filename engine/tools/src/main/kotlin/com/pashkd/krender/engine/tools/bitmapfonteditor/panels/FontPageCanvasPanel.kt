@@ -49,6 +49,8 @@ class FontPageCanvasPanel(
             return
         }
 
+        drawCanvasModeRow()
+        ImGui.separator()
         drawOptionRow()
         ImGui.separator()
         drawActionRow()
@@ -69,8 +71,8 @@ class FontPageCanvasPanel(
         val document = state.document
         if (document == null || !document.readable) {
             clearCursorMetrics()
-            ImGui.text("Open a .fnt file or generate a bitmap font to preview.")
-            document?.diagnostics?.take(5)?.forEach { diag -> ImGui.text("${diag.severity.name}: ${diag.message}") }
+            textLine("Open a .fnt file or generate a bitmap font to preview.")
+            document?.diagnostics?.take(5)?.forEach { diag -> textLine("${diag.severity.name}: ${diag.message}") }
             ImGui.endChild()
             ImGui.end()
             return
@@ -129,9 +131,9 @@ class FontPageCanvasPanel(
         } else {
             clearCursorMetrics()
             if (handle == null && state.textureWidth > 0) {
-                ImGui.text("Loading page texture...")
+                textLine("Loading page texture...")
             } else {
-                ImGui.text("No preview available.")
+                textLine("No preview available.")
             }
         }
 
@@ -139,32 +141,44 @@ class FontPageCanvasPanel(
         ImGui.end()
     }
 
+    private fun drawCanvasModeRow() {
+        ImGui.setNextItemWidth(240f)
+        val currentMode = if (state.showSampleTextPreview) SampleTextModeLabel else FontPageModeLabel
+        if (ImGui.beginCombo("Canvas Mode##bfe_canvas_mode", currentMode)) {
+            val sampleMode = state.showSampleTextPreview
+            if (ImGui.selectable(FontPageModeLabel, !sampleMode)) {
+                controller.setSampleTextPreviewEnabled(false)
+            }
+            if (ImGui.selectable(SampleTextModeLabel, sampleMode)) {
+                controller.setSampleTextPreviewEnabled(true)
+            }
+            ImGui.endCombo()
+        }
+        tooltipOnHover("Switches the preview canvas between the full font page and sample text rendering.")
+    }
+
     private fun drawOptionRow() {
         val showGlyphs = booleanArrayOf(state.showGlyphBounds)
-        if (ImGui.checkbox("Show Glyph Bounds##bfe_show_glyphs", showGlyphs)) {
+        if (ImGui.checkbox("Highlight Selected Glyph##bfe_show_glyphs", showGlyphs)) {
             controller.setShowGlyphBounds(showGlyphs[0])
         }
-        tooltipOnHover("Shows glyph rectangles on the current page.")
+        tooltipOnHover("Highlights the selected or hovered glyph and shows its bounds on the current page.")
         ImGui.sameLine()
         val showChecker = booleanArrayOf(state.preview.showCheckerboard)
         if (ImGui.checkbox("Checkerboard##bfe_checker", showChecker)) {
             state.preview.showCheckerboard = showChecker[0]
         }
+        tooltipOnHover("Shows a checkerboard background behind transparent font pixels.")
         ImGui.sameLine()
         val showGrid = booleanArrayOf(state.preview.showGrid)
         if (ImGui.checkbox("Grid##bfe_grid", showGrid)) {
             state.preview.showGrid = showGrid[0]
         }
+        tooltipOnHover("Shows a pixel grid over the preview to inspect glyph alignment.")
         if (state.preview.showGrid) {
             ImGui.sameLine()
             drawGridSizeCombo()
         }
-        ImGui.sameLine()
-        val sampleToggle = booleanArrayOf(state.showSampleTextPreview)
-        if (ImGui.checkbox("Sample Preview##bfe_sample_toggle", sampleToggle)) {
-            controller.setSampleTextPreviewEnabled(sampleToggle[0])
-        }
-
         if (!sampleSynced || readBuffer(sampleBuf) != state.sampleText) {
             writeBuffer(sampleBuf, state.sampleText)
             sampleSynced = true
@@ -174,6 +188,7 @@ class FontPageCanvasPanel(
         if (ImGui.inputText("##bfe_sample_text", sampleBuf)) {
             controller.setSampleText(readBuffer(sampleBuf))
         }
+        tooltipOnHover("Text used when Sample Preview is enabled.")
     }
 
     private fun drawActionRow() {
@@ -189,6 +204,7 @@ class FontPageCanvasPanel(
                 }
                 ImGui.endCombo()
             }
+            tooltipOnHover("Selects which bitmap-font page texture is shown in the preview.")
         }
         drawZoomControls()
         if (ImGui.button("Fit##bfe_fit")) {
@@ -281,6 +297,7 @@ class FontPageCanvasPanel(
             }
             ImGui.endCombo()
         }
+        tooltipOnHover("Sets the spacing of the preview grid in pixels.")
     }
 
     private fun drawZoomControls() {
@@ -293,6 +310,7 @@ class FontPageCanvasPanel(
             }
             ImGui.endCombo()
         }
+        tooltipOnHover("Switches between fit, preset, and custom zoom levels.")
         if (state.preview.zoomMode == CanvasZoomMode.Custom) {
             ImGui.sameLine()
             ImGui.setNextItemWidth(140f)
@@ -324,6 +342,8 @@ class FontPageCanvasPanel(
 
     companion object {
         private const val ClickDragThreshold = 6f
+        private const val FontPageModeLabel = "Font Page"
+        private const val SampleTextModeLabel = "Sample Text"
         private val GridSpacingOptions = intArrayOf(1, 2, 4, 8, 16, 32, 64)
     }
 }
