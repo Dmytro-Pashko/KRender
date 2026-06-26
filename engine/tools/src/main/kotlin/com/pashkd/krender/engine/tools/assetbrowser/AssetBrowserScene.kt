@@ -533,9 +533,10 @@ class BitmapFontEditorAssetTool : AssetTool {
     override val supportedCategories = setOf(AssetCategory.Scene2D)
 
     override fun canOpen(asset: AssetDescriptor): Boolean =
-        asset.type == AssetType.Font && (
-            asset.extension.equals("fnt", ignoreCase = true) ||
-                asset.path.endsWith(".kfont.json", ignoreCase = true)
+        asset.type == AssetType.Font &&
+            (
+                asset.extension.equals("fnt", ignoreCase = true) ||
+                    asset.path.endsWith(".kfont.json", ignoreCase = true)
             )
 
     override fun open(

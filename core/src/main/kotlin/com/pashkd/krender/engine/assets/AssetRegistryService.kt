@@ -356,6 +356,7 @@ class LocalAssetRegistryService(
                 "terrains",
                 "ui/scenes",
                 "ui/skins",
+                "ui/fonts",
                 "scenes",
                 "assets",
             )

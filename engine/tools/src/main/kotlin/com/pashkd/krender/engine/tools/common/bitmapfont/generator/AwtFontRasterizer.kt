@@ -1,11 +1,9 @@
 package com.pashkd.krender.engine.tools.common.bitmapfont.generator
 
 import com.pashkd.krender.engine.tools.common.bitmapfont.charset.CharsetBuilder
-import com.pashkd.krender.engine.tools.common.bitmapfont.charset.CharsetPreset
 import com.pashkd.krender.engine.tools.common.bitmapfont.charset.UnicodeCodePoint
 import java.awt.Color
 import java.awt.Font
-import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -19,7 +17,6 @@ import java.io.File
  * implementation — not a port of any external library.
  */
 class AwtFontRasterizer : FontRasterizer {
-
     override fun rasterize(config: BitmapFontGenerationConfig): RasterizedFont {
         val diagnostics = mutableListOf<FontGenerationDiagnostic>()
 
@@ -42,10 +39,11 @@ class AwtFontRasterizer : FontRasterizer {
         }
 
         if (missing.isNotEmpty()) {
-            diagnostics += FontGenerationDiagnostic(
-                FontGenerationDiagnosticSeverity.Warning,
-                "Font cannot display ${missing.size} requested codepoint(s).",
-            )
+            diagnostics +=
+                FontGenerationDiagnostic(
+                    FontGenerationDiagnosticSeverity.Warning,
+                    "Font cannot display ${missing.size} requested codepoint(s).",
+                )
         }
 
         return RasterizedFont(
@@ -58,31 +56,34 @@ class AwtFontRasterizer : FontRasterizer {
         )
     }
 
+    @Suppress("ReturnCount")
     private fun loadFont(
         config: BitmapFontGenerationConfig,
         diagnostics: MutableList<FontGenerationDiagnostic>,
     ): Font? {
         val sourceFile = File(config.sourceFont)
         if (!sourceFile.isFile) {
-            diagnostics += FontGenerationDiagnostic(
-                FontGenerationDiagnosticSeverity.Error,
-                "Source font file not found: '${config.sourceFont}'.",
-            )
+            diagnostics +=
+                FontGenerationDiagnostic(
+                    FontGenerationDiagnosticSeverity.Error,
+                    "Source font file not found: '${config.sourceFont}'.",
+                )
             return null
         }
-        val rawFont = runCatching { Font.createFont(Font.TRUETYPE_FONT, sourceFile) }
-            .getOrElse { err ->
-                diagnostics += FontGenerationDiagnostic(
-                    FontGenerationDiagnosticSeverity.Error,
-                    "Cannot load font file: ${err.message ?: "unknown error"}.",
-                )
-                return null
-            }
+        val rawFont =
+            runCatching { Font.createFont(Font.TRUETYPE_FONT, sourceFile) }
+                .getOrElse { err ->
+                    diagnostics +=
+                        FontGenerationDiagnostic(
+                            FontGenerationDiagnosticSeverity.Error,
+                            "Cannot load font file: ${err.message ?: "unknown error"}.",
+                        )
+                    return null
+                }
         return rawFont.deriveFont(Font.PLAIN, config.sizePx.toFloat())
     }
 
-    private fun resolveCodepoints(config: BitmapFontGenerationConfig): List<UnicodeCodePoint> =
-        CharsetBuilder.buildCombined(config.charsetPreset, config.customCharacters)
+    private fun resolveCodepoints(config: BitmapFontGenerationConfig): List<UnicodeCodePoint> = CharsetBuilder.buildCombined(config.charsetPreset, config.customCharacters)
 
     private data class KRenderFontMetrics(
         val lineHeight: Int,
@@ -95,11 +96,12 @@ class AwtFontRasterizer : FontRasterizer {
         val probeG = probe.createGraphics()
         probeG.font = font
         val fm = probeG.fontMetrics
-        val result = KRenderFontMetrics(
-            lineHeight = fm.height,
-            ascent = fm.ascent,
-            descent = fm.descent,
-        )
+        val result =
+            KRenderFontMetrics(
+                lineHeight = fm.height,
+                ascent = fm.ascent,
+                descent = fm.descent,
+            )
         probeG.dispose()
         return result
     }
@@ -128,8 +130,10 @@ class AwtFontRasterizer : FontRasterizer {
             return RasterizedGlyph(
                 codepoint = cp.value,
                 bitmap = ByteArray(0),
-                width = 0, height = 0,
-                xOffset = 0, yOffset = 0,
+                width = 0,
+                height = 0,
+                xOffset = 0,
+                yOffset = 0,
                 xAdvance = advance,
             )
         }
@@ -158,7 +162,10 @@ class AwtFontRasterizer : FontRasterizer {
         )
     }
 
-    private fun applyRenderingHints(g: Graphics2D, config: BitmapFontGenerationConfig) {
+    private fun applyRenderingHints(
+        g: Graphics2D,
+        config: BitmapFontGenerationConfig,
+    ) {
         if (config.antialias) {
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         }
@@ -167,23 +174,26 @@ class AwtFontRasterizer : FontRasterizer {
         }
     }
 
-    private fun extractRgbaBytes(image: BufferedImage, w: Int, h: Int): ByteArray {
+    private fun extractRgbaBytes(
+        image: BufferedImage,
+        w: Int,
+        h: Int,
+    ): ByteArray {
         val rgba = ByteArray(w * h * 4)
         var idx = 0
         for (row in 0 until h) {
             for (col in 0 until w) {
                 val pixel = image.getRGB(col, row)
                 rgba[idx++] = ((pixel ushr 16) and 0xFF).toByte() // R
-                rgba[idx++] = ((pixel ushr 8) and 0xFF).toByte()  // G
-                rgba[idx++] = (pixel and 0xFF).toByte()            // B
+                rgba[idx++] = ((pixel ushr 8) and 0xFF).toByte() // G
+                rgba[idx++] = (pixel and 0xFF).toByte() // B
                 rgba[idx++] = ((pixel ushr 24) and 0xFF).toByte() // A
             }
         }
         return rgba
     }
 
-    private fun codepointToString(codepoint: Int): String =
-        String(Character.toChars(codepoint))
+    private fun codepointToString(codepoint: Int): String = String(Character.toChars(codepoint))
 
     private fun emptyResult(
         config: BitmapFontGenerationConfig,

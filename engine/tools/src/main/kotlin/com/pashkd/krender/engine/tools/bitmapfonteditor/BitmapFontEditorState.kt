@@ -1,8 +1,8 @@
 package com.pashkd.krender.engine.tools.bitmapfonteditor
 
 import com.pashkd.krender.engine.api.TexturePreviewHandle
-import com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontDocument
 import com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontDiagnostic
+import com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontDocument
 import com.pashkd.krender.engine.tools.common.bitmapfont.preview.GlyphSelectionState
 import com.pashkd.krender.engine.tools.common.canvas.CanvasPreviewState
 import com.pashkd.krender.engine.tools.common.canvas.CanvasRect

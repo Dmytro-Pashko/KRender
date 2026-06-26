@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package com.pashkd.krender.engine.tools.common.bitmapfont.preview
 
 import com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontDocument

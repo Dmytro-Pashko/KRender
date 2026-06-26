@@ -5,13 +5,13 @@ import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.tools.bitmapfonteditor.workflow.OpenBitmapFontWorkflow
 import com.pashkd.krender.engine.tools.bitmapfonteditor.panels.BitmapFontToolbarPanel
 import com.pashkd.krender.engine.tools.bitmapfonteditor.panels.FontDiagnosticsPanel
 import com.pashkd.krender.engine.tools.bitmapfonteditor.panels.FontGenerationPanel
 import com.pashkd.krender.engine.tools.bitmapfonteditor.panels.FontPageCanvasPanel
 import com.pashkd.krender.engine.tools.bitmapfonteditor.panels.GlyphInspectorPanel
 import com.pashkd.krender.engine.tools.bitmapfonteditor.panels.GlyphListPanel
+import com.pashkd.krender.engine.tools.bitmapfonteditor.workflow.OpenBitmapFontWorkflow
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -98,6 +98,7 @@ private class BitmapFontEditorPreviewSyncSystem(
 ) : System() {
     private var lastPreviewPath: String? = null
 
+    @Suppress("ReturnCount")
     override fun update(
         world: SceneWorld,
         dt: Float,
@@ -108,11 +109,17 @@ private class BitmapFontEditorPreviewSyncSystem(
         val resolvedPath = page.resolvedPath ?: return
         val assetRoot = engine.assetRegistry.baseDir()
         val rootPath = assetRoot.canonicalPath.replace('\\', '/')
-        val pagePath = java.io.File(resolvedPath).canonicalPath.replace('\\', '/')
+        val pagePath =
+            java.io
+                .File(resolvedPath)
+                .canonicalPath
+                .replace('\\', '/')
         val relPath = if (pagePath.startsWith(rootPath)) pagePath.removePrefix(rootPath).removePrefix("/") else return
         if (relPath != lastPreviewPath) {
             lastPreviewPath = relPath
-            val ref = com.pashkd.krender.engine.api.AssetRef.texture(relPath)
+            val ref =
+                com.pashkd.krender.engine.api.AssetRef
+                    .texture(relPath)
             if (!engine.assets.isLoaded(ref)) {
                 engine.assets.queue(ref)
             }

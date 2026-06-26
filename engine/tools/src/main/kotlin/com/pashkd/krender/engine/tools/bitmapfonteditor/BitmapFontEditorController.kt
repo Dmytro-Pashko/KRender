@@ -18,6 +18,7 @@ class BitmapFontEditorController(
     fun save() {
         saveWorkflow.save()
     }
+
     fun selectGlyph(glyphId: Int?) {
         state.glyphSelection.selectedGlyphId = glyphId
     }

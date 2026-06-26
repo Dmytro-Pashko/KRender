@@ -1,7 +1,17 @@
 package com.pashkd.krender.engine.tools.bitmapfonteditor
 
 import com.pashkd.krender.engine.serialization.KRenderJson
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.io.File
 
 data class BitmapFontEditorMetadata(
@@ -32,29 +42,37 @@ data class BitmapFontGenerationMetadata(
 
 object BitmapFontEditorMetadataCodec {
     fun encode(metadata: BitmapFontEditorMetadata): String {
-        val json = buildJsonObject {
-            put("format", metadata.format)
-            put("version", metadata.version)
-            put("sourceFont", metadata.sourceFont)
-            put("outputFnt", metadata.outputFnt)
-            put("outputPages", buildJsonArray {
-                metadata.outputPages.forEach { add(it) }
-            })
-            put("generation", buildJsonObject {
-                put("sizePx", metadata.generation.sizePx)
-                put("charsetPreset", metadata.generation.charsetPreset)
-                put("customCharacters", metadata.generation.customCharacters)
-                put("padding", metadata.generation.padding)
-                put("spacing", metadata.generation.spacing)
-                put("pageWidth", metadata.generation.pageWidth)
-                put("pageHeight", metadata.generation.pageHeight)
-                put("antialias", metadata.generation.antialias)
-                put("hinting", metadata.generation.hinting)
-            })
-        }
+        val json =
+            buildJsonObject {
+                put("format", metadata.format)
+                put("version", metadata.version)
+                put("sourceFont", metadata.sourceFont)
+                put("outputFnt", metadata.outputFnt)
+                put(
+                    "outputPages",
+                    buildJsonArray {
+                        metadata.outputPages.forEach { add(JsonPrimitive(it)) }
+                    },
+                )
+                put(
+                    "generation",
+                    buildJsonObject {
+                        put("sizePx", metadata.generation.sizePx)
+                        put("charsetPreset", metadata.generation.charsetPreset)
+                        put("customCharacters", metadata.generation.customCharacters)
+                        put("padding", metadata.generation.padding)
+                        put("spacing", metadata.generation.spacing)
+                        put("pageWidth", metadata.generation.pageWidth)
+                        put("pageHeight", metadata.generation.pageHeight)
+                        put("antialias", metadata.generation.antialias)
+                        put("hinting", metadata.generation.hinting)
+                    },
+                )
+            }
         return KRenderJson.Pretty.encodeToString(JsonObject.serializer(), json)
     }
 
+    @Suppress("CyclomaticComplexMethod")
     fun decode(text: String): BitmapFontEditorMetadata {
         val root = KRenderJson.Pretty.parseToJsonElement(text).jsonObject
         val format = root["format"]?.jsonPrimitive?.content ?: BitmapFontEditorMetadata.FORMAT
@@ -63,21 +81,22 @@ object BitmapFontEditorMetadataCodec {
         val outputFnt = root["outputFnt"]?.jsonPrimitive?.content ?: ""
         val outputPages = root["outputPages"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull } ?: emptyList()
         val gen = root["generation"]?.jsonObject
-        val generation = if (gen != null) {
-            BitmapFontGenerationMetadata(
-                sizePx = gen["sizePx"]?.jsonPrimitive?.intOrNull ?: 24,
-                charsetPreset = gen["charsetPreset"]?.jsonPrimitive?.content ?: "ENGLISH_SYMBOLS_UKRAINIAN_CYRILLIC",
-                customCharacters = gen["customCharacters"]?.jsonPrimitive?.content ?: "",
-                padding = gen["padding"]?.jsonPrimitive?.intOrNull ?: 2,
-                spacing = gen["spacing"]?.jsonPrimitive?.intOrNull ?: 1,
-                pageWidth = gen["pageWidth"]?.jsonPrimitive?.intOrNull ?: 512,
-                pageHeight = gen["pageHeight"]?.jsonPrimitive?.intOrNull ?: 512,
-                antialias = gen["antialias"]?.jsonPrimitive?.booleanOrNull ?: true,
-                hinting = gen["hinting"]?.jsonPrimitive?.booleanOrNull ?: true,
-            )
-        } else {
-            BitmapFontGenerationMetadata()
-        }
+        val generation =
+            if (gen != null) {
+                BitmapFontGenerationMetadata(
+                    sizePx = gen["sizePx"]?.jsonPrimitive?.intOrNull ?: 24,
+                    charsetPreset = gen["charsetPreset"]?.jsonPrimitive?.content ?: "ENGLISH_SYMBOLS_UKRAINIAN_CYRILLIC",
+                    customCharacters = gen["customCharacters"]?.jsonPrimitive?.content ?: "",
+                    padding = gen["padding"]?.jsonPrimitive?.intOrNull ?: 2,
+                    spacing = gen["spacing"]?.jsonPrimitive?.intOrNull ?: 1,
+                    pageWidth = gen["pageWidth"]?.jsonPrimitive?.intOrNull ?: 512,
+                    pageHeight = gen["pageHeight"]?.jsonPrimitive?.intOrNull ?: 512,
+                    antialias = gen["antialias"]?.jsonPrimitive?.booleanOrNull ?: true,
+                    hinting = gen["hinting"]?.jsonPrimitive?.booleanOrNull ?: true,
+                )
+            } else {
+                BitmapFontGenerationMetadata()
+            }
         return BitmapFontEditorMetadata(
             format = format,
             version = version,

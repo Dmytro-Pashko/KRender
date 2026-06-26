@@ -1,10 +1,10 @@
 package com.pashkd.krender.engine.tools.common.bitmapfont.preview
 
+import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontGlyph
 import com.pashkd.krender.engine.tools.common.bitmapfont.model.SampleTextLayout
 import com.pashkd.krender.engine.tools.common.canvas.CanvasViewportLayout
 import com.pashkd.krender.engine.tools.common.canvas.packColor
-import com.pashkd.krender.engine.api.TexturePreviewHandle
 import imgui.ImGui
 import glm_.vec2.Vec2 as ImVec2
 
@@ -31,16 +31,18 @@ object FontPreviewOverlays {
             val minY = layout.imageY + (glyph.y - offsetY) * layout.effectiveZoom
             val maxX = minX + glyph.width * layout.effectiveZoom
             val maxY = minY + glyph.height * layout.effectiveZoom
-            val strokeColor = when (glyph.id) {
-                selectedGlyphId -> GlyphSelectedColor
-                hoveredGlyphId -> GlyphHoveredColor
-                else -> GlyphBoundsColor
-            }
-            val fillColor = when (glyph.id) {
-                selectedGlyphId -> SelectedFillColor
-                hoveredGlyphId -> HoverFillColor
-                else -> null
-            }
+            val strokeColor =
+                when (glyph.id) {
+                    selectedGlyphId -> GlyphSelectedColor
+                    hoveredGlyphId -> GlyphHoveredColor
+                    else -> GlyphBoundsColor
+                }
+            val fillColor =
+                when (glyph.id) {
+                    selectedGlyphId -> SelectedFillColor
+                    hoveredGlyphId -> HoverFillColor
+                    else -> null
+                }
             fillColor?.let { color ->
                 drawList.addRectFilled(ImVec2(minX, minY), ImVec2(maxX, maxY), color)
             }

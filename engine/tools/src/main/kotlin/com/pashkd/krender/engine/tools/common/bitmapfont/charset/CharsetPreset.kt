@@ -28,8 +28,7 @@ object CharsetBuilder {
             CharsetPreset.CUSTOM -> emptyList()
         }.distinctBy { it.value }.sortedBy { it.value }
 
-    fun buildFromCustom(characters: String): List<UnicodeCodePoint> =
-        characters.map { UnicodeCodePoint(it.code) }.distinctBy { it.value }.sortedBy { it.value }
+    fun buildFromCustom(characters: String): List<UnicodeCodePoint> = characters.map { UnicodeCodePoint(it.code) }.distinctBy { it.value }.sortedBy { it.value }
 
     fun buildCombined(
         preset: CharsetPreset,
@@ -41,6 +40,8 @@ object CharsetBuilder {
     }
 
     private fun english(): List<UnicodeCodePoint> = ENGLISH_UPPER + ENGLISH_LOWER + DIGITS
+
     private fun symbols(): List<UnicodeCodePoint> = BASIC_SYMBOLS
+
     private fun ukrainianCyrillic(): List<UnicodeCodePoint> = UKRAINIAN_CYRILLIC_UPPER + UKRAINIAN_CYRILLIC_LOWER
 }

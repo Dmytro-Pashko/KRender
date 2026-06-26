@@ -27,6 +27,7 @@ class FontPageCanvasPanel(
 ) : UiPanel {
     private var clickDragDistance = 0f
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
     override fun draw() {
         val panelLayout = layout.panels.getValue(BitmapFontEditorPanelIds.Preview)
         val expanded = beginImGuiPanel(BitmapFontEditorPanelIds.Preview, panelLayout, layoutTracker)
@@ -57,12 +58,13 @@ class FontPageCanvasPanel(
         val previewHeight = if (state.showSampleTextPreview) sampleLayout.boundsHeight.coerceAtLeast(1) else state.textureHeight
 
         if (handle != null && previewWidth > 0 && previewHeight > 0) {
-            val viewportLayout = computeCanvasViewportLayout(
-                rect = state.canvasRect,
-                contentWidth = previewWidth,
-                contentHeight = previewHeight,
-                previewState = state.preview,
-            )
+            val viewportLayout =
+                computeCanvasViewportLayout(
+                    rect = state.canvasRect,
+                    contentWidth = previewWidth,
+                    contentHeight = previewHeight,
+                    previewState = state.preview,
+                )
 
             if (state.preview.showCheckerboard) {
                 CanvasOverlays.drawCheckerboard(viewportLayout)
@@ -118,12 +120,13 @@ class FontPageCanvasPanel(
                 if (!state.showSampleTextPreview && state.showGlyphBounds) {
                     val pageId = document.pages.getOrNull(state.selectedPageIndex)?.id ?: 0
                     val pageGlyphs = document.glyphs.filter { it.page == pageId }
-                    val hoveredGlyph = FontPreviewOverlays.hitTestGlyph(
-                        glyphs = pageGlyphs,
-                        layout = viewportLayout,
-                        screenX = io.mousePos.x,
-                        screenY = io.mousePos.y,
-                    )
+                    val hoveredGlyph =
+                        FontPreviewOverlays.hitTestGlyph(
+                            glyphs = pageGlyphs,
+                            layout = viewportLayout,
+                            screenX = io.mousePos.x,
+                            screenY = io.mousePos.y,
+                        )
                     state.glyphSelection.hoveredGlyphId = hoveredGlyph?.id
                     if (io.mouseClicked[0] && clickDragDistance < 5f) {
                         controller.selectGlyph(hoveredGlyph?.id)

@@ -18,6 +18,7 @@ object AssetTypeDetector {
             extension in textureExtensions -> AssetTypeDetection(AssetType.Texture, AssetCategory.Texture)
             extension == "atlas" -> AssetTypeDetection(AssetType.Atlas, AssetCategory.Scene2D)
             extension == "fnt" || extension == "ttf" || extension == "otf" -> AssetTypeDetection(AssetType.Font, AssetCategory.Scene2D)
+            lowerPath.endsWith(".kfont.json") -> AssetTypeDetection(AssetType.Font, AssetCategory.Scene2D)
             extension == "krskybox" -> AssetTypeDetection(AssetType.Skybox, AssetCategory.Skybox)
             lowerPath.startsWith("terrains/") && extension == "json" ->
                 AssetTypeDetection(

@@ -13,6 +13,7 @@ class SaveBitmapFontWorkflow(
 ) {
     private val fntWriter = BitmapFontWriter()
 
+    @Suppress("ReturnCount", "LongMethod")
     fun save() {
         val document = state.document
         val metadata = state.metadata
@@ -29,12 +30,13 @@ class SaveBitmapFontWorkflow(
         val fntPath = metadata?.outputFnt?.takeIf { it.isNotBlank() } ?: deriveOutputFnt()
         val fntFile = File(assetRoot, fntPath)
         val pageFileName = fntFile.nameWithoutExtension + ".png"
-        val fntResult = fntWriter.write(
-            targetFile = fntFile,
-            document = document,
-            overwrite = true,
-            pageFileOverrides = mapOf(0 to pageFileName),
-        )
+        val fntResult =
+            fntWriter.write(
+                targetFile = fntFile,
+                document = document,
+                overwrite = true,
+                pageFileOverrides = mapOf(0 to pageFileName),
+            )
         if (!fntResult.success) {
             state.statusMessage = "Failed to save .fnt: ${fntResult.message}"
             engine.logger.warn(TAG) { "Save .fnt failed: ${fntResult.message}" }
@@ -61,11 +63,19 @@ class SaveBitmapFontWorkflow(
             val metaPath = state.metadataPath
             if (metaPath != null) {
                 val metaFile = File(assetRoot, metaPath)
-                val updatedMeta = metadata.copy(
-                    outputFnt = fntPath,
-                    outputPages = listOf(File(fntFile.parentFile, pageFileName).path
-                        .removePrefix(assetRoot.path).removePrefix("/").removePrefix("\\").replace('\\', '/')),
-                )
+                val updatedMeta =
+                    metadata.copy(
+                        outputFnt = fntPath,
+                        outputPages =
+                            listOf(
+                                File(fntFile.parentFile, pageFileName)
+                                    .path
+                                    .removePrefix(assetRoot.path)
+                                    .removePrefix("/")
+                                    .removePrefix("\\")
+                                    .replace('\\', '/'),
+                            ),
+                    )
                 BitmapFontEditorMetadataCodec.save(metaFile, updatedMeta)
                 state.metadata = updatedMeta
                 writtenPaths += metaPath

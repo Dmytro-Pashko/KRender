@@ -10,6 +10,7 @@ data class BitmapFontWriteResult(
 )
 
 class BitmapFontWriter {
+    @Suppress("ReturnCount")
     fun write(
         targetFile: File,
         document: BitmapFontDocument,
@@ -38,6 +39,7 @@ class BitmapFontWriter {
         }
     }
 
+    @Suppress("CyclomaticComplexMethod")
     fun buildFntText(
         document: BitmapFontDocument,
         pageFileOverrides: Map<Int, String> = emptyMap(),
@@ -93,11 +95,9 @@ class BitmapFontWriter {
                 appendLine()
             }
 
-            if (document.kernings.isNotEmpty()) {
-                appendLine("kernings count=${document.kernings.size}")
-                document.kernings.forEach { kerning ->
-                    appendLine("kerning first=${kerning.first} second=${kerning.second} amount=${kerning.amount}")
-                }
+            appendLine("kernings count=${document.kernings.size}")
+            document.kernings.forEach { kerning ->
+                appendLine("kerning first=${kerning.first} second=${kerning.second} amount=${kerning.amount}")
             }
         }
 

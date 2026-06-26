@@ -22,13 +22,19 @@ fun createBitmapFontAsset(
         return AssetOperationResult.Failure("Bitmap font '${targetFile.name}' already exists.")
     }
     return runCatching {
-        val metadata = BitmapFontEditorMetadata(
-            sourceFont = "",
-            outputFnt = "${draft.kind.targetDirectory}/$baseName.fnt",
-            outputPages = listOf("${draft.kind.targetDirectory}/$baseName.png"),
-        )
+        val metadata =
+            BitmapFontEditorMetadata(
+                sourceFont = "",
+                outputFnt = "${draft.kind.targetDirectory}/$baseName.fnt",
+                outputPages = listOf("${draft.kind.targetDirectory}/$baseName.png"),
+            )
         BitmapFontEditorMetadataCodec.save(targetFile, metadata)
-        val relativePath = targetFile.path.removePrefix(assetRoot.path).removePrefix("/").removePrefix("\\").replace('\\', '/')
+        val relativePath =
+            targetFile.path
+                .removePrefix(assetRoot.path)
+                .removePrefix("/")
+                .removePrefix("\\")
+                .replace('\\', '/')
         logger.info(TAG) { "Created bitmap font asset path='$relativePath'" }
         engine.editorToolLauncher.launchBitmapFontEditor(relativePath)
         AssetOperationResult.Success(path = relativePath, message = "Created bitmap font asset '$baseName'.")

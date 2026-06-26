@@ -13,7 +13,9 @@ import java.io.File
  * and adds atlas-specific path validation.
  */
 class BitmapFontWriter {
-    private val delegate = com.pashkd.krender.engine.tools.common.bitmapfont.io.BitmapFontWriter()
+    private val delegate =
+        com.pashkd.krender.engine.tools.common.bitmapfont.io
+            .BitmapFontWriter()
 
     fun write(
         assetRoot: File,

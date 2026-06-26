@@ -40,6 +40,7 @@ interface GlyphPacker {
 }
 
 class SkylineGlyphPacker : GlyphPacker {
+    @Suppress("LoopWithTooManyJumpStatements", "LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
     override fun pack(
         glyphs: List<RasterizedGlyph>,
         pageWidth: Int,
@@ -59,19 +60,26 @@ class SkylineGlyphPacker : GlyphPacker {
             val w = glyph.width + pad * 2
             val h = glyph.height + pad * 2
             if (w <= 0 || h <= 0) {
-                placements += PackedGlyph(
-                    codepoint = glyph.codepoint,
-                    x = 0, y = 0, width = 0, height = 0,
-                    xOffset = glyph.xOffset, yOffset = glyph.yOffset, xAdvance = glyph.xAdvance,
-                )
+                placements +=
+                    PackedGlyph(
+                        codepoint = glyph.codepoint,
+                        x = 0,
+                        y = 0,
+                        width = 0,
+                        height = 0,
+                        xOffset = glyph.xOffset,
+                        yOffset = glyph.yOffset,
+                        xAdvance = glyph.xAdvance,
+                    )
                 continue
             }
             val totalW = w + space
             if (totalW > pageWidth) {
-                diagnostics += FontGenerationDiagnostic(
-                    FontGenerationDiagnosticSeverity.Error,
-                    "Glyph U+${glyph.codepoint.toString(16).uppercase().padStart(4, '0')} is wider than the page.",
-                )
+                diagnostics +=
+                    FontGenerationDiagnostic(
+                        FontGenerationDiagnosticSeverity.Error,
+                        "Glyph U+${glyph.codepoint.toString(16).uppercase().padStart(4, '0')} is wider than the page.",
+                    )
                 overflow = true
                 continue
             }
@@ -88,10 +96,11 @@ class SkylineGlyphPacker : GlyphPacker {
                 }
             }
             if (bestX < 0) {
-                diagnostics += FontGenerationDiagnostic(
-                    FontGenerationDiagnosticSeverity.Error,
-                    "Glyph U+${glyph.codepoint.toString(16).uppercase().padStart(4, '0')} does not fit on page.",
-                )
+                diagnostics +=
+                    FontGenerationDiagnostic(
+                        FontGenerationDiagnosticSeverity.Error,
+                        "Glyph U+${glyph.codepoint.toString(16).uppercase().padStart(4, '0')} does not fit on page.",
+                    )
                 overflow = true
                 continue
             }
@@ -100,12 +109,17 @@ class SkylineGlyphPacker : GlyphPacker {
             for (i in bestX until bestX + totalW) {
                 skyline[i] = bestY + h + space
             }
-            placements += PackedGlyph(
-                codepoint = glyph.codepoint,
-                x = placeX, y = placeY,
-                width = glyph.width, height = glyph.height,
-                xOffset = glyph.xOffset, yOffset = glyph.yOffset, xAdvance = glyph.xAdvance,
-            )
+            placements +=
+                PackedGlyph(
+                    codepoint = glyph.codepoint,
+                    x = placeX,
+                    y = placeY,
+                    width = glyph.width,
+                    height = glyph.height,
+                    xOffset = glyph.xOffset,
+                    yOffset = glyph.yOffset,
+                    xAdvance = glyph.xAdvance,
+                )
         }
 
         return GlyphPackingResult(

@@ -12,8 +12,8 @@ data class CanvasViewportLayout(
     val effectiveZoom: Float,
 )
 
-private const val MinPreviewScale = 0.05f
-private const val MaxPreviewScale = 25f
+private const val MIN_PREVIEW_SCALE = 0.05f
+private const val MAX_PREVIEW_SCALE = 25f
 
 fun computeCanvasViewportLayout(
     rect: CanvasRect,
@@ -23,17 +23,19 @@ fun computeCanvasViewportLayout(
 ): CanvasViewportLayout {
     val viewportWidth = contentWidth.coerceAtLeast(1)
     val viewportHeight = contentHeight.coerceAtLeast(1)
-    val fitZoom = minOf(
-        rect.width / viewportWidth.toFloat(),
-        rect.height / viewportHeight.toFloat(),
-    ).coerceAtLeast(MinPreviewScale)
-    val effectiveZoom = when (previewState.zoomMode) {
-        CanvasZoomMode.Fit -> fitZoom
-        CanvasZoomMode.Percent50 -> 0.5f
-        CanvasZoomMode.Percent100 -> 1f
-        CanvasZoomMode.Percent200 -> 2f
-        CanvasZoomMode.Custom -> previewState.customZoom.coerceIn(MinPreviewScale, MaxPreviewScale)
-    }
+    val fitZoom =
+        minOf(
+            rect.width / viewportWidth.toFloat(),
+            rect.height / viewportHeight.toFloat(),
+        ).coerceAtLeast(MIN_PREVIEW_SCALE)
+    val effectiveZoom =
+        when (previewState.zoomMode) {
+            CanvasZoomMode.Fit -> fitZoom
+            CanvasZoomMode.Percent50 -> 0.5f
+            CanvasZoomMode.Percent100 -> 1f
+            CanvasZoomMode.Percent200 -> 2f
+            CanvasZoomMode.Custom -> previewState.customZoom.coerceIn(MIN_PREVIEW_SCALE, MAX_PREVIEW_SCALE)
+        }
     val imageWidth = viewportWidth * effectiveZoom
     val imageHeight = viewportHeight * effectiveZoom
     val imageX = rect.x + (rect.width - imageWidth) * 0.5f + previewState.viewport.panX

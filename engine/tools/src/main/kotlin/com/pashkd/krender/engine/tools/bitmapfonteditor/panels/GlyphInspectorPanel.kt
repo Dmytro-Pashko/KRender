@@ -14,11 +14,12 @@ import imgui.ImGui
 
 class GlyphInspectorPanel(
     private val state: BitmapFontEditorState,
-    private val controller: BitmapFontEditorController,
+    @Suppress("unused") private val controller: BitmapFontEditorController,
     private val layout: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    @Suppress("NestedBlockDepth")
     override fun draw() {
         val panelLayout = layout.panels.getValue(BitmapFontEditorPanelIds.Inspector)
         val expanded = beginImGuiPanel(BitmapFontEditorPanelIds.Inspector, panelLayout, layoutTracker)

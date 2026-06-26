@@ -23,6 +23,7 @@ class FontGenerationPanel(
     private val customCharsBuf = ByteArray(512)
     private var buffersSynced = false
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     override fun draw() {
         val panelLayout = layout.panels.getValue(BitmapFontEditorPanelIds.Generation)
         val expanded = beginImGuiPanel(BitmapFontEditorPanelIds.Generation, panelLayout, layoutTracker)
@@ -121,7 +122,9 @@ class FontGenerationPanel(
     }
 
     private fun updateMetadata(block: com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorMetadata.() -> com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorMetadata) {
-        val current = state.metadata ?: com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorMetadata()
+        val current =
+            state.metadata ?: com.pashkd.krender.engine.tools.bitmapfonteditor
+                .BitmapFontEditorMetadata()
         state.metadata = current.block()
         state.dirty = true
     }
@@ -130,10 +133,12 @@ class FontGenerationPanel(
         updateMetadata { copy(generation = generation.block()) }
     }
 
-    private fun charsetPresetFromName(name: String): CharsetPreset =
-        CharsetPreset.entries.firstOrNull { it.name == name } ?: CharsetPreset.ENGLISH_SYMBOLS_UKRAINIAN_CYRILLIC
+    private fun charsetPresetFromName(name: String): CharsetPreset = CharsetPreset.entries.firstOrNull { it.name == name } ?: CharsetPreset.ENGLISH_SYMBOLS_UKRAINIAN_CYRILLIC
 
-    private fun syncBuffer(buf: ByteArray, text: String) {
+    private fun syncBuffer(
+        buf: ByteArray,
+        text: String,
+    ) {
         buf.fill(0)
         val bytes = text.toByteArray(Charsets.UTF_8)
         bytes.copyInto(buf, 0, 0, minOf(bytes.size, buf.size - 1))

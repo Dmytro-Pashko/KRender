@@ -23,6 +23,7 @@ class OpenBitmapFontWorkflow(
         }
     }
 
+    @Suppress("ReturnCount")
     private fun openMetadata(metadataPath: String) {
         val assetRoot = engine.assetRegistry.baseDir()
         val metaFile = resolveFile(assetRoot, metadataPath)
@@ -51,6 +52,7 @@ class OpenBitmapFontWorkflow(
         state.statusMessage = "Metadata loaded. Configure generation settings and generate."
     }
 
+    @Suppress("ReturnCount")
     fun openFnt(fntPath: String) {
         val normalizedPath = fntPath.trim().replace('\\', '/')
         if (normalizedPath.isBlank()) {
@@ -107,8 +109,7 @@ class OpenBitmapFontWorkflow(
         val assetFile = File(assetRoot, path)
         if (assetFile.isFile) return assetFile
         val absoluteFile = File(path)
-        if (absoluteFile.isAbsolute && absoluteFile.isFile) return absoluteFile
-        return null
+        return absoluteFile.takeIf { it.isAbsolute && it.isFile }
     }
 
     private fun resolvePageAssetPath(

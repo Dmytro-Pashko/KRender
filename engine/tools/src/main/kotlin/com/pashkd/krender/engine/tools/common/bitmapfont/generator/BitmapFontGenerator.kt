@@ -20,6 +20,7 @@ class BitmapFontGenerator(
     private val rasterizer: FontRasterizer = AwtFontRasterizer(),
     private val packer: GlyphPacker = SkylineGlyphPacker(),
 ) {
+    @Suppress("ReturnCount")
     fun generate(
         config: BitmapFontGenerationConfig,
         outputFntPath: String,
@@ -30,42 +31,47 @@ class BitmapFontGenerator(
         val rasterized = rasterizer.rasterize(config)
         allDiagnostics += rasterized.diagnostics
         if (rasterized.glyphs.isEmpty()) {
-            allDiagnostics += FontGenerationDiagnostic(
-                FontGenerationDiagnosticSeverity.Error,
-                "No glyphs were rasterized. Check source font and charset.",
-            )
+            allDiagnostics +=
+                FontGenerationDiagnostic(
+                    FontGenerationDiagnosticSeverity.Error,
+                    "No glyphs were rasterized. Check source font and charset.",
+                )
             return failureResult(allDiagnostics)
         }
 
-        val packResult = packer.pack(
-            glyphs = rasterized.glyphs,
-            pageWidth = config.pageWidth,
-            pageHeight = config.pageHeight,
-            padding = config.padding,
-            spacing = config.spacing,
-        )
+        val packResult =
+            packer.pack(
+                glyphs = rasterized.glyphs,
+                pageWidth = config.pageWidth,
+                pageHeight = config.pageHeight,
+                padding = config.padding,
+                spacing = config.spacing,
+            )
         allDiagnostics += packResult.diagnostics
         if (packResult.overflow) {
-            allDiagnostics += FontGenerationDiagnostic(
-                FontGenerationDiagnosticSeverity.Error,
-                "Glyphs do not fit on a ${config.pageWidth}x${config.pageHeight} page. Increase page size or reduce charset/font size.",
-            )
+            allDiagnostics +=
+                FontGenerationDiagnostic(
+                    FontGenerationDiagnosticSeverity.Error,
+                    "Glyphs do not fit on a ${config.pageWidth}x${config.pageHeight} page. Increase page size or reduce charset/font size.",
+                )
             return failureResult(allDiagnostics)
         }
 
         val pageImage = composePage(rasterized, packResult, config)
-        val document = buildDocument(
-            config = config,
-            rasterized = rasterized,
-            packResult = packResult,
-            outputFntPath = outputFntPath,
-            outputPageFileName = outputPageFileName,
-        )
+        val document =
+            buildDocument(
+                config = config,
+                rasterized = rasterized,
+                packResult = packResult,
+                outputFntPath = outputFntPath,
+                outputPageFileName = outputPageFileName,
+            )
 
-        allDiagnostics += FontGenerationDiagnostic(
-            FontGenerationDiagnosticSeverity.Info,
-            "Generated ${packResult.placements.size} glyphs on ${config.pageWidth}x${config.pageHeight} page.",
-        )
+        allDiagnostics +=
+            FontGenerationDiagnostic(
+                FontGenerationDiagnosticSeverity.Info,
+                "Generated ${packResult.placements.size} glyphs on ${config.pageWidth}x${config.pageHeight} page.",
+            )
 
         return BitmapFontGenerationResult(
             document = document,
@@ -88,8 +94,8 @@ class BitmapFontGenerator(
         val glyphMap = rasterized.glyphs.associateBy { it.codepoint }
 
         for (placement in packResult.placements) {
-            val srcGlyph = glyphMap[placement.codepoint] ?: continue
-            if (srcGlyph.width <= 0 || srcGlyph.height <= 0) continue
+            val srcGlyph = glyphMap[placement.codepoint]
+            if (srcGlyph == null || srcGlyph.width <= 0 || srcGlyph.height <= 0) continue
             blitGlyph(rgba, w, h, srcGlyph, placement.x, placement.y)
         }
         return rgba
@@ -130,51 +136,56 @@ class BitmapFontGenerator(
         val fontFile = File(config.sourceFont)
         val faceName = fontFile.nameWithoutExtension
 
-        val info = BitmapFontInfo(
-            face = faceName,
-            size = config.sizePx,
-            unicode = true,
-            smooth = config.antialias,
-            aa = if (config.antialias) 1 else 0,
-            padding = listOf(config.padding, config.padding, config.padding, config.padding),
-            spacing = listOf(config.spacing, config.spacing),
-        )
-
-        val common = BitmapFontCommon(
-            lineHeight = rasterized.lineHeight,
-            base = rasterized.ascent,
-            scaleW = config.pageWidth,
-            scaleH = config.pageHeight,
-            pages = 1,
-        )
-
-        val page = BitmapFontPage(
-            id = 0,
-            file = outputPageFileName,
-            resolvedPath = null,
-            exists = false,
-        )
-
-        val glyphs = packResult.placements.map { packed ->
-            val charStr = if (packed.codepoint in 32..126) {
-                String(Character.toChars(packed.codepoint))
-            } else {
-                null
-            }
-            BitmapFontGlyph(
-                id = packed.codepoint,
-                char = charStr,
-                x = packed.x,
-                y = packed.y,
-                width = packed.width,
-                height = packed.height,
-                xOffset = packed.xOffset,
-                yOffset = packed.yOffset,
-                xAdvance = packed.xAdvance,
-                page = 0,
-                channel = 0,
+        val info =
+            BitmapFontInfo(
+                face = faceName,
+                size = config.sizePx,
+                unicode = true,
+                smooth = config.antialias,
+                aa = if (config.antialias) 1 else 0,
+                padding = listOf(config.padding, config.padding, config.padding, config.padding),
+                spacing = listOf(config.spacing, config.spacing),
             )
-        }
+
+        val common =
+            BitmapFontCommon(
+                lineHeight = rasterized.lineHeight,
+                base = rasterized.ascent,
+                scaleW = config.pageWidth,
+                scaleH = config.pageHeight,
+                pages = 1,
+            )
+
+        val page =
+            BitmapFontPage(
+                id = 0,
+                file = outputPageFileName,
+                resolvedPath = null,
+                exists = false,
+            )
+
+        val glyphs =
+            packResult.placements.map { packed ->
+                val charStr =
+                    if (packed.codepoint in 32..126) {
+                        String(Character.toChars(packed.codepoint))
+                    } else {
+                        null
+                    }
+                BitmapFontGlyph(
+                    id = packed.codepoint,
+                    char = charStr,
+                    x = packed.x,
+                    y = packed.y,
+                    width = packed.width,
+                    height = packed.height,
+                    xOffset = packed.xOffset,
+                    yOffset = packed.yOffset,
+                    xAdvance = packed.xAdvance,
+                    page = 0,
+                    channel = 0,
+                )
+            }
 
         return BitmapFontDocument(
             file = File(outputFntPath),

@@ -34,14 +34,16 @@ class GlyphListPanel(
         }
 
         val filter = state.glyphSelection.glyphFilter.lowercase()
-        val filtered = if (filter.isBlank()) {
-            document.glyphs.take(MaxVisibleGlyphs)
-        } else {
-            document.glyphs.filter { glyph ->
-                glyph.id.toString().contains(filter) ||
-                    glyph.char?.lowercase()?.contains(filter) == true
-            }.take(MaxVisibleGlyphs)
-        }
+        val filtered =
+            if (filter.isBlank()) {
+                document.glyphs.take(MaxVisibleGlyphs)
+            } else {
+                document.glyphs
+                    .filter { glyph ->
+                        glyph.id.toString().contains(filter) ||
+                            glyph.char?.lowercase()?.contains(filter) == true
+                    }.take(MaxVisibleGlyphs)
+            }
 
         ImGui.text("Glyphs: ${document.glyphs.size}")
         filtered.forEach { glyph ->

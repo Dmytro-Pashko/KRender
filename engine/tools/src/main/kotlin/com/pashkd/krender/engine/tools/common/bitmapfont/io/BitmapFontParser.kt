@@ -16,13 +16,13 @@ class BitmapFontParser {
         if (!fntFile.isFile) {
             return errorDocument(fntFile, "Font file not found: '$normalizedPath'.")
         }
+        if (isBinaryFnt(fntFile)) {
+            return errorDocument(fntFile, "Binary .fnt format is not supported. Use text format.")
+        }
         return runCatching {
             val lines = fntFile.readLines(Charsets.UTF_8)
             if (lines.isEmpty()) {
                 return errorDocument(fntFile, "Font file is empty.")
-            }
-            if (isBinaryFnt(lines.first())) {
-                return errorDocument(fntFile, "Binary .fnt format is not supported. Use text format.")
             }
             buildDocument(fntFile, lines)
         }.getOrElse { error ->
@@ -238,7 +238,19 @@ class BitmapFontParser {
         source: String? = null,
     ) = BitmapFontDiagnostic(severity = severity, message = message, source = source)
 
-    private fun isBinaryFnt(firstLine: String): Boolean = firstLine.length >= 4 && firstLine[0].code == 0 && firstLine[1].code == 0 && firstLine[2].code == 0
+    private fun isBinaryFnt(file: File): Boolean =
+        runCatching {
+            val header =
+                file.inputStream().use { stream ->
+                    val buf = ByteArray(4)
+                    val read = stream.read(buf)
+                    if (read >= 3) buf else null
+                }
+            header != null &&
+                header[0] == 'B'.code.toByte() &&
+                header[1] == 'M'.code.toByte() &&
+                header[2] == 'F'.code.toByte()
+        }.getOrDefault(false)
 
     companion object {
         private val AttrPattern = Regex("""(\w+)=("[^"]*"|\S+)""")
@@ -260,15 +272,18 @@ class BitmapFontParser {
     }
 }
 
+@Suppress("CyclomaticComplexMethod")
 fun layoutSampleText(
     text: String,
     document: BitmapFontDocument,
 ): SampleTextLayout {
     val common = document.common ?: return SampleTextLayout()
     val glyphMap = document.glyphs.associateBy { it.id }
+    val kerningMap = document.kernings.associateBy { (it.first to it.second) }
     val placements = mutableListOf<SampleTextGlyphPlacement>()
     val missing = mutableListOf<Int>()
     var cursorX = 0
+    var prevCodepoint: Int? = null
     var minX = Int.MAX_VALUE
     var minY = Int.MAX_VALUE
     var maxX = Int.MIN_VALUE
@@ -278,8 +293,11 @@ fun layoutSampleText(
         val glyph = glyphMap[codepoint]
         if (glyph == null) {
             missing += codepoint
+            prevCodepoint = null
             return@forEach
         }
+        val kern = prevCodepoint?.let { prev -> kerningMap[prev to codepoint]?.amount } ?: 0
+        cursorX += kern
         val glyphX = cursorX + glyph.xOffset
         val glyphY = glyph.yOffset
         placements +=
@@ -295,6 +313,7 @@ fun layoutSampleText(
             maxY = maxOf(maxY, glyphY + glyph.height)
         }
         cursorX += glyph.xAdvance
+        prevCodepoint = codepoint
     }
     val hasBounds = minX != Int.MAX_VALUE && minY != Int.MAX_VALUE && maxX != Int.MIN_VALUE && maxY != Int.MIN_VALUE
     return SampleTextLayout(
