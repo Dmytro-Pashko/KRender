@@ -960,7 +960,8 @@ class TextureAtlasEditorPreviewCanvasPanel(
         ImGui.setNextItemWidth(140f)
         if (ImGui.beginCombo(
                 "Preset##np_stretch_preset",
-                state.preview.ninePatchStretch.preset.label(),
+                state.preview.ninePatchStretch.preset
+                    .label(),
             )
         ) {
             TextureAtlasNinePatchStretchPreset.entries.forEach { preset ->

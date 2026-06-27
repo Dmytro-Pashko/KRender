@@ -360,7 +360,7 @@ class TextureAtlasEditorProjectLoader(
             document.diagnostics.forEach { fontDiag ->
                 diagnostics +=
                     TextureAtlasEditorDiagnostic(
-                        severity = fontDiag.severity,
+                        severity = fontDiag.severity.toEditorSeverity(),
                         category = TextureAtlasEditorDiagnosticCategory.Font,
                         message = fontDiag.message,
                         source = fontDiag.source ?: normalizedPath,
@@ -411,4 +411,11 @@ private fun NinePatchValidationIssue.toDiagnosticSeverity(): TextureAtlasEditorD
     when (severity) {
         NinePatchValidationSeverity.Warning -> TextureAtlasEditorDiagnosticSeverity.Warning
         NinePatchValidationSeverity.Error -> TextureAtlasEditorDiagnosticSeverity.Error
+    }
+
+private fun com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontDiagnosticSeverity.toEditorSeverity(): TextureAtlasEditorDiagnosticSeverity =
+    when (this) {
+        com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontDiagnosticSeverity.Info -> TextureAtlasEditorDiagnosticSeverity.Info
+        com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontDiagnosticSeverity.Warning -> TextureAtlasEditorDiagnosticSeverity.Warning
+        com.pashkd.krender.engine.tools.common.bitmapfont.model.BitmapFontDiagnosticSeverity.Error -> TextureAtlasEditorDiagnosticSeverity.Error
     }

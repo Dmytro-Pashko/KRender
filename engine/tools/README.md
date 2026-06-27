@@ -10,6 +10,7 @@ Full user-facing documentation is published in the hosted docs:
 ## Included Tools
 
 - Asset Browser
+- Bitmap Font Editor
 - Texture Atlas Editor
 - Model Viewer
 - Animation Viewer
@@ -46,6 +47,7 @@ Examples:
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=animation-viewer -Pkrender.model.path=model/example.glb
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=terrain-editor -Pkrender.terrain.path=terrain/example.krterrain
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=scene-editor -Pkrender.scene.path=scenes/example.krscene
+./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=bitmap-font-editor -Pkrender.font.path=ui/fonts/roboto-24.fnt
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=texture-atlas-editor -Pkrender.atlas.path=ui/skins/default/uiskin.atlas
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=skin-editor -Pkrender.skin.path=ui/skins/xp_ui/xp-ui.json
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=ui-composer -Pkrender.ui.scene.path=ui/example.krui

@@ -17,6 +17,7 @@ enum class CreatableAssetKind(
     UiScene("UI Scene", AssetType.UiScene, AssetCategory.UI, "ui/scenes", "krui"),
     Terrain("Terrain", AssetType.Terrain, AssetCategory.Terrain, "terrains", "json"),
     Scene("Scene", AssetType.Scene, AssetCategory.Scene, "scenes", "krscene"),
+    BitmapFont("Bitmap Font", AssetType.Font, AssetCategory.Scene2D, "ui/fonts", "kfont.json"),
 }
 
 data class CreateAssetDraft(
@@ -71,6 +72,7 @@ internal fun defaultAssetBaseName(
         AssetType.UiScene -> "new_ui_scene"
         AssetType.Terrain -> "new_terrain"
         AssetType.Scene -> "new_scene"
+        AssetType.Font -> "new_bitmap_font"
         else -> error("Unsupported asset creation type=$type category=$category")
     }
 
@@ -107,5 +109,12 @@ internal fun createAssetDefaultParams(draft: CreateAssetDraft): List<String> =
                 "Schema: 1",
                 "Entities: 0",
                 "Settings: default",
+            )
+
+        CreatableAssetKind.BitmapFont ->
+            listOf(
+                "Size: 24px",
+                "Charset: English + Symbols + Ukrainian Cyrillic",
+                "Page: 512 x 512",
             )
     }

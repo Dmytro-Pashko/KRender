@@ -34,7 +34,7 @@ Atlas regions that carry `split` and `pad` metadata. NinePatch resources can be 
 
 Font resources created by importing existing `.fnt` descriptors. The import action copies the `.fnt` file and its page textures next to the atlas, rewrites page file references in the copied descriptor, and adds the font to the resource list.
 
-BitmapFont generation from TTF/OTF is **not** part of the Texture Atlas Editor. Font generation will belong to a future **Bitmap Font Editor**.
+BitmapFont generation from TTF/OTF is **not** part of the Texture Atlas Editor. Use the dedicated **Bitmap Font Editor** for that workflow.
 
 ## Preview Canvas
 
@@ -106,7 +106,7 @@ The tool does not generate `.krmeta` metadata files.
 - **Shelf-based packing** — the current packing algorithm is a simple shelf/row packer sorted by descending height. MaxRects and other advanced strategies are planned but not yet implemented.
 - **Rotation not applied** — the `Allow Rotation` setting is accepted but not used during packing.
 - **Single-page BitmapFont only** — fonts with more than one page texture are skipped during packing with a diagnostic warning.
-- **No TTF/OTF font generation** — bitmap font creation from vector fonts is out of scope for this tool and will be part of a future Bitmap Font Editor.
+- **No TTF/OTF font generation** — bitmap font creation from vector fonts is out of scope for this tool and belongs to the dedicated Bitmap Font Editor.
 - **No undo/redo** — resource edits are one-way except for NinePatch draft reset.
 - **Sample text is single-line** — the font sample text preview does not handle newline characters.
 
@@ -115,7 +115,7 @@ The tool does not generate `.krmeta` metadata files.
 The Texture Atlas Editor is part of the broader **Scene2D UI authoring workflow** in KRender:
 
 ```text
-Bitmap Font Editor (future)
+Bitmap Font Editor
   TTF/OTF → BitmapFont .fnt + PNG pages
 
 Texture Atlas Editor

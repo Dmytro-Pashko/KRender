@@ -72,7 +72,7 @@ and saved explicitly.
 
 ## Scope Boundaries
 
-- Do not add TTF/OTF BitmapFont generation to Texture Atlas Editor. Font generation belongs to a future Bitmap Font Editor.
+- Do not add TTF/OTF BitmapFont generation to Texture Atlas Editor. Font generation belongs to the dedicated Bitmap Font Editor.
 - Do not add color/style resource editing. Colors and styles belong to the Skin Editor.
 - Do not add automatic `.krmeta` generation.
 

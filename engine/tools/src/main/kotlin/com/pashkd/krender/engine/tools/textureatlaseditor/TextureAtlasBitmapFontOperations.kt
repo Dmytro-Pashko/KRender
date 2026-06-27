@@ -231,8 +231,9 @@ internal class TextureAtlasBitmapFontOperations(
         return runCatching {
             targetFile.parentFile?.mkdirs()
             document.pages.forEachIndexed { index, page ->
-                val sourcePath = page.resolvedPath?.takeIf { page.exists }
-                    ?: error("Font page '${page.file}' is missing and cannot be exported.")
+                val sourcePath =
+                    page.resolvedPath?.takeIf { page.exists }
+                        ?: error("Font page '${page.file}' is missing and cannot be exported.")
                 val sourceFile = File(sourcePath)
                 if (!sourceFile.isFile) {
                     error("Font page '${page.file}' is missing and cannot be exported.")

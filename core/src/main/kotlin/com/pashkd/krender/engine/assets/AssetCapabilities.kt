@@ -45,7 +45,7 @@ fun AssetDescriptor.assetCapabilities(): AssetCapabilities =
         )
     } else if (type == AssetType.Font) {
         AssetCapabilities(
-            canOpenWith = false,
+            canOpenWith = true,
             canReveal = true,
             canRename = true,
             canDuplicate = true,

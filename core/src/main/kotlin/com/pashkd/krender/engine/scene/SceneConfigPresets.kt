@@ -94,6 +94,22 @@ object SceneConfigPresets {
                 ),
         )
 
+    /** Bitmap Font Editor preset. */
+    val BitmapFontEditor =
+        SceneConfig(
+            viewport =
+                RuntimeViewportConfig(
+                    designWidth = 1920f,
+                    designHeight = 1080f,
+                    scalePolicy = UiScalePolicy.ScaleByHeight,
+                ),
+            window =
+                RuntimeWindowConfig(
+                    resolution = WindowResolution(width = 1385, height = 1280),
+                    mode = WindowMode.Windowed,
+                ),
+        )
+
     /** Current Texture Atlas Editor preset. Kept separate for future divergence. */
     val TextureAtlasEditor =
         SceneConfig(

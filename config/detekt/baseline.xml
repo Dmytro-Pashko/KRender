@@ -21,7 +21,6 @@
     <ID>CyclomaticComplexMethod:AssetMetadataCodec.kt$JsonParser$private fun parseNumber(): Number</ID>
     <ID>CyclomaticComplexMethod:AssetTypeDetector.kt$AssetTypeDetector$fun detect(path: String): AssetTypeDetection</ID>
     <ID>CyclomaticComplexMethod:BitmapFontParser.kt$BitmapFontParser$private fun buildDocument( fntFile: File, lines: List&lt;String&gt;, ): BitmapFontDocument</ID>
-    <ID>CyclomaticComplexMethod:BitmapFontWriter.kt$BitmapFontWriter$private fun buildFntText( document: BitmapFontDocument, pageFileOverrides: Map&lt;Int, String&gt;, ): String</ID>
     <ID>CyclomaticComplexMethod:GdxImGuiService.kt$GdxImGuiInputBridge$private fun mapKey(keycode: Int): Key?</ID>
     <ID>CyclomaticComplexMethod:GdxInputService.kt$GdxInputService$private fun mapKey(keycode: Int): Key</ID>
     <ID>CyclomaticComplexMethod:GdxRenderer3D.kt$GdxRenderer3D$override fun render(context: RenderContext)</ID>
@@ -108,6 +107,7 @@
     <ID>LongMethod:TerrainSystems.kt$TerrainAssetRuntimeSync$fun update(world: SceneWorld)</ID>
     <ID>LongMethod:TextureAtlasBitmapFontOperations.kt$TextureAtlasBitmapFontOperations$fun importFontResourceFromPath(fntPath: String)</ID>
     <ID>LongMethod:TextureAtlasBitmapFontOperations.kt$TextureAtlasBitmapFontOperations$fun savePackedFontDescriptors( atlasTargetPath: String, plan: TextureAtlasPackingPlan, ): TextureAtlasEditorFileWriteResult?</ID>
+    <ID>LongMethod:TextureAtlasBitmapFontOperations.kt$TextureAtlasBitmapFontOperations$private fun exportBitmapFontDocument( document: BitmapFontDocument, targetPath: String, ): TextureAtlasEditorFileWriteResult</ID>
     <ID>LongMethod:TextureAtlasEditorImportExportOperations.kt$TextureAtlasEditorImportExportOperations$fun savePackedAtlas()</ID>
     <ID>LongMethod:TextureAtlasEditorInspectorPanel.kt$TextureAtlasEditorInspectorPanel$override fun draw()</ID>
     <ID>LongMethod:TextureAtlasEditorInspectorPanel.kt$TextureAtlasEditorInspectorPanel$private fun drawFontInspectorSection()</ID>
@@ -135,7 +135,6 @@
     <ID>LongMethod:WoolboySystems.kt$PlayerControllerSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
     <ID>LongParameterList:AssetBrowserPanel.kt$AssetBrowserPanel$( private val state: AssetBrowserState, private val onAssetSelected: (AssetDescriptor) -&gt; Unit, private val onAssetActivated: (AssetDescriptor) -&gt; Unit, private val acceptedCategories: Set&lt;AssetCategory&gt;? = null, private val mode: AssetBrowserMode = AssetBrowserMode.Full, private val layoutConfig: ImGuiLayoutConfig, private val layoutTracker: ImGuiLayoutRuntimeTracker? = null, private val eventLogger: ImGuiWindowEventLogger, private val panelId: String = AssetBrowserPanelIds.Browser, private val operations: AssetBrowserOperationsHandler = AssetBrowserOperationsHandler.NoOp, private val importService: AssetImportService, private val fileDialogService: FileDialogService, )</ID>
     <ID>LongParameterList:GdxUiScenePreview.kt$GdxUiScenePreview$( x: Int, y: Int, width: Int, height: Int, logicalWidth: Int, logicalHeight: Int, cameraOffsetX: Float, cameraOffsetY: Float, previewZoom: Float, )</ID>
-    <ID>LongParameterList:ToolsModule.kt$ToolsModule$( sceneName: String, modelPath: String?, terrainPath: String? = null, scenePath: String? = null, sceneNameOverride: String? = null, uiScenePath: String? = null, skinPath: String? = null, atlasPath: String? = null, )</ID>
     <ID>LongParameterList:UiSceneFocusedValidatorsTest.kt$( id: String, type: UiSceneNodeType = UiSceneNodeType.Stack, style: String? = null, background: String? = null, text: String? = null, action: String? = null, texture: String? = null, value: Float? = null, valueBinding: String? = null, min: Float = 0f, max: Float = 1f, step: Float = 0.01f, children: List&lt;UiSceneNode&gt; = emptyList(), )</ID>
     <ID>LoopWithTooManyJumpStatements:TerrainBrush.kt$TerrainBrushApplier$for</ID>
     <ID>MatchingDeclarationName:BindingReferenceHelpers.kt$UiSceneBindingReference</ID>
@@ -178,7 +177,6 @@
     <ID>ReturnCount:AtlasAssetCreation.kt$internal fun createAtlasAsset( draft: CreateAssetDraft, assetRoot: File, logger: Logger, ): AssetOperationResult</ID>
     <ID>ReturnCount:BindingReferenceHelpers.kt$fun isSingleBindingPlaceholder(value: String?): Boolean</ID>
     <ID>ReturnCount:BitmapFontParser.kt$BitmapFontParser$fun parse(fntFile: File): BitmapFontDocument</ID>
-    <ID>ReturnCount:BitmapFontWriter.kt$BitmapFontWriter$fun write( assetRoot: File, targetPath: String, document: BitmapFontDocument, overwrite: Boolean, pageFileOverrides: Map&lt;Int, String&gt; = emptyMap(), ): TextureAtlasEditorFileWriteResult</ID>
     <ID>ReturnCount:EditorViewportCamera.kt$EditorViewportCameraSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
     <ID>ReturnCount:GdxAssetService.kt$GdxAssetService$override fun modelBounds(asset: AssetRef&lt;ModelAsset&gt;): ModelAssetBounds?</ID>
     <ID>ReturnCount:GdxAssetService.kt$GdxAssetService$override fun modelSkeleton(asset: AssetRef&lt;ModelAsset&gt;): ModelSkeletonInfo?</ID>
@@ -254,8 +252,10 @@
     <ID>ReturnCount:TerrainSystems.kt$TerrainCameraControllerSystem$override fun update( world: SceneWorld, dt: Float, )</ID>
     <ID>ReturnCount:TextureAtlasBitmapFontOperations.kt$TextureAtlasBitmapFontOperations$fun importFontResourceFromPath(fntPath: String)</ID>
     <ID>ReturnCount:TextureAtlasBitmapFontOperations.kt$TextureAtlasBitmapFontOperations$fun savePackedFontDescriptors( atlasTargetPath: String, plan: TextureAtlasPackingPlan, ): TextureAtlasEditorFileWriteResult?</ID>
+    <ID>ReturnCount:TextureAtlasBitmapFontOperations.kt$TextureAtlasBitmapFontOperations$private fun exportBitmapFontDocument( document: BitmapFontDocument, targetPath: String, ): TextureAtlasEditorFileWriteResult</ID>
     <ID>ReturnCount:TextureAtlasEditorImportService.kt$TextureAtlasEditorImportService$fun importTexture( assetRoot: File, sourcePath: String, targetPath: String, overwrite: Boolean, ): TextureAtlasEditorFileWriteResult</ID>
     <ID>ReturnCount:TextureAtlasEditorInspectorPanel.kt$TextureAtlasEditorInspectorPanel$private fun drawNinePatchEditorSection()</ID>
+    <ID>ReturnCount:TextureAtlasEditorOperations.kt$TextureAtlasEditorOperations$fun fitSelectedFontGlyph(glyphId: Int? = state.fontPreview.selectedGlyphId)</ID>
     <ID>ReturnCount:TextureAtlasEditorOperations.kt$TextureAtlasEditorOperations$fun fitSelectedRegion()</ID>
     <ID>ReturnCount:TextureAtlasEditorPathValidator.kt$TextureAtlasEditorPathValidator$fun resolveAssetFile( assetRoot: File, relativeDirectory: String, fileName: String, ): File?</ID>
     <ID>ReturnCount:TextureAtlasEditorPathValidator.kt$TextureAtlasEditorPathValidator$fun resolveAssetPath( assetRoot: File, path: String, ): File?</ID>

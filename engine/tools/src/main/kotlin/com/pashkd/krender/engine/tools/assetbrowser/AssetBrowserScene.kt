@@ -13,6 +13,7 @@ import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.tools.assetbrowser.creation.createAtlasAsset
+import com.pashkd.krender.engine.tools.assetbrowser.creation.createBitmapFontAsset
 import com.pashkd.krender.engine.ui.editor.*
 
 /**
@@ -56,6 +57,7 @@ class AssetBrowserScene : Scene("asset_browser") {
                 register(UiComposerAssetTool())
                 register(SceneEditorAssetTool())
                 register(SceneRuntimeAssetTool())
+                register(BitmapFontEditorAssetTool())
             }
         operations =
             LocalAssetOperationsService(
@@ -191,6 +193,13 @@ private class SceneOperationsHandler(
     override fun create(draft: CreateAssetDraft) {
         if (draft.kind == CreatableAssetKind.Atlas) {
             consumeResult(createAtlasAsset(draft, engineProvider().assetRegistry.baseDir(), logger))
+            if (state.errorMessage == null) {
+                state.refreshRequested = true
+            }
+            return
+        }
+        if (draft.kind == CreatableAssetKind.BitmapFont) {
+            consumeResult(createBitmapFontAsset(draft, engineProvider(), logger))
             if (state.errorMessage == null) {
                 state.refreshRequested = true
             }
@@ -518,6 +527,32 @@ class SceneEditorAssetTool : AssetTool {
 /**
  * Launches scene assets in the runtime player.
  */
+class BitmapFontEditorAssetTool : AssetTool {
+    override val id = "bitmap-font-editor"
+    override val displayName = "Open in Bitmap Font Editor"
+    override val supportedCategories = setOf(AssetCategory.Scene2D)
+
+    override fun canOpen(asset: AssetDescriptor): Boolean =
+        asset.type == AssetType.Font &&
+            (
+                asset.extension.equals("fnt", ignoreCase = true) ||
+                    asset.path.endsWith(".kfont.json", ignoreCase = true)
+            )
+
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Opening font asset '$path' in Bitmap Font Editor" }
+        context.editorToolLauncher.launchBitmapFontEditor(path)
+    }
+
+    companion object {
+        private const val TAG = "BitmapFontEditorAssetTool"
+    }
+}
+
 class SceneRuntimeAssetTool : AssetTool {
     override val id = "scene-runtime"
     override val displayName = "Run in Runtime"
