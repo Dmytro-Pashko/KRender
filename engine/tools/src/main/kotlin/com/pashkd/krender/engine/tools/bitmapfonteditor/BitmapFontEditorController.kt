@@ -79,13 +79,17 @@ class BitmapFontEditorController(
         state.metadata = current.copy(sourceFont = normalizePath(selected))
         state.dirty = true
         state.statusMessage = "Selected source font '${state.metadata?.sourceFont}'."
+        engine.logger.info(TAG) { "Bitmap Font Editor source font selected path='${state.metadata?.sourceFont}'" }
     }
 
     fun selectGlyph(
         glyphId: Int?,
         revealInList: Boolean = false,
     ) {
-        state.glyphSelection.selectedGlyphId = glyphId
+        if (state.glyphSelection.selectedGlyphId != glyphId) {
+            state.glyphSelection.selectedGlyphId = glyphId
+            engine.logger.info(TAG) { "Bitmap Font Editor glyph selected id=$glyphId revealInList=$revealInList" }
+        }
         if (revealInList && glyphId != null) {
             state.pendingScrollToSelectedGlyph = true
         }
@@ -154,6 +158,7 @@ class BitmapFontEditorController(
         engine.logger.info(TAG) { "Bitmap Font Editor camera reset pan=0,0 zoom=1.0 mode=${state.preview.zoomMode}" }
     }
 
+    @Suppress("ReturnCount")
     fun focusSelectedGlyph() {
         if (state.showSampleTextPreview) {
             state.statusMessage = "Disable sample preview before focusing a glyph."
@@ -197,7 +202,11 @@ class BitmapFontEditorController(
     }
 
     private fun normalizePath(path: String): String {
-        val assetRoot = engine.assetRegistry.baseDir().canonicalFile.path.replace('\\', '/')
+        val assetRoot =
+            engine.assetRegistry
+                .baseDir()
+                .canonicalFile.path
+                .replace('\\', '/')
         val selected = File(path).canonicalFile.path.replace('\\', '/')
         return if (selected.startsWith(assetRoot)) {
             selected.removePrefix(assetRoot).removePrefix("/")

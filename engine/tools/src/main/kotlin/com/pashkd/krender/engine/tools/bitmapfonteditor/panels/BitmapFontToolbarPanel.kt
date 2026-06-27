@@ -17,6 +17,7 @@ class BitmapFontToolbarPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    @Suppress("CyclomaticComplexMethod")
     override fun draw() {
         val panelLayout = layout.panels.getValue(BitmapFontEditorPanelIds.Toolbar)
         val expanded = beginImGuiPanel(BitmapFontEditorPanelIds.Toolbar, panelLayout, layoutTracker)

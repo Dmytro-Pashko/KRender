@@ -32,7 +32,7 @@ class GenerateBitmapFontWorkflow(
         runGeneration(previewOnly = true)
     }
 
-    @Suppress("ReturnCount")
+    @Suppress("ReturnCount", "LongMethod")
     private fun runGeneration(previewOnly: Boolean) {
         val metadata = state.metadata
         if (metadata == null) {
@@ -202,7 +202,9 @@ class GenerateBitmapFontWorkflow(
     }
 
     private fun refreshPreviewTexture(relPath: String) {
-        val ref = com.pashkd.krender.engine.api.AssetRef.texture(relPath)
+        val ref =
+            com.pashkd.krender.engine.api.AssetRef
+                .texture(relPath)
         if (engine.assets.isLoaded(ref)) {
             engine.assets.unload(ref)
         }

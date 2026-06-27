@@ -404,6 +404,50 @@ Screenshots:
 
 _To be added._
 
+### Bitmap Font Editor
+
+The Bitmap Font Editor is a standalone tool for generating, previewing, and saving BitmapFont assets from TTF/OTF source fonts. It produces standard BMFont text `.fnt` descriptors with standalone `.png` page textures suitable for Scene2D runtime use.
+
+Features:
+
+- Open existing `.fnt` text BMFont descriptors and inspect glyphs, metrics, and kerning pairs.
+- Create new Bitmap Font assets from Asset Browser (New → Bitmap Font).
+- Choose a project-relative TTF/OTF source font with a file picker.
+- Configure charset (English, Symbols, Ukrainian Cyrillic, Combined, Custom), font size, padding, spacing, and page dimensions.
+- Configure AWT rasterizer options: text anti-aliasing mode, fractional metrics, render quality, stroke control.
+- Preview the generated font page with glyph bounds overlay and sample text rendering with kerning.
+- Pan/zoom canvas with fit, reset, focus-selected-glyph camera actions, checkerboard, and grid.
+- Generate and save `.fnt` + `.png` + `.kfont.json`.
+- Detect and reject binary BMFont files with a diagnostic message.
+
+File write safety:
+
+- **Preview** writes a transient PNG to a preview cache directory. It does not modify the project output files.
+- **Generate** writes a preview PNG and updates the in-memory document. Marks the document dirty.
+- **Save Font** is the explicit write action for `.fnt` + `.png` + `.kfont.json`.
+
+Current limitations:
+
+- No binary or XML BMFont support.
+- Single page only — overflow is reported, multiple pages are not created.
+- No manual glyph metrics editing or kerning generation.
+- No SDF/MSDF font support.
+- AWT rasterizer only — LibGDX FreeType is planned as a future production rasterizer.
+
+Screenshots:
+
+_Screenshots will be added later._
+
+Required properties:
+
+- `krender.scene=bitmap-font-editor`
+
+Optional properties:
+
+- `krender.font.path=<path>` — path to a `.fnt` or `.kfont.json` file to open on launch.
+
+Detailed documentation: [Bitmap Font Editor](tools/bitmap_font_editor.md)
+
 ### Texture Atlas Editor
 
 The Texture Atlas Editor is an atlas-centric tool for packing image, NinePatch, and BitmapFont resources into libGDX texture atlases. The opened `.atlas` file is the root working document.
@@ -442,7 +486,7 @@ Current limitations:
 - The packing algorithm is a shelf-based packer. MaxRects or other advanced strategies are not yet implemented.
 - The `Allow Rotation` setting is accepted but not applied during packing.
 - Multi-page BitmapFont packing is not supported. Fonts with more than one page are skipped with a diagnostic warning.
-- BitmapFont generation from TTF/OTF is not part of Texture Atlas Editor. Font generation will belong to a future Bitmap Font Editor.
+- BitmapFont generation from TTF/OTF is not part of Texture Atlas Editor. Font generation belongs to the [Bitmap Font Editor](tools/bitmap_font_editor.md).
 - Sample text preview does not handle newlines.
 
 Screenshots:
