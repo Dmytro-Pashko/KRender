@@ -437,7 +437,14 @@ Current limitations:
 
 Screenshots:
 
-_Screenshots will be added later._
+Full editor interface:
+![Bitmap Font Editor full interface](tools/screenshots/bitmap_font_editor/bitmap_font_editor_main.png)
+
+Preview canvas interactions and inspection flow:
+![Bitmap Font Editor preview canvas controls](tools/screenshots/bitmap_font_editor/bitmap_font_editor_font_preview_changing_options.gif)
+
+Glyph List, Tools, and Inspector panels:
+![Bitmap Font Editor glyph list, tools, and inspector panels](tools/screenshots/bitmap_font_editor/glyph_tools_inspector_panels.png)
 
 Required properties:
 

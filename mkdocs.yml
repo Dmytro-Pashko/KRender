@@ -20,6 +20,7 @@ nav:
   - Architecture: architecture.md
   - Tools:
       - Overview: tools.md
+      - Bitmap Font Editor: tools/bitmap_font_editor.md
       - Texture Atlas Editor: tools/texture_atlas_editor.md
   - Git Workflow: git-flow.md
   - Quality:

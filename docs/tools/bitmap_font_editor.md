@@ -4,6 +4,8 @@
 
 The Bitmap Font Editor is a standalone KRender desktop tool for opening, inspecting, generating, previewing, and saving BitmapFont assets used by the Scene2D UI workflow.
 
+![Bitmap Font Editor full interface](screenshots/bitmap_font_editor/bitmap_font_editor_main.png)
+
 Runtime output:
 
 ```text
@@ -132,9 +134,7 @@ The status bar shows current zoom, cursor position, hovered glyph, and selected 
 
 After generation, the preview page is written to disk immediately so the backend can load the texture. There may be a brief delay before the texture handle becomes available.
 
-> Screenshot placeholder: Font page preview with selected glyph.
-
-> Screenshot placeholder: Sample text preview.
+![Bitmap Font Editor preview canvas controls](screenshots/bitmap_font_editor/bitmap_font_editor_font_preview_changing_options.gif)
 
 ## Glyph List and Inspector
 
@@ -150,6 +150,10 @@ The **Inspector** panel shows:
 - Selected glyph metrics: id/codepoint, character label, position (x, y), size (width × height), offset (xoffset, yoffset), advance (xadvance), page, channel.
 - Kerning pairs involving the selected glyph (if any).
 - Diagnostic count.
+
+The screenshot below highlights the working relationship between the **Glyph List**, **Tools**, and **Inspector** panels, including the rasterizer option block used during generation.
+
+![Bitmap Font Editor glyph list, tools, and inspector panels](screenshots/bitmap_font_editor/glyph_tools_inspector_panels.png)
 
 ## Charset Presets
 
