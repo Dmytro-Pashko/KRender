@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:11895dfc-5400-4fe4-ab5b-358ee9af1868",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "krender_default",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

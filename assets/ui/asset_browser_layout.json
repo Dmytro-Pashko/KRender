@@ -4,15 +4,15 @@
       "title": "Asset Browser Controls",
       "x": 2,
       "y": 4,
-      "width": 1283,
-      "height": 115
+      "width": 1282,
+      "height": 126
     },
     "assetBrowser": {
       "title": "Asset Browser",
-      "x": 3,
-      "y": 123,
-      "width": 1281,
-      "height": 663
+      "x": 2,
+      "y": 133,
+      "width": 1283,
+      "height": 653
     },
     "assetDetails": {
       "title": "Asset Details",

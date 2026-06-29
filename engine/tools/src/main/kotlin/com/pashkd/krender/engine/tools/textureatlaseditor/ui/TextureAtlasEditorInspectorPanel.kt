@@ -8,6 +8,8 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchValidationSev
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
+import com.pashkd.krender.engine.tools.common.bitmapfont.preview.glyphCompactLabel
+import com.pashkd.krender.engine.tools.common.bitmapfont.preview.glyphDisplayCharacter
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontPageTexturePath
@@ -168,12 +170,12 @@ class TextureAtlasEditorInspectorPanel(
                 document.glyphs
                     .filter { glyph ->
                         glyph.id.toString().contains(filter) ||
-                            glyph.char?.lowercase()?.contains(filter) == true
+                            glyphDisplayCharacter(glyph)?.lowercase()?.contains(filter) == true
                     }.take(MaxVisibleGlyphs)
             }
         ImGui.beginChild("font_glyph_list", glm_.vec2.Vec2(0f, 150f), true)
         filteredGlyphs.forEach { glyph ->
-            val label = glyphLabel(glyph)
+            val label = "${glyphCompactLabel(glyph)}##glyph_${glyph.id}"
             val selected = state.fontPreview.selectedGlyphId == glyph.id
             if (ImGui.selectable(label, selected)) {
                 operations.selectFontGlyph(glyph.id)
@@ -215,8 +217,7 @@ class TextureAtlasEditorInspectorPanel(
     }
 
     private fun glyphLabel(glyph: BitmapFontGlyph): String {
-        val charDisplay = glyph.char?.takeIf { it.isNotBlank() && it.first().code > 32 }?.let { " '$it'" } ?: ""
-        return "id=${glyph.id}$charDisplay [${glyph.width}x${glyph.height}]##glyph_${glyph.id}"
+        return glyphCompactLabel(glyph)
     }
 
     private val npBuf = ByteArray(NpBufSize)

@@ -37,10 +37,24 @@ fun buildFontInspectorData(document: BitmapFontDocument): FontInspectorData =
     )
 
 fun glyphDisplayLabel(glyph: BitmapFontGlyph): String {
-    val charDisplay = glyph.char?.takeIf { it.isNotBlank() } ?: ""
-    return if (charDisplay.isNotEmpty()) {
+    val charDisplay = glyphDisplayCharacter(glyph)
+    return if (charDisplay != null) {
         "'$charDisplay' (${glyph.id})"
     } else {
         "U+${glyph.id.toString(16).uppercase().padStart(4, '0')} (${glyph.id})"
     }
+}
+
+fun glyphDisplayCharacter(glyph: BitmapFontGlyph): String? = glyph.char?.takeIf(String::isNotBlank) ?: codepointDisplayCharacter(glyph.id)
+
+fun glyphCompactLabel(glyph: BitmapFontGlyph): String {
+    val charDisplay = glyphDisplayCharacter(glyph)?.let { "'$it'" } ?: "U+${glyph.id.toString(16).uppercase().padStart(4, '0')}"
+    return "id=${glyph.id} $charDisplay [${glyph.width}x${glyph.height}]"
+}
+
+private fun codepointDisplayCharacter(codepoint: Int): String? {
+    if (!Character.isValidCodePoint(codepoint) || Character.isISOControl(codepoint)) {
+        return null
+    }
+    return String(Character.toChars(codepoint))
 }

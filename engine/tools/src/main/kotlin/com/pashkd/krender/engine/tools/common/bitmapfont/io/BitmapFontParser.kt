@@ -169,7 +169,7 @@ class BitmapFontParser {
             diagnostics += diag(BitmapFontDiagnosticSeverity.Warning, "Glyph missing id at line ${lineIndex + 1}.", source)
             return null
         }
-        val charValue = attrs["letter"] ?: attrs["char"] ?: id.toChar().takeIf { it.isDefined() }?.toString()
+        val charValue = attrs["letter"] ?: attrs["char"] ?: codepointDisplayCharacter(id)
         return BitmapFontGlyph(
             id = id,
             char = charValue,
@@ -251,6 +251,13 @@ class BitmapFontParser {
                 header[1] == 'M'.code.toByte() &&
                 header[2] == 'F'.code.toByte()
         }.getOrDefault(false)
+
+    private fun codepointDisplayCharacter(codepoint: Int): String? {
+        if (!Character.isValidCodePoint(codepoint) || Character.isISOControl(codepoint)) {
+            return null
+        }
+        return String(Character.toChars(codepoint))
+    }
 
     companion object {
         private val AttrPattern = Regex("""(\w+)=("[^"]*"|\S+)""")

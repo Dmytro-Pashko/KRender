@@ -15,6 +15,8 @@ import imgui.*
 import imgui.ImGui.image
 import imgui.classes.Context
 import imgui.impl.gl.ImplGL3
+import imgui.font.FontConfig
+import imgui.font.glyphRanges
 
 /**
  * Owns the shared ImGui context and backend renderer.
@@ -37,6 +39,7 @@ class GdxImGuiService(
      */
     init {
         withCurrentContext {
+            configureFonts()
             val io = ImGui.io
             io.backendPlatformName = "krender_gdx"
             io.configFlags = io.configFlags / ConfigFlag.NavEnableKeyboard / ConfigFlag.NoMouseCursorChange
@@ -187,6 +190,45 @@ class GdxImGuiService(
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
         Gdx.gl.glColorMask(true, true, true, true)
         Gdx.gl.glDepthMask(true)
+    }
+
+    private fun configureFonts() {
+        val fontPath = resolveEditorFontPath() ?: return
+        val font =
+            ImGui.io.fonts.addFontFromFileTTF(
+                filename = fontPath,
+                sizePixels = EditorFontSizePx,
+                fontCfg =
+                    FontConfig().apply {
+                        name = "roboto.ttf, ${EditorFontSizePx.toInt()}px"
+                        pixelSnapH = true
+                    },
+                glyphRanges = glyphRanges.default + glyphRanges.cyrillic,
+            )
+        if (font != null) {
+            ImGui.io.fontDefault = font
+        } else {
+            Gdx.app.error(TAG, "Failed to load ImGui font from '$fontPath'. Falling back to default font.")
+        }
+    }
+
+    private fun resolveEditorFontPath(): String? {
+        val candidates = arrayOf("fonts/roboto.ttf", "assets/fonts/roboto.ttf")
+        return candidates.firstNotNullOfOrNull { path ->
+            Gdx.files.internal(path)
+                .takeIf { it.exists() }
+                ?.file()
+                ?.absolutePath
+        }.also { resolvedPath ->
+            if (resolvedPath == null) {
+                Gdx.app.error(TAG, "ImGui font file not found. Checked: ${candidates.joinToString()}")
+            }
+        }
+    }
+
+    companion object {
+        private const val TAG = "GdxImGuiService"
+        private const val EditorFontSizePx = 16f
     }
 }
 

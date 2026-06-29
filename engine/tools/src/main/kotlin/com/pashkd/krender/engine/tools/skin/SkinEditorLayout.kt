@@ -24,7 +24,7 @@ object SkinEditorUiLayoutDefaults {
                 mapOf(
                     SkinEditorPanelIds.Toolbar to
                         ImGuiPanelLayout(
-                            title = "Skin Editor Toolbar",
+                            title = "Skin Editor Control",
                             x = 16f,
                             y = 16f,
                             width = 1180f,

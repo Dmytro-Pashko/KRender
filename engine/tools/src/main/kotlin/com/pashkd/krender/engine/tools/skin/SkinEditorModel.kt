@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.tools.skin
 
 import com.pashkd.krender.engine.api.TexturePreviewHandle
+import com.pashkd.krender.engine.tools.common.canvas.CanvasZoomMode
 import java.io.File
 
 /**
@@ -388,6 +389,7 @@ data class SkinPreviewSettings(
     var showCheckerboard: Boolean = true,
     var showBounds: Boolean = false,
     var highlightSelectedStyle: Boolean = true,
+    var zoomMode: CanvasZoomMode = CanvasZoomMode.Fit,
     var camera: SkinPreviewCameraState = SkinPreviewCameraState(),
     var interaction: SkinPreviewInteractionState = SkinPreviewInteractionState(),
     var showFallbackWarnings: Boolean = true,

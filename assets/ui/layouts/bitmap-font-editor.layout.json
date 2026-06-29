@@ -12,7 +12,7 @@
       "x": 619,
       "y": 199,
       "width": 764,
-      "height": 821
+      "height": 824
     },
     "bfe_glyph_list": {
       "title": "Glyph List",
@@ -24,16 +24,16 @@
     "bfe_inspector": {
       "title": "Inspector",
       "x": 180,
-      "y": 579,
-      "width": 435,
-      "height": 439
+      "y": 601,
+      "width": 436,
+      "height": 421
     },
     "bfe_generation": {
       "title": "Tools",
       "x": 182,
       "y": 193,
-      "width": 432,
-      "height": 380
+      "width": 434,
+      "height": 401
     },
     "bfe_diagnostics": {
       "title": "Diagnostics",

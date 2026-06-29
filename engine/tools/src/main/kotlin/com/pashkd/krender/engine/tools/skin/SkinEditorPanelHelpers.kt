@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.skin
 
+import com.pashkd.krender.engine.tools.common.canvas.CanvasZoomMode
 import imgui.ImGui
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -35,6 +36,15 @@ internal const val ResourcePreviewClickDragThreshold = 4f
 internal const val MinResourcePreviewGridScreenSpacing = 8f
 
 internal fun formatPreviewScale(scale: Float): String = "${(scale * 100f).toInt()}%"
+
+internal fun formatPreviewZoomMode(zoomMode: CanvasZoomMode): String =
+    when (zoomMode) {
+        CanvasZoomMode.Fit -> "Fit"
+        CanvasZoomMode.Percent50 -> "50%"
+        CanvasZoomMode.Percent100 -> "100%"
+        CanvasZoomMode.Percent200 -> "200%"
+        CanvasZoomMode.Custom -> "Custom"
+    }
 
 internal fun formatResourcePreviewZoom(zoomMode: SkinResourceVisualPreviewZoomMode): String =
     when (zoomMode) {

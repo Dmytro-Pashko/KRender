@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.skin.ui
 
+import com.pashkd.krender.engine.tools.common.canvas.CanvasZoomMode
 import com.pashkd.krender.engine.tools.skin.PreviewScales
 import com.pashkd.krender.engine.tools.skin.SkinEditorCanvasRect
 import com.pashkd.krender.engine.tools.skin.SkinEditorOperations
@@ -10,6 +11,7 @@ import com.pashkd.krender.engine.tools.skin.SkinPreviewPointerEvent
 import com.pashkd.krender.engine.tools.skin.SkinPreviewPointerEventType
 import com.pashkd.krender.engine.tools.skin.SkinPreviewScreenPresets
 import com.pashkd.krender.engine.tools.skin.formatPreviewScale
+import com.pashkd.krender.engine.tools.skin.formatPreviewZoomMode
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -67,6 +69,25 @@ class SkinEditorPreviewCanvasPanel(
             }
             ImGui.endCombo()
         }
+        ImGui.textUnformatted("Zoom Mode:")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(160f)
+        if (ImGui.beginCombo("##skin_editor_canvas_zoom_mode", formatPreviewZoomMode(state.previewSettings.zoomMode))) {
+            CanvasZoomMode.entries.forEach { mode ->
+                if (ImGui.selectable("${formatPreviewZoomMode(mode)}##skin_editor_canvas_zoom_mode_$mode", mode == state.previewSettings.zoomMode)) {
+                    operations.setPreviewZoomMode(mode)
+                }
+            }
+            ImGui.endCombo()
+        }
+        ImGui.sameLine()
+        if (ImGui.button("Fit##skin_editor_canvas_fit")) {
+            operations.fitPreviewCamera()
+        }
+        ImGui.sameLine()
+        if (ImGui.button("Reset Camera##skin_editor_canvas_reset_camera")) {
+            operations.resetPreviewCamera()
+        }
         val showBounds = booleanArrayOf(state.previewSettings.showBounds)
         ImGui.textUnformatted("Show Bounding Box:")
         ImGui.sameLine()
@@ -97,6 +118,12 @@ class SkinEditorPreviewCanvasPanel(
                 "LMB interaction disabled. Ctrl + RMB drag: pan. Ctrl + mouse wheel: zoom."
             },
         )
+        val zoomStatus =
+            when (state.previewSettings.zoomMode) {
+                CanvasZoomMode.Fit -> "Fit"
+                else -> "${(state.previewSettings.camera.zoom * 100f).toInt()}%"
+            }
+        ImGui.textUnformatted("Zoom: $zoomStatus")
         ImGui.textUnformatted("Hover actor: ${state.previewSettings.interaction.hoveredActorPath ?: "<none>"}")
         ImGui.textUnformatted("Focus actor: ${state.previewSettings.interaction.focusedActorPath ?: "<none>"}")
         ImGui.textUnformatted(

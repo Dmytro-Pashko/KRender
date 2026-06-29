@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.tools.bitmapfonteditor.panels
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorController
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorPanelIds
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorState
+import com.pashkd.krender.engine.tools.common.bitmapfont.preview.glyphDisplayCharacter
 import com.pashkd.krender.engine.tools.common.bitmapfont.preview.glyphDisplayLabel
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -57,7 +58,7 @@ class GlyphListPanel(
                 document.glyphs
                     .filter { glyph ->
                         glyph.id.toString().contains(filter) ||
-                            glyph.char?.lowercase()?.contains(filter) == true
+                            glyphDisplayCharacter(glyph)?.lowercase()?.contains(filter) == true
                     }.take(MaxVisibleGlyphs)
             }
 

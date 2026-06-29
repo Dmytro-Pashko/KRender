@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.tools.skin
 
 import com.pashkd.krender.engine.api.EngineContext
+import com.pashkd.krender.engine.tools.common.canvas.CanvasZoomMode
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 
@@ -158,11 +159,17 @@ class SkinEditorOperations(
         val preset = SkinPreviewScreenPresets.presetOrDefault(presetId)
         state.previewSettings.screenPresetId = preset.id
         updatePreviewStatus("Preview screen set to ${preset.displayName} (${preset.width} x ${preset.height}).")
+        if (state.previewSettings.zoomMode == CanvasZoomMode.Fit) {
+            fitPreviewCamera()
+        }
     }
 
     fun setPreviewScale(scale: Float) {
         state.previewSettings.scale = scale.coerceIn(0.5f, 1.5f)
         updatePreviewStatus("Preview scale set to ${formatScale(state.previewSettings.scale)}.")
+        if (state.previewSettings.zoomMode == CanvasZoomMode.Fit) {
+            fitPreviewCamera()
+        }
     }
 
     fun setShowBounds(showBounds: Boolean) {
@@ -222,6 +229,7 @@ class SkinEditorOperations(
         deltaScreenX: Float,
         deltaScreenY: Float,
     ) {
+        state.previewSettings.zoomMode = CanvasZoomMode.Custom
         val canvasWidth = state.canvasRect.width.coerceAtLeast(1f)
         val canvasHeight = state.canvasRect.height.coerceAtLeast(1f)
         val preset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
@@ -233,13 +241,34 @@ class SkinEditorOperations(
 
     fun setPreviewCameraZoom(value: Float) {
         state.previewSettings.camera.zoom = value.coerceIn(MinPreviewCameraZoom, MaxPreviewCameraZoom)
+        state.previewSettings.zoomMode = CanvasZoomMode.Custom
         state.statusMessage = "Preview camera zoom set to ${formatScale(state.previewSettings.camera.zoom)}."
+    }
+
+    fun setPreviewZoomMode(mode: CanvasZoomMode) {
+        state.previewSettings.zoomMode = mode
+        when (mode) {
+            CanvasZoomMode.Fit -> fitPreviewCamera()
+            CanvasZoomMode.Percent50 -> applyFixedPreviewZoom(0.5f, mode)
+            CanvasZoomMode.Percent100 -> applyFixedPreviewZoom(1f, mode)
+            CanvasZoomMode.Percent200 -> applyFixedPreviewZoom(2f, mode)
+            CanvasZoomMode.Custom -> state.statusMessage = "Preview zoom set to Custom."
+        }
+    }
+
+    fun fitPreviewCamera() {
+        state.previewSettings.camera.panX = 0f
+        state.previewSettings.camera.panY = 0f
+        state.previewSettings.camera.zoom = 1f
+        state.previewSettings.zoomMode = CanvasZoomMode.Fit
+        state.statusMessage = "Preview fit to canvas."
     }
 
     fun resetPreviewCamera() {
         state.previewSettings.camera.panX = 0f
         state.previewSettings.camera.panY = 0f
         state.previewSettings.camera.zoom = 1f
+        state.previewSettings.zoomMode = CanvasZoomMode.Percent100
         state.statusMessage = "Preview camera reset."
     }
 
@@ -420,6 +449,17 @@ class SkinEditorOperations(
     }
 
     private fun formatScale(scale: Float): String = "${(scale * 100f).toInt()}%"
+
+    private fun applyFixedPreviewZoom(
+        zoom: Float,
+        mode: CanvasZoomMode,
+    ) {
+        state.previewSettings.camera.panX = 0f
+        state.previewSettings.camera.panY = 0f
+        state.previewSettings.camera.zoom = zoom.coerceIn(MinPreviewCameraZoom, MaxPreviewCameraZoom)
+        state.previewSettings.zoomMode = mode
+        state.statusMessage = "Preview zoom set to ${(state.previewSettings.camera.zoom * 100f).toInt()}%."
+    }
 
     private companion object {
         private const val MinResourcePreviewZoom = 0.1f

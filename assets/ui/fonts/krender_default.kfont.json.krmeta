@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:c53345a9-9933-446a-ac51-d7cd9fcb9a85",
+  "type": "Font",
+  "category": "Scene2D",
+  "displayName": "krender_default.kfont",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}

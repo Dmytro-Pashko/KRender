@@ -1,0 +1,25 @@
+{
+  "format": "krender.bitmapFont",
+  "version": 1,
+  "sourceFont": "fonts/roboto.ttf",
+  "outputFnt": "ui/fonts/krender_default.fnt",
+  "outputPages": [
+    "ui/fonts/krender_default.png"
+  ],
+  "generation": {
+    "sizePx": 24,
+    "charsetPreset": "ENGLISH_SYMBOLS_UKRAINIAN_CYRILLIC",
+    "customCharacters": "",
+    "padding": 2,
+    "spacing": 1,
+    "pageWidth": 512,
+    "pageHeight": 256,
+    "antialias": true,
+    "hinting": true,
+    "rasterizer": "AWT",
+    "textAntialiasing": "LCD_HBGR",
+    "fractionalMetrics": true,
+    "renderQuality": "QUALITY",
+    "strokeControl": "DEFAULT"
+  }
+}

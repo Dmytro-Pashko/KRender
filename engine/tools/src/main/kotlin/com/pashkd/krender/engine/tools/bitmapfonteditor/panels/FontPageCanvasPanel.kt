@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorPanelIds
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorState
 import com.pashkd.krender.engine.tools.common.bitmapfont.io.layoutSampleText
 import com.pashkd.krender.engine.tools.common.bitmapfont.preview.FontPreviewOverlays
+import com.pashkd.krender.engine.tools.common.bitmapfont.preview.glyphCompactLabel
 import com.pashkd.krender.engine.tools.common.canvas.CanvasOverlays
 import com.pashkd.krender.engine.tools.common.canvas.CanvasRect
 import com.pashkd.krender.engine.tools.common.canvas.CanvasZoomMode
@@ -332,7 +333,7 @@ class FontPageCanvasPanel(
 
     private fun glyphLabel(glyphId: Int?): String {
         val glyph = state.document?.glyphs?.firstOrNull { it.id == glyphId } ?: return "<none>"
-        return "id=${glyph.id} '${glyph.char ?: "?"}' [${glyph.width}x${glyph.height}]"
+        return glyphCompactLabel(glyph)
     }
 
     private fun clearCursorMetrics() {

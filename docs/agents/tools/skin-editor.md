@@ -86,6 +86,7 @@ save workflow that writes draft style/resource edits back to the loaded skin fil
 - Show diagnostics/problems with style/resource linking.
 - Render Scene2D widget preview with preview layouts and controls.
 - Support interactive widget preview in the canvas.
+- Support preview camera Fit/Reset controls and a zoom mode selector in the canvas.
 - Preview atlas, texture, font, and color resources.
 - Support interactive atlas viewport controls and overlays.
 - Provide in-memory style/color editing with pending changes.

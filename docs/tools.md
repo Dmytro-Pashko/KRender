@@ -320,8 +320,8 @@ Supported files and assets:
 
 Major panels:
 
-- Toolbar
-  Skin path, Reload, Discard Edits, Save Changes, Save/Reset Panel Layout, status, and dirty state.
+- Skin Editor Control
+  Reload, Discard Edits, Save Changes, Save/Reset Panel Layout, status, path, and dirty state.
 - Styles
   Style tree grouped by Scene2D style type with counts and selected-style navigation.
 - Style Inspector
@@ -331,7 +331,7 @@ Major panels:
 - Problems
   Diagnostics/validation issues with severity/category filtering and selection links to related style/resource context.
 - Preview Canvas
-  Scene2D widget preview with screen preset, scale, checkerboard, bounds, selected-style highlight, and widget interaction.
+  Scene2D widget preview with screen preset, scale, preview zoom mode, Fit/Reset Camera controls, checkerboard, bounds, selected-style highlight, and widget interaction.
 - Preview Controls
   Widget layout presets, preview text samples, and fallback warning controls.
 
@@ -348,6 +348,7 @@ Main features:
 - Interact with Scene2D widgets in the Preview Canvas using `LMB`.
 - Pan the preview camera with `Ctrl + RMB drag`.
 - Zoom the preview camera with `Ctrl + mouse wheel`.
+- Use `Fit`, `Reset Camera`, and the `Zoom Mode` selector to navigate the preview consistently with the atlas/font editors.
 - Toggle Scene2D bounds, selected-style highlight, and preview checkerboard.
 - Preview atlas and texture resources.
 - Use an interactive atlas viewport with pan/zoom, click-to-select atlas region, checkerboard, grid, all-region bounds, hover highlight, and region selection.
@@ -560,4 +561,3 @@ Use these checks after changing tool code:
 ./gradlew :core:compileKotlin :engine:tools:compileKotlin :engine:scene-player:compileKotlin :desktop-lwjgl3-win:compileKotlin :desktop-lwjgl3-macos:compileKotlin :desktop-lwjgl3-linux:compileKotlin
 ./gradlew :core:test :engine:scene-player:test
 ```
-
