@@ -230,22 +230,25 @@ class TextureAtlasEditorOperations(
     fun setPreviewSurfaceMode(mode: TexturePreviewSurfaceMode) {
         if (state.preview.surfaceMode == mode) return
         state.preview.surfaceMode = mode
-        state.statusMessage =
-            "Canvas viewport mode set to ${
+        logPreviewCameraState(
+            "surface-mode:${
                 when (mode) {
                     TexturePreviewSurfaceMode.Actual -> "Actual"
                     TexturePreviewSurfaceMode.Padding -> "Padding"
                     TexturePreviewSurfaceMode.Custom -> "Custom"
                 }
-            }."
+            }",
+        )
     }
 
     fun setCustomCanvasWidth(value: Int) {
         state.preview.customCanvasWidth = value.coerceIn(TextureAtlasMinCanvasDimensionPixels, TextureAtlasMaxCanvasDimensionPixels)
+        logPreviewCameraState("custom-canvas-width")
     }
 
     fun setCustomCanvasHeight(value: Int) {
         state.preview.customCanvasHeight = value.coerceIn(TextureAtlasMinCanvasDimensionPixels, TextureAtlasMaxCanvasDimensionPixels)
+        logPreviewCameraState("custom-canvas-height")
     }
 
     fun setShowPackedAtlasPreview(enabled: Boolean) {
@@ -266,7 +269,7 @@ class TextureAtlasEditorOperations(
             TexturePreviewZoomMode.Percent50 -> setPreviewZoom(0.5f, updateMode = false)
             TexturePreviewZoomMode.Percent100 -> setPreviewZoom(1f, updateMode = false)
             TexturePreviewZoomMode.Percent200 -> setPreviewZoom(2f, updateMode = false)
-            TexturePreviewZoomMode.Custom -> state.statusMessage = "Preview zoom set to Custom."
+            TexturePreviewZoomMode.Custom -> logPreviewCameraState("zoom-mode:Custom")
         }
     }
 
@@ -279,7 +282,7 @@ class TextureAtlasEditorOperations(
         if (updateMode) {
             state.preview.zoomMode = TexturePreviewZoomMode.Custom
         }
-        state.statusMessage = "Preview zoom set to ${(state.preview.customZoom * 100f).toInt()}%."
+        logPreviewCameraState("zoom")
     }
 
     /**
@@ -331,7 +334,7 @@ class TextureAtlasEditorOperations(
         state.preview.zoomMode = TexturePreviewZoomMode.Custom
         state.preview.viewport.panX = desiredCenterX - (baseImageX + regionCenterX * zoom)
         state.preview.viewport.panY = desiredCenterY - (baseImageY + regionCenterY * zoom)
-        state.statusMessage = "Focused region '${region.id.regionName}'."
+        logPreviewCameraState("focus-region:${region.id.regionName}")
         engine.logger.info(TAG) {
             "Texture Atlas Editor fit selected region='${region.id.regionName}' page='${region.id.pageName}' zoom=$zoom"
         }
@@ -386,7 +389,7 @@ class TextureAtlasEditorOperations(
         state.preview.zoomMode = TexturePreviewZoomMode.Custom
         state.preview.viewport.panX = desiredCenterX - (baseImageX + glyphCenterX * zoom)
         state.preview.viewport.panY = desiredCenterY - (baseImageY + glyphCenterY * zoom)
-        state.statusMessage = "Focused glyph '${glyph.id}'."
+        logPreviewCameraState("focus-glyph:${glyph.id}")
         engine.logger.info(TAG) {
             "Texture Atlas Editor fit selected glyph='${glyph.id}' page=$pageId zoom=$zoom"
         }
@@ -398,6 +401,7 @@ class TextureAtlasEditorOperations(
     ) {
         state.preview.viewport.panX += deltaX
         state.preview.viewport.panY += deltaY
+        logPreviewCameraState("pan")
     }
 
     fun resetPreviewCamera() {
@@ -408,14 +412,14 @@ class TextureAtlasEditorOperations(
         if (state.preview.zoomMode == TexturePreviewZoomMode.Custom) {
             state.preview.zoomMode = TexturePreviewZoomMode.Percent100
         }
-        state.statusMessage = "Preview camera reset."
+        logPreviewCameraState("reset-camera")
     }
 
     fun fitPreview() {
         state.preview.viewport.panX = 0f
         state.preview.viewport.panY = 0f
         state.preview.zoomMode = TexturePreviewZoomMode.Fit
-        state.statusMessage = "Preview fit to canvas."
+        logPreviewCameraState("fit")
     }
 
     fun setShowCheckerboard(enabled: Boolean) {
@@ -649,6 +653,36 @@ class TextureAtlasEditorOperations(
     fun resetNinePatchDraft() = ninePatchOperations.resetNinePatchDraft()
 
     fun applyNinePatchDraft() = ninePatchOperations.applyNinePatchDraft()
+
+    private fun logPreviewCameraState(reason: String) {
+        val preview = state.preview
+        val viewport = preview.viewport
+        val mode =
+            when (preview.canvasMode) {
+                TextureAtlasCanvasMode.TextureAtlas -> "Atlas"
+                TextureAtlasCanvasMode.NinePatch -> "NinePatch"
+                TextureAtlasCanvasMode.FontPreview -> "Font"
+                TextureAtlasCanvasMode.FinalPackedAtlas -> "PackedAtlas"
+            }
+        val surface =
+            when (preview.surfaceMode) {
+                TexturePreviewSurfaceMode.Actual -> "Actual"
+                TexturePreviewSurfaceMode.Padding -> "Padding"
+                TexturePreviewSurfaceMode.Custom -> "Custom"
+            }
+        val zoomMode =
+            when (preview.zoomMode) {
+                TexturePreviewZoomMode.Fit -> "Fit"
+                TexturePreviewZoomMode.Percent50 -> "50%"
+                TexturePreviewZoomMode.Percent100 -> "100%"
+                TexturePreviewZoomMode.Percent200 -> "200%"
+                TexturePreviewZoomMode.Custom -> "Custom"
+            }
+        val message =
+            "Canvas camera [$reason] mode=$mode surface=$surface zoomMode=$zoomMode customZoom=${"%.3f".format(preview.customZoom)} viewportZoom=${"%.3f".format(viewport.zoom)} pan=(${ "%.1f".format(viewport.panX) }, ${ "%.1f".format(viewport.panY) }) canvas=${preview.customCanvasWidth}x${preview.customCanvasHeight}"
+        state.statusMessage = message
+        engine.logger.info(TAG) { message }
+    }
 
     companion object {
         private const val TAG = "TextureAtlasEditorOps"

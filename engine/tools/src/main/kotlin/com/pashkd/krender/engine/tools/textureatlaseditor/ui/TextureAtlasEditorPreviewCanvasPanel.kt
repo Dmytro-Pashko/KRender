@@ -148,6 +148,8 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 gridId = "np_editor_grid",
                 showBoundsToggle = false,
             )
+            drawPreviewSurfaceModeCombo("np_surface")
+            drawCustomCanvasSizeEditors("np_surface")
             if (state.preview.ninePatchStretch.previewType == TextureAtlasNinePatchPreviewType.Source) {
                 ImGui.sameLine()
                 val guides = booleanArrayOf(state.preview.showNinePatchGuides)
@@ -155,8 +157,6 @@ class TextureAtlasEditorPreviewCanvasPanel(
                     operations.setShowNinePatchGuides(guides[0])
                 }
                 tooltipOnHover("Shows or hides editable NinePatch guide handles in the source preview.")
-                drawPreviewSurfaceModeCombo("np_surface")
-                drawCustomCanvasSizeEditors("np_surface")
             } else {
                 drawNinePatchStretchControls()
             }
@@ -174,11 +174,13 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 gridId = "font_grid",
                 showBoundsToggle = false,
             )
+            ImGui.sameLine()
             drawFontTintEditor()
             drawPreviewSurfaceModeCombo("font_surface")
             drawCustomCanvasSizeEditors("font_surface")
             syncFontSampleBuffer()
             textLine("Sample Text")
+            tooltipOnHover("Edits the sample string used by Sample Text Preview in Font Preview mode.")
             ImGui.setNextItemWidth(ImGui.contentRegionAvail.x)
             if (ImGui.inputText("##font_canvas_sample_text", fontSampleBuf)) {
                 operations.setFontSampleText(readBuffer(fontSampleBuf))
@@ -187,6 +189,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
             if (ImGui.checkbox("Sample Text Preview##font_canvas_sample_preview_toggle", samplePreviewToggle)) {
                 operations.setFontSampleTextPreviewEnabled(samplePreviewToggle[0])
             }
+            tooltipOnHover("Switches Font Preview between the full glyph page and laid out sample text.")
             return
         }
         drawSharedPreviewOptionToggles(
@@ -395,13 +398,13 @@ class TextureAtlasEditorPreviewCanvasPanel(
             wrappedTextLine("Select a readable NinePatch resource to run a stretch test.")
             return
         }
-        val viewportLayout =
-            computeTexturePreviewViewportLayout(
-                rect = state.canvasRect,
-                textureWidth = preview.targetWidth,
-                textureHeight = preview.targetHeight,
-                previewState = state.preview.copy(surfaceMode = TexturePreviewSurfaceMode.Actual),
-            )
+            val viewportLayout =
+                computeTexturePreviewViewportLayout(
+                    rect = state.canvasRect,
+                    textureWidth = preview.targetWidth,
+                    textureHeight = preview.targetHeight,
+                    previewState = state.preview,
+                )
         if (state.preview.showCheckerboard) {
             TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
         }
@@ -927,19 +930,25 @@ class TextureAtlasEditorPreviewCanvasPanel(
 
     private fun drawNinePatchStretchControls() {
         syncStretchTargetBuffers()
-        textLine("Target")
-        ImGui.sameLine()
-        ImGui.setNextItemWidth(80f)
-        if (ImGui.inputText("##np_stretch_target_width", stretchTargetWidthBuf)) {
-            parseCustomCanvasDimension(stretchTargetWidthBuf)?.let(operations::setNinePatchStretchTargetWidth)
-        }
-        ImGui.sameLine()
-        textLine("x")
-        ImGui.sameLine()
-        ImGui.setNextItemWidth(80f)
-        if (ImGui.inputText("##np_stretch_target_height", stretchTargetHeightBuf)) {
-            parseCustomCanvasDimension(stretchTargetHeightBuf)?.let(operations::setNinePatchStretchTargetHeight)
-        }
+        val stretchPreview = buildNinePatchStretchPreview(state.ninePatchEditor.draft, state.preview.ninePatchStretch)
+        val targetWidth = stretchPreview?.targetWidth ?: state.preview.ninePatchStretch.targetWidth
+        val targetHeight = stretchPreview?.targetHeight ?: state.preview.ninePatchStretch.targetHeight
+        textLine("Target Resolution")
+        tooltipOnHover("Sets the destination stretch-test size. Choose a preset value or type a custom width and height.")
+        drawStretchTargetDimensionControl(
+            label = "Width##np_stretch_target_width",
+            inputId = "np_stretch_target_width",
+            currentValue = targetWidth,
+            buffer = stretchTargetWidthBuf,
+            onSelect = operations::setNinePatchStretchTargetWidth,
+        )
+        drawStretchTargetDimensionControl(
+            label = "Height##np_stretch_target_height",
+            inputId = "np_stretch_target_height",
+            currentValue = targetHeight,
+            buffer = stretchTargetHeightBuf,
+            onSelect = operations::setNinePatchStretchTargetHeight,
+        )
         val showSourceGuides = booleanArrayOf(state.preview.ninePatchStretch.showSourceGuides)
         if (ImGui.checkbox("Show Source Guides##np_stretch_show_source_guides", showSourceGuides)) {
             operations.setShowNinePatchStretchSourceGuides(showSourceGuides[0])
@@ -970,6 +979,29 @@ class TextureAtlasEditorPreviewCanvasPanel(
                 }
             }
             ImGui.endCombo()
+        }
+    }
+
+    private fun drawStretchTargetDimensionControl(
+        label: String,
+        inputId: String,
+        currentValue: Int,
+        buffer: ByteArray,
+        onSelect: (Int) -> Unit,
+    ) {
+        ImGui.setNextItemWidth(120f)
+        if (ImGui.beginCombo(label, currentValue.toString())) {
+            StretchTargetResolutionOptions.forEach { option ->
+                if (ImGui.selectable(option.toString(), option == currentValue)) {
+                    onSelect(option)
+                }
+            }
+            ImGui.endCombo()
+        }
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(90f)
+        if (ImGui.inputText("##$inputId", buffer)) {
+            parseCustomCanvasDimension(buffer)?.let(onSelect)
         }
     }
 
@@ -1005,6 +1037,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
         private const val ClickDragThreshold = 6f
         private const val NinePatchCanvasPaddingPixels = 100
         private val GridSpacingOptions = intArrayOf(1, 2, 4, 8, 16, 32, 64)
+        private val StretchTargetResolutionOptions = intArrayOf(50, 100, 150, 200, 250, 500)
         private val PickerOnlyColorEditFlags = ColorEditFlag.NoInputs
     }
 
@@ -1055,6 +1088,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
         ) {
             Unit
         }
+        tooltipOnHover("Applies a preview-only tint to the font texture without changing the source asset.")
     }
 
     private fun syncFontSampleBuffer() {
@@ -1119,6 +1153,7 @@ class TextureAtlasEditorPreviewCanvasPanel(
             }
             ImGui.endCombo()
         }
+        tooltipOnHover("Changes the preview surface between actual texture size, padding space, or a custom canvas size.")
     }
 
     private fun drawCustomCanvasSizeEditors(idPrefix: String) {
@@ -1150,11 +1185,13 @@ class TextureAtlasEditorPreviewCanvasPanel(
         if (ImGui.checkbox("Checkerboard##$checkerId", checker)) {
             operations.setShowCheckerboard(checker[0])
         }
+        tooltipOnHover("Shows a checkerboard background behind transparent pixels in the preview.")
         ImGui.sameLine()
         val grid = booleanArrayOf(state.preview.showGrid)
         if (ImGui.checkbox("Grid##$gridId", grid)) {
             operations.setShowGrid(grid[0])
         }
+        tooltipOnHover("Shows a pixel grid overlay on top of the current preview.")
         if (showBoundsToggle) {
             ImGui.sameLine()
             val bounds = booleanArrayOf(state.preview.showBounds)

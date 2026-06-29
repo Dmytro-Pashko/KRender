@@ -499,7 +499,23 @@ Current limitations:
 
 Screenshots:
 
-_Screenshots will be added later._
+Full editor interface:
+![Texture Atlas Editor full interface](tools/screenshots/texture_atlas_editor/texture_atlas_main.png)
+
+Atlas File preview controls:
+![Texture Atlas Editor atlas file preview options](tools/screenshots/texture_atlas_editor/texture_atlas_editor_atlas_file_changing_preview_options.gif)
+
+Font Preview controls:
+![Texture Atlas Editor font preview options](tools/screenshots/texture_atlas_editor/texture_atlas_font_preview_changing_preview_options.gif)
+
+NinePatch Editor preview controls:
+![Texture Atlas Editor nine-patch preview options](tools/screenshots/texture_atlas_editor/texture_atlas_ninepath_preview_changing_preview_options.gif)
+
+Resources panel:
+![Texture Atlas Editor resources panel](tools/screenshots/texture_atlas_editor/texture_atlas_resources_panel.png)
+
+Tools panel:
+![Texture Atlas Editor tools panel](tools/screenshots/texture_atlas_editor/texture_atlas_tools_panel.png)
 
 Required properties:
 

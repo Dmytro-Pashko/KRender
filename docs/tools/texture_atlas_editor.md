@@ -6,6 +6,8 @@ The Texture Atlas Editor is an atlas-centric tool for building and managing libG
 
 The tool supports three resource types — **Image**, **NinePatch**, and **BitmapFont** — and produces standard libGDX `.atlas` descriptors with accompanying PNG page textures.
 
+![Texture Atlas Editor full interface](screenshots/texture_atlas_editor/texture_atlas_main.png)
+
 ## Opening an Atlas
 
 Launch with `krender.scene=texture-atlas-editor` and an optional `krender.atlas.path`:
@@ -36,6 +38,10 @@ Font resources created by importing existing `.fnt` descriptors. The import acti
 
 BitmapFont generation from TTF/OTF is **not** part of the Texture Atlas Editor. Use the dedicated **Bitmap Font Editor** for that workflow.
 
+The resource browser below shows how atlas images, NinePatch entries, and imported bitmap fonts appear in the unified resource list used by the editor.
+
+![Texture Atlas Editor resources panel](screenshots/texture_atlas_editor/texture_atlas_resources_panel.png)
+
 ## Preview Canvas
 
 The Preview Canvas panel provides four modes:
@@ -49,6 +55,12 @@ All modes support pan (right-mouse-button drag), zoom (scroll wheel), fit, check
 
 The NinePatch Editor places **Preview Type** and the stretch-test **Preset** selector on the same row when the canvas is in stretch-test mode. Font Preview glyph bounds use the same baseline outline color as atlas region bounds in Atlas File mode.
 
+### Atlas File Preview
+
+The Atlas File mode is the main page/region inspection view. It is the best place to verify grid, checkerboard, canvas mode, fit/reset camera behavior, and region selection flow on atlas pages.
+
+![Texture Atlas Editor atlas file preview options](screenshots/texture_atlas_editor/texture_atlas_editor_atlas_file_changing_preview_options.gif)
+
 ## NinePatch Editor Mode
 
 When a NinePatch resource is selected, the canvas switches to NinePatch Editor mode:
@@ -59,6 +71,10 @@ When a NinePatch resource is selected, the canvas switches to NinePatch Editor m
 - **Apply Draft** writes the edited split/pad values to the working resource. **Reset** reverts to the source values.
 - Changes are applied to the in-memory draft only. The atlas file is not written until an explicit **Save Texture Atlas** action.
 
+The animation below shows the preview controls in NinePatch Editor mode, including checkerboard, grid, canvas mode, camera navigation, and switching between source/stretched preview behavior.
+
+![Texture Atlas Editor nine-patch preview options](screenshots/texture_atlas_editor/texture_atlas_ninepath_preview_changing_preview_options.gif)
+
 ## BitmapFont Preview
 
 When a Font resource is selected:
@@ -68,6 +84,10 @@ When a Font resource is selected:
 - Sample text can be typed and previewed with the font's glyph layout.
 - **Pack font in atlas** can be toggled per font resource. When enabled, the font page image is included in the next pack operation.
 
+The animation below shows the Font Preview controls in action, including checkerboard, grid, preview tint, canvas mode, camera actions, glyph-bounds display, and sample text preview.
+
+![Texture Atlas Editor font preview options](screenshots/texture_atlas_editor/texture_atlas_font_preview_changing_preview_options.gif)
+
 ## Packing Workflow
 
 1. Configure packing settings in the **Tools** panel: max page width/height, padding, NinePatch inclusion, and rotation (accepted but not currently applied).
@@ -76,6 +96,10 @@ When a Font resource is selected:
 4. Review diagnostics for skipped regions, oversized textures, or missing sources.
 
 **Pack Texture Atlas does not write any files.** It only computes the layout.
+
+The Tools panel is where page size, padding, packing toggles, export path, and save actions are configured for the current atlas workflow.
+
+![Texture Atlas Editor tools panel](screenshots/texture_atlas_editor/texture_atlas_tools_panel.png)
 
 ## Save Workflow
 

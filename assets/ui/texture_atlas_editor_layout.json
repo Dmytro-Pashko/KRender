@@ -1,7 +1,7 @@
 {
   "panels": {
     "textureManagerToolbar": {
-      "title": "Texture Atlas Editor Toolbar",
+      "title": "Texture Atlas Editor Control",
       "x": 2,
       "y": 3,
       "width": 555,

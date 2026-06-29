@@ -31,6 +31,8 @@ class TextureAtlasEditorResourcesPanel(
     private val queryBuffer = ByteArray(BufferSize)
     private val importSourceBuffer = ByteArray(BufferSize)
     private var synced = false
+    private var pendingScrollResourceId: String? = null
+    private var lastObservedSelectedResourceId: String? = null
 
     override fun draw() {
         if (!synced) {
@@ -92,6 +94,10 @@ class TextureAtlasEditorResourcesPanel(
         drawResourceEditingControls()
 
         val resources = visibleResources()
+        if (state.resources.selectedResourceId != lastObservedSelectedResourceId) {
+            pendingScrollResourceId = state.resources.selectedResourceId
+            lastObservedSelectedResourceId = state.resources.selectedResourceId
+        }
         textLine("Resources List")
         ImGui.beginChild("texture_atlas_editor_resources_list", ImVec2(0f, 0f), true)
         resources.forEach { resource ->
@@ -99,6 +105,10 @@ class TextureAtlasEditorResourcesPanel(
             val label = "[${resource.type.label()}] ${resource.name}${resource.sizeLabel()}##${resource.id}"
             if (ImGui.selectable(label, selected)) {
                 operations.selectResource(resource.id)
+            }
+            if (pendingScrollResourceId == resource.id) {
+                ImGui.setScrollHereY(0.5f)
+                pendingScrollResourceId = null
             }
             if (ImGui.isItemHovered() && ImGui.run { imgui.MouseButton.Left.isDoubleClicked }) {
                 operations.selectResource(resource.id)
@@ -128,6 +138,7 @@ class TextureAtlasEditorResourcesPanel(
             operations.browseImportResource()
             writeBuffer(importSourceBuffer, currentImportSourcePath())
         }
+        tooltipOnHover("Opens a file picker for an image or .fnt resource to add into the atlas workflow.")
         if (ImGui.button("Add Existing Asset##texture_atlas_editor_resource_add")) {
             operations.addImageResourceFromPath()
         }

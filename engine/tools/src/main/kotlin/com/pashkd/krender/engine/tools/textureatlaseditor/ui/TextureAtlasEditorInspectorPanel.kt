@@ -30,6 +30,8 @@ class TextureAtlasEditorInspectorPanel(
 ) : UiPanel {
     private val resourceNameBuf = ByteArray(256)
     private var resourceNameKey: String? = null
+    private var pendingScrollGlyphId: Int? = null
+    private var lastObservedSelectedGlyphId: Int? = null
 
     override fun draw() {
         val layout = layoutConfig.panels.getValue(TextureAtlasEditorPanelIds.Inspector)
@@ -73,6 +75,7 @@ class TextureAtlasEditorInspectorPanel(
                     if (ImGui.checkbox("Pack font in atlas##atlas_font_pack_toggle", packInAtlas)) {
                         operations.setPackFontInAtlas(packInAtlas[0])
                     }
+                    tooltipOnHover("Includes this bitmap font page in atlas packing and writes a separate packed font descriptor on save.")
                     state.selectedFontPageTexturePath()?.let { texturePath ->
                         textLine("Font texture: $texturePath")
                     }
@@ -152,7 +155,7 @@ class TextureAtlasEditorInspectorPanel(
             textLine("Selected page texture: $texturePath")
         }
 
-        if (!fontSampleSynced) {
+        if (!fontSampleSynced || readBuffer(fontGlyphFilterBuf) != state.fontPreview.glyphFilter) {
             writeBuffer(fontGlyphFilterBuf, state.fontPreview.glyphFilter)
             fontSampleSynced = true
         }
@@ -165,20 +168,28 @@ class TextureAtlasEditorInspectorPanel(
         val filter = state.fontPreview.glyphFilter.lowercase()
         val filteredGlyphs =
             if (filter.isBlank()) {
-                document.glyphs.take(MaxVisibleGlyphs)
+                document.glyphs
             } else {
                 document.glyphs
                     .filter { glyph ->
                         glyph.id.toString().contains(filter) ||
                             glyphDisplayCharacter(glyph)?.lowercase()?.contains(filter) == true
-                    }.take(MaxVisibleGlyphs)
+                    }
             }
+        if (state.fontPreview.selectedGlyphId != lastObservedSelectedGlyphId) {
+            pendingScrollGlyphId = state.fontPreview.selectedGlyphId
+            lastObservedSelectedGlyphId = state.fontPreview.selectedGlyphId
+        }
         ImGui.beginChild("font_glyph_list", glm_.vec2.Vec2(0f, 150f), true)
         filteredGlyphs.forEach { glyph ->
             val label = "${glyphCompactLabel(glyph)}##glyph_${glyph.id}"
             val selected = state.fontPreview.selectedGlyphId == glyph.id
             if (ImGui.selectable(label, selected)) {
                 operations.selectFontGlyph(glyph.id)
+            }
+            if (pendingScrollGlyphId == glyph.id) {
+                ImGui.setScrollHereY(0.5f)
+                pendingScrollGlyphId = null
             }
         }
         if (filteredGlyphs.isEmpty()) {
@@ -337,6 +348,5 @@ class TextureAtlasEditorInspectorPanel(
 
     companion object {
         private const val NpBufSize = 16
-        private const val MaxVisibleGlyphs = 200
     }
 }
