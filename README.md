@@ -125,6 +125,10 @@ Full tool documentation is at [docs/tools.md](docs/tools.md).
       <img src="engine/tools/docs/screenshots/texture_atlas_editor/texture_atlas_editor_atlas_file_changing_preview_options.gif" alt="Texture Atlas Editor animated preview" />
     </td>
     <td align="center">
+      <strong>Texture Atlas Editor (NinePatch preview)</strong><br/>
+      <img src="engine/tools/docs/screenshots/texture_atlas_editor/texture_atlas_ninepath_preview_changing_preview_options.gif" alt="Texture Atlas Editor NinePatch animated preview" />
+    </td>
+    <td align="center">
       <strong>Bitmap Font Editor</strong><br/>
       <img src="engine/tools/docs/screenshots/bitmap_font_editor/bitmap_font_editor_font_preview_changing_options.gif" alt="Bitmap Font Editor animated preview" />
     </td>
