@@ -153,9 +153,12 @@ class AssetBrowserSystem(
         }
 
         val loaded = assets.isLoaded(modelRef)
+        val loadFailure = assets.loadFailure(modelRef)
         state.selectedModelStatus =
             if (loaded) {
                 "Loaded"
+            } else if (loadFailure != null) {
+                "Failed: $loadFailure"
             } else {
                 "Loading ${"%.0f".format(assets.progress() * 100f)}%"
             }

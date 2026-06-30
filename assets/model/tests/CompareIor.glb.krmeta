@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:aa28cc3c-4030-46fd-9b0e-061fdb1e0118",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "CompareIor",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

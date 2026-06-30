@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:b96337b5-0947-43f4-b323-095cdba593b2",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "EmissiveStrengthTest",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

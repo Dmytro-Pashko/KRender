@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:332f9060-b334-44df-b07d-92f3ee375837",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "CompareBaseColor",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

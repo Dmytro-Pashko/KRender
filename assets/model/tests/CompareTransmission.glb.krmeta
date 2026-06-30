@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:993f6556-b504-4ca0-a198-1853b3521185",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "CompareTransmission",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

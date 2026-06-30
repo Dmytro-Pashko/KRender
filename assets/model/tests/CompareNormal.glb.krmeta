@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:0b3f0980-9d27-4844-b1b8-777b2fb38a1f",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "CompareNormal",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

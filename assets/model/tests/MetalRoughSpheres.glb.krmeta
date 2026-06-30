@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:34af037b-6cfa-4dd8-91bc-0e2c888cefd7",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "MetalRoughSpheres",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:8835c6f7-93e1-4275-8464-44f223b4fb6f",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "CompareRoughness",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

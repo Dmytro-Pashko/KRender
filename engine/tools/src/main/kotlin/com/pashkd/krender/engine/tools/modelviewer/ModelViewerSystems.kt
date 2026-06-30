@@ -1,6 +1,8 @@
 package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.tools.sceneeditor.SceneEditorLocalBounds
 import com.pashkd.krender.engine.tools.sceneeditor.transformedBoundsCorners
@@ -23,6 +25,7 @@ class ModelViewerSystem(
     private var lastDebugMode: MaterialDebugMode? = null
     private var lastDebugWarning: String? = null
     private var lastMetadataAvailable: Boolean? = null
+    private var lastErrorMessage: String? = null
     private var missingModelEntityLogged = false
 
     override fun onAdded(world: SceneWorld) {
@@ -71,6 +74,7 @@ class ModelViewerSystem(
         syncStatus(world)
         syncSelectionBounds()
         syncDebugState()
+        syncAmbientLight(world)
         logLoadedModelDetails()
         handleRequests()
     }
@@ -81,17 +85,19 @@ class ModelViewerSystem(
     private fun syncStatus(world: SceneWorld) {
         state.assetProgress = assets.progress()
         state.assetLoaded = assets.isLoaded(state.model)
+        val loadFailure = assets.loadFailure(state.model)
         state.loadingStatus =
             when {
                 state.assetLoaded -> "Loaded"
+                loadFailure != null -> "Failed"
                 else -> "Loading ${"%.0f".format(state.assetProgress * 100f)}%"
             }
         state.modelInfo = if (state.assetLoaded) assets.modelInfo(state.model) else null
         state.errorMessage =
-            if (state.assetLoaded && state.modelInfo == null) {
-                "Model metadata is unavailable for this asset."
-            } else {
-                null
+            when {
+                loadFailure != null -> loadFailure
+                state.assetLoaded && state.modelInfo == null -> "Model metadata is unavailable for this asset."
+                else -> null
             }
         logStatusChanges()
 
@@ -150,8 +156,11 @@ class ModelViewerSystem(
             }
             lastMetadataAvailable = metadataAvailable
         }
-        state.errorMessage?.let { error ->
-            logger.warn(TAG) { "ModelViewer state error: $error" }
+        if (lastErrorMessage != state.errorMessage) {
+            state.errorMessage?.let { error ->
+                logger.warn(TAG) { "ModelViewer state error: $error" }
+            }
+            lastErrorMessage = state.errorMessage
         }
     }
 
@@ -183,7 +192,7 @@ class ModelViewerSystem(
             lastDebugMode = effectiveDebugMode
         }
 
-        val selectedMaterialIndex = state.selectedMaterialIndex.takeIf { state.debugSelectedMaterialOnly }
+        val selectedMaterialIndex: Int? = null
         if (isModelViewerTextureDebugMode(effectiveDebugMode)) {
             val channels =
                 matchingModelViewerTextureSlots(
@@ -284,6 +293,28 @@ class ModelViewerSystem(
         }
     }
 
+    private fun syncAmbientLight(world: SceneWorld) {
+        val ambientLight =
+            state.ambientLightEntityId
+                ?.let(world::getEntity)
+                ?.get<LightComponent>()
+                ?: return
+        if (ambientLight.type != LightType.Ambient) return
+        val ambientIntensity = state.ambientLightIntensity.coerceAtLeast(0f)
+        val environmentIntensity = state.libGdxEnvironmentIntensity.coerceAtLeast(0f)
+        state.ambientLightIntensity = ambientIntensity
+        state.libGdxEnvironmentIntensity = environmentIntensity
+        val effectiveIntensity =
+            if (state.rendererMode == ModelViewerRendererMode.LibGdx) {
+                ambientIntensity * environmentIntensity
+            } else {
+                ambientIntensity
+            }
+        if (ambientLight.intensity != effectiveIntensity) {
+            ambientLight.intensity = effectiveIntensity
+        }
+    }
+
     /**
      * Emits one structured metadata dump when the active model finishes loading.
      */
@@ -323,6 +354,26 @@ class ModelViewerSystem(
      * Executes deferred actions requested by the UI.
      */
     private fun handleRequests() {
+        if (state.reloadRequested) {
+            state.reloadRequested = false
+            assets.unload(state.model)
+            assets.queue(state.model)
+            state.assetLoaded = false
+            state.assetProgress = 0f
+            state.loadingStatus = "Reloading"
+            state.errorMessage = null
+            state.modelInfo = null
+            state.statusMessage = "Reloading model from disk..."
+            state.selectedMeshPartIndex = null
+            state.selectedMaterialIndex = null
+            state.selectedTextureChannel = null
+            loggedModelPath = null
+            lastAssetLoaded = null
+            lastLoadingStatus = null
+            lastMetadataAvailable = null
+            lastErrorMessage = null
+            logger.info(TAG) { "ModelViewer re-queued model='${state.model.path}' for reload" }
+        }
         if (state.exitRequested) {
             logger.warn(TAG) { "ModelViewer exit requested from UI state model='${state.model.path}'" }
             state.exitRequested = false
@@ -410,20 +461,16 @@ class ModelViewerModelRenderSystem(
     private fun ModelViewerState.materialDebugView(): MaterialDebugView? {
         val mode = if (uvCheckerEnabled) MaterialDebugMode.UvChecker else debugMode
         if (mode == MaterialDebugMode.None) return null
-        val selectedMaterial = selectedMaterialIndex.takeIf { debugSelectedMaterialOnly }
         return MaterialDebugView(
             mode = mode,
-            selectedMaterialIndex = selectedMaterial,
-            selectedMaterialId =
-                selectedMaterial?.let { index ->
-                    modelInfo?.materials?.firstOrNull { material -> material.index == index }?.id
-                },
+            selectedMaterialIndex = null,
+            selectedMaterialId = null,
             selectedTextureChannel = selectedTextureChannel,
             textureRefs =
                 resolvedModelViewerDebugTextureRefs(
                     info = modelInfo,
                     mode = mode,
-                    selectedMaterialIndex = selectedMaterial,
+                    selectedMaterialIndex = null,
                     selectedTextureChannel = selectedTextureChannel,
                 ),
             uvCheckerTexture =

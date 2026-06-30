@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.g3d.model.NodePart
 import com.badlogic.gdx.graphics.glutils.FileTextureData
 import com.badlogic.gdx.math.collision.BoundingBox
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.UBJsonReader
 import com.pashkd.krender.engine.api.*
@@ -36,6 +37,7 @@ class GdxAssetService(
     private val missing = mutableSetOf<String>()
     private val loggedLoaded = mutableSetOf<String>()
     private val warnedTextureBindings = mutableSetOf<String>()
+    private val failedLoads = mutableMapOf<String, String>()
     private val shaderSources = mutableMapOf<String, String>()
     private val modelInfos = mutableMapOf<String, ModelAssetInfo>()
     private val modelSkeletons = mutableMapOf<String, ModelSkeletonInfo>()
@@ -65,6 +67,7 @@ class GdxAssetService(
                     throw missingAsset("model", asset.path)
                 }
                 requested += asset.path
+                failedLoads -= asset.path
                 logger?.info(GDX_ASSET_SERVICE_TAG) { "Queue asset type=model path='${asset.path}' gltf=${asset.isGltf()}" }
                 if (asset.isGltf()) {
                     manager.load(asset.path, SceneAsset::class.java)
@@ -79,6 +82,7 @@ class GdxAssetService(
                     throw missingAsset("texture", asset.path)
                 }
                 requested += asset.path
+                failedLoads -= asset.path
                 logger?.info(GDX_ASSET_SERVICE_TAG) { "Queue asset type=texture path='${asset.path}'" }
                 manager.load(asset.path, Texture::class.java)
             }
@@ -93,6 +97,7 @@ class GdxAssetService(
                 val file = Gdx.files.internal(asset.path)
                 if (file.exists()) {
                     requested += asset.path
+                    failedLoads -= asset.path
                     shaderSources[asset.path] = file.readString()
                     logger?.info(GDX_ASSET_SERVICE_TAG) { "Loaded shader source path='${asset.path}'" }
                 } else {
@@ -114,7 +119,11 @@ class GdxAssetService(
 
     /** Advances asynchronous loading for up to the given time budget. */
     override fun update(budgetMs: Int): Float {
-        manager.update(budgetMs)
+        try {
+            manager.update(budgetMs)
+        } catch (error: GdxRuntimeException) {
+            handleAssetLoadFailure(error)
+        }
         logLoadedAssets()
         cacheLoadedModelBounds()
         return progress()
@@ -145,6 +154,8 @@ class GdxAssetService(
             else -> false
         }
     }
+
+    override fun loadFailure(asset: AssetRef<*>): String? = failedLoads[asset.path]
 
     /** Rejects untyped access because core code should keep using asset references. */
     override fun <T : Any> get(asset: AssetRef<T>): T {
@@ -249,6 +260,7 @@ class GdxAssetService(
         }
         requested -= asset.path
         missing -= asset.path
+        failedLoads -= asset.path
         shaderSources -= asset.path
         modelInfos -= asset.path
         modelSkeletons -= asset.path
@@ -351,6 +363,7 @@ class GdxAssetService(
     private fun logLoadedAssets() {
         requested.forEach { path ->
             if (path in loggedLoaded) return@forEach
+            if (path in failedLoads) return@forEach
             val loaded =
                 when {
                     manager.isLoaded(path, SceneAsset::class.java) -> "gltf-scene"
@@ -382,6 +395,7 @@ class GdxAssetService(
     private fun cacheLoadedModelBounds() {
         requested.forEach { path ->
             if (path in modelBoundsCache) return@forEach
+            if (path in failedLoads) return@forEach
             val asset = AssetRef.model(path)
             if (!isLoaded(asset)) return@forEach
             val model =
@@ -544,6 +558,33 @@ class GdxAssetService(
 
     /** Returns the dimensions of a cached model bounds box. */
     private fun ModelAssetBounds.size(): Vec3 = Vec3(max.x - min.x, max.y - min.y, max.z - min.z)
+
+    private fun handleAssetLoadFailure(error: GdxRuntimeException) {
+        val failedPath = pendingAssetPath()
+        val message = error.message ?: error::class.simpleName ?: "Unknown asset load failure"
+        if (failedPath == null) {
+            logger?.error(GDX_ASSET_SERVICE_TAG, error) { "Asset update failed without a resolved path: $message" }
+            return
+        }
+
+        failedLoads[failedPath] = message
+        modelInfos -= failedPath
+        modelSkeletons -= failedPath
+        modelBoundsCache -= failedPath
+        modelTriangleCounts -= failedPath
+        modelTexturePreviewKeys.remove(failedPath)?.forEach { key -> texturePreviewRegistry -= key }
+        poseSampler.clear(failedPath)
+        logger?.error(GDX_ASSET_SERVICE_TAG, error) { "Asset load failed path='$failedPath': $message" }
+    }
+
+    private fun pendingAssetPath(): String? =
+        requested.firstOrNull { path ->
+            path !in failedLoads &&
+                path !in shaderSources &&
+                !manager.isLoaded(path, SceneAsset::class.java) &&
+                !manager.isLoaded(path, Model::class.java) &&
+                !manager.isLoaded(path, Texture::class.java)
+        }
 }
 
 /**

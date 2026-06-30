@@ -81,6 +81,9 @@ interface AssetService {
     /** Reports whether a scheduled asset is ready for use. */
     fun isLoaded(asset: AssetRef<*>): Boolean
 
+    /** Returns the last load/preparation failure for the asset, when the backend can provide one. */
+    fun loadFailure(asset: AssetRef<*>): String? = null
+
     /** Resolves a loaded asset into its backend-specific runtime object. */
     fun <T : Any> get(asset: AssetRef<T>): T
 

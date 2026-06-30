@@ -44,6 +44,8 @@ data class ModelViewerState(
     val model: AssetRef<ModelAsset>,
     /** Runtime entity id of the visible model instance. */
     var modelEntityId: EntityId? = null,
+    /** Runtime entity id of the ambient light that lights the preview. */
+    var ambientLightEntityId: EntityId? = null,
     /** Uniform scale applied to the inspected model entity. */
     val modelScale: Float = 1f,
     /** True when the inspected model asset is loaded. */
@@ -74,12 +76,16 @@ data class ModelViewerState(
     var gridHalfExtentCells: Int = 24,
     /** World-space size of one grid cell. */
     var gridCellSize: Float = 1f,
+    /** Ambient light intensity used by the viewer light entity. */
+    var ambientLightIntensity: Float = 0.8f,
+    /** Environment intensity multiplier applied to the LibGDX preview lighting. */
+    var libGdxEnvironmentIntensity: Float = 1f,
     /** Current display mode for the model material. */
     var displayMode: ModelViewerDisplayMode = ModelViewerDisplayMode.Shaded,
     /** Current material/texture debug mode. */
     var debugMode: MaterialDebugMode = MaterialDebugMode.None,
-    /** Limits debug rendering to the selected material when enabled. */
-    var debugSelectedMaterialOnly: Boolean = false,
+    /** Last non-UV-checker channel display mode so the UV checker toggle can restore it. */
+    var lastNonUvCheckerDebugMode: MaterialDebugMode = MaterialDebugMode.None,
     /** Enables UV checker override. Mirrored with [debugMode] when selected in the UI. */
     var uvCheckerEnabled: Boolean = false,
     /** Culling behavior used by shader debug rendering. */
@@ -115,6 +121,8 @@ data class ModelViewerState(
     var isolateSelectedMeshPart: Boolean = false,
     /** Cached loaded model metadata snapshot. */
     var modelInfo: ModelAssetInfo? = null,
+    /** Set by the UI to request a model reload from disk. */
+    var reloadRequested: Boolean = false,
     /** Set by the UI to request application exit. */
     var exitRequested: Boolean = false,
 ) {

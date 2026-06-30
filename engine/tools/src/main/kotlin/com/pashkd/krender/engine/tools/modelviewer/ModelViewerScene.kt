@@ -239,15 +239,20 @@ class ModelViewerScene(
      */
     private fun createAmbientLight() {
         val ambient = world.createEntity("Ambient Light")
+        viewerState.ambientLightEntityId = ambient.id
         ambient.add(
             LightComponent(
                 type = LightType.Ambient,
                 color = Color(0.55f, 0.58f, 0.64f),
-                intensity = 0.8f,
+                intensity = viewerState.ambientLightIntensity,
             ),
         )
         engine.logger.debug(TAG) {
-            "ModelViewer ambient light created id=${ambient.id} color=0.55,0.58,0.64 intensity=0.80"
+            "ModelViewer ambient light created id=${ambient.id} color=0.55,0.58,0.64 intensity=${
+                "%.2f".format(
+                    viewerState.ambientLightIntensity,
+                )
+            }"
         }
     }
 
@@ -280,7 +285,7 @@ class ModelViewerScene(
             addPanel(
                 uiSystem,
                 "Viewport",
-                ModelViewerViewportPanel(viewerState, layoutConfig, layoutTracker, panelEventLogger),
+                ModelViewerViewportPanel(viewerState, operations, layoutConfig, layoutTracker, panelEventLogger),
             )
             addPanel(
                 uiSystem,

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:11464926-6ae9-4bf4-93a4-48e6cb73a1b3",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "CompareAmbientOcclusion",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

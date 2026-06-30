@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:1d388716-bd44-4e00-84d0-a19822a3ad4a",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "CompareMetallic",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

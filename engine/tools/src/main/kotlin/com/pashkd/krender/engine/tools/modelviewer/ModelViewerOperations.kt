@@ -15,6 +15,12 @@ class ModelViewerOperations(
     private val context: EngineContext,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
 ) {
+    fun requestReload() {
+        state.reloadRequested = true
+        state.statusMessage = "Reloading model from disk..."
+        context.logger.info(TAG) { "ModelViewer reload requested model='${state.model.path}'" }
+    }
+
     fun saveUiLayout() {
         try {
             val config = layoutTracker.currentConfig()
@@ -46,6 +52,16 @@ class ModelViewerOperations(
         state.camera.eulerDegrees = DefaultCameraEulerDegrees.copy()
         state.statusMessage = "Camera reset."
         context.logger.info(TAG) { "ModelViewer camera reset" }
+    }
+
+    fun setAmbientLightIntensity(intensity: Float) {
+        state.ambientLightIntensity = intensity.coerceIn(MinAmbientLightIntensity, MaxAmbientLightIntensity)
+    }
+
+    fun resetAmbientLight() {
+        state.ambientLightIntensity = DefaultAmbientLightIntensity
+        state.statusMessage = "Ambient light reset."
+        context.logger.info(TAG) { "ModelViewer ambient light reset intensity=${state.ambientLightIntensity}" }
     }
 
     fun frameModel() {
@@ -94,6 +110,9 @@ class ModelViewerOperations(
         private const val MinFrameDistance = 2f
         private const val FrameHeightOffsetRatio = 0.15f
         private const val MinFrameHeightOffset = 0.25f
+        private const val MinAmbientLightIntensity = 0f
+        private const val MaxAmbientLightIntensity = 3f
+        private const val DefaultAmbientLightIntensity = 0.8f
         private val DefaultCameraPosition = Vec3(0f, 2f, 6f)
         private val DefaultCameraEulerDegrees = Vec3(-10f, 180f, 0f)
     }

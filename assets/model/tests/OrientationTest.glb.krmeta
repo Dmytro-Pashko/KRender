@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:1dcc7ba3-09b1-405e-8b09-555ed799d6ae",
+  "type": "GltfModel",
+  "category": "Model",
+  "displayName": "OrientationTest",
+  "tags": [],
+  "importerId": "gltf",
+  "importSettings": {}
+}

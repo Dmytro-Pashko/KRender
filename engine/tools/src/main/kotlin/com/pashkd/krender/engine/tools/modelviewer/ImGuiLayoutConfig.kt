@@ -29,7 +29,7 @@ object ModelViewerUiLayoutDefaults {
                 mapOf(
                     ModelViewerPanelIds.Toolbar to
                         ImGuiPanelLayout(
-                            title = "Model Viewer",
+                            title = "Model Viewer Controls",
                             x = 16f,
                             y = 16f,
                             width = 960f,
@@ -37,7 +37,7 @@ object ModelViewerUiLayoutDefaults {
                         ),
                     ModelViewerPanelIds.Viewport to
                         ImGuiPanelLayout(
-                            title = "Viewport",
+                            title = "Viewport Control",
                             x = 16f,
                             y = 152f,
                             width = 360f,

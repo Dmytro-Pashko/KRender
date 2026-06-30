@@ -26,14 +26,20 @@ class ModelViewerToolbarPanel(
         }
 
         with(dsl) {
-            button("Persist UI##model_viewer_persist_ui") {
+            button("Save Layout##model_viewer_save_layout") {
                 operations.saveUiLayout()
             }
         }
         ImGui.sameLine()
         with(dsl) {
-            button("Reset UI to Default##model_viewer_reset_ui") {
+            button("Reset Layout##model_viewer_reset_layout") {
                 operations.restoreUiLayout()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Reload##model_viewer_reload") {
+                operations.requestReload()
             }
         }
         ImGui.sameLine()
@@ -70,6 +76,7 @@ class ModelViewerToolbarPanel(
  */
 class ModelViewerViewportPanel(
     private val state: ModelViewerState,
+    private val operations: ModelViewerOperations,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
@@ -89,7 +96,7 @@ class ModelViewerViewportPanel(
         state.viewportSize = Vec2(viewportSize.x.coerceAtLeast(0f), viewportSize.y.coerceAtLeast(0f))
         state.viewportFocused = ImGui.isWindowHovered() || ImGui.isWindowFocused()
 
-        ImGui.text("Model view")
+        ImGui.text("Viewport control")
         ImGui.separator()
         textLine("Camera: ${formatPosition(state.camera.position)}")
         textLine("Speed: ${"%.2f".format(state.camera.speed)}${if (state.camera.navigating) " (navigating)" else ""}")
@@ -119,6 +126,25 @@ class ModelViewerViewportPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
+        val ambientIntensity = FloatHolder(state.ambientLightIntensity)
+        if (
+            slider(
+                "Ambient Intensity##model_viewer_ambient_intensity",
+                ambientIntensity::value,
+                MinAmbientLightIntensity,
+                MaxAmbientLightIntensity,
+                "%.2f",
+                SliderFlag.AlwaysClamp,
+            )
+        ) {
+            operations.setAmbientLightIntensity(ambientIntensity.value)
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Reset Ambient##model_viewer_reset_ambient") {
+                operations.resetAmbientLight()
+            }
+        }
         ImGui.endChild()
         ImGui.end()
     }
@@ -148,7 +174,17 @@ class ModelViewerViewportPanel(
             }
             ImGui.endCombo()
         }
-        if (state.rendererMode != ModelViewerRendererMode.Pbr) return
+        if (state.rendererMode == ModelViewerRendererMode.LibGdx) {
+            slider(
+                "Environment Intensity##model_viewer_libgdx_environment_intensity",
+                state::libGdxEnvironmentIntensity,
+                0f,
+                4f,
+                "%.2f",
+                SliderFlag.AlwaysClamp,
+            )
+            return
+        }
 
         slider("Exposure##model_viewer_pbr_exposure", state::pbrExposure, 0.1f, 4f, "%.2f", SliderFlag.AlwaysClamp)
         slider(
@@ -185,6 +221,8 @@ class ModelViewerViewportPanel(
         private const val MaxGridHalfExtentCells = 256
         private const val MinGridCellSize = 0.05f
         private const val MaxGridCellSize = 16f
+        private const val MinAmbientLightIntensity = 0f
+        private const val MaxAmbientLightIntensity = 3f
     }
 }
 
@@ -207,12 +245,10 @@ class ModelViewerInfoPanel(
         val info = state.modelInfo
         if (info == null) {
             ImGui.text("Metadata is available after the model finishes loading.")
-            textLine("Path: ${state.modelPath}")
             ImGui.end()
             return
         }
 
-        textLine("Path: ${info.path}")
         textLine("Format: ${info.format}")
         textLine("Nodes: ${info.nodeCount}")
         textLine("Meshes: ${info.meshCount}")
@@ -222,7 +258,7 @@ class ModelViewerInfoPanel(
         textLine("Triangles: ${info.triangleCount}")
         textLine("Vertex channels: ${formatList(info.vertexChannels)}")
         textLine("UV channels: ${formatList(info.uvChannels)}")
-        textLine("Texture channels: ${formatList(info.textureChannels)}")
+        drawInfoList("Texture channels", info.textureChannels.map(::textureChannelLabel))
         textLine("Textures: ${info.textureCount} unique / ${info.textureSlotCount} slots")
         textLine("Rig: skeleton=${if (info.hasSkeleton) "yes" else "no"}, bones=${info.boneCount}, animations=${info.animationCount}")
         textLine("Bone weight channels: ${info.boneWeightChannelCount}")
@@ -350,7 +386,7 @@ class ModelViewerMeshPartsPanel(
             }
 
         visibleMeshParts.forEach { part ->
-            val label = "#${part.index} ${part.partId ?: part.meshId ?: part.nodeName ?: "Mesh Part"}"
+            val label = "#${part.index} ${part.partId ?: part.nodeName ?: "Mesh Part"}"
             if (ImGui.selectable(
                     "$label##model_viewer_mesh_part_${part.index}",
                     state.selectedMeshPartIndex == part.index,
@@ -374,7 +410,6 @@ class ModelViewerMeshPartsPanel(
         ImGui.text("Selected mesh part")
         textLine("Index: ${part.index}")
         textLine("Node: ${part.nodeName ?: "unknown"}")
-        textLine("Mesh: ${part.meshId ?: "unknown"}")
         textLine("Part: ${part.partId ?: "unknown"}")
         textLine("Material: ${part.materialId ?: "none"}")
         textLine("Material index: ${part.materialIndex?.toString() ?: "unknown"}")
@@ -552,41 +587,51 @@ class ModelViewerTextureChannelsPanel(
     }
 
     private fun drawDebugView(info: ModelAssetInfo?) {
-        ImGui.text("Debug View")
+        ImGui.text("Channel Display")
         drawDebugModeCombo(info)
-        val selectedOnly = booleanArrayOf(state.debugSelectedMaterialOnly)
-        if (ImGui.checkbox("Selected material only##model_viewer_debug_selected_material_only", selectedOnly)) {
-            state.debugSelectedMaterialOnly = selectedOnly[0]
-        }
-        if (state.debugSelectedMaterialOnly && state.selectedMaterialIndex == null) {
-            textLine("Select a material to limit debug rendering.")
-        }
         drawDebugCullingCombo()
         drawDebugTextureChannelCombo(info)
 
         val uvCheckerEnabled = state.uvCheckerEnabled || state.debugMode == MaterialDebugMode.UvChecker
         val uvCheckerToggle = booleanArrayOf(uvCheckerEnabled)
         if (ImGui.checkbox("UV Checker##model_viewer_uv_checker_enabled", uvCheckerToggle)) {
-            state.uvCheckerEnabled = uvCheckerToggle[0]
-            state.debugMode = if (state.uvCheckerEnabled) MaterialDebugMode.UvChecker else MaterialDebugMode.None
+            if (uvCheckerToggle[0]) {
+                if (state.debugMode != MaterialDebugMode.UvChecker) {
+                    state.lastNonUvCheckerDebugMode = state.debugMode
+                }
+                state.uvCheckerEnabled = true
+                state.debugMode = MaterialDebugMode.UvChecker
+            } else {
+                state.uvCheckerEnabled = false
+                state.debugMode = state.lastNonUvCheckerDebugMode
+            }
         }
         drawUvCheckerSettings(info)
         state.debugWarning?.let { warning -> textLine("Warning: $warning") }
     }
 
     private fun drawDebugModeCombo(info: ModelAssetInfo?) {
-        if (!ImGui.beginCombo("Mode##model_viewer_debug_mode", debugModeLabel(state.debugMode))) return
+        if (!ImGui.beginCombo("Channel##model_viewer_debug_mode", debugModeLabel(state.debugMode))) return
         MaterialDebugMode.entries.forEach { mode ->
             val available = debugModeAvailable(info, mode)
-            val label = if (available) debugModeLabel(mode) else "${debugModeLabel(mode)} (unavailable)"
-            if (ImGui.selectable("$label##model_viewer_debug_${mode.name}", state.debugMode == mode)) {
+            if (!available) {
+                ImGui.beginDisabled()
+            }
+            val selected = state.debugMode == mode
+            if (ImGui.selectable("${debugModeLabel(mode)}##model_viewer_debug_${mode.name}", selected) && available) {
                 state.debugMode = mode
                 state.uvCheckerEnabled = mode == MaterialDebugMode.UvChecker
+                if (mode != MaterialDebugMode.UvChecker) {
+                    state.lastNonUvCheckerDebugMode = mode
+                }
                 preferredModelViewerTextureChannel(
                     info,
                     mode,
-                    selectedMaterialIndex = state.selectedMaterialIndex.takeIf { state.debugSelectedMaterialOnly },
+                    selectedMaterialIndex = null,
                 )?.let { channel -> state.selectedTextureChannel = channel }
+            }
+            if (!available) {
+                ImGui.endDisabled()
             }
         }
         ImGui.endCombo()
@@ -612,9 +657,8 @@ class ModelViewerTextureChannelsPanel(
             textLine("Texture Channel: none")
             return
         }
-        val selectedMaterial = state.selectedMaterialIndex.takeIf { state.debugSelectedMaterialOnly }
         val channels =
-            matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex = selectedMaterial)
+            matchingModelViewerTextureSlots(info, mode, selectedMaterialIndex = null)
                 .map { slot -> slot.channel }
                 .distinct()
         if (channels.isEmpty()) {
@@ -908,9 +952,21 @@ private fun debugCullingLabel(mode: DebugCullingMode): String =
 
 private fun rendererModeLabel(mode: ModelViewerRendererMode): String =
     when (mode) {
-        ModelViewerRendererMode.LibGdx -> "LibGDX (default)"
-        ModelViewerRendererMode.Pbr -> "PBR"
+        ModelViewerRendererMode.LibGdx -> "LibGDX Shader"
+        ModelViewerRendererMode.Pbr -> "glTF PBR Renderer"
     }
+
+private fun drawInfoList(
+    label: String,
+    values: List<String>,
+) {
+    ImGui.text("$label:")
+    if (values.isEmpty()) {
+        ImGui.bulletText("none")
+        return
+    }
+    values.forEach { value -> ImGui.bulletText(value) }
+}
 
 private fun drawTextureSlotPreview(
     assets: AssetService,
@@ -939,5 +995,9 @@ private fun drawTextureSlotPreview(
 private fun textLine(text: String) {
     ImGui.textUnformatted(text)
 }
+
+private class FloatHolder(
+    var value: Float,
+)
 
 private const val TexturePreviewSize = 100f
