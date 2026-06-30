@@ -98,7 +98,7 @@ flowchart LR
 
 See the full architecture and repository breakdown in [docs/architecture.md](docs/architecture.md).
 
-## Tools Overview
+## Toolset
 
 KRender ships a set of standalone editor tools built on the same engine primitives as the runtime.
 Full tool documentation is at [docs/tools.md](docs/tools.md).
@@ -136,10 +136,49 @@ Full tool documentation is at [docs/tools.md](docs/tools.md).
 **3D and scene tools:**
 
 - **Model Viewer** — single-model inspection with PBR preview, debug channels, and UV checker.
+
+<details>
+<summary><strong>Preview Model Viewer</strong></summary>
+
+<img src="engine/tools/docs/screenshots/model_viewer/model-viewer-pbr_preview.png" alt="Model Viewer preview" />
+
+</details>
+
 - **Animation Viewer** — clip playback, skeleton hierarchy, and pose overlay.
+
+<details>
+<summary><strong>Preview Animation Viewer</strong></summary>
+
+<img src="engine/tools/docs/screenshots/animation_viewer/animation_viewer_preview_woolboy.gif" alt="Animation Viewer animated preview" />
+
+</details>
+
 - **Terrain Editor** — heightfield sculpting and painting with layers and materials.
+
+<details>
+<summary><strong>Preview Terrain Editor</strong></summary>
+
+<img src="engine/tools/docs/screenshots/terrain_editor/terrain-editor_material_preview.png" alt="Terrain Editor preview" />
+
+</details>
+
 - **Scene Editor** — `.krscene` authoring with entity hierarchy, transforms, cameras, and lights.
+
+<details>
+<summary><strong>Preview Scene Editor</strong></summary>
+
+<img src="engine/tools/docs/screenshots/scene_editor/scene-editor_camera_selected.png" alt="Scene Editor preview" />
+
+</details>
+
 - **Scene Player** — runtime playback of saved `.krscene` files.
+
+<details>
+<summary><strong>Preview Scene Player</strong></summary>
+
+<img src="engine/tools/docs/screenshots/scene_player/scene_player_preview.png" alt="Scene Player preview" />
+
+</details>
 
 ## AI-Oriented Development
 
