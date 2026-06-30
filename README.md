@@ -150,34 +150,36 @@ Inspect how geometry maps to materials by selecting materials and isolating the 
 - **Animation Viewer** — clip playback, skeleton hierarchy, and pose overlay.
 
 <details>
-<summary><strong>Preview Animation Viewer</strong></summary>
+<summary><strong>Animation Viewer</strong></summary>
+
+<p>Clip playback, skeleton hierarchy, and pose overlay.</p>
 
 <img src="engine/tools/docs/screenshots/animation_viewer/animation_viewer_preview_woolboy.gif" alt="Animation Viewer animated preview" />
 
 </details>
 
-- **Terrain Editor** — heightfield sculpting and painting with layers and materials.
-
 <details>
-<summary><strong>Preview Terrain Editor</strong></summary>
+<summary><strong>Terrain Editor</strong></summary>
+
+<p>Heightfield sculpting and painting with layers and materials.</p>
 
 <img src="engine/tools/docs/screenshots/terrain_editor/terrain-editor_material_preview.png" alt="Terrain Editor preview" />
 
 </details>
 
-- **Scene Editor** — `.krscene` authoring with entity hierarchy, transforms, cameras, and lights.
-
 <details>
-<summary><strong>Preview Scene Editor</strong></summary>
+<summary><strong>Scene Editor</strong></summary>
+
+<p><code>.krscene</code> authoring with entity hierarchy, transforms, cameras, and lights.</p>
 
 <img src="engine/tools/docs/screenshots/scene_editor/scene-editor_camera_selected.png" alt="Scene Editor preview" />
 
 </details>
 
-- **Scene Player** — runtime playback of saved `.krscene` files.
-
 <details>
-<summary><strong>Preview Scene Player</strong></summary>
+<summary><strong>Scene Player</strong></summary>
+
+<p>Runtime playback of saved <code>.krscene</code> files.</p>
 
 <img src="engine/tools/docs/screenshots/scene_player/scene_player_preview.png" alt="Scene Player preview" />
 
