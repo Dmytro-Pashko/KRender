@@ -120,14 +120,16 @@ Features:
 - Displays general model information such as format, bounds, mesh count, material count, vertices, and triangle count.
 - Shows mesh parts, materials, texture channels, and animation metadata when available.
 - Allows selecting and isolating individual mesh parts for easier inspection.
+- Allows filtering mesh parts by selected material to inspect how geometry maps to material assignments.
 - Provides shaded, wireframe, and mixed shaded-wireframe display modes.
-- Provides a renderer selector with `LibGDX (default)` and `PBR` modes for comparing the default backend path with a
+- Provides a renderer selector with `LibGDX Shader` and `glTF PBR Renderer` modes for comparing the default backend path with a
   glTF-focused PBR preview.
-- Uses the `gdx-gltf` PBR rendering path for `.gltf` and `.glb` models in PBR mode.
-- Includes PBR preview controls for exposure, environment intensity, skybox visibility, directional light enablement,
+- Uses the `gdx-gltf` PBR rendering path for `.gltf` and `.glb` models in `glTF PBR Renderer` mode.
+- Includes viewport controls for grid, axes, bounds, ambient intensity, renderer switching, and environment intensity.
+- Includes `glTF PBR Renderer` controls for exposure, environment intensity, skybox visibility, directional light enablement,
   light yaw, and light pitch.
 - Uses a default cubemap skybox texture asset for PBR previews, stored as a single cubemap cross/strip texture file.
-- Provides shader-based material debug preview modes separate from viewport display modes.
+- Provides channel-display preview modes separate from viewport display modes.
 - Can preview Base Color / Diffuse, Normal, Metallic / Roughness, Occlusion, Emission, and Alpha texture channels directly on the model surface when metadata is available.
 - Includes UV checker preview using texture assets at 1024, 2048, and 4096 resolutions for validating UV layout and scale.
 - Gives texture debug modes priority over PBR rendering, so material inspection stays stable when both features are
@@ -140,15 +142,26 @@ Features:
 
 Screenshots:
 
-Loaded model with grid, axis, and bounds helpers (LibGDX renderer):
-![Model Viewer full mesh with grid, axis, and bounds](tools/screenshots/model_viewer/model-viewer-shader_full_mesh_grid_axis_bounds.png)
-![Model Viewer shaded wireframe](tools/screenshots/model_viewer/model-viewer-shader_full_mesh_shaded_wires.png)
-![Model Viewer full model without helpers](tools/screenshots/model_viewer/model-viewer-shader_full_model_no_grid_no_axis_no_bounds.png)
-![Model Viewer isolated wireframe](tools/screenshots/model_viewer/model-viewer-wireframe_isolated.png)
-![Model Viewer PBR preview](tools/screenshots/model_viewer/model-viewer-pbr_preview.png)
-![Model Viewer metallic roughness preview](tools/screenshots/model_viewer/model_viewer_roughness_channel.png)
-![Model Viewer UV checker preview](tools/screenshots/model_viewer/model-viewer_uv_checker.png)
-![Model Viewer normal texture preview](tools/screenshots/model_viewer/model-viewer_normal_view.png)
+Primary preview:
+![Model Viewer Woolboy PBR preview](tools/screenshots/model_viewer/model_viewer_woolboy_pbr.png)
+
+Viewport display options, helpers, wireframe, and renderer switching:
+![Model Viewer changing display options](tools/screenshots/model_viewer/model_viewer_changing_displaying_options.gif)
+
+Normal channel preview:
+![Model Viewer normal channel test](tools/screenshots/model_viewer/model_viewer_normal_test.gif)
+
+Metallic and roughness channel preview in PBR mode:
+![Model Viewer metallic roughness test](tools/screenshots/model_viewer/model_viewer_roughness_metallic_test.gif)
+
+Ambient occlusion channel preview:
+![Model Viewer AO channel test](tools/screenshots/model_viewer/model_viewer_ao_test.gif)
+
+Alpha / transparency preview:
+![Model Viewer alpha channel test](tools/screenshots/model_viewer/model_viewer_alpha_test.gif)
+
+Mesh-part and material isolation workflow:
+![Model Viewer mesh and material isolation](tools/screenshots/model_viewer/model_viewer_mesh_and_material_isolation.gif)
 
 Required properties:
 

@@ -144,7 +144,22 @@ Full tool documentation is at [docs/tools.md](docs/tools.md).
 <details>
 <summary><strong>Preview Model Viewer</strong></summary>
 
-<img src="engine/tools/docs/screenshots/model_viewer/model-viewer-pbr_preview.png" alt="Model Viewer preview" />
+<p>Animated previews keep the main page cleaner while still showing the Model Viewer in action.</p>
+
+<p><strong>Viewport controls and rendering options</strong><br/>
+Toggle helpers such as grid, bounds, and axes, then compare display modes and renderer behavior while inspecting the same model.</p>
+
+<img src="engine/tools/docs/screenshots/model_viewer/model_viewer_changing_displaying_options.gif" alt="Model Viewer viewport controls and display options preview" />
+
+<p><strong>Texture-channel inspection in glTF PBR Renderer</strong><br/>
+Switch between metallic and roughness visualization to validate packed material textures directly on the model.</p>
+
+<img src="engine/tools/docs/screenshots/model_viewer/model_viewer_roughness_metallic_test.gif" alt="Model Viewer metallic and roughness channel preview" />
+
+<p><strong>Mesh-part and material isolation workflow</strong><br/>
+Inspect how geometry maps to materials by selecting materials and isolating the matching mesh parts.</p>
+
+<img src="engine/tools/docs/screenshots/model_viewer/model_viewer_mesh_and_material_isolation.gif" alt="Model Viewer mesh and material isolation preview" />
 
 </details>
 
