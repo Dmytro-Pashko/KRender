@@ -125,12 +125,10 @@ For larger screenshots, feature lists, launch parameters, and tool-by-tool expla
 
 ### 3D And Scene Tools
 
-- **Model Viewer** — single-model inspection with PBR preview, debug channels, and UV checker.
-
 <details>
-<summary><strong>Preview Model Viewer</strong></summary>
+<summary><strong>Model Viewer</strong></summary>
 
-<p>Animated previews keep the main page cleaner while still showing the Model Viewer in action.</p>
+<p>Single-model inspection with PBR preview, debug channels, and UV checker.</p>
 
 <p><strong>Viewport controls and rendering options</strong><br/>
 Toggle helpers such as grid, bounds, and axes, then compare display modes and renderer behavior while inspecting the same model.</p>
