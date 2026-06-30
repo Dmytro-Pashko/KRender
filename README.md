@@ -113,6 +113,26 @@ Full tool documentation is at [docs/tools.md](docs/tools.md).
 | Compose visual UI layouts backed by skin/atlas/font assets | **UI Composer** | Implemented |
 | Generate BitmapFont `.fnt` from TTF/OTF | **Bitmap Font Editor** | Planned |
 
+<details>
+<summary><strong>Preview the current UI tooling workflow</strong></summary>
+
+<p>Animated previews keep the main page cleaner while still showing the tools in action.</p>
+
+<table>
+  <tr>
+    <td align="center">
+      <strong>Texture Atlas Editor</strong><br/>
+      <img src="engine/tools/docs/screenshots/texture_atlas_editor/texture_atlas_editor_atlas_file_changing_preview_options.gif" alt="Texture Atlas Editor animated preview" />
+    </td>
+    <td align="center">
+      <strong>Bitmap Font Editor</strong><br/>
+      <img src="engine/tools/docs/screenshots/bitmap_font_editor/bitmap_font_editor_font_preview_changing_options.gif" alt="Bitmap Font Editor animated preview" />
+    </td>
+  </tr>
+</table>
+
+</details>
+
 **3D and scene tools:**
 
 - **Model Viewer** — single-model inspection with PBR preview, debug channels, and UV checker.
