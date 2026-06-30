@@ -103,41 +103,27 @@ See the full architecture and repository breakdown in [docs/architecture.md](doc
 KRender ships a set of standalone editor tools built on the same engine primitives as the runtime.
 Full tool documentation is at [docs/tools.md](docs/tools.md).
 
-**Scene2D UI authoring workflow:**
+For larger screenshots, feature lists, launch parameters, and tool-by-tool explanations, see the detailed tool guide in [docs/tools.md](docs/tools.md).
 
-| Step | Tool | Status      |
-|---|---|-------------|
-| Browse and manage project assets | **Asset Browser** | Implemented |
-| Pack images, NinePatch, and BitmapFont resources into texture atlases | **Texture Atlas Editor** | Implemented |
-| Edit Scene2D skin styles, colors, fonts, and drawables | **Skin Editor** | Implemented |
-| Compose visual UI layouts backed by skin/atlas/font assets | **UI Composer** | Implemented |
-| Generate BitmapFont `.fnt` from TTF/OTF | **Bitmap Font Editor** | Implemented |
+### Scene2D UI Authoring Workflow
 
 <details>
 <summary><strong>Preview the current UI tooling workflow</strong></summary>
 
 <p>Animated previews keep the main page cleaner while still showing the tools in action.</p>
 
-<table>
-  <tr>
-    <td align="center">
-      <strong>Texture Atlas Editor</strong><br/>
-      <img src="engine/tools/docs/screenshots/texture_atlas_editor/texture_atlas_editor_atlas_file_changing_preview_options.gif" alt="Texture Atlas Editor animated preview" />
-    </td>
-    <td align="center">
-      <strong>Texture Atlas Editor (NinePatch preview)</strong><br/>
-      <img src="engine/tools/docs/screenshots/texture_atlas_editor/texture_atlas_ninepath_preview_changing_preview_options.gif" alt="Texture Atlas Editor NinePatch animated preview" />
-    </td>
-    <td align="center">
-      <strong>Bitmap Font Editor</strong><br/>
-      <img src="engine/tools/docs/screenshots/bitmap_font_editor/bitmap_font_editor_font_preview_changing_options.gif" alt="Bitmap Font Editor animated preview" />
-    </td>
-  </tr>
-</table>
+<p><strong>Texture Atlas Editor</strong></p>
+<img src="engine/tools/docs/screenshots/texture_atlas_editor/texture_atlas_editor_atlas_file_changing_preview_options.gif" alt="Texture Atlas Editor animated preview" />
+
+<p><strong>Texture Atlas Editor (NinePatch preview)</strong></p>
+<img src="engine/tools/docs/screenshots/texture_atlas_editor/texture_atlas_ninepath_preview_changing_preview_options.gif" alt="Texture Atlas Editor NinePatch animated preview" />
+
+<p><strong>Bitmap Font Editor</strong></p>
+<img src="engine/tools/docs/screenshots/bitmap_font_editor/bitmap_font_editor_font_preview_changing_options.gif" alt="Bitmap Font Editor animated preview" />
 
 </details>
 
-**3D and scene tools:**
+### 3D And Scene Tools
 
 - **Model Viewer** — single-model inspection with PBR preview, debug channels, and UV checker.
 
