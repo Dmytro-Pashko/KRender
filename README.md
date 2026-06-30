@@ -105,13 +105,13 @@ Full tool documentation is at [docs/tools.md](docs/tools.md).
 
 **Scene2D UI authoring workflow:**
 
-| Step | Tool | Status |
-|---|---|---|
+| Step | Tool | Status      |
+|---|---|-------------|
 | Browse and manage project assets | **Asset Browser** | Implemented |
 | Pack images, NinePatch, and BitmapFont resources into texture atlases | **Texture Atlas Editor** | Implemented |
 | Edit Scene2D skin styles, colors, fonts, and drawables | **Skin Editor** | Implemented |
 | Compose visual UI layouts backed by skin/atlas/font assets | **UI Composer** | Implemented |
-| Generate BitmapFont `.fnt` from TTF/OTF | **Bitmap Font Editor** | Planned |
+| Generate BitmapFont `.fnt` from TTF/OTF | **Bitmap Font Editor** | Implemented |
 
 <details>
 <summary><strong>Preview the current UI tooling workflow</strong></summary>
