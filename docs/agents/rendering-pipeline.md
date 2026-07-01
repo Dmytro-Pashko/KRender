@@ -17,7 +17,7 @@ Systems **never** call libGDX/OpenGL. They submit backend-neutral `RenderCommand
 
 | Command | Purpose | Notable fields |
 |---|---|---|
-| `DrawModel` | File/primitive model instance | `model: AssetRef<ModelAsset>`, `transform`, `material`, `visibleMeshPartIndices`, `debugView: MaterialDebugView?`, `pbrPreview: PbrPreviewView?`, `animation: AnimationPlaybackView?` |
+| `DrawModel` | File/primitive model instance | `model: AssetRef<ModelAsset>`, `transform`, `material`, `visibleMeshPartIndices`, `debugView: MaterialDebugView?`, `gltfRenderer: GltfRendererSettings?`, `animation: AnimationPlaybackView?` |
 | `DrawDynamicModel` | Runtime-generated geometry (terrain) | `model: DynamicModel`, `material`, `runtimeTextures: List<RuntimeTextureData>` |
 | `DrawLine` | World-space line | `from`, `to`, `color` |
 | `DrawWorldGrid` | Editor grid | `halfExtentCells`, `cellSize`, `y`, `color` |
@@ -27,7 +27,7 @@ Systems **never** call libGDX/OpenGL. They submit backend-neutral `RenderCommand
 
 Supporting data: `TransformSnapshot`, `Material` (`render3d`), `MaterialDebugView` +
 `MaterialDebugMode`/`TextureDebugComponent`/`DebugCullingMode`/`MaterialDebugTextureRef`,
-`PbrPreviewView`, `AnimationPlaybackView`, `DynamicMesh`/`DynamicModel`, `RuntimeTextureData`.
+`GltfRendererSettings`, `AnimationPlaybackView`, `DynamicMesh`/`DynamicModel`, `RuntimeTextureData`.
 
 ## Buffer + context
 
@@ -57,7 +57,7 @@ Per `render(context)`:
 3. If an `ApplyEnvironment` command exists, render the skybox (`GdxSkyboxRenderer.kt`).
 4. Render lines (`GdxLineShaderRenderer.kt`).
 5. Iterate commands: route `DrawModel` to normal / wireframe / material-debug
-   (`GdxModelViewerDebugRenderer.kt`) / glTF-PBR-preview (`GdxGltfPbrPreviewRenderer.kt`) paths; route
+   (`GdxModelViewerDebugRenderer.kt`) / glTF renderer (`GdxGltfRenderer.kt`) paths; route
    `DrawDynamicModel` to dynamic/wireframe paths; uploads `runtimeTextures` first.
 6. Draw deferred wireframe + overlay lines.
 

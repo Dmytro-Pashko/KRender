@@ -1,8 +1,12 @@
 # glTF Asset Workflow
 
-KRender loads `.gltf` and `.glb` models through the LibGDX backend and renders PBR previews through
-gdx-gltf. Keep model texture references relative and include every external buffer and texture when
-moving a `.gltf` asset into the project.
+KRender loads `.gltf` and `.glb` models through the LibGDX backend and renders them through the
+glTF / PBR path powered by gdx-gltf. Keep model texture references relative and include every
+external buffer and texture when moving a `.gltf` asset into the project.
+
+glTF / GLB are the primary 3D model formats for the current KRender workflow. The Legacy
+LibGDX renderer remains available as a fallback and inspection path, but new 3D workflow changes
+should target glTF / PBR first.
 
 ## HDR / IBL Environment Layout
 
@@ -72,7 +76,8 @@ radiance files may be absent before generation. The BRDF LUT path normally point
 4. Copy the v2 manifest structure, assign unique source variant ids, and select `activeVariant`.
 5. Keep the standard six face names: `negx`, `posx`, `negy`, `posy`, `negz`, `posz`.
 6. Generate and commit the derived PNG assets.
-7. Select the environment by passing its preset name through `PbrPreviewView.environmentPreset`.
+7. Select the environment by setting the renderer environment preset to the manifest preset name,
+   for example `default`.
 
 From the repository root, generate the complete default environment with:
 
@@ -83,7 +88,35 @@ From the repository root, generate the complete default environment with:
 On Windows, use `.\gradlew.bat` in place of `./gradlew`. The Gradle task uses `assets/` as its
 working directory.
 
-The current generator is an MVP approximation. Irradiance uses heavy downsampling and box blur;
-radiance uses progressive mip downsampling and blur. It produces stable preview assets but is not
-physically exact. A future implementation can replace these operations with cosine-weighted
-irradiance convolution and GGX importance-sampled radiance prefiltering without changing schema v2.
+## Supported material/debug channels
+
+The current Model Viewer channel workflow supports:
+
+- Combined
+- Base Color
+- Normal
+- Metallic
+- Roughness
+- Occlusion
+- Emissive
+- Alpha
+- UV Checker
+
+## Current limitations
+
+- The current HDR environment generator is MVP-quality:
+  - irradiance uses strong downsampling + blur
+  - radiance uses progressive mip downsampling + blur
+- The generator produces stable committed assets, but it is not yet a physically exact cosine/GGX implementation.
+- Direct EXR/HDR convolution is not the current default path; the generator currently works from the cubemap-cross/derived-face workflow first.
+
+## Current unsupported or deferred features
+
+- No physically exact cosine-weighted irradiance convolution yet
+- No GGX importance-sampled radiance prefilter yet
+- No per-environment BRDF LUT generation; BRDF LUT remains shared by design
+- No full Environment Editor / Asset Browser authoring workflow yet
+
+The current generator is intentionally an MVP approximation. A future implementation can replace
+these operations with physically correct cosine-weighted irradiance convolution and GGX
+importance-sampled radiance prefiltering without changing schema v2.
