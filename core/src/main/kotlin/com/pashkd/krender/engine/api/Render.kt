@@ -146,9 +146,9 @@ data class MaterialDebugView(
  */
 data class PbrPreviewView(
     val enabled: Boolean = false,
+    val environmentPreset: String = "default",
     val exposure: Float = 1f,
     val showSkybox: Boolean = true,
-    val skyboxTexture: MaterialTextureRef? = null,
     val environmentIntensity: Float = 1f,
     val directionalLightEnabled: Boolean = true,
     val directionalLightYawDegrees: Float = 45f,

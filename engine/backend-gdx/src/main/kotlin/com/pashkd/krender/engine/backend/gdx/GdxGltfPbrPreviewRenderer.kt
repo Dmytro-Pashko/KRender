@@ -9,11 +9,11 @@ import com.badlogic.gdx.graphics.Cubemap
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.math.Vector3
-import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.PbrPreviewView
 import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute
+import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute
 import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
 import net.mgsx.gltf.scene3d.scene.SceneSkybox
 import net.mgsx.gltf.scene3d.shaders.PBRShaderProvider
@@ -33,6 +33,7 @@ internal class GdxGltfPbrPreviewRenderer(
 ) {
     private val entries = mutableMapOf<ModelCacheKey, PbrSceneEntry>()
     private val warnedKeys = mutableSetOf<String>()
+    private val gltfEnvironment = GdxGltfEnvironment(logger)
 
     fun render(
         command: DrawModel,
@@ -57,7 +58,6 @@ internal class GdxGltfPbrPreviewRenderer(
         }
 
         return try {
-            settings.skyboxTexture?.let { ref -> assets.queue(AssetRef.texture(ref.id)) }
             val cacheKey = ModelCacheKey(command.entityId, command.model.path)
             val entry =
                 entries.getOrPut(cacheKey) {
@@ -90,21 +90,25 @@ internal class GdxGltfPbrPreviewRenderer(
     fun dispose() {
         entries.values.forEach(PbrSceneEntry::dispose)
         entries.clear()
+        gltfEnvironment.dispose()
     }
 
     private fun configureEnvironment(
         entry: PbrSceneEntry,
         settings: PbrPreviewView,
     ) {
+        val preset = gltfEnvironment.preset(settings.environmentPreset)
         val direction = pbrLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
-        val intensity = (settings.environmentIntensity * settings.exposure).coerceAtLeast(0f)
+        val presetExposure = preset?.defaults?.exposure?.toFloat() ?: 1f
+        val presetAmbientIntensity = preset?.defaults?.ambientIntensity?.toFloat() ?: 1f
+        val intensity = (settings.environmentIntensity * settings.exposure * presetExposure).coerceAtLeast(0f)
         entry.manager.environment.clear()
         entry.manager.environment.set(
             ColorAttribute(
                 ColorAttribute.AmbientLight,
-                0.08f * intensity,
-                0.09f * intensity,
-                0.1f * intensity,
+                0.08f * intensity * presetAmbientIntensity,
+                0.09f * intensity * presetAmbientIntensity,
+                0.1f * intensity * presetAmbientIntensity,
                 1f,
             ),
         )
@@ -117,54 +121,34 @@ internal class GdxGltfPbrPreviewRenderer(
                 ),
             )
         }
-        val skyboxCubemap =
-            settings.skyboxTexture
-                ?.id
-                ?.takeIf { path -> settings.showSkybox && path.isNotBlank() }
-                ?.let { path -> entry.ensureSkyboxCubemap(path) }
-        if (skyboxCubemap != null) {
-            entry.manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(skyboxCubemap))
-            entry.manager.environment.set(PBRCubemapAttribute.createSpecularEnv(skyboxCubemap))
+        val needsProceduralFallback =
+            preset?.irradiance == null ||
+                preset.radiance == null ||
+                (settings.showSkybox && preset.skybox == null)
+        if (needsProceduralFallback) {
+            entry.ensureIbl(direction, intensity.coerceAtLeast(0.01f))
+        } else {
+            entry.disposeProceduralEnvironment()
+        }
+        val diffuseMap = preset?.irradiance ?: entry.irradianceMap
+        val specularMap = preset?.radiance ?: entry.radianceMap
+        diffuseMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(map)) }
+        specularMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createSpecularEnv(map)) }
+        preset?.brdfLut?.let { lut ->
+            entry.manager.environment.set(PBRTextureAttribute.createBRDFLookupTexture(lut))
+        }
+        val skyboxMap =
+            if (settings.showSkybox) {
+                preset?.skybox ?: entry.envMap
+            } else {
+                null
+            }
+        if (skyboxMap != null) {
+            val skyboxKey = preset?.skybox?.let { "preset:${settings.environmentPreset}" } ?: "procedural"
+            entry.ensureSceneSkybox(skyboxKey, skyboxMap)
             entry.manager.skyBox = entry.skybox
-            return
         } else {
             entry.manager.skyBox = null
-        }
-
-        if (settings.showSkybox) {
-            val iblAvailable = entry.ensureIbl(direction, intensity.coerceAtLeast(0.01f))
-            if (iblAvailable) {
-                entry.irradianceMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(map)) }
-                entry.radianceMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createSpecularEnv(map)) }
-                entry.manager.skyBox = entry.skybox
-            }
-        }
-    }
-
-    private fun PbrSceneEntry.ensureSkyboxCubemap(path: String): Cubemap? {
-        if (skyboxTexturePath == path && skyboxCubemap != null) return skyboxCubemap
-        disposeSkyboxCubemap()
-        return try {
-            val cubemap = cubemapFromSingleTexture(path)
-            try {
-                SceneSkybox.enableMipmaps(cubemap)
-            } catch (error: Throwable) {
-                warnOnce("skybox-mipmaps-$path-${error::class.qualifiedName}") {
-                    "PBR preview skybox mipmaps unavailable; roughness reflections may be less accurate: " +
-                        (error.message ?: error::class.simpleName)
-                }
-            }
-            skyboxTexturePath = path
-            skyboxCubemap = cubemap
-            skybox = SceneSkybox(cubemap)
-            cubemap
-        } catch (error: Throwable) {
-            disposeSkyboxCubemap()
-            warnOnce("skybox-texture-$path-${error::class.qualifiedName}") {
-                "PBR preview skybox texture '$path' unavailable; continuing without asset skybox: " +
-                    (error.message ?: error::class.simpleName)
-            }
-            null
         }
     }
 
@@ -180,19 +164,18 @@ internal class GdxGltfPbrPreviewRenderer(
                 directionZ = "%.3f".format(direction.z),
             )
         if (environmentKey == nextKey) return iblAvailable
-        disposeEnvironment()
+        disposeProceduralEnvironment()
         val light = DirectionalLightEx().set(Color.WHITE, direction, intensity)
         val builder = IBLBuilder.createOutdoor(light)
         try {
             envMap = builder.buildEnvMap(64)
             irradianceMap = builder.buildIrradianceMap(16)
             radianceMap = builder.buildRadianceMap(64)
-            skybox = envMap?.let(::SceneSkybox)
             environmentKey = nextKey
             iblAvailable = true
             return true
         } catch (error: Throwable) {
-            disposeEnvironment()
+            disposeProceduralEnvironment()
             environmentKey = nextKey
             iblAvailable = false
             warnOnce("ibl-unavailable-${error::class.qualifiedName}") {
@@ -226,37 +209,42 @@ private data class PbrSceneEntry(
     var envMap: Cubemap? = null,
     var irradianceMap: Cubemap? = null,
     var radianceMap: Cubemap? = null,
-    var skyboxTexturePath: String? = null,
-    var skyboxCubemap: Cubemap? = null,
     var skybox: SceneSkybox? = null,
+    var skyboxKey: String? = null,
     var iblAvailable: Boolean = false,
 ) {
     fun dispose() {
-        disposeEnvironment()
-        disposeSkyboxCubemap()
+        disposeSceneSkybox()
+        disposeProceduralEnvironment()
         manager.dispose()
     }
 
-    fun disposeEnvironment() {
-        if (skyboxCubemap == null) {
-            skybox?.dispose()
-            skybox = null
-        }
+    fun disposeProceduralEnvironment() {
+        if (skyboxKey == "procedural") disposeSceneSkybox()
         envMap?.dispose()
         envMap = null
         irradianceMap?.dispose()
         irradianceMap = null
         radianceMap?.dispose()
         radianceMap = null
+        environmentKey = null
         iblAvailable = false
     }
 
-    fun disposeSkyboxCubemap() {
+    fun ensureSceneSkybox(
+        key: String,
+        cubemap: Cubemap,
+    ) {
+        if (skyboxKey == key && skybox != null) return
+        disposeSceneSkybox()
+        skybox = SceneSkybox(cubemap)
+        skyboxKey = key
+    }
+
+    fun disposeSceneSkybox() {
         skybox?.dispose()
         skybox = null
-        skyboxCubemap?.dispose()
-        skyboxCubemap = null
-        skyboxTexturePath = null
+        skyboxKey = null
     }
 }
 

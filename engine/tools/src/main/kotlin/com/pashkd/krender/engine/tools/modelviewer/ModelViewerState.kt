@@ -27,7 +27,7 @@ const val UV_CHECKER_TEXTURE_1K = "textures/uv_checker_1k.png"
 const val UV_CHECKER_TEXTURE_2K = "textures/uv_checker_2k.png"
 const val UV_CHECKER_TEXTURE_4K = "textures/uv_checker_4k.png"
 const val DEFAULT_UV_CHECKER_TEXTURE = "textures/uv_checker_2k.png"
-const val DEFAULT_PBR_SKYBOX_TEXTURE = "textures/default_skybox_studio.png"
+const val DEFAULT_PBR_ENVIRONMENT_PRESET = "default"
 
 val UV_CHECKER_TEXTURE_OPTIONS =
     listOf(
@@ -102,9 +102,9 @@ data class ModelViewerState(
     var pbrWarning: String? = null,
     /** Current renderer path for shaded model preview. */
     var rendererMode: ModelViewerRendererMode = ModelViewerRendererMode.LibGdx,
+    var pbrEnvironmentPreset: String = DEFAULT_PBR_ENVIRONMENT_PRESET,
     var pbrExposure: Float = 1f,
     var pbrShowSkybox: Boolean = true,
-    var pbrSkyboxTexturePath: String = DEFAULT_PBR_SKYBOX_TEXTURE,
     var pbrEnvironmentIntensity: Float = 1f,
     var pbrDirectionalLightEnabled: Boolean = true,
     var pbrDirectionalLightYawDegrees: Float = 45f,

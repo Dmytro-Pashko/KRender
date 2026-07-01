@@ -283,9 +283,6 @@ class ModelViewerSystem(
             !state.model.path.isGltfPath() ->
                 "PBR preview is currently available only for glTF/glb models."
 
-            state.pbrShowSkybox && !assets.isLoaded(AssetRef.texture(state.pbrSkyboxTexturePath)) ->
-                "PBR preview skybox texture '${state.pbrSkyboxTexturePath}' is missing or not loaded."
-
             state.assetLoaded && state.modelInfo == null ->
                 "PBR preview unavailable: model metadata is unavailable."
 
@@ -489,14 +486,9 @@ class ModelViewerModelRenderSystem(
         if (rendererMode != ModelViewerRendererMode.Pbr) return null
         return PbrPreviewView(
             enabled = debugView?.active != true,
+            environmentPreset = pbrEnvironmentPreset,
             exposure = pbrExposure.coerceAtLeast(0f),
             showSkybox = pbrShowSkybox,
-            skyboxTexture =
-                MaterialTextureRef(
-                    id = pbrSkyboxTexturePath,
-                    channel = "skybox",
-                    uvChannel = 0,
-                ),
             environmentIntensity = pbrEnvironmentIntensity.coerceAtLeast(0f),
             directionalLightEnabled = pbrDirectionalLightEnabled,
             directionalLightYawDegrees = pbrDirectionalLightYawDegrees,

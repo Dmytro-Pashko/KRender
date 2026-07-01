@@ -57,7 +57,9 @@ internal class GdxHdrEnvironmentResolver(
             warnForMissingGeneratedMaps(resolved)
             resolved
         } catch (error: Throwable) {
-            logger.warn(TAG, error) { "Failed to resolve HDR environment '$manifestPath'." }
+            logger.warn(TAG, error) {
+                "Failed to resolve HDR environment '$manifestPath': ${error.message ?: error::class.simpleName}."
+            }
             null
         }
     }
