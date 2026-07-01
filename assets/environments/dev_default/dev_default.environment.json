@@ -1,0 +1,96 @@
+{
+  "schema": "krender.environment",
+  "schemaVersion": 1,
+  "assetType": "Environment",
+  "environmentType": "HdrIbl",
+  "id": "dev_default",
+  "name": "Dev Default",
+  "description": "Development environment for testing the Environment Editor MVP. References missing generated files to exercise diagnostics.",
+  "settings": {
+    "exposure": 1.0,
+    "rotationDegrees": 0.0,
+    "skyboxVisible": true,
+    "skyboxIntensity": 1.0,
+    "diffuseIntensity": 1.0,
+    "specularIntensity": 1.0,
+    "backgroundMode": "Skybox",
+    "backgroundColor": null
+  },
+  "sources": [
+    {
+      "id": "source_2k",
+      "path": "sources/placeholder_2k.exr",
+      "format": "EXR",
+      "role": "Source",
+      "isDefault": true,
+      "resolution": "2K",
+      "colorSpace": "Linear",
+      "dynamicRange": "HDR"
+    }
+  ],
+  "generated": {
+    "skybox": {
+      "layout": "SixFaces",
+      "resolution": 1024,
+      "format": "KTX",
+      "faces": {
+        "px": "generated/skybox/px.ktx",
+        "nx": "generated/skybox/nx.ktx",
+        "py": "generated/skybox/py.ktx",
+        "ny": "generated/skybox/ny.ktx",
+        "pz": "generated/skybox/pz.ktx",
+        "nz": "generated/skybox/nz.ktx"
+      }
+    },
+    "irradiance": {
+      "path": "generated/irradiance/irradiance.ktx",
+      "resolution": 64,
+      "format": "KTX"
+    },
+    "radiance": {
+      "baseResolution": 256,
+      "mips": [
+        {
+          "level": 0,
+          "roughness": 0.0,
+          "path": "generated/radiance/radiance_mip_00.ktx"
+        },
+        {
+          "level": 1,
+          "roughness": 0.25,
+          "path": "generated/radiance/radiance_mip_01.ktx"
+        },
+        {
+          "level": 2,
+          "roughness": 0.5,
+          "path": "generated/radiance/radiance_mip_02.ktx"
+        },
+        {
+          "level": 3,
+          "roughness": 0.75,
+          "path": "generated/radiance/radiance_mip_03.ktx"
+        },
+        {
+          "level": 4,
+          "roughness": 1.0,
+          "path": "generated/radiance/radiance_mip_04.ktx"
+        }
+      ]
+    },
+    "brdfLut": {
+      "path": "../../shared/pbr/brdf_lut.ktx",
+      "shared": true
+    }
+  },
+  "generation": {
+    "sourceVariantId": "source_2k",
+    "generator": "KRenderIBLGenerator",
+    "generatorVersion": "1",
+    "generatedAt": null,
+    "skyboxResolution": 1024,
+    "irradianceResolution": 64,
+    "radianceResolution": 256,
+    "radianceMipCount": 5,
+    "outputFormat": "KTX"
+  }
+}
