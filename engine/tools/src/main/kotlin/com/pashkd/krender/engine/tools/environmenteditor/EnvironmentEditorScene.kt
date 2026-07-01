@@ -32,6 +32,7 @@ class EnvironmentEditorScene(
         uiSystem.addPanel(EnvironmentEditorToolbarPanel(editorState, environmentService, engine.logger))
         uiSystem.addPanel(EnvironmentInspectorPanel(editorState))
         uiSystem.addPanel(EnvironmentSettingsPanel(editorState, environmentService, engine.logger))
+        uiSystem.addPanel(EnvironmentSourceVariantsPanel(editorState))
         world.systems.add(uiSystem)
     }
 
