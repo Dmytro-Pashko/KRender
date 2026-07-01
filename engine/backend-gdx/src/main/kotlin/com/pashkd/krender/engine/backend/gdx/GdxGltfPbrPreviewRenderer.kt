@@ -16,6 +16,7 @@ import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute
 import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute
 import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
 import net.mgsx.gltf.scene3d.scene.SceneSkybox
+import net.mgsx.gltf.scene3d.shaders.PBRShaderConfig
 import net.mgsx.gltf.scene3d.shaders.PBRShaderProvider
 import net.mgsx.gltf.scene3d.utils.IBLBuilder
 import java.lang.Math
@@ -62,16 +63,19 @@ internal class GdxGltfPbrPreviewRenderer(
             val entry =
                 entries.getOrPut(cacheKey) {
                     val scene = GltfScene(sceneAsset.scene)
-                    val manager =
-                        GltfSceneManager(
-                            PBRShaderProvider.createDefault(sceneAsset.maxBones.coerceAtLeast(1)),
-                            PBRShaderProvider.createDefaultDepth(sceneAsset.maxBones.coerceAtLeast(1)),
-                        )
+                    val maxBones = sceneAsset.maxBones.coerceAtLeast(1)
+                    val manager = createSceneManager(maxBones, settings)
                     manager.addScene(scene, false)
                     logger.info(TAG) { "Created PBR preview scene for '${command.model.path}'." }
-                    PbrSceneEntry(scene = scene, manager = manager)
+                    PbrSceneEntry(
+                        scene = scene,
+                        manager = manager,
+                        maxBones = maxBones,
+                        shaderConfigKey = settings.shaderConfigKey(),
+                    )
                 }
 
+            entry.ensureShaderConfiguration(settings)
             applyTransform(entry.scene.modelInstance, command)
             meshPartFilter(entry.scene.modelInstance, command.visibleMeshPartIndices)
             configureEnvironment(entry, settings)
@@ -113,14 +117,20 @@ internal class GdxGltfPbrPreviewRenderer(
             ),
         )
         if (settings.directionalLightEnabled) {
+            val lightColor = settings.directionalLightColor
             entry.manager.environment.add(
                 DirectionalLightEx().set(
-                    Color.WHITE,
+                    Color(lightColor.r, lightColor.g, lightColor.b, lightColor.a),
                     direction,
-                    intensity.coerceAtLeast(0.01f),
+                    settings.directionalLightIntensity.coerceAtLeast(0f),
                 ),
             )
         }
+        entry.manager.environment.set(
+            net.mgsx.gltf.scene3d.attributes.PBRMatrixAttribute.createEnvRotation(
+                settings.environmentRotationDegrees,
+            ),
+        )
         val needsProceduralFallback =
             preset?.irradiance == null ||
                 preset.radiance == null ||
@@ -150,6 +160,41 @@ internal class GdxGltfPbrPreviewRenderer(
         } else {
             entry.manager.skyBox = null
         }
+    }
+
+    private fun PbrSceneEntry.ensureShaderConfiguration(settings: PbrPreviewView) {
+        val nextKey = settings.shaderConfigKey()
+        if (shaderConfigKey == nextKey) return
+        manager.skyBox = null
+        manager.removeScene(scene)
+        manager.dispose()
+        manager = createSceneManager(maxBones, settings)
+        manager.addScene(scene, false)
+        shaderConfigKey = nextKey
+        logger.info(TAG) {
+            "Recreated PBR preview shaders gamma=${settings.gammaCorrection} sRGB=${settings.srgbTextures}."
+        }
+    }
+
+    private fun createSceneManager(
+        maxBones: Int,
+        settings: PbrPreviewView,
+    ): GltfSceneManager {
+        val config =
+            PBRShaderProvider.createDefaultConfig().apply {
+                numBones = maxBones
+                manualGammaCorrection = settings.gammaCorrection
+                manualSRGB =
+                    if (settings.srgbTextures) {
+                        PBRShaderConfig.SRGB.ACCURATE
+                    } else {
+                        PBRShaderConfig.SRGB.NONE
+                    }
+            }
+        return GltfSceneManager(
+            PBRShaderProvider.createDefault(config),
+            PBRShaderProvider.createDefaultDepth(maxBones),
+        )
     }
 
     private fun PbrSceneEntry.ensureIbl(
@@ -204,7 +249,9 @@ internal class GdxGltfPbrPreviewRenderer(
 
 private data class PbrSceneEntry(
     val scene: GltfScene,
-    val manager: GltfSceneManager,
+    var manager: GltfSceneManager,
+    val maxBones: Int,
+    var shaderConfigKey: PbrShaderConfigKey,
     var environmentKey: PbrEnvironmentKey? = null,
     var envMap: Cubemap? = null,
     var irradianceMap: Cubemap? = null,
@@ -254,6 +301,17 @@ private data class PbrEnvironmentKey(
     val directionY: String,
     val directionZ: String,
 )
+
+private data class PbrShaderConfigKey(
+    val gammaCorrection: Boolean,
+    val srgbTextures: Boolean,
+)
+
+private fun PbrPreviewView.shaderConfigKey(): PbrShaderConfigKey =
+    PbrShaderConfigKey(
+        gammaCorrection = gammaCorrection,
+        srgbTextures = srgbTextures,
+    )
 
 private fun pbrLightDirection(
     yawDegrees: Float,

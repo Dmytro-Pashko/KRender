@@ -298,18 +298,34 @@ class ModelViewerSystem(
                 ?: return
         if (ambientLight.type != LightType.Ambient) return
         val ambientIntensity = state.ambientLightIntensity.coerceAtLeast(0f)
-        val environmentIntensity = state.libGdxEnvironmentIntensity.coerceAtLeast(0f)
         state.ambientLightIntensity = ambientIntensity
-        state.libGdxEnvironmentIntensity = environmentIntensity
-        val effectiveIntensity =
-            if (state.rendererMode == ModelViewerRendererMode.LibGdx) {
-                ambientIntensity * environmentIntensity
-            } else {
-                ambientIntensity
-            }
+        val effectiveIntensity = if (state.rendererMode == ModelViewerRendererMode.LibGdx) ambientIntensity else 0f
         if (ambientLight.intensity != effectiveIntensity) {
             ambientLight.intensity = effectiveIntensity
         }
+        ambientLight.color.copyFrom(state.legacyAmbientLightColor)
+        syncLegacyDirectionalLight(world)
+    }
+
+    private fun syncLegacyDirectionalLight(world: SceneWorld) {
+        val light =
+            state.legacyDirectionalLightEntityId
+                ?.let(world::getEntity)
+                ?.get<LightComponent>()
+                ?: return
+        light.intensity =
+            if (state.rendererMode == ModelViewerRendererMode.LibGdx && state.legacyDirectionalLightEnabled) {
+                state.legacyDirectionalLightIntensity.coerceAtLeast(0f)
+            } else {
+                0f
+            }
+        light.color.copyFrom(state.legacyDirectionalLightColor)
+        val direction =
+            modelViewerLightDirection(
+                state.legacyDirectionalLightYawDegrees,
+                state.legacyDirectionalLightPitchDegrees,
+            )
+        light.direction.set(direction.x, direction.y, direction.z)
     }
 
     /**
@@ -490,7 +506,13 @@ class ModelViewerModelRenderSystem(
             exposure = pbrExposure.coerceAtLeast(0f),
             showSkybox = pbrShowSkybox,
             environmentIntensity = pbrEnvironmentIntensity.coerceAtLeast(0f),
+            environmentRotationDegrees = pbrEnvironmentRotationDegrees,
+            toneMapping = pbrToneMapping,
+            gammaCorrection = pbrGammaCorrection,
+            srgbTextures = pbrSrgbTextures,
             directionalLightEnabled = pbrDirectionalLightEnabled,
+            directionalLightIntensity = pbrDirectionalLightIntensity.coerceAtLeast(0f),
+            directionalLightColor = pbrDirectionalLightColor.copy(),
             directionalLightYawDegrees = pbrDirectionalLightYawDegrees,
             directionalLightPitchDegrees = pbrDirectionalLightPitchDegrees,
         )
@@ -499,6 +521,26 @@ class ModelViewerModelRenderSystem(
     companion object {
         private const val MinUvCheckerScale = 0.01f
     }
+}
+
+private fun modelViewerLightDirection(
+    yawDegrees: Float,
+    pitchDegrees: Float,
+): Vec3 {
+    val yaw = Math.toRadians(yawDegrees.toDouble())
+    val pitch = Math.toRadians(pitchDegrees.toDouble())
+    val x = (kotlin.math.cos(pitch) * kotlin.math.cos(yaw)).toFloat()
+    val y = kotlin.math.sin(pitch).toFloat()
+    val z = (kotlin.math.cos(pitch) * kotlin.math.sin(yaw)).toFloat()
+    val length = kotlin.math.sqrt(x * x + y * y + z * z).coerceAtLeast(0.0001f)
+    return Vec3(-x / length, -y / length, -z / length)
+}
+
+private fun Color.copyFrom(source: Color) {
+    r = source.r
+    g = source.g
+    b = source.b
+    a = source.a
 }
 
 /**

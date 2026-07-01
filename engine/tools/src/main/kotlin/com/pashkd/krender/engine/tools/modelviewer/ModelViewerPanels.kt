@@ -4,8 +4,10 @@ import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.SliderFlag
+import imgui.api.colorEdit4
 import imgui.api.slider
 import imgui.dsl
+import java.nio.charset.StandardCharsets
 import glm_.vec2.Vec2 as ImVec2
 
 /**
@@ -69,6 +71,9 @@ class ModelViewerViewportPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
+    private val gltfPbrRendererOptionsPanel = GltfPbrRendererOptionsPanel(state)
+    private val legacyRendererOptionsPanel = LegacyRendererOptionsPanel(state, operations)
+
     override fun draw() {
         val expanded = beginModelViewerPanel(ModelViewerPanelIds.Viewport, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
@@ -144,28 +149,6 @@ class ModelViewerViewportPanel(
         ImGui.end()
     }
 
-    private fun drawLegacyRendererOptions() {
-        val ambientIntensity = FloatHolder(state.ambientLightIntensity)
-        if (
-            slider(
-                "Ambient Intensity##model_viewer_ambient_intensity",
-                ambientIntensity::value,
-                MinAmbientLightIntensity,
-                MaxAmbientLightIntensity,
-                "%.2f",
-                SliderFlag.AlwaysClamp,
-            )
-        ) {
-            operations.setAmbientLightIntensity(ambientIntensity.value)
-        }
-        ImGui.sameLine()
-        with(dsl) {
-            button("Reset Ambient##model_viewer_reset_ambient") {
-                operations.resetAmbientLight()
-            }
-        }
-    }
-
     private fun drawDisplayModeCombo() {
         if (!ImGui.beginCombo("Display Mode##model_viewer_display_mode", state.displayMode.name)) return
         ModelViewerDisplayMode.entries.forEach { mode ->
@@ -193,19 +176,36 @@ class ModelViewerViewportPanel(
 
     private fun drawRendererOptions() {
         if (state.rendererMode == ModelViewerRendererMode.LibGdx) {
-            drawLegacyRendererOptions()
-            slider(
-                "Environment Intensity##model_viewer_libgdx_environment_intensity",
-                state::libGdxEnvironmentIntensity,
-                0f,
-                4f,
-                "%.2f",
-                SliderFlag.AlwaysClamp,
-            )
+            legacyRendererOptionsPanel.draw()
             return
         }
+        gltfPbrRendererOptionsPanel.draw()
+    }
 
-        slider("Exposure##model_viewer_pbr_exposure", state::pbrExposure, 0.1f, 4f, "%.2f", SliderFlag.AlwaysClamp)
+    companion object {
+        private const val MinGridHalfExtentCells = 1
+        private const val MaxGridHalfExtentCells = 256
+        private const val MinGridCellSize = 0.05f
+        private const val MaxGridCellSize = 16f
+        private const val MinCameraSensitivity = 0.05f
+        private const val MaxCameraSensitivity = 1f
+    }
+}
+
+internal class GltfPbrRendererOptionsPanel(
+    private val state: ModelViewerState,
+) {
+    private val environmentPresetBuffer =
+        ByteArray(TEXT_BUFFER_SIZE).also { buffer ->
+            writeTextBuffer(buffer, state.pbrEnvironmentPreset)
+        }
+
+    fun draw() {
+        ImGui.text("Environment / IBL")
+        if (ImGui.inputText("Environment Preset##model_viewer_pbr_environment_preset", environmentPresetBuffer)) {
+            state.pbrEnvironmentPreset = readTextBuffer(environmentPresetBuffer).ifBlank { DEFAULT_PBR_ENVIRONMENT_PRESET }
+        }
+        ImGui.checkbox("Show Skybox##model_viewer_pbr_show_skybox", state::pbrShowSkybox)
         slider(
             "Environment Intensity##model_viewer_pbr_environment_intensity",
             state::pbrEnvironmentIntensity,
@@ -214,36 +214,155 @@ class ModelViewerViewportPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
-        ImGui.checkbox("Show Skybox##model_viewer_pbr_show_skybox", state::pbrShowSkybox)
+        slider("Exposure##model_viewer_pbr_exposure", state::pbrExposure, 0.1f, 4f, "%.2f", SliderFlag.AlwaysClamp)
+        slider(
+            "Environment Rotation##model_viewer_pbr_environment_rotation",
+            state::pbrEnvironmentRotationDegrees,
+            -180f,
+            180f,
+            "%.0f deg",
+            SliderFlag.AlwaysClamp,
+        )
+
+        ImGui.text("Tone / Color Pipeline")
+        drawToneMappingCombo()
+        ImGui.checkbox("Gamma Correction##model_viewer_pbr_gamma", state::pbrGammaCorrection)
+        ImGui.checkbox("sRGB Textures##model_viewer_pbr_srgb", state::pbrSrgbTextures)
+        ImGui.textDisabled("Tone mapping is retained for a future post-process pass.")
+
+        ImGui.text("Direct Lighting")
         ImGui.checkbox("Directional Light##model_viewer_pbr_directional_enabled", state::pbrDirectionalLightEnabled)
         slider(
-            "Light Yaw##model_viewer_pbr_light_yaw",
+            "Directional Intensity##model_viewer_pbr_directional_intensity",
+            state::pbrDirectionalLightIntensity,
+            0f,
+            8f,
+            "%.2f",
+            SliderFlag.AlwaysClamp,
+        )
+        drawColorControl("Directional Color##model_viewer_pbr_directional_color", state.pbrDirectionalLightColor)
+        slider(
+            "Directional Light Yaw##model_viewer_pbr_light_yaw",
             state::pbrDirectionalLightYawDegrees,
             -180f,
             180f,
-            "%.0f",
+            "%.0f deg",
             SliderFlag.AlwaysClamp,
         )
         slider(
-            "Light Pitch##model_viewer_pbr_light_pitch",
+            "Directional Light Pitch##model_viewer_pbr_light_pitch",
             state::pbrDirectionalLightPitchDegrees,
             -89f,
             89f,
-            "%.0f",
+            "%.0f deg",
             SliderFlag.AlwaysClamp,
         )
+
+        ImGui.text("Material Debug / Channel View")
+        drawMaterialDebugCombo()
         state.pbrWarning?.let { warning -> textLine("Warning: $warning") }
     }
 
+    private fun drawToneMappingCombo() {
+        if (!ImGui.beginCombo("Tone Mapping##model_viewer_pbr_tone_mapping", toneMappingLabel(state.pbrToneMapping))) return
+        PbrToneMapping.entries.forEach { mode ->
+            if (ImGui.selectable(
+                    "${toneMappingLabel(mode)}##model_viewer_pbr_tone_mapping_$mode",
+                    state.pbrToneMapping == mode,
+                )
+            ) {
+                state.pbrToneMapping = mode
+            }
+        }
+        ImGui.endCombo()
+    }
+
+    private fun drawMaterialDebugCombo() {
+        if (!ImGui.beginCombo("Material Channel##model_viewer_pbr_material_channel", debugModeLabel(state.debugMode))) return
+        PBR_MATERIAL_DEBUG_MODES.forEach { mode ->
+            if (ImGui.selectable(
+                    "${debugModeLabel(mode)}##model_viewer_pbr_material_channel_$mode",
+                    state.debugMode == mode,
+                )
+            ) {
+                state.debugMode = mode
+                state.uvCheckerEnabled = false
+                state.lastNonUvCheckerDebugMode = mode
+            }
+        }
+        ImGui.endCombo()
+    }
+
     companion object {
-        private const val MinGridHalfExtentCells = 1
-        private const val MaxGridHalfExtentCells = 256
-        private const val MinGridCellSize = 0.05f
-        private const val MaxGridCellSize = 16f
-        private const val MinAmbientLightIntensity = 0f
-        private const val MaxAmbientLightIntensity = 3f
-        private const val MinCameraSensitivity = 0.05f
-        private const val MaxCameraSensitivity = 1f
+        private const val TEXT_BUFFER_SIZE = 256
+        private val PBR_MATERIAL_DEBUG_MODES =
+            listOf(
+                MaterialDebugMode.None,
+                MaterialDebugMode.BaseColor,
+                MaterialDebugMode.Normal,
+                MaterialDebugMode.Metallic,
+                MaterialDebugMode.Roughness,
+                MaterialDebugMode.Occlusion,
+                MaterialDebugMode.Emission,
+                MaterialDebugMode.Alpha,
+            )
+    }
+}
+
+internal class LegacyRendererOptionsPanel(
+    private val state: ModelViewerState,
+    private val operations: ModelViewerOperations,
+) {
+    fun draw() {
+        ImGui.text("Lighting")
+        val ambientIntensity = FloatHolder(state.ambientLightIntensity)
+        if (
+            slider(
+                "Ambient Intensity##model_viewer_legacy_ambient_intensity",
+                ambientIntensity::value,
+                0f,
+                3f,
+                "%.2f",
+                SliderFlag.AlwaysClamp,
+            )
+        ) {
+            operations.setAmbientLightIntensity(ambientIntensity.value)
+        }
+        drawColorControl("Ambient Color##model_viewer_legacy_ambient_color", state.legacyAmbientLightColor)
+        with(dsl) {
+            button("Reset Ambient##model_viewer_reset_ambient") {
+                operations.resetAmbientLight()
+            }
+        }
+        ImGui.checkbox(
+            "Directional Light##model_viewer_legacy_directional_enabled",
+            state::legacyDirectionalLightEnabled,
+        )
+        slider(
+            "Directional Intensity##model_viewer_legacy_directional_intensity",
+            state::legacyDirectionalLightIntensity,
+            0f,
+            8f,
+            "%.2f",
+            SliderFlag.AlwaysClamp,
+        )
+        drawColorControl("Directional Color##model_viewer_legacy_directional_color", state.legacyDirectionalLightColor)
+        slider(
+            "Directional Light Yaw##model_viewer_legacy_light_yaw",
+            state::legacyDirectionalLightYawDegrees,
+            -180f,
+            180f,
+            "%.0f deg",
+            SliderFlag.AlwaysClamp,
+        )
+        slider(
+            "Directional Light Pitch##model_viewer_legacy_light_pitch",
+            state::legacyDirectionalLightPitchDegrees,
+            -89f,
+            89f,
+            "%.0f deg",
+            SliderFlag.AlwaysClamp,
+        )
     }
 }
 
@@ -976,6 +1095,39 @@ private fun rendererModeLabel(mode: ModelViewerRendererMode): String =
         ModelViewerRendererMode.LibGdx -> "LibGDX / Legacy"
         ModelViewerRendererMode.Pbr -> "glTF / PBR"
     }
+
+private fun toneMappingLabel(mode: PbrToneMapping): String =
+    when (mode) {
+        PbrToneMapping.Aces -> "ACES"
+        PbrToneMapping.Reinhard -> "Reinhard"
+        PbrToneMapping.None -> "None"
+    }
+
+private fun drawColorControl(
+    label: String,
+    color: Color,
+) {
+    colorEdit4(label, color.r, color.g, color.b, color.a) { r, g, b, a ->
+        color.r = r
+        color.g = g
+        color.b = b
+        color.a = a
+    }
+}
+
+private fun readTextBuffer(buffer: ByteArray): String {
+    val length = buffer.indexOf(0).let { if (it < 0) buffer.size else it }
+    return String(buffer, 0, length, StandardCharsets.UTF_8)
+}
+
+private fun writeTextBuffer(
+    buffer: ByteArray,
+    value: String,
+) {
+    buffer.fill(0)
+    val bytes = value.toByteArray(StandardCharsets.UTF_8)
+    bytes.copyInto(buffer, endIndex = minOf(bytes.size, buffer.size - 1))
+}
 
 private fun drawInfoList(
     label: String,

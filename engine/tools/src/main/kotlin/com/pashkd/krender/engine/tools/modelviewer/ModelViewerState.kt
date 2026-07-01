@@ -48,6 +48,8 @@ data class ModelViewerState(
     var modelEntityId: EntityId? = null,
     /** Runtime entity id of the ambient light that lights the preview. */
     var ambientLightEntityId: EntityId? = null,
+    /** Runtime entity id of the Legacy directional light. */
+    var legacyDirectionalLightEntityId: EntityId? = null,
     /** Uniform scale applied to the inspected model entity. */
     val modelScale: Float = 1f,
     /** True when the inspected model asset is loaded. */
@@ -80,8 +82,12 @@ data class ModelViewerState(
     var gridCellSize: Float = 1f,
     /** Ambient light intensity used by the viewer light entity. */
     var ambientLightIntensity: Float = 0.8f,
-    /** Environment intensity multiplier applied to the LibGDX preview lighting. */
-    var libGdxEnvironmentIntensity: Float = 1f,
+    var legacyAmbientLightColor: Color = Color(0.55f, 0.58f, 0.64f, 1f),
+    var legacyDirectionalLightEnabled: Boolean = true,
+    var legacyDirectionalLightIntensity: Float = 1f,
+    var legacyDirectionalLightColor: Color = Color.white(),
+    var legacyDirectionalLightYawDegrees: Float = 45f,
+    var legacyDirectionalLightPitchDegrees: Float = -35f,
     /** Current display mode for the model material. */
     var displayMode: ModelViewerDisplayMode = ModelViewerDisplayMode.Shaded,
     /** Current material/texture debug mode. */
@@ -108,7 +114,13 @@ data class ModelViewerState(
     var pbrExposure: Float = 1f,
     var pbrShowSkybox: Boolean = true,
     var pbrEnvironmentIntensity: Float = 1f,
+    var pbrEnvironmentRotationDegrees: Float = 0f,
+    var pbrToneMapping: PbrToneMapping = PbrToneMapping.Aces,
+    var pbrGammaCorrection: Boolean = true,
+    var pbrSrgbTextures: Boolean = true,
     var pbrDirectionalLightEnabled: Boolean = true,
+    var pbrDirectionalLightIntensity: Float = 1f,
+    var pbrDirectionalLightColor: Color = Color.white(),
     var pbrDirectionalLightYawDegrees: Float = 45f,
     var pbrDirectionalLightPitchDegrees: Float = -35f,
     /** Currently selected mesh part in the Mesh Parts panel. */

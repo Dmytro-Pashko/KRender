@@ -150,10 +150,22 @@ data class PbrPreviewView(
     val exposure: Float = 1f,
     val showSkybox: Boolean = true,
     val environmentIntensity: Float = 1f,
+    val environmentRotationDegrees: Float = 0f,
+    val toneMapping: PbrToneMapping = PbrToneMapping.Aces,
+    val gammaCorrection: Boolean = true,
+    val srgbTextures: Boolean = true,
     val directionalLightEnabled: Boolean = true,
+    val directionalLightIntensity: Float = 1f,
+    val directionalLightColor: Color = Color.white(),
     val directionalLightYawDegrees: Float = 45f,
     val directionalLightPitchDegrees: Float = -35f,
 )
+
+enum class PbrToneMapping {
+    Aces,
+    Reinhard,
+    None,
+}
 
 /**
  * Backend-neutral scene environment request.
