@@ -224,11 +224,28 @@ class AssetBrowserPanel(
         ImGui.endCombo()
     }
 
-    private fun visibleAssets(): List<AssetDescriptor> = state.filteredAssets.filter { asset -> categoryAccepted(asset.category) }
+    private fun visibleAssets(): List<AssetDescriptor> =
+        state.filteredAssets.filter { asset ->
+            categoryAccepted(asset.category) && assetVisibleInSelectedCategory(asset)
+        }
 
     private fun visibleCategoryCount(category: AssetCategory?): Int =
         state.assets.count { asset ->
-            categoryAccepted(asset.category) && (category == null || asset.category == category)
+            categoryAccepted(asset.category) &&
+                (category == null || asset.category == category) &&
+                assetVisibleInCategory(asset, category)
+        }
+
+    private fun assetVisibleInSelectedCategory(asset: AssetDescriptor): Boolean =
+        assetVisibleInCategory(asset, state.selectedCategory)
+
+    private fun assetVisibleInCategory(
+        asset: AssetDescriptor,
+        category: AssetCategory?,
+    ): Boolean =
+        when (category) {
+            AssetCategory.Environment -> asset.type == AssetType.Environment || asset.type == AssetType.HdrSource
+            else -> true
         }
 
     private fun categoryAccepted(category: AssetCategory): Boolean = category in SupportedBrowserCategories && (acceptedCategories == null || category in acceptedCategories)

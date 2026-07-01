@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.SliderFlag
@@ -83,11 +84,12 @@ class ModelViewerToolbarPanel(
 class ModelViewerViewportPanel(
     private val state: ModelViewerState,
     private val operations: ModelViewerOperations,
+    private val availableEnvironments: () -> List<AssetDescriptor>,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    private val gltfPbrRendererOptionsPanel = GltfPbrRendererOptionsPanel(state)
+    private val gltfPbrRendererOptionsPanel = GltfPbrRendererOptionsPanel(state, availableEnvironments)
     private val legacyRendererOptionsPanel = LegacyRendererOptionsPanel(state, operations)
 
     override fun draw() {
@@ -243,12 +245,8 @@ class ModelViewerViewportPanel(
 
 internal class GltfPbrRendererOptionsPanel(
     private val state: ModelViewerState,
+    private val availableEnvironments: () -> List<AssetDescriptor>,
 ) {
-    private val environmentPresetBuffer =
-        ByteArray(TEXT_BUFFER_SIZE).also { buffer ->
-            writeTextBuffer(buffer, state.gltfEnvironmentPreset)
-        }
-
     fun draw() {
         drawEnvironmentSection()
         ImGui.separator()
@@ -258,13 +256,7 @@ internal class GltfPbrRendererOptionsPanel(
 
     private fun drawEnvironmentSection() {
         ImGui.text("Environment / IBL")
-        if (ImGui.inputText("Environment Preset##model_viewer_pbr_environment_preset", environmentPresetBuffer)) {
-            state.gltfEnvironmentPreset = readTextBuffer(environmentPresetBuffer).ifBlank { DEFAULT_GLTF_ENVIRONMENT_PRESET }
-        }
-        tooltipOnHover(
-            "Select the HDR / IBL environment preset name or manifest path. " +
-                "The renderer resolves changes live when the value is edited.",
-        )
+        drawEnvironmentSelector()
         ImGui.checkbox("Show Skybox##model_viewer_pbr_show_skybox", state::gltfShowSkybox)
         tooltipOnHover("Show the selected HDR environment as the glTF / PBR skybox.")
         slider(
@@ -339,6 +331,49 @@ internal class GltfPbrRendererOptionsPanel(
         tooltipOnHover("Reset all glTF / PBR directional light parameters to their defaults.")
     }
 
+    private fun drawEnvironmentSelector() {
+        val environments = availableEnvironments()
+        val selectedEnvironment = environments.firstOrNull { environment -> environment.path == state.gltfEnvironmentPreset }
+        val currentLabel =
+            selectedEnvironment?.name
+                ?: state.gltfEnvironmentPreset.substringAfterLast('/').substringBefore(".environment.json")
+                    .ifBlank { DEFAULT_GLTF_ENVIRONMENT_PRESET }
+        val expanded =
+            ImGui.beginCombo(
+                "Environment##model_viewer_pbr_environment",
+                currentLabel,
+            )
+        tooltipOnHover("Choose the Environment asset used by the glTF / PBR renderer for IBL lighting.")
+        if (!expanded) return
+        if (environments.isEmpty()) {
+            ImGui.beginDisabled()
+            ImGui.selectable("No Environment assets found##model_viewer_pbr_environment_empty", false)
+            ImGui.endDisabled()
+            tooltipOnHover("No `.environment.json` assets are currently available in the asset registry.")
+            ImGui.endCombo()
+            return
+        }
+        environments.forEach { environment ->
+            if (ImGui.selectable(environmentSelectorLabel(environment), environment.path == state.gltfEnvironmentPreset)) {
+                state.gltfEnvironmentPreset = environment.path
+            }
+            tooltipOnHover(environment.path)
+        }
+        ImGui.endCombo()
+    }
+
+    private fun environmentSelectorLabel(environment: AssetDescriptor): String {
+        val pathSuffix =
+            environment.path
+                .substringBeforeLast('/')
+                .substringAfterLast('/')
+                .takeIf { it.isNotBlank() && !it.equals(environment.name, ignoreCase = true) }
+        return when (pathSuffix) {
+            null -> "${environment.name}##model_viewer_pbr_environment_${environment.id.value}"
+            else -> "${environment.name} ($pathSuffix)##model_viewer_pbr_environment_${environment.id.value}"
+        }
+    }
+
     private fun resetEnvironment() {
         state.gltfEnvironmentIntensity = DEFAULT_ENVIRONMENT_INTENSITY
         state.gltfExposure = DEFAULT_EXPOSURE
@@ -354,7 +389,6 @@ internal class GltfPbrRendererOptionsPanel(
     }
 
     companion object {
-        private const val TEXT_BUFFER_SIZE = 256
         private const val DEFAULT_ENVIRONMENT_INTENSITY = 1f
         private const val DEFAULT_EXPOSURE = 1f
         private const val DEFAULT_ENVIRONMENT_ROTATION = 0f

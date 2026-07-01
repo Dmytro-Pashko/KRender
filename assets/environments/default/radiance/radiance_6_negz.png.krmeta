@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:d05c80bc-12ba-4bd8-a0ac-37faacec5566",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "radiance_6_negz",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

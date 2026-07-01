@@ -342,6 +342,8 @@ class LocalAssetRegistryService(
          * The `ui/scenes` entry exists so `.krui` UiScene documents under `assets/ui/scenes` are indexed by
          * Asset Browser. `ui/skins` indexes LibGDX Scene2D Skin JSON descriptors for `.krui` creation and
          * `atlases` keeps Texture Atlas Editor outputs discoverable after in-editor asset creation.
+         * `environments` indexes Environment manifests, HDR/EXR source files, and generated IBL resources
+         * under `assets/environments`.
          * Those `.atlas` files are routed as managed Scene2D assets so they show up immediately for browsing,
          * reopening in the atlas editor, and downstream picker workflows.
          *
@@ -355,6 +357,7 @@ class LocalAssetRegistryService(
                 "textures",
                 "atlases",
                 "skyboxes",
+                "environments",
                 "materials",
                 "terrains",
                 "ui/scenes",

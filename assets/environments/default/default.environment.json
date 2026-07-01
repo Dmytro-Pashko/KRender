@@ -1,0 +1,117 @@
+{
+  "schema": "krender.environment",
+  "schemaVersion": 1,
+  "assetType": "Environment",
+  "environmentType": "HdrIbl",
+  "id": "default",
+  "name": "Default",
+  "settings": {
+    "exposure": 1.18,
+    "rotationDegrees": 76.7,
+    "skyboxVisible": true,
+    "skyboxIntensity": 1.0,
+    "diffuseIntensity": 1.0,
+    "specularIntensity": 1.0,
+    "backgroundMode": "SolidColor"
+  },
+  "sources": [
+    {
+      "id": "source",
+      "path": "sources/suburban_garden_2k.hdr",
+      "format": "HDR",
+      "role": "Source",
+      "isDefault": true,
+      "colorSpace": "Linear",
+      "dynamicRange": "HDR"
+    }
+  ],
+  "generated": {
+    "skybox": {
+      "layout": "SixFaces",
+      "resolution": 1024,
+      "format": "PNG",
+      "faces": {
+        "px": "skybox/generated/environment_posx.png",
+        "nx": "skybox/generated/environment_negx.png",
+        "py": "skybox/generated/environment_posy.png",
+        "ny": "skybox/generated/environment_negy.png",
+        "pz": "skybox/generated/environment_posz.png",
+        "nz": "skybox/generated/environment_negz.png"
+      }
+    },
+    "irradiance": {
+      "path": "irradiance",
+      "resolution": 64,
+      "format": "PNG"
+    },
+    "radiance": {
+      "baseResolution": 256,
+      "mips": [
+        {
+          "level": 0,
+          "roughness": 0.0,
+          "path": "radiance/radiance_0_posx.png"
+        },
+        {
+          "level": 1,
+          "roughness": 0.11111111,
+          "path": "radiance/radiance_1_posx.png"
+        },
+        {
+          "level": 2,
+          "roughness": 0.22222222,
+          "path": "radiance/radiance_2_posx.png"
+        },
+        {
+          "level": 3,
+          "roughness": 0.33333334,
+          "path": "radiance/radiance_3_posx.png"
+        },
+        {
+          "level": 4,
+          "roughness": 0.44444445,
+          "path": "radiance/radiance_4_posx.png"
+        },
+        {
+          "level": 5,
+          "roughness": 0.5555556,
+          "path": "radiance/radiance_5_posx.png"
+        },
+        {
+          "level": 6,
+          "roughness": 0.6666667,
+          "path": "radiance/radiance_6_posx.png"
+        },
+        {
+          "level": 7,
+          "roughness": 0.7777778,
+          "path": "radiance/radiance_7_posx.png"
+        },
+        {
+          "level": 8,
+          "roughness": 0.8888889,
+          "path": "radiance/radiance_8_posx.png"
+        },
+        {
+          "level": 9,
+          "roughness": 1.0,
+          "path": "radiance/radiance_9_posx.png"
+        }
+      ]
+    },
+    "brdfLut": {
+      "path": "brdf/brdfLUT.png",
+      "shared": false
+    }
+  },
+  "generation": {
+    "sourceVariantId": "source",
+    "generator": "KRenderIBLGenerator",
+    "generatorVersion": "1",
+    "skyboxResolution": 1024,
+    "irradianceResolution": 64,
+    "radianceResolution": 256,
+    "radianceMipCount": 10,
+    "outputFormat": "PNG"
+  }
+}

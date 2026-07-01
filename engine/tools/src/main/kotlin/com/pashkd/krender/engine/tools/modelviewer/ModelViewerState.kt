@@ -30,7 +30,7 @@ const val UV_CHECKER_TEXTURE_1K = "textures/uv_checker_1k.png"
 const val UV_CHECKER_TEXTURE_2K = "textures/uv_checker_2k.png"
 const val UV_CHECKER_TEXTURE_4K = "textures/uv_checker_4k.png"
 const val DEFAULT_UV_CHECKER_TEXTURE = "textures/uv_checker_2k.png"
-const val DEFAULT_GLTF_ENVIRONMENT_PRESET = HdrEnvironmentAssets.DEFAULT_PRESET
+const val DEFAULT_GLTF_ENVIRONMENT_PRESET = HdrEnvironmentAssets.DEFAULT_MANIFEST
 
 val UV_CHECKER_TEXTURE_OPTIONS =
     listOf(

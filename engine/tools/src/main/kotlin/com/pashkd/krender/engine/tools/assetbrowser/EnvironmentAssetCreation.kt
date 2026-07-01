@@ -3,7 +3,6 @@ package com.pashkd.krender.engine.tools.assetbrowser
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.AssetDescriptor
-import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.assets.environment.CubemapResource
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
@@ -43,7 +42,6 @@ internal data class CreateEnvironmentResult(
 internal object EnvironmentAssetCreation {
     private const val CreateFromExrActionId = "create-environment-from-exr"
     private const val CreateFromHdrActionId = "create-environment-from-hdr"
-    private const val OpenParentEnvironmentActionId = "open-parent-environment"
 
     fun actionsFor(asset: AssetDescriptor): List<AssetActionDescriptor> {
         val actions = mutableListOf<AssetActionDescriptor>()
@@ -55,9 +53,6 @@ internal object EnvironmentAssetCreation {
                 asset.extension.equals("hdr", ignoreCase = true) ->
                     actions += AssetActionDescriptor(CreateFromHdrActionId, "Create Environment from HDR")
             }
-        }
-        if (canOpenParentEnvironment(asset)) {
-            actions += AssetActionDescriptor(OpenParentEnvironmentActionId, "Open Parent Environment")
         }
         return actions
     }
@@ -127,8 +122,6 @@ internal object EnvironmentAssetCreation {
             CreateFromExrActionId,
             CreateFromHdrActionId,
             -> createFromAsset(asset, engine, logger)
-
-            OpenParentEnvironmentActionId -> openParentEnvironment(asset, engine, logger)
             else -> error("Unsupported asset action '$actionId'.")
         }
 
@@ -169,19 +162,6 @@ internal object EnvironmentAssetCreation {
             "Created environment id='${result.environmentId}' manifest='${result.manifestPath}' source='${result.sourcePath}' from='$sourcePath'"
         }
         return result
-    }
-
-    private fun openParentEnvironment(
-        asset: AssetDescriptor,
-        engine: EngineContext,
-        logger: Logger,
-    ): CreateEnvironmentResult {
-        val manifestPath =
-            findClosestParentManifest(asset, engine.assetRegistry)
-                ?: error("No parent environment manifest found for '${asset.path}'.")
-        engine.editorToolLauncher.launchEnvironmentEditor(manifestPath)
-        logger.info(TAG) { "Opening parent environment '$manifestPath' for asset='${asset.path}'" }
-        return CreateEnvironmentResult(environmentId = manifestPath.substringAfterLast('/').substringBefore(".environment.json"), manifestPath = manifestPath, sourcePath = asset.path)
     }
 
     private fun defaultGeneratedResources(): EnvironmentGeneratedResources =
@@ -330,48 +310,6 @@ internal object EnvironmentAssetCreation {
         return Files.exists(environmentDir) || Files.exists(manifest)
     }
 
-    private fun canOpenParentEnvironment(asset: AssetDescriptor): Boolean =
-        when (asset.type) {
-            AssetType.EnvironmentSkybox,
-            AssetType.EnvironmentCubemap,
-            AssetType.EnvironmentGeneratedMap,
-            AssetType.BrdfLut,
-            -> true
-
-            AssetType.HdrSource -> isUnderEnvironmentsFolder(asset.path)
-            else -> false
-        }
-
-    private fun findClosestParentManifest(
-        asset: AssetDescriptor,
-        registry: AssetRegistryService,
-    ): String? {
-        val basePath =
-            registry
-                .baseDir()
-                .toPath()
-                .toAbsolutePath()
-                .normalize()
-        var directory = resolveAssetPath(basePath, asset.path).parent
-        while (directory != null && directory.startsWith(basePath)) {
-            val manifestPath =
-                Files
-                    .list(directory)
-                    .use { paths ->
-                        paths
-                            .filter { path ->
-                                Files.isRegularFile(path) && path.fileName.toString().endsWith(".environment.json", ignoreCase = true)
-                            }.findFirst()
-                            .orElse(null)
-                    }
-            if (manifestPath != null) {
-                return assetBrowserNormalizePath(basePath.relativize(manifestPath).toString())
-            }
-            directory = directory.parent
-        }
-        return null
-    }
-
     private fun environmentBaseId(sourceFileName: String): String =
         sourceFileName
             .substringBeforeLast('.')
@@ -410,11 +348,6 @@ internal object EnvironmentAssetCreation {
             extension.equals("hdr", ignoreCase = true) -> EnvironmentSourceFormat.HDR
             else -> error("Selected file is not a supported environment source: .$extension")
         }
-
-    private fun isUnderEnvironmentsFolder(path: String): Boolean {
-        val normalized = assetBrowserNormalizePath(path).lowercase()
-        return normalized.startsWith("environments/") || normalized.contains("/environments/")
-    }
 
     private data class EnvironmentTarget(
         val environmentId: String,

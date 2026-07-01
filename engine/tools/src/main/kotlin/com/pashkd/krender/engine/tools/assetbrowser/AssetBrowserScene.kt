@@ -276,13 +276,7 @@ private class SceneOperationsHandler(
     ) {
         try {
             val result = EnvironmentAssetCreation.runAction(asset, actionId, engineProvider(), logger)
-            val prefix =
-                if (actionId == "open-parent-environment") {
-                    "Opened parent environment"
-                } else {
-                    "Created environment"
-                }
-            consumeEnvironmentCreateResult(result, prefix)
+            consumeEnvironmentCreateResult(result, prefix = "Created environment")
         } catch (error: Exception) {
             consumeEnvironmentCreateFailure(error, "Asset action failed")
         }

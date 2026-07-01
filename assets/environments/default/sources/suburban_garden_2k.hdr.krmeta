@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:afa2ae46-af60-4c13-9abf-34d6d0de8af0",
+  "type": "HdrSource",
+  "category": "Environment",
+  "displayName": "suburban_garden_2k",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}
