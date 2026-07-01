@@ -41,3 +41,11 @@ tasks.register<JavaExec>("normalizeScene2DSkins") {
         }
     }
 }
+
+tasks.register<JavaExec>("generateHdrEnvironment") {
+    group = "tools"
+    description = "Generates skybox and IBL assets from a KRender HDR environment manifest."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.pashkd.krender.engine.backend.gdx.tools.hdr.HdrEnvironmentGeneratorMain")
+    workingDir(rootProject.file("assets"))
+}
