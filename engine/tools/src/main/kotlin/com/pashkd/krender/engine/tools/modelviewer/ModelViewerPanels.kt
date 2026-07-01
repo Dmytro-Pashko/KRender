@@ -44,18 +44,6 @@ class ModelViewerToolbarPanel(
         }
         ImGui.sameLine()
         with(dsl) {
-            button("Reset Camera##model_viewer_reset_camera") {
-                operations.resetCamera()
-            }
-        }
-        ImGui.sameLine()
-        with(dsl) {
-            button("Frame Model##model_viewer_frame_model") {
-                operations.frameModel()
-            }
-        }
-        ImGui.sameLine()
-        with(dsl) {
             button("Exit##model_viewer_exit") {
                 state.exitRequested = true
             }
@@ -96,36 +84,67 @@ class ModelViewerViewportPanel(
         state.viewportSize = Vec2(viewportSize.x.coerceAtLeast(0f), viewportSize.y.coerceAtLeast(0f))
         state.viewportFocused = ImGui.isWindowHovered() || ImGui.isWindowFocused()
 
-        ImGui.text("Viewport control")
-        ImGui.separator()
+        ImGui.text("Camera Control")
         textLine("Camera: ${formatPosition(state.camera.position)}")
         textLine("Speed: ${"%.2f".format(state.camera.speed)}${if (state.camera.navigating) " (navigating)" else ""}")
         ImGui.text("RMB look, WASD move, Q/E down/up, wheel speed, Shift faster.")
-        ImGui.separator()
+        with(dsl) {
+            button("Reset Camera##model_viewer_reset_camera") {
+                operations.resetCamera()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Frame Model##model_viewer_frame_model") {
+                operations.frameModel()
+            }
+        }
+        slider(
+            "Look Sensitivity##model_viewer_camera_sensitivity",
+            state.camera::sensitivity,
+            MinCameraSensitivity,
+            MaxCameraSensitivity,
+            "%.2f",
+            SliderFlag.AlwaysClamp,
+        )
 
+        ImGui.separator()
+        ImGui.text("Display Mode / Display Options")
         drawDisplayModeCombo()
-        drawRendererControls()
         ImGui.checkbox("Grid##model_viewer_show_grid", state::showGrid)
         ImGui.sameLine()
         ImGui.checkbox("Axes##model_viewer_show_axes", state::showAxes)
         ImGui.sameLine()
-        ImGui.checkbox("Bounding Box##model_viewer_show_bounding_box", state::showBoundingBox)
+        ImGui.checkbox("Bounds##model_viewer_show_bounding_box", state::showBoundingBox)
         slider(
-            "Grid extent##model_viewer_grid_extent",
-            state::gridHalfExtentCells,
-            MinGridHalfExtentCells,
-            MaxGridHalfExtentCells,
-            "%d",
-            SliderFlag.AlwaysClamp,
-        )
-        slider(
-            "Cell size##model_viewer_grid_cell_size",
+            "Grid Size##model_viewer_grid_cell_size",
             state::gridCellSize,
             MinGridCellSize,
             MaxGridCellSize,
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
+        slider(
+            "Grid Extent##model_viewer_grid_extent",
+            state::gridHalfExtentCells,
+            MinGridHalfExtentCells,
+            MaxGridHalfExtentCells,
+            "%d",
+            SliderFlag.AlwaysClamp,
+        )
+
+        ImGui.separator()
+        ImGui.text("Renderer Selector")
+        drawRendererSelector()
+
+        ImGui.separator()
+        ImGui.text("Renderer Options")
+        drawRendererOptions()
+        ImGui.endChild()
+        ImGui.end()
+    }
+
+    private fun drawLegacyRendererOptions() {
         val ambientIntensity = FloatHolder(state.ambientLightIntensity)
         if (
             slider(
@@ -145,8 +164,6 @@ class ModelViewerViewportPanel(
                 operations.resetAmbientLight()
             }
         }
-        ImGui.endChild()
-        ImGui.end()
     }
 
     private fun drawDisplayModeCombo() {
@@ -159,10 +176,8 @@ class ModelViewerViewportPanel(
         ImGui.endCombo()
     }
 
-    private fun drawRendererControls() {
-        ImGui.separator()
-        ImGui.text("Renderer")
-        if (ImGui.beginCombo("Mode##model_viewer_renderer_mode", rendererModeLabel(state.rendererMode))) {
+    private fun drawRendererSelector() {
+        if (ImGui.beginCombo("Renderer##model_viewer_renderer_mode", rendererModeLabel(state.rendererMode))) {
             ModelViewerRendererMode.entries.forEach { mode ->
                 if (ImGui.selectable(
                         "${rendererModeLabel(mode)}##model_viewer_renderer_$mode",
@@ -174,7 +189,11 @@ class ModelViewerViewportPanel(
             }
             ImGui.endCombo()
         }
+    }
+
+    private fun drawRendererOptions() {
         if (state.rendererMode == ModelViewerRendererMode.LibGdx) {
+            drawLegacyRendererOptions()
             slider(
                 "Environment Intensity##model_viewer_libgdx_environment_intensity",
                 state::libGdxEnvironmentIntensity,
@@ -223,6 +242,8 @@ class ModelViewerViewportPanel(
         private const val MaxGridCellSize = 16f
         private const val MinAmbientLightIntensity = 0f
         private const val MaxAmbientLightIntensity = 3f
+        private const val MinCameraSensitivity = 0.05f
+        private const val MaxCameraSensitivity = 1f
     }
 }
 
