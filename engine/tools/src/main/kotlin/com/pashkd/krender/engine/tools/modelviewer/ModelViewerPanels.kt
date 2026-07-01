@@ -10,6 +10,18 @@ import imgui.dsl
 import java.nio.charset.StandardCharsets
 import glm_.vec2.Vec2 as ImVec2
 
+private val MODEL_VIEWER_MATERIAL_CHANNEL_MODES =
+    listOf(
+        MaterialDebugMode.Combined,
+        MaterialDebugMode.BaseColor,
+        MaterialDebugMode.Normal,
+        MaterialDebugMode.Metallic,
+        MaterialDebugMode.Roughness,
+        MaterialDebugMode.Occlusion,
+        MaterialDebugMode.Emission,
+        MaterialDebugMode.Alpha,
+    )
+
 /**
  * Top-level ModelViewer action/status panel.
  */
@@ -279,7 +291,7 @@ internal class GltfPbrRendererOptionsPanel(
 
     private fun drawMaterialDebugCombo() {
         if (!ImGui.beginCombo("Material Channel##model_viewer_pbr_material_channel", debugModeLabel(state.debugMode))) return
-        PBR_MATERIAL_DEBUG_MODES.forEach { mode ->
+        MODEL_VIEWER_MATERIAL_CHANNEL_MODES.forEach { mode ->
             if (ImGui.selectable(
                     "${debugModeLabel(mode)}##model_viewer_pbr_material_channel_$mode",
                     state.debugMode == mode,
@@ -295,17 +307,6 @@ internal class GltfPbrRendererOptionsPanel(
 
     companion object {
         private const val TEXT_BUFFER_SIZE = 256
-        private val PBR_MATERIAL_DEBUG_MODES =
-            listOf(
-                MaterialDebugMode.None,
-                MaterialDebugMode.BaseColor,
-                MaterialDebugMode.Normal,
-                MaterialDebugMode.Metallic,
-                MaterialDebugMode.Roughness,
-                MaterialDebugMode.Occlusion,
-                MaterialDebugMode.Emission,
-                MaterialDebugMode.Alpha,
-            )
     }
 }
 
@@ -752,7 +753,7 @@ class ModelViewerTextureChannelsPanel(
 
     private fun drawDebugModeCombo(info: ModelAssetInfo?) {
         if (!ImGui.beginCombo("Channel##model_viewer_debug_mode", debugModeLabel(state.debugMode))) return
-        MaterialDebugMode.entries.forEach { mode ->
+        MODEL_VIEWER_MATERIAL_CHANNEL_MODES.forEach { mode ->
             val available = debugModeAvailable(info, mode)
             if (!available) {
                 ImGui.beginDisabled()
@@ -1059,10 +1060,10 @@ private fun textureChannelSortKey(channel: String): Int =
 
 private fun debugModeLabel(mode: MaterialDebugMode): String =
     when (mode) {
-        MaterialDebugMode.None -> "None"
+        MaterialDebugMode.Combined -> "Combined"
         MaterialDebugMode.BaseColor -> "Base Color"
         MaterialDebugMode.Normal -> "Normal"
-        MaterialDebugMode.Emission -> "Emission"
+        MaterialDebugMode.Emission -> "Emissive"
         MaterialDebugMode.Roughness -> "Roughness"
         MaterialDebugMode.Metallic -> "Metallic"
         MaterialDebugMode.MetallicRoughnessPacked -> "Metallic/Roughness Packed"
@@ -1076,7 +1077,7 @@ private fun debugModeAvailable(
     mode: MaterialDebugMode,
 ): Boolean =
     when {
-        mode == MaterialDebugMode.None -> true
+        mode == MaterialDebugMode.Combined -> true
         mode == MaterialDebugMode.UvChecker -> info?.uvChannels?.isNotEmpty() != false
         isModelViewerTextureDebugMode(mode) ->
             hasModelViewerTextureChannel(info, mode, selectedMaterialIndex = null)

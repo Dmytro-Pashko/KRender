@@ -68,7 +68,7 @@ data class AnimationPlaybackView(
  * Backend-neutral material debug modes supported by shader debug renderers.
  */
 enum class MaterialDebugMode {
-    None,
+    Combined,
     BaseColor,
     Normal,
     Emission,
@@ -138,7 +138,7 @@ data class MaterialDebugView(
     val culling: DebugCullingMode = DebugCullingMode.Backface,
 ) {
     val active: Boolean
-        get() = mode != MaterialDebugMode.None
+        get() = mode != MaterialDebugMode.Combined
 }
 
 /**

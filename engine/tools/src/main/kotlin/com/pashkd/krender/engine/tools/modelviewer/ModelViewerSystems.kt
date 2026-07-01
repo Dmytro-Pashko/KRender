@@ -221,7 +221,7 @@ class ModelViewerSystem(
     ): String? {
         val info = state.modelInfo ?: return null
         return when {
-            mode == MaterialDebugMode.None -> null
+            mode == MaterialDebugMode.Combined -> null
             mode == MaterialDebugMode.UvChecker && info.uvChannels.isEmpty() ->
                 "ModelViewer debug warning: model has no UV channels for UV checker."
 
@@ -271,7 +271,7 @@ class ModelViewerSystem(
             MaterialDebugMode.Alpha ->
                 "$material has no alpha-capable texture."
 
-            MaterialDebugMode.None,
+            MaterialDebugMode.Combined,
             MaterialDebugMode.UvChecker,
             -> "Texture channel $mode is unavailable for $material."
         }
@@ -473,7 +473,7 @@ class ModelViewerModelRenderSystem(
 
     private fun ModelViewerState.materialDebugView(): MaterialDebugView? {
         val mode = if (uvCheckerEnabled) MaterialDebugMode.UvChecker else debugMode
-        if (mode == MaterialDebugMode.None) return null
+        if (mode == MaterialDebugMode.Combined) return null
         return MaterialDebugView(
             mode = mode,
             selectedMaterialIndex = null,

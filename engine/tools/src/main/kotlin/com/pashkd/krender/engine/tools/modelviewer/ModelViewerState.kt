@@ -91,9 +91,9 @@ data class ModelViewerState(
     /** Current display mode for the model material. */
     var displayMode: ModelViewerDisplayMode = ModelViewerDisplayMode.Shaded,
     /** Current material/texture debug mode. */
-    var debugMode: MaterialDebugMode = MaterialDebugMode.None,
+    var debugMode: MaterialDebugMode = MaterialDebugMode.Combined,
     /** Last non-UV-checker channel display mode so the UV checker toggle can restore it. */
-    var lastNonUvCheckerDebugMode: MaterialDebugMode = MaterialDebugMode.None,
+    var lastNonUvCheckerDebugMode: MaterialDebugMode = MaterialDebugMode.Combined,
     /** Enables UV checker override. Mirrored with [debugMode] when selected in the UI. */
     var uvCheckerEnabled: Boolean = false,
     /** Culling behavior used by shader debug rendering. */

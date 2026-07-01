@@ -14,7 +14,7 @@ internal fun isModelViewerTextureDebugMode(mode: MaterialDebugMode): Boolean =
         MaterialDebugMode.Alpha,
         -> true
 
-        MaterialDebugMode.None,
+        MaterialDebugMode.Combined,
         MaterialDebugMode.UvChecker,
         -> false
     }
@@ -112,7 +112,7 @@ internal fun modelViewerTextureAliasesFor(mode: MaterialDebugMode): Set<String> 
 
         MaterialDebugMode.Occlusion -> setOf("occlusion", "ao", "ambientocclusion")
         MaterialDebugMode.Alpha -> setOf("alpha", "opacity", "alphatexture", "basecolor", "basecolortexture", "diffuse")
-        MaterialDebugMode.None,
+        MaterialDebugMode.Combined,
         MaterialDebugMode.UvChecker,
         -> emptySet()
     }
@@ -129,7 +129,7 @@ private fun textureDebugComponentFor(mode: MaterialDebugMode): TextureDebugCompo
         MaterialDebugMode.Emission,
         -> TextureDebugComponent.RGB
 
-        MaterialDebugMode.None,
+        MaterialDebugMode.Combined,
         MaterialDebugMode.UvChecker,
         -> TextureDebugComponent.RGB
     }
