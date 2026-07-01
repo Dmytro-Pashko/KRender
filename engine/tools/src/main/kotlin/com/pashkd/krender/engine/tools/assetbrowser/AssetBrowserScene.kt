@@ -58,6 +58,7 @@ class AssetBrowserScene : Scene("asset_browser") {
                 register(SceneEditorAssetTool())
                 register(SceneRuntimeAssetTool())
                 register(BitmapFontEditorAssetTool())
+                register(EnvironmentEditorAssetTool())
             }
         operations =
             LocalAssetOperationsService(
@@ -587,6 +588,31 @@ private fun launchTextureAtlasEditorAsset(
     }
     context.editorToolLauncher.launchTextureAtlasEditor(path)
     context.logger.info(tag) { "Texture Atlas Editor launch requested path='$path'" }
+}
+
+/**
+ * Opens `.environment.json` manifests in the Environment Editor.
+ */
+class EnvironmentEditorAssetTool : AssetTool {
+    override val id = "environment-editor"
+    override val displayName = "Open in Environment Editor"
+    override val supportedCategories = setOf(AssetCategory.Environment)
+
+    override fun canOpen(asset: AssetDescriptor): Boolean =
+        asset.category == AssetCategory.Environment && asset.type == AssetType.Environment
+
+    override fun open(
+        asset: AssetDescriptor,
+        context: EngineContext,
+    ) {
+        val path = normalizedAssetPath(asset)
+        context.logger.info(TAG) { "Opening environment asset '$path' in Environment Editor" }
+        context.editorToolLauncher.launchEnvironmentEditor(path)
+    }
+
+    companion object {
+        private const val TAG = "EnvironmentEditorAssetTool"
+    }
 }
 
 private fun normalizedAssetPath(asset: AssetDescriptor): String = asset.path.trim().replace('\\', '/')

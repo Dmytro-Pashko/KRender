@@ -12,6 +12,10 @@ object AssetTypeDetector {
         val extension = normalized.substringAfterLast('.', "").lowercase()
         val lowerPath = normalized.lowercase()
         return when {
+            lowerPath.endsWith(".environment.json") ->
+                AssetTypeDetection(AssetType.Environment, AssetCategory.Environment)
+            extension == "exr" || extension == "hdr" ->
+                AssetTypeDetection(AssetType.HdrSource, AssetCategory.Environment)
             extension == "glb" || extension == "gltf" -> AssetTypeDetection(AssetType.GltfModel, AssetCategory.Model)
             extension == "obj" -> AssetTypeDetection(AssetType.ObjModel, AssetCategory.Model)
             extension == "g3db" || extension == "g3dj" -> AssetTypeDetection(AssetType.GdxModel, AssetCategory.Model)

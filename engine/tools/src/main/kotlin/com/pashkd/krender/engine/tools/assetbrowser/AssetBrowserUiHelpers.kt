@@ -53,6 +53,7 @@ internal fun assetBrowserIcon(asset: AssetDescriptor): String =
                 AssetCategory.Terrain -> "[Ter]"
                 AssetCategory.Scene2D -> "[S2D]"
                 AssetCategory.UI -> "[UI]"
+                AssetCategory.Environment -> "[Env]"
                 AssetCategory.Scene -> "[Sc]"
                 AssetCategory.Other -> "[?]"
             }
@@ -67,6 +68,7 @@ internal val SupportedBrowserCategories =
         AssetCategory.Terrain,
         AssetCategory.Scene2D,
         AssetCategory.UI,
+        AssetCategory.Environment,
         AssetCategory.Scene,
         AssetCategory.Other,
     )

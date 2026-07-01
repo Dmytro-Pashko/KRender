@@ -79,6 +79,14 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
+    override fun launchEnvironmentEditor(environmentPath: String) {
+        launch(
+            scene = "environment-editor",
+            pathProperty = "krender.environment.path" to normalizePath(environmentPath),
+            failureMessage = "Environment Editor launch failed",
+        )
+    }
+
     private fun launch(
         scene: String,
         pathProperty: Pair<String, String>?,
