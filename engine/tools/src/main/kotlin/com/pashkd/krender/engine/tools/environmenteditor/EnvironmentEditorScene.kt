@@ -2,7 +2,9 @@ package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
+import com.pashkd.krender.engine.assets.environment.EnvironmentGenerationService
 import com.pashkd.krender.engine.assets.environment.EnvironmentService
+import com.pashkd.krender.engine.assets.environment.PlaceholderEnvironmentGenerationService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.ui.editor.UiPanel
@@ -20,11 +22,13 @@ class EnvironmentEditorScene(
 
     private lateinit var editorState: EnvironmentEditorState
     private lateinit var environmentService: EnvironmentService
+    private lateinit var generationService: EnvironmentGenerationService
 
     override fun show() {
         engine.logger.info(TAG) { "EnvironmentEditor show environmentPath='$environmentPath'" }
 
         environmentService = DefaultEnvironmentService(engine.sceneFiles)
+        generationService = PlaceholderEnvironmentGenerationService
         editorState = EnvironmentEditorState(environmentPath)
         loadEnvironment()
 
@@ -33,6 +37,7 @@ class EnvironmentEditorScene(
         uiSystem.addPanel(EnvironmentInspectorPanel(editorState))
         uiSystem.addPanel(EnvironmentSettingsPanel(editorState, environmentService, engine.logger))
         uiSystem.addPanel(EnvironmentSourceVariantsPanel(editorState))
+        uiSystem.addPanel(EnvironmentGeneratedMapsPanel(editorState, generationService, engine.logger))
         world.systems.add(uiSystem)
     }
 
