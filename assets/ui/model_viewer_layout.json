@@ -9,38 +9,38 @@
     },
     "viewport": {
       "title": "Viewport Control",
-      "x": 3,
+      "x": 1,
       "y": 152,
-      "width": 344,
-      "height": 453
+      "width": 499,
+      "height": 611
     },
     "modelInfo": {
       "title": "Model Info",
       "x": 3,
-      "y": 609,
-      "width": 345,
-      "height": 440
+      "y": 767,
+      "width": 496,
+      "height": 504
     },
     "meshParts": {
       "title": "Mesh Parts",
-      "x": 3,
-      "y": 1051,
-      "width": 346,
-      "height": 222
+      "x": 1574,
+      "y": 0,
+      "width": 344,
+      "height": 278
     },
     "materials": {
       "title": "Materials",
-      "x": 1600,
-      "y": 7,
-      "width": 318,
-      "height": 657
+      "x": 1572,
+      "y": 280,
+      "width": 346,
+      "height": 461
     },
     "textureChannels": {
       "title": "Texture Channels",
-      "x": 1598,
-      "y": 666,
-      "width": 321,
-      "height": 609
+      "x": 1562,
+      "y": 756,
+      "width": 387,
+      "height": 533
     },
     "loading": {
       "title": "Loading",
@@ -51,9 +51,9 @@
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
-      "x": 351,
-      "y": 1015,
-      "width": 1246,
+      "x": 500,
+      "y": 1021,
+      "width": 1068,
       "height": 258
     }
   }
