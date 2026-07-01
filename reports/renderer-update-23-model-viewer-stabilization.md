@@ -27,5 +27,5 @@ Verify the post-PBR Model Viewer layout/controls are coherent, keep only useful 
 
 ## Commit
 
-- Hash: `<pending>`
+- Hash: `5d86a392`
 - Message: `model-viewer: finalize renderer ui stabilization`

@@ -27,5 +27,5 @@ Update root-level and workflow documentation so the repository clearly presents 
 
 ## Commit
 
-- Hash: `<pending>`
+- Hash: `8ec8eadb`
 - Message: `docs: finalize pbr and hdr workflow documentation`

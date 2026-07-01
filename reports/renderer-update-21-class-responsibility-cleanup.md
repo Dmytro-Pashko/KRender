@@ -25,5 +25,5 @@ Reduce mixed responsibilities in the HDR/glTF renderer path without overengineer
 
 ## Commit
 
-- Hash: `<pending>`
+- Hash: `af3ddef8`
 - Message: `renderer: split gltf environment and renderer responsibilities`

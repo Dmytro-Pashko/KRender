@@ -29,5 +29,5 @@ Remove preview-era naming from the main glTF renderer path so the code reflects 
 
 ## Commit
 
-- Hash: `<pending>`
+- Hash: `64e11ad2`
 - Message: `renderer: clean preview naming and legacy fallback paths`

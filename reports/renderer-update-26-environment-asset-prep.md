@@ -25,5 +25,5 @@ Prepare the HDR environment code for future reusable Environment asset support w
 
 ## Commit
 
-- Hash: `<pending>`
+- Hash: `95a85964`
 - Message: `assets: prepare hdr environment model for future editor support`

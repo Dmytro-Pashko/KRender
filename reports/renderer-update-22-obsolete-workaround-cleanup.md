@@ -27,5 +27,5 @@ Remove stale preview-era naming and leftover renderer-path identifiers so the gl
 
 ## Commit
 
-- Hash: `<pending>`
+- Hash: `0185eb5b`
 - Message: `cleanup: remove obsolete pbr and skybox workarounds`
