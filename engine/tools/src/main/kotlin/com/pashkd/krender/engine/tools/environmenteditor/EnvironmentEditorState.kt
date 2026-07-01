@@ -16,4 +16,5 @@ class EnvironmentEditorState(
     var dirty: Boolean = false
     var loadError: String? = null
     var statusMessage: String? = null
+    var skyboxVisibleHolder: Boolean = true
 }
