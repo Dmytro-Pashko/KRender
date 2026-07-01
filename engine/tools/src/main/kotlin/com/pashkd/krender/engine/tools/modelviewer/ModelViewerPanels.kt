@@ -126,7 +126,7 @@ class ModelViewerViewportPanel(
                 operations.resetCamera()
             }
         }
-        tooltipOnHover("Reset camera position and rotation to the default preview view.")
+        tooltipOnHover("Reset camera position and rotation to the default Model Viewer view.")
         ImGui.sameLine()
         with(dsl) {
             button("Frame Model##model_viewer_frame_model") {
@@ -828,7 +828,7 @@ class ModelViewerTextureChannelsPanel(
                 state.selectedTextureChannel = channel
             }
             tooltipOnHover(
-                "Select ${textureChannelLabel(channel)} texture slots for inspection and preview.",
+                "Select ${textureChannelLabel(channel)} texture slots for inspection and visualization.",
             )
         }
     }

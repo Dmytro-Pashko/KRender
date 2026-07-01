@@ -46,7 +46,7 @@ data class ModelViewerState(
     val model: AssetRef<ModelAsset>,
     /** Runtime entity id of the visible model instance. */
     var modelEntityId: EntityId? = null,
-    /** Runtime entity id of the ambient light that lights the preview. */
+    /** Runtime entity id of the ambient light that lights the viewer scene. */
     var ambientLightEntityId: EntityId? = null,
     /** Runtime entity id of the Legacy directional light. */
     var legacyDirectionalLightEntityId: EntityId? = null,
