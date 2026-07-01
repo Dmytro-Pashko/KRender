@@ -1,23 +1,12 @@
 package com.pashkd.krender.engine.assets.hdr
 
-import com.pashkd.krender.engine.serialization.KRenderJson
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.doubleOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 
+@Serializable
 data class HdrEnvironmentManifest(
     val schema: String,
     val version: Int,
@@ -25,18 +14,20 @@ data class HdrEnvironmentManifest(
     val displayName: String,
     val description: String? = null,
     val source: HdrEnvironmentSource,
-    val skybox: HdrSkyboxConfig?,
+    val skybox: HdrSkyboxConfig? = null,
     val irradiance: HdrIrradianceConfig,
     val radiance: HdrRadianceConfig,
     val brdfLut: HdrBrdfLutConfig,
     val defaults: HdrEnvironmentDefaults,
 )
 
+@Serializable
 data class HdrEnvironmentSource(
     val activeVariant: String,
     val variants: List<HdrEnvironmentSourceVariant>,
 )
 
+@Serializable
 data class HdrEnvironmentSourceVariant(
     val id: String,
     val path: String,
@@ -48,24 +39,29 @@ data class HdrEnvironmentSourceVariant(
     val colorSpace: HdrColorSpace = HdrColorSpace.LINEAR,
 )
 
+@Serializable
 enum class HdrSourceFormat {
     EXR,
     HDR,
 }
 
+@Serializable
 enum class HdrProjection {
     EQUIRECTANGULAR,
 }
 
+@Serializable
 enum class HdrColorSpace {
     LINEAR,
     SRGB,
 }
 
+@Serializable
 enum class HdrSkyboxType {
     CUBEMAP_CROSS_4X3,
 }
 
+@Serializable
 data class HdrSkyboxConfig(
     val type: HdrSkyboxType,
     val path: String,
@@ -73,6 +69,7 @@ data class HdrSkyboxConfig(
     val faces: List<String>,
 )
 
+@Serializable
 data class HdrIrradianceConfig(
     val generated: Boolean,
     val path: String,
@@ -80,6 +77,7 @@ data class HdrIrradianceConfig(
     val faces: List<String>,
 )
 
+@Serializable
 data class HdrRadianceConfig(
     val generated: Boolean,
     val path: String,
@@ -88,12 +86,14 @@ data class HdrRadianceConfig(
     val faces: List<String>,
 )
 
+@Serializable
 data class HdrBrdfLutConfig(
     val path: String,
     val size: Int,
     val shared: Boolean,
 )
 
+@Serializable
 data class HdrEnvironmentDefaults(
     val exposure: Double,
     val toneMapping: String,
@@ -189,201 +189,25 @@ object HdrEnvironmentManifestLoader {
 }
 
 object HdrEnvironmentManifestCodec {
-    fun decode(text: String): HdrEnvironmentManifest {
-        val root = KRenderJson.Pretty.parseToJsonElement(text).jsonObject
-        return HdrEnvironmentManifest(
-            schema = root.requiredString("schema"),
-            version = root.requiredInt("version"),
-            name = root.requiredString("name"),
-            displayName = root.requiredString("displayName"),
-            description = root.optionalString("description"),
-            source = decodeSource(root.requiredObject("source")),
-            skybox = decodeSkybox(root.optionalObject("skybox")),
-            irradiance = decodeIrradiance(root.requiredObject("irradiance")),
-            radiance = decodeRadiance(root.requiredObject("radiance")),
-            brdfLut = decodeBrdfLut(root.requiredObject("brdfLut")),
-            defaults = decodeDefaults(root.requiredObject("defaults")),
-        )
-    }
-
-    fun encode(manifest: HdrEnvironmentManifest): String {
-        val root =
-            buildJsonObject {
-                put("schema", manifest.schema)
-                put("version", manifest.version)
-                put("name", manifest.name)
-                put("displayName", manifest.displayName)
-                manifest.description?.let { put("description", it) }
-                put("source", encodeSource(manifest.source))
-                manifest.skybox?.let { skybox ->
-                    put("skybox", encodeSkybox(skybox))
-                }
-                put("irradiance", encodeIrradiance(manifest.irradiance))
-                put("radiance", encodeRadiance(manifest.radiance))
-                put("brdfLut", encodeBrdfLut(manifest.brdfLut))
-                put("defaults", encodeDefaults(manifest.defaults))
-            }
-        return KRenderJson.Pretty.encodeToString(JsonObject.serializer(), root)
-    }
-
-    private fun decodeSource(source: JsonObject): HdrEnvironmentSource =
-        HdrEnvironmentSource(
-            activeVariant = source.requiredString("activeVariant"),
-            variants = source.requiredArray("variants").map { element -> decodeSourceVariant(element.jsonObject) },
-        )
-
-    private fun decodeSourceVariant(variant: JsonObject): HdrEnvironmentSourceVariant =
-        HdrEnvironmentSourceVariant(
-            id = variant.requiredString("id"),
-            path = variant.requiredString("path"),
-            format = variant.requiredEnum("format"),
-            projection = variant.requiredEnum("projection"),
-            resolution = variant.optionalString("resolution"),
-            width = variant.optionalInt("width"),
-            height = variant.optionalInt("height"),
-            colorSpace = variant.optionalEnum("colorSpace", HdrColorSpace.LINEAR),
-        )
-
-    private fun decodeSkybox(skybox: JsonObject?): HdrSkyboxConfig? =
-        skybox?.let {
-            HdrSkyboxConfig(
-                type = it.requiredEnum("type"),
-                path = it.requiredString("path"),
-                generatedFacesPath = it.requiredString("generatedFacesPath"),
-                faces = it.requiredStringList("faces"),
-            )
+    private val json =
+        Json(from = HdrManifestJson) {
+            encodeDefaults = true
         }
 
-    private fun decodeIrradiance(irradiance: JsonObject): HdrIrradianceConfig =
-        HdrIrradianceConfig(
-            generated = irradiance.requiredBoolean("generated"),
-            path = irradiance.requiredString("path"),
-            size = irradiance.requiredInt("size"),
-            faces = irradiance.requiredStringList("faces"),
-        )
-
-    private fun decodeRadiance(radiance: JsonObject): HdrRadianceConfig =
-        HdrRadianceConfig(
-            generated = radiance.requiredBoolean("generated"),
-            path = radiance.requiredString("path"),
-            baseSize = radiance.requiredInt("baseSize"),
-            mipLevels = radiance.requiredInt("mipLevels"),
-            faces = radiance.requiredStringList("faces"),
-        )
-
-    private fun decodeBrdfLut(brdfLut: JsonObject): HdrBrdfLutConfig =
-        HdrBrdfLutConfig(
-            path = brdfLut.requiredString("path"),
-            size = brdfLut.requiredInt("size"),
-            shared = brdfLut.requiredBoolean("shared"),
-        )
-
-    private fun decodeDefaults(defaults: JsonObject): HdrEnvironmentDefaults =
-        HdrEnvironmentDefaults(
-            exposure = defaults.requiredDouble("exposure"),
-            toneMapping = defaults.requiredString("toneMapping"),
-            gammaCorrection = defaults.requiredBoolean("gammaCorrection"),
-            srgbTextures = defaults.requiredBoolean("srgbTextures"),
-            skyboxEnabled = defaults.requiredBoolean("skyboxEnabled"),
-            environmentRotationDegrees = defaults.requiredDouble("environmentRotationDegrees"),
-            ambientIntensity = defaults.requiredDouble("ambientIntensity"),
-        )
-
-    private fun encodeSource(source: HdrEnvironmentSource): JsonObject =
-        buildJsonObject {
-            put("activeVariant", source.activeVariant)
-            put(
-                "variants",
-                buildJsonArray {
-                    source.variants.forEach { variant -> add(encodeSourceVariant(variant)) }
-                },
-            )
+    fun decode(text: String): HdrEnvironmentManifest =
+        try {
+            json.decodeFromString<HdrEnvironmentManifest>(text)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Failed to decode HDR environment manifest: ${e.message}", e)
         }
 
-    private fun encodeSourceVariant(variant: HdrEnvironmentSourceVariant): JsonObject =
-        buildJsonObject {
-            put("id", variant.id)
-            put("path", variant.path)
-            put("format", variant.format.name)
-            put("projection", variant.projection.name)
-            variant.resolution?.let { put("resolution", it) }
-            variant.width?.let { put("width", it) }
-            variant.height?.let { put("height", it) }
-            put("colorSpace", variant.colorSpace.name)
-        }
-
-    private fun encodeSkybox(skybox: HdrSkyboxConfig): JsonObject =
-        buildJsonObject {
-            put("type", skybox.type.name)
-            put("path", skybox.path)
-            put("generatedFacesPath", skybox.generatedFacesPath)
-            put("faces", skybox.faces.toJsonArray())
-        }
-
-    private fun encodeIrradiance(irradiance: HdrIrradianceConfig): JsonObject =
-        buildJsonObject {
-            put("generated", irradiance.generated)
-            put("path", irradiance.path)
-            put("size", irradiance.size)
-            put("faces", irradiance.faces.toJsonArray())
-        }
-
-    private fun encodeRadiance(radiance: HdrRadianceConfig): JsonObject =
-        buildJsonObject {
-            put("generated", radiance.generated)
-            put("path", radiance.path)
-            put("baseSize", radiance.baseSize)
-            put("mipLevels", radiance.mipLevels)
-            put("faces", radiance.faces.toJsonArray())
-        }
-
-    private fun encodeBrdfLut(brdfLut: HdrBrdfLutConfig): JsonObject =
-        buildJsonObject {
-            put("path", brdfLut.path)
-            put("size", brdfLut.size)
-            put("shared", brdfLut.shared)
-        }
-
-    private fun encodeDefaults(defaults: HdrEnvironmentDefaults): JsonObject =
-        buildJsonObject {
-            put("exposure", defaults.exposure)
-            put("toneMapping", defaults.toneMapping)
-            put("gammaCorrection", defaults.gammaCorrection)
-            put("srgbTextures", defaults.srgbTextures)
-            put("skyboxEnabled", defaults.skyboxEnabled)
-            put("environmentRotationDegrees", defaults.environmentRotationDegrees)
-            put("ambientIntensity", defaults.ambientIntensity)
-        }
+    fun encode(manifest: HdrEnvironmentManifest): String = json.encodeToString(manifest)
 }
 
-private fun JsonObject.requiredObject(name: String): JsonObject = this[name]?.jsonObject ?: error("Missing JSON object '$name'.")
-
-private fun JsonObject.optionalObject(name: String): JsonObject? = this[name]?.takeUnless { it is JsonPrimitive && it.contentOrNull == "null" }?.jsonObject
-
-private fun JsonObject.requiredArray(name: String): JsonArray = this[name]?.jsonArray ?: error("Missing JSON array '$name'.")
-
-private fun JsonObject.requiredString(name: String): String = this[name]?.jsonPrimitive?.contentOrNull ?: error("Missing JSON string '$name'.")
-
-private fun JsonObject.optionalString(name: String): String? = this[name]?.jsonPrimitive?.contentOrNull
-
-private fun JsonObject.requiredInt(name: String): Int = this[name]?.jsonPrimitive?.intOrNull ?: error("Missing JSON integer '$name'.")
-
-private fun JsonObject.optionalInt(name: String): Int? = this[name]?.jsonPrimitive?.intOrNull
-
-private fun JsonObject.requiredDouble(name: String): Double = this[name]?.jsonPrimitive?.doubleOrNull ?: error("Missing JSON number '$name'.")
-
-private fun JsonObject.requiredBoolean(name: String): Boolean = this[name]?.jsonPrimitive?.booleanOrNull ?: error("Missing JSON boolean '$name'.")
-
-private fun JsonObject.requiredStringList(name: String): List<String> = requiredArray(name).map { it.jsonPrimitive.content }
-
-private inline fun <reified T : Enum<T>> JsonObject.requiredEnum(name: String): T = enumValueOf(requiredString(name))
-
-private inline fun <reified T : Enum<T>> JsonObject.optionalEnum(
-    name: String,
-    default: T,
-): T = optionalString(name)?.let { value -> enumValueOf<T>(value) } ?: default
-
-private fun List<String>.toJsonArray(): JsonArray =
-    buildJsonArray {
-        this@toJsonArray.forEach { value -> add(JsonPrimitive(value)) }
+private val HdrManifestJson =
+    Json {
+        prettyPrint = true
+        prettyPrintIndent = "  "
+        ignoreUnknownKeys = true
+        explicitNulls = false
     }
