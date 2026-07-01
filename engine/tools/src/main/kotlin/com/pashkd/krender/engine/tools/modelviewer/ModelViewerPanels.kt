@@ -44,24 +44,28 @@ class ModelViewerToolbarPanel(
                 operations.saveUiLayout()
             }
         }
+        tooltipOnHover("Save the current Model Viewer panel positions and sizes.")
         ImGui.sameLine()
         with(dsl) {
             button("Reset Layout##model_viewer_reset_layout") {
                 operations.restoreUiLayout()
             }
         }
+        tooltipOnHover("Reset all Model Viewer panels to the default layout.")
         ImGui.sameLine()
         with(dsl) {
             button("Reload##model_viewer_reload") {
                 operations.requestReload()
             }
         }
+        tooltipOnHover("Unload and reload the current model asset from disk.")
         ImGui.sameLine()
         with(dsl) {
             button("Exit##model_viewer_exit") {
                 state.exitRequested = true
             }
         }
+        tooltipOnHover("Close the Model Viewer window.")
 
         ImGui.separator()
         textLine("Model: ${state.modelPath}")
@@ -110,12 +114,14 @@ class ModelViewerViewportPanel(
                 operations.resetCamera()
             }
         }
+        tooltipOnHover("Reset camera position and rotation to the default preview view.")
         ImGui.sameLine()
         with(dsl) {
             button("Frame Model##model_viewer_frame_model") {
                 operations.frameModel()
             }
         }
+        tooltipOnHover("Move the camera so the entire model fits into view.")
         slider(
             "Look Sensitivity##model_viewer_camera_sensitivity",
             state.camera::sensitivity,
@@ -124,15 +130,19 @@ class ModelViewerViewportPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
+        tooltipOnHover("Mouse-look sensitivity in degrees per pixel. Changes update live.")
 
         ImGui.separator()
         ImGui.text("Display Mode / Display Options")
         drawDisplayModeCombo()
         ImGui.checkbox("Grid##model_viewer_show_grid", state::showGrid)
+        tooltipOnHover("Show the ground reference grid in the viewport.")
         ImGui.sameLine()
         ImGui.checkbox("Axes##model_viewer_show_axes", state::showAxes)
+        tooltipOnHover("Show world-space X, Y, and Z axes.")
         ImGui.sameLine()
         ImGui.checkbox("Bounds##model_viewer_show_bounding_box", state::showBoundingBox)
+        tooltipOnHover("Show the model bounding box.")
         slider(
             "Grid Size##model_viewer_grid_cell_size",
             state::gridCellSize,
@@ -141,6 +151,7 @@ class ModelViewerViewportPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
+        tooltipOnHover("Distance between grid lines in world units. Changes update live.")
         slider(
             "Grid Extent##model_viewer_grid_extent",
             state::gridHalfExtentCells,
@@ -149,6 +160,7 @@ class ModelViewerViewportPanel(
             "%d",
             SliderFlag.AlwaysClamp,
         )
+        tooltipOnHover("How many grid cells extend from the origin in each direction.")
 
         ImGui.separator()
         ImGui.text("Renderer Selector")
@@ -162,17 +174,22 @@ class ModelViewerViewportPanel(
     }
 
     private fun drawDisplayModeCombo() {
-        if (!ImGui.beginCombo("Display Mode##model_viewer_display_mode", state.displayMode.name)) return
+        val expanded = ImGui.beginCombo("Display Mode##model_viewer_display_mode", state.displayMode.name)
+        tooltipOnHover("Choose shaded, shaded-with-wireframe, or wireframe display for the model.")
+        if (!expanded) return
         ModelViewerDisplayMode.entries.forEach { mode ->
             if (ImGui.selectable("${mode.name}##model_viewer_display_${mode.name}", state.displayMode == mode)) {
                 state.displayMode = mode
             }
+            tooltipOnHover("Use the ${mode.name} shared viewport display mode.")
         }
         ImGui.endCombo()
     }
 
     private fun drawRendererSelector() {
-        if (ImGui.beginCombo("Renderer##model_viewer_renderer_mode", rendererModeLabel(state.rendererMode))) {
+        val expanded = ImGui.beginCombo("Renderer##model_viewer_renderer_mode", rendererModeLabel(state.rendererMode))
+        tooltipOnHover("Choose which rendering backend is used to draw the model in the viewport.")
+        if (expanded) {
             ModelViewerRendererMode.entries.forEach { mode ->
                 if (ImGui.selectable(
                         "${rendererModeLabel(mode)}##model_viewer_renderer_$mode",
@@ -181,6 +198,13 @@ class ModelViewerViewportPanel(
                 ) {
                     state.rendererMode = mode
                 }
+                tooltipOnHover(
+                    if (mode == ModelViewerRendererMode.Pbr) {
+                        "Use the glTF / PBR renderer with HDR environment lighting."
+                    } else {
+                        "Use the LibGDX / Legacy DefaultShader renderer."
+                    },
+                )
             }
             ImGui.endCombo()
         }
@@ -217,7 +241,12 @@ internal class GltfPbrRendererOptionsPanel(
         if (ImGui.inputText("Environment Preset##model_viewer_pbr_environment_preset", environmentPresetBuffer)) {
             state.pbrEnvironmentPreset = readTextBuffer(environmentPresetBuffer).ifBlank { DEFAULT_PBR_ENVIRONMENT_PRESET }
         }
+        tooltipOnHover(
+            "Select the HDR / IBL environment preset name or manifest path. " +
+                "The renderer resolves changes live when the value is edited.",
+        )
         ImGui.checkbox("Show Skybox##model_viewer_pbr_show_skybox", state::pbrShowSkybox)
+        tooltipOnHover("Show the selected HDR environment as the glTF / PBR skybox.")
         slider(
             "Environment Intensity##model_viewer_pbr_environment_intensity",
             state::pbrEnvironmentIntensity,
@@ -226,7 +255,9 @@ internal class GltfPbrRendererOptionsPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
+        tooltipOnHover("Scale the contribution of the IBL environment lighting. Available only in glTF / PBR renderer.")
         slider("Exposure##model_viewer_pbr_exposure", state::pbrExposure, 0.1f, 4f, "%.2f", SliderFlag.AlwaysClamp)
+        tooltipOnHover("Adjust overall scene brightness after environment lighting is applied.")
         slider(
             "Environment Rotation##model_viewer_pbr_environment_rotation",
             state::pbrEnvironmentRotationDegrees,
@@ -235,15 +266,25 @@ internal class GltfPbrRendererOptionsPanel(
             "%.0f deg",
             SliderFlag.AlwaysClamp,
         )
+        tooltipOnHover("Rotate the HDR environment around the vertical axis in degrees.")
 
         ImGui.text("Tone / Color Pipeline")
         drawToneMappingCombo()
         ImGui.checkbox("Gamma Correction##model_viewer_pbr_gamma", state::pbrGammaCorrection)
+        tooltipOnHover(
+            "Apply output gamma correction for more accurate final colors. " +
+                "Changing this option recreates renderer shader resources.",
+        )
         ImGui.checkbox("sRGB Textures##model_viewer_pbr_srgb", state::pbrSrgbTextures)
+        tooltipOnHover(
+            "Interpret color textures as sRGB instead of linear textures. " +
+                "Changing this option recreates renderer shader resources.",
+        )
         ImGui.textDisabled("Tone mapping is retained for a future post-process pass.")
 
         ImGui.text("Direct Lighting")
         ImGui.checkbox("Directional Light##model_viewer_pbr_directional_enabled", state::pbrDirectionalLightEnabled)
+        tooltipOnHover("Enable the main directional light. Available only in glTF / PBR renderer.")
         slider(
             "Directional Intensity##model_viewer_pbr_directional_intensity",
             state::pbrDirectionalLightIntensity,
@@ -252,7 +293,12 @@ internal class GltfPbrRendererOptionsPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
-        drawColorControl("Directional Color##model_viewer_pbr_directional_color", state.pbrDirectionalLightColor)
+        tooltipOnHover("Control the brightness of the glTF / PBR directional light.")
+        drawColorControl(
+            "Directional Color##model_viewer_pbr_directional_color",
+            state.pbrDirectionalLightColor,
+            "Set the glTF / PBR directional light color. Changes update live.",
+        )
         slider(
             "Directional Light Yaw##model_viewer_pbr_light_yaw",
             state::pbrDirectionalLightYawDegrees,
@@ -261,6 +307,7 @@ internal class GltfPbrRendererOptionsPanel(
             "%.0f deg",
             SliderFlag.AlwaysClamp,
         )
+        tooltipOnHover("Rotate the directional light around the vertical axis in degrees.")
         slider(
             "Directional Light Pitch##model_viewer_pbr_light_pitch",
             state::pbrDirectionalLightPitchDegrees,
@@ -269,6 +316,7 @@ internal class GltfPbrRendererOptionsPanel(
             "%.0f deg",
             SliderFlag.AlwaysClamp,
         )
+        tooltipOnHover("Tilt the directional light up or down in degrees.")
 
         ImGui.text("Material Debug / Channel View")
         drawMaterialDebugCombo()
@@ -276,7 +324,13 @@ internal class GltfPbrRendererOptionsPanel(
     }
 
     private fun drawToneMappingCombo() {
-        if (!ImGui.beginCombo("Tone Mapping##model_viewer_pbr_tone_mapping", toneMappingLabel(state.pbrToneMapping))) return
+        val expanded =
+            ImGui.beginCombo("Tone Mapping##model_viewer_pbr_tone_mapping", toneMappingLabel(state.pbrToneMapping))
+        tooltipOnHover(
+            "Choose how HDR lighting should map to the display. " +
+                "Stored now; the current renderer has no live tone-mapping post-process.",
+        )
+        if (!expanded) return
         PbrToneMapping.entries.forEach { mode ->
             if (ImGui.selectable(
                     "${toneMappingLabel(mode)}##model_viewer_pbr_tone_mapping_$mode",
@@ -285,12 +339,16 @@ internal class GltfPbrRendererOptionsPanel(
             ) {
                 state.pbrToneMapping = mode
             }
+            tooltipOnHover("${toneMappingLabel(mode)} tone-mapping preference; not applied live yet.")
         }
         ImGui.endCombo()
     }
 
     private fun drawMaterialDebugCombo() {
-        if (!ImGui.beginCombo("Material Channel##model_viewer_pbr_material_channel", debugModeLabel(state.debugMode))) return
+        val expanded =
+            ImGui.beginCombo("Material Channel##model_viewer_pbr_material_channel", debugModeLabel(state.debugMode))
+        tooltipOnHover("Choose the material result or individual channel visualized in the viewport.")
+        if (!expanded) return
         MODEL_VIEWER_MATERIAL_CHANNEL_MODES.forEach { mode ->
             if (ImGui.selectable(
                     "${debugModeLabel(mode)}##model_viewer_pbr_material_channel_$mode",
@@ -301,6 +359,7 @@ internal class GltfPbrRendererOptionsPanel(
                 state.uvCheckerEnabled = false
                 state.lastNonUvCheckerDebugMode = mode
             }
+            tooltipOnHover(debugModeTooltip(mode))
         }
         ImGui.endCombo()
     }
@@ -329,16 +388,23 @@ internal class LegacyRendererOptionsPanel(
         ) {
             operations.setAmbientLightIntensity(ambientIntensity.value)
         }
-        drawColorControl("Ambient Color##model_viewer_legacy_ambient_color", state.legacyAmbientLightColor)
+        tooltipOnHover("Set the strength of ambient light used by the Legacy LibGDX renderer.")
+        drawColorControl(
+            "Ambient Color##model_viewer_legacy_ambient_color",
+            state.legacyAmbientLightColor,
+            "Set the ambient light color used by the LibGDX / Legacy renderer.",
+        )
         with(dsl) {
             button("Reset Ambient##model_viewer_reset_ambient") {
                 operations.resetAmbientLight()
             }
         }
+        tooltipOnHover("Reset Legacy ambient intensity to its default value.")
         ImGui.checkbox(
             "Directional Light##model_viewer_legacy_directional_enabled",
             state::legacyDirectionalLightEnabled,
         )
+        tooltipOnHover("Enable the main directional light. Available only in LibGDX / Legacy renderer.")
         slider(
             "Directional Intensity##model_viewer_legacy_directional_intensity",
             state::legacyDirectionalLightIntensity,
@@ -347,7 +413,12 @@ internal class LegacyRendererOptionsPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
-        drawColorControl("Directional Color##model_viewer_legacy_directional_color", state.legacyDirectionalLightColor)
+        tooltipOnHover("Control the brightness of the main Legacy directional light.")
+        drawColorControl(
+            "Directional Color##model_viewer_legacy_directional_color",
+            state.legacyDirectionalLightColor,
+            "Set the main directional light color for LibGDX / Legacy rendering.",
+        )
         slider(
             "Directional Light Yaw##model_viewer_legacy_light_yaw",
             state::legacyDirectionalLightYawDegrees,
@@ -356,6 +427,7 @@ internal class LegacyRendererOptionsPanel(
             "%.0f deg",
             SliderFlag.AlwaysClamp,
         )
+        tooltipOnHover("Rotate the Legacy directional light around the vertical axis in degrees.")
         slider(
             "Directional Light Pitch##model_viewer_legacy_light_pitch",
             state::legacyDirectionalLightPitchDegrees,
@@ -364,6 +436,7 @@ internal class LegacyRendererOptionsPanel(
             "%.0f deg",
             SliderFlag.AlwaysClamp,
         )
+        tooltipOnHover("Tilt the Legacy directional light up or down in degrees.")
     }
 }
 
@@ -714,6 +787,9 @@ class ModelViewerTextureChannelsPanel(
             ) {
                 state.selectedTextureChannel = channel
             }
+            tooltipOnHover(
+                "Select ${textureChannelLabel(channel)} texture slots for inspection and preview.",
+            )
         }
 
         ImGui.separator()
@@ -747,12 +823,15 @@ class ModelViewerTextureChannelsPanel(
                 state.debugMode = state.lastNonUvCheckerDebugMode
             }
         }
+        tooltipOnHover("Toggle a UV checker texture override to inspect model UV mapping.")
         drawUvCheckerSettings(info)
         state.debugWarning?.let { warning -> textLine("Warning: $warning") }
     }
 
     private fun drawDebugModeCombo(info: ModelAssetInfo?) {
-        if (!ImGui.beginCombo("Channel##model_viewer_debug_mode", debugModeLabel(state.debugMode))) return
+        val expanded = ImGui.beginCombo("Channel##model_viewer_debug_mode", debugModeLabel(state.debugMode))
+        tooltipOnHover("Choose the combined material result or one material channel to visualize.")
+        if (!expanded) return
         MODEL_VIEWER_MATERIAL_CHANNEL_MODES.forEach { mode ->
             val available = debugModeAvailable(info, mode)
             if (!available) {
@@ -774,12 +853,22 @@ class ModelViewerTextureChannelsPanel(
             if (!available) {
                 ImGui.endDisabled()
             }
+            tooltipOnHover(
+                if (available) {
+                    debugModeTooltip(mode)
+                } else {
+                    "${debugModeLabel(mode)} is unavailable because the model does not provide this channel."
+                },
+            )
         }
         ImGui.endCombo()
     }
 
     private fun drawDebugCullingCombo() {
-        if (!ImGui.beginCombo("Culling##model_viewer_debug_culling", debugCullingLabel(state.debugCullingMode))) return
+        val expanded =
+            ImGui.beginCombo("Culling##model_viewer_debug_culling", debugCullingLabel(state.debugCullingMode))
+        tooltipOnHover("Choose whether material-debug rendering hides backfaces or draws both sides.")
+        if (!expanded) return
         DebugCullingMode.entries.forEach { mode ->
             if (ImGui.selectable(
                     "${debugCullingLabel(mode)}##model_viewer_debug_culling_$mode",
@@ -788,6 +877,13 @@ class ModelViewerTextureChannelsPanel(
             ) {
                 state.debugCullingMode = mode
             }
+            tooltipOnHover(
+                if (mode == DebugCullingMode.Backface) {
+                    "Hide back-facing triangles in the material-debug view."
+                } else {
+                    "Draw both front and back faces in the material-debug view."
+                },
+            )
         }
         ImGui.endCombo()
     }
@@ -810,13 +906,13 @@ class ModelViewerTextureChannelsPanel(
             state.selectedTextureChannel = channels.first()
         }
         val current = state.selectedTextureChannel ?: channels.first()
-        if (!ImGui.beginCombo(
+        val expanded =
+            ImGui.beginCombo(
                 "Texture Channel##model_viewer_debug_texture_channel",
                 textureChannelLabel(current),
             )
-        ) {
-            return
-        }
+        tooltipOnHover("Select which matching source texture slot supplies the active debug channel.")
+        if (!expanded) return
         channels.forEach { channel ->
             if (ImGui.selectable(
                     "${textureChannelLabel(channel)}##model_viewer_debug_channel_$channel",
@@ -825,6 +921,7 @@ class ModelViewerTextureChannelsPanel(
             ) {
                 state.selectedTextureChannel = channel
             }
+            tooltipOnHover("Use ${textureChannelLabel(channel)} as the source for this debug view.")
         }
         ImGui.endCombo()
     }
@@ -841,6 +938,7 @@ class ModelViewerTextureChannelsPanel(
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
+        tooltipOnHover("Scale the UV checker tiling multiplier. Changes update live.")
         val uvLabel = "UV${state.uvCheckerUvChannel}"
         if (info != null && info.uvChannels.isNotEmpty() && uvLabel !in info.uvChannels) {
             textLine("Warning: model does not report $uvLabel.")
@@ -859,7 +957,10 @@ class ModelViewerTextureChannelsPanel(
         if (state.uvCheckerTexturePath !in UV_CHECKER_TEXTURE_OPTIONS.map { option -> option.texturePath }) {
             state.uvCheckerTexturePath = current.texturePath
         }
-        if (!ImGui.beginCombo("Checker Texture##model_viewer_uv_checker_texture", current.resolution.toString())) return
+        val expanded =
+            ImGui.beginCombo("Checker Texture##model_viewer_uv_checker_texture", current.resolution.toString())
+        tooltipOnHover("Choose the checker texture resolution used for UV inspection.")
+        if (!expanded) return
         UV_CHECKER_TEXTURE_OPTIONS.forEach { option ->
             if (ImGui.selectable(
                     "${option.resolution}##model_viewer_uv_checker_texture_${option.resolution}",
@@ -868,6 +969,7 @@ class ModelViewerTextureChannelsPanel(
             ) {
                 state.uvCheckerTexturePath = option.texturePath
             }
+            tooltipOnHover("Use the ${option.resolution} px UV checker texture.")
         }
         ImGui.endCombo()
     }
@@ -882,8 +984,11 @@ class ModelViewerTextureChannelsPanel(
                 .sorted()
         if (channels.isEmpty()) {
             state.uvCheckerUvChannel = 0
-            if (ImGui.beginCombo("UV Channel##model_viewer_uv_checker_channel", "None")) {
+            val expanded = ImGui.beginCombo("UV Channel##model_viewer_uv_checker_channel", "None")
+            tooltipOnHover("No UV channel metadata is available for this model.")
+            if (expanded) {
                 ImGui.selectable("None##model_viewer_uv_checker_channel_none", true)
+                tooltipOnHover("The model does not expose a UV channel for the checker.")
                 ImGui.endCombo()
             }
             return
@@ -892,7 +997,9 @@ class ModelViewerTextureChannelsPanel(
             state.uvCheckerUvChannel = channels.first()
         }
         val currentLabel = "UV${state.uvCheckerUvChannel}"
-        if (!ImGui.beginCombo("UV Channel##model_viewer_uv_checker_channel", currentLabel)) return
+        val expanded = ImGui.beginCombo("UV Channel##model_viewer_uv_checker_channel", currentLabel)
+        tooltipOnHover("Select the model UV set used by the checker texture.")
+        if (!expanded) return
         channels.forEach { channel ->
             val label = "UV$channel"
             if (ImGui.selectable(
@@ -902,6 +1009,7 @@ class ModelViewerTextureChannelsPanel(
             ) {
                 state.uvCheckerUvChannel = channel
             }
+            tooltipOnHover("Use UV$channel coordinates for the checker texture.")
         }
         ImGui.endCombo()
     }
@@ -1107,12 +1215,34 @@ private fun toneMappingLabel(mode: PbrToneMapping): String =
 private fun drawColorControl(
     label: String,
     color: Color,
+    tooltip: String,
 ) {
     colorEdit4(label, color.r, color.g, color.b, color.a) { r, g, b, a ->
         color.r = r
         color.g = g
         color.b = b
         color.a = a
+    }
+    tooltipOnHover(tooltip)
+}
+
+private fun debugModeTooltip(mode: MaterialDebugMode): String =
+    when (mode) {
+        MaterialDebugMode.Combined -> "Display the full material result with all supported channels combined."
+        MaterialDebugMode.BaseColor -> "Visualize the material base-color texture contribution."
+        MaterialDebugMode.Normal -> "Visualize the normal map contribution."
+        MaterialDebugMode.Metallic -> "Visualize metallic values used by the material."
+        MaterialDebugMode.Roughness -> "Visualize roughness values used by the material."
+        MaterialDebugMode.Occlusion -> "Visualize ambient occlusion contribution."
+        MaterialDebugMode.Emission -> "Visualize emissive color and texture contribution."
+        MaterialDebugMode.Alpha -> "Visualize the alpha channel used for masking or transparency."
+        MaterialDebugMode.MetallicRoughnessPacked -> "Visualize the packed metallic and roughness texture."
+        MaterialDebugMode.UvChecker -> "Display the UV checker texture override."
+    }
+
+private fun tooltipOnHover(value: String) {
+    if (ImGui.isItemHovered()) {
+        ImGui.setTooltip(value)
     }
 }
 
