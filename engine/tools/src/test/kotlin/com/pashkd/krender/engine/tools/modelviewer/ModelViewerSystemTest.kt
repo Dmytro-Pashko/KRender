@@ -53,11 +53,10 @@ class ModelViewerSystemTest {
     }
 
     @Test
-    fun `ambient light sync applies LibGDX environment intensity multiplier`() {
+    fun `ambient light sync applies Legacy ambient intensity`() {
         val state =
             ModelViewerState(model = AssetRef.model("models/test.glb")).apply {
                 ambientLightIntensity = 0.5f
-                libGdxEnvironmentIntensity = 2f
                 rendererMode = ModelViewerRendererMode.LibGdx
             }
         val world = SceneWorld()
@@ -68,7 +67,7 @@ class ModelViewerSystemTest {
 
         world.update(0.016f)
 
-        assertEquals(1f, lightEntity.get<LightComponent>()?.intensity)
+        assertEquals(0.5f, lightEntity.get<LightComponent>()?.intensity)
     }
 
     @Test

@@ -53,7 +53,8 @@ and a glTF PBR preview with a skybox.
 
 ## Data Flow
 
-1. `requiredAssets` queues the model plus the default PBR skybox and the UV-checker textures.
+1. `requiredAssets` queues the model plus the UV-checker textures. The backend resolves the selected
+   HDR environment preset through its manifest.
 2. Assets load asynchronously; `ModelViewerLoadingPanel` shows progress until ready.
 3. Panels mutate `ModelViewerState` (via `ModelViewerOperations`); `ModelViewerSystem` reconciles.
 4. `ModelViewerModelRenderSystem` reads state and submits a `DrawModel` carrying
@@ -75,7 +76,10 @@ UV-checker options and the default skybox preview.
 
 - Mesh-part list with per-part isolation (`visibleMeshPartIndices`).
 - Material inspection + texture-channel previews via `TexturePreviewHandle`.
-- Material debug modes (`MaterialDebugMode`) and a glTF PBR preview (`PbrPreviewView`).
+- Material debug modes (`MaterialDebugMode`) and a preset-driven glTF PBR preview (`PbrPreviewView`).
+- glTF / PBR is the default renderer; LibGDX / Legacy remains selectable.
+- Viewport Control separates camera, shared display settings, renderer selection, and
+  renderer-specific options.
 - Wireframe, wireframe overlay, grid, axes, bounding box toggles.
 - Async load with a dedicated loading panel.
 
