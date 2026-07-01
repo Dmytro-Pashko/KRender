@@ -212,7 +212,7 @@ class ModelViewerViewportPanel(
                     state.rendererMode = mode
                 }
                 tooltipOnHover(
-                    if (mode == ModelViewerRendererMode.Pbr) {
+                    if (mode == ModelViewerRendererMode.GltfPbr) {
                         "Use the glTF / PBR renderer with HDR environment lighting."
                     } else {
                         "Use the LibGDX / Legacy DefaultShader renderer."
@@ -246,41 +246,41 @@ internal class GltfPbrRendererOptionsPanel(
 ) {
     private val environmentPresetBuffer =
         ByteArray(TEXT_BUFFER_SIZE).also { buffer ->
-            writeTextBuffer(buffer, state.pbrEnvironmentPreset)
+            writeTextBuffer(buffer, state.gltfEnvironmentPreset)
         }
 
     fun draw() {
         drawEnvironmentSection()
         ImGui.separator()
         drawDirectLightingSection()
-        state.pbrWarning?.let { warning -> textLine("Warning: $warning") }
+        state.gltfRendererWarning?.let { warning -> textLine("Warning: $warning") }
     }
 
     private fun drawEnvironmentSection() {
         ImGui.text("Environment / IBL")
         if (ImGui.inputText("Environment Preset##model_viewer_pbr_environment_preset", environmentPresetBuffer)) {
-            state.pbrEnvironmentPreset = readTextBuffer(environmentPresetBuffer).ifBlank { DEFAULT_PBR_ENVIRONMENT_PRESET }
+            state.gltfEnvironmentPreset = readTextBuffer(environmentPresetBuffer).ifBlank { DEFAULT_GLTF_ENVIRONMENT_PRESET }
         }
         tooltipOnHover(
             "Select the HDR / IBL environment preset name or manifest path. " +
                 "The renderer resolves changes live when the value is edited.",
         )
-        ImGui.checkbox("Show Skybox##model_viewer_pbr_show_skybox", state::pbrShowSkybox)
+        ImGui.checkbox("Show Skybox##model_viewer_pbr_show_skybox", state::gltfShowSkybox)
         tooltipOnHover("Show the selected HDR environment as the glTF / PBR skybox.")
         slider(
             "Intensity##model_viewer_pbr_environment_intensity",
-            state::pbrEnvironmentIntensity,
+            state::gltfEnvironmentIntensity,
             0f,
             4f,
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
         tooltipOnHover("Scale the contribution of the IBL environment lighting. Available only in glTF / PBR renderer.")
-        slider("Exposure##model_viewer_pbr_exposure", state::pbrExposure, 0.1f, 4f, "%.2f", SliderFlag.AlwaysClamp)
+        slider("Exposure##model_viewer_pbr_exposure", state::gltfExposure, 0.1f, 4f, "%.2f", SliderFlag.AlwaysClamp)
         tooltipOnHover("Adjust overall scene brightness after environment lighting is applied.")
         slider(
             "Rotation##model_viewer_pbr_environment_rotation",
-            state::pbrEnvironmentRotationDegrees,
+            state::gltfEnvironmentRotationDegrees,
             -180f,
             180f,
             "%.0f deg",
@@ -297,11 +297,11 @@ internal class GltfPbrRendererOptionsPanel(
 
     private fun drawDirectLightingSection() {
         ImGui.text("Direct Lighting")
-        ImGui.checkbox("Directional Light##model_viewer_pbr_directional_enabled", state::pbrDirectionalLightEnabled)
+        ImGui.checkbox("Directional Light##model_viewer_pbr_directional_enabled", state::gltfDirectionalLightEnabled)
         tooltipOnHover("Enable the main directional light. Available only in glTF / PBR renderer.")
         slider(
             "Intensity##model_viewer_pbr_directional_intensity",
-            state::pbrDirectionalLightIntensity,
+            state::gltfDirectionalLightIntensity,
             0f,
             1f,
             "%.2f",
@@ -310,12 +310,12 @@ internal class GltfPbrRendererOptionsPanel(
         tooltipOnHover("Control the brightness of the glTF / PBR directional light.")
         drawColorControl(
             "Color##model_viewer_pbr_directional_color",
-            state.pbrDirectionalLightColor,
+            state.gltfDirectionalLightColor,
             "Set the glTF / PBR directional light color. Changes update live.",
         )
         slider(
             "Light Yaw##model_viewer_pbr_light_yaw",
-            state::pbrDirectionalLightYawDegrees,
+            state::gltfDirectionalLightYawDegrees,
             -180f,
             180f,
             "%.0f deg",
@@ -324,7 +324,7 @@ internal class GltfPbrRendererOptionsPanel(
         tooltipOnHover("Rotate the directional light around the vertical axis in degrees.")
         slider(
             "Pitch##model_viewer_pbr_light_pitch",
-            state::pbrDirectionalLightPitchDegrees,
+            state::gltfDirectionalLightPitchDegrees,
             -89f,
             89f,
             "%.0f deg",
@@ -340,17 +340,17 @@ internal class GltfPbrRendererOptionsPanel(
     }
 
     private fun resetEnvironment() {
-        state.pbrEnvironmentIntensity = DEFAULT_ENVIRONMENT_INTENSITY
-        state.pbrExposure = DEFAULT_EXPOSURE
-        state.pbrEnvironmentRotationDegrees = DEFAULT_ENVIRONMENT_ROTATION
+        state.gltfEnvironmentIntensity = DEFAULT_ENVIRONMENT_INTENSITY
+        state.gltfExposure = DEFAULT_EXPOSURE
+        state.gltfEnvironmentRotationDegrees = DEFAULT_ENVIRONMENT_ROTATION
     }
 
     private fun resetDirectLight() {
-        state.pbrDirectionalLightEnabled = true
-        state.pbrDirectionalLightIntensity = DEFAULT_DIRECTIONAL_INTENSITY
-        state.pbrDirectionalLightColor.resetToWhite()
-        state.pbrDirectionalLightYawDegrees = DEFAULT_DIRECTIONAL_YAW
-        state.pbrDirectionalLightPitchDegrees = DEFAULT_DIRECTIONAL_PITCH
+        state.gltfDirectionalLightEnabled = true
+        state.gltfDirectionalLightIntensity = DEFAULT_DIRECTIONAL_INTENSITY
+        state.gltfDirectionalLightColor.resetToWhite()
+        state.gltfDirectionalLightYawDegrees = DEFAULT_DIRECTIONAL_YAW
+        state.gltfDirectionalLightPitchDegrees = DEFAULT_DIRECTIONAL_PITCH
     }
 
     companion object {
@@ -1242,7 +1242,7 @@ private fun debugCullingLabel(mode: DebugCullingMode): String =
 private fun rendererModeLabel(mode: ModelViewerRendererMode): String =
     when (mode) {
         ModelViewerRendererMode.LibGdx -> "LibGDX / Legacy"
-        ModelViewerRendererMode.Pbr -> "glTF / PBR"
+        ModelViewerRendererMode.GltfPbr -> "glTF / PBR"
     }
 
 private fun drawColorControl(

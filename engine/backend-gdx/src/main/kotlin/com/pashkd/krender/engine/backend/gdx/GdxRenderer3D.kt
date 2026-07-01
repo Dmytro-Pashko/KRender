@@ -103,7 +103,7 @@ class GdxRenderer3D(
         val wireframeCommands = mutableListOf<DrawModel>()
         val wireframeDynamicCommands = mutableListOf<DrawDynamicModel>()
         val debugModelCommands = mutableListOf<DrawModel>()
-        val pbrModelCommands = mutableListOf<DrawModel>()
+        val gltfModelCommands = mutableListOf<DrawModel>()
 
         lineRenderer.render(context.commands, camera)
 
@@ -119,7 +119,7 @@ class GdxRenderer3D(
                             wireframeCommands += command
                         }
                     } else if (command.gltfRenderer?.enabled == true) {
-                        pbrModelCommands += command
+                        gltfModelCommands += command
                         if (command.material.wireframeOverlay) {
                             wireframeCommands += command
                         }
@@ -147,7 +147,7 @@ class GdxRenderer3D(
         }
         modelBatch.end()
         debugModelCommands.forEach { modelViewerDebugRenderer.render(it, camera, ::modelInstanceForDebug) }
-        pbrModelCommands.forEach { command ->
+        gltfModelCommands.forEach { command ->
             if (!gltfRenderer.render(command, camera, ::applyVisibleMeshPartFilter)) {
                 modelBatch.begin(camera)
                 renderModel(command, environment, camera)

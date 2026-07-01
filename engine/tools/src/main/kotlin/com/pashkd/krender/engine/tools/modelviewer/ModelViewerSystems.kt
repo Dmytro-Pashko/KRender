@@ -233,7 +233,7 @@ class ModelViewerSystem(
         }
 
         state.debugWarning = debugWarningFor(effectiveDebugMode, selectedMaterialIndex)
-        state.pbrWarning = pbrWarningFor()
+        state.gltfRendererWarning = gltfRendererWarningFor()
         val warning = state.debugWarning
         if (warning != null && warning != lastDebugWarning) {
             logger.warn(TAG) { warning }
@@ -303,8 +303,8 @@ class ModelViewerSystem(
         }
     }
 
-    private fun pbrWarningFor(): String? {
-        if (state.rendererMode != ModelViewerRendererMode.Pbr) return null
+    private fun gltfRendererWarningFor(): String? {
+        if (state.rendererMode != ModelViewerRendererMode.GltfPbr) return null
         return when {
             !state.model.path.isGltfPath() ->
                 "glTF / PBR renderer is currently available only for glTF/glb models."
@@ -525,22 +525,22 @@ class ModelViewerModelRenderSystem(
     }
 
     private fun ModelViewerState.gltfRendererSettings(debugView: MaterialDebugView?): GltfRendererSettings? {
-        if (rendererMode != ModelViewerRendererMode.Pbr) return null
+        if (rendererMode != ModelViewerRendererMode.GltfPbr) return null
         return GltfRendererSettings(
             enabled = debugView?.active != true,
-            environmentPreset = pbrEnvironmentPreset,
-            exposure = pbrExposure.coerceAtLeast(0f),
-            showSkybox = pbrShowSkybox,
-            environmentIntensity = pbrEnvironmentIntensity.coerceAtLeast(0f),
-            environmentRotationDegrees = pbrEnvironmentRotationDegrees,
-            toneMapping = pbrToneMapping,
-            gammaCorrection = pbrGammaCorrection,
-            srgbTextures = pbrSrgbTextures,
-            directionalLightEnabled = pbrDirectionalLightEnabled,
-            directionalLightIntensity = pbrDirectionalLightIntensity.coerceAtLeast(0f),
-            directionalLightColor = pbrDirectionalLightColor.copy(),
-            directionalLightYawDegrees = pbrDirectionalLightYawDegrees,
-            directionalLightPitchDegrees = pbrDirectionalLightPitchDegrees,
+            environmentPreset = gltfEnvironmentPreset,
+            exposure = gltfExposure.coerceAtLeast(0f),
+            showSkybox = gltfShowSkybox,
+            environmentIntensity = gltfEnvironmentIntensity.coerceAtLeast(0f),
+            environmentRotationDegrees = gltfEnvironmentRotationDegrees,
+            toneMapping = gltfToneMapping,
+            gammaCorrection = gltfGammaCorrection,
+            srgbTextures = gltfSrgbTextures,
+            directionalLightEnabled = gltfDirectionalLightEnabled,
+            directionalLightIntensity = gltfDirectionalLightIntensity.coerceAtLeast(0f),
+            directionalLightColor = gltfDirectionalLightColor.copy(),
+            directionalLightYawDegrees = gltfDirectionalLightYawDegrees,
+            directionalLightPitchDegrees = gltfDirectionalLightPitchDegrees,
         )
     }
 

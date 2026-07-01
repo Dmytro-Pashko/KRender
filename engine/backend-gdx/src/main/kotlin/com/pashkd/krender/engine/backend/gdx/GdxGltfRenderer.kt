@@ -10,8 +10,8 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.math.Vector3
 import com.pashkd.krender.engine.api.DrawModel
-import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.GltfRendererSettings
+import com.pashkd.krender.engine.api.Logger
 import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute
 import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute
 import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
@@ -32,7 +32,7 @@ internal class GdxGltfRenderer(
     private val assets: GdxAssetService,
     private val logger: Logger,
 ) {
-    private val entries = mutableMapOf<ModelCacheKey, PbrSceneEntry>()
+    private val entries = mutableMapOf<ModelCacheKey, GltfSceneEntry>()
     private val warnedKeys = mutableSetOf<String>()
     private val gltfEnvironment = GdxGltfEnvironment(logger)
 
@@ -67,7 +67,7 @@ internal class GdxGltfRenderer(
                     val manager = createSceneManager(maxBones, settings)
                     manager.addScene(scene, false)
                     logger.info(TAG) { "Created glTF renderer scene for '${command.model.path}'." }
-                    PbrSceneEntry(
+                    GltfSceneEntry(
                         scene = scene,
                         manager = manager,
                         maxBones = maxBones,
@@ -92,17 +92,17 @@ internal class GdxGltfRenderer(
     }
 
     fun dispose() {
-        entries.values.forEach(PbrSceneEntry::dispose)
+        entries.values.forEach(GltfSceneEntry::dispose)
         entries.clear()
         gltfEnvironment.dispose()
     }
 
     private fun configureEnvironment(
-        entry: PbrSceneEntry,
+        entry: GltfSceneEntry,
         settings: GltfRendererSettings,
     ) {
         val preset = gltfEnvironment.preset(settings.environmentPreset)
-        val direction = pbrLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
+        val direction = gltfLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
         val environmentState = resolveEnvironmentState(preset, settings)
         entry.manager.environment.clear()
         applyAmbientLight(entry, environmentState.intensity, environmentState.presetAmbientIntensity)
@@ -113,7 +113,7 @@ internal class GdxGltfRenderer(
         applySkybox(entry, preset, settings)
     }
 
-    private fun PbrSceneEntry.ensureShaderConfiguration(settings: GltfRendererSettings) {
+    private fun GltfSceneEntry.ensureShaderConfiguration(settings: GltfRendererSettings) {
         val nextKey = settings.shaderConfigKey()
         if (shaderConfigKey == nextKey) return
         manager.skyBox = null
@@ -149,7 +149,7 @@ internal class GdxGltfRenderer(
     }
 
     private fun syncEnvironmentFallback(
-        entry: PbrSceneEntry,
+        entry: GltfSceneEntry,
         settings: GltfRendererSettings,
         preset: GdxGltfEnvironmentPreset?,
         direction: Vector3,
@@ -166,12 +166,12 @@ internal class GdxGltfRenderer(
         }
     }
 
-    private fun PbrSceneEntry.ensureIbl(
+    private fun GltfSceneEntry.ensureIbl(
         direction: Vector3,
         intensity: Float,
     ): Boolean {
         val nextKey =
-            PbrEnvironmentKey(
+            GltfEnvironmentFallbackKey(
                 intensity = "%.3f".format(intensity),
                 directionX = "%.3f".format(direction.x),
                 directionY = "%.3f".format(direction.y),
@@ -235,7 +235,7 @@ private fun GdxGltfRenderer.resolveEnvironmentState(
 }
 
 private fun GdxGltfRenderer.applyAmbientLight(
-    entry: PbrSceneEntry,
+    entry: GltfSceneEntry,
     intensity: Float,
     presetAmbientIntensity: Float,
 ) {
@@ -251,7 +251,7 @@ private fun GdxGltfRenderer.applyAmbientLight(
 }
 
 private fun GdxGltfRenderer.applyDirectionalLight(
-    entry: PbrSceneEntry,
+    entry: GltfSceneEntry,
     settings: GltfRendererSettings,
     direction: Vector3,
 ) {
@@ -267,7 +267,7 @@ private fun GdxGltfRenderer.applyDirectionalLight(
 }
 
 private fun GdxGltfRenderer.applyEnvironmentRotation(
-    entry: PbrSceneEntry,
+    entry: GltfSceneEntry,
     settings: GltfRendererSettings,
 ) {
     entry.manager.environment.set(
@@ -278,7 +278,7 @@ private fun GdxGltfRenderer.applyEnvironmentRotation(
 }
 
 private fun GdxGltfRenderer.applyEnvironmentMaps(
-    entry: PbrSceneEntry,
+    entry: GltfSceneEntry,
     preset: GdxGltfEnvironmentPreset?,
 ) {
     val diffuseMap = preset?.irradiance ?: entry.irradianceMap
@@ -291,7 +291,7 @@ private fun GdxGltfRenderer.applyEnvironmentMaps(
 }
 
 private fun GdxGltfRenderer.applySkybox(
-    entry: PbrSceneEntry,
+    entry: GltfSceneEntry,
     preset: GdxGltfEnvironmentPreset?,
     settings: GltfRendererSettings,
 ) {
@@ -305,12 +305,12 @@ private fun GdxGltfRenderer.applySkybox(
     entry.manager.skyBox = entry.skybox
 }
 
-private data class PbrSceneEntry(
+private data class GltfSceneEntry(
     val scene: GltfScene,
     var manager: GltfSceneManager,
     val maxBones: Int,
-    var shaderConfigKey: PbrShaderConfigKey,
-    var environmentKey: PbrEnvironmentKey? = null,
+    var shaderConfigKey: GltfShaderConfigKey,
+    var environmentKey: GltfEnvironmentFallbackKey? = null,
     var envMap: Cubemap? = null,
     var irradianceMap: Cubemap? = null,
     var radianceMap: Cubemap? = null,
@@ -353,25 +353,25 @@ private data class PbrSceneEntry(
     }
 }
 
-private data class PbrEnvironmentKey(
+private data class GltfEnvironmentFallbackKey(
     val intensity: String,
     val directionX: String,
     val directionY: String,
     val directionZ: String,
 )
 
-private data class PbrShaderConfigKey(
+private data class GltfShaderConfigKey(
     val gammaCorrection: Boolean,
     val srgbTextures: Boolean,
 )
 
-private fun GltfRendererSettings.shaderConfigKey(): PbrShaderConfigKey =
-    PbrShaderConfigKey(
+private fun GltfRendererSettings.shaderConfigKey(): GltfShaderConfigKey =
+    GltfShaderConfigKey(
         gammaCorrection = gammaCorrection,
         srgbTextures = srgbTextures,
     )
 
-private fun pbrLightDirection(
+private fun gltfLightDirection(
     yawDegrees: Float,
     pitchDegrees: Float,
 ): Vector3 {
