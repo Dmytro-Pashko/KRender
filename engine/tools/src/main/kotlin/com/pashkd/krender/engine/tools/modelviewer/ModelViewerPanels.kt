@@ -992,7 +992,7 @@ class ModelViewerTextureChannelsPanel(
             state.uvCheckerTexturePath = current.texturePath
         }
         val expanded =
-            ImGui.beginCombo("Checker Texture##model_viewer_uv_checker_texture", current.resolution.toString())
+            ImGui.beginCombo("Checker Size##model_viewer_uv_checker_texture", current.resolution.toString())
         tooltipOnHover("Choose the checker texture resolution used for UV inspection.")
         if (!expanded) return
         UV_CHECKER_TEXTURE_OPTIONS.forEach { option ->
