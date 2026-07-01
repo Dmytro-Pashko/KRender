@@ -11,6 +11,14 @@ data class AssetToolDescriptor(
 )
 
 /**
+ * Identifier + display label for a custom asset action exposed in browser menus/details.
+ */
+data class AssetActionDescriptor(
+    val id: String,
+    val label: String,
+)
+
+/**
  * UI-facing handler for asset operations and tool resolution.
  *
  * Implementations bridge Asset Browser panels to the asset operations service and tool registry
@@ -35,9 +43,16 @@ interface AssetBrowserOperationsHandler {
 
     fun toolsFor(asset: AssetDescriptor): List<AssetToolDescriptor>
 
+    fun actionsFor(asset: AssetDescriptor): List<AssetActionDescriptor>
+
     fun openWith(
         asset: AssetDescriptor,
         toolId: String,
+    )
+
+    fun runAction(
+        asset: AssetDescriptor,
+        actionId: String,
     )
 
     companion object {
@@ -62,9 +77,16 @@ interface AssetBrowserOperationsHandler {
 
                 override fun toolsFor(asset: AssetDescriptor): List<AssetToolDescriptor> = emptyList()
 
+                override fun actionsFor(asset: AssetDescriptor): List<AssetActionDescriptor> = emptyList()
+
                 override fun openWith(
                     asset: AssetDescriptor,
                     toolId: String,
+                ) = Unit
+
+                override fun runAction(
+                    asset: AssetDescriptor,
+                    actionId: String,
                 ) = Unit
             }
     }

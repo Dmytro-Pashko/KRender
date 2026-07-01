@@ -142,10 +142,10 @@ class Scene2DFontImporter : AssetImporter {
  */
 class SkyboxImporter : AssetImporter {
     override val id = "skybox"
-    override val displayName = "Skybox"
+    override val displayName = "Environment Skybox"
     override val supportedExtensions = setOf("krskybox")
-    override val outputType = AssetType.Skybox
-    override val outputCategory = AssetCategory.Skybox
+    override val outputType = AssetType.EnvironmentSkybox
+    override val outputCategory = AssetCategory.Environment
 
     override fun canImport(path: String): Boolean = normalizedExtension(path) in supportedExtensions
 }

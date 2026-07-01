@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:ea332417-d699-4878-a25c-6ac543254a57",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "brdfLUT",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

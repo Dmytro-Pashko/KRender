@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.AssetRegistrySnapshot
+import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -85,7 +86,10 @@ class SceneAssetBrowserModel(
 
     fun terrainAssets(): List<AssetDescriptor> = assets.filter { asset -> asset.category == AssetCategory.Terrain }
 
-    fun skyboxAssets(): List<AssetDescriptor> = assets.filter { asset -> asset.category == AssetCategory.Skybox }
+    fun skyboxAssets(): List<AssetDescriptor> =
+        assets.filter { asset ->
+            asset.category == AssetCategory.Environment && asset.type == AssetType.EnvironmentSkybox
+        }
 
     fun filteredModelAssets(): List<AssetDescriptor> {
         val query = state.searchQuery.trim().lowercase()
@@ -128,7 +132,7 @@ class SceneAssetBrowserModel(
         assets = snapshot.assets
         errorMessage = snapshot.errors.firstOrNull()?.let { "Scan error: ${it.path} (${it.message})" }
         state.statusMessage =
-            "Indexed ${modelAssets().size} model assets, ${terrainAssets().size} terrain assets, and ${skyboxAssets().size} skyboxes."
+            "Indexed ${modelAssets().size} model assets, ${terrainAssets().size} terrain assets, and ${skyboxAssets().size} environment skyboxes."
         isScanning = false
         scanInFlight = false
     }
@@ -384,7 +388,7 @@ class SceneAssetPanel(
                 panelState.statusMessage = "Selected terrain: ${asset.path}"
             }
 
-            AssetCategory.Skybox -> {
+            AssetCategory.Environment -> {
                 panelState.statusMessage = "Selected skybox: ${asset.path}"
             }
 
@@ -487,7 +491,7 @@ class SceneAssetPanel(
 
     private fun selectedSkyboxPath(): String? =
         when (panelState.selectedAssetCategory) {
-            AssetCategory.Skybox -> panelState.selectedAssetPath
+            AssetCategory.Environment -> panelState.selectedAssetPath
             else -> null
         }
 
@@ -495,7 +499,7 @@ class SceneAssetPanel(
 
     private fun selectedTerrainName(): String = selectedAssetName(AssetCategory.Terrain, selectedTerrainPath())
 
-    private fun selectedSkyboxName(): String = selectedAssetName(AssetCategory.Skybox, selectedSkyboxPath())
+    private fun selectedSkyboxName(): String = selectedAssetName(AssetCategory.Environment, selectedSkyboxPath())
 
     private fun selectedAssetName(
         category: AssetCategory,
@@ -514,7 +518,7 @@ class SceneAssetPanel(
                         .terrainAssets()
                         .firstOrNull { descriptor -> descriptor.path == assetPath }
 
-                AssetCategory.Skybox ->
+                AssetCategory.Environment ->
                     assetBrowser
                         .skyboxAssets()
                         .firstOrNull { descriptor -> descriptor.path == assetPath }

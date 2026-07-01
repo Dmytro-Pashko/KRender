@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:9f33b717-a454-48a1-84e0-f147aef38682",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "radiance_2_posy",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

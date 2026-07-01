@@ -33,7 +33,7 @@ class AssetBrowserPanel(
 ) : UiPanel {
     private val searchBuffer = ByteArray(TextInputBufferSize)
     private val renameByteBuffer = ByteArray(TextInputBufferSize)
-    private val createDialog = CreateAssetDialog(state, operations, panelId)
+    private val createDialog = CreateAssetDialog(state, operations, fileDialogService, panelId)
     private val importDialog = ImportAssetDialog(state, importService, fileDialogService, panelId)
     private var searchInputActive = false
     private var renameBufferSynced = false
@@ -168,6 +168,7 @@ class AssetBrowserPanel(
         if (!ImGui.beginPopupContextItem("assetCtx_${asset.id.value}")) return
         val capabilities = asset.assetCapabilities()
         val tools = operations.toolsFor(asset)
+        val actions = operations.actionsFor(asset)
         if (tools.isNotEmpty() && ImGui.menuItem("Open")) {
             onAssetSelected(asset)
             onAssetActivated(asset)
@@ -181,7 +182,17 @@ class AssetBrowserPanel(
             }
             ImGui.endMenu()
         }
-        ImGui.separator()
+        if (actions.isNotEmpty()) {
+            actions.forEach { action ->
+                if (ImGui.menuItem(action.label)) {
+                    onAssetSelected(asset)
+                    operations.runAction(asset, action.id)
+                }
+            }
+        }
+        if (tools.isNotEmpty() || actions.isNotEmpty()) {
+            ImGui.separator()
+        }
         if (capabilities.canRename && ImGui.menuItem("Rename...")) {
             onAssetSelected(asset)
             state.renameBuffer = asset.name
@@ -213,11 +224,28 @@ class AssetBrowserPanel(
         ImGui.endCombo()
     }
 
-    private fun visibleAssets(): List<AssetDescriptor> = state.filteredAssets.filter { asset -> categoryAccepted(asset.category) }
+    private fun visibleAssets(): List<AssetDescriptor> =
+        state.filteredAssets.filter { asset ->
+            categoryAccepted(asset.category) && assetVisibleInSelectedCategory(asset)
+        }
 
     private fun visibleCategoryCount(category: AssetCategory?): Int =
         state.assets.count { asset ->
-            categoryAccepted(asset.category) && (category == null || asset.category == category)
+            categoryAccepted(asset.category) &&
+                (category == null || asset.category == category) &&
+                assetVisibleInCategory(asset, category)
+        }
+
+    private fun assetVisibleInSelectedCategory(asset: AssetDescriptor): Boolean =
+        assetVisibleInCategory(asset, state.selectedCategory)
+
+    private fun assetVisibleInCategory(
+        asset: AssetDescriptor,
+        category: AssetCategory?,
+    ): Boolean =
+        when (category) {
+            AssetCategory.Environment -> asset.type == AssetType.Environment || asset.type == AssetType.HdrSource
+            else -> true
         }
 
     private fun categoryAccepted(category: AssetCategory): Boolean = category in SupportedBrowserCategories && (acceptedCategories == null || category in acceptedCategories)

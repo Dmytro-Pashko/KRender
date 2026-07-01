@@ -30,6 +30,7 @@ class DesktopMain(
                 skinPath = configuredSkinPath(),
                 atlasPath = configuredTextureAtlasPath(),
                 fontPath = configuredFontPath(),
+                environmentPath = configuredEnvironmentPath(),
             ) ?: ScenePlayerModule.createScene(
                 sceneName = requestedScene,
                 scenePath = scenePath,
@@ -62,5 +63,7 @@ class DesktopMain(
         fun configuredSceneNameOverride(): String? = System.getProperty("krender.scene.name")?.takeIf(String::isNotBlank)
 
         fun configuredFontPath(): String? = System.getProperty("krender.font.path")?.takeIf(String::isNotBlank)
+
+        fun configuredEnvironmentPath(): String? = System.getProperty("krender.environment.path")?.takeIf(String::isNotBlank)
     }
 }
