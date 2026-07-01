@@ -275,32 +275,11 @@ internal class GltfPbrRendererOptionsPanel(
         tooltipOnHover("Reset environment intensity, exposure, and rotation to their defaults.")
 
         ImGui.separator()
-        ImGui.text("Tone / Color Pipeline")
-        drawToneMappingCombo()
-        ImGui.checkbox("Gamma Correction##model_viewer_pbr_gamma", state::pbrGammaCorrection)
-        tooltipOnHover(
-            "Apply output gamma correction for more accurate final colors. " +
-                "Changing this option recreates renderer shader resources.",
-        )
-        ImGui.checkbox("sRGB Textures##model_viewer_pbr_srgb", state::pbrSrgbTextures)
-        tooltipOnHover(
-            "Interpret color textures as sRGB instead of linear textures. " +
-                "Changing this option recreates renderer shader resources.",
-        )
-        ImGui.textDisabled("Tone mapping is retained for a future post-process pass.")
-
-        ImGui.separator()
         ImGui.text("Direct Lighting")
-        with(dsl) {
-            button("Reset Direct Light##model_viewer_pbr_reset_direct_light") {
-                resetDirectLight()
-            }
-        }
-        tooltipOnHover("Reset all glTF / PBR directional light parameters to their defaults.")
         ImGui.checkbox("Directional Light##model_viewer_pbr_directional_enabled", state::pbrDirectionalLightEnabled)
         tooltipOnHover("Enable the main directional light. Available only in glTF / PBR renderer.")
         slider(
-            "Directional Intensity##model_viewer_pbr_directional_intensity",
+            "Intensity##model_viewer_pbr_directional_intensity",
             state::pbrDirectionalLightIntensity,
             0f,
             1f,
@@ -309,12 +288,12 @@ internal class GltfPbrRendererOptionsPanel(
         )
         tooltipOnHover("Control the brightness of the glTF / PBR directional light.")
         drawColorControl(
-            "Directional Color##model_viewer_pbr_directional_color",
+            "Color##model_viewer_pbr_directional_color",
             state.pbrDirectionalLightColor,
             "Set the glTF / PBR directional light color. Changes update live.",
         )
         slider(
-            "Directional Light Yaw##model_viewer_pbr_light_yaw",
+            "Light Yaw##model_viewer_pbr_light_yaw",
             state::pbrDirectionalLightYawDegrees,
             -180f,
             180f,
@@ -323,7 +302,7 @@ internal class GltfPbrRendererOptionsPanel(
         )
         tooltipOnHover("Rotate the directional light around the vertical axis in degrees.")
         slider(
-            "Directional Light Pitch##model_viewer_pbr_light_pitch",
+            "Pitch##model_viewer_pbr_light_pitch",
             state::pbrDirectionalLightPitchDegrees,
             -89f,
             89f,
@@ -331,6 +310,12 @@ internal class GltfPbrRendererOptionsPanel(
             SliderFlag.AlwaysClamp,
         )
         tooltipOnHover("Tilt the directional light up or down in degrees.")
+        with(dsl) {
+            button("Reset Direct Light##model_viewer_pbr_reset_direct_light") {
+                resetDirectLight()
+            }
+        }
+        tooltipOnHover("Reset all glTF / PBR directional light parameters to their defaults.")
         state.pbrWarning?.let { warning -> textLine("Warning: $warning") }
     }
 
@@ -346,27 +331,6 @@ internal class GltfPbrRendererOptionsPanel(
         state.pbrDirectionalLightColor.resetToWhite()
         state.pbrDirectionalLightYawDegrees = DEFAULT_DIRECTIONAL_YAW
         state.pbrDirectionalLightPitchDegrees = DEFAULT_DIRECTIONAL_PITCH
-    }
-
-    private fun drawToneMappingCombo() {
-        val expanded =
-            ImGui.beginCombo("Tone Mapping##model_viewer_pbr_tone_mapping", toneMappingLabel(state.pbrToneMapping))
-        tooltipOnHover(
-            "Choose how HDR lighting should map to the display. " +
-                "Stored now; the current renderer has no live tone-mapping post-process.",
-        )
-        if (!expanded) return
-        PbrToneMapping.entries.forEach { mode ->
-            if (ImGui.selectable(
-                    "${toneMappingLabel(mode)}##model_viewer_pbr_tone_mapping_$mode",
-                    state.pbrToneMapping == mode,
-                )
-            ) {
-                state.pbrToneMapping = mode
-            }
-            tooltipOnHover("${toneMappingLabel(mode)} tone-mapping preference; not applied live yet.")
-        }
-        ImGui.endCombo()
     }
 
     companion object {
@@ -414,19 +378,13 @@ internal class LegacyRendererOptionsPanel(
 
         ImGui.separator()
         ImGui.text("Direct Lighting")
-        with(dsl) {
-            button("Reset Direct Light##model_viewer_legacy_reset_direct_light") {
-                resetDirectLight()
-            }
-        }
-        tooltipOnHover("Reset all LibGDX / Legacy directional light parameters to their defaults.")
         ImGui.checkbox(
             "Directional Light##model_viewer_legacy_directional_enabled",
             state::legacyDirectionalLightEnabled,
         )
         tooltipOnHover("Enable the main directional light. Available only in LibGDX / Legacy renderer.")
         slider(
-            "Directional Intensity##model_viewer_legacy_directional_intensity",
+            "Intensity##model_viewer_legacy_directional_intensity",
             state::legacyDirectionalLightIntensity,
             0f,
             1f,
@@ -435,12 +393,12 @@ internal class LegacyRendererOptionsPanel(
         )
         tooltipOnHover("Control the brightness of the main Legacy directional light.")
         drawColorControl(
-            "Directional Color##model_viewer_legacy_directional_color",
+            "Color##model_viewer_legacy_directional_color",
             state.legacyDirectionalLightColor,
             "Set the main directional light color for LibGDX / Legacy rendering.",
         )
         slider(
-            "Directional Light Yaw##model_viewer_legacy_light_yaw",
+            "Light Yaw##model_viewer_legacy_light_yaw",
             state::legacyDirectionalLightYawDegrees,
             -180f,
             180f,
@@ -449,7 +407,7 @@ internal class LegacyRendererOptionsPanel(
         )
         tooltipOnHover("Rotate the Legacy directional light around the vertical axis in degrees.")
         slider(
-            "Directional Light Pitch##model_viewer_legacy_light_pitch",
+            "Pitch##model_viewer_legacy_light_pitch",
             state::legacyDirectionalLightPitchDegrees,
             -89f,
             89f,
@@ -457,6 +415,12 @@ internal class LegacyRendererOptionsPanel(
             SliderFlag.AlwaysClamp,
         )
         tooltipOnHover("Tilt the Legacy directional light up or down in degrees.")
+        with(dsl) {
+            button("Reset Direct Light##model_viewer_legacy_reset_direct_light") {
+                resetDirectLight()
+            }
+        }
+        tooltipOnHover("Reset all LibGDX / Legacy directional light parameters to their defaults.")
     }
 
     private fun resetDirectLight() {
@@ -1237,13 +1201,6 @@ private fun rendererModeLabel(mode: ModelViewerRendererMode): String =
     when (mode) {
         ModelViewerRendererMode.LibGdx -> "LibGDX / Legacy"
         ModelViewerRendererMode.Pbr -> "glTF / PBR"
-    }
-
-private fun toneMappingLabel(mode: PbrToneMapping): String =
-    when (mode) {
-        PbrToneMapping.Aces -> "ACES"
-        PbrToneMapping.Reinhard -> "Reinhard"
-        PbrToneMapping.None -> "None"
     }
 
 private fun drawColorControl(
