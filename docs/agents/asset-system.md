@@ -40,9 +40,10 @@ readiness in `show()`.
 
 Core + impl: `core/.../engine/assets/`.
 
-- **Domain** (`AssetDomain.kt`): `AssetId` (value class), `AssetCategory` (Model, Texture, Skybox,
-  Material, Terrain, UI, Shader, Scene, Audio, Script, Unknown), `AssetType` (GltfModel, ObjModel,
-  GdxModel, Texture, Skybox, Terrain, UiScene, Scene, Material, Shader, Unknown), `AssetDescriptor`
+- **Domain** (`AssetDomain.kt`): `AssetId` (value class), `AssetCategory` (Model, Texture,
+  Material, Terrain, Scene2D, UI, Environment, Scene, Other), `AssetType` (GltfModel, ObjModel,
+  GdxModel, Texture, Atlas, Font, Terrain, UiScene, Scene2DSkin, Environment, HdrSource,
+  EnvironmentSkybox, EnvironmentCubemap, EnvironmentGeneratedMap, BrdfLut, Scene, Material, Unknown), `AssetDescriptor`
   (id, name, path, category, type, extension, size, mtime, tags, metadata map).
 - **`LocalAssetRegistryService`** scans root folders (`model`, `textures`, `skyboxes`, `materials`,
   `terrains`, `ui/scenes`, `scenes`, `shaders`, `assets`), resolving type via `AssetImporter`

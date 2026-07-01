@@ -48,7 +48,6 @@ internal fun assetBrowserIcon(asset: AssetDescriptor): String =
             when (asset.category) {
                 AssetCategory.Model -> "[M]"
                 AssetCategory.Texture -> "[T]"
-                AssetCategory.Skybox -> "[Sky]"
                 AssetCategory.Material -> "[Mat]"
                 AssetCategory.Terrain -> "[Ter]"
                 AssetCategory.Scene2D -> "[S2D]"
@@ -63,7 +62,6 @@ internal val SupportedBrowserCategories =
     setOf(
         AssetCategory.Model,
         AssetCategory.Texture,
-        AssetCategory.Skybox,
         AssetCategory.Material,
         AssetCategory.Terrain,
         AssetCategory.Scene2D,

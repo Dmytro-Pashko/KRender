@@ -17,7 +17,6 @@ enum class AssetCategory(
 ) {
     Model("Model", 0),
     Texture("Texture", 1),
-    Skybox("Skybox", 2),
     Material("Material", 3),
     Terrain("Terrain", 4),
     Scene2D("Scene2D", 5),
@@ -46,7 +45,6 @@ enum class AssetType {
     Texture,
     Atlas,
     Font,
-    Skybox,
     Terrain,
 
     /**
@@ -69,6 +67,10 @@ enum class AssetType {
     Scene2DSkin,
     Environment,
     HdrSource,
+    EnvironmentSkybox,
+    EnvironmentCubemap,
+    EnvironmentGeneratedMap,
+    BrdfLut,
     Scene,
     Material,
     Unknown,
