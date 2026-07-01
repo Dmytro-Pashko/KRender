@@ -12,18 +12,24 @@ import java.nio.file.Path
 internal object EnvironmentAssetCreation {
     private const val CreateFromExrActionId = "create-environment-from-exr"
     private const val CreateFromHdrActionId = "create-environment-from-hdr"
+    private const val OpenParentEnvironmentActionId = "open-parent-environment"
 
-    fun actionsFor(asset: AssetDescriptor): List<AssetActionDescriptor> =
-        when {
-            asset.type != AssetType.HdrSource -> emptyList()
-            asset.extension.equals("exr", ignoreCase = true) ->
-                listOf(AssetActionDescriptor(CreateFromExrActionId, "Create Environment from EXR"))
+    fun actionsFor(asset: AssetDescriptor): List<AssetActionDescriptor> {
+        val actions = mutableListOf<AssetActionDescriptor>()
+        if (asset.type == AssetType.HdrSource) {
+            when {
+                asset.extension.equals("exr", ignoreCase = true) ->
+                    actions += AssetActionDescriptor(CreateFromExrActionId, "Create Environment from EXR")
 
-            asset.extension.equals("hdr", ignoreCase = true) ->
-                listOf(AssetActionDescriptor(CreateFromHdrActionId, "Create Environment from HDR"))
-
-            else -> emptyList()
+                asset.extension.equals("hdr", ignoreCase = true) ->
+                    actions += AssetActionDescriptor(CreateFromHdrActionId, "Create Environment from HDR")
+            }
         }
+        if (canOpenParentEnvironment(asset)) {
+            actions += AssetActionDescriptor(OpenParentEnvironmentActionId, "Open Parent Environment")
+        }
+        return actions
+    }
 
     fun runAction(
         asset: AssetDescriptor,
@@ -35,6 +41,8 @@ internal object EnvironmentAssetCreation {
             CreateFromExrActionId,
             CreateFromHdrActionId,
             -> createEnvironmentFromHdrSource(asset, engine, logger)
+
+            OpenParentEnvironmentActionId -> openParentEnvironment(asset, engine, logger)
 
             else -> error("Unsupported asset action '$actionId'.")
         }
@@ -138,6 +146,19 @@ internal object EnvironmentAssetCreation {
         return manifestPath
     }
 
+    private fun openParentEnvironment(
+        asset: AssetDescriptor,
+        engine: EngineContext,
+        logger: Logger,
+    ): String {
+        val manifestPath =
+            findClosestParentManifest(asset, engine.assetRegistry)
+                ?: error("No parent environment manifest found for '${asset.path}'.")
+        engine.editorToolLauncher.launchEnvironmentEditor(manifestPath)
+        logger.info(TAG) { "Opening parent environment '$manifestPath' for asset='${asset.path}'" }
+        return manifestPath
+    }
+
     private fun resolveAssetPath(
         basePath: Path,
         relativePath: String,
@@ -169,6 +190,43 @@ internal object EnvironmentAssetCreation {
         return Files.exists(environmentDir) || Files.exists(manifest)
     }
 
+    private fun canOpenParentEnvironment(asset: AssetDescriptor): Boolean =
+        when (asset.type) {
+            AssetType.EnvironmentSkybox,
+            AssetType.EnvironmentCubemap,
+            AssetType.EnvironmentGeneratedMap,
+            AssetType.BrdfLut,
+            -> true
+
+            AssetType.HdrSource -> isUnderEnvironmentsFolder(asset.path)
+            else -> false
+        }
+
+    private fun findClosestParentManifest(
+        asset: AssetDescriptor,
+        registry: AssetRegistryService,
+    ): String? {
+        val basePath = registry.baseDir().toPath().toAbsolutePath().normalize()
+        var directory = resolveAssetPath(basePath, asset.path).parent
+        while (directory != null && directory.startsWith(basePath)) {
+            val manifestPath =
+                Files
+                    .list(directory)
+                    .use { paths ->
+                        paths
+                            .filter { path ->
+                                Files.isRegularFile(path) && path.fileName.toString().endsWith(".environment.json", ignoreCase = true)
+                            }.findFirst()
+                            .orElse(null)
+                    }
+            if (manifestPath != null) {
+                return assetBrowserNormalizePath(basePath.relativize(manifestPath).toString())
+            }
+            directory = directory.parent
+        }
+        return null
+    }
+
     private fun environmentBaseId(sourceFileName: String): String =
         sourceFileName
             .substringBeforeLast('.')
@@ -190,6 +248,11 @@ internal object EnvironmentAssetCreation {
             asset.extension.equals("hdr", ignoreCase = true) -> EnvironmentSourceFormat.HDR
             else -> error("Unsupported HDR source extension '${asset.extension}'.")
         }
+
+    private fun isUnderEnvironmentsFolder(path: String): Boolean {
+        val normalized = assetBrowserNormalizePath(path).lowercase()
+        return normalized.startsWith("environments/") || normalized.contains("/environments/")
+    }
 
     private const val TAG = "EnvironmentAssetCreation"
 }

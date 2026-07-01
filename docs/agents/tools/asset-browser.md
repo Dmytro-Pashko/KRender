@@ -92,6 +92,8 @@ and generated environment resources. Scanned roots: `model`, `textures`, `skybox
   (skybox, scene, terrain, `.krui`, material templates).
 - HDR source (`.exr` / `.hdr`) context actions that create a new Environment manifest,
   copy the selected source into `environments/<name>/sources/`, and open the result in Environment Editor.
+- Generated Environment resources expose `Open Parent Environment`, which locates the closest
+  surrounding `.environment.json` and launches Environment Editor for that manifest.
 - `.krui` UI assets route to UI Composer for validation, Scene2D preview, hierarchy/inspector editing, undo/redo, and save workflows.
 - "Open" (default tool) and "Open with" (alternate tools) per asset.
 
