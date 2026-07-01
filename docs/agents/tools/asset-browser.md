@@ -90,6 +90,9 @@ and generated environment resources. Scanned roots: `model`, `textures`, `skybox
 - Model metadata preview (triangle/vertex/material counts via `ModelAssetInfo`).
 - Create / rename / duplicate / delete / reveal operations with sensible default content
   (skybox, scene, terrain, `.krui`, material templates).
+- The Create Asset flow now includes `Environment`, with an EXR/HDR file picker that copies an
+  external source into `environments/<name>/sources/`, creates `<name>.environment.json`, and opens
+  the result in Environment Editor.
 - HDR source (`.exr` / `.hdr`) context actions that create a new Environment manifest,
   copy the selected source into `environments/<name>/sources/`, and open the result in Environment Editor.
 - Generated Environment resources expose `Open Parent Environment`, which locates the closest

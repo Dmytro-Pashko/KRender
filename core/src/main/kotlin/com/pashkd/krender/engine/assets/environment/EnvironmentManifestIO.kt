@@ -9,7 +9,6 @@ import com.pashkd.krender.engine.scene.SceneFileService
  * that knows how to read/write asset-relative paths.
  */
 object EnvironmentManifestIO {
-
     /**
      * Loads an [EnvironmentAsset] from the given manifest [path].
      *

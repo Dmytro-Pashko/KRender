@@ -12,13 +12,9 @@ import com.pashkd.krender.engine.scene.SceneFileService
 class DefaultEnvironmentService(
     private val fileService: SceneFileService,
 ) : EnvironmentService {
+    override fun load(manifestPath: String): EnvironmentAsset = EnvironmentManifestIO.load(manifestPath, fileService)
 
-    override fun load(manifestPath: String): EnvironmentAsset =
-        EnvironmentManifestIO.load(manifestPath, fileService)
+    override fun save(asset: EnvironmentAsset) = EnvironmentManifestIO.save(asset, fileService)
 
-    override fun save(asset: EnvironmentAsset) =
-        EnvironmentManifestIO.save(asset, fileService)
-
-    override fun validate(asset: EnvironmentAsset): EnvironmentValidationReport =
-        EnvironmentValidator.validate(asset, fileService)
+    override fun validate(asset: EnvironmentAsset): EnvironmentValidationReport = EnvironmentValidator.validate(asset, fileService)
 }

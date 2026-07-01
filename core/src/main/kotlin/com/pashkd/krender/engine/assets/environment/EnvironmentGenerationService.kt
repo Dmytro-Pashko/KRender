@@ -8,9 +8,13 @@ package com.pashkd.krender.engine.assets.environment
  */
 interface EnvironmentGenerationService {
     fun generateSkybox(asset: EnvironmentAsset): EnvironmentGenerationResult
+
     fun generateIrradiance(asset: EnvironmentAsset): EnvironmentGenerationResult
+
     fun generateRadiance(asset: EnvironmentAsset): EnvironmentGenerationResult
+
     fun generateBrdfLut(asset: EnvironmentAsset): EnvironmentGenerationResult
+
     fun generateAll(asset: EnvironmentAsset): EnvironmentGenerationResult
 }
 
@@ -19,7 +23,11 @@ interface EnvironmentGenerationService {
  */
 sealed class EnvironmentGenerationResult {
     data object Success : EnvironmentGenerationResult()
-    data class Failed(val message: String) : EnvironmentGenerationResult()
+
+    data class Failed(
+        val message: String,
+    ) : EnvironmentGenerationResult()
+
     data object NotImplemented : EnvironmentGenerationResult()
 }
 
@@ -28,8 +36,12 @@ sealed class EnvironmentGenerationResult {
  */
 object PlaceholderEnvironmentGenerationService : EnvironmentGenerationService {
     override fun generateSkybox(asset: EnvironmentAsset) = EnvironmentGenerationResult.NotImplemented
+
     override fun generateIrradiance(asset: EnvironmentAsset) = EnvironmentGenerationResult.NotImplemented
+
     override fun generateRadiance(asset: EnvironmentAsset) = EnvironmentGenerationResult.NotImplemented
+
     override fun generateBrdfLut(asset: EnvironmentAsset) = EnvironmentGenerationResult.NotImplemented
+
     override fun generateAll(asset: EnvironmentAsset) = EnvironmentGenerationResult.NotImplemented
 }

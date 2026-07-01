@@ -1,7 +1,10 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.assets.environment.*
+import com.pashkd.krender.engine.assets.environment.BackgroundMode
+import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.EnvironmentService
+import com.pashkd.krender.engine.assets.environment.EnvironmentSettings
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import imgui.ImGui
 import imgui.SliderFlag
@@ -18,7 +21,6 @@ class EnvironmentSettingsPanel(
     private val environmentService: EnvironmentService,
     private val logger: Logger,
 ) : UiPanel {
-
     private val nameBuffer = ByteArray(256)
     private var nameBufferSynced = false
 
@@ -162,4 +164,6 @@ class EnvironmentSettingsPanel(
     }
 }
 
-private class FloatHolder(var value: Float = 0f)
+private class FloatHolder(
+    var value: Float = 0f,
+)

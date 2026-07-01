@@ -32,6 +32,13 @@ class AssetControlsPanel(
         }
         ImGui.sameLine()
         with(dsl) {
+            button("Create Environment##${panelId}_create_environment") {
+                state.createDraft = defaultCreateAssetDraft(state.assets).copy(kind = CreatableAssetKind.Environment)
+                state.showCreateDialog = true
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
             button("Import Asset##${panelId}_import_asset") {
                 state.showImportDialog = true
                 state.importPlan = null

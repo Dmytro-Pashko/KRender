@@ -1,7 +1,9 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.assets.environment.*
+import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.EnvironmentGenerationResult
+import com.pashkd.krender.engine.assets.environment.EnvironmentGenerationService
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import imgui.ImGui
 
@@ -13,7 +15,6 @@ class EnvironmentGeneratedMapsPanel(
     private val generationService: EnvironmentGenerationService,
     private val logger: Logger,
 ) : UiPanel {
-
     override fun draw() {
         if (!ImGui.begin("Generated Maps")) {
             ImGui.end()

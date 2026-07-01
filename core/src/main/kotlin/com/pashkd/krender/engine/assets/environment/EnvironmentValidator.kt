@@ -10,7 +10,6 @@ import com.pashkd.krender.engine.scene.SceneFileService
  * platform-neutral.
  */
 object EnvironmentValidator {
-
     fun validate(
         asset: EnvironmentAsset,
         fileService: SceneFileService,
@@ -22,11 +21,12 @@ object EnvironmentValidator {
         validateGenerated(asset, fileService, issues)
         validateSettings(asset, issues)
 
-        val status = when {
-            issues.any { it.severity == IssueSeverity.Error } -> ValidationStatus.Error
-            issues.any { it.severity == IssueSeverity.Warning } -> ValidationStatus.Warning
-            else -> ValidationStatus.Valid
-        }
+        val status =
+            when {
+                issues.any { it.severity == IssueSeverity.Error } -> ValidationStatus.Error
+                issues.any { it.severity == IssueSeverity.Warning } -> ValidationStatus.Warning
+                else -> ValidationStatus.Valid
+            }
         return EnvironmentValidationReport(status, issues)
     }
 
@@ -41,10 +41,11 @@ object EnvironmentValidator {
             issues += error(Codes.MISSING_ID, "Environment id is empty.")
         }
         if (asset.type != EnvironmentType.HdrIbl) {
-            issues += warning(
-                Codes.UNSUPPORTED_TYPE,
-                "Environment type '${asset.type}' is not yet supported. Only HdrIbl is available.",
-            )
+            issues +=
+                warning(
+                    Codes.UNSUPPORTED_TYPE,
+                    "Environment type '${asset.type}' is not yet supported. Only HdrIbl is available.",
+                )
         }
     }
 
@@ -65,11 +66,12 @@ object EnvironmentValidator {
         for (source in asset.sources) {
             val resolvedPath = resolvePath(manifestDir, source.path)
             if (!fileService.exists(resolvedPath)) {
-                issues += warning(
-                    Codes.SOURCE_FILE_MISSING,
-                    "Source '${source.id}' file not found: ${source.path}",
-                    source.path,
-                )
+                issues +=
+                    warning(
+                        Codes.SOURCE_FILE_MISSING,
+                        "Source '${source.id}' file not found: ${source.path}",
+                        source.path,
+                    )
             }
         }
     }
@@ -105,11 +107,12 @@ object EnvironmentValidator {
         for ((face, path) in skybox.faces) {
             val resolved = resolvePath(manifestDir, path)
             if (!fileService.exists(resolved)) {
-                issues += warning(
-                    Codes.SKYBOX_FACE_MISSING,
-                    "Skybox face '$face' not found: $path",
-                    path,
-                )
+                issues +=
+                    warning(
+                        Codes.SKYBOX_FACE_MISSING,
+                        "Skybox face '$face' not found: $path",
+                        path,
+                    )
             }
         }
     }
@@ -126,11 +129,12 @@ object EnvironmentValidator {
         }
         val resolved = resolvePath(manifestDir, irradiance.path)
         if (!fileService.exists(resolved)) {
-            issues += warning(
-                Codes.IRRADIANCE_FILE_MISSING,
-                "Irradiance file not found: ${irradiance.path}",
-                irradiance.path,
-            )
+            issues +=
+                warning(
+                    Codes.IRRADIANCE_FILE_MISSING,
+                    "Irradiance file not found: ${irradiance.path}",
+                    irradiance.path,
+                )
         }
     }
 
@@ -151,11 +155,12 @@ object EnvironmentValidator {
         for (mip in radiance.mips) {
             val resolved = resolvePath(manifestDir, mip.path)
             if (!fileService.exists(resolved)) {
-                issues += warning(
-                    Codes.RADIANCE_MIP_MISSING,
-                    "Radiance mip ${mip.level} not found: ${mip.path}",
-                    mip.path,
-                )
+                issues +=
+                    warning(
+                        Codes.RADIANCE_MIP_MISSING,
+                        "Radiance mip ${mip.level} not found: ${mip.path}",
+                        mip.path,
+                    )
             }
         }
     }
@@ -172,11 +177,12 @@ object EnvironmentValidator {
         }
         val resolved = resolvePath(manifestDir, brdfLut.path)
         if (!fileService.exists(resolved)) {
-            issues += warning(
-                Codes.BRDF_LUT_MISSING,
-                "BRDF LUT file not found: ${brdfLut.path}",
-                brdfLut.path,
-            )
+            issues +=
+                warning(
+                    Codes.BRDF_LUT_MISSING,
+                    "BRDF LUT file not found: ${brdfLut.path}",
+                    brdfLut.path,
+                )
         }
     }
 

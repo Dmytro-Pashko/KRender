@@ -4,7 +4,6 @@ package com.pashkd.krender.engine.assets.environment
  * Maps between the JSON-facing [EnvironmentManifestDto] and the domain [EnvironmentAsset].
  */
 object EnvironmentManifestMapper {
-
     fun toDomain(
         dto: EnvironmentManifestDto,
         manifestPath: String,

@@ -11,7 +11,6 @@ import imgui.ImGui
 class EnvironmentSourceVariantsPanel(
     private val state: EnvironmentEditorState,
 ) : UiPanel {
-
     override fun draw() {
         if (!ImGui.begin("Source Variants")) {
             ImGui.end()

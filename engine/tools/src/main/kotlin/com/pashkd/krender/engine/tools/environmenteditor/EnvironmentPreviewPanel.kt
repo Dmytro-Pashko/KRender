@@ -19,7 +19,6 @@ import imgui.ImGui
 class EnvironmentPreviewPanel(
     private val state: EnvironmentEditorState,
 ) : UiPanel {
-
     override fun draw() {
         if (!ImGui.begin("Preview")) {
             ImGui.end()

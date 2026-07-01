@@ -6,7 +6,9 @@ import kotlinx.serialization.Serializable
  * Unique identifier for an environment asset, typically the manifest-relative path.
  */
 @JvmInline
-value class EnvironmentAssetId(val path: String)
+value class EnvironmentAssetId(
+    val path: String,
+)
 
 /**
  * Platform-independent representation of a complete Environment asset.

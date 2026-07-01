@@ -5,11 +5,11 @@ import com.pashkd.krender.engine.assets.importing.AwtFileDialogService
 import com.pashkd.krender.engine.tools.animationviewer.AnimationViewerScene
 import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserScene
 import com.pashkd.krender.engine.tools.bitmapfonteditor.BitmapFontEditorScene
+import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorScene
 import com.pashkd.krender.engine.tools.modelviewer.ModelViewerScene
 import com.pashkd.krender.engine.tools.sceneeditor.SceneEditorScene
 import com.pashkd.krender.engine.tools.skin.SkinEditorScene
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorScene
-import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorScene
 import com.pashkd.krender.engine.tools.uicomposer.UiComposerScene
 
 object ToolsModule {

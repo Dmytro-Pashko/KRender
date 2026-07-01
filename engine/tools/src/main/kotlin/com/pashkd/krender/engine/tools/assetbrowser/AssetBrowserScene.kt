@@ -192,32 +192,24 @@ private class SceneOperationsHandler(
     private val logger: Logger,
 ) : AssetBrowserOperationsHandler {
     override fun create(draft: CreateAssetDraft) {
-        if (draft.kind == CreatableAssetKind.Atlas) {
-            consumeResult(createAtlasAsset(draft, engineProvider().assetRegistry.baseDir(), logger))
-            if (state.errorMessage == null) {
-                state.refreshRequested = true
-            }
-            return
+        when (draft.kind) {
+            CreatableAssetKind.Environment -> createEnvironmentAsset(draft)
+            CreatableAssetKind.Atlas -> createSpecialAsset { createAtlasAsset(draft, engineProvider().assetRegistry.baseDir(), logger) }
+            CreatableAssetKind.BitmapFont -> createSpecialAsset { createBitmapFontAsset(draft, engineProvider(), logger) }
+            else ->
+                consumeResult(
+                    operations.create(
+                        CreateAssetRequest(
+                            name = draft.name,
+                            type = draft.kind.type,
+                            category = draft.kind.category,
+                            targetDirectory = draft.kind.targetDirectory,
+                            extension = draft.kind.extension,
+                            initialContent = defaultContent(draft),
+                        ),
+                    ),
+                )
         }
-        if (draft.kind == CreatableAssetKind.BitmapFont) {
-            consumeResult(createBitmapFontAsset(draft, engineProvider(), logger))
-            if (state.errorMessage == null) {
-                state.refreshRequested = true
-            }
-            return
-        }
-        consumeResult(
-            operations.create(
-                CreateAssetRequest(
-                    name = draft.name,
-                    type = draft.kind.type,
-                    category = draft.kind.category,
-                    targetDirectory = draft.kind.targetDirectory,
-                    extension = draft.kind.extension,
-                    initialContent = defaultContent(draft),
-                ),
-            ),
-        )
     }
 
     override fun rename(
@@ -249,8 +241,7 @@ private class SceneOperationsHandler(
             toolRegistry.toolsFor(asset).map { AssetToolDescriptor(it.id, it.displayName) }
         }
 
-    override fun actionsFor(asset: AssetDescriptor): List<AssetActionDescriptor> =
-        EnvironmentAssetCreation.actionsFor(asset)
+    override fun actionsFor(asset: AssetDescriptor): List<AssetActionDescriptor> = EnvironmentAssetCreation.actionsFor(asset)
 
     override fun openWith(
         asset: AssetDescriptor,
@@ -284,17 +275,16 @@ private class SceneOperationsHandler(
         actionId: String,
     ) {
         try {
-            val manifestPath = EnvironmentAssetCreation.runAction(asset, actionId, engineProvider(), logger)
-            state.refreshRequested = true
-            state.statusMessage = "Created environment: $manifestPath"
-            state.errorMessage = null
+            val result = EnvironmentAssetCreation.runAction(asset, actionId, engineProvider(), logger)
+            val prefix =
+                if (actionId == "open-parent-environment") {
+                    "Opened parent environment"
+                } else {
+                    "Created environment"
+                }
+            consumeEnvironmentCreateResult(result, prefix)
         } catch (error: Exception) {
-            val message = error.message ?: "Action failed."
-            state.errorMessage = message
-            state.statusMessage = message
-            logger.error(TAG, error) {
-                "Asset action failed actionId='$actionId' path='${asset.path}': ${error.message}"
-            }
+            consumeEnvironmentCreateFailure(error, "Asset action failed")
         }
     }
 
@@ -334,6 +324,47 @@ private class SceneOperationsHandler(
                 state.statusMessage = result.message
             }
         }
+    }
+
+    private fun createEnvironmentAsset(draft: CreateAssetDraft) {
+        try {
+            val result =
+                EnvironmentAssetCreation.createFromExternalSourcePath(
+                    sourcePath = draft.environmentSourcePath,
+                    preferredEnvironmentId = draft.name.takeIf { it.isNotBlank() },
+                    engine = engineProvider(),
+                    logger = logger,
+                )
+            consumeEnvironmentCreateResult(result, prefix = "Created environment")
+        } catch (error: Exception) {
+            consumeEnvironmentCreateFailure(error, "Environment creation failed")
+        }
+    }
+
+    private fun createSpecialAsset(create: () -> AssetOperationResult) {
+        consumeResult(create())
+        if (state.errorMessage == null) {
+            state.refreshRequested = true
+        }
+    }
+
+    private fun consumeEnvironmentCreateResult(
+        result: CreateEnvironmentResult,
+        prefix: String,
+    ) {
+        state.refreshRequested = true
+        state.statusMessage = "$prefix: ${result.manifestPath}"
+        state.errorMessage = null
+    }
+
+    private fun consumeEnvironmentCreateFailure(
+        error: Exception,
+        messagePrefix: String,
+    ) {
+        val message = error.message ?: "$messagePrefix."
+        state.errorMessage = message
+        state.statusMessage = message
+        logger.error(TAG, error) { "$messagePrefix: ${error.message}" }
     }
 
     companion object {
@@ -620,8 +651,7 @@ class EnvironmentEditorAssetTool : AssetTool {
     override val displayName = "Open in Environment Editor"
     override val supportedCategories = setOf(AssetCategory.Environment)
 
-    override fun canOpen(asset: AssetDescriptor): Boolean =
-        asset.category == AssetCategory.Environment && asset.type == AssetType.Environment
+    override fun canOpen(asset: AssetDescriptor): Boolean = asset.category == AssetCategory.Environment && asset.type == AssetType.Environment
 
     override fun open(
         asset: AssetDescriptor,

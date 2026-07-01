@@ -33,7 +33,7 @@ class AssetBrowserPanel(
 ) : UiPanel {
     private val searchBuffer = ByteArray(TextInputBufferSize)
     private val renameByteBuffer = ByteArray(TextInputBufferSize)
-    private val createDialog = CreateAssetDialog(state, operations, panelId)
+    private val createDialog = CreateAssetDialog(state, operations, fileDialogService, panelId)
     private val importDialog = ImportAssetDialog(state, importService, fileDialogService, panelId)
     private var searchInputActive = false
     private var renameBufferSynced = false

@@ -14,7 +14,6 @@ class EnvironmentEditorToolbarPanel(
     private val environmentService: EnvironmentService,
     private val logger: Logger,
 ) : UiPanel {
-
     override fun draw() {
         ImGui.begin("Environment Editor")
         drawHeader()
@@ -104,11 +103,12 @@ class EnvironmentEditorToolbarPanel(
         val env = state.environment ?: return
         state.validation = environmentService.validate(env)
         val report = state.validation
-        state.statusMessage = if (report != null) {
-            "Validation: ${report.status} (${report.issues.size} issue(s))"
-        } else {
-            "Validation complete."
-        }
+        state.statusMessage =
+            if (report != null) {
+                "Validation: ${report.status} (${report.issues.size} issue(s))"
+            } else {
+                "Validation complete."
+            }
     }
 
     companion object {

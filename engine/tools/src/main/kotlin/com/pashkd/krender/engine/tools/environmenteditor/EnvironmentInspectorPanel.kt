@@ -10,7 +10,6 @@ import imgui.ImGui
 class EnvironmentInspectorPanel(
     private val state: EnvironmentEditorState,
 ) : UiPanel {
-
     override fun draw() {
         if (!ImGui.begin("Inspector")) {
             ImGui.end()
@@ -106,7 +105,7 @@ class EnvironmentInspectorPanel(
 
     private fun drawMetadata(env: EnvironmentAsset) {
         val meta = env.metadata
-        if (meta.author == null && meta.tags.isEmpty() && meta.createdAt == null && meta.modifiedAt == null) return
+        if (!hasVisibleMetadata(meta)) return
         if (ImGui.collapsingHeader("Metadata")) {
             meta.author?.let { labeledText("Author", it) }
             if (meta.tags.isNotEmpty()) labeledText("Tags", meta.tags.joinToString(", "))
@@ -114,6 +113,12 @@ class EnvironmentInspectorPanel(
             meta.modifiedAt?.let { labeledText("Modified", it) }
         }
     }
+
+    private fun hasVisibleMetadata(meta: com.pashkd.krender.engine.assets.environment.EnvironmentMetadata): Boolean =
+        meta.author != null ||
+            meta.tags.isNotEmpty() ||
+            meta.createdAt != null ||
+            meta.modifiedAt != null
 
     private fun labeledText(
         label: String,
