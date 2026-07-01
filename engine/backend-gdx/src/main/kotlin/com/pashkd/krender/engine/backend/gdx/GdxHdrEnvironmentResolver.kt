@@ -4,12 +4,12 @@ import com.badlogic.gdx.Files
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifest
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifestCodec
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifestLoader
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentSourceVariant
 import com.pashkd.krender.engine.backend.gdx.tools.hdr.SharedBrdfLutExporter
-import java.nio.file.Path
 
 internal class GdxHdrEnvironmentResolver(
     private val logger: Logger,
@@ -129,7 +129,7 @@ internal class GdxHdrEnvironmentResolver(
                 type = Files.FileType.Internal,
             ),
             GdxHdrAssetLocation(
-                path = SHARED_BRDF_LUT,
+                path = HdrEnvironmentAssets.SHARED_BRDF_LUT,
                 type = Files.FileType.Internal,
             ),
             GdxHdrAssetLocation(
@@ -139,32 +139,18 @@ internal class GdxHdrEnvironmentResolver(
         ).firstOrNull { location -> location.file().exists() }
 
     companion object {
-        const val DEFAULT_ENVIRONMENT_PRESET = "default"
-        const val DEFAULT_ENVIRONMENT_MANIFEST = "hdr/default/environment.json"
+        const val DEFAULT_ENVIRONMENT_PRESET = HdrEnvironmentAssets.DEFAULT_PRESET
+        const val DEFAULT_ENVIRONMENT_MANIFEST = HdrEnvironmentAssets.DEFAULT_MANIFEST
         private const val FACE_TOKEN = "{face}"
         private const val MIP_TOKEN = "{mip}"
-        private const val SHARED_BRDF_LUT = "hdr/_common/brdf/brdfLUT.png"
         private const val TAG = "GdxHdrEnvironmentResolver"
 
-        fun manifestPathFor(presetNameOrPath: String): String =
-            when {
-                presetNameOrPath.isBlank() || presetNameOrPath == DEFAULT_ENVIRONMENT_PRESET ->
-                    DEFAULT_ENVIRONMENT_MANIFEST
-                presetNameOrPath.endsWith(".json", ignoreCase = true) ->
-                    normalizeAssetPath(presetNameOrPath)
-                else ->
-                    "hdr/${presetNameOrPath.trim('/')}/environment.json"
-            }
+        fun manifestPathFor(presetNameOrPath: String): String = HdrEnvironmentAssets.manifestPathForPreset(presetNameOrPath)
 
         fun resolvePath(
             manifestPath: String,
             relativePath: String,
-        ): String {
-            val parent = Path.of(normalizeAssetPath(manifestPath)).parent ?: Path.of("")
-            return normalizeAssetPath(parent.resolve(relativePath).normalize().toString())
-        }
-
-        private fun normalizeAssetPath(path: String): String = path.replace('\\', '/').removePrefix("./")
+        ): String = HdrEnvironmentAssets.resolveRelativeToManifest(manifestPath, relativePath)
     }
 }
 

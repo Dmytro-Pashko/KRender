@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraState
 import com.pashkd.krender.engine.tools.viewport.EditorViewportState
 
@@ -29,7 +30,7 @@ const val UV_CHECKER_TEXTURE_1K = "textures/uv_checker_1k.png"
 const val UV_CHECKER_TEXTURE_2K = "textures/uv_checker_2k.png"
 const val UV_CHECKER_TEXTURE_4K = "textures/uv_checker_4k.png"
 const val DEFAULT_UV_CHECKER_TEXTURE = "textures/uv_checker_2k.png"
-const val DEFAULT_GLTF_ENVIRONMENT_PRESET = "default"
+const val DEFAULT_GLTF_ENVIRONMENT_PRESET = HdrEnvironmentAssets.DEFAULT_PRESET
 
 val UV_CHECKER_TEXTURE_OPTIONS =
     listOf(
