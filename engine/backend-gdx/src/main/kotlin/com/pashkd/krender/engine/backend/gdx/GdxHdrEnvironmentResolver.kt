@@ -1,12 +1,14 @@
 package com.pashkd.krender.engine.backend.gdx
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Files
 import com.badlogic.gdx.files.FileHandle
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifest
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifestCodec
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifestLoader
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentSourceVariant
+import com.pashkd.krender.engine.backend.gdx.tools.hdr.SharedBrdfLutExporter
 import java.nio.file.Path
 
 internal class GdxHdrEnvironmentResolver(
@@ -50,7 +52,7 @@ internal class GdxHdrEnvironmentResolver(
                                 )
                             }
                         },
-                    brdfLut = resolvePath(manifestPath, manifest.brdfLut.path),
+                    brdfLut = resolveBrdfLut(manifestPath, manifest.brdfLut.path),
                 )
             warnForMissingGeneratedMaps(resolved)
             resolved
@@ -100,11 +102,35 @@ internal class GdxHdrEnvironmentResolver(
                 "HDR environment '${environment.preset}' has missing radiance maps; runtime fallback will be used."
             }
         }
-        if (!Gdx.files.internal(environment.brdfLut).exists()) {
+        if (environment.brdfLut == null) {
             logger.warn(TAG) {
-                "HDR environment '${environment.preset}' shared BRDF LUT is missing; bundled fallback will be used."
+                "HDR environment '${environment.preset}' BRDF LUT is missing from the manifest, shared assets, and gdx-gltf."
             }
         }
+    }
+
+    private fun resolveBrdfLut(
+        manifestPath: String,
+        manifestBrdfPath: String,
+    ): GdxHdrAssetLocation? {
+        val manifestLocation =
+            GdxHdrAssetLocation(
+                path = resolvePath(manifestPath, manifestBrdfPath),
+                type = Files.FileType.Internal,
+            )
+        if (manifestLocation.file().exists()) return manifestLocation
+        val sharedLocation =
+            GdxHdrAssetLocation(
+                path = SHARED_BRDF_LUT,
+                type = Files.FileType.Internal,
+            )
+        if (sharedLocation.file().exists()) return sharedLocation
+        val bundledLocation =
+            GdxHdrAssetLocation(
+                path = SharedBrdfLutExporter.BUNDLED_BRDF_LUT,
+                type = Files.FileType.Classpath,
+            )
+        return bundledLocation.takeIf { it.file().exists() }
     }
 
     companion object {
@@ -112,6 +138,7 @@ internal class GdxHdrEnvironmentResolver(
         const val DEFAULT_ENVIRONMENT_MANIFEST = "hdr/default/environment.json"
         private const val FACE_TOKEN = "{face}"
         private const val MIP_TOKEN = "{mip}"
+        private const val SHARED_BRDF_LUT = "hdr/_common/brdf/brdfLUT.png"
         private const val TAG = "GdxHdrEnvironmentResolver"
 
         fun manifestPathFor(presetNameOrPath: String): String =
@@ -146,5 +173,19 @@ internal data class GdxResolvedHdrEnvironment(
     val skyboxFaces: Map<String, String>,
     val irradianceFaces: Map<String, String>,
     val radianceFaces: Map<Int, Map<String, String>>,
-    val brdfLut: String,
+    val brdfLut: GdxHdrAssetLocation?,
 )
+
+internal data class GdxHdrAssetLocation(
+    val path: String,
+    val type: Files.FileType,
+) {
+    fun file(): FileHandle =
+        when (type) {
+            Files.FileType.Classpath -> Gdx.files.classpath(path)
+            Files.FileType.Internal -> Gdx.files.internal(path)
+            Files.FileType.External -> Gdx.files.external(path)
+            Files.FileType.Absolute -> Gdx.files.absolute(path)
+            Files.FileType.Local -> Gdx.files.local(path)
+        }
+}
