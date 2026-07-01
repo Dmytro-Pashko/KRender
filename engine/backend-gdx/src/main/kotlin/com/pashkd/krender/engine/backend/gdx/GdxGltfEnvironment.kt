@@ -1,6 +1,5 @@
 package com.pashkd.krender.engine.backend.gdx
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Cubemap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.utils.Disposable
@@ -11,75 +10,17 @@ internal class GdxGltfEnvironment(
     logger: Logger,
 ) : Disposable {
     private val resolver = GdxHdrEnvironmentResolver(logger)
-    private val logger = logger
+    private val assetLoader = GdxGltfEnvironmentAssetLoader(logger)
     private val presets = mutableMapOf<String, GdxGltfEnvironmentPreset?>()
 
     fun preset(nameOrPath: String): GdxGltfEnvironmentPreset? =
         presets.getOrPut(nameOrPath) {
-            resolver.resolve(nameOrPath)?.let(::loadPreset)
+            resolver.resolve(nameOrPath)?.let(assetLoader::loadPreset)
         }
 
     override fun dispose() {
         presets.values.filterNotNull().forEach(GdxGltfEnvironmentPreset::dispose)
         presets.clear()
-    }
-
-    private fun loadPreset(resolved: GdxResolvedHdrEnvironment): GdxGltfEnvironmentPreset =
-        GdxGltfEnvironmentPreset(
-            name = resolved.preset,
-            defaults = resolved.manifest.defaults,
-            skybox = loadCubemap(resolved, "skybox", resolved.skyboxFaces),
-            irradiance = loadCubemap(resolved, "irradiance", resolved.irradianceFaces),
-            radiance = loadRadiance(resolved),
-            brdfLut = loadBrdfLut(resolved),
-        )
-
-    private fun loadCubemap(
-        resolved: GdxResolvedHdrEnvironment,
-        label: String,
-        faces: Map<String, String>,
-    ): Cubemap? {
-        if (faces.isEmpty() || faces.values.any { !Gdx.files.internal(it).exists() }) {
-            logger.warn(TAG) { "HDR environment '${resolved.preset}' has missing $label faces." }
-            return null
-        }
-        return try {
-            GdxHdrCubemapLoader.loadFaces(faces)
-        } catch (error: Throwable) {
-            logger.warn(TAG, error) { "Failed to load $label cubemap for '${resolved.preset}'." }
-            null
-        }
-    }
-
-    private fun loadRadiance(resolved: GdxResolvedHdrEnvironment): Cubemap? {
-        val faces = resolved.radianceFaces
-        if (faces.isEmpty() || faces.values.flatMap { it.values }.any { !Gdx.files.internal(it).exists() }) {
-            logger.warn(TAG) { "HDR environment '${resolved.preset}' has missing radiance mip faces." }
-            return null
-        }
-        return try {
-            GdxHdrCubemapLoader.loadMipFaces(faces)
-        } catch (error: Throwable) {
-            logger.warn(TAG, error) { "Failed to load radiance cubemap for '${resolved.preset}'." }
-            null
-        }
-    }
-
-    private fun loadBrdfLut(resolved: GdxResolvedHdrEnvironment): Texture? {
-        val location = resolved.brdfLut ?: return null
-        return try {
-            Texture(location.file()).also { texture ->
-                texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-                texture.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge)
-            }
-        } catch (error: Throwable) {
-            logger.warn(TAG, error) { "Failed to load BRDF LUT for '${resolved.preset}'." }
-            null
-        }
-    }
-
-    companion object {
-        private const val TAG = "GdxGltfEnvironment"
     }
 }
 
