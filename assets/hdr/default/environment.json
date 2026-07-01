@@ -56,7 +56,7 @@
     ]
   },
   "radiance": {
-    "generated": false,
+    "generated": true,
     "path": "radiance/radiance_{mip}_{face}.png",
     "baseSize": 512,
     "mipLevels": 10,

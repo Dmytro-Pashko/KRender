@@ -31,6 +31,14 @@ internal object HdrEnvironmentGeneratorMain {
                 )
             println("Generated ${outputs.size} irradiance faces for '${loaded.manifest.name}'.")
         }
+        if (RADIANCE_OPTION in options || ALL_OPTION in options) {
+            val outputs = IblSpecularGenerator().generate(manifestPath, updatedManifest)
+            updatedManifest =
+                updatedManifest.copy(
+                    radiance = updatedManifest.radiance.copy(generated = true),
+                )
+            println("Generated ${outputs.size} radiance mip faces for '${loaded.manifest.name}'.")
+        }
         if (updatedManifest != loaded.manifest) {
             Files.writeString(
                 manifestPath,
@@ -38,7 +46,7 @@ internal object HdrEnvironmentGeneratorMain {
                 StandardCharsets.UTF_8,
             )
         }
-        val unsupported = options - setOf(SKYBOX_OPTION, IRRADIANCE_OPTION, ALL_OPTION)
+        val unsupported = options - setOf(SKYBOX_OPTION, IRRADIANCE_OPTION, RADIANCE_OPTION, ALL_OPTION)
         require(unsupported.isEmpty()) {
             "Unsupported generator options: ${unsupported.joinToString()}."
         }
@@ -47,5 +55,6 @@ internal object HdrEnvironmentGeneratorMain {
     private const val COMMAND_NAME = "generate-hdr-env"
     private const val SKYBOX_OPTION = "--skybox"
     private const val IRRADIANCE_OPTION = "--irradiance"
+    private const val RADIANCE_OPTION = "--radiance"
     private const val ALL_OPTION = "--all"
 }
