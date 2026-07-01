@@ -18,6 +18,8 @@ enum class ModelViewerRendererMode {
     Pbr,
 }
 
+val DEFAULT_MODEL_VIEWER_RENDERER_MODE = ModelViewerRendererMode.Pbr
+
 data class ModelViewerUvCheckerTextureOption(
     val resolution: Int,
     val texturePath: String,
@@ -101,7 +103,7 @@ data class ModelViewerState(
     /** Current renderer warning surfaced in the UI. */
     var pbrWarning: String? = null,
     /** Current renderer path for shaded model preview. */
-    var rendererMode: ModelViewerRendererMode = ModelViewerRendererMode.LibGdx,
+    var rendererMode: ModelViewerRendererMode = DEFAULT_MODEL_VIEWER_RENDERER_MODE,
     var pbrEnvironmentPreset: String = DEFAULT_PBR_ENVIRONMENT_PRESET,
     var pbrExposure: Float = 1f,
     var pbrShowSkybox: Boolean = true,

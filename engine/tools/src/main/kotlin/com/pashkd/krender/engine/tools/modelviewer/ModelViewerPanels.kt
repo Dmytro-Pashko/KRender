@@ -973,8 +973,8 @@ private fun debugCullingLabel(mode: DebugCullingMode): String =
 
 private fun rendererModeLabel(mode: ModelViewerRendererMode): String =
     when (mode) {
-        ModelViewerRendererMode.LibGdx -> "LibGDX Shader"
-        ModelViewerRendererMode.Pbr -> "glTF PBR Renderer"
+        ModelViewerRendererMode.LibGdx -> "LibGDX / Legacy"
+        ModelViewerRendererMode.Pbr -> "glTF / PBR"
     }
 
 private fun drawInfoList(
