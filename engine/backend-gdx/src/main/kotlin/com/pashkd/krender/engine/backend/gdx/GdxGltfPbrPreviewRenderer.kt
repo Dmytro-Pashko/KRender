@@ -103,63 +103,14 @@ internal class GdxGltfPbrPreviewRenderer(
     ) {
         val preset = gltfEnvironment.preset(settings.environmentPreset)
         val direction = pbrLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
-        val presetExposure = preset?.defaults?.exposure?.toFloat() ?: 1f
-        val presetAmbientIntensity = preset?.defaults?.ambientIntensity?.toFloat() ?: 1f
-        val intensity = (settings.environmentIntensity * settings.exposure * presetExposure).coerceAtLeast(0f)
+        val environmentState = resolveEnvironmentState(preset, settings)
         entry.manager.environment.clear()
-        entry.manager.environment.set(
-            ColorAttribute(
-                ColorAttribute.AmbientLight,
-                0.08f * intensity * presetAmbientIntensity,
-                0.09f * intensity * presetAmbientIntensity,
-                0.1f * intensity * presetAmbientIntensity,
-                1f,
-            ),
-        )
-        if (settings.directionalLightEnabled) {
-            val lightColor = settings.directionalLightColor
-            entry.manager.environment.add(
-                DirectionalLightEx().set(
-                    Color(lightColor.r, lightColor.g, lightColor.b, lightColor.a),
-                    direction,
-                    settings.directionalLightIntensity.coerceAtLeast(0f),
-                ),
-            )
-        }
-        entry.manager.environment.set(
-            net.mgsx.gltf.scene3d.attributes.PBRMatrixAttribute.createEnvRotation(
-                settings.environmentRotationDegrees,
-            ),
-        )
-        val needsProceduralFallback =
-            preset?.irradiance == null ||
-                preset.radiance == null ||
-                (settings.showSkybox && preset.skybox == null)
-        if (needsProceduralFallback) {
-            entry.ensureIbl(direction, intensity.coerceAtLeast(0.01f))
-        } else {
-            entry.disposeProceduralEnvironment()
-        }
-        val diffuseMap = preset?.irradiance ?: entry.irradianceMap
-        val specularMap = preset?.radiance ?: entry.radianceMap
-        diffuseMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(map)) }
-        specularMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createSpecularEnv(map)) }
-        preset?.brdfLut?.let { lut ->
-            entry.manager.environment.set(PBRTextureAttribute.createBRDFLookupTexture(lut))
-        }
-        val skyboxMap =
-            if (settings.showSkybox) {
-                preset?.skybox ?: entry.envMap
-            } else {
-                null
-            }
-        if (skyboxMap != null) {
-            val skyboxKey = preset?.skybox?.let { "preset:${settings.environmentPreset}" } ?: "procedural"
-            entry.ensureSceneSkybox(skyboxKey, skyboxMap)
-            entry.manager.skyBox = entry.skybox
-        } else {
-            entry.manager.skyBox = null
-        }
+        applyAmbientLight(entry, environmentState.intensity, environmentState.presetAmbientIntensity)
+        applyDirectionalLight(entry, settings, direction)
+        applyEnvironmentRotation(entry, settings)
+        syncEnvironmentFallback(entry, settings, preset, direction, environmentState.intensity)
+        applyEnvironmentMaps(entry, preset)
+        applySkybox(entry, preset, settings)
     }
 
     private fun PbrSceneEntry.ensureShaderConfiguration(settings: PbrPreviewView) {
@@ -195,6 +146,24 @@ internal class GdxGltfPbrPreviewRenderer(
             PBRShaderProvider.createDefault(config),
             PBRShaderProvider.createDefaultDepth(maxBones),
         )
+    }
+
+    private fun syncEnvironmentFallback(
+        entry: PbrSceneEntry,
+        settings: PbrPreviewView,
+        preset: GdxGltfEnvironmentPreset?,
+        direction: Vector3,
+        intensity: Float,
+    ) {
+        val needsProceduralFallback =
+            preset?.irradiance == null ||
+                preset.radiance == null ||
+                (settings.showSkybox && preset.skybox == null)
+        if (needsProceduralFallback) {
+            entry.ensureIbl(direction, intensity.coerceAtLeast(0.01f))
+        } else {
+            entry.disposeProceduralEnvironment()
+        }
     }
 
     private fun PbrSceneEntry.ensureIbl(
@@ -245,6 +214,95 @@ internal class GdxGltfPbrPreviewRenderer(
     companion object {
         private const val TAG = "GdxGltfPbrPreviewRenderer"
     }
+}
+
+private data class ResolvedEnvironmentState(
+    val intensity: Float,
+    val presetAmbientIntensity: Float,
+)
+
+private fun GdxGltfPbrPreviewRenderer.resolveEnvironmentState(
+    preset: GdxGltfEnvironmentPreset?,
+    settings: PbrPreviewView,
+): ResolvedEnvironmentState {
+    val presetExposure = preset?.defaults?.exposure?.toFloat() ?: 1f
+    val presetAmbientIntensity = preset?.defaults?.ambientIntensity?.toFloat() ?: 1f
+    val intensity = (settings.environmentIntensity * settings.exposure * presetExposure).coerceAtLeast(0f)
+    return ResolvedEnvironmentState(
+        intensity = intensity,
+        presetAmbientIntensity = presetAmbientIntensity,
+    )
+}
+
+private fun GdxGltfPbrPreviewRenderer.applyAmbientLight(
+    entry: PbrSceneEntry,
+    intensity: Float,
+    presetAmbientIntensity: Float,
+) {
+    entry.manager.environment.set(
+        ColorAttribute(
+            ColorAttribute.AmbientLight,
+            0.08f * intensity * presetAmbientIntensity,
+            0.09f * intensity * presetAmbientIntensity,
+            0.1f * intensity * presetAmbientIntensity,
+            1f,
+        ),
+    )
+}
+
+private fun GdxGltfPbrPreviewRenderer.applyDirectionalLight(
+    entry: PbrSceneEntry,
+    settings: PbrPreviewView,
+    direction: Vector3,
+) {
+    if (!settings.directionalLightEnabled) return
+    val lightColor = settings.directionalLightColor
+    entry.manager.environment.add(
+        DirectionalLightEx().set(
+            Color(lightColor.r, lightColor.g, lightColor.b, lightColor.a),
+            direction,
+            settings.directionalLightIntensity.coerceAtLeast(0f),
+        ),
+    )
+}
+
+private fun GdxGltfPbrPreviewRenderer.applyEnvironmentRotation(
+    entry: PbrSceneEntry,
+    settings: PbrPreviewView,
+) {
+    entry.manager.environment.set(
+        net.mgsx.gltf.scene3d.attributes.PBRMatrixAttribute.createEnvRotation(
+            settings.environmentRotationDegrees,
+        ),
+    )
+}
+
+private fun GdxGltfPbrPreviewRenderer.applyEnvironmentMaps(
+    entry: PbrSceneEntry,
+    preset: GdxGltfEnvironmentPreset?,
+) {
+    val diffuseMap = preset?.irradiance ?: entry.irradianceMap
+    val specularMap = preset?.radiance ?: entry.radianceMap
+    diffuseMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createDiffuseEnv(map)) }
+    specularMap?.let { map -> entry.manager.environment.set(PBRCubemapAttribute.createSpecularEnv(map)) }
+    preset?.brdfLut?.let { lut ->
+        entry.manager.environment.set(PBRTextureAttribute.createBRDFLookupTexture(lut))
+    }
+}
+
+private fun GdxGltfPbrPreviewRenderer.applySkybox(
+    entry: PbrSceneEntry,
+    preset: GdxGltfEnvironmentPreset?,
+    settings: PbrPreviewView,
+) {
+    val skyboxMap = if (settings.showSkybox) preset?.skybox ?: entry.envMap else null
+    if (skyboxMap == null) {
+        entry.manager.skyBox = null
+        return
+    }
+    val skyboxKey = preset?.skybox?.let { "preset:${settings.environmentPreset}" } ?: "procedural"
+    entry.ensureSceneSkybox(skyboxKey, skyboxMap)
+    entry.manager.skyBox = entry.skybox
 }
 
 private data class PbrSceneEntry(

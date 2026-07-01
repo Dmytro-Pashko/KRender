@@ -83,61 +83,87 @@ class ModelViewerSystem(
      * Mirrors asset and render state into the shared UI state object.
      */
     private fun syncStatus(world: SceneWorld) {
+        syncAssetState()
+        logStatusChanges()
+        syncDisplayMode(world)
+    }
+
+    private fun syncAssetState(): String? {
         state.assetProgress = assets.progress()
         state.assetLoaded = assets.isLoaded(state.model)
         val loadFailure = assets.loadFailure(state.model)
-        state.loadingStatus =
-            when {
-                state.assetLoaded -> "Loaded"
-                loadFailure != null -> "Failed"
-                else -> "Loading ${"%.0f".format(state.assetProgress * 100f)}%"
-            }
+        state.loadingStatus = loadingStatusFor(loadFailure)
         state.modelInfo = if (state.assetLoaded) assets.modelInfo(state.model) else null
-        state.errorMessage =
-            when {
-                loadFailure != null -> loadFailure
-                state.assetLoaded && state.modelInfo == null -> "Model metadata is unavailable for this asset."
-                else -> null
-            }
-        logStatusChanges()
+        state.errorMessage = errorMessageFor(loadFailure)
+        return loadFailure
+    }
 
+    private fun loadingStatusFor(loadFailure: String?): String =
+        when {
+            state.assetLoaded -> "Loaded"
+            loadFailure != null -> "Failed"
+            else -> "Loading ${"%.0f".format(state.assetProgress * 100f)}%"
+        }
+
+    private fun errorMessageFor(loadFailure: String?): String? =
+        when {
+            loadFailure != null -> loadFailure
+            state.assetLoaded && state.modelInfo == null -> "Model metadata is unavailable for this asset."
+            else -> null
+        }
+
+    private fun syncDisplayMode(world: SceneWorld) {
+        val modelComponent = resolveModelComponent(world) ?: return
         val wireframe = state.displayMode == ModelViewerDisplayMode.Wireframe
         val wireframeOverlay = state.displayMode == ModelViewerDisplayMode.ShadedWireframe
-        val modelComponent =
-            state.modelEntityId
-                ?.let(world::getEntity)
-                ?.get<ModelComponent>()
-        if (modelComponent == null) {
-            if (!missingModelEntityLogged) {
-                logger.warn(TAG) {
-                    "ModelViewer model component is unavailable modelEntityId=${state.modelEntityId} entities=${world.all().size}"
-                }
-                missingModelEntityLogged = true
-            }
-            return
-        }
-        if (
+        val materialChanged =
             modelComponent.material.wireframe != wireframe ||
-            modelComponent.material.wireframeOverlay != wireframeOverlay
-        ) {
+                modelComponent.material.wireframeOverlay != wireframeOverlay
+        if (materialChanged) {
             modelComponent.material =
                 modelComponent.material.copy(
                     wireframe = wireframe,
                     wireframeOverlay = wireframeOverlay,
                 )
-            if (lastDisplayMode != state.displayMode) {
-                logger.info(TAG) {
-                    "ModelViewer material display mode applied mode=${state.displayMode} " +
-                        "wireframe=$wireframe overlay=$wireframeOverlay entity=${state.modelEntityId}"
-                }
+        }
+        logDisplayModeState(materialChanged, wireframe, wireframeOverlay)
+    }
+
+    private fun resolveModelComponent(world: SceneWorld): ModelComponent? {
+        val modelComponent =
+            state.modelEntityId
+                ?.let(world::getEntity)
+                ?.get<ModelComponent>()
+        if (modelComponent != null) {
+            missingModelEntityLogged = false
+            return modelComponent
+        }
+        if (!missingModelEntityLogged) {
+            logger.warn(TAG) {
+                "ModelViewer model component is unavailable modelEntityId=${state.modelEntityId} entities=${world.all().size}"
             }
-            lastDisplayMode = state.displayMode
-        } else if (lastDisplayMode != state.displayMode) {
+            missingModelEntityLogged = true
+        }
+        return null
+    }
+
+    private fun logDisplayModeState(
+        materialChanged: Boolean,
+        wireframe: Boolean,
+        wireframeOverlay: Boolean,
+    ) {
+        if (lastDisplayMode == state.displayMode) return
+        if (materialChanged) {
+            logger.info(TAG) {
+                "ModelViewer material display mode applied mode=${state.displayMode} " +
+                    "wireframe=$wireframe overlay=$wireframeOverlay entity=${state.modelEntityId}"
+            }
+        } else {
             logger.info(TAG) {
                 "ModelViewer display mode active mode=${state.displayMode} wireframe=$wireframe entity=${state.modelEntityId}"
             }
-            lastDisplayMode = state.displayMode
         }
+        lastDisplayMode = state.displayMode
     }
 
     private fun logStatusChanges() {

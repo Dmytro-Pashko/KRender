@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.modelviewer
 
+import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Axis
@@ -10,7 +11,6 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
@@ -18,7 +18,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class ModelViewerSystemTest {
     @Test

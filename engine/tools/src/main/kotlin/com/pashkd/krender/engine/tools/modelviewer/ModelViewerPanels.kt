@@ -105,6 +105,18 @@ class ModelViewerViewportPanel(
         state.viewportSize = Vec2(viewportSize.x.coerceAtLeast(0f), viewportSize.y.coerceAtLeast(0f))
         state.viewportFocused = ImGui.isWindowHovered() || ImGui.isWindowFocused()
 
+        drawCameraSection()
+        ImGui.separator()
+        drawDisplaySection()
+        ImGui.separator()
+        drawRendererSection()
+        ImGui.separator()
+        drawRendererOptionsSection()
+        ImGui.endChild()
+        ImGui.end()
+    }
+
+    private fun drawCameraSection() {
         ImGui.text("Camera Control")
         textLine("Camera: ${formatPosition(state.camera.position)}")
         textLine("Speed: ${"%.2f".format(state.camera.speed)}${if (state.camera.navigating) " (navigating)" else ""}")
@@ -131,8 +143,9 @@ class ModelViewerViewportPanel(
             SliderFlag.AlwaysClamp,
         )
         tooltipOnHover("Mouse-look sensitivity in degrees per pixel. Changes update live.")
+    }
 
-        ImGui.separator()
+    private fun drawDisplaySection() {
         ImGui.text("Display Mode / Display Options")
         drawDisplayModeCombo()
         ImGui.checkbox("Grid##model_viewer_show_grid", state::showGrid)
@@ -161,16 +174,16 @@ class ModelViewerViewportPanel(
             SliderFlag.AlwaysClamp,
         )
         tooltipOnHover("How many grid cells extend from the origin in each direction.")
+    }
 
-        ImGui.separator()
+    private fun drawRendererSection() {
         ImGui.text("Renderer Selector")
         drawRendererSelector()
+    }
 
-        ImGui.separator()
+    private fun drawRendererOptionsSection() {
         ImGui.text("Renderer Options")
         drawRendererOptions()
-        ImGui.endChild()
-        ImGui.end()
     }
 
     private fun drawDisplayModeCombo() {
@@ -237,6 +250,13 @@ internal class GltfPbrRendererOptionsPanel(
         }
 
     fun draw() {
+        drawEnvironmentSection()
+        ImGui.separator()
+        drawDirectLightingSection()
+        state.pbrWarning?.let { warning -> textLine("Warning: $warning") }
+    }
+
+    private fun drawEnvironmentSection() {
         ImGui.text("Environment / IBL")
         if (ImGui.inputText("Environment Preset##model_viewer_pbr_environment_preset", environmentPresetBuffer)) {
             state.pbrEnvironmentPreset = readTextBuffer(environmentPresetBuffer).ifBlank { DEFAULT_PBR_ENVIRONMENT_PRESET }
@@ -273,8 +293,9 @@ internal class GltfPbrRendererOptionsPanel(
             }
         }
         tooltipOnHover("Reset environment intensity, exposure, and rotation to their defaults.")
+    }
 
-        ImGui.separator()
+    private fun drawDirectLightingSection() {
         ImGui.text("Direct Lighting")
         ImGui.checkbox("Directional Light##model_viewer_pbr_directional_enabled", state::pbrDirectionalLightEnabled)
         tooltipOnHover("Enable the main directional light. Available only in glTF / PBR renderer.")
@@ -316,7 +337,6 @@ internal class GltfPbrRendererOptionsPanel(
             }
         }
         tooltipOnHover("Reset all glTF / PBR directional light parameters to their defaults.")
-        state.pbrWarning?.let { warning -> textLine("Warning: $warning") }
     }
 
     private fun resetEnvironment() {
@@ -349,6 +369,12 @@ internal class LegacyRendererOptionsPanel(
     private val operations: ModelViewerOperations,
 ) {
     fun draw() {
+        drawAmbientSection()
+        ImGui.separator()
+        drawDirectLightingSection()
+    }
+
+    private fun drawAmbientSection() {
         ImGui.text("Lighting")
         val ambientIntensity = FloatHolder(state.ambientLightIntensity)
         if (
@@ -375,8 +401,9 @@ internal class LegacyRendererOptionsPanel(
             }
         }
         tooltipOnHover("Reset Legacy ambient intensity to its default value.")
+    }
 
-        ImGui.separator()
+    private fun drawDirectLightingSection() {
         ImGui.text("Direct Lighting")
         ImGui.checkbox(
             "Directional Light##model_viewer_legacy_directional_enabled",
@@ -747,33 +774,48 @@ class ModelViewerTextureChannelsPanel(
         drawDebugView(info)
         ImGui.separator()
         if (slots.isEmpty()) {
-            ImGui.text("No texture channel metadata available.")
-            ImGui.separator()
-            ImGui.text("Warnings")
-            if (info != null && info.materialCount <= 0) {
-                ImGui.bulletText("No materials.")
-            }
-            ImGui.bulletText("No texture slots.")
-            if (info != null && info.uvChannels.isEmpty()) {
-                ImGui.bulletText("No UV channels.")
-            }
+            drawEmptyTextureChannelsState(info)
             ImGui.end()
             return
         }
 
-        val channels =
-            slots
-                .map { slot -> slot.channel }
-                .distinct()
-                .sortedWith(
-                    compareBy<String> { channel -> textureChannelSortKey(channel) }
-                        .thenBy(String.CASE_INSENSITIVE_ORDER) { channel -> channel },
-                )
-
+        val channels = sortedTextureChannels(slots)
         if (state.selectedTextureChannel !in channels) {
             state.selectedTextureChannel = channels.firstOrNull()
         }
 
+        drawTextureChannelsList(channels, slots)
+        drawSelectedTextureChannel(slots)
+        drawWarnings(info, slots)
+        ImGui.end()
+    }
+
+    private fun drawEmptyTextureChannelsState(info: ModelAssetInfo?) {
+        ImGui.text("No texture channel metadata available.")
+        ImGui.separator()
+        ImGui.text("Warnings")
+        if (info != null && info.materialCount <= 0) {
+            ImGui.bulletText("No materials.")
+        }
+        ImGui.bulletText("No texture slots.")
+        if (info != null && info.uvChannels.isEmpty()) {
+            ImGui.bulletText("No UV channels.")
+        }
+    }
+
+    private fun sortedTextureChannels(slots: List<ModelTextureSlotInfo>): List<String> =
+        slots
+            .map { slot -> slot.channel }
+            .distinct()
+            .sortedWith(
+                compareBy<String> { channel -> textureChannelSortKey(channel) }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { channel -> channel },
+            )
+
+    private fun drawTextureChannelsList(
+        channels: List<String>,
+        slots: List<ModelTextureSlotInfo>,
+    ) {
         ImGui.text("Texture Channels")
         channels.forEach { channel ->
             val count = slots.count { slot -> slot.channel == channel }
@@ -789,7 +831,9 @@ class ModelViewerTextureChannelsPanel(
                 "Select ${textureChannelLabel(channel)} texture slots for inspection and preview.",
             )
         }
+    }
 
+    private fun drawSelectedTextureChannel(slots: List<ModelTextureSlotInfo>) {
         ImGui.separator()
         val selectedChannel = state.selectedTextureChannel
         if (selectedChannel == null) {
@@ -797,8 +841,6 @@ class ModelViewerTextureChannelsPanel(
         } else {
             drawSelectedChannel(selectedChannel, slots)
         }
-        drawWarnings(info, slots)
-        ImGui.end()
     }
 
     private fun drawDebugView(info: ModelAssetInfo?) {

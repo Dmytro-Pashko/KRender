@@ -6,8 +6,8 @@ import com.pashkd.krender.engine.api.ModelMaterialInfo
 import com.pashkd.krender.engine.api.ModelTextureSlotInfo
 import com.pashkd.krender.engine.api.TextureDebugComponent
 import kotlin.test.Test
-import kotlin.test.assertFalse
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ModelViewerTextureChannelResolverTest {

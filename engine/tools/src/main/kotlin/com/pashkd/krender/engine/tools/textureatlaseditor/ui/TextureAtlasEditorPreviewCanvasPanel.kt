@@ -398,13 +398,13 @@ class TextureAtlasEditorPreviewCanvasPanel(
             wrappedTextLine("Select a readable NinePatch resource to run a stretch test.")
             return
         }
-            val viewportLayout =
-                computeTexturePreviewViewportLayout(
-                    rect = state.canvasRect,
-                    textureWidth = preview.targetWidth,
-                    textureHeight = preview.targetHeight,
-                    previewState = state.preview,
-                )
+        val viewportLayout =
+            computeTexturePreviewViewportLayout(
+                rect = state.canvasRect,
+                textureWidth = preview.targetWidth,
+                textureHeight = preview.targetHeight,
+                previewState = state.preview,
+            )
         if (state.preview.showCheckerboard) {
             TextureAtlasEditorPreviewOverlays.drawCheckerboard(viewportLayout)
         }

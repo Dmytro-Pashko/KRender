@@ -1,7 +1,7 @@
 package com.pashkd.krender.engine.backend.gdx
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Files
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifest
@@ -77,7 +77,12 @@ internal class GdxHdrEnvironmentResolver(
         require(manifest.source.variants.isNotEmpty()) {
             "HDR environment source.variants must not be empty."
         }
-        require(manifest.source.variants.map { it.id }.toSet().size == manifest.source.variants.size) {
+        require(
+            manifest.source.variants
+                .map { it.id }
+                .toSet()
+                .size == manifest.source.variants.size,
+        ) {
             "HDR environment source variant ids must be unique."
         }
         val activeVariant =
@@ -99,7 +104,10 @@ internal class GdxHdrEnvironmentResolver(
                 "HDR environment '${environment.preset}' has missing irradiance maps; runtime fallback will be used."
             }
         }
-        if (environment.radianceFaces.values.flatMap { it.values }.any { !Gdx.files.internal(it).exists() }) {
+        if (environment.radianceFaces.values
+                .flatMap { it.values }
+                .any { !Gdx.files.internal(it).exists() }
+        ) {
             logger.warn(TAG) {
                 "HDR environment '${environment.preset}' has missing radiance maps; runtime fallback will be used."
             }
@@ -114,26 +122,21 @@ internal class GdxHdrEnvironmentResolver(
     private fun resolveBrdfLut(
         manifestPath: String,
         manifestBrdfPath: String,
-    ): GdxHdrAssetLocation? {
-        val manifestLocation =
+    ): GdxHdrAssetLocation? =
+        listOf(
             GdxHdrAssetLocation(
                 path = resolvePath(manifestPath, manifestBrdfPath),
                 type = Files.FileType.Internal,
-            )
-        if (manifestLocation.file().exists()) return manifestLocation
-        val sharedLocation =
+            ),
             GdxHdrAssetLocation(
                 path = SHARED_BRDF_LUT,
                 type = Files.FileType.Internal,
-            )
-        if (sharedLocation.file().exists()) return sharedLocation
-        val bundledLocation =
+            ),
             GdxHdrAssetLocation(
                 path = SharedBrdfLutExporter.BUNDLED_BRDF_LUT,
                 type = Files.FileType.Classpath,
-            )
-        return bundledLocation.takeIf { it.file().exists() }
-    }
+            ),
+        ).firstOrNull { location -> location.file().exists() }
 
     companion object {
         const val DEFAULT_ENVIRONMENT_PRESET = "default"
