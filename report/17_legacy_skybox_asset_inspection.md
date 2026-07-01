@@ -1,0 +1,62 @@
+- all legacy Skybox references found
+  - Browser-facing asset taxonomy:
+    - `core/src/main/kotlin/com/pashkd/krender/engine/assets/AssetDomain.kt`
+      - `AssetCategory.Skybox`
+      - `AssetType.Skybox`
+    - `core/src/main/kotlin/com/pashkd/krender/engine/assets/AssetTypeDetector.kt`
+      - `.krskybox -> AssetType.Skybox / AssetCategory.Skybox`
+    - `core/src/main/kotlin/com/pashkd/krender/engine/assets/AssetImporter.kt`
+      - `SkyboxImporter`
+      - default importer registration
+    - `engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/assetbrowser/AssetBrowserUiHelpers.kt`
+      - `[Sky]` icon
+      - `SupportedBrowserCategories` includes `AssetCategory.Skybox`
+  - Asset Browser environment flow already present:
+    - `engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/assetbrowser/AssetBrowserScene.kt`
+      - `EnvironmentEditorAssetTool`
+      - `.environment.json` routed to Environment Editor
+  - Scene-editor references that still consume the legacy browser skybox category:
+    - `engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/sceneeditor/SceneAssetPanel.kt`
+    - `engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/sceneeditor/SceneEditorPanels.kt`
+  - Runtime / scene serialization skybox references that are not Asset Browser legacy code:
+    - `core/src/main/kotlin/com/pashkd/krender/engine/scene/SkyboxAssetService.kt`
+    - `core/src/main/kotlin/com/pashkd/krender/engine/scene/SkyboxAssetSerializer.kt`
+    - `engine/scene-player/...`
+    - `core/src/main/kotlin/com/pashkd/krender/engine/render3d/RuntimeEnvironmentSystem.kt`
+    - `engine/backend-gdx/.../GdxSkyboxRenderer.kt`
+  - Environment-system references that intentionally use skybox terminology as part of generated resources:
+    - `core/src/main/kotlin/com/pashkd/krender/engine/assets/environment/*`
+    - `core/src/main/kotlin/com/pashkd/krender/engine/assets/hdr/*`
+    - `engine/tools/src/main/kotlin/com/pashkd/krender/engine/tools/environmenteditor/*`
+
+- which ones will be removed
+  - `AssetCategory.Skybox` from browser taxonomy.
+  - `AssetType.Skybox` from browser classification if it is only used for asset indexing/routing.
+  - `.krskybox` mapping to a standalone Skybox browser category.
+  - `SkyboxImporter` and its default registration if no longer needed for browser metadata classification.
+  - Asset Browser `[Sky]` icon and `SupportedBrowserCategories` entry.
+
+- which ones will be remapped to Environment
+  - `.environment.json` stays under `AssetCategory.Environment`.
+  - `.exr` and `.hdr` stay or expand under `AssetCategory.Environment` as `HdrSource`.
+  - Generated environment resources should move under `AssetCategory.Environment` instead of Texture/Skybox:
+    - skybox outputs
+    - cubemap faces / cubemap textures
+    - irradiance outputs
+    - radiance outputs / mips
+    - BRDF LUT resources
+  - Legacy `.krskybox` descriptors are the main open design question:
+    - either classify them under `Environment`
+    - or leave them as non-browser/runtime-only and remove them from top-level browser surfacing
+
+- possible risk areas
+  - Scene Editor currently filters/selects assets by `AssetCategory.Skybox`; removing that category will require coordinated updates there.
+  - Importer removal can affect `.krmeta` regeneration and asset metadata for existing `.krskybox` files.
+  - Runtime `.krskybox` support must remain intact; only browser categorization/routing should change in this task.
+  - Generated environment textures currently compete with general texture detection, so ordering/path heuristics in `AssetTypeDetector` will matter.
+
+- compilation command
+  - `./gradlew.bat :core:compileKotlin :engine:tools:compileKotlin`
+
+- result
+  - Passed.
