@@ -38,6 +38,7 @@ class EnvironmentEditorScene(
         uiSystem.addPanel(EnvironmentSettingsPanel(editorState, environmentService, engine.logger))
         uiSystem.addPanel(EnvironmentSourceVariantsPanel(editorState))
         uiSystem.addPanel(EnvironmentGeneratedMapsPanel(editorState, generationService, engine.logger))
+        uiSystem.addPanel(EnvironmentDiagnosticsPanel(editorState, environmentService))
         world.systems.add(uiSystem)
     }
 
