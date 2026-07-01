@@ -144,7 +144,7 @@ class ModelViewerViewportPanel(
         ImGui.checkbox("Bounds##model_viewer_show_bounding_box", state::showBoundingBox)
         tooltipOnHover("Show the model bounding box.")
         slider(
-            "Grid Size##model_viewer_grid_cell_size",
+            "Cell Size##model_viewer_grid_cell_size",
             state::gridCellSize,
             MinGridCellSize,
             MaxGridCellSize,
@@ -153,7 +153,7 @@ class ModelViewerViewportPanel(
         )
         tooltipOnHover("Distance between grid lines in world units. Changes update live.")
         slider(
-            "Grid Extent##model_viewer_grid_extent",
+            "Grid Size##model_viewer_grid_extent",
             state::gridHalfExtentCells,
             MinGridHalfExtentCells,
             MaxGridHalfExtentCells,
@@ -248,7 +248,7 @@ internal class GltfPbrRendererOptionsPanel(
         ImGui.checkbox("Show Skybox##model_viewer_pbr_show_skybox", state::pbrShowSkybox)
         tooltipOnHover("Show the selected HDR environment as the glTF / PBR skybox.")
         slider(
-            "Environment Intensity##model_viewer_pbr_environment_intensity",
+            "Intensity##model_viewer_pbr_environment_intensity",
             state::pbrEnvironmentIntensity,
             0f,
             4f,
@@ -259,7 +259,7 @@ internal class GltfPbrRendererOptionsPanel(
         slider("Exposure##model_viewer_pbr_exposure", state::pbrExposure, 0.1f, 4f, "%.2f", SliderFlag.AlwaysClamp)
         tooltipOnHover("Adjust overall scene brightness after environment lighting is applied.")
         slider(
-            "Environment Rotation##model_viewer_pbr_environment_rotation",
+            "Rotation##model_viewer_pbr_environment_rotation",
             state::pbrEnvironmentRotationDegrees,
             -180f,
             180f,
@@ -267,7 +267,14 @@ internal class GltfPbrRendererOptionsPanel(
             SliderFlag.AlwaysClamp,
         )
         tooltipOnHover("Rotate the HDR environment around the vertical axis in degrees.")
+        with(dsl) {
+            button("Reset Environment##model_viewer_pbr_reset_environment") {
+                resetEnvironment()
+            }
+        }
+        tooltipOnHover("Reset environment intensity, exposure, and rotation to their defaults.")
 
+        ImGui.separator()
         ImGui.text("Tone / Color Pipeline")
         drawToneMappingCombo()
         ImGui.checkbox("Gamma Correction##model_viewer_pbr_gamma", state::pbrGammaCorrection)
@@ -282,14 +289,21 @@ internal class GltfPbrRendererOptionsPanel(
         )
         ImGui.textDisabled("Tone mapping is retained for a future post-process pass.")
 
+        ImGui.separator()
         ImGui.text("Direct Lighting")
+        with(dsl) {
+            button("Reset Direct Light##model_viewer_pbr_reset_direct_light") {
+                resetDirectLight()
+            }
+        }
+        tooltipOnHover("Reset all glTF / PBR directional light parameters to their defaults.")
         ImGui.checkbox("Directional Light##model_viewer_pbr_directional_enabled", state::pbrDirectionalLightEnabled)
         tooltipOnHover("Enable the main directional light. Available only in glTF / PBR renderer.")
         slider(
             "Directional Intensity##model_viewer_pbr_directional_intensity",
             state::pbrDirectionalLightIntensity,
             0f,
-            8f,
+            1f,
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
@@ -317,10 +331,21 @@ internal class GltfPbrRendererOptionsPanel(
             SliderFlag.AlwaysClamp,
         )
         tooltipOnHover("Tilt the directional light up or down in degrees.")
-
-        ImGui.text("Material Debug / Channel View")
-        drawMaterialDebugCombo()
         state.pbrWarning?.let { warning -> textLine("Warning: $warning") }
+    }
+
+    private fun resetEnvironment() {
+        state.pbrEnvironmentIntensity = DEFAULT_ENVIRONMENT_INTENSITY
+        state.pbrExposure = DEFAULT_EXPOSURE
+        state.pbrEnvironmentRotationDegrees = DEFAULT_ENVIRONMENT_ROTATION
+    }
+
+    private fun resetDirectLight() {
+        state.pbrDirectionalLightEnabled = true
+        state.pbrDirectionalLightIntensity = DEFAULT_DIRECTIONAL_INTENSITY
+        state.pbrDirectionalLightColor.resetToWhite()
+        state.pbrDirectionalLightYawDegrees = DEFAULT_DIRECTIONAL_YAW
+        state.pbrDirectionalLightPitchDegrees = DEFAULT_DIRECTIONAL_PITCH
     }
 
     private fun drawToneMappingCombo() {
@@ -344,28 +369,14 @@ internal class GltfPbrRendererOptionsPanel(
         ImGui.endCombo()
     }
 
-    private fun drawMaterialDebugCombo() {
-        val expanded =
-            ImGui.beginCombo("Material Channel##model_viewer_pbr_material_channel", debugModeLabel(state.debugMode))
-        tooltipOnHover("Choose the material result or individual channel visualized in the viewport.")
-        if (!expanded) return
-        MODEL_VIEWER_MATERIAL_CHANNEL_MODES.forEach { mode ->
-            if (ImGui.selectable(
-                    "${debugModeLabel(mode)}##model_viewer_pbr_material_channel_$mode",
-                    state.debugMode == mode,
-                )
-            ) {
-                state.debugMode = mode
-                state.uvCheckerEnabled = false
-                state.lastNonUvCheckerDebugMode = mode
-            }
-            tooltipOnHover(debugModeTooltip(mode))
-        }
-        ImGui.endCombo()
-    }
-
     companion object {
         private const val TEXT_BUFFER_SIZE = 256
+        private const val DEFAULT_ENVIRONMENT_INTENSITY = 1f
+        private const val DEFAULT_EXPOSURE = 1f
+        private const val DEFAULT_ENVIRONMENT_ROTATION = 0f
+        private const val DEFAULT_DIRECTIONAL_INTENSITY = 1f
+        private const val DEFAULT_DIRECTIONAL_YAW = 45f
+        private const val DEFAULT_DIRECTIONAL_PITCH = -35f
     }
 }
 
@@ -400,6 +411,15 @@ internal class LegacyRendererOptionsPanel(
             }
         }
         tooltipOnHover("Reset Legacy ambient intensity to its default value.")
+
+        ImGui.separator()
+        ImGui.text("Direct Lighting")
+        with(dsl) {
+            button("Reset Direct Light##model_viewer_legacy_reset_direct_light") {
+                resetDirectLight()
+            }
+        }
+        tooltipOnHover("Reset all LibGDX / Legacy directional light parameters to their defaults.")
         ImGui.checkbox(
             "Directional Light##model_viewer_legacy_directional_enabled",
             state::legacyDirectionalLightEnabled,
@@ -409,7 +429,7 @@ internal class LegacyRendererOptionsPanel(
             "Directional Intensity##model_viewer_legacy_directional_intensity",
             state::legacyDirectionalLightIntensity,
             0f,
-            8f,
+            1f,
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
@@ -437,6 +457,20 @@ internal class LegacyRendererOptionsPanel(
             SliderFlag.AlwaysClamp,
         )
         tooltipOnHover("Tilt the Legacy directional light up or down in degrees.")
+    }
+
+    private fun resetDirectLight() {
+        state.legacyDirectionalLightEnabled = true
+        state.legacyDirectionalLightIntensity = DEFAULT_DIRECTIONAL_INTENSITY
+        state.legacyDirectionalLightColor.resetToWhite()
+        state.legacyDirectionalLightYawDegrees = DEFAULT_DIRECTIONAL_YAW
+        state.legacyDirectionalLightPitchDegrees = DEFAULT_DIRECTIONAL_PITCH
+    }
+
+    companion object {
+        private const val DEFAULT_DIRECTIONAL_INTENSITY = 1f
+        private const val DEFAULT_DIRECTIONAL_YAW = 45f
+        private const val DEFAULT_DIRECTIONAL_PITCH = -35f
     }
 }
 
@@ -1224,6 +1258,13 @@ private fun drawColorControl(
         color.a = a
     }
     tooltipOnHover(tooltip)
+}
+
+private fun Color.resetToWhite() {
+    r = 1f
+    g = 1f
+    b = 1f
+    a = 1f
 }
 
 private fun debugModeTooltip(mode: MaterialDebugMode): String =
