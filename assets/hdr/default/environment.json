@@ -1,47 +1,86 @@
 {
-  "name": "default",
-  "displayName": "Default HDR Environment",
-  "type": "IBL_ENVIRONMENT",
-  "version": 1,
-
-  "source": {
-    "hdri": "source/studio_small_2k.hdr",
-    "preview": "source/preview.png",
-    "license": "source/license.txt",
-    "sourceUrl": "source/source_url.txt"
-  },
-
-  "skybox": {
-    "path": "skybox/default_skybox_studio.png",
-    "layout": "cubemap-cross-4x3",
-    "faceSize": 512
-  },
-
-  "irradiance": {
-    "path": "irradiance/irradiance_{face}.png",
-    "size": 64,
-    "faces": ["negx", "posx", "negy", "posy", "negz", "posz"]
-  },
-
-  "radiance": {
-    "path": "radiance/radiance_{mip}_{face}.png",
-    "baseSize": 512,
-    "mipLevels": 10,
-    "faces": ["negx", "posx", "negy", "posy", "negz", "posz"]
-  },
-
-  "brdfLut": {
-    "path": "../_common/brdf/brdfLUT.png",
-    "size": 256
-  },
-
-  "defaults": {
-    "exposure": 1.0,
-    "gammaCorrection": true,
-    "srgbTextures": true,
-    "toneMapping": "ACES",
-    "skyboxEnabled": true,
-    "environmentRotationDegrees": 0.0,
-    "ambientIntensity": 1.0
-  }
+    "schema": "krender.hdr-environment",
+    "version": 2,
+    "name": "default",
+    "displayName": "Default Studio",
+    "description": "Default PBR environment for KRender Model Viewer, Scene Editor and Scene Player.",
+    "source": {
+        "activeVariant": "exr_2k",
+        "variants": [
+            {
+                "id": "exr_2k",
+                "path": "source/aerial-green-landscape-clouds_2K.exr",
+                "format": "EXR",
+                "projection": "EQUIRECTANGULAR",
+                "resolution": "2K",
+                "width": 2048,
+                "height": 1024,
+                "colorSpace": "LINEAR"
+            },
+            {
+                "id": "exr_4k",
+                "path": "source/aerial-green-landscape-clouds_4K.exr",
+                "format": "EXR",
+                "projection": "EQUIRECTANGULAR",
+                "resolution": "4K",
+                "width": 4096,
+                "height": 2048,
+                "colorSpace": "LINEAR"
+            }
+        ]
+    },
+    "skybox": {
+        "type": "CUBEMAP_CROSS_4X3",
+        "path": "skybox/default_skybox_studio.png",
+        "generatedFacesPath": "skybox/generated/environment_{face}.png",
+        "faces": [
+            "negx",
+            "posx",
+            "negy",
+            "posy",
+            "negz",
+            "posz"
+        ]
+    },
+    "irradiance": {
+        "generated": false,
+        "path": "irradiance/irradiance_{face}.png",
+        "size": 64,
+        "faces": [
+            "negx",
+            "posx",
+            "negy",
+            "posy",
+            "negz",
+            "posz"
+        ]
+    },
+    "radiance": {
+        "generated": false,
+        "path": "radiance/radiance_{mip}_{face}.png",
+        "baseSize": 512,
+        "mipLevels": 10,
+        "faces": [
+            "negx",
+            "posx",
+            "negy",
+            "posy",
+            "negz",
+            "posz"
+        ]
+    },
+    "brdfLut": {
+        "path": "../_common/brdf/brdfLUT.png",
+        "size": 256,
+        "shared": true
+    },
+    "defaults": {
+        "exposure": 1.0,
+        "toneMapping": "ACES",
+        "gammaCorrection": true,
+        "srgbTextures": true,
+        "skyboxEnabled": true,
+        "environmentRotationDegrees": 0.0,
+        "ambientIntensity": 1.0
+    }
 }
