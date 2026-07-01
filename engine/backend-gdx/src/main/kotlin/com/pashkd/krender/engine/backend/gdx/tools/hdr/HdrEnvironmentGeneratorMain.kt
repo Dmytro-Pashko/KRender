@@ -1,6 +1,9 @@
 package com.pashkd.krender.engine.backend.gdx.tools.hdr
 
+import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifestCodec
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifestLoader
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.nio.file.Path
 
 internal object HdrEnvironmentGeneratorMain {
@@ -19,7 +22,23 @@ internal object HdrEnvironmentGeneratorMain {
             val outputs = CubemapCrossSplitter().split(manifestPath, skybox)
             println("Generated ${outputs.size} skybox faces for '${loaded.manifest.name}'.")
         }
-        val unsupported = options - setOf(SKYBOX_OPTION, ALL_OPTION)
+        var updatedManifest = loaded.manifest
+        if (IRRADIANCE_OPTION in options || ALL_OPTION in options) {
+            val outputs = IblDiffuseGenerator().generate(manifestPath, updatedManifest)
+            updatedManifest =
+                updatedManifest.copy(
+                    irradiance = updatedManifest.irradiance.copy(generated = true),
+                )
+            println("Generated ${outputs.size} irradiance faces for '${loaded.manifest.name}'.")
+        }
+        if (updatedManifest != loaded.manifest) {
+            Files.writeString(
+                manifestPath,
+                HdrEnvironmentManifestCodec.encode(updatedManifest) + System.lineSeparator(),
+                StandardCharsets.UTF_8,
+            )
+        }
+        val unsupported = options - setOf(SKYBOX_OPTION, IRRADIANCE_OPTION, ALL_OPTION)
         require(unsupported.isEmpty()) {
             "Unsupported generator options: ${unsupported.joinToString()}."
         }
@@ -27,5 +46,6 @@ internal object HdrEnvironmentGeneratorMain {
 
     private const val COMMAND_NAME = "generate-hdr-env"
     private const val SKYBOX_OPTION = "--skybox"
+    private const val IRRADIANCE_OPTION = "--irradiance"
     private const val ALL_OPTION = "--all"
 }
