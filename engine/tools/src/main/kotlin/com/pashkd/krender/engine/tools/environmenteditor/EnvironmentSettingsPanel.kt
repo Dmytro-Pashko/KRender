@@ -107,6 +107,7 @@ class EnvironmentSettingsPanel(
         if (ImGui.button("Save##env_settings_save")) {
             try {
                 environmentService.save(env)
+                state.validation = environmentService.validate(env)
                 state.dirty = false
                 state.statusMessage = "Settings saved."
                 logger.info(TAG) { "Environment settings saved id='${env.id.path}'" }
@@ -119,10 +120,10 @@ class EnvironmentSettingsPanel(
         if (ImGui.button("Revert##env_settings_revert")) {
             try {
                 val reloaded = environmentService.load(state.manifestPath)
-                state.environment = reloaded
+                state.applyLoadedEnvironment(reloaded)
+                state.validation = environmentService.validate(reloaded)
                 state.dirty = false
                 nameBufferSynced = false
-                state.skyboxVisibleHolder = reloaded.settings.skyboxVisible
                 state.statusMessage = "Reverted to saved state."
                 logger.info(TAG) { "Environment reverted id='${reloaded.id.path}'" }
             } catch (e: Exception) {

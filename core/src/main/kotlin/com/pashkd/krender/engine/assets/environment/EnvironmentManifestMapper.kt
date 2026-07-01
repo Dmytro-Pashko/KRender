@@ -40,7 +40,7 @@ object EnvironmentManifestMapper {
     private fun parseEnvironmentType(value: String): EnvironmentType =
         try {
             EnvironmentType.valueOf(value)
-        } catch (_: IllegalArgumentException) {
-            EnvironmentType.HdrIbl
+        } catch (e: IllegalArgumentException) {
+            throw IllegalArgumentException("Unsupported environmentType '$value'.", e)
         }
 }

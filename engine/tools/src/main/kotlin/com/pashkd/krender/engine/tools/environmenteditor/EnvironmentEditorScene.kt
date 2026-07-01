@@ -45,8 +45,7 @@ class EnvironmentEditorScene(
     private fun loadEnvironment() {
         try {
             val asset = environmentService.load(editorState.manifestPath)
-            editorState.environment = asset
-            editorState.selectedEnvironmentId = asset.id
+            editorState.applyLoadedEnvironment(asset)
             editorState.validation = environmentService.validate(asset)
             editorState.loadError = null
             editorState.dirty = false

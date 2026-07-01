@@ -74,6 +74,7 @@ class EnvironmentEditorToolbarPanel(
         val env = state.environment ?: return
         try {
             environmentService.save(env)
+            state.validation = environmentService.validate(env)
             state.dirty = false
             state.statusMessage = "Saved successfully."
             logger.info(TAG) { "Environment saved id='${env.id.path}'" }
@@ -86,8 +87,7 @@ class EnvironmentEditorToolbarPanel(
     private fun reload() {
         try {
             val asset = environmentService.load(state.manifestPath)
-            state.environment = asset
-            state.selectedEnvironmentId = asset.id
+            state.applyLoadedEnvironment(asset)
             state.validation = environmentService.validate(asset)
             state.loadError = null
             state.dirty = false
