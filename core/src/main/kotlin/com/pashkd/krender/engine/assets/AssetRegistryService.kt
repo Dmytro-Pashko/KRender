@@ -131,12 +131,15 @@ class LocalAssetRegistryService(
 
     private fun describe(file: File): AssetDescriptor {
         val path = relativeAssetPath(file)
+        val detected = AssetTypeDetector.detect(path)
         val importer = importers.resolve(path)
         val detection =
-            if (importer != null) {
+            if (detected.type != AssetType.Unknown || detected.category != AssetCategory.Other) {
+                detected
+            } else if (importer != null) {
                 AssetTypeDetection(importer.outputType, importer.outputCategory)
             } else {
-                AssetTypeDetector.detect(path)
+                detected
             }
         if (!detection.canHaveMetadataSidecar()) {
             return describeVisibleOnly(file, path, detection)

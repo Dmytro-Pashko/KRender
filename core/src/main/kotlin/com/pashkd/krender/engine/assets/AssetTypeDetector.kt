@@ -11,11 +11,9 @@ object AssetTypeDetector {
         val normalized = normalizePath(path)
         val extension = normalized.substringAfterLast('.', "").lowercase()
         val lowerPath = normalized.lowercase()
+        val environmentDetection = detectEnvironmentAsset(lowerPath, extension)
         return when {
-            lowerPath.endsWith(".environment.json") ->
-                AssetTypeDetection(AssetType.Environment, AssetCategory.Environment)
-            extension == "exr" || extension == "hdr" ->
-                AssetTypeDetection(AssetType.HdrSource, AssetCategory.Environment)
+            environmentDetection != null -> environmentDetection
             extension == "glb" || extension == "gltf" -> AssetTypeDetection(AssetType.GltfModel, AssetCategory.Model)
             extension == "obj" -> AssetTypeDetection(AssetType.ObjModel, AssetCategory.Model)
             extension == "g3db" || extension == "g3dj" -> AssetTypeDetection(AssetType.GdxModel, AssetCategory.Model)
@@ -23,7 +21,6 @@ object AssetTypeDetector {
             extension == "atlas" -> AssetTypeDetection(AssetType.Atlas, AssetCategory.Scene2D)
             extension == "fnt" || extension == "ttf" || extension == "otf" -> AssetTypeDetection(AssetType.Font, AssetCategory.Scene2D)
             lowerPath.endsWith(".kfont.json") -> AssetTypeDetection(AssetType.Font, AssetCategory.Scene2D)
-            extension == "krskybox" -> AssetTypeDetection(AssetType.EnvironmentSkybox, AssetCategory.Environment)
             lowerPath.startsWith("terrains/") && extension == "json" ->
                 AssetTypeDetection(
                     AssetType.Terrain,
@@ -55,6 +52,60 @@ object AssetTypeDetector {
     }
 
     private val textureExtensions = setOf("png", "bmp", "jpg", "jpeg", "ktx", "webp")
+
+    private fun detectEnvironmentAsset(
+        lowerPath: String,
+        extension: String,
+    ): AssetTypeDetection? =
+        when {
+            lowerPath.endsWith(".environment.json") ->
+                AssetTypeDetection(AssetType.Environment, AssetCategory.Environment)
+
+            extension == "exr" || extension == "hdr" ->
+                AssetTypeDetection(AssetType.HdrSource, AssetCategory.Environment)
+
+            extension == "krskybox" ->
+                AssetTypeDetection(AssetType.EnvironmentSkybox, AssetCategory.Environment)
+
+            extension in textureExtensions && isEnvironmentTexturePath(lowerPath) ->
+                AssetTypeDetection(environmentTextureType(lowerPath), AssetCategory.Environment)
+
+            else -> null
+        }
+
+    private fun isEnvironmentTexturePath(lowerPath: String): Boolean =
+        isBrdfLutPath(lowerPath) ||
+            lowerPath.startsWith("environments/") ||
+            lowerPath.contains("/environments/") ||
+            lowerPath.startsWith("skyboxes/") ||
+            lowerPath.contains("/skyboxes/") ||
+            lowerPath.contains("generated/skybox") ||
+            lowerPath.contains("generated/irradiance") ||
+            lowerPath.contains("generated/radiance") ||
+            lowerPath.contains("cubemap")
+
+    private fun environmentTextureType(lowerPath: String): AssetType =
+        when {
+            isBrdfLutPath(lowerPath) -> AssetType.BrdfLut
+            lowerPath.startsWith("skyboxes/") || lowerPath.contains("/skyboxes/") -> AssetType.EnvironmentSkybox
+            lowerPath.contains("generated/skybox") -> AssetType.EnvironmentSkybox
+            lowerPath.contains("generated/irradiance") -> AssetType.EnvironmentCubemap
+            lowerPath.contains("generated/radiance") -> AssetType.EnvironmentCubemap
+            lowerPath.contains("cubemap") -> AssetType.EnvironmentCubemap
+            hasCubemapFaceName(lowerPath) -> AssetType.EnvironmentCubemap
+            else -> AssetType.EnvironmentGeneratedMap
+        }
+
+    private fun isBrdfLutPath(lowerPath: String): Boolean = lowerPath.contains("brdf_lut")
+
+    private fun hasCubemapFaceName(lowerPath: String): Boolean {
+        val stem = lowerPath.substringAfterLast('/').substringBeforeLast('.')
+        if (stem in cubemapFaceNames) return true
+        return cubemapFaceSuffixes.any { suffix -> stem.endsWith(suffix) }
+    }
+
+    private val cubemapFaceNames = setOf("px", "nx", "py", "ny", "pz", "nz")
+    private val cubemapFaceSuffixes = cubemapFaceNames.flatMap { face -> listOf("_$face", "-$face") }.toSet()
 }
 
 /**
