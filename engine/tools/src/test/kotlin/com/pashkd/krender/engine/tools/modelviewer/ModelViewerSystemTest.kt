@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.modelviewer
 
+import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Axis
@@ -10,7 +11,6 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.ModelAsset
 import com.pashkd.krender.engine.api.ModelAssetInfo
 import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.api.Action
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
@@ -18,7 +18,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class ModelViewerSystemTest {
     @Test
@@ -53,11 +52,10 @@ class ModelViewerSystemTest {
     }
 
     @Test
-    fun `ambient light sync applies LibGDX environment intensity multiplier`() {
+    fun `ambient light sync applies Legacy ambient intensity`() {
         val state =
             ModelViewerState(model = AssetRef.model("models/test.glb")).apply {
                 ambientLightIntensity = 0.5f
-                libGdxEnvironmentIntensity = 2f
                 rendererMode = ModelViewerRendererMode.LibGdx
             }
         val world = SceneWorld()
@@ -68,7 +66,7 @@ class ModelViewerSystemTest {
 
         world.update(0.016f)
 
-        assertEquals(1f, lightEntity.get<LightComponent>()?.intensity)
+        assertEquals(0.5f, lightEntity.get<LightComponent>()?.intensity)
     }
 
     @Test

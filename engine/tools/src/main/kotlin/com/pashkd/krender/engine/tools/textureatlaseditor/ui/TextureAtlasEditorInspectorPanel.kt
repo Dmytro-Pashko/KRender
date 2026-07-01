@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
+import com.pashkd.krender.engine.tools.common.bitmapfont.preview.glyphCompactLabel
+import com.pashkd.krender.engine.tools.common.bitmapfont.preview.glyphDisplayCharacter
 import com.pashkd.krender.engine.tools.textureatlaseditor.BitmapFontGlyph
 import com.pashkd.krender.engine.tools.textureatlaseditor.FontAtlasResource
 import com.pashkd.krender.engine.tools.textureatlaseditor.ImageAtlasResource
@@ -8,8 +10,6 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchValidationSev
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorOperations
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorPanelIds
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorState
-import com.pashkd.krender.engine.tools.common.bitmapfont.preview.glyphCompactLabel
-import com.pashkd.krender.engine.tools.common.bitmapfont.preview.glyphDisplayCharacter
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedAtlasDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.selectedFontPageTexturePath
@@ -227,9 +227,7 @@ class TextureAtlasEditorInspectorPanel(
         ImGui.separator()
     }
 
-    private fun glyphLabel(glyph: BitmapFontGlyph): String {
-        return glyphCompactLabel(glyph)
-    }
+    private fun glyphLabel(glyph: BitmapFontGlyph): String = glyphCompactLabel(glyph)
 
     private val npBuf = ByteArray(NpBufSize)
     private var lastSyncedDraftKey: String? = null

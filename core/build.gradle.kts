@@ -2,6 +2,8 @@ plugins {
     jacoco
 }
 
+apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
+
 val kotlinVersion: String by project
 val kotlinxCoroutinesVersion: String by project
 

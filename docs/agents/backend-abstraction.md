@@ -19,7 +19,7 @@
   `LibGdxBackend.kt` (wiring only), `GdxEngineApplication.kt`, `GdxWindowService.kt`,
   `GdxInputService.kt`, `GdxAssetService.kt`, `GdxModelPoseSampler.kt`, `GdxTaskService.kt`,
   `GdxRenderer3D.kt`, `GdxLineShaderRenderer.kt`, `GdxModelViewerDebugRenderer.kt`,
-  `GdxSkyboxRenderer.kt`, `GdxGltfPbrPreviewRenderer.kt`, and `GdxCubemap.kt`. They all share
+  `GdxSkyboxRenderer.kt`, `GdxGltfRenderer.kt`, and `GdxCubemap.kt`. They all share
   the `com.pashkd.krender.engine.backend.gdx` package.
 - Dependency direction is `engine:backend-gdx -> core`; `core` must not depend on the backend module.
 - Current tool-side GDX exceptions are limited to editor preview/import helpers allowlisted in
@@ -57,7 +57,7 @@ Pass only backend-neutral data:
 - Assets: `AssetRef`, `AssetPack`, `ModelAssetInfo`/`ModelSkeletonInfo`/`ModelBonePose`/
   `ModelAssetBounds`, `TexturePreviewHandle`, `MaterialTextureRef`, `RuntimeTextureData`.
 - Rendering: `RenderCommand` subtypes, `RenderContext`, `TransformSnapshot`, `Material`,
-  `DynamicMesh`/`DynamicModel`, `MaterialDebugView`/`PbrPreviewView`/`AnimationPlaybackView`.
+  `DynamicMesh`/`DynamicModel`, `MaterialDebugView`/`GltfRendererSettings`/`AnimationPlaybackView`.
 - Input: `InputSnapshot`, `Key`, `MouseButton`, `PointerState`, `Action`, `Axis`.
 - Diagnostics: `LogEntry`, `RuntimeMetric`, `PhaseTiming`, snapshots.
 

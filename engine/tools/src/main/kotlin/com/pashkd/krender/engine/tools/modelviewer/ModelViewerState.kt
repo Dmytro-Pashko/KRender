@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraState
 import com.pashkd.krender.engine.tools.viewport.EditorViewportState
 
@@ -15,8 +16,10 @@ enum class ModelViewerDisplayMode {
 
 enum class ModelViewerRendererMode {
     LibGdx,
-    Pbr,
+    GltfPbr,
 }
+
+val DEFAULT_MODEL_VIEWER_RENDERER_MODE = ModelViewerRendererMode.GltfPbr
 
 data class ModelViewerUvCheckerTextureOption(
     val resolution: Int,
@@ -27,7 +30,7 @@ const val UV_CHECKER_TEXTURE_1K = "textures/uv_checker_1k.png"
 const val UV_CHECKER_TEXTURE_2K = "textures/uv_checker_2k.png"
 const val UV_CHECKER_TEXTURE_4K = "textures/uv_checker_4k.png"
 const val DEFAULT_UV_CHECKER_TEXTURE = "textures/uv_checker_2k.png"
-const val DEFAULT_PBR_SKYBOX_TEXTURE = "textures/default_skybox_studio.png"
+const val DEFAULT_GLTF_ENVIRONMENT_PRESET = HdrEnvironmentAssets.DEFAULT_PRESET
 
 val UV_CHECKER_TEXTURE_OPTIONS =
     listOf(
@@ -44,8 +47,10 @@ data class ModelViewerState(
     val model: AssetRef<ModelAsset>,
     /** Runtime entity id of the visible model instance. */
     var modelEntityId: EntityId? = null,
-    /** Runtime entity id of the ambient light that lights the preview. */
+    /** Runtime entity id of the ambient light that lights the viewer scene. */
     var ambientLightEntityId: EntityId? = null,
+    /** Runtime entity id of the Legacy directional light. */
+    var legacyDirectionalLightEntityId: EntityId? = null,
     /** Uniform scale applied to the inspected model entity. */
     val modelScale: Float = 1f,
     /** True when the inspected model asset is loaded. */
@@ -78,14 +83,18 @@ data class ModelViewerState(
     var gridCellSize: Float = 1f,
     /** Ambient light intensity used by the viewer light entity. */
     var ambientLightIntensity: Float = 0.8f,
-    /** Environment intensity multiplier applied to the LibGDX preview lighting. */
-    var libGdxEnvironmentIntensity: Float = 1f,
+    var legacyAmbientLightColor: Color = Color(0.55f, 0.58f, 0.64f, 1f),
+    var legacyDirectionalLightEnabled: Boolean = true,
+    var legacyDirectionalLightIntensity: Float = 1f,
+    var legacyDirectionalLightColor: Color = Color.white(),
+    var legacyDirectionalLightYawDegrees: Float = 45f,
+    var legacyDirectionalLightPitchDegrees: Float = -35f,
     /** Current display mode for the model material. */
     var displayMode: ModelViewerDisplayMode = ModelViewerDisplayMode.Shaded,
     /** Current material/texture debug mode. */
-    var debugMode: MaterialDebugMode = MaterialDebugMode.None,
+    var debugMode: MaterialDebugMode = MaterialDebugMode.Combined,
     /** Last non-UV-checker channel display mode so the UV checker toggle can restore it. */
-    var lastNonUvCheckerDebugMode: MaterialDebugMode = MaterialDebugMode.None,
+    var lastNonUvCheckerDebugMode: MaterialDebugMode = MaterialDebugMode.Combined,
     /** Enables UV checker override. Mirrored with [debugMode] when selected in the UI. */
     var uvCheckerEnabled: Boolean = false,
     /** Culling behavior used by shader debug rendering. */
@@ -99,16 +108,22 @@ data class ModelViewerState(
     /** Current debug-rendering warning surfaced in the UI. */
     var debugWarning: String? = null,
     /** Current renderer warning surfaced in the UI. */
-    var pbrWarning: String? = null,
-    /** Current renderer path for shaded model preview. */
-    var rendererMode: ModelViewerRendererMode = ModelViewerRendererMode.LibGdx,
-    var pbrExposure: Float = 1f,
-    var pbrShowSkybox: Boolean = true,
-    var pbrSkyboxTexturePath: String = DEFAULT_PBR_SKYBOX_TEXTURE,
-    var pbrEnvironmentIntensity: Float = 1f,
-    var pbrDirectionalLightEnabled: Boolean = true,
-    var pbrDirectionalLightYawDegrees: Float = 45f,
-    var pbrDirectionalLightPitchDegrees: Float = -35f,
+    var gltfRendererWarning: String? = null,
+    /** Current renderer path for shaded model rendering. */
+    var rendererMode: ModelViewerRendererMode = DEFAULT_MODEL_VIEWER_RENDERER_MODE,
+    var gltfEnvironmentPreset: String = DEFAULT_GLTF_ENVIRONMENT_PRESET,
+    var gltfExposure: Float = 1f,
+    var gltfShowSkybox: Boolean = true,
+    var gltfEnvironmentIntensity: Float = 1f,
+    var gltfEnvironmentRotationDegrees: Float = 0f,
+    var gltfToneMapping: PbrToneMapping = PbrToneMapping.Aces,
+    var gltfGammaCorrection: Boolean = true,
+    var gltfSrgbTextures: Boolean = true,
+    var gltfDirectionalLightEnabled: Boolean = true,
+    var gltfDirectionalLightIntensity: Float = 1f,
+    var gltfDirectionalLightColor: Color = Color.white(),
+    var gltfDirectionalLightYawDegrees: Float = 45f,
+    var gltfDirectionalLightPitchDegrees: Float = -35f,
     /** Currently selected mesh part in the Mesh Parts panel. */
     var selectedMeshPartIndex: Int? = null,
     /** Currently selected material in the Materials panel. */

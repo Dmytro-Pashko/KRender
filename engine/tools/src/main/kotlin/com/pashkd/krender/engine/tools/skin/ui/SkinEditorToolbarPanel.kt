@@ -28,14 +28,36 @@ class SkinEditorToolbarPanel(
             return
         }
 
+        drawToolbarButtons()
+        ImGui.separator()
+        drawStatusLines()
+        ImGui.textUnformatted(
+            "Editing: ${if (state.editSession.dirty) "dirty" else "clean"} (${state.editSession.changes.size} pending)",
+        )
+        ImGui.textUnformatted("Save Changes writes draft style/resource edits to the loaded skin file.")
+        ImGui.end()
+    }
+
+    private fun drawToolbarButtons() {
+        drawToolbarButton("Reload##skin_editor_reload") { operations.requestReload() }
+        drawToolbarButton("Discard Edits##skin_editor_discard_edits") { operations.discardInMemoryEdits() }
+        drawSaveChangesButton()
+        drawToolbarButton("Save Panel Layout##skin_editor_save_layout") { operations.saveUiLayout() }
+        drawToolbarButton("Reset Panel Layout##skin_editor_reset_layout") { operations.restoreUiLayout() }
+        drawToolbarButton("Exit##skin_editor_exit") { operations.requestExit() }
+    }
+
+    private fun drawToolbarButton(
+        label: String,
+        action: () -> Unit,
+    ) {
         with(dsl) {
-            button("Reload##skin_editor_reload") { operations.requestReload() }
+            button(label) { action() }
         }
         ImGui.sameLine()
-        with(dsl) {
-            button("Discard Edits##skin_editor_discard_edits") { operations.discardInMemoryEdits() }
-        }
-        ImGui.sameLine()
+    }
+
+    private fun drawSaveChangesButton() {
         val canSaveChanges = state.loadResult.project?.skinFile != null && state.editSession.dirty && state.editSession.changes.isNotEmpty()
         if (!canSaveChanges) ImGui.beginDisabled()
         with(dsl) {
@@ -43,25 +65,13 @@ class SkinEditorToolbarPanel(
         }
         if (!canSaveChanges) ImGui.endDisabled()
         ImGui.sameLine()
-        with(dsl) {
-            button("Save Panel Layout##skin_editor_save_layout") { operations.saveUiLayout() }
-        }
-        ImGui.sameLine()
-        with(dsl) {
-            button("Reset Panel Layout##skin_editor_reset_layout") { operations.restoreUiLayout() }
-        }
-        ImGui.sameLine()
-        with(dsl) {
-            button("Exit##skin_editor_exit") { operations.requestExit() }
-        }
-        ImGui.separator()
+    }
+
+    private fun drawStatusLines() {
         ImGui.textUnformatted("Path: ${state.currentInputPath ?: "<none>"}")
         ImGui.textUnformatted("Status: ${state.statusMessage}")
         ImGui.textUnformatted("Loaded skin: ${if (state.loadResult.previewSkinAvailable) "yes" else "no"}")
         ImGui.textUnformatted("Styles: ${state.editSession.activeStyles().size}")
         ImGui.textUnformatted("Resources: ${state.loadResult.resourceIndex.resources.size}")
-        ImGui.textUnformatted("Editing: ${if (state.editSession.dirty) "dirty" else "clean"} (${state.editSession.changes.size} pending)")
-        ImGui.textUnformatted("Save Changes writes draft style/resource edits to the loaded skin file.")
-        ImGui.end()
     }
 }

@@ -11,12 +11,17 @@ import com.pashkd.krender.engine.ui.UiService
 import com.pashkd.krender.engine.ui.UiTextureTint
 import glm_.vec2.Vec2
 import glm_.vec4.Vec4
-import imgui.*
+import imgui.ConfigFlag
+import imgui.ImGui
 import imgui.ImGui.image
+import imgui.Key
+import imgui.MouseButton
+import imgui.MouseSource
 import imgui.classes.Context
-import imgui.impl.gl.ImplGL3
+import imgui.div
 import imgui.font.FontConfig
 import imgui.font.glyphRanges
+import imgui.impl.gl.ImplGL3
 
 /**
  * Owns the shared ImGui context and backend renderer.
@@ -214,16 +219,18 @@ class GdxImGuiService(
 
     private fun resolveEditorFontPath(): String? {
         val candidates = arrayOf("fonts/roboto.ttf", "assets/fonts/roboto.ttf")
-        return candidates.firstNotNullOfOrNull { path ->
-            Gdx.files.internal(path)
-                .takeIf { it.exists() }
-                ?.file()
-                ?.absolutePath
-        }.also { resolvedPath ->
-            if (resolvedPath == null) {
-                Gdx.app.error(TAG, "ImGui font file not found. Checked: ${candidates.joinToString()}")
+        val resolvedPath =
+            candidates.firstNotNullOfOrNull { path ->
+                Gdx.files
+                    .internal(path)
+                    .takeIf { it.exists() }
+                    ?.file()
+                    ?.absolutePath
             }
+        if (resolvedPath == null) {
+            Gdx.app.error(TAG, "ImGui font file not found. Checked: ${candidates.joinToString()}")
         }
+        return resolvedPath
     }
 
     companion object {

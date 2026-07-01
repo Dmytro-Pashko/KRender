@@ -61,7 +61,7 @@ class GdxRenderer3D(
         )
     private val lineRenderer = GdxLineShaderRenderer()
     private val modelViewerDebugRenderer = GdxModelViewerDebugRenderer(assets, logger)
-    private val pbrPreviewRenderer = GdxGltfPbrPreviewRenderer(assets, logger)
+    private val gltfRenderer = GdxGltfRenderer(assets, logger)
     private val skyboxRenderer = GdxSkyboxRenderer(assets, logger)
 
     // Per-entity render caches used only by the renderer. These stay separate from
@@ -103,7 +103,7 @@ class GdxRenderer3D(
         val wireframeCommands = mutableListOf<DrawModel>()
         val wireframeDynamicCommands = mutableListOf<DrawDynamicModel>()
         val debugModelCommands = mutableListOf<DrawModel>()
-        val pbrModelCommands = mutableListOf<DrawModel>()
+        val gltfModelCommands = mutableListOf<DrawModel>()
 
         lineRenderer.render(context.commands, camera)
 
@@ -118,8 +118,8 @@ class GdxRenderer3D(
                         if (command.material.wireframeOverlay) {
                             wireframeCommands += command
                         }
-                    } else if (command.pbrPreview?.enabled == true) {
-                        pbrModelCommands += command
+                    } else if (command.gltfRenderer?.enabled == true) {
+                        gltfModelCommands += command
                         if (command.material.wireframeOverlay) {
                             wireframeCommands += command
                         }
@@ -147,8 +147,8 @@ class GdxRenderer3D(
         }
         modelBatch.end()
         debugModelCommands.forEach { modelViewerDebugRenderer.render(it, camera, ::modelInstanceForDebug) }
-        pbrModelCommands.forEach { command ->
-            if (!pbrPreviewRenderer.render(command, camera, ::applyVisibleMeshPartFilter)) {
+        gltfModelCommands.forEach { command ->
+            if (!gltfRenderer.render(command, camera, ::applyVisibleMeshPartFilter)) {
                 modelBatch.begin(camera)
                 renderModel(command, environment, camera)
                 modelBatch.end()
@@ -207,7 +207,7 @@ class GdxRenderer3D(
         modelBatch.dispose()
         lineRenderer.dispose()
         modelViewerDebugRenderer.dispose()
-        pbrPreviewRenderer.dispose()
+        gltfRenderer.dispose()
         skyboxRenderer.dispose()
         instances.clear()
         animationControllers.clear()

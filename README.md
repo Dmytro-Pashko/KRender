@@ -39,6 +39,43 @@ into dedicated `games/` and `apps/` modules so the engine/SDK and a sample clien
 - **Scene Player** for runtime playback of `.krscene` scene documents.
 - **Editor tools** for browsing assets and inspecting or authoring models, animations, terrain, scenes, UI documents, and Scene2D Skin/style assets.
 - **Scene2D UI asset workflow** covering atlas packing, skin/style editing, and visual UI composition through dedicated tools.
+- **PBR-first 3D workflow** with glTF / GLB as the primary model formats and HDR / IBL environment assets for the main renderer path.
+
+## Rendering Direction
+
+KRender now treats glTF / PBR as the primary direction for 3D model preview and rendering work.
+
+- Primary 3D model formats: `.glb`, `.gltf`
+- Primary renderer direction: `glTF / PBR`
+- Fallback / inspection renderer: `LibGDX / Legacy`
+- Environment lighting source: HDR environment manifests under `assets/hdr/<environment>/environment.json`
+
+Legacy LibGDX rendering remains available for fallback, compatibility checks, and inspection-oriented workflows, but new renderer and asset workflow changes should assume the glTF / PBR path first.
+
+## PBR / HDR Asset Workflow
+
+KRender supports a manifest-driven HDR environment pipeline for PBR lighting.
+
+Environment assets live under:
+
+```text
+assets/hdr/<environment_name>/
+```
+
+The default environment currently lives under:
+
+```text
+assets/hdr/default/
+```
+
+Environment manifests can describe multiple source variants for the same environment, including `.exr` and `.hdr` sources. Generated environment assets include:
+
+- skybox cubemap faces
+- irradiance cubemap faces
+- radiance cubemap mip chain
+- shared BRDF LUT under `assets/hdr/_common/brdf/`
+
+See [docs/assets/gltf-workflow.md](docs/assets/gltf-workflow.md) for the current glTF / HDR / IBL workflow and generation commands.
 
 ## Repository Structure
 
@@ -128,7 +165,7 @@ For larger screenshots, feature lists, launch parameters, and tool-by-tool expla
 <details>
 <summary><strong>Model Viewer</strong></summary>
 
-<p>Single-model inspection with PBR preview, debug channels, and UV checker.</p>
+<p>Single-model inspection with the glTF / PBR renderer, debug channels, and UV checker.</p>
 
 <p><strong>Viewport controls and rendering options</strong><br/>
 Toggle helpers such as grid, bounds, and axes, then compare display modes and renderer behavior while inspecting the same model.</p>

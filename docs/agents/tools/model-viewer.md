@@ -7,7 +7,7 @@
 Inspect a single 3D model (`.gltf`/`.glb`/`.g3dj`/`.g3db`/`.obj`): view geometry, mesh parts,
 materials, and texture channels; toggle wireframe, grid, axes, and bounding box; switch between
 material-debug visualizations (base color, normal, roughness, metallic, alpha, UV checker, ...)
-and a glTF PBR preview with a skybox.
+and the glTF / PBR renderer with an HDR environment.
 
 ## Current Implementation
 
@@ -53,12 +53,13 @@ and a glTF PBR preview with a skybox.
 
 ## Data Flow
 
-1. `requiredAssets` queues the model plus the default PBR skybox and the UV-checker textures.
+1. `requiredAssets` queues the model plus the UV-checker textures. The backend resolves the selected
+   HDR environment preset through its manifest.
 2. Assets load asynchronously; `ModelViewerLoadingPanel` shows progress until ready.
 3. Panels mutate `ModelViewerState` (via `ModelViewerOperations`); `ModelViewerSystem` reconciles.
 4. `ModelViewerModelRenderSystem` reads state and submits a `DrawModel` carrying
-   `MaterialDebugView` / `PbrPreviewView` / `visibleMeshPartIndices` as appropriate.
-5. `GdxRenderer3D` routes the command to the normal / wireframe / debug / PBR path.
+   `MaterialDebugView` / `GltfRendererSettings` / `visibleMeshPartIndices` as appropriate.
+5. `GdxRenderer3D` routes the command to the normal / wireframe / debug / glTF renderer path.
 
 ## Lifecycle
 
@@ -75,7 +76,10 @@ UV-checker options and the default skybox preview.
 
 - Mesh-part list with per-part isolation (`visibleMeshPartIndices`).
 - Material inspection + texture-channel previews via `TexturePreviewHandle`.
-- Material debug modes (`MaterialDebugMode`) and a glTF PBR preview (`PbrPreviewView`).
+- Material debug modes (`MaterialDebugMode`) and a preset-driven glTF / PBR renderer path (`GltfRendererSettings`).
+- glTF / PBR is the default renderer; LibGDX / Legacy remains selectable.
+- Viewport Control separates camera, shared display settings, renderer selection, and
+  renderer-specific options.
 - Wireframe, wireframe overlay, grid, axes, bounding box toggles.
 - Async load with a dedicated loading panel.
 

@@ -40,8 +40,8 @@ data class DrawModel(
     val visibleMeshPartIndices: Set<Int>? = null,
     /** Optional material/texture debug rendering request. Null keeps the normal material path. */
     val debugView: MaterialDebugView? = null,
-    /** Optional glTF PBR preview request. Debug rendering has priority when both are present. */
-    val pbrPreview: PbrPreviewView? = null,
+    /** Optional glTF renderer settings request. Debug rendering has priority when both are present. */
+    val gltfRenderer: GltfRendererSettings? = null,
     /** Optional animation preview pose sampled by the backend renderer. */
     val animation: AnimationPlaybackView? = null,
     /** Relative ordering priority for this command. */
@@ -68,7 +68,7 @@ data class AnimationPlaybackView(
  * Backend-neutral material debug modes supported by shader debug renderers.
  */
 enum class MaterialDebugMode {
-    None,
+    Combined,
     BaseColor,
     Normal,
     Emission,
@@ -138,22 +138,34 @@ data class MaterialDebugView(
     val culling: DebugCullingMode = DebugCullingMode.Backface,
 ) {
     val active: Boolean
-        get() = mode != MaterialDebugMode.None
+        get() = mode != MaterialDebugMode.Combined
 }
 
 /**
- * Backend-neutral request for glTF PBR preview rendering.
+ * Backend-neutral request for glTF renderer settings.
  */
-data class PbrPreviewView(
+data class GltfRendererSettings(
     val enabled: Boolean = false,
+    val environmentPreset: String = "default",
     val exposure: Float = 1f,
     val showSkybox: Boolean = true,
-    val skyboxTexture: MaterialTextureRef? = null,
     val environmentIntensity: Float = 1f,
+    val environmentRotationDegrees: Float = 0f,
+    val toneMapping: PbrToneMapping = PbrToneMapping.Aces,
+    val gammaCorrection: Boolean = true,
+    val srgbTextures: Boolean = true,
     val directionalLightEnabled: Boolean = true,
+    val directionalLightIntensity: Float = 1f,
+    val directionalLightColor: Color = Color.white(),
     val directionalLightYawDegrees: Float = 45f,
     val directionalLightPitchDegrees: Float = -35f,
 )
+
+enum class PbrToneMapping {
+    Aces,
+    Reinhard,
+    None,
+}
 
 /**
  * Backend-neutral scene environment request.

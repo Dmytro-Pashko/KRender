@@ -24,7 +24,7 @@ class ModelViewerScene(
         listOf(
             object : AssetPack {
                 override val assets =
-                    listOf(model, AssetRef.texture(DEFAULT_PBR_SKYBOX_TEXTURE)) +
+                    listOf(model) +
                         UV_CHECKER_TEXTURE_OPTIONS.map { option ->
                             AssetRef.texture(option.texturePath)
                         }
@@ -105,6 +105,7 @@ class ModelViewerScene(
 
         createCamera()
         createAmbientLight()
+        createLegacyDirectionalLight()
         createModelEntity()
 
         addSystem("ModelViewerViewportGuideSystem", ModelViewerViewportGuideSystem(viewerState))
@@ -243,7 +244,7 @@ class ModelViewerScene(
         ambient.add(
             LightComponent(
                 type = LightType.Ambient,
-                color = Color(0.55f, 0.58f, 0.64f),
+                color = viewerState.legacyAmbientLightColor.copy(),
                 intensity = viewerState.ambientLightIntensity,
             ),
         )
@@ -254,6 +255,18 @@ class ModelViewerScene(
                 )
             }"
         }
+    }
+
+    private fun createLegacyDirectionalLight() {
+        val directional = world.createEntity("Legacy Directional Light")
+        viewerState.legacyDirectionalLightEntityId = directional.id
+        directional.add(
+            LightComponent(
+                type = LightType.Directional,
+                color = viewerState.legacyDirectionalLightColor.copy(),
+                intensity = viewerState.legacyDirectionalLightIntensity,
+            ),
+        )
     }
 
     /**

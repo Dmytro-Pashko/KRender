@@ -122,28 +122,26 @@ Features:
 - Allows selecting and isolating individual mesh parts for easier inspection.
 - Allows filtering mesh parts by selected material to inspect how geometry maps to material assignments.
 - Provides shaded, wireframe, and mixed shaded-wireframe display modes.
-- Provides a renderer selector with `LibGDX Shader` and `glTF PBR Renderer` modes for comparing the default backend path with a
-  glTF-focused PBR preview.
-- Uses the `gdx-gltf` PBR rendering path for `.gltf` and `.glb` models in `glTF PBR Renderer` mode.
-- Includes viewport controls for grid, axes, bounds, ambient intensity, renderer switching, and environment intensity.
-- Includes `glTF PBR Renderer` controls for exposure, environment intensity, skybox visibility, directional light enablement,
-  light yaw, and light pitch.
-- Uses a default cubemap skybox texture asset for PBR previews, stored as a single cubemap cross/strip texture file.
-- Provides channel-display preview modes separate from viewport display modes.
+- Provides a renderer selector with `LibGDX / Legacy` and `glTF / PBR` modes, with glTF / PBR as the default renderer path.
+- Uses the `gdx-gltf` renderer path for `.gltf` and `.glb` models in `glTF / PBR` mode.
+- Includes viewport controls grouped into camera, shared display options, renderer selection, and renderer-specific options.
+- Includes `glTF / PBR` controls for environment preset, skybox visibility, environment intensity, exposure, rotation, and directional light settings.
+- Uses HDR environment manifests under `assets/hdr/<environment>/environment.json`, including generated skybox, irradiance, radiance, and shared BRDF LUT assets.
+- Provides channel-display modes separate from shared viewport display modes.
 - Can preview Base Color / Diffuse, Normal, Metallic / Roughness, Occlusion, Emission, and Alpha texture channels directly on the model surface when metadata is available.
 - Includes UV checker preview using texture assets at 1024, 2048, and 4096 resolutions for validating UV layout and scale.
 - Gives texture debug modes priority over PBR rendering, so material inspection stays stable when both features are
   available.
 - Falls back safely and reports warnings when a model has no UVs or a requested texture channel is unavailable.
-- Falls back safely and reports warnings when PBR preview is unavailable for a model or when optional skybox/IBL
+- Falls back safely and reports warnings when glTF / PBR rendering is unavailable for a model or when optional skybox/IBL
   resources cannot be created on the active graphics backend.
 - Shows texture previews when supported by the backend.
 - Includes loading state, logs, and viewport layout controls.
 
 Screenshots:
 
-Primary preview:
-![Model Viewer Woolboy PBR preview](tools/screenshots/model_viewer/model_viewer_woolboy_pbr.png)
+Primary renderer view:
+![Model Viewer Woolboy glTF renderer view](tools/screenshots/model_viewer/model_viewer_woolboy_pbr.png)
 
 Viewport display options, helpers, wireframe, and renderer switching:
 ![Model Viewer changing display options](tools/screenshots/model_viewer/model_viewer_changing_displaying_options.gif)

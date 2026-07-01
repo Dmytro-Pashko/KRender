@@ -83,61 +83,87 @@ class ModelViewerSystem(
      * Mirrors asset and render state into the shared UI state object.
      */
     private fun syncStatus(world: SceneWorld) {
+        syncAssetState()
+        logStatusChanges()
+        syncDisplayMode(world)
+    }
+
+    private fun syncAssetState(): String? {
         state.assetProgress = assets.progress()
         state.assetLoaded = assets.isLoaded(state.model)
         val loadFailure = assets.loadFailure(state.model)
-        state.loadingStatus =
-            when {
-                state.assetLoaded -> "Loaded"
-                loadFailure != null -> "Failed"
-                else -> "Loading ${"%.0f".format(state.assetProgress * 100f)}%"
-            }
+        state.loadingStatus = loadingStatusFor(loadFailure)
         state.modelInfo = if (state.assetLoaded) assets.modelInfo(state.model) else null
-        state.errorMessage =
-            when {
-                loadFailure != null -> loadFailure
-                state.assetLoaded && state.modelInfo == null -> "Model metadata is unavailable for this asset."
-                else -> null
-            }
-        logStatusChanges()
+        state.errorMessage = errorMessageFor(loadFailure)
+        return loadFailure
+    }
 
+    private fun loadingStatusFor(loadFailure: String?): String =
+        when {
+            state.assetLoaded -> "Loaded"
+            loadFailure != null -> "Failed"
+            else -> "Loading ${"%.0f".format(state.assetProgress * 100f)}%"
+        }
+
+    private fun errorMessageFor(loadFailure: String?): String? =
+        when {
+            loadFailure != null -> loadFailure
+            state.assetLoaded && state.modelInfo == null -> "Model metadata is unavailable for this asset."
+            else -> null
+        }
+
+    private fun syncDisplayMode(world: SceneWorld) {
+        val modelComponent = resolveModelComponent(world) ?: return
         val wireframe = state.displayMode == ModelViewerDisplayMode.Wireframe
         val wireframeOverlay = state.displayMode == ModelViewerDisplayMode.ShadedWireframe
-        val modelComponent =
-            state.modelEntityId
-                ?.let(world::getEntity)
-                ?.get<ModelComponent>()
-        if (modelComponent == null) {
-            if (!missingModelEntityLogged) {
-                logger.warn(TAG) {
-                    "ModelViewer model component is unavailable modelEntityId=${state.modelEntityId} entities=${world.all().size}"
-                }
-                missingModelEntityLogged = true
-            }
-            return
-        }
-        if (
+        val materialChanged =
             modelComponent.material.wireframe != wireframe ||
-            modelComponent.material.wireframeOverlay != wireframeOverlay
-        ) {
+                modelComponent.material.wireframeOverlay != wireframeOverlay
+        if (materialChanged) {
             modelComponent.material =
                 modelComponent.material.copy(
                     wireframe = wireframe,
                     wireframeOverlay = wireframeOverlay,
                 )
-            if (lastDisplayMode != state.displayMode) {
-                logger.info(TAG) {
-                    "ModelViewer material display mode applied mode=${state.displayMode} " +
-                        "wireframe=$wireframe overlay=$wireframeOverlay entity=${state.modelEntityId}"
-                }
+        }
+        logDisplayModeState(materialChanged, wireframe, wireframeOverlay)
+    }
+
+    private fun resolveModelComponent(world: SceneWorld): ModelComponent? {
+        val modelComponent =
+            state.modelEntityId
+                ?.let(world::getEntity)
+                ?.get<ModelComponent>()
+        if (modelComponent != null) {
+            missingModelEntityLogged = false
+            return modelComponent
+        }
+        if (!missingModelEntityLogged) {
+            logger.warn(TAG) {
+                "ModelViewer model component is unavailable modelEntityId=${state.modelEntityId} entities=${world.all().size}"
             }
-            lastDisplayMode = state.displayMode
-        } else if (lastDisplayMode != state.displayMode) {
+            missingModelEntityLogged = true
+        }
+        return null
+    }
+
+    private fun logDisplayModeState(
+        materialChanged: Boolean,
+        wireframe: Boolean,
+        wireframeOverlay: Boolean,
+    ) {
+        if (lastDisplayMode == state.displayMode) return
+        if (materialChanged) {
+            logger.info(TAG) {
+                "ModelViewer material display mode applied mode=${state.displayMode} " +
+                    "wireframe=$wireframe overlay=$wireframeOverlay entity=${state.modelEntityId}"
+            }
+        } else {
             logger.info(TAG) {
                 "ModelViewer display mode active mode=${state.displayMode} wireframe=$wireframe entity=${state.modelEntityId}"
             }
-            lastDisplayMode = state.displayMode
         }
+        lastDisplayMode = state.displayMode
     }
 
     private fun logStatusChanges() {
@@ -207,7 +233,7 @@ class ModelViewerSystem(
         }
 
         state.debugWarning = debugWarningFor(effectiveDebugMode, selectedMaterialIndex)
-        state.pbrWarning = pbrWarningFor()
+        state.gltfRendererWarning = gltfRendererWarningFor()
         val warning = state.debugWarning
         if (warning != null && warning != lastDebugWarning) {
             logger.warn(TAG) { warning }
@@ -221,7 +247,7 @@ class ModelViewerSystem(
     ): String? {
         val info = state.modelInfo ?: return null
         return when {
-            mode == MaterialDebugMode.None -> null
+            mode == MaterialDebugMode.Combined -> null
             mode == MaterialDebugMode.UvChecker && info.uvChannels.isEmpty() ->
                 "ModelViewer debug warning: model has no UV channels for UV checker."
 
@@ -271,23 +297,20 @@ class ModelViewerSystem(
             MaterialDebugMode.Alpha ->
                 "$material has no alpha-capable texture."
 
-            MaterialDebugMode.None,
+            MaterialDebugMode.Combined,
             MaterialDebugMode.UvChecker,
             -> "Texture channel $mode is unavailable for $material."
         }
     }
 
-    private fun pbrWarningFor(): String? {
-        if (state.rendererMode != ModelViewerRendererMode.Pbr) return null
+    private fun gltfRendererWarningFor(): String? {
+        if (state.rendererMode != ModelViewerRendererMode.GltfPbr) return null
         return when {
             !state.model.path.isGltfPath() ->
-                "PBR preview is currently available only for glTF/glb models."
-
-            state.pbrShowSkybox && !assets.isLoaded(AssetRef.texture(state.pbrSkyboxTexturePath)) ->
-                "PBR preview skybox texture '${state.pbrSkyboxTexturePath}' is missing or not loaded."
+                "glTF / PBR renderer is currently available only for glTF/glb models."
 
             state.assetLoaded && state.modelInfo == null ->
-                "PBR preview unavailable: model metadata is unavailable."
+                "glTF / PBR renderer is unavailable because model metadata is unavailable."
 
             else -> null
         }
@@ -301,18 +324,34 @@ class ModelViewerSystem(
                 ?: return
         if (ambientLight.type != LightType.Ambient) return
         val ambientIntensity = state.ambientLightIntensity.coerceAtLeast(0f)
-        val environmentIntensity = state.libGdxEnvironmentIntensity.coerceAtLeast(0f)
         state.ambientLightIntensity = ambientIntensity
-        state.libGdxEnvironmentIntensity = environmentIntensity
-        val effectiveIntensity =
-            if (state.rendererMode == ModelViewerRendererMode.LibGdx) {
-                ambientIntensity * environmentIntensity
-            } else {
-                ambientIntensity
-            }
+        val effectiveIntensity = if (state.rendererMode == ModelViewerRendererMode.LibGdx) ambientIntensity else 0f
         if (ambientLight.intensity != effectiveIntensity) {
             ambientLight.intensity = effectiveIntensity
         }
+        ambientLight.color.copyFrom(state.legacyAmbientLightColor)
+        syncLegacyDirectionalLight(world)
+    }
+
+    private fun syncLegacyDirectionalLight(world: SceneWorld) {
+        val light =
+            state.legacyDirectionalLightEntityId
+                ?.let(world::getEntity)
+                ?.get<LightComponent>()
+                ?: return
+        light.intensity =
+            if (state.rendererMode == ModelViewerRendererMode.LibGdx && state.legacyDirectionalLightEnabled) {
+                state.legacyDirectionalLightIntensity.coerceAtLeast(0f)
+            } else {
+                0f
+            }
+        light.color.copyFrom(state.legacyDirectionalLightColor)
+        val direction =
+            modelViewerLightDirection(
+                state.legacyDirectionalLightYawDegrees,
+                state.legacyDirectionalLightPitchDegrees,
+            )
+        light.direction.set(direction.x, direction.y, direction.z)
     }
 
     /**
@@ -453,14 +492,14 @@ class ModelViewerModelRenderSystem(
                 material = model.material,
                 visibleMeshPartIndices = visibleMeshPartIndices,
                 debugView = debugView,
-                pbrPreview = state.pbrPreviewView(debugView),
+                gltfRenderer = state.gltfRendererSettings(debugView),
             ),
         )
     }
 
     private fun ModelViewerState.materialDebugView(): MaterialDebugView? {
         val mode = if (uvCheckerEnabled) MaterialDebugMode.UvChecker else debugMode
-        if (mode == MaterialDebugMode.None) return null
+        if (mode == MaterialDebugMode.Combined) return null
         return MaterialDebugView(
             mode = mode,
             selectedMaterialIndex = null,
@@ -485,28 +524,49 @@ class ModelViewerModelRenderSystem(
         )
     }
 
-    private fun ModelViewerState.pbrPreviewView(debugView: MaterialDebugView?): PbrPreviewView? {
-        if (rendererMode != ModelViewerRendererMode.Pbr) return null
-        return PbrPreviewView(
+    private fun ModelViewerState.gltfRendererSettings(debugView: MaterialDebugView?): GltfRendererSettings? {
+        if (rendererMode != ModelViewerRendererMode.GltfPbr) return null
+        return GltfRendererSettings(
             enabled = debugView?.active != true,
-            exposure = pbrExposure.coerceAtLeast(0f),
-            showSkybox = pbrShowSkybox,
-            skyboxTexture =
-                MaterialTextureRef(
-                    id = pbrSkyboxTexturePath,
-                    channel = "skybox",
-                    uvChannel = 0,
-                ),
-            environmentIntensity = pbrEnvironmentIntensity.coerceAtLeast(0f),
-            directionalLightEnabled = pbrDirectionalLightEnabled,
-            directionalLightYawDegrees = pbrDirectionalLightYawDegrees,
-            directionalLightPitchDegrees = pbrDirectionalLightPitchDegrees,
+            environmentPreset = gltfEnvironmentPreset,
+            exposure = gltfExposure.coerceAtLeast(0f),
+            showSkybox = gltfShowSkybox,
+            environmentIntensity = gltfEnvironmentIntensity.coerceAtLeast(0f),
+            environmentRotationDegrees = gltfEnvironmentRotationDegrees,
+            toneMapping = gltfToneMapping,
+            gammaCorrection = gltfGammaCorrection,
+            srgbTextures = gltfSrgbTextures,
+            directionalLightEnabled = gltfDirectionalLightEnabled,
+            directionalLightIntensity = gltfDirectionalLightIntensity.coerceAtLeast(0f),
+            directionalLightColor = gltfDirectionalLightColor.copy(),
+            directionalLightYawDegrees = gltfDirectionalLightYawDegrees,
+            directionalLightPitchDegrees = gltfDirectionalLightPitchDegrees,
         )
     }
 
     companion object {
         private const val MinUvCheckerScale = 0.01f
     }
+}
+
+private fun modelViewerLightDirection(
+    yawDegrees: Float,
+    pitchDegrees: Float,
+): Vec3 {
+    val yaw = Math.toRadians(yawDegrees.toDouble())
+    val pitch = Math.toRadians(pitchDegrees.toDouble())
+    val x = (kotlin.math.cos(pitch) * kotlin.math.cos(yaw)).toFloat()
+    val y = kotlin.math.sin(pitch).toFloat()
+    val z = (kotlin.math.cos(pitch) * kotlin.math.sin(yaw)).toFloat()
+    val length = kotlin.math.sqrt(x * x + y * y + z * z).coerceAtLeast(0.0001f)
+    return Vec3(-x / length, -y / length, -z / length)
+}
+
+private fun Color.copyFrom(source: Color) {
+    r = source.r
+    g = source.g
+    b = source.b
+    a = source.a
 }
 
 /**

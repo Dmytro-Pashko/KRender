@@ -25,6 +25,7 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:8.9.3")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${project.property("kotlinVersion")}")
+        classpath("org.jetbrains.kotlin:kotlin-serialization:${project.property("kotlinVersion")}")
         classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:${project.property("detektVersion")}")
         classpath("org.jlleitschuh.gradle:ktlint-gradle:${project.property("ktlintGradleVersion")}")
     }
