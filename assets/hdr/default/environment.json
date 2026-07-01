@@ -1,0 +1,47 @@
+{
+  "name": "default",
+  "displayName": "Default HDR Environment",
+  "type": "IBL_ENVIRONMENT",
+  "version": 1,
+
+  "source": {
+    "hdri": "source/studio_small_2k.hdr",
+    "preview": "source/preview.png",
+    "license": "source/license.txt",
+    "sourceUrl": "source/source_url.txt"
+  },
+
+  "skybox": {
+    "path": "skybox/default_skybox_studio.png",
+    "layout": "cubemap-cross-4x3",
+    "faceSize": 512
+  },
+
+  "irradiance": {
+    "path": "irradiance/irradiance_{face}.png",
+    "size": 64,
+    "faces": ["negx", "posx", "negy", "posy", "negz", "posz"]
+  },
+
+  "radiance": {
+    "path": "radiance/radiance_{mip}_{face}.png",
+    "baseSize": 512,
+    "mipLevels": 10,
+    "faces": ["negx", "posx", "negy", "posy", "negz", "posz"]
+  },
+
+  "brdfLut": {
+    "path": "../_common/brdf/brdfLUT.png",
+    "size": 256
+  },
+
+  "defaults": {
+    "exposure": 1.0,
+    "gammaCorrection": true,
+    "srgbTextures": true,
+    "toneMapping": "ACES",
+    "skyboxEnabled": true,
+    "environmentRotationDegrees": 0.0,
+    "ambientIntensity": 1.0
+  }
+}

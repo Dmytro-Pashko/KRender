@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:45a8b7ac-7397-4d0a-b412-2bd00eff73f2",
+  "type": "Texture",
+  "category": "Texture",
+  "displayName": "default_skybox_studio",
+  "tags": [
+    "modelviewer",
+    "skybox",
+    "pbr"
+  ],
+  "importerId": "texture",
+  "importSettings": {
+    "layout": "cubemap-cross-4x3",
+    "faceSize": 512
+  }
+}
