@@ -108,7 +108,7 @@ data class ModelViewerState(
     var debugWarning: String? = null,
     /** Current renderer warning surfaced in the UI. */
     var pbrWarning: String? = null,
-    /** Current renderer path for shaded model preview. */
+    /** Current renderer path for shaded model rendering. */
     var rendererMode: ModelViewerRendererMode = DEFAULT_MODEL_VIEWER_RENDERER_MODE,
     var pbrEnvironmentPreset: String = DEFAULT_PBR_ENVIRONMENT_PRESET,
     var pbrExposure: Float = 1f,

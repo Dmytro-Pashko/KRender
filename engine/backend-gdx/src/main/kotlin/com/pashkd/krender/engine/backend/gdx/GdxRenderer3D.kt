@@ -61,7 +61,7 @@ class GdxRenderer3D(
         )
     private val lineRenderer = GdxLineShaderRenderer()
     private val modelViewerDebugRenderer = GdxModelViewerDebugRenderer(assets, logger)
-    private val pbrPreviewRenderer = GdxGltfPbrPreviewRenderer(assets, logger)
+    private val gltfRenderer = GdxGltfRenderer(assets, logger)
     private val skyboxRenderer = GdxSkyboxRenderer(assets, logger)
 
     // Per-entity render caches used only by the renderer. These stay separate from
@@ -118,7 +118,7 @@ class GdxRenderer3D(
                         if (command.material.wireframeOverlay) {
                             wireframeCommands += command
                         }
-                    } else if (command.pbrPreview?.enabled == true) {
+                    } else if (command.gltfRenderer?.enabled == true) {
                         pbrModelCommands += command
                         if (command.material.wireframeOverlay) {
                             wireframeCommands += command
@@ -148,7 +148,7 @@ class GdxRenderer3D(
         modelBatch.end()
         debugModelCommands.forEach { modelViewerDebugRenderer.render(it, camera, ::modelInstanceForDebug) }
         pbrModelCommands.forEach { command ->
-            if (!pbrPreviewRenderer.render(command, camera, ::applyVisibleMeshPartFilter)) {
+            if (!gltfRenderer.render(command, camera, ::applyVisibleMeshPartFilter)) {
                 modelBatch.begin(camera)
                 renderModel(command, environment, camera)
                 modelBatch.end()
@@ -207,7 +207,7 @@ class GdxRenderer3D(
         modelBatch.dispose()
         lineRenderer.dispose()
         modelViewerDebugRenderer.dispose()
-        pbrPreviewRenderer.dispose()
+        gltfRenderer.dispose()
         skyboxRenderer.dispose()
         instances.clear()
         animationControllers.clear()

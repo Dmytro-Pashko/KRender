@@ -40,8 +40,8 @@ data class DrawModel(
     val visibleMeshPartIndices: Set<Int>? = null,
     /** Optional material/texture debug rendering request. Null keeps the normal material path. */
     val debugView: MaterialDebugView? = null,
-    /** Optional glTF PBR preview request. Debug rendering has priority when both are present. */
-    val pbrPreview: PbrPreviewView? = null,
+    /** Optional glTF renderer settings request. Debug rendering has priority when both are present. */
+    val gltfRenderer: GltfRendererSettings? = null,
     /** Optional animation preview pose sampled by the backend renderer. */
     val animation: AnimationPlaybackView? = null,
     /** Relative ordering priority for this command. */
@@ -142,9 +142,9 @@ data class MaterialDebugView(
 }
 
 /**
- * Backend-neutral request for glTF PBR preview rendering.
+ * Backend-neutral request for glTF renderer settings.
  */
-data class PbrPreviewView(
+data class GltfRendererSettings(
     val enabled: Boolean = false,
     val environmentPreset: String = "default",
     val exposure: Float = 1f,

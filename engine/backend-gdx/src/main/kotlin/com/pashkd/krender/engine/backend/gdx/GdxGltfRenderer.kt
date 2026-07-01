@@ -11,7 +11,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.math.Vector3
 import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.Logger
-import com.pashkd.krender.engine.api.PbrPreviewView
+import com.pashkd.krender.engine.api.GltfRendererSettings
 import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute
 import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute
 import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
@@ -26,9 +26,9 @@ import net.mgsx.gltf.scene3d.scene.Scene as GltfScene
 import net.mgsx.gltf.scene3d.scene.SceneManager as GltfSceneManager
 
 /**
- * glTF PBR preview renderer backed by gdx-gltf SceneManager.
+ * glTF renderer backed by gdx-gltf SceneManager.
  */
-internal class GdxGltfPbrPreviewRenderer(
+internal class GdxGltfRenderer(
     private val assets: GdxAssetService,
     private val logger: Logger,
 ) {
@@ -41,10 +41,10 @@ internal class GdxGltfPbrPreviewRenderer(
         camera: Camera,
         meshPartFilter: (ModelInstance, Set<Int>?) -> Unit,
     ): Boolean {
-        val settings = command.pbrPreview?.takeIf { it.enabled } ?: return false
+        val settings = command.gltfRenderer?.takeIf { it.enabled } ?: return false
         if (!command.model.isGltf()) {
             warnOnce("not-gltf-${command.model.path}") {
-                "PBR preview unavailable: '${command.model.path}' is not a glTF/glb model."
+                "glTF renderer is unavailable for '${command.model.path}' because the asset is not a glTF/glb model."
             }
             return false
         }
@@ -53,7 +53,7 @@ internal class GdxGltfPbrPreviewRenderer(
         val sceneAsset = assets.gltfScene(command.model)
         if (sceneAsset == null) {
             warnOnce("not-loaded-${command.model.path}") {
-                "PBR preview unavailable: glTF asset '${command.model.path}' is not loaded yet."
+                "glTF renderer is unavailable because asset '${command.model.path}' is not loaded yet."
             }
             return false
         }
@@ -66,7 +66,7 @@ internal class GdxGltfPbrPreviewRenderer(
                     val maxBones = sceneAsset.maxBones.coerceAtLeast(1)
                     val manager = createSceneManager(maxBones, settings)
                     manager.addScene(scene, false)
-                    logger.info(TAG) { "Created PBR preview scene for '${command.model.path}'." }
+                    logger.info(TAG) { "Created glTF renderer scene for '${command.model.path}'." }
                     PbrSceneEntry(
                         scene = scene,
                         manager = manager,
@@ -85,7 +85,7 @@ internal class GdxGltfPbrPreviewRenderer(
             true
         } catch (error: Throwable) {
             warnOnce("error-${command.model.path}-${error::class.qualifiedName}") {
-                "PBR preview unavailable for '${command.model.path}': ${error.message ?: error::class.simpleName}"
+                "glTF renderer failed for '${command.model.path}': ${error.message ?: error::class.simpleName}"
             }
             false
         }
@@ -99,7 +99,7 @@ internal class GdxGltfPbrPreviewRenderer(
 
     private fun configureEnvironment(
         entry: PbrSceneEntry,
-        settings: PbrPreviewView,
+        settings: GltfRendererSettings,
     ) {
         val preset = gltfEnvironment.preset(settings.environmentPreset)
         val direction = pbrLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
@@ -113,7 +113,7 @@ internal class GdxGltfPbrPreviewRenderer(
         applySkybox(entry, preset, settings)
     }
 
-    private fun PbrSceneEntry.ensureShaderConfiguration(settings: PbrPreviewView) {
+    private fun PbrSceneEntry.ensureShaderConfiguration(settings: GltfRendererSettings) {
         val nextKey = settings.shaderConfigKey()
         if (shaderConfigKey == nextKey) return
         manager.skyBox = null
@@ -123,13 +123,13 @@ internal class GdxGltfPbrPreviewRenderer(
         manager.addScene(scene, false)
         shaderConfigKey = nextKey
         logger.info(TAG) {
-            "Recreated PBR preview shaders gamma=${settings.gammaCorrection} sRGB=${settings.srgbTextures}."
+            "Recreated glTF renderer shaders gamma=${settings.gammaCorrection} sRGB=${settings.srgbTextures}."
         }
     }
 
     private fun createSceneManager(
         maxBones: Int,
-        settings: PbrPreviewView,
+        settings: GltfRendererSettings,
     ): GltfSceneManager {
         val config =
             PBRShaderProvider.createDefaultConfig().apply {
@@ -150,7 +150,7 @@ internal class GdxGltfPbrPreviewRenderer(
 
     private fun syncEnvironmentFallback(
         entry: PbrSceneEntry,
-        settings: PbrPreviewView,
+        settings: GltfRendererSettings,
         preset: GdxGltfEnvironmentPreset?,
         direction: Vector3,
         intensity: Float,
@@ -193,7 +193,7 @@ internal class GdxGltfPbrPreviewRenderer(
             environmentKey = nextKey
             iblAvailable = false
             warnOnce("ibl-unavailable-${error::class.qualifiedName}") {
-                "PBR preview IBL/skybox unavailable; continuing with direct lighting only: " +
+                "glTF renderer IBL/skybox is unavailable; continuing with direct lighting only: " +
                     (error.message ?: error::class.simpleName)
             }
             return false
@@ -212,7 +212,7 @@ internal class GdxGltfPbrPreviewRenderer(
     }
 
     companion object {
-        private const val TAG = "GdxGltfPbrPreviewRenderer"
+        private const val TAG = "GdxGltfRenderer"
     }
 }
 
@@ -221,9 +221,9 @@ private data class ResolvedEnvironmentState(
     val presetAmbientIntensity: Float,
 )
 
-private fun GdxGltfPbrPreviewRenderer.resolveEnvironmentState(
+private fun GdxGltfRenderer.resolveEnvironmentState(
     preset: GdxGltfEnvironmentPreset?,
-    settings: PbrPreviewView,
+    settings: GltfRendererSettings,
 ): ResolvedEnvironmentState {
     val presetExposure = preset?.defaults?.exposure?.toFloat() ?: 1f
     val presetAmbientIntensity = preset?.defaults?.ambientIntensity?.toFloat() ?: 1f
@@ -234,7 +234,7 @@ private fun GdxGltfPbrPreviewRenderer.resolveEnvironmentState(
     )
 }
 
-private fun GdxGltfPbrPreviewRenderer.applyAmbientLight(
+private fun GdxGltfRenderer.applyAmbientLight(
     entry: PbrSceneEntry,
     intensity: Float,
     presetAmbientIntensity: Float,
@@ -250,9 +250,9 @@ private fun GdxGltfPbrPreviewRenderer.applyAmbientLight(
     )
 }
 
-private fun GdxGltfPbrPreviewRenderer.applyDirectionalLight(
+private fun GdxGltfRenderer.applyDirectionalLight(
     entry: PbrSceneEntry,
-    settings: PbrPreviewView,
+    settings: GltfRendererSettings,
     direction: Vector3,
 ) {
     if (!settings.directionalLightEnabled) return
@@ -266,9 +266,9 @@ private fun GdxGltfPbrPreviewRenderer.applyDirectionalLight(
     )
 }
 
-private fun GdxGltfPbrPreviewRenderer.applyEnvironmentRotation(
+private fun GdxGltfRenderer.applyEnvironmentRotation(
     entry: PbrSceneEntry,
-    settings: PbrPreviewView,
+    settings: GltfRendererSettings,
 ) {
     entry.manager.environment.set(
         net.mgsx.gltf.scene3d.attributes.PBRMatrixAttribute.createEnvRotation(
@@ -277,7 +277,7 @@ private fun GdxGltfPbrPreviewRenderer.applyEnvironmentRotation(
     )
 }
 
-private fun GdxGltfPbrPreviewRenderer.applyEnvironmentMaps(
+private fun GdxGltfRenderer.applyEnvironmentMaps(
     entry: PbrSceneEntry,
     preset: GdxGltfEnvironmentPreset?,
 ) {
@@ -290,10 +290,10 @@ private fun GdxGltfPbrPreviewRenderer.applyEnvironmentMaps(
     }
 }
 
-private fun GdxGltfPbrPreviewRenderer.applySkybox(
+private fun GdxGltfRenderer.applySkybox(
     entry: PbrSceneEntry,
     preset: GdxGltfEnvironmentPreset?,
-    settings: PbrPreviewView,
+    settings: GltfRendererSettings,
 ) {
     val skyboxMap = if (settings.showSkybox) preset?.skybox ?: entry.envMap else null
     if (skyboxMap == null) {
@@ -365,7 +365,7 @@ private data class PbrShaderConfigKey(
     val srgbTextures: Boolean,
 )
 
-private fun PbrPreviewView.shaderConfigKey(): PbrShaderConfigKey =
+private fun GltfRendererSettings.shaderConfigKey(): PbrShaderConfigKey =
     PbrShaderConfigKey(
         gammaCorrection = gammaCorrection,
         srgbTextures = srgbTextures,

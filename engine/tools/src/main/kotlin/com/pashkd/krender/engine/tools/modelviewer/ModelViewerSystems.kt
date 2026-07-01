@@ -307,10 +307,10 @@ class ModelViewerSystem(
         if (state.rendererMode != ModelViewerRendererMode.Pbr) return null
         return when {
             !state.model.path.isGltfPath() ->
-                "PBR preview is currently available only for glTF/glb models."
+                "glTF / PBR renderer is currently available only for glTF/glb models."
 
             state.assetLoaded && state.modelInfo == null ->
-                "PBR preview unavailable: model metadata is unavailable."
+                "glTF / PBR renderer is unavailable because model metadata is unavailable."
 
             else -> null
         }
@@ -492,7 +492,7 @@ class ModelViewerModelRenderSystem(
                 material = model.material,
                 visibleMeshPartIndices = visibleMeshPartIndices,
                 debugView = debugView,
-                pbrPreview = state.pbrPreviewView(debugView),
+                gltfRenderer = state.gltfRendererSettings(debugView),
             ),
         )
     }
@@ -524,9 +524,9 @@ class ModelViewerModelRenderSystem(
         )
     }
 
-    private fun ModelViewerState.pbrPreviewView(debugView: MaterialDebugView?): PbrPreviewView? {
+    private fun ModelViewerState.gltfRendererSettings(debugView: MaterialDebugView?): GltfRendererSettings? {
         if (rendererMode != ModelViewerRendererMode.Pbr) return null
-        return PbrPreviewView(
+        return GltfRendererSettings(
             enabled = debugView?.active != true,
             environmentPreset = pbrEnvironmentPreset,
             exposure = pbrExposure.coerceAtLeast(0f),
