@@ -5,18 +5,10 @@ import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraState
 import com.pashkd.krender.engine.tools.viewport.EditorViewportState
 
-/**
- * Basic render display modes supported by the ModelViewer renderer path.
- */
-enum class ModelViewerDisplayMode {
-    Shaded,
-    ShadedWireframe,
-    Wireframe,
-}
-
 enum class ModelViewerRendererMode {
     LibGdx,
     GltfPbr,
+    Wireframe,
 }
 
 val DEFAULT_MODEL_VIEWER_RENDERER_MODE = ModelViewerRendererMode.GltfPbr
@@ -76,7 +68,7 @@ data class ModelViewerState(
     /** Runtime-only preference for drawing world axes. */
     var showAxes: Boolean = true,
     /** Runtime-only preference for drawing the model bounds. */
-    var showBoundingBox: Boolean = true,
+    var showBoundingBox: Boolean = false,
     /** Grid extent in cells from the world origin. */
     var gridHalfExtentCells: Int = 24,
     /** World-space size of one grid cell. */
@@ -89,8 +81,7 @@ data class ModelViewerState(
     var legacyDirectionalLightColor: Color = Color.white(),
     var legacyDirectionalLightYawDegrees: Float = 45f,
     var legacyDirectionalLightPitchDegrees: Float = -35f,
-    /** Current display mode for the model material. */
-    var displayMode: ModelViewerDisplayMode = ModelViewerDisplayMode.Shaded,
+    var legacyWireframeOverlay: Boolean = false,
     /** Current material/texture debug mode. */
     var debugMode: MaterialDebugMode = MaterialDebugMode.Combined,
     /** Last non-UV-checker channel display mode so the UV checker toggle can restore it. */
@@ -124,6 +115,7 @@ data class ModelViewerState(
     var gltfDirectionalLightColor: Color = Color.white(),
     var gltfDirectionalLightYawDegrees: Float = 45f,
     var gltfDirectionalLightPitchDegrees: Float = -35f,
+    var gltfWireframeOverlay: Boolean = false,
     /** Currently selected mesh part in the Mesh Parts panel. */
     var selectedMeshPartIndex: Int? = null,
     /** Currently selected material in the Materials panel. */

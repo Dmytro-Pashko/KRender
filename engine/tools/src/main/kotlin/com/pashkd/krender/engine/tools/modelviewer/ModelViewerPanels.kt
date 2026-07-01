@@ -146,8 +146,7 @@ class ModelViewerViewportPanel(
     }
 
     private fun drawDisplaySection() {
-        ImGui.text("Display Mode / Display Options")
-        drawDisplayModeCombo()
+        ImGui.text("Display Options")
         ImGui.checkbox("Grid##model_viewer_show_grid", state::showGrid)
         tooltipOnHover("Show the ground reference grid in the viewport.")
         ImGui.sameLine()
@@ -186,19 +185,6 @@ class ModelViewerViewportPanel(
         drawRendererOptions()
     }
 
-    private fun drawDisplayModeCombo() {
-        val expanded = ImGui.beginCombo("Display Mode##model_viewer_display_mode", state.displayMode.name)
-        tooltipOnHover("Choose shaded, shaded-with-wireframe, or wireframe display for the model.")
-        if (!expanded) return
-        ModelViewerDisplayMode.entries.forEach { mode ->
-            if (ImGui.selectable("${mode.name}##model_viewer_display_${mode.name}", state.displayMode == mode)) {
-                state.displayMode = mode
-            }
-            tooltipOnHover("Use the ${mode.name} shared viewport display mode.")
-        }
-        ImGui.endCombo()
-    }
-
     private fun drawRendererSelector() {
         val expanded = ImGui.beginCombo("Renderer##model_viewer_renderer_mode", rendererModeLabel(state.rendererMode))
         tooltipOnHover("Choose which rendering backend is used to draw the model in the viewport.")
@@ -211,24 +197,21 @@ class ModelViewerViewportPanel(
                 ) {
                     state.rendererMode = mode
                 }
-                tooltipOnHover(
-                    if (mode == ModelViewerRendererMode.GltfPbr) {
-                        "Use the glTF / PBR renderer with HDR environment lighting."
-                    } else {
-                        "Use the LibGDX / Legacy DefaultShader renderer."
-                    },
-                )
+                tooltipOnHover(rendererModeTooltip(mode))
             }
             ImGui.endCombo()
         }
     }
 
     private fun drawRendererOptions() {
-        if (state.rendererMode == ModelViewerRendererMode.LibGdx) {
-            legacyRendererOptionsPanel.draw()
-            return
+        when (state.rendererMode) {
+            ModelViewerRendererMode.LibGdx -> legacyRendererOptionsPanel.draw()
+            ModelViewerRendererMode.GltfPbr -> gltfPbrRendererOptionsPanel.draw()
+            ModelViewerRendererMode.Wireframe -> {
+                ImGui.text("Wireframe renderer has no shading options.")
+                textLine("Use Grid Size and viewport display toggles to adjust the preview.")
+            }
         }
-        gltfPbrRendererOptionsPanel.draw()
     }
 
     companion object {
@@ -253,6 +236,8 @@ internal class GltfPbrRendererOptionsPanel(
         drawEnvironmentSection()
         ImGui.separator()
         drawDirectLightingSection()
+        ImGui.separator()
+        drawWireframeOverlaySection()
         state.gltfRendererWarning?.let { warning -> textLine("Warning: $warning") }
     }
 
@@ -353,6 +338,12 @@ internal class GltfPbrRendererOptionsPanel(
         state.gltfDirectionalLightPitchDegrees = DEFAULT_DIRECTIONAL_PITCH
     }
 
+    private fun drawWireframeOverlaySection() {
+        ImGui.text("Overlay")
+        ImGui.checkbox("Wireframe Overlay##model_viewer_pbr_wireframe_overlay", state::gltfWireframeOverlay)
+        tooltipOnHover("Draw an additional wireframe overlay on top of the glTF / PBR shaded renderer.")
+    }
+
     companion object {
         private const val TEXT_BUFFER_SIZE = 256
         private const val DEFAULT_ENVIRONMENT_INTENSITY = 1f
@@ -372,6 +363,8 @@ internal class LegacyRendererOptionsPanel(
         drawAmbientSection()
         ImGui.separator()
         drawDirectLightingSection()
+        ImGui.separator()
+        drawWireframeOverlaySection()
     }
 
     private fun drawAmbientSection() {
@@ -456,6 +449,12 @@ internal class LegacyRendererOptionsPanel(
         state.legacyDirectionalLightColor.resetToWhite()
         state.legacyDirectionalLightYawDegrees = DEFAULT_DIRECTIONAL_YAW
         state.legacyDirectionalLightPitchDegrees = DEFAULT_DIRECTIONAL_PITCH
+    }
+
+    private fun drawWireframeOverlaySection() {
+        ImGui.text("Overlay")
+        ImGui.checkbox("Wireframe Overlay##model_viewer_legacy_wireframe_overlay", state::legacyWireframeOverlay)
+        tooltipOnHover("Draw an additional wireframe overlay on top of the LibGDX / Legacy shaded renderer.")
     }
 
     companion object {
@@ -1243,6 +1242,14 @@ private fun rendererModeLabel(mode: ModelViewerRendererMode): String =
     when (mode) {
         ModelViewerRendererMode.LibGdx -> "LibGDX / Legacy"
         ModelViewerRendererMode.GltfPbr -> "glTF / PBR"
+        ModelViewerRendererMode.Wireframe -> "Wireframe"
+    }
+
+private fun rendererModeTooltip(mode: ModelViewerRendererMode): String =
+    when (mode) {
+        ModelViewerRendererMode.LibGdx -> "Use the LibGDX / Legacy DefaultShader renderer."
+        ModelViewerRendererMode.GltfPbr -> "Use the glTF / PBR renderer with HDR environment lighting."
+        ModelViewerRendererMode.Wireframe -> "Use a dedicated wireframe renderer without shaded lighting options."
     }
 
 private fun drawColorControl(

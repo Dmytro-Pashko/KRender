@@ -99,6 +99,7 @@ class GdxRenderer3D(
         val environment = environmentFor(context)
         context.commands.filterIsInstance<ApplyEnvironment>().firstOrNull()?.let { command ->
             skyboxRenderer.render(command, camera, modelBatch)
+            Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT)
         }
         val wireframeCommands = mutableListOf<DrawModel>()
         val wireframeDynamicCommands = mutableListOf<DrawDynamicModel>()

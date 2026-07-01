@@ -6,12 +6,12 @@ import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.tools.sceneeditor.SceneEditorLocalBounds
 import com.pashkd.krender.engine.tools.sceneeditor.transformedBoundsCorners
+import kotlin.math.max
 
 /**
  * Syncs ModelViewer UI state with assets, render settings, and scene actions.
  */
 class ModelViewerSystem(
-    private val input: InputService,
     private val assets: AssetService,
     private val logger: Logger,
     private val state: ModelViewerState,
@@ -21,7 +21,7 @@ class ModelViewerSystem(
     private var frameIndex = 0L
     private var lastAssetLoaded: Boolean? = null
     private var lastLoadingStatus: String? = null
-    private var lastDisplayMode: ModelViewerDisplayMode? = null
+    private var lastRendererMode: ModelViewerRendererMode? = null
     private var lastDebugMode: MaterialDebugMode? = null
     private var lastDebugWarning: String? = null
     private var lastMetadataAvailable: Boolean? = null
@@ -62,15 +62,6 @@ class ModelViewerSystem(
                 "ModelViewer first update dt=${"%.4f".format(dt)} model='${state.model.path}' entities=${world.all().size}"
             }
         }
-        val snapshot = input.snapshot()
-
-        if (!snapshot.uiCapturesKeyboard && snapshot.wasPressed(Key.F1)) {
-            val modes = ModelViewerDisplayMode.entries
-            val nextIndex = (modes.indexOf(state.displayMode) + 1).floorMod(modes.size)
-            state.displayMode = modes[nextIndex]
-            logger.info(TAG) { "ModelViewer display mode toggled by F1 mode=${state.displayMode}" }
-        }
-
         syncStatus(world)
         syncSelectionBounds()
         syncDebugState()
@@ -114,8 +105,13 @@ class ModelViewerSystem(
 
     private fun syncDisplayMode(world: SceneWorld) {
         val modelComponent = resolveModelComponent(world) ?: return
-        val wireframe = state.displayMode == ModelViewerDisplayMode.Wireframe
-        val wireframeOverlay = state.displayMode == ModelViewerDisplayMode.ShadedWireframe
+        val wireframe = state.rendererMode == ModelViewerRendererMode.Wireframe
+        val wireframeOverlay =
+            when (state.rendererMode) {
+                ModelViewerRendererMode.LibGdx -> state.legacyWireframeOverlay
+                ModelViewerRendererMode.GltfPbr -> state.gltfWireframeOverlay
+                ModelViewerRendererMode.Wireframe -> false
+            }
         val materialChanged =
             modelComponent.material.wireframe != wireframe ||
                 modelComponent.material.wireframeOverlay != wireframeOverlay
@@ -152,18 +148,18 @@ class ModelViewerSystem(
         wireframe: Boolean,
         wireframeOverlay: Boolean,
     ) {
-        if (lastDisplayMode == state.displayMode) return
+        if (lastRendererMode == state.rendererMode) return
         if (materialChanged) {
             logger.info(TAG) {
-                "ModelViewer material display mode applied mode=${state.displayMode} " +
+                "ModelViewer renderer mode applied mode=${state.rendererMode} " +
                     "wireframe=$wireframe overlay=$wireframeOverlay entity=${state.modelEntityId}"
             }
         } else {
             logger.info(TAG) {
-                "ModelViewer display mode active mode=${state.displayMode} wireframe=$wireframe entity=${state.modelEntityId}"
+                "ModelViewer renderer mode active mode=${state.rendererMode} wireframe=$wireframe entity=${state.modelEntityId}"
             }
         }
-        lastDisplayMode = state.displayMode
+        lastRendererMode = state.rendererMode
     }
 
     private fun logStatusChanges() {
@@ -431,8 +427,6 @@ class ModelViewerSystem(
     }
 }
 
-private fun Int.floorMod(divisor: Int): Int = ((this % divisor) + divisor) % divisor
-
 private fun String.isGltfPath(): Boolean = endsWith(".gltf", ignoreCase = true) || endsWith(".glb", ignoreCase = true)
 
 /**
@@ -594,10 +588,49 @@ class ModelViewerBoundingBoxSystem(
                 ),
             )
         }
+        val boundsSize =
+            Vec3(
+                bounds.max.x - bounds.min.x,
+                bounds.max.y - bounds.min.y,
+                bounds.max.z - bounds.min.z,
+            )
+        val originMarkerHalfSize =
+            max(
+                MinOriginMarkerHalfSize,
+                max(boundsSize.x, max(boundsSize.y, boundsSize.z)) * OriginMarkerScale,
+            ).coerceAtMost(MaxOriginMarkerHalfSize)
+        val origin = transform.position
+        world.renderCommands.submit(
+            DrawLine(
+                from = Vec3(origin.x - originMarkerHalfSize, origin.y, origin.z),
+                to = Vec3(origin.x + originMarkerHalfSize, origin.y, origin.z),
+                color = AxisXColor,
+            ),
+        )
+        world.renderCommands.submit(
+            DrawLine(
+                from = Vec3(origin.x, origin.y - originMarkerHalfSize, origin.z),
+                to = Vec3(origin.x, origin.y + originMarkerHalfSize, origin.z),
+                color = AxisYColor,
+            ),
+        )
+        world.renderCommands.submit(
+            DrawLine(
+                from = Vec3(origin.x, origin.y, origin.z - originMarkerHalfSize),
+                to = Vec3(origin.x, origin.y, origin.z + originMarkerHalfSize),
+                color = AxisZColor,
+            ),
+        )
     }
 
     companion object {
         private val BoundingBoxColor = Color(1f, 0.85f, 0.1f, 1f)
+        private val AxisXColor = Color(0.9f, 0.25f, 0.25f, 1f)
+        private val AxisYColor = Color(0.3f, 0.85f, 0.35f, 1f)
+        private val AxisZColor = Color(0.3f, 0.55f, 0.95f, 1f)
+        private const val OriginMarkerScale = 0.05f
+        private const val MinOriginMarkerHalfSize = 0.05f
+        private const val MaxOriginMarkerHalfSize = 0.5f
         private val BoxEdges =
             listOf(
                 0 to 1,
