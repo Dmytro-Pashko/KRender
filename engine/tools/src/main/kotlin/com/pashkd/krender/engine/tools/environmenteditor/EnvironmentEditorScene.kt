@@ -7,7 +7,6 @@ import com.pashkd.krender.engine.assets.environment.EnvironmentService
 import com.pashkd.krender.engine.assets.environment.PlaceholderEnvironmentGenerationService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.UiSystem
 
 /**
