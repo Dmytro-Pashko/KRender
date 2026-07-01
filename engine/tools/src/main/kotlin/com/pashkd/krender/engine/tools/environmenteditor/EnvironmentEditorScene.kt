@@ -30,6 +30,7 @@ class EnvironmentEditorScene(
 
         val uiSystem = UiSystem(engine.ui)
         uiSystem.addPanel(EnvironmentEditorToolbarPanel(editorState, environmentService, engine.logger))
+        uiSystem.addPanel(EnvironmentInspectorPanel(editorState))
         world.systems.add(uiSystem)
     }
 
