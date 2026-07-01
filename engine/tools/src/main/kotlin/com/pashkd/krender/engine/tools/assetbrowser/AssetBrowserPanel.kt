@@ -168,6 +168,7 @@ class AssetBrowserPanel(
         if (!ImGui.beginPopupContextItem("assetCtx_${asset.id.value}")) return
         val capabilities = asset.assetCapabilities()
         val tools = operations.toolsFor(asset)
+        val actions = operations.actionsFor(asset)
         if (tools.isNotEmpty() && ImGui.menuItem("Open")) {
             onAssetSelected(asset)
             onAssetActivated(asset)
@@ -181,7 +182,17 @@ class AssetBrowserPanel(
             }
             ImGui.endMenu()
         }
-        ImGui.separator()
+        if (actions.isNotEmpty()) {
+            actions.forEach { action ->
+                if (ImGui.menuItem(action.label)) {
+                    onAssetSelected(asset)
+                    operations.runAction(asset, action.id)
+                }
+            }
+        }
+        if (tools.isNotEmpty() || actions.isNotEmpty()) {
+            ImGui.separator()
+        }
         if (capabilities.canRename && ImGui.menuItem("Rename...")) {
             onAssetSelected(asset)
             state.renameBuffer = asset.name

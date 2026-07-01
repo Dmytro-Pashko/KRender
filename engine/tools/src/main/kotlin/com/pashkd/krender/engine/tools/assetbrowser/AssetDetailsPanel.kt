@@ -90,9 +90,14 @@ class AssetDetailsPanel(
     }
 
     private fun drawActions(asset: AssetDescriptor) {
-        if (!asset.canOpenWithTools() || asset.category == AssetCategory.Scene) return
-        val tools = operations.toolsFor(asset)
-        if (tools.isEmpty()) return
+        val tools =
+            if (asset.canOpenWithTools() && asset.category != AssetCategory.Scene) {
+                operations.toolsFor(asset)
+            } else {
+                emptyList()
+            }
+        val actions = operations.actionsFor(asset)
+        if (tools.isEmpty() && actions.isEmpty()) return
 
         ImGui.separator()
         ImGui.text("Actions")
@@ -100,6 +105,13 @@ class AssetDetailsPanel(
             with(dsl) {
                 button("${tool.label}##${panelId}_tool_${tool.id}") {
                     operations.openWith(asset, tool.id)
+                }
+            }
+        }
+        actions.forEach { action ->
+            with(dsl) {
+                button("${action.label}##${panelId}_action_${action.id}") {
+                    operations.runAction(asset, action.id)
                 }
             }
         }

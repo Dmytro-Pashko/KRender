@@ -26,6 +26,7 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 | `engine/tools/.../assetbrowser/AssetBrowserPanels.kt` | `AssetControlsPanel`, `AssetBrowserPanel`, `AssetDetailsPanel`. |
 | `engine/tools/.../assetbrowser/AssetBrowserLayout.kt` | `AssetBrowserUiLayoutDefaults` (panel layout config). |
 | `engine/tools/.../assetbrowser/AssetBrowserUiOperations.kt` | UI-side operations helper. |
+| `engine/tools/.../assetbrowser/EnvironmentAssetCreation.kt` | Creates Environment manifests from HDR source assets and launches Environment Editor. |
 | `engine/tools/.../common/EditorTexturePreviewService.kt` | Shared editor-facing texture preview handle/status lookup used by texture details and other tools. |
 | `engine/assets/AssetRegistryService.kt` | `LocalAssetRegistryService` — filesystem scan + `.krmeta`. |
 | `engine/assets/AssetOperationsService.kt` | `LocalAssetOperationsService` — create/rename/duplicate/delete/reveal. |
@@ -89,6 +90,8 @@ and generated environment resources. Scanned roots: `model`, `textures`, `skybox
 - Model metadata preview (triangle/vertex/material counts via `ModelAssetInfo`).
 - Create / rename / duplicate / delete / reveal operations with sensible default content
   (skybox, scene, terrain, `.krui`, material templates).
+- HDR source (`.exr` / `.hdr`) context actions that create a new Environment manifest,
+  copy the selected source into `environments/<name>/sources/`, and open the result in Environment Editor.
 - `.krui` UI assets route to UI Composer for validation, Scene2D preview, hierarchy/inspector editing, undo/redo, and save workflows.
 - "Open" (default tool) and "Open with" (alternate tools) per asset.
 

@@ -249,6 +249,9 @@ private class SceneOperationsHandler(
             toolRegistry.toolsFor(asset).map { AssetToolDescriptor(it.id, it.displayName) }
         }
 
+    override fun actionsFor(asset: AssetDescriptor): List<AssetActionDescriptor> =
+        EnvironmentAssetCreation.actionsFor(asset)
+
     override fun openWith(
         asset: AssetDescriptor,
         toolId: String,
@@ -272,6 +275,25 @@ private class SceneOperationsHandler(
             state.statusMessage = "Failed to open tool: ${error.message}"
             logger.error(TAG, error) {
                 "Open with failed tool='${tool.id}' path='${asset.path}': ${error.message}"
+            }
+        }
+    }
+
+    override fun runAction(
+        asset: AssetDescriptor,
+        actionId: String,
+    ) {
+        try {
+            val manifestPath = EnvironmentAssetCreation.runAction(asset, actionId, engineProvider(), logger)
+            state.refreshRequested = true
+            state.statusMessage = "Created environment: $manifestPath"
+            state.errorMessage = null
+        } catch (error: Exception) {
+            val message = error.message ?: "Action failed."
+            state.errorMessage = message
+            state.statusMessage = message
+            logger.error(TAG, error) {
+                "Asset action failed actionId='$actionId' path='${asset.path}': ${error.message}"
             }
         }
     }
