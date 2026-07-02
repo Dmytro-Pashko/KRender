@@ -1,7 +1,9 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.ValidationStatus
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCamera
+import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewAvailability
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewMode
 import com.pashkd.krender.engine.ui.editor.UiPanel
@@ -73,14 +75,38 @@ class EnvironmentPreviewPanel(
 
     private fun drawPreviewStatus(
         env: EnvironmentAsset,
-        availability: com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewAvailability,
+        availability: EnvironmentPreviewAvailability,
     ) {
         ImGui.text("Environment: ${env.name}")
+        ImGui.text("Environment Id: ${env.id.path}")
         ImGui.text("Type: ${env.type}")
+        drawValidationStatus()
+        ImGui.separator()
+        ImGui.text("Generated Maps")
+        ImGui.text("Skybox: ${availabilityLabel(availability.hasSkybox)}")
+        ImGui.text("Irradiance: ${availabilityLabel(availability.hasIrradiance)}")
+        ImGui.text("Radiance: ${availabilityLabel(availability.hasRadiance)}")
+        ImGui.text("BRDF LUT: ${availabilityLabel(availability.hasBrdfLut)}")
+        ImGui.separator()
         ImGui.textWrapped("Fallback: ${availability.fallbackMode}")
+        state.previewState.previewStatusMessage?.let(ImGui::textWrapped)
         availability.warnings.forEach(ImGui::textWrapped)
         if (availability.warnings.isEmpty()) {
             ImGui.textWrapped("Preview uses the current environment manifest and generated IBL maps.")
         }
     }
+
+    private fun drawValidationStatus() {
+        val validation = state.validation
+        if (validation == null) {
+            ImGui.text("Validation: unavailable")
+            return
+        }
+        ImGui.text("Validation: ${validation.status}")
+        if (validation.status != ValidationStatus.Valid) {
+            ImGui.text("${validation.issues.size} issue(s); see Diagnostics for details.")
+        }
+    }
+
+    private fun availabilityLabel(value: Boolean): String = if (value) "available" else "missing"
 }
