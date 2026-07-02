@@ -6,129 +6,117 @@ import com.pashkd.krender.engine.api.GltfRendererSettings
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.EnvironmentColor
 import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorConfig
 import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorState
+import com.pashkd.krender.engine.tools.environmenteditor.displayName
 
+/**
+ * Adapts the currently edited Environment to the shared glTF renderer contract.
+ *
+ * The controller is backend-neutral: it resolves manifest availability and emits
+ * [GltfRendererSettings], while cubemap loading and PBR rendering stay in `backend-gdx`.
+ */
 class EnvironmentPreviewController {
     val previewModel = AssetRef.model(EnvironmentEditorConfig.defaultPreviewModel.assetPath)
-    val defaultBackgroundColor = EnvironmentEditorConfig.defaultBackgroundColor
 
-    fun availability(
-        env: EnvironmentAsset,
-        preview: EnvironmentPreviewState,
-    ): EnvironmentPreviewAvailability {
-        val hasSkybox = env.generated.skybox?.faces?.isNotEmpty() == true
-        val hasIrradiance = env.generated.irradiance != null
-        val hasRadiance = env.generated.radiance?.mips?.isNotEmpty() == true
-        val hasBrdfLut = env.generated.brdfLut != null
-        val wantsSkyboxBackground = env.settings.backgroundMode == BackgroundMode.Skybox
-        val effectiveShowSkybox = wantsSkyboxBackground && hasSkybox
-        val warnings = buildList {
-            if (!hasIrradiance && !hasRadiance && !hasBrdfLut) {
-                add("Generated IBL maps are missing. Run Generate All before using full PBR preview.")
-            }
-            if (wantsSkyboxBackground && !hasSkybox) {
-                add("Skybox map is missing. Preview uses neutral background.")
-            }
-            if (!hasIrradiance) {
-                add("Irradiance map is missing. Diffuse IBL is unavailable.")
-            }
-            if (!hasRadiance) {
-                add("Radiance map is missing. Specular reflections are unavailable.")
-            }
-            if (!hasBrdfLut) {
-                add("BRDF LUT is missing. Specular BRDF may be incorrect.")
-            }
-        }
-        val fallbackMode =
-            when {
-                warnings.isEmpty() -> "Full PBR environment preview"
-                !hasSkybox && !hasIrradiance && !hasRadiance -> "Neutral background with direct-light fallback"
-                !hasRadiance || !hasIrradiance || !hasBrdfLut -> "Partial IBL fallback"
-                else -> "Skybox-disabled preview"
-            }
-        return EnvironmentPreviewAvailability(
-            hasSkybox = hasSkybox,
-            hasIrradiance = hasIrradiance,
-            hasRadiance = hasRadiance,
-            hasBrdfLut = hasBrdfLut,
-            effectiveShowSkybox = effectiveShowSkybox,
-            fallbackMode = fallbackMode,
+    fun availability(environment: EnvironmentAsset): EnvironmentPreviewAvailability {
+        val resources = EnvironmentPreviewAvailability.from(environment)
+        val wantsSkybox = environment.settings.backgroundMode == BackgroundMode.Skybox
+        val warnings = resourceWarnings(resources, wantsSkybox)
+        return resources.copy(
+            effectiveShowSkybox = wantsSkybox && resources.hasSkybox,
+            fallbackMode = fallbackMode(resources, warnings),
             warnings = warnings,
         )
     }
 
     fun gltfRendererSettings(state: EnvironmentEditorState): GltfRendererSettings {
-        val env = state.environment
-        if (env == null) return GltfRendererSettings(enabled = true)
-        val preview = state.previewState
-        val availability = availability(env, preview)
-        val settings = env.settings
-        val backgroundColor =
-            settings.backgroundColor?.let { color ->
-                Color(color.r, color.g, color.b, color.a)
-            } ?: defaultBackgroundColor.copy()
+        val environment = state.environment ?: return GltfRendererSettings(enabled = true)
+        val availability = availability(environment)
+        val settings = environment.settings
         return GltfRendererSettings(
             enabled = true,
             environmentPreset = state.manifestPath,
-            environmentCacheKey =
-                listOf(
-                    state.manifestPath,
-                    settings.exposure,
-                    settings.rotationDegrees,
-                    settings.skyboxIntensity,
-                    settings.diffuseIntensity,
-                    settings.specularIntensity,
-                    settings.backgroundMode,
-                    settings.backgroundColor?.r,
-                    settings.backgroundColor?.g,
-                    settings.backgroundColor?.b,
-                    settings.backgroundColor?.a,
-                    availability.hasSkybox,
-                    availability.hasIrradiance,
-                    availability.hasRadiance,
-                    availability.hasBrdfLut,
-                ).joinToString("|"),
+            environmentCacheKey = rendererCacheKey(state.manifestPath, environment, availability),
             exposure = settings.exposure.coerceAtLeast(0f),
-            backgroundVisible = settings.backgroundMode != BackgroundMode.None,
             backgroundMode = settings.backgroundMode,
-            backgroundColor = backgroundColor,
+            backgroundColor = (settings.backgroundColor ?: EnvironmentEditorConfig.defaultBackgroundColor).toRenderColor(),
             showSkybox = availability.effectiveShowSkybox,
-            skyboxIntensity = settings.skyboxIntensity.coerceAtLeast(0f),
+            skyboxIntensity = settings.skyboxIntensity.coerceIn(0f, 1f),
             ambientIntensity = settings.diffuseIntensity.coerceAtLeast(0f),
-            environmentIntensity = settings.specularIntensity.coerceAtLeast(0f),
+            environmentIntensity = settings.specularIntensity.coerceIn(0f, 1f),
             environmentRotationDegrees = settings.rotationDegrees,
-            directionalLightIntensity = if (availability.hasIrradiance || availability.hasRadiance) 0.3f else 0.85f,
+            directionalLightIntensity = if (availability.hasIblLighting) 0.3f else 0.85f,
         )
     }
 
-    fun liveStatusMessage(
-        env: EnvironmentAsset,
-        preview: EnvironmentPreviewState,
-    ): String {
-        val availability = availability(env, preview)
+    fun liveStatusMessage(environment: EnvironmentAsset): String {
+        val availability = availability(environment)
+        val settings = environment.settings
         return buildString {
             append("Live preview uses the current editor state. ")
-            append("Exposure %.2f, rotation %.1f deg, diffuse %.2f, specular %.2f.".format(
-                env.settings.exposure,
-                env.settings.rotationDegrees,
-                env.settings.diffuseIntensity,
-                env.settings.specularIntensity,
-            ))
-            append(" Background mode ${backgroundModeLabel(env.settings.backgroundMode)}.")
-            if (availability.warnings.isNotEmpty()) {
-                append(" ${availability.fallbackMode}.")
-            }
+            append(
+                "Exposure %.2f, rotation %.1f deg, diffuse %.2f, specular %.2f. ".format(
+                    settings.exposure,
+                    settings.rotationDegrees,
+                    settings.diffuseIntensity,
+                    settings.specularIntensity,
+                ),
+            )
+            append("Background mode ${settings.backgroundMode.displayName}.")
+            if (availability.warnings.isNotEmpty()) append(" ${availability.fallbackMode}.")
         }
     }
 
-    private fun backgroundModeLabel(mode: BackgroundMode): String =
-        when (mode) {
-            BackgroundMode.Skybox -> "Skybox"
-            BackgroundMode.SolidColor -> "Solid Color"
-            BackgroundMode.Transparent -> "Transparent"
-            BackgroundMode.None -> "None"
+    private fun resourceWarnings(
+        availability: EnvironmentPreviewAvailability,
+        wantsSkybox: Boolean,
+    ): List<String> =
+        buildList {
+            if (!availability.hasIblLighting && !availability.hasBrdfLut) {
+                add("Generated IBL maps are missing. Generate them before using the full PBR preview.")
+            }
+            if (wantsSkybox && !availability.hasSkybox) {
+                add("Skybox map is missing. Preview uses a neutral background.")
+            }
+            if (!availability.hasIrradiance) add("Irradiance map is missing. Diffuse IBL is unavailable.")
+            if (!availability.hasRadiance) add("Radiance map is missing. Specular reflections are unavailable.")
+            if (!availability.hasBrdfLut) add("BRDF LUT is missing. Specular BRDF may be incorrect.")
         }
+
+    private fun fallbackMode(
+        availability: EnvironmentPreviewAvailability,
+        warnings: List<String>,
+    ): String =
+        when {
+            warnings.isEmpty() -> "Full PBR environment preview"
+            !availability.hasSkybox && !availability.hasIblLighting -> "Neutral background with direct-light fallback"
+            !availability.hasIblLighting || !availability.hasBrdfLut -> "Partial IBL fallback"
+            else -> "Skybox-disabled preview"
+        }
+
+    private fun rendererCacheKey(
+        manifestPath: String,
+        environment: EnvironmentAsset,
+        availability: EnvironmentPreviewAvailability,
+    ): String {
+        val settings = environment.settings
+        return listOf(
+            manifestPath,
+            settings.exposure,
+            settings.rotationDegrees,
+            settings.skyboxIntensity,
+            settings.diffuseIntensity,
+            settings.specularIntensity,
+            settings.backgroundMode,
+            settings.backgroundColor,
+            availability.hasSkybox,
+            availability.hasIrradiance,
+            availability.hasRadiance,
+            availability.hasBrdfLut,
+        ).joinToString("|")
+    }
 
     companion object {
         val PreviewModelScale = Vec3(1.35f, 1.35f, 1.35f)
@@ -136,12 +124,39 @@ class EnvironmentPreviewController {
     }
 }
 
+/**
+ * Availability snapshot used by both preview rendering and status UI.
+ *
+ * The flags describe manifest references, not successful GPU uploads; backend load
+ * failures are reported separately by renderer logs.
+ */
 data class EnvironmentPreviewAvailability(
     val hasSkybox: Boolean,
     val hasIrradiance: Boolean,
     val hasRadiance: Boolean,
     val hasBrdfLut: Boolean,
-    val effectiveShowSkybox: Boolean,
-    val fallbackMode: String,
-    val warnings: List<String>,
-)
+    val effectiveShowSkybox: Boolean = false,
+    val fallbackMode: String = "",
+    val warnings: List<String> = emptyList(),
+) {
+    val hasIblLighting: Boolean
+        get() = hasIrradiance || hasRadiance
+
+    companion object {
+        fun from(environment: EnvironmentAsset): EnvironmentPreviewAvailability =
+            EnvironmentPreviewAvailability(
+                hasSkybox =
+                    environment.generated.skybox
+                        ?.faces
+                        ?.isNotEmpty() == true,
+                hasIrradiance = environment.generated.irradiance != null,
+                hasRadiance =
+                    environment.generated.radiance
+                        ?.mips
+                        ?.isNotEmpty() == true,
+                hasBrdfLut = environment.generated.brdfLut != null,
+            )
+    }
+}
+
+private fun EnvironmentColor.toRenderColor(): Color = Color(r, g, b, a)

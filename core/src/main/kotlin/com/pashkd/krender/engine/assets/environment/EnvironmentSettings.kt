@@ -9,7 +9,6 @@ import kotlinx.serialization.Serializable
 data class EnvironmentSettings(
     val exposure: Float = 1.0f,
     val rotationDegrees: Float = 0.0f,
-    val skyboxVisible: Boolean = true,
     val skyboxIntensity: Float = 1.0f,
     val diffuseIntensity: Float = 1.0f,
     val specularIntensity: Float = 1.0f,
@@ -22,9 +21,16 @@ data class EnvironmentSettings(
  */
 @Serializable
 enum class BackgroundMode {
+    /** Displays the generated skybox while keeping IBL active. */
     Skybox,
+
+    /** Clears the viewport with [EnvironmentSettings.backgroundColor]. */
     SolidColor,
+
+    /** Clears the viewport with zero alpha when the target supports transparency. */
     Transparent,
+
+    /** Disables background drawing while keeping environment lighting active. */
     None,
 }
 

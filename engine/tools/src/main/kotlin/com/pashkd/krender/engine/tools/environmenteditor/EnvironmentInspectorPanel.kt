@@ -9,6 +9,7 @@ import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
 
+/** Read-only flat summary of the loaded manifest and source metadata. */
 class EnvironmentInspectorPanel(
     private val state: EnvironmentEditorState,
     private val layoutConfig: ImGuiLayoutConfig,
@@ -48,7 +49,7 @@ class EnvironmentInspectorPanel(
         }
         labeledText("Diffuse Intensity", "%.2f".format(settings.diffuseIntensity))
         labeledText("Specular Intensity", "%.2f".format(settings.specularIntensity))
-        labeledText("Background Mode", backgroundModeLabel(settings.backgroundMode))
+        labeledText("Background Mode", settings.backgroundMode.displayName)
         settings.backgroundColor?.let { color ->
             labeledText("Background Color", "(%.2f, %.2f, %.2f, %.2f)".format(color.r, color.g, color.b, color.a))
         }
@@ -57,10 +58,13 @@ class EnvironmentInspectorPanel(
             val prefix = "Source ${index + 1}"
             labeledText("$prefix ID", source.id)
             labeledText("$prefix Format", source.format.toString())
-            labeledText("$prefix Role", buildString {
-                append(source.role.toString())
-                if (source.isDefault) append(" [default]")
-            })
+            labeledText(
+                "$prefix Role",
+                buildString {
+                    append(source.role.toString())
+                    if (source.isDefault) append(" [default]")
+                },
+            )
             labeledText("$prefix Path", source.path)
             source.resolution?.let { labeledText("$prefix Resolution", it) }
             source.colorSpace?.let { labeledText("$prefix Color Space", it) }
@@ -73,14 +77,6 @@ class EnvironmentInspectorPanel(
         env.metadata.createdAt?.let { labeledText("Created", it) }
         env.metadata.modifiedAt?.let { labeledText("Modified", it) }
     }
-
-    private fun backgroundModeLabel(mode: BackgroundMode): String =
-        when (mode) {
-            BackgroundMode.Skybox -> "Skybox"
-            BackgroundMode.SolidColor -> "Solid Color"
-            BackgroundMode.Transparent -> "Transparent"
-            BackgroundMode.None -> "None"
-        }
 
     private fun labeledText(
         label: String,

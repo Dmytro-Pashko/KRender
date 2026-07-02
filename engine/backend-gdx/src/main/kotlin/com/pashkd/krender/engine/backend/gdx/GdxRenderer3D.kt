@@ -99,7 +99,7 @@ class GdxRenderer3D(
         if (clearSettings != lastFrameClearSettings) {
             logger.info(TAG) {
                 "Frame clear settings changed mode=${clearSettings.backgroundMode} " +
-                    "visible=${clearSettings.backgroundVisible} color=${clearSettings.clearColor} " +
+                    "color=${clearSettings.clearColor} " +
                     "showSkybox=${clearSettings.showSkybox}"
             }
             lastFrameClearSettings = clearSettings
@@ -204,16 +204,15 @@ class GdxRenderer3D(
                 ?: return DefaultFrameClearSettings
 
         val clearColor =
-            when {
-                !gltfSettings.backgroundVisible -> DefaultFrameClearSettings.clearColor
-                gltfSettings.backgroundMode == BackgroundMode.SolidColor -> gltfSettings.backgroundColor.copy()
-                gltfSettings.backgroundMode == BackgroundMode.Transparent -> com.pashkd.krender.engine.api.Color(0f, 0f, 0f, 0f)
-                gltfSettings.backgroundMode == BackgroundMode.None -> DefaultFrameClearSettings.clearColor
-                else -> DefaultFrameClearSettings.clearColor
+            when (gltfSettings.backgroundMode) {
+                BackgroundMode.SolidColor -> gltfSettings.backgroundColor.copy()
+                BackgroundMode.Transparent ->
+                    com.pashkd.krender.engine.api
+                        .Color(0f, 0f, 0f, 0f)
+                BackgroundMode.Skybox, BackgroundMode.None -> DefaultFrameClearSettings.clearColor
             }
 
         return FrameClearSettings(
-            backgroundVisible = gltfSettings.backgroundVisible,
             backgroundMode = gltfSettings.backgroundMode,
             clearColor = clearColor,
             showSkybox = gltfSettings.showSkybox,
@@ -1030,7 +1029,6 @@ class GdxRenderer3D(
 }
 
 private data class FrameClearSettings(
-    val backgroundVisible: Boolean,
     val backgroundMode: BackgroundMode,
     val clearColor: EngineColor,
     val showSkybox: Boolean,
@@ -1038,7 +1036,6 @@ private data class FrameClearSettings(
 
 private val DefaultFrameClearSettings =
     FrameClearSettings(
-        backgroundVisible = true,
         backgroundMode = BackgroundMode.None,
         clearColor = EngineColor(0.08f, 0.09f, 0.11f, 1f),
         showSkybox = false,

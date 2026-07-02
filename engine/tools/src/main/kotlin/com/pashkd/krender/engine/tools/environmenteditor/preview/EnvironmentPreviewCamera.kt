@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorConfig
 import kotlin.math.cos
 import kotlin.math.sin
 
+/** Pure orbit-camera calculations shared by initial scene setup and live updates. */
 object EnvironmentPreviewCamera {
     val FocusTarget = Vec3(0f, 0.65f, 0.1f)
 

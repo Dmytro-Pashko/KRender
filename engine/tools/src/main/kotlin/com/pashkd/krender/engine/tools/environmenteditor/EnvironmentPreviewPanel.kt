@@ -2,10 +2,8 @@ package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
 import com.pashkd.krender.engine.assets.environment.ValidationStatus
-import com.pashkd.krender.engine.assets.environment.BackgroundMode
-import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorConfig
-import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCamera
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewAvailability
+import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCamera
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -52,8 +50,7 @@ class EnvironmentPreviewPanel(
     }
 
     private fun drawPreview(env: EnvironmentAsset) {
-        val preview = state.previewState
-        val availability = controller.availability(env, preview)
+        val availability = controller.availability(env)
         drawPreviewControls()
         ImGui.separator()
         drawPreviewStatus(env, availability)
@@ -90,9 +87,9 @@ class EnvironmentPreviewPanel(
         ImGui.text("Radiance: ${availabilityLabel(availability.hasRadiance)}")
         ImGui.text("BRDF LUT: ${availabilityLabel(availability.hasBrdfLut)}")
         ImGui.separator()
-        ImGui.text("Background Mode: ${backgroundModeLabel(env.settings.backgroundMode)}")
+        ImGui.text("Background Mode: ${env.settings.backgroundMode.displayName}")
         ImGui.textWrapped("Fallback: ${availability.fallbackMode}")
-        state.previewState.previewStatusMessage?.let(ImGui::textWrapped)
+        ImGui.textWrapped(controller.liveStatusMessage(env))
         availability.warnings.forEach(ImGui::textWrapped)
         if (availability.warnings.isEmpty()) {
             ImGui.textWrapped("Preview uses the current environment manifest and generated IBL maps.")
@@ -112,12 +109,4 @@ class EnvironmentPreviewPanel(
     }
 
     private fun availabilityLabel(value: Boolean): String = if (value) "available" else "missing"
-
-    private fun backgroundModeLabel(mode: BackgroundMode): String =
-        when (mode) {
-            BackgroundMode.Skybox -> "Skybox"
-            BackgroundMode.SolidColor -> "Solid Color"
-            BackgroundMode.Transparent -> "Transparent"
-            BackgroundMode.None -> "None"
-        }
 }

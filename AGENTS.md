@@ -338,6 +338,12 @@ shows model metadata, and launches the right editor per asset via `AssetToolRegi
 materials, texture channels, wireframe, material-debug modes, glTF PBR preview, bounds/grid/axes.
 → `docs/agents/tools/model-viewer.md`
 
+### Environment Editor
+`engine/tools/.../environmenteditor/EnvironmentEditorScene.kt` (+ preview systems and shared
+environment domain types in `core`). Edits `.environment.json` runtime/background settings,
+validates source and generated IBL references, and previews them on bundled glTF test models.
+→ `docs/agents/tools/environment-editor.md`
+
 ### Animation Viewer
 `engine/tools/.../animationviewer/AnimationViewerScene.kt` (+ sibling files in `engine:tools`). Plays model animation clips and
 visualizes the skeleton/pose. → `docs/agents/tools/animation-viewer.md`

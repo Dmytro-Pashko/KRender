@@ -66,8 +66,7 @@ class EnvironmentSourceVariantsPanel(
         if (!src.isDefault) {
             if (ImGui.button("Set as Default##env_src_default_$index")) {
                 val updatedSources = env.sources.map { it.copy(isDefault = it.id == src.id) }
-                state.environment = env.copy(sources = updatedSources)
-                state.dirty = true
+                state.updateEnvironment { it.copy(sources = updatedSources) }
             }
             tooltipOnHover("Makes this source variant the default input for the Environment.")
         }

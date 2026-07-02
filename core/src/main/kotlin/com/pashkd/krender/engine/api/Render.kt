@@ -148,11 +148,13 @@ data class MaterialDebugView(
 data class GltfRendererSettings(
     val enabled: Boolean = false,
     val environmentPreset: String = "default",
+    /** Invalidates backend environment caches when live editor values change. */
     val environmentCacheKey: String? = null,
     val exposure: Float = 1f,
-    val backgroundVisible: Boolean = true,
+    /** Single source of truth for viewport background presentation. */
     val backgroundMode: BackgroundMode = BackgroundMode.Skybox,
     val backgroundColor: Color = Color(0.08f, 0.09f, 0.11f, 1f),
+    /** Derived request; false when the mode or available resources suppress the skybox. */
     val showSkybox: Boolean = true,
     val skyboxIntensity: Float = 1f,
     val ambientIntensity: Float = 1f,

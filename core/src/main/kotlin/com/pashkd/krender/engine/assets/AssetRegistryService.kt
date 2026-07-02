@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.assets
 
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.assets.environment.EnvironmentManifestCodec
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -282,7 +283,10 @@ class LocalAssetRegistryService(
                         put("environmentType", manifest.environmentType)
                         put("environmentSourceCount", manifest.sources.size.toString())
                         put("environmentBackgroundMode", manifest.settings.backgroundMode.name)
-                        put("environmentSkyboxVisible", manifest.settings.skyboxVisible.toString())
+                        put(
+                            "environmentSkyboxVisible",
+                            (manifest.settings.backgroundMode == BackgroundMode.Skybox).toString(),
+                        )
                         put("environmentExposure", manifest.settings.exposure.toString())
                         put("environmentRotationDegrees", manifest.settings.rotationDegrees.toString())
                         put("environmentSkyboxIntensity", manifest.settings.skyboxIntensity.toString())
@@ -304,11 +308,12 @@ class LocalAssetRegistryService(
 
             AssetType.HdrSource ->
                 mapOf(
-                    "environmentSourceKind" to when {
-                        file.extension.equals("hdr", ignoreCase = true) -> "HDR"
-                        file.extension.equals("exr", ignoreCase = true) -> "EXR"
-                        else -> file.extension.uppercase().ifBlank { "unknown" }
-                    },
+                    "environmentSourceKind" to
+                        when {
+                            file.extension.equals("hdr", ignoreCase = true) -> "HDR"
+                            file.extension.equals("exr", ignoreCase = true) -> "EXR"
+                            else -> file.extension.uppercase().ifBlank { "unknown" }
+                        },
                 )
 
             AssetType.EnvironmentSkybox ->

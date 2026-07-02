@@ -29,6 +29,10 @@ Supporting data: `TransformSnapshot`, `Material` (`render3d`), `MaterialDebugVie
 `MaterialDebugMode`/`TextureDebugComponent`/`DebugCullingMode`/`MaterialDebugTextureRef`,
 `GltfRendererSettings`, `AnimationPlaybackView`, `DynamicMesh`/`DynamicModel`, `RuntimeTextureData`.
 
+`GltfRendererSettings.backgroundMode` is the source of truth for glTF preview background behavior.
+`showSkybox` is a derived renderer request used to suppress skybox drawing when the selected mode
+is not `Skybox` or the cubemap is unavailable.
+
 ## Buffer + context
 
 - `RenderCommandBuffer.submit(cmd)` appends; `clear()` empties; `snapshot()` returns the list

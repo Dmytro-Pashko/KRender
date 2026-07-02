@@ -8,7 +8,6 @@
   "settings": {
     "exposure": 1.18,
     "rotationDegrees": 76.7,
-    "skyboxVisible": true,
     "skyboxIntensity": 0.75,
     "diffuseIntensity": 0.51,
     "specularIntensity": 0.39,

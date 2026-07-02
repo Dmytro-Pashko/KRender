@@ -40,13 +40,6 @@ object EnvironmentValidator {
         if (asset.id.path.isBlank()) {
             issues += error(Codes.MISSING_ID, "Environment id is empty.")
         }
-        if (asset.type != EnvironmentType.HdrIbl) {
-            issues +=
-                warning(
-                    Codes.UNSUPPORTED_TYPE,
-                    "Environment type '${asset.type}' is not yet supported. Only HdrIbl is available.",
-                )
-        }
     }
 
     private fun validateSources(
@@ -194,14 +187,14 @@ object EnvironmentValidator {
         if (s.exposure <= 0f) {
             issues += warning(Codes.INVALID_EXPOSURE, "Exposure should be positive, got ${s.exposure}.")
         }
-        if (s.skyboxIntensity < 0f) {
-            issues += warning(Codes.INVALID_INTENSITY, "Skybox intensity is negative: ${s.skyboxIntensity}.")
+        if (s.skyboxIntensity !in 0f..1f) {
+            issues += warning(Codes.INVALID_INTENSITY, "Skybox intensity must be between 0 and 1, got ${s.skyboxIntensity}.")
         }
         if (s.diffuseIntensity < 0f) {
             issues += warning(Codes.INVALID_INTENSITY, "Diffuse intensity is negative: ${s.diffuseIntensity}.")
         }
-        if (s.specularIntensity < 0f) {
-            issues += warning(Codes.INVALID_INTENSITY, "Specular intensity is negative: ${s.specularIntensity}.")
+        if (s.specularIntensity !in 0f..1f) {
+            issues += warning(Codes.INVALID_INTENSITY, "Specular intensity must be between 0 and 1, got ${s.specularIntensity}.")
         }
     }
 
@@ -237,7 +230,6 @@ object EnvironmentValidator {
     object Codes {
         const val MISSING_NAME = "ENV_MISSING_NAME"
         const val MISSING_ID = "ENV_MISSING_ID"
-        const val UNSUPPORTED_TYPE = "ENV_UNSUPPORTED_TYPE"
         const val NO_SOURCES = "ENV_NO_SOURCES"
         const val NO_DEFAULT_SOURCE = "ENV_NO_DEFAULT_SOURCE"
         const val SOURCE_FILE_MISSING = "ENV_SOURCE_FILE_MISSING"

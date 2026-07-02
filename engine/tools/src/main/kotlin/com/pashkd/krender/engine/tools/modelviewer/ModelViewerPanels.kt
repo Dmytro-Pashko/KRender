@@ -8,7 +8,6 @@ import imgui.SliderFlag
 import imgui.api.colorEdit4
 import imgui.api.slider
 import imgui.dsl
-import java.nio.charset.StandardCharsets
 import glm_.vec2.Vec2 as ImVec2
 
 private val MODEL_VIEWER_MATERIAL_CHANNEL_MODES =
@@ -357,7 +356,9 @@ internal class GltfPbrRendererOptionsPanel(
         val selectedEnvironment = environments.firstOrNull { environment -> environment.path == state.gltfEnvironmentPreset }
         val currentLabel =
             selectedEnvironment?.name
-                ?: state.gltfEnvironmentPreset.substringAfterLast('/').substringBefore(".environment.json")
+                ?: state.gltfEnvironmentPreset
+                    .substringAfterLast('/')
+                    .substringBefore(".environment.json")
                     .ifBlank { DEFAULT_GLTF_ENVIRONMENT_PRESET }
         val expanded =
             ImGui.beginCombo(
@@ -1385,20 +1386,6 @@ private fun tooltipOnHover(value: String) {
     if (ImGui.isItemHovered()) {
         ImGui.setTooltip(value)
     }
-}
-
-private fun readTextBuffer(buffer: ByteArray): String {
-    val length = buffer.indexOf(0).let { if (it < 0) buffer.size else it }
-    return String(buffer, 0, length, StandardCharsets.UTF_8)
-}
-
-private fun writeTextBuffer(
-    buffer: ByteArray,
-    value: String,
-) {
-    buffer.fill(0)
-    val bytes = value.toByteArray(StandardCharsets.UTF_8)
-    bytes.copyInto(buffer, endIndex = minOf(bytes.size, buffer.size - 1))
 }
 
 private fun drawInfoList(

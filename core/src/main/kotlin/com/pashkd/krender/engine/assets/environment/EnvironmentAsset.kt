@@ -30,15 +30,10 @@ data class EnvironmentAsset(
     val metadata: EnvironmentMetadata = EnvironmentMetadata(),
 )
 
-/**
- * Top-level environment type. Only [HdrIbl] is practically supported in the MVP.
- */
+/** Top-level Environment type supported by the current manifest and renderer. */
 @Serializable
 enum class EnvironmentType {
     HdrIbl,
-    ProceduralSky,
-    SolidColor,
-    GradientSky,
 }
 
 /**

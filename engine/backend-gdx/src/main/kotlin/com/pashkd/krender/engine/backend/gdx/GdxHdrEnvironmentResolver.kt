@@ -4,6 +4,7 @@ import com.badlogic.gdx.Files
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.assets.environment.ENVIRONMENT_SCHEMA
 import com.pashkd.krender.engine.assets.environment.EnvironmentManifestCodec
 import com.pashkd.krender.engine.assets.environment.EnvironmentManifestDto
@@ -234,32 +235,41 @@ internal class GdxHdrEnvironmentResolver(
         directoryStem: String,
     ): Map<String, String> {
         val normalized = resourcePath?.replace('\\', '/')?.trim().orEmpty()
-        if (normalized.isBlank()) return emptyMap()
-        if (normalized.contains(FACE_TOKEN)) {
-            return orderedFaceNames.associateWith { face ->
-                resolvePath(manifestPath, normalized.replace(FACE_TOKEN, face))
-            }
-        }
         val fileName = normalized.substringAfterLast('/')
         val parent = normalized.substringBeforeLast('/', "")
-        if (!fileName.contains('.')) {
-            val prefix = listOfNotNull(parent.takeIf(String::isNotBlank), fileName, directoryStem).joinToString("/")
-            return orderedFaceNames.associateWith { face ->
-                resolvePath(manifestPath, "${prefix}_$face.png")
+        return when {
+            normalized.isBlank() -> emptyMap()
+            normalized.contains(FACE_TOKEN) ->
+                orderedFaceNames.associateWith { face ->
+                    resolvePath(manifestPath, normalized.replace(FACE_TOKEN, face))
+                }
+            !fileName.contains('.') -> {
+                val prefix = listOfNotNull(parent.takeIf(String::isNotBlank), fileName, directoryStem).joinToString("/")
+                orderedFaceNames.associateWith { face ->
+                    resolvePath(manifestPath, "${prefix}_$face.png")
+                }
             }
+            else -> inferSiblingFaceFiles(manifestPath, parent, fileName)
         }
+    }
+
+    private fun inferSiblingFaceFiles(
+        manifestPath: String,
+        parent: String,
+        fileName: String,
+    ): Map<String, String> {
         val extension = fileName.substringAfterLast('.')
         val stem = fileName.substringBeforeLast('.')
         val matchedFace = orderedFaceNames.firstOrNull { face -> stem.endsWith("_$face") || stem.endsWith("-$face") }
-        if (matchedFace != null) {
-            val separator = if (stem.endsWith("-$matchedFace")) "-" else "_"
-            val baseStem = stem.removeSuffix("${separator}$matchedFace")
-            val prefix = if (parent.isBlank()) baseStem else "$parent/$baseStem"
-            return orderedFaceNames.associateWith { face ->
-                resolvePath(manifestPath, "$prefix${separator}$face.$extension")
-            }
-        }
-        return emptyMap()
+        return matchedFace
+            ?.let { face ->
+                val separator = if (stem.endsWith("-$face")) "-" else "_"
+                val baseStem = stem.removeSuffix("$separator$face")
+                val prefix = if (parent.isBlank()) baseStem else "$parent/$baseStem"
+                orderedFaceNames.associateWith { siblingFace ->
+                    resolvePath(manifestPath, "$prefix$separator$siblingFace.$extension")
+                }
+            }.orEmpty()
     }
 
     private fun environmentFaceName(face: String): String? =
@@ -281,7 +291,7 @@ internal class GdxHdrEnvironmentResolver(
             toneMapping = "ACES",
             gammaCorrection = true,
             srgbTextures = true,
-            skyboxEnabled = settings.skyboxVisible,
+            skyboxEnabled = settings.backgroundMode == BackgroundMode.Skybox,
             environmentRotationDegrees = settings.rotationDegrees.toDouble(),
             ambientIntensity = settings.diffuseIntensity.toDouble(),
         )

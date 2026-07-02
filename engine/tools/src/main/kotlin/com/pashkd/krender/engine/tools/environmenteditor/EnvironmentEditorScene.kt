@@ -1,36 +1,20 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
-import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.AssetPack
-import com.pashkd.krender.engine.render3d.ActiveCameraComponent
-import com.pashkd.krender.engine.render3d.LightComponent
-import com.pashkd.krender.engine.render3d.LightType
-import com.pashkd.krender.engine.render3d.Material
-import com.pashkd.krender.engine.render3d.ModelComponent
-import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
+import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
-import com.pashkd.krender.engine.assets.environment.EnvironmentGenerationService
-import com.pashkd.krender.engine.assets.environment.EnvironmentService
-import com.pashkd.krender.engine.assets.environment.PlaceholderEnvironmentGenerationService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCamera
-import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCameraSystem
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController
-import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentEditorStateLoggingSystem
-import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewLiveUpdateSystem
-import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewRenderSystem
+import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewSceneAssembler
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
-import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
-import com.pashkd.krender.engine.ui.editor.LogsPanel
-import com.pashkd.krender.engine.ui.editor.UiPanel
-import com.pashkd.krender.engine.ui.editor.UiSystem
 
 /**
- * Editor tool scene for inspecting, editing, and previewing Environment assets.
+ * Lifecycle coordinator for editing and previewing one `.environment.json` manifest.
  *
- * Opened from Asset Browser for `.environment.json` manifests.
+ * The scene owns service composition only. UI construction, file operations, and
+ * preview entity/render setup are delegated to focused collaborators.
  */
 class EnvironmentEditorScene(
     val environmentPath: String,
@@ -46,180 +30,35 @@ class EnvironmentEditorScene(
 
     override val config: SceneConfig = SceneConfigPresets.EnvironmentEditor
 
-    private lateinit var editorState: EnvironmentEditorState
-    private lateinit var environmentService: EnvironmentService
-    private lateinit var generationService: EnvironmentGenerationService
-    private lateinit var controller: EnvironmentEditorController
-    private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
-
     override fun show() {
-        engine.logger.info(TAG) { "EnvironmentEditor show environmentPath='$environmentPath'" }
+        engine.logger.info(TAG) { "Environment Editor opened path='$environmentPath'" }
+        val state = EnvironmentEditorState(environmentPath)
+        val environmentService = DefaultEnvironmentService(engine.sceneFiles)
+        val layoutTracker = loadLayout()
+        val controller = EnvironmentEditorController(state, engine, environmentService, layoutTracker)
 
-        environmentService = DefaultEnvironmentService(engine.sceneFiles)
-        generationService = PlaceholderEnvironmentGenerationService
-        editorState = EnvironmentEditorState(environmentPath)
-        val layoutConfig =
+        controller.reload()
+        world.systems.add(EnvironmentEditorStateLoggingSystem(state, engine.logger))
+        EnvironmentPreviewSceneAssembler(world, state, previewController).install()
+        world.systems.add(
+            EnvironmentEditorUiFactory(
+                state,
+                controller,
+                previewController,
+                environmentService,
+                layoutTracker,
+                engine,
+            ).create(),
+        )
+    }
+
+    private fun loadLayout(): ImGuiLayoutRuntimeTracker {
+        val layout =
             ImGuiLayoutConfigLoader(
                 assetPath = EnvironmentEditorUiLayoutDefaults.assetPath,
                 fallback = EnvironmentEditorUiLayoutDefaults.config,
             ).load(engine.logger, engine.sceneFiles)
-        layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
-        controller = EnvironmentEditorController(editorState, engine, environmentService, layoutTracker)
-        loadEnvironment()
-        createPreviewCamera()
-        createPreviewLights()
-        createPreviewModel()
-
-        val uiSystem = createUiSystem()
-        world.systems.add(EnvironmentEditorStateLoggingSystem(editorState, engine.logger))
-        world.systems.add(EnvironmentPreviewLiveUpdateSystem(editorState, previewController))
-        world.systems.add(EnvironmentPreviewCameraSystem(editorState))
-        world.systems.add(EnvironmentPreviewRenderSystem(editorState, previewController))
-        world.systems.add(uiSystem)
-    }
-
-    private fun createUiSystem(): UiSystem {
-        val layoutConfig = layoutTracker.currentConfig()
-        val eventLogger = ImGuiWindowEventLogger(engine.logger, "EnvironmentEditorUi")
-        return UiSystem(engine.ui).also { uiSystem ->
-            addPanel(
-                uiSystem,
-                "Control",
-                EnvironmentEditorControlPanel(editorState, controller, layoutConfig, layoutTracker, eventLogger),
-            )
-            addPanel(
-                uiSystem,
-                "Inspector",
-                EnvironmentInspectorPanel(editorState, layoutConfig, layoutTracker, eventLogger),
-            )
-            addPanel(
-                uiSystem,
-                "Settings",
-                EnvironmentSettingsPanel(editorState, engine.logger, layoutConfig, layoutTracker, eventLogger),
-            )
-            addPanel(
-                uiSystem,
-                "Sources",
-                EnvironmentSourceVariantsPanel(editorState, layoutConfig, layoutTracker, eventLogger),
-            )
-            addPanel(
-                uiSystem,
-                "GeneratedMaps",
-                EnvironmentGeneratedMapsPanel(editorState, generationService, engine.logger, layoutConfig, layoutTracker, eventLogger),
-            )
-            addPanel(
-                uiSystem,
-                "Diagnostics",
-                EnvironmentDiagnosticsPanel(editorState, environmentService, layoutConfig, layoutTracker, eventLogger),
-            )
-            addPanel(
-                uiSystem,
-                "Preview",
-                EnvironmentPreviewPanel(
-                    editorState,
-                    previewController,
-                    layoutConfig,
-                    layoutTracker,
-                    eventLogger,
-                ),
-            )
-            addPanel(
-                uiSystem,
-                "Logs",
-                LogsPanel(
-                    engine.logs,
-                    layoutConfig,
-                    eventLogger,
-                    panelId = EnvironmentEditorPanelIds.Logs,
-                    layoutTracker = layoutTracker,
-                    initialAutoScrollToLatest = true,
-                ),
-            )
-        }
-    }
-
-    private fun addPanel(
-        uiSystem: UiSystem,
-        name: String,
-        panel: UiPanel,
-    ) {
-        uiSystem.addPanel(
-            UiPanel {
-                try {
-                    panel.draw()
-                } catch (error: Exception) {
-                    engine.logger.error(TAG, error) { "Environment Editor panel draw failed panel='$name': ${error.message}" }
-                    throw error
-                }
-            },
-        )
-    }
-
-    private fun loadEnvironment() {
-        try {
-            val asset = environmentService.load(editorState.manifestPath)
-            editorState.applyLoadedEnvironment(asset)
-            editorState.validation = environmentService.validate(asset)
-            editorState.loadError = null
-            editorState.dirty = false
-            engine.logger.info(TAG) { "Environment loaded id='${asset.id.path}' name='${asset.name}'" }
-        } catch (e: Exception) {
-            editorState.environment = null
-            editorState.validation = null
-            editorState.loadError = e.message ?: "Unknown error"
-            engine.logger.error(TAG, e) { "Failed to load environment: ${e.message}" }
-        }
-    }
-
-    private fun createPreviewCamera() {
-        val orbitPosition = EnvironmentPreviewCamera.orbitPosition(editorState.previewState)
-        val camera = world.createEntity("Environment Preview Camera")
-        camera.transform.position.set(orbitPosition.x, orbitPosition.y, orbitPosition.z)
-        camera.add(ActiveCameraComponent())
-        camera.add(
-            PerspectiveCameraComponent(
-                fieldOfViewDegrees = 50f,
-                near = 0.05f,
-                far = 200f,
-                lookAt = EnvironmentPreviewCamera.FocusTarget.copy(),
-            ),
-        )
-    }
-
-    private fun createPreviewLights() {
-        world.createEntity("Environment Preview Ambient").add(
-            LightComponent(
-                type = LightType.Ambient,
-                intensity = 0.8f,
-            ),
-        )
-        world.createEntity("Environment Preview Directional").add(
-            LightComponent(
-                type = LightType.Directional,
-                intensity = 0.65f,
-            ),
-        )
-    }
-
-    private fun createPreviewModel() {
-        val preview = world.createEntity("Environment Material Spheres")
-        editorState.previewModelEntityId = preview.id
-        preview.transform.position.set(
-            EnvironmentPreviewController.PreviewModelPosition.x,
-            EnvironmentPreviewController.PreviewModelPosition.y,
-            EnvironmentPreviewController.PreviewModelPosition.z,
-        )
-        preview.transform.scale.set(
-            EnvironmentPreviewController.PreviewModelScale.x,
-            EnvironmentPreviewController.PreviewModelScale.y,
-            EnvironmentPreviewController.PreviewModelScale.z,
-        )
-        preview.add(
-            ModelComponent(
-                model = previewController.previewModel,
-                material = Material(),
-            ),
-        )
+        return ImGuiLayoutRuntimeTracker(layout)
     }
 
     companion object {

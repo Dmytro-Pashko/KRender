@@ -236,8 +236,7 @@ class AssetBrowserPanel(
                 assetVisibleInCategory(asset, category)
         }
 
-    private fun assetVisibleInSelectedCategory(asset: AssetDescriptor): Boolean =
-        assetVisibleInCategory(asset, state.selectedCategory)
+    private fun assetVisibleInSelectedCategory(asset: AssetDescriptor): Boolean = assetVisibleInCategory(asset, state.selectedCategory)
 
     private fun assetVisibleInCategory(
         asset: AssetDescriptor,

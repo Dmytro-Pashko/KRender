@@ -123,7 +123,6 @@ internal class GdxGltfRenderer(
         val logKey =
             listOf(
                 settings.environmentCacheKey ?: settings.environmentPreset,
-                settings.backgroundVisible,
                 settings.backgroundMode,
                 settings.backgroundColor.r,
                 settings.backgroundColor.g,
@@ -143,7 +142,7 @@ internal class GdxGltfRenderer(
         lastEnvironmentLogKey = logKey
         logger.info(TAG) {
             "Configured glTF environment preset='${settings.environmentPreset}' " +
-                "backgroundVisible=${settings.backgroundVisible} backgroundMode=${settings.backgroundMode} " +
+                "backgroundMode=${settings.backgroundMode} " +
                 "backgroundColor=(${settings.backgroundColor.r},${settings.backgroundColor.g},${settings.backgroundColor.b},${settings.backgroundColor.a}) " +
                 "showSkybox=${settings.showSkybox} exposure=${settings.exposure} " +
                 "ambientIntensity=${settings.ambientIntensity} environmentIntensity=${settings.environmentIntensity} " +

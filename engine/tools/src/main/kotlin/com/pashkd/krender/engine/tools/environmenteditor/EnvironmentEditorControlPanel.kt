@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
 
+/** Primary file/session controls and current manifest status. */
 class EnvironmentEditorControlPanel(
     private val state: EnvironmentEditorState,
     private val controller: EnvironmentEditorController,
