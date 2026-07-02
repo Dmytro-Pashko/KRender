@@ -6,7 +6,6 @@ import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformSnapshot
 import com.pashkd.krender.engine.api.TransformComponent
-import com.pashkd.krender.engine.api.GltfRendererSettings
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
@@ -57,7 +56,7 @@ class EnvironmentPreviewRenderSystem(
                 model = model.model,
                 transform = transform.snapshot(),
                 material = model.material,
-                gltfRenderer = previewGltfSettings(),
+                gltfRenderer = controller.gltfRendererSettings(state),
             ),
         )
 
@@ -72,14 +71,6 @@ class EnvironmentPreviewRenderSystem(
             )
         }
     }
-
-    private fun previewGltfSettings(): GltfRendererSettings =
-        GltfRendererSettings(
-            enabled = true,
-            environmentPreset = state.manifestPath,
-            showSkybox = state.previewState.showSkybox,
-            directionalLightIntensity = 0.85f,
-        )
 
     companion object {
         private const val GroundEntityId = -4242L

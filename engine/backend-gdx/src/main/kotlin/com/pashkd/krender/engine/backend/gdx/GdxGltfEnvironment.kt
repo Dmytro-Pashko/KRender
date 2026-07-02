@@ -13,8 +13,11 @@ internal class GdxGltfEnvironment(
     private val assetLoader = GdxGltfEnvironmentAssetLoader(logger)
     private val presets = mutableMapOf<String, GdxGltfEnvironmentPreset?>()
 
-    fun preset(nameOrPath: String): GdxGltfEnvironmentPreset? =
-        presets.getOrPut(nameOrPath) {
+    fun preset(
+        nameOrPath: String,
+        cacheKey: String = nameOrPath,
+    ): GdxGltfEnvironmentPreset? =
+        presets.getOrPut(cacheKey) {
             resolver.resolve(nameOrPath)?.let(assetLoader::loadPreset)
         }
 

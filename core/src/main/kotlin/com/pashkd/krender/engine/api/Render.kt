@@ -147,8 +147,11 @@ data class MaterialDebugView(
 data class GltfRendererSettings(
     val enabled: Boolean = false,
     val environmentPreset: String = "default",
+    val environmentCacheKey: String? = null,
     val exposure: Float = 1f,
     val showSkybox: Boolean = true,
+    val skyboxIntensity: Float = 1f,
+    val ambientIntensity: Float = 1f,
     val environmentIntensity: Float = 1f,
     val environmentRotationDegrees: Float = 0f,
     val toneMapping: PbrToneMapping = PbrToneMapping.Aces,

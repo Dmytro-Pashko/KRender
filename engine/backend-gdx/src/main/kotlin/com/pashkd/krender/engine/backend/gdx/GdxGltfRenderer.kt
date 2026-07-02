@@ -101,11 +101,11 @@ internal class GdxGltfRenderer(
         entry: GltfSceneEntry,
         settings: GltfRendererSettings,
     ) {
-        val preset = gltfEnvironment.preset(settings.environmentPreset)
+        val preset = gltfEnvironment.preset(settings.environmentPreset, settings.environmentCacheKey ?: settings.environmentPreset)
         val direction = gltfLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
         val environmentState = resolveEnvironmentState(preset, settings)
         entry.manager.environment.clear()
-        applyAmbientLight(entry, environmentState.intensity, environmentState.presetAmbientIntensity)
+        applyAmbientLight(entry, environmentState.intensity, settings.ambientIntensity.coerceAtLeast(0f))
         applyDirectionalLight(entry, settings, direction)
         applyEnvironmentRotation(entry, settings)
         syncEnvironmentFallback(entry, settings, preset, direction, environmentState.intensity)
@@ -218,7 +218,6 @@ internal class GdxGltfRenderer(
 
 private data class ResolvedEnvironmentState(
     val intensity: Float,
-    val presetAmbientIntensity: Float,
 )
 
 private fun GdxGltfRenderer.resolveEnvironmentState(
@@ -226,25 +225,23 @@ private fun GdxGltfRenderer.resolveEnvironmentState(
     settings: GltfRendererSettings,
 ): ResolvedEnvironmentState {
     val presetExposure = preset?.defaults?.exposure?.toFloat() ?: 1f
-    val presetAmbientIntensity = preset?.defaults?.ambientIntensity?.toFloat() ?: 1f
     val intensity = (settings.environmentIntensity * settings.exposure * presetExposure).coerceAtLeast(0f)
     return ResolvedEnvironmentState(
         intensity = intensity,
-        presetAmbientIntensity = presetAmbientIntensity,
     )
 }
 
 private fun GdxGltfRenderer.applyAmbientLight(
     entry: GltfSceneEntry,
     intensity: Float,
-    presetAmbientIntensity: Float,
+    ambientIntensity: Float,
 ) {
     entry.manager.environment.set(
         ColorAttribute(
             ColorAttribute.AmbientLight,
-            0.08f * intensity * presetAmbientIntensity,
-            0.09f * intensity * presetAmbientIntensity,
-            0.1f * intensity * presetAmbientIntensity,
+            0.08f * intensity * ambientIntensity,
+            0.09f * intensity * ambientIntensity,
+            0.1f * intensity * ambientIntensity,
             1f,
         ),
     )
@@ -302,6 +299,12 @@ private fun GdxGltfRenderer.applySkybox(
     }
     val skyboxKey = preset?.skybox?.let { "preset:${settings.environmentPreset}" } ?: "procedural"
     entry.ensureSceneSkybox(skyboxKey, skyboxMap)
+    entry.skybox?.color?.set(
+        settings.skyboxIntensity.coerceAtLeast(0f),
+        settings.skyboxIntensity.coerceAtLeast(0f),
+        settings.skyboxIntensity.coerceAtLeast(0f),
+        1f,
+    )
     entry.manager.skyBox = entry.skybox
 }
 

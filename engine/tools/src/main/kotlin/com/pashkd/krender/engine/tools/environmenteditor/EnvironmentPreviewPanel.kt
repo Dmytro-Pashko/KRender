@@ -2,6 +2,7 @@ package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCamera
+import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewMode
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import glm_.vec2.Vec2
@@ -12,6 +13,7 @@ import imgui.ImGui
  */
 class EnvironmentPreviewPanel(
     private val state: EnvironmentEditorState,
+    private val controller: EnvironmentPreviewController,
 ) : UiPanel {
     override fun draw() {
         if (!ImGui.begin("Preview")) {
@@ -39,13 +41,14 @@ class EnvironmentPreviewPanel(
 
     private fun drawPreview(env: EnvironmentAsset) {
         val preview = state.previewState
+        val availability = controller.availability(env, preview)
         ImGui.text("Preview Mode: ${preview.mode.name}")
         ImGui.separator()
         drawPreviewControls()
         ImGui.separator()
         drawViewportHint()
         ImGui.separator()
-        drawPreviewStatus(env)
+        drawPreviewStatus(env, availability)
     }
 
     private fun drawPreviewControls() {
@@ -68,10 +71,16 @@ class EnvironmentPreviewPanel(
         ImGui.endChild()
     }
 
-    private fun drawPreviewStatus(env: EnvironmentAsset) {
+    private fun drawPreviewStatus(
+        env: EnvironmentAsset,
+        availability: com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewAvailability,
+    ) {
         ImGui.text("Environment: ${env.name}")
         ImGui.text("Type: ${env.type}")
-        state.previewState.previewStatusMessage?.let(ImGui::textWrapped)
-            ?: ImGui.textWrapped("Preview rig is active. Use the main scene background as the current visual render area.")
+        ImGui.textWrapped("Fallback: ${availability.fallbackMode}")
+        availability.warnings.forEach(ImGui::textWrapped)
+        if (availability.warnings.isEmpty()) {
+            ImGui.textWrapped("Preview uses the current environment manifest and generated IBL maps.")
+        }
     }
 }

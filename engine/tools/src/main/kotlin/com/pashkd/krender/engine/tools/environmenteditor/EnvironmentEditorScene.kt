@@ -61,7 +61,7 @@ class EnvironmentEditorScene(
         uiSystem.addPanel(EnvironmentSourceVariantsPanel(editorState))
         uiSystem.addPanel(EnvironmentGeneratedMapsPanel(editorState, generationService, engine.logger))
         uiSystem.addPanel(EnvironmentDiagnosticsPanel(editorState, environmentService))
-        uiSystem.addPanel(EnvironmentPreviewPanel(editorState))
+        uiSystem.addPanel(EnvironmentPreviewPanel(editorState, previewController))
         world.systems.add(EnvironmentPreviewCameraSystem(editorState))
         world.systems.add(EnvironmentPreviewRenderSystem(editorState, previewController))
         world.systems.add(uiSystem)
