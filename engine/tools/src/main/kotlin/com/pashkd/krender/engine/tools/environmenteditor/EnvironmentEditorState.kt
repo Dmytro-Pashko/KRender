@@ -12,6 +12,7 @@ class EnvironmentEditorState(
     val manifestPath: String,
 ) {
     val previewState = EnvironmentPreviewState()
+    var previewModelEntityId: Long? = null
     var selectedEnvironmentId: EnvironmentAssetId? = null
     var environment: EnvironmentAsset? = null
     var validation: EnvironmentValidationReport? = null
@@ -24,5 +25,6 @@ class EnvironmentEditorState(
         selectedEnvironmentId = asset.id
         environment = asset
         skyboxVisibleHolder = asset.settings.skyboxVisible
+        previewState.showSkybox = asset.settings.skyboxVisible
     }
 }
