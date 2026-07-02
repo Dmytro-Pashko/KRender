@@ -132,15 +132,6 @@ object MaterialSpheresPreviewRig {
                 metallic = 0f,
                 roughness = 1f,
             ),
-            EnvironmentPreviewObject(
-                name = "Ground Plane",
-                shapeType = EnvironmentPreviewShapeType.Plane,
-                position = Vec3(0f, -0.01f, 0.1f),
-                scale = Vec3(8f, 1f, 6f),
-                baseColor = Color(0.42f, 0.42f, 0.42f, 1f),
-                metallic = 0f,
-                roughness = 0.8f,
-            ),
         )
 
     val chromeSphere: EnvironmentPreviewObject
@@ -154,7 +145,4 @@ object MaterialSpheresPreviewRig {
 
     val dielectricLadder: List<EnvironmentPreviewObject>
         get() = objects.filter { it.name.startsWith("Dielectric Roughness") }
-
-    val groundPlane: EnvironmentPreviewObject
-        get() = objects.first { it.shapeType == EnvironmentPreviewShapeType.Plane }
 }

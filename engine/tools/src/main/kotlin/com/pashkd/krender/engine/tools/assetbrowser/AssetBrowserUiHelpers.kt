@@ -44,6 +44,7 @@ internal fun assetBrowserIcon(asset: AssetDescriptor): String =
         asset.type == AssetType.Scene2DSkin -> "[Skin]"
         asset.type == AssetType.Atlas -> "[Atlas]"
         asset.type == AssetType.Font -> "[Font]"
+        asset.type == AssetType.HdrSource -> "[HDR]"
         else ->
             when (asset.category) {
                 AssetCategory.Model -> "[M]"

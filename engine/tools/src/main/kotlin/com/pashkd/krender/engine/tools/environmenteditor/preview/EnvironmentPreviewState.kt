@@ -1,12 +1,12 @@
 package com.pashkd.krender.engine.tools.environmenteditor.preview
 
+import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorConfig
+
 class EnvironmentPreviewState {
-    var mode: EnvironmentPreviewMode = EnvironmentPreviewMode.MaterialSpheres
     var showSkybox: Boolean = true
-    var showGround: Boolean = true
     var autoRotate: Boolean = false
-    var cameraDistance: Float = 6f
-    var cameraYawDegrees: Float = 35f
-    var cameraPitchDegrees: Float = 20f
+    var cameraDistance: Float = EnvironmentEditorConfig.defaultCameraDistance
+    var cameraYawDegrees: Float = EnvironmentEditorConfig.defaultCameraYawDegrees
+    var cameraPitchDegrees: Float = EnvironmentEditorConfig.defaultCameraPitchDegrees
     var previewStatusMessage: String? = null
 }

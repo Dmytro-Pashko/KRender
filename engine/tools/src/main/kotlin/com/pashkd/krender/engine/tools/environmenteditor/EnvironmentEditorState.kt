@@ -19,12 +19,10 @@ class EnvironmentEditorState(
     var dirty: Boolean = false
     var loadError: String? = null
     var statusMessage: String? = null
-    var skyboxVisibleHolder: Boolean = true
 
     fun applyLoadedEnvironment(asset: EnvironmentAsset) {
         selectedEnvironmentId = asset.id
         environment = asset
-        skyboxVisibleHolder = asset.settings.skyboxVisible
         previewState.showSkybox = asset.settings.skyboxVisible
     }
 }

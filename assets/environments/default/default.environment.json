@@ -9,10 +9,16 @@
     "exposure": 1.18,
     "rotationDegrees": 76.7,
     "skyboxVisible": true,
-    "skyboxIntensity": 1.0,
-    "diffuseIntensity": 1.0,
-    "specularIntensity": 1.0,
-    "backgroundMode": "SolidColor"
+    "skyboxIntensity": 0.75,
+    "diffuseIntensity": 0.51,
+    "specularIntensity": 0.39,
+    "backgroundMode": "Skybox",
+    "backgroundColor": {
+      "r": 0.2675326,
+      "g": 0.8101266,
+      "b": 0.030764278,
+      "a": 1.0
+    }
   },
   "sources": [
     {

@@ -17,8 +17,14 @@ import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCamera
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCameraSystem
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController
+import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentEditorStateLoggingSystem
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewLiveUpdateSystem
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewRenderSystem
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
+import com.pashkd.krender.engine.ui.editor.LogsPanel
+import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.UiSystem
 
 /**
@@ -38,11 +44,13 @@ class EnvironmentEditorScene(
             },
         )
 
-    override val config: SceneConfig = SceneConfigPresets.EditorTool
+    override val config: SceneConfig = SceneConfigPresets.EnvironmentEditor
 
     private lateinit var editorState: EnvironmentEditorState
     private lateinit var environmentService: EnvironmentService
     private lateinit var generationService: EnvironmentGenerationService
+    private lateinit var controller: EnvironmentEditorController
+    private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
 
     override fun show() {
         engine.logger.info(TAG) { "EnvironmentEditor show environmentPath='$environmentPath'" }
@@ -50,23 +58,101 @@ class EnvironmentEditorScene(
         environmentService = DefaultEnvironmentService(engine.sceneFiles)
         generationService = PlaceholderEnvironmentGenerationService
         editorState = EnvironmentEditorState(environmentPath)
+        val layoutConfig =
+            ImGuiLayoutConfigLoader(
+                assetPath = EnvironmentEditorUiLayoutDefaults.assetPath,
+                fallback = EnvironmentEditorUiLayoutDefaults.config,
+            ).load(engine.logger, engine.sceneFiles)
+        layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
+        controller = EnvironmentEditorController(editorState, engine, environmentService, layoutTracker)
         loadEnvironment()
         createPreviewCamera()
         createPreviewLights()
         createPreviewModel()
 
-        val uiSystem = UiSystem(engine.ui)
-        uiSystem.addPanel(EnvironmentEditorToolbarPanel(editorState, environmentService, engine.logger))
-        uiSystem.addPanel(EnvironmentInspectorPanel(editorState))
-        uiSystem.addPanel(EnvironmentSettingsPanel(editorState, environmentService, engine.logger))
-        uiSystem.addPanel(EnvironmentSourceVariantsPanel(editorState))
-        uiSystem.addPanel(EnvironmentGeneratedMapsPanel(editorState, generationService, engine.logger))
-        uiSystem.addPanel(EnvironmentDiagnosticsPanel(editorState, environmentService))
-        uiSystem.addPanel(EnvironmentPreviewPanel(editorState, previewController))
+        val uiSystem = createUiSystem()
+        world.systems.add(EnvironmentEditorStateLoggingSystem(editorState, engine.logger))
         world.systems.add(EnvironmentPreviewLiveUpdateSystem(editorState, previewController))
         world.systems.add(EnvironmentPreviewCameraSystem(editorState))
         world.systems.add(EnvironmentPreviewRenderSystem(editorState, previewController))
         world.systems.add(uiSystem)
+    }
+
+    private fun createUiSystem(): UiSystem {
+        val layoutConfig = layoutTracker.currentConfig()
+        val eventLogger = ImGuiWindowEventLogger(engine.logger, "EnvironmentEditorUi")
+        return UiSystem(engine.ui).also { uiSystem ->
+            addPanel(
+                uiSystem,
+                "Control",
+                EnvironmentEditorControlPanel(editorState, controller, layoutConfig, layoutTracker, eventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "Inspector",
+                EnvironmentInspectorPanel(editorState, layoutConfig, layoutTracker, eventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "Settings",
+                EnvironmentSettingsPanel(editorState, engine.logger, layoutConfig, layoutTracker, eventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "Sources",
+                EnvironmentSourceVariantsPanel(editorState, layoutConfig, layoutTracker, eventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "GeneratedMaps",
+                EnvironmentGeneratedMapsPanel(editorState, generationService, engine.logger, layoutConfig, layoutTracker, eventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "Diagnostics",
+                EnvironmentDiagnosticsPanel(editorState, environmentService, layoutConfig, layoutTracker, eventLogger),
+            )
+            addPanel(
+                uiSystem,
+                "Preview",
+                EnvironmentPreviewPanel(
+                    editorState,
+                    previewController,
+                    layoutConfig,
+                    layoutTracker,
+                    eventLogger,
+                ),
+            )
+            addPanel(
+                uiSystem,
+                "Logs",
+                LogsPanel(
+                    engine.logs,
+                    layoutConfig,
+                    eventLogger,
+                    panelId = EnvironmentEditorPanelIds.Logs,
+                    layoutTracker = layoutTracker,
+                    initialAutoScrollToLatest = true,
+                ),
+            )
+        }
+    }
+
+    private fun addPanel(
+        uiSystem: UiSystem,
+        name: String,
+        panel: UiPanel,
+    ) {
+        uiSystem.addPanel(
+            UiPanel {
+                try {
+                    panel.draw()
+                } catch (error: Exception) {
+                    engine.logger.error(TAG, error) { "Environment Editor panel draw failed panel='$name': ${error.message}" }
+                    throw error
+                }
+            },
+        )
     }
 
     private fun loadEnvironment() {

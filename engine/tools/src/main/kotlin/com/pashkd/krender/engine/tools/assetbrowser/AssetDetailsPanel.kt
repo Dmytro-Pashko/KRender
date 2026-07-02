@@ -6,6 +6,7 @@ import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.canOpenWithTools
 import com.pashkd.krender.engine.tools.assetbrowser.details.AssetDetailsRenderContext
 import com.pashkd.krender.engine.tools.assetbrowser.details.AtlasAssetDetailsRenderer
+import com.pashkd.krender.engine.tools.assetbrowser.details.EnvironmentAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.GenericAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.ModelAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.Scene2DSkinAssetDetailsRenderer
@@ -42,6 +43,7 @@ class AssetDetailsPanel(
             UiSceneAssetDetailsRenderer(),
             Scene2DSkinAssetDetailsRenderer(),
             SceneAssetDetailsRenderer(),
+            EnvironmentAssetDetailsRenderer(),
             GenericAssetDetailsRenderer(),
         )
 

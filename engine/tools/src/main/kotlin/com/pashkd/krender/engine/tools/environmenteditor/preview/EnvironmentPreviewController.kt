@@ -2,26 +2,16 @@ package com.pashkd.krender.engine.tools.environmenteditor.preview
 
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.api.DynamicMesh
-import com.pashkd.krender.engine.api.DynamicModel
 import com.pashkd.krender.engine.api.GltfRendererSettings
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
-import com.pashkd.krender.engine.render3d.Material
+import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorConfig
 import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorState
 
 class EnvironmentPreviewController {
-    val previewModel = AssetRef.model(MaterialSpheresPreviewRig.PreviewModelPath)
-    val groundObject: EnvironmentPreviewObject = MaterialSpheresPreviewRig.groundPlane
-    val groundModel: DynamicModel = buildGroundModel(groundObject)
-
-    fun groundMaterial(): Material =
-        Material(
-            baseColor = groundObject.baseColor.copy(),
-            metallic = groundObject.metallic,
-            roughness = groundObject.roughness,
-        )
+    val previewModel = AssetRef.model(EnvironmentEditorConfig.defaultPreviewModel.assetPath)
+    val defaultBackgroundColor = EnvironmentEditorConfig.defaultBackgroundColor
 
     fun availability(
         env: EnvironmentAsset,
@@ -31,10 +21,7 @@ class EnvironmentPreviewController {
         val hasIrradiance = env.generated.irradiance != null
         val hasRadiance = env.generated.radiance?.mips?.isNotEmpty() == true
         val hasBrdfLut = env.generated.brdfLut != null
-        val wantsSkyboxBackground =
-            preview.showSkybox &&
-                env.settings.skyboxVisible &&
-                env.settings.backgroundMode == BackgroundMode.Skybox
+        val wantsSkyboxBackground = env.settings.backgroundMode == BackgroundMode.Skybox
         val effectiveShowSkybox = wantsSkyboxBackground && hasSkybox
         val warnings = buildList {
             if (!hasIrradiance && !hasRadiance && !hasBrdfLut) {
@@ -77,6 +64,10 @@ class EnvironmentPreviewController {
         val preview = state.previewState
         val availability = availability(env, preview)
         val settings = env.settings
+        val backgroundColor =
+            settings.backgroundColor?.let { color ->
+                Color(color.r, color.g, color.b, color.a)
+            } ?: defaultBackgroundColor.copy()
         return GltfRendererSettings(
             enabled = true,
             environmentPreset = state.manifestPath,
@@ -85,17 +76,23 @@ class EnvironmentPreviewController {
                     state.manifestPath,
                     settings.exposure,
                     settings.rotationDegrees,
-                    settings.skyboxVisible,
                     settings.skyboxIntensity,
                     settings.diffuseIntensity,
                     settings.specularIntensity,
                     settings.backgroundMode,
+                    settings.backgroundColor?.r,
+                    settings.backgroundColor?.g,
+                    settings.backgroundColor?.b,
+                    settings.backgroundColor?.a,
                     availability.hasSkybox,
                     availability.hasIrradiance,
                     availability.hasRadiance,
                     availability.hasBrdfLut,
                 ).joinToString("|"),
             exposure = settings.exposure.coerceAtLeast(0f),
+            backgroundVisible = settings.backgroundMode != BackgroundMode.None,
+            backgroundMode = settings.backgroundMode,
+            backgroundColor = backgroundColor,
             showSkybox = availability.effectiveShowSkybox,
             skyboxIntensity = settings.skyboxIntensity.coerceAtLeast(0f),
             ambientIntensity = settings.diffuseIntensity.coerceAtLeast(0f),
@@ -118,51 +115,24 @@ class EnvironmentPreviewController {
                 env.settings.diffuseIntensity,
                 env.settings.specularIntensity,
             ))
+            append(" Background mode ${backgroundModeLabel(env.settings.backgroundMode)}.")
             if (availability.warnings.isNotEmpty()) {
                 append(" ${availability.fallbackMode}.")
             }
         }
     }
 
-    private fun buildGroundModel(ground: EnvironmentPreviewObject): DynamicModel {
-        val halfWidth = ground.scale.x * 0.5f
-        val halfDepth = ground.scale.z * 0.5f
-        val y = ground.position.y
-        return DynamicModel(
-            id = "environment-preview-ground",
-            revision = 1L,
-            mesh =
-                DynamicMesh(
-                    positions =
-                        floatArrayOf(
-                            -halfWidth, y, -halfDepth,
-                            halfWidth, y, -halfDepth,
-                            halfWidth, y, halfDepth,
-                            -halfWidth, y, halfDepth,
-                        ),
-                    normals =
-                        floatArrayOf(
-                            0f, 1f, 0f,
-                            0f, 1f, 0f,
-                            0f, 1f, 0f,
-                            0f, 1f, 0f,
-                        ),
-                    uvs =
-                        floatArrayOf(
-                            0f, 0f,
-                            1f, 0f,
-                            1f, 1f,
-                            0f, 1f,
-                        ),
-                    indices = intArrayOf(0, 1, 2, 0, 2, 3),
-                ),
-        )
-    }
+    private fun backgroundModeLabel(mode: BackgroundMode): String =
+        when (mode) {
+            BackgroundMode.Skybox -> "Skybox"
+            BackgroundMode.SolidColor -> "Solid Color"
+            BackgroundMode.Transparent -> "Transparent"
+            BackgroundMode.None -> "None"
+        }
 
     companion object {
         val PreviewModelScale = Vec3(1.35f, 1.35f, 1.35f)
         val PreviewModelPosition = Vec3(0f, 0f, 0.35f)
-        val GroundBaseColor = Color(0.42f, 0.42f, 0.42f, 1f)
     }
 }
 

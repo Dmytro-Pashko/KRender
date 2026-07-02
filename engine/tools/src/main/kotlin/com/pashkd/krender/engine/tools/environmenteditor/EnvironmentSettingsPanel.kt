@@ -3,11 +3,16 @@ package com.pashkd.krender.engine.tools.environmenteditor
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
-import com.pashkd.krender.engine.assets.environment.EnvironmentService
+import com.pashkd.krender.engine.assets.environment.EnvironmentColor
 import com.pashkd.krender.engine.assets.environment.EnvironmentSettings
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
 import imgui.SliderFlag
+import imgui.api.colorEdit4
 import imgui.api.slider
 
 /**
@@ -18,16 +23,18 @@ import imgui.api.slider
  */
 class EnvironmentSettingsPanel(
     private val state: EnvironmentEditorState,
-    private val environmentService: EnvironmentService,
     private val logger: Logger,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    private val nameBuffer = ByteArray(256)
-    private var nameBufferSynced = false
-
     private val holder = FloatHolder()
 
     override fun draw() {
-        if (!ImGui.begin("Settings")) {
+        val layout = layoutConfig.panels.getValue(EnvironmentEditorPanelIds.Settings)
+        val expanded = beginImGuiPanel(EnvironmentEditorPanelIds.Settings, layout, layoutTracker)
+        eventLogger.observe(EnvironmentEditorPanelIds.Settings, layout.title)
+        if (!expanded) {
             ImGui.end()
             return
         }
@@ -37,126 +44,151 @@ class EnvironmentSettingsPanel(
             ImGui.end()
             return
         }
-        drawNameEditor(env)
         drawSettingsEditor(env)
-        drawActions(env)
         ImGui.end()
-    }
-
-    private fun drawNameEditor(env: EnvironmentAsset) {
-        if (!nameBufferSynced) {
-            syncNameBuffer(env.name)
-            nameBufferSynced = true
-        }
-        if (ImGui.inputText("Name", nameBuffer)) {
-            val newName = readBuffer(nameBuffer)
-            if (newName != env.name) {
-                state.environment = env.copy(name = newName)
-                state.dirty = true
-            }
-        }
     }
 
     private fun drawSettingsEditor(env: EnvironmentAsset) {
         val s = env.settings
         ImGui.separator()
-        ImGui.text("Runtime Settings")
+        ImGui.text("1. Runtime Settings")
 
         holder.value = s.exposure
         if (slider("Exposure##env_exposure", holder::value, 0.01f, 10f, "%.2f", SliderFlag.AlwaysClamp)) {
             updateSettings(env) { it.copy(exposure = holder.value) }
         }
+        tooltipOnHover("Adjusts overall environment preview brightness.")
 
         holder.value = s.rotationDegrees
         if (slider("Rotation##env_rotation", holder::value, 0f, 360f, "%.1f deg", SliderFlag.AlwaysClamp)) {
             updateSettings(env) { it.copy(rotationDegrees = holder.value) }
         }
-
-        ImGui.checkbox("Skybox Visible##env_skybox_visible", state::skyboxVisibleHolder)
-        if (state.skyboxVisibleHolder != s.skyboxVisible) {
-            updateSettings(env) { it.copy(skyboxVisible = state.skyboxVisibleHolder) }
-        }
-
-        holder.value = s.skyboxIntensity
-        if (slider("Skybox Intensity##env_skybox_int", holder::value, 0f, 5f, "%.2f", SliderFlag.AlwaysClamp)) {
-            updateSettings(env) { it.copy(skyboxIntensity = holder.value) }
-        }
+        tooltipOnHover("Rotates the environment around the vertical axis.")
 
         holder.value = s.diffuseIntensity
         if (slider("Diffuse Intensity##env_diffuse_int", holder::value, 0f, 5f, "%.2f", SliderFlag.AlwaysClamp)) {
             updateSettings(env) { it.copy(diffuseIntensity = holder.value) }
         }
+        tooltipOnHover("Controls diffuse environment lighting contribution.")
 
         holder.value = s.specularIntensity
-        if (slider("Specular Intensity##env_specular_int", holder::value, 0f, 5f, "%.2f", SliderFlag.AlwaysClamp)) {
+        if (slider("Specular Intensity##env_specular_int", holder::value, 0f, 1f, "%.2f", SliderFlag.AlwaysClamp)) {
             updateSettings(env) { it.copy(specularIntensity = holder.value) }
         }
+        tooltipOnHover("Controls specular reflections from the environment.")
 
         ImGui.separator()
-        val bgModes = BackgroundMode.entries.toTypedArray()
-        val currentIdx = bgModes.indexOf(s.backgroundMode)
-        ImGui.text("Background Mode: ${s.backgroundMode.name}")
-        for ((i, mode) in bgModes.withIndex()) {
-            if (ImGui.radioButton("${mode.name}##env_bg_mode_$i", i == currentIdx)) {
-                updateSettings(env) { it.copy(backgroundMode = mode) }
+        ImGui.text("2. Background Type")
+        if (ImGui.beginCombo("Display Background##env_bg_mode", backgroundModeLabel(s.backgroundMode))) {
+            BackgroundMode.entries.forEach { mode ->
+                val selected = s.backgroundMode == mode
+                if (ImGui.selectable("${backgroundModeLabel(mode)}##env_bg_mode_${mode.name}", selected)) {
+                    updateSettings(env) {
+                        it.copy(
+                            backgroundMode = mode,
+                            skyboxVisible = mode != BackgroundMode.None,
+                        )
+                    }
+                }
+                if (selected) {
+                    ImGui.setItemDefaultFocus()
+                }
             }
-            if (i < bgModes.size - 1) ImGui.sameLine()
+            ImGui.endCombo()
+        }
+        tooltipOnHover(backgroundModeTooltip(s.backgroundMode))
+
+        ImGui.separator()
+        ImGui.text("3. Background Options")
+        drawBackgroundModeHelp(s)
+        when (s.backgroundMode) {
+            BackgroundMode.Skybox -> drawSkyboxOptions(env, s)
+            BackgroundMode.SolidColor -> drawSolidBackgroundColorEditor(env, s)
+            BackgroundMode.Transparent, BackgroundMode.None -> Unit
         }
     }
 
-    private fun drawActions(env: EnvironmentAsset) {
-        ImGui.separator()
-        if (ImGui.button("Save##env_settings_save")) {
-            try {
-                environmentService.save(env)
-                state.validation = environmentService.validate(env)
-                state.dirty = false
-                state.statusMessage = "Settings saved."
-                logger.info(TAG) { "Environment settings saved id='${env.id.path}'" }
-            } catch (e: Exception) {
-                state.statusMessage = "Save failed: ${e.message}"
-                logger.error(TAG, e) { "Settings save failed: ${e.message}" }
-            }
-        }
-        ImGui.sameLine()
-        if (ImGui.button("Revert##env_settings_revert")) {
-            try {
-                val reloaded = environmentService.load(state.manifestPath)
-                state.applyLoadedEnvironment(reloaded)
-                state.validation = environmentService.validate(reloaded)
-                state.dirty = false
-                nameBufferSynced = false
-                state.statusMessage = "Reverted to saved state."
-                logger.info(TAG) { "Environment reverted id='${reloaded.id.path}'" }
-            } catch (e: Exception) {
-                state.statusMessage = "Revert failed: ${e.message}"
-                logger.error(TAG, e) { "Revert failed: ${e.message}" }
-            }
+    private fun drawBackgroundModeHelp(settings: com.pashkd.krender.engine.assets.environment.EnvironmentSettings) {
+        when (settings.backgroundMode) {
+            BackgroundMode.Skybox ->
+                ImGui.textWrapped("Skybox uses the generated skybox cubemap as the preview background.")
+            BackgroundMode.SolidColor ->
+                ImGui.textWrapped("Solid Color uses the selected color as the preview background.")
+            BackgroundMode.Transparent ->
+                ImGui.textWrapped("Transparent uses a transparent preview background when the renderer path supports alpha in the backbuffer.")
+            BackgroundMode.None ->
+                ImGui.textWrapped("None disables background rendering and is the replacement for the old Show Background off state.")
         }
         if (state.dirty) {
-            ImGui.sameLine()
             ImGui.text("[Unsaved changes]")
         }
     }
+
+    private fun drawSkyboxOptions(
+        env: EnvironmentAsset,
+        settings: com.pashkd.krender.engine.assets.environment.EnvironmentSettings,
+    ) {
+        holder.value = settings.skyboxIntensity
+        if (slider("Skybox Intensity##env_skybox_int", holder::value, 0f, 1f, "%.2f", SliderFlag.AlwaysClamp)) {
+            updateSettings(env) { it.copy(skyboxIntensity = holder.value) }
+        }
+        tooltipOnHover("Controls the brightness of the skybox background in Skybox mode.")
+    }
+
+    private fun drawSolidBackgroundColorEditor(
+        env: EnvironmentAsset,
+        settings: com.pashkd.krender.engine.assets.environment.EnvironmentSettings,
+    ) {
+        val color = settings.backgroundColor ?: EnvironmentColor(0.08f, 0.09f, 0.11f, 1f)
+        colorEdit4(
+            "Background Color##env_background_color",
+            color.r,
+            color.g,
+            color.b,
+            color.a,
+        ) { r, g, b, a ->
+            updateSettings(env) {
+                it.copy(
+                    backgroundColor = EnvironmentColor(r = r, g = g, b = b, a = a),
+                )
+            }
+        }
+        tooltipOnHover("Chooses the background color used in Solid Color mode.")
+    }
+
+    private fun backgroundModeTooltip(mode: BackgroundMode): String =
+        when (mode) {
+            BackgroundMode.Skybox -> "Uses the generated skybox cubemap as the preview background."
+            BackgroundMode.SolidColor -> "Uses a flat color as the preview background."
+            BackgroundMode.Transparent -> "Leaves the background transparent when the renderer path supports it."
+            BackgroundMode.None -> "Disables background rendering while keeping environment lighting."
+        }
+
+    private fun backgroundModeLabel(mode: BackgroundMode): String =
+        when (mode) {
+            BackgroundMode.Skybox -> "Skybox"
+            BackgroundMode.SolidColor -> "Solid Color"
+            BackgroundMode.Transparent -> "Transparent"
+            BackgroundMode.None -> "None"
+        }
 
     private inline fun updateSettings(
         env: EnvironmentAsset,
         transform: (EnvironmentSettings) -> EnvironmentSettings,
     ) {
-        state.environment = env.copy(settings = transform(env.settings))
+        val previous = env.settings
+        val updated = transform(previous)
+        if (updated == previous) return
+        state.environment = env.copy(settings = updated)
         state.dirty = true
-    }
-
-    private fun syncNameBuffer(name: String) {
-        nameBuffer.fill(0)
-        val bytes = name.toByteArray(Charsets.UTF_8)
-        val len = minOf(bytes.size, nameBuffer.size - 1)
-        bytes.copyInto(nameBuffer, endIndex = len)
-    }
-
-    private fun readBuffer(buffer: ByteArray): String {
-        val end = buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size
-        return String(buffer, 0, end, Charsets.UTF_8)
+        logger.info(TAG) {
+            "Environment settings changed path='${state.manifestPath}' " +
+                "backgroundVisible=${updated.skyboxVisible} backgroundMode=${updated.backgroundMode} " +
+                "backgroundColor=${updated.backgroundColor?.let { "(${it.r},${it.g},${it.b},${it.a})" } ?: "<default>"} " +
+                "exposure=${updated.exposure} rotation=${updated.rotationDegrees} " +
+                "skyboxIntensity=${updated.skyboxIntensity} diffuseIntensity=${updated.diffuseIntensity} " +
+                "specularIntensity=${updated.specularIntensity}"
+        }
     }
 
     companion object {

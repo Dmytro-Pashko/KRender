@@ -2,7 +2,11 @@ package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
 import com.pashkd.krender.engine.assets.environment.EnvironmentSourceVariant
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
 
 /**
@@ -10,9 +14,15 @@ import imgui.ImGui
  */
 class EnvironmentSourceVariantsPanel(
     private val state: EnvironmentEditorState,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        if (!ImGui.begin("Source Variants")) {
+        val layout = layoutConfig.panels.getValue(EnvironmentEditorPanelIds.Sources)
+        val expanded = beginImGuiPanel(EnvironmentEditorPanelIds.Sources, layout, layoutTracker)
+        eventLogger.observe(EnvironmentEditorPanelIds.Sources, layout.title)
+        if (!expanded) {
             ImGui.end()
             return
         }
@@ -59,6 +69,7 @@ class EnvironmentSourceVariantsPanel(
                 state.environment = env.copy(sources = updatedSources)
                 state.dirty = true
             }
+            tooltipOnHover("Makes this source variant the default input for the Environment.")
         }
     }
 }

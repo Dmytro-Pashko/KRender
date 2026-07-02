@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.assets
 
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.assets.environment.EnvironmentManifestCodec
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -162,6 +163,7 @@ class LocalAssetRegistryService(
                 putAll(textureMetadata(file, category, type))
                 putAll(terrainMetadata(file, category))
                 putAll(sceneMetadata(file, category))
+                putAll(environmentMetadata(file, category, type))
             }
         return AssetDescriptor(
             id = AssetId(document.id),
@@ -197,7 +199,7 @@ class LocalAssetRegistryService(
                     "displayName" to file.nameWithoutExtension,
                     "sourcePath" to path,
                     "indexPolicy" to "visibleOnly",
-                ),
+                ) + environmentMetadata(file, detection.category, detection.type),
         )
 
     private fun encodeImportSettings(settings: Map<String, Any?>): String {
@@ -260,6 +262,66 @@ class LocalAssetRegistryService(
                 "Failed to read scene metadata '${relativeAssetPath(file)}': ${error.message}"
             }
             emptyMap()
+        }
+    }
+
+    private fun environmentMetadata(
+        file: File,
+        category: AssetCategory,
+        type: AssetType,
+    ): Map<String, String> {
+        if (category != AssetCategory.Environment) return emptyMap()
+        return when (type) {
+            AssetType.Environment -> {
+                try {
+                    val manifest = EnvironmentManifestCodec.decode(file.readText(StandardCharsets.UTF_8))
+                    buildMap {
+                        put("environmentId", manifest.id)
+                        put("environmentName", manifest.name)
+                        put("environmentSchemaVersion", manifest.schemaVersion.toString())
+                        put("environmentType", manifest.environmentType)
+                        put("environmentSourceCount", manifest.sources.size.toString())
+                        put("environmentBackgroundMode", manifest.settings.backgroundMode.name)
+                        put("environmentSkyboxVisible", manifest.settings.skyboxVisible.toString())
+                        put("environmentExposure", manifest.settings.exposure.toString())
+                        put("environmentRotationDegrees", manifest.settings.rotationDegrees.toString())
+                        put("environmentSkyboxIntensity", manifest.settings.skyboxIntensity.toString())
+                        put("environmentDiffuseIntensity", manifest.settings.diffuseIntensity.toString())
+                        put("environmentSpecularIntensity", manifest.settings.specularIntensity.toString())
+                        put("environmentHasSkybox", (manifest.generated.skybox != null).toString())
+                        put("environmentHasIrradiance", (manifest.generated.irradiance != null).toString())
+                        put("environmentHasRadiance", (manifest.generated.radiance != null).toString())
+                        put("environmentHasBrdfLut", (manifest.generated.brdfLut != null).toString())
+                        manifest.description?.let { put("environmentDescription", it) }
+                    }
+                } catch (error: Exception) {
+                    logger.warn(TAG, error) {
+                        "Failed to read environment metadata '${relativeAssetPath(file)}': ${error.message}"
+                    }
+                    mapOf("environmentParseError" to (error.message ?: error.javaClass.simpleName))
+                }
+            }
+
+            AssetType.HdrSource ->
+                mapOf(
+                    "environmentSourceKind" to when {
+                        file.extension.equals("hdr", ignoreCase = true) -> "HDR"
+                        file.extension.equals("exr", ignoreCase = true) -> "EXR"
+                        else -> file.extension.uppercase().ifBlank { "unknown" }
+                    },
+                )
+
+            AssetType.EnvironmentSkybox ->
+                mapOf("environmentResourceKind" to "Skybox")
+
+            AssetType.EnvironmentCubemap ->
+                mapOf("environmentResourceKind" to "Cubemap")
+
+            AssetType.EnvironmentGeneratedMap,
+            AssetType.BrdfLut,
+            -> mapOf("environmentResourceKind" to "Generated Map")
+
+            else -> emptyMap()
         }
     }
 

@@ -41,7 +41,6 @@ internal data class CreateEnvironmentResult(
 
 internal object EnvironmentAssetCreation {
     private const val CreateFromExrActionId = "create-environment-from-exr"
-    private const val CreateFromHdrActionId = "create-environment-from-hdr"
 
     fun actionsFor(asset: AssetDescriptor): List<AssetActionDescriptor> {
         val actions = mutableListOf<AssetActionDescriptor>()
@@ -49,9 +48,6 @@ internal object EnvironmentAssetCreation {
             when {
                 asset.extension.equals("exr", ignoreCase = true) ->
                     actions += AssetActionDescriptor(CreateFromExrActionId, "Create Environment from EXR")
-
-                asset.extension.equals("hdr", ignoreCase = true) ->
-                    actions += AssetActionDescriptor(CreateFromHdrActionId, "Create Environment from HDR")
             }
         }
         return actions
@@ -120,7 +116,6 @@ internal object EnvironmentAssetCreation {
     ): CreateEnvironmentResult =
         when (actionId) {
             CreateFromExrActionId,
-            CreateFromHdrActionId,
             -> createFromAsset(asset, engine, logger)
             else -> error("Unsupported asset action '$actionId'.")
         }

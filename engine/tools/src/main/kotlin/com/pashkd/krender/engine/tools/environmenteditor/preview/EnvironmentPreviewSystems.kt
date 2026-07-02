@@ -1,11 +1,12 @@
 package com.pashkd.krender.engine.tools.environmenteditor.preview
 
-import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawModel
+import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.api.TransformSnapshot
 import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.assets.environment.BackgroundMode
+import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
@@ -57,6 +58,44 @@ class EnvironmentPreviewLiveUpdateSystem(
     }
 }
 
+class EnvironmentEditorStateLoggingSystem(
+    private val state: EnvironmentEditorState,
+    private val logger: Logger,
+) : System() {
+    private var lastSnapshot: EnvironmentEditorLogSnapshot? = null
+
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
+        val snapshot = EnvironmentEditorLogSnapshot.capture(state)
+        if (snapshot == lastSnapshot) return
+        val previous = lastSnapshot
+        lastSnapshot = snapshot
+        if (previous == null) {
+            logger.info(TAG) { "Environment Editor state initialized ${snapshot.describe()}" }
+            return
+        }
+        logger.info(TAG) {
+            "Environment Editor state changed " +
+                "dirty ${previous.dirty} -> ${snapshot.dirty}; " +
+                "backgroundVisible ${previous.backgroundVisible} -> ${snapshot.backgroundVisible}; " +
+                "backgroundMode ${previous.backgroundMode} -> ${snapshot.backgroundMode}; " +
+                "backgroundColor ${previous.backgroundColor} -> ${snapshot.backgroundColor}; " +
+                "autoRotate ${previous.autoRotate} -> ${snapshot.autoRotate}; " +
+                "exposure ${previous.exposure} -> ${snapshot.exposure}; " +
+                "rotation ${previous.rotationDegrees} -> ${snapshot.rotationDegrees}; " +
+                "diffuse ${previous.diffuseIntensity} -> ${snapshot.diffuseIntensity}; " +
+                "specular ${previous.specularIntensity} -> ${snapshot.specularIntensity}; " +
+                "loadError ${previous.loadError} -> ${snapshot.loadError}"
+        }
+    }
+
+    companion object {
+        private const val TAG = "EnvironmentEditorState"
+    }
+}
+
 class EnvironmentPreviewRenderSystem(
     private val state: EnvironmentEditorState,
     private val controller: EnvironmentPreviewController,
@@ -77,20 +116,47 @@ class EnvironmentPreviewRenderSystem(
                 gltfRenderer = controller.gltfRendererSettings(state),
             ),
         )
+    }
+}
 
-        if (state.previewState.showGround) {
-            world.renderCommands.submit(
-                DrawDynamicModel(
-                    entityId = GroundEntityId,
-                    model = controller.groundModel,
-                    transform = TransformSnapshot(),
-                    material = controller.groundMaterial(),
-                ),
+private data class EnvironmentEditorLogSnapshot(
+    val dirty: Boolean,
+    val loadError: String?,
+    val backgroundVisible: Boolean?,
+    val backgroundMode: String?,
+    val backgroundColor: String?,
+    val autoRotate: Boolean,
+    val exposure: Float?,
+    val rotationDegrees: Float?,
+    val diffuseIntensity: Float?,
+    val specularIntensity: Float?,
+) {
+    fun describe(): String =
+        "dirty=$dirty loadError=$loadError backgroundVisible=$backgroundVisible " +
+            "backgroundMode=$backgroundMode backgroundColor=$backgroundColor " +
+            "autoRotate=$autoRotate " +
+            "exposure=$exposure rotation=$rotationDegrees diffuse=$diffuseIntensity specular=$specularIntensity"
+
+    companion object {
+        fun capture(state: EnvironmentEditorState): EnvironmentEditorLogSnapshot {
+            val environment = state.environment
+            return EnvironmentEditorLogSnapshot(
+                dirty = state.dirty,
+                loadError = state.loadError,
+                backgroundVisible = environment?.settings?.backgroundMode != BackgroundMode.None,
+                backgroundMode = environment?.settings?.backgroundMode?.name,
+                backgroundColor = environment.backgroundColorString(),
+                autoRotate = state.previewState.autoRotate,
+                exposure = environment?.settings?.exposure,
+                rotationDegrees = environment?.settings?.rotationDegrees,
+                diffuseIntensity = environment?.settings?.diffuseIntensity,
+                specularIntensity = environment?.settings?.specularIntensity,
             )
         }
     }
+}
 
-    companion object {
-        private const val GroundEntityId = -4242L
-    }
+private fun EnvironmentAsset?.backgroundColorString(): String? {
+    val color = this?.settings?.backgroundColor ?: return null
+    return "(${color.r},${color.g},${color.b},${color.a})"
 }

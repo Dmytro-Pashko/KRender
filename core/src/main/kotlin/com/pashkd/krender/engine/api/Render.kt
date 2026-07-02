@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.api
 
+import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.render3d.Material
 
 /**
@@ -149,6 +150,9 @@ data class GltfRendererSettings(
     val environmentPreset: String = "default",
     val environmentCacheKey: String? = null,
     val exposure: Float = 1f,
+    val backgroundVisible: Boolean = true,
+    val backgroundMode: BackgroundMode = BackgroundMode.Skybox,
+    val backgroundColor: Color = Color(0.08f, 0.09f, 0.11f, 1f),
     val showSkybox: Boolean = true,
     val skyboxIntensity: Float = 1f,
     val ambientIntensity: Float = 1f,

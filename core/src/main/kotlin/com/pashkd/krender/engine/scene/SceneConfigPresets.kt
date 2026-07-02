@@ -125,4 +125,20 @@ object SceneConfigPresets {
                     mode = WindowMode.Windowed,
                 ),
         )
+
+    /** Shared editor and viewer preset with extra vertical space for panels. */
+    val EnvironmentEditor =
+        SceneConfig(
+            viewport =
+                RuntimeViewportConfig(
+                    designWidth = 1920f,
+                    designHeight = 1080f,
+                    scalePolicy = UiScalePolicy.ScaleByHeight,
+                ),
+            window =
+                RuntimeWindowConfig(
+                    resolution = WindowResolution(width = 2144, height = 1342),
+                    mode = WindowMode.Windowed,
+                ),
+        )
 }

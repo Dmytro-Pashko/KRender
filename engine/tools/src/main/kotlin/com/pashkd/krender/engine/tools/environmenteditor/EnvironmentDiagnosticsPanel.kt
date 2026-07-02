@@ -3,7 +3,11 @@ package com.pashkd.krender.engine.tools.environmenteditor
 import com.pashkd.krender.engine.assets.environment.EnvironmentService
 import com.pashkd.krender.engine.assets.environment.IssueSeverity
 import com.pashkd.krender.engine.assets.environment.ValidationStatus
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
 
 /**
@@ -12,10 +16,15 @@ import imgui.ImGui
 class EnvironmentDiagnosticsPanel(
     private val state: EnvironmentEditorState,
     private val environmentService: EnvironmentService,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        val shouldDraw = ImGui.begin("Diagnostics")
-        if (shouldDraw) {
+        val layout = layoutConfig.panels.getValue(EnvironmentEditorPanelIds.Diagnostics)
+        val expanded = beginImGuiPanel(EnvironmentEditorPanelIds.Diagnostics, layout, layoutTracker)
+        eventLogger.observe(EnvironmentEditorPanelIds.Diagnostics, layout.title)
+        if (expanded) {
             when (val content = diagnosticsContent()) {
                 DiagnosticsContent.NoEnvironment -> ImGui.text("No environment loaded.")
                 DiagnosticsContent.NoReport -> drawMissingReportState()
@@ -41,6 +50,7 @@ class EnvironmentDiagnosticsPanel(
             val env = state.environment ?: return
             state.validation = environmentService.validate(env)
         }
+        tooltipOnHover("Runs Environment validation and refreshes diagnostics.")
     }
 
     private fun drawReport(content: DiagnosticsContent.Report) {
@@ -49,6 +59,7 @@ class EnvironmentDiagnosticsPanel(
         if (ImGui.button("Refresh Validation##env_diag_refresh")) {
             state.validation = environmentService.validate(content.environment)
         }
+        tooltipOnHover("Re-runs validation for the current Environment.")
         ImGui.separator()
 
         drawIssueGroup("Errors", content.report.issues.filter { it.severity == IssueSeverity.Error })

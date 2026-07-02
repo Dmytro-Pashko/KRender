@@ -85,11 +85,12 @@ class ModelViewerViewportPanel(
     private val state: ModelViewerState,
     private val operations: ModelViewerOperations,
     private val availableEnvironments: () -> List<AssetDescriptor>,
+    private val logger: Logger,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    private val gltfPbrRendererOptionsPanel = GltfPbrRendererOptionsPanel(state, availableEnvironments)
+    private val gltfPbrRendererOptionsPanel = GltfPbrRendererOptionsPanel(state, availableEnvironments, logger)
     private val legacyRendererOptionsPanel = LegacyRendererOptionsPanel(state, operations)
 
     override fun draw() {
@@ -246,6 +247,7 @@ class ModelViewerViewportPanel(
 internal class GltfPbrRendererOptionsPanel(
     private val state: ModelViewerState,
     private val availableEnvironments: () -> List<AssetDescriptor>,
+    private val logger: Logger,
 ) {
     fun draw() {
         drawEnvironmentSection()
@@ -256,18 +258,37 @@ internal class GltfPbrRendererOptionsPanel(
 
     private fun drawEnvironmentSection() {
         ImGui.text("Environment / IBL")
+        syncSelectedEnvironmentDefaults()
         drawEnvironmentSelector()
         ImGui.checkbox("Show Skybox##model_viewer_pbr_show_skybox", state::gltfShowSkybox)
         tooltipOnHover("Show the selected HDR environment as the glTF / PBR skybox.")
         slider(
-            "Intensity##model_viewer_pbr_environment_intensity",
+            "Skybox Intensity##model_viewer_pbr_skybox_intensity",
+            state::gltfSkyboxIntensity,
+            0f,
+            1f,
+            "%.2f",
+            SliderFlag.AlwaysClamp,
+        )
+        tooltipOnHover("Scale the brightness of the environment skybox background.")
+        slider(
+            "Diffuse Intensity##model_viewer_pbr_ambient_intensity",
+            state::gltfAmbientIntensity,
+            0f,
+            4f,
+            "%.2f",
+            SliderFlag.AlwaysClamp,
+        )
+        tooltipOnHover("Scale the diffuse IBL contribution loaded from the selected Environment asset.")
+        slider(
+            "Specular Intensity##model_viewer_pbr_environment_intensity",
             state::gltfEnvironmentIntensity,
             0f,
             4f,
             "%.2f",
             SliderFlag.AlwaysClamp,
         )
-        tooltipOnHover("Scale the contribution of the IBL environment lighting. Available only in glTF / PBR renderer.")
+        tooltipOnHover("Scale the specular IBL contribution loaded from the selected Environment asset.")
         slider("Exposure##model_viewer_pbr_exposure", state::gltfExposure, 0.1f, 4f, "%.2f", SliderFlag.AlwaysClamp)
         tooltipOnHover("Adjust overall scene brightness after environment lighting is applied.")
         slider(
@@ -356,6 +377,7 @@ internal class GltfPbrRendererOptionsPanel(
         environments.forEach { environment ->
             if (ImGui.selectable(environmentSelectorLabel(environment), environment.path == state.gltfEnvironmentPreset)) {
                 state.gltfEnvironmentPreset = environment.path
+                applyEnvironmentDefaults(environment, reason = "selector")
             }
             tooltipOnHover(environment.path)
         }
@@ -375,9 +397,51 @@ internal class GltfPbrRendererOptionsPanel(
     }
 
     private fun resetEnvironment() {
+        val selectedEnvironment = availableEnvironments().firstOrNull { environment -> environment.path == state.gltfEnvironmentPreset }
+        if (selectedEnvironment != null) {
+            applyEnvironmentDefaults(selectedEnvironment, reason = "reset")
+            return
+        }
+        state.gltfShowSkybox = true
+        state.gltfSkyboxIntensity = DEFAULT_SKYBOX_INTENSITY
+        state.gltfAmbientIntensity = DEFAULT_AMBIENT_INTENSITY
         state.gltfEnvironmentIntensity = DEFAULT_ENVIRONMENT_INTENSITY
         state.gltfExposure = DEFAULT_EXPOSURE
         state.gltfEnvironmentRotationDegrees = DEFAULT_ENVIRONMENT_ROTATION
+        state.gltfAppliedEnvironmentPreset = null
+        logger.info(TAG) {
+            "ModelViewer environment reset to built-in defaults preset='${state.gltfEnvironmentPreset}' " +
+                "showSkybox=${state.gltfShowSkybox} skyboxIntensity=${state.gltfSkyboxIntensity} " +
+                "diffuseIntensity=${state.gltfAmbientIntensity} specularIntensity=${state.gltfEnvironmentIntensity} " +
+                "exposure=${state.gltfExposure} rotation=${state.gltfEnvironmentRotationDegrees}"
+        }
+    }
+
+    private fun syncSelectedEnvironmentDefaults() {
+        if (state.gltfAppliedEnvironmentPreset == state.gltfEnvironmentPreset) return
+        val selectedEnvironment = availableEnvironments().firstOrNull { environment -> environment.path == state.gltfEnvironmentPreset } ?: return
+        applyEnvironmentDefaults(selectedEnvironment, reason = "sync")
+    }
+
+    private fun applyEnvironmentDefaults(
+        environment: AssetDescriptor,
+        reason: String,
+    ) {
+        state.gltfShowSkybox = environment.metadata["environmentSkyboxVisible"]?.toBooleanStrictOrNull() ?: true
+        state.gltfSkyboxIntensity = environment.metadata["environmentSkyboxIntensity"]?.toFloatOrNull() ?: DEFAULT_SKYBOX_INTENSITY
+        state.gltfAmbientIntensity = environment.metadata["environmentDiffuseIntensity"]?.toFloatOrNull() ?: DEFAULT_AMBIENT_INTENSITY
+        state.gltfEnvironmentIntensity =
+            environment.metadata["environmentSpecularIntensity"]?.toFloatOrNull() ?: DEFAULT_ENVIRONMENT_INTENSITY
+        state.gltfExposure = environment.metadata["environmentExposure"]?.toFloatOrNull() ?: DEFAULT_EXPOSURE
+        state.gltfEnvironmentRotationDegrees =
+            environment.metadata["environmentRotationDegrees"]?.toFloatOrNull() ?: DEFAULT_ENVIRONMENT_ROTATION
+        state.gltfAppliedEnvironmentPreset = environment.path
+        logger.info(TAG) {
+            "ModelViewer environment applied reason=$reason preset='${environment.path}' name='${environment.name}' " +
+                "showSkybox=${state.gltfShowSkybox} skyboxIntensity=${state.gltfSkyboxIntensity} " +
+                "diffuseIntensity=${state.gltfAmbientIntensity} specularIntensity=${state.gltfEnvironmentIntensity} " +
+                "exposure=${state.gltfExposure} rotation=${state.gltfEnvironmentRotationDegrees}"
+        }
     }
 
     private fun resetDirectLight() {
@@ -389,6 +453,9 @@ internal class GltfPbrRendererOptionsPanel(
     }
 
     companion object {
+        private const val TAG = "ModelViewerEnvironment"
+        private const val DEFAULT_SKYBOX_INTENSITY = 1f
+        private const val DEFAULT_AMBIENT_INTENSITY = 1f
         private const val DEFAULT_ENVIRONMENT_INTENSITY = 1f
         private const val DEFAULT_EXPOSURE = 1f
         private const val DEFAULT_ENVIRONMENT_ROTATION = 0f

@@ -4,7 +4,11 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
 import com.pashkd.krender.engine.assets.environment.EnvironmentGenerationResult
 import com.pashkd.krender.engine.assets.environment.EnvironmentGenerationService
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
+import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
 
 /**
@@ -14,9 +18,15 @@ class EnvironmentGeneratedMapsPanel(
     private val state: EnvironmentEditorState,
     private val generationService: EnvironmentGenerationService,
     private val logger: Logger,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        if (!ImGui.begin("Generated Maps")) {
+        val layout = layoutConfig.panels.getValue(EnvironmentEditorPanelIds.GeneratedMaps)
+        val expanded = beginImGuiPanel(EnvironmentEditorPanelIds.GeneratedMaps, layout, layoutTracker)
+        eventLogger.observe(EnvironmentEditorPanelIds.GeneratedMaps, layout.title)
+        if (!expanded) {
             ImGui.end()
             return
         }
@@ -95,25 +105,30 @@ class EnvironmentGeneratedMapsPanel(
     }
 
     private fun drawGenerationActions(env: EnvironmentAsset) {
-        ImGui.text("Generation Actions")
+        ImGui.text("Generation Tools")
         if (ImGui.button("Generate Skybox##env_gen_skybox")) {
             handleResult("Skybox", generationService.generateSkybox(env))
         }
+        tooltipOnHover("Generates skybox cubemap faces for this Environment.")
         ImGui.sameLine()
         if (ImGui.button("Generate Irradiance##env_gen_irradiance")) {
             handleResult("Irradiance", generationService.generateIrradiance(env))
         }
+        tooltipOnHover("Generates diffuse irradiance data for image-based lighting.")
         ImGui.sameLine()
         if (ImGui.button("Generate Radiance##env_gen_radiance")) {
             handleResult("Radiance", generationService.generateRadiance(env))
         }
+        tooltipOnHover("Generates prefiltered radiance mip levels for specular reflections.")
         if (ImGui.button("Generate BRDF LUT##env_gen_brdf")) {
             handleResult("BRDF LUT", generationService.generateBrdfLut(env))
         }
+        tooltipOnHover("Generates or refreshes the BRDF lookup texture used by PBR preview.")
         ImGui.sameLine()
         if (ImGui.button("Generate All##env_gen_all")) {
             handleResult("All", generationService.generateAll(env))
         }
+        tooltipOnHover("Runs all currently available Environment generation steps.")
     }
 
     private fun handleResult(

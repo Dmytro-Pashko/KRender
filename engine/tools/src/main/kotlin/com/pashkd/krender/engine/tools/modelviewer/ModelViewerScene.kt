@@ -305,6 +305,7 @@ class ModelViewerScene(
                     viewerState,
                     operations,
                     availableEnvironments = ::availableEnvironmentAssets,
+                    logger = engine.logger,
                     layoutConfig,
                     layoutTracker,
                     panelEventLogger,

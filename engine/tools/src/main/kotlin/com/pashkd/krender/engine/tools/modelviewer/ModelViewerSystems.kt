@@ -27,6 +27,7 @@ class ModelViewerSystem(
     private var lastMetadataAvailable: Boolean? = null
     private var lastErrorMessage: String? = null
     private var missingModelEntityLogged = false
+    private var lastEnvironmentLogSnapshot: ModelViewerEnvironmentLogSnapshot? = null
 
     override fun onAdded(world: SceneWorld) {
         logger.debug(TAG) {
@@ -74,6 +75,7 @@ class ModelViewerSystem(
         syncStatus(world)
         syncSelectionBounds()
         syncDebugState()
+        logEnvironmentState()
         syncAmbientLight(world)
         logLoadedModelDetails()
         handleRequests()
@@ -316,6 +318,29 @@ class ModelViewerSystem(
         }
     }
 
+    private fun logEnvironmentState() {
+        if (state.rendererMode != ModelViewerRendererMode.GltfPbr) return
+        val snapshot =
+            ModelViewerEnvironmentLogSnapshot(
+                preset = state.gltfEnvironmentPreset,
+                appliedPreset = state.gltfAppliedEnvironmentPreset,
+                showSkybox = state.gltfShowSkybox,
+                skyboxIntensity = state.gltfSkyboxIntensity,
+                diffuseIntensity = state.gltfAmbientIntensity,
+                specularIntensity = state.gltfEnvironmentIntensity,
+                exposure = state.gltfExposure,
+                rotationDegrees = state.gltfEnvironmentRotationDegrees,
+            )
+        if (snapshot == lastEnvironmentLogSnapshot) return
+        logger.info(TAG) {
+            "ModelViewer glTF environment state preset='${snapshot.preset}' applied='${snapshot.appliedPreset}' " +
+                "showSkybox=${snapshot.showSkybox} skyboxIntensity=${snapshot.skyboxIntensity} " +
+                "diffuseIntensity=${snapshot.diffuseIntensity} specularIntensity=${snapshot.specularIntensity} " +
+                "exposure=${snapshot.exposure} rotation=${snapshot.rotationDegrees}"
+        }
+        lastEnvironmentLogSnapshot = snapshot
+    }
+
     private fun syncAmbientLight(world: SceneWorld) {
         val ambientLight =
             state.ambientLightEntityId
@@ -431,6 +456,17 @@ class ModelViewerSystem(
     }
 }
 
+private data class ModelViewerEnvironmentLogSnapshot(
+    val preset: String,
+    val appliedPreset: String?,
+    val showSkybox: Boolean,
+    val skyboxIntensity: Float,
+    val diffuseIntensity: Float,
+    val specularIntensity: Float,
+    val exposure: Float,
+    val rotationDegrees: Float,
+)
+
 private fun Int.floorMod(divisor: Int): Int = ((this % divisor) + divisor) % divisor
 
 private fun String.isGltfPath(): Boolean = endsWith(".gltf", ignoreCase = true) || endsWith(".glb", ignoreCase = true)
@@ -531,6 +567,8 @@ class ModelViewerModelRenderSystem(
             environmentPreset = gltfEnvironmentPreset,
             exposure = gltfExposure.coerceAtLeast(0f),
             showSkybox = gltfShowSkybox,
+            skyboxIntensity = gltfSkyboxIntensity.coerceIn(0f, 1f),
+            ambientIntensity = gltfAmbientIntensity.coerceAtLeast(0f),
             environmentIntensity = gltfEnvironmentIntensity.coerceAtLeast(0f),
             environmentRotationDegrees = gltfEnvironmentRotationDegrees,
             toneMapping = gltfToneMapping,

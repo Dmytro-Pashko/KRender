@@ -35,6 +35,7 @@ internal class GdxGltfRenderer(
     private val entries = mutableMapOf<ModelCacheKey, GltfSceneEntry>()
     private val warnedKeys = mutableSetOf<String>()
     private val gltfEnvironment = GdxGltfEnvironment(logger)
+    private var lastEnvironmentLogKey: String? = null
 
     fun render(
         command: DrawModel,
@@ -111,6 +112,46 @@ internal class GdxGltfRenderer(
         syncEnvironmentFallback(entry, settings, preset, direction, environmentState.intensity)
         applyEnvironmentMaps(entry, preset)
         applySkybox(entry, preset, settings)
+        logEnvironmentConfiguration(settings, preset, environmentState)
+    }
+
+    private fun logEnvironmentConfiguration(
+        settings: GltfRendererSettings,
+        preset: GdxGltfEnvironmentPreset?,
+        environmentState: ResolvedEnvironmentState,
+    ) {
+        val logKey =
+            listOf(
+                settings.environmentCacheKey ?: settings.environmentPreset,
+                settings.backgroundVisible,
+                settings.backgroundMode,
+                settings.backgroundColor.r,
+                settings.backgroundColor.g,
+                settings.backgroundColor.b,
+                settings.backgroundColor.a,
+                settings.showSkybox,
+                settings.skyboxIntensity,
+                settings.ambientIntensity,
+                settings.environmentIntensity,
+                settings.environmentRotationDegrees,
+                preset?.skybox != null,
+                preset?.irradiance != null,
+                preset?.radiance != null,
+                preset?.brdfLut != null,
+            ).joinToString("|")
+        if (lastEnvironmentLogKey == logKey) return
+        lastEnvironmentLogKey = logKey
+        logger.info(TAG) {
+            "Configured glTF environment preset='${settings.environmentPreset}' " +
+                "backgroundVisible=${settings.backgroundVisible} backgroundMode=${settings.backgroundMode} " +
+                "backgroundColor=(${settings.backgroundColor.r},${settings.backgroundColor.g},${settings.backgroundColor.b},${settings.backgroundColor.a}) " +
+                "showSkybox=${settings.showSkybox} exposure=${settings.exposure} " +
+                "ambientIntensity=${settings.ambientIntensity} environmentIntensity=${settings.environmentIntensity} " +
+                "rotation=${settings.environmentRotationDegrees} " +
+                "hasSkybox=${preset?.skybox != null} hasIrradiance=${preset?.irradiance != null} " +
+                "hasRadiance=${preset?.radiance != null} hasBrdfLut=${preset?.brdfLut != null} " +
+                "resolvedIntensity=${environmentState.intensity}"
+        }
     }
 
     private fun GltfSceneEntry.ensureShaderConfiguration(settings: GltfRendererSettings) {

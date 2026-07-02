@@ -2,12 +2,16 @@ package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
 import com.pashkd.krender.engine.assets.environment.ValidationStatus
+import com.pashkd.krender.engine.assets.environment.BackgroundMode
+import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorConfig
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCamera
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewAvailability
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController
-import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewMode
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
+import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
-import glm_.vec2.Vec2
+import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
 
 /**
@@ -16,9 +20,15 @@ import imgui.ImGui
 class EnvironmentPreviewPanel(
     private val state: EnvironmentEditorState,
     private val controller: EnvironmentPreviewController,
+    private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
+    private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     override fun draw() {
-        if (!ImGui.begin("Preview")) {
+        val layout = layoutConfig.panels.getValue(EnvironmentEditorPanelIds.Preview)
+        val expanded = beginImGuiPanel(EnvironmentEditorPanelIds.Preview, layout, layoutTracker)
+        eventLogger.observe(EnvironmentEditorPanelIds.Preview, layout.title)
+        if (!expanded) {
             ImGui.end()
             return
         }
@@ -44,33 +54,25 @@ class EnvironmentPreviewPanel(
     private fun drawPreview(env: EnvironmentAsset) {
         val preview = state.previewState
         val availability = controller.availability(env, preview)
-        ImGui.text("Preview Mode: ${preview.mode.name}")
-        ImGui.separator()
         drawPreviewControls()
-        ImGui.separator()
-        drawViewportHint()
         ImGui.separator()
         drawPreviewStatus(env, availability)
     }
 
     private fun drawPreviewControls() {
         val preview = state.previewState
-        ImGui.text("Mode")
-        ImGui.bulletText(EnvironmentPreviewMode.MaterialSpheres.name)
-        ImGui.checkbox("Show Skybox##env_preview_show_skybox", preview::showSkybox)
-        ImGui.checkbox("Show Ground##env_preview_show_ground", preview::showGround)
+        ImGui.text("Test Models")
+        EnvironmentEditorConfig.testModels.forEach { model ->
+            val active = if (model.assetPath == controller.previewModel.path) " [active]" else ""
+            ImGui.bulletText("${model.displayName}$active")
+        }
+        tooltipOnHover("Shows the configured Environment preview test models.")
         ImGui.checkbox("Auto Rotate##env_preview_auto_rotate", preview::autoRotate)
+        tooltipOnHover("Slowly rotates the preview camera around the scene.")
         if (ImGui.button("Reset Camera##env_preview_reset_camera")) {
             EnvironmentPreviewCamera.reset(preview)
         }
-    }
-
-    private fun drawViewportHint() {
-        ImGui.text("Visual Preview")
-        ImGui.beginChild("env_preview_visual_area", Vec2(0f, 96f), true)
-        ImGui.textWrapped("The Material Spheres preview renders in the main tool scene behind the ImGui panels.")
-        ImGui.textWrapped("This keeps the preview visual without adding a separate render-to-texture viewport in this PR step.")
-        ImGui.endChild()
+        tooltipOnHover("Restores the default preview camera position and angles.")
     }
 
     private fun drawPreviewStatus(
@@ -82,12 +84,13 @@ class EnvironmentPreviewPanel(
         ImGui.text("Type: ${env.type}")
         drawValidationStatus()
         ImGui.separator()
-        ImGui.text("Generated Maps")
+        ImGui.text("Generated Resources")
         ImGui.text("Skybox: ${availabilityLabel(availability.hasSkybox)}")
         ImGui.text("Irradiance: ${availabilityLabel(availability.hasIrradiance)}")
         ImGui.text("Radiance: ${availabilityLabel(availability.hasRadiance)}")
         ImGui.text("BRDF LUT: ${availabilityLabel(availability.hasBrdfLut)}")
         ImGui.separator()
+        ImGui.text("Background Mode: ${backgroundModeLabel(env.settings.backgroundMode)}")
         ImGui.textWrapped("Fallback: ${availability.fallbackMode}")
         state.previewState.previewStatusMessage?.let(ImGui::textWrapped)
         availability.warnings.forEach(ImGui::textWrapped)
@@ -109,4 +112,12 @@ class EnvironmentPreviewPanel(
     }
 
     private fun availabilityLabel(value: Boolean): String = if (value) "available" else "missing"
+
+    private fun backgroundModeLabel(mode: BackgroundMode): String =
+        when (mode) {
+            BackgroundMode.Skybox -> "Skybox"
+            BackgroundMode.SolidColor -> "Solid Color"
+            BackgroundMode.Transparent -> "Transparent"
+            BackgroundMode.None -> "None"
+        }
 }
