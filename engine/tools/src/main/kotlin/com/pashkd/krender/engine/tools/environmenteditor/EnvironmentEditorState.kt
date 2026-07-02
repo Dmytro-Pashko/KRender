@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.tools.environmenteditor
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
 import com.pashkd.krender.engine.assets.environment.EnvironmentAssetId
 import com.pashkd.krender.engine.assets.environment.EnvironmentValidationReport
+import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewState
 
 /**
  * Mutable editor state for the Environment Editor tool.
@@ -10,6 +11,7 @@ import com.pashkd.krender.engine.assets.environment.EnvironmentValidationReport
 class EnvironmentEditorState(
     val manifestPath: String,
 ) {
+    val previewState = EnvironmentPreviewState()
     var selectedEnvironmentId: EnvironmentAssetId? = null
     var environment: EnvironmentAsset? = null
     var validation: EnvironmentValidationReport? = null
