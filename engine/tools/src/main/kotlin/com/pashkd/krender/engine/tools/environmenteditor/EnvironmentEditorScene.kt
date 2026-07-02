@@ -17,6 +17,7 @@ import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCamera
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCameraSystem
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController
+import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewLiveUpdateSystem
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewRenderSystem
 import com.pashkd.krender.engine.ui.editor.UiSystem
 
@@ -62,6 +63,7 @@ class EnvironmentEditorScene(
         uiSystem.addPanel(EnvironmentGeneratedMapsPanel(editorState, generationService, engine.logger))
         uiSystem.addPanel(EnvironmentDiagnosticsPanel(editorState, environmentService))
         uiSystem.addPanel(EnvironmentPreviewPanel(editorState, previewController))
+        world.systems.add(EnvironmentPreviewLiveUpdateSystem(editorState, previewController))
         world.systems.add(EnvironmentPreviewCameraSystem(editorState))
         world.systems.add(EnvironmentPreviewRenderSystem(editorState, previewController))
         world.systems.add(uiSystem)

@@ -39,6 +39,24 @@ class EnvironmentPreviewCameraSystem(
     }
 }
 
+class EnvironmentPreviewLiveUpdateSystem(
+    private val state: EnvironmentEditorState,
+    private val controller: EnvironmentPreviewController,
+) : System() {
+    override fun update(
+        world: SceneWorld,
+        dt: Float,
+    ) {
+        val env = state.environment
+        state.previewState.previewStatusMessage =
+            if (env == null) {
+                "Preview unavailable: no environment is loaded."
+            } else {
+                controller.liveStatusMessage(env, state.previewState)
+            }
+    }
+}
+
 class EnvironmentPreviewRenderSystem(
     private val state: EnvironmentEditorState,
     private val controller: EnvironmentPreviewController,

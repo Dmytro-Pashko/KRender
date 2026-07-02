@@ -105,6 +105,25 @@ class EnvironmentPreviewController {
         )
     }
 
+    fun liveStatusMessage(
+        env: EnvironmentAsset,
+        preview: EnvironmentPreviewState,
+    ): String {
+        val availability = availability(env, preview)
+        return buildString {
+            append("Live preview uses the current editor state. ")
+            append("Exposure %.2f, rotation %.1f deg, diffuse %.2f, specular %.2f.".format(
+                env.settings.exposure,
+                env.settings.rotationDegrees,
+                env.settings.diffuseIntensity,
+                env.settings.specularIntensity,
+            ))
+            if (availability.warnings.isNotEmpty()) {
+                append(" ${availability.fallbackMode}.")
+            }
+        }
+    }
+
     private fun buildGroundModel(ground: EnvironmentPreviewObject): DynamicModel {
         val halfWidth = ground.scale.x * 0.5f
         val halfDepth = ground.scale.z * 0.5f
