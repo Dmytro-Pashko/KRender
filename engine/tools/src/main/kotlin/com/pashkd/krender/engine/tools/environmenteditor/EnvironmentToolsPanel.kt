@@ -8,7 +8,7 @@ import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
 
-/** Read-only overview of generated resources referenced by the Environment manifest. */
+/** Read-only overview of runtime environment resources referenced by the manifest. */
 class EnvironmentToolsPanel(
     private val state: EnvironmentEditorState,
     private val layoutConfig: ImGuiLayoutConfig,
@@ -37,7 +37,7 @@ class EnvironmentToolsPanel(
 
     private fun drawSkybox(environment: EnvironmentAsset) {
         ImGui.text("Skybox")
-        val skybox = environment.generated.skybox
+        val skybox = environment.skybox
         if (skybox == null) {
             ImGui.text("  (not defined)")
             return
@@ -54,7 +54,7 @@ class EnvironmentToolsPanel(
 
     private fun drawIrradiance(environment: EnvironmentAsset) {
         ImGui.text("Irradiance")
-        val irradiance = environment.generated.irradiance
+        val irradiance = environment.irradiance
         if (irradiance == null) {
             ImGui.text("  (not defined)")
             return
@@ -66,7 +66,7 @@ class EnvironmentToolsPanel(
 
     private fun drawRadiance(environment: EnvironmentAsset) {
         ImGui.text("Radiance")
-        val radiance = environment.generated.radiance
+        val radiance = environment.radiance
         if (radiance == null) {
             ImGui.text("  (not defined)")
             return
@@ -80,12 +80,11 @@ class EnvironmentToolsPanel(
 
     private fun drawBrdfLut(environment: EnvironmentAsset) {
         ImGui.text("BRDF LUT")
-        val brdfLut = environment.generated.brdfLut
+        val brdfLut = environment.brdfLut
         if (brdfLut == null) {
             ImGui.text("  (not defined)")
             return
         }
         ImGui.text("  Path: ${brdfLut.path}")
-        ImGui.text("  Shared: ${brdfLut.shared}")
     }
 }

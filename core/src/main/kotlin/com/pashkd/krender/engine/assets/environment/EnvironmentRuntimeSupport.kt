@@ -41,21 +41,21 @@ object EnvironmentRuntimeCacheKeyFactory {
                 .forEach { source ->
                     add("source:${source.id}:${source.path}:${source.isDefault}")
                 }
-            asset.generated.skybox?.faces
+            asset.skybox?.faces
                 ?.toSortedMap()
                 ?.forEach { (face, path) ->
                     add("skybox:$face:$path")
                 }
-            asset.generated.irradiance?.let { irradiance ->
+            asset.irradiance?.let { irradiance ->
                 add("irradiance:${irradiance.path}:${irradiance.resolution}:${irradiance.format}")
             }
-            asset.generated.radiance?.mips
+            asset.radiance?.mips
                 ?.sortedBy(RadianceMip::level)
                 ?.forEach { mip ->
                     add("radiance:${mip.level}:${mip.roughness}:${mip.path}")
                 }
-            asset.generated.brdfLut?.let { lut ->
-                add("brdf:${lut.path}:${lut.shared}")
+            asset.brdfLut?.let { lut ->
+                add("brdf:${lut.path}")
             }
         }.joinToString("|")
 }

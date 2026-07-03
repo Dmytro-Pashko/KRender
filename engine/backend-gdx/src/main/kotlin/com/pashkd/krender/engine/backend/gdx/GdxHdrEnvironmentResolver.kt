@@ -96,7 +96,7 @@ internal class GdxHdrEnvironmentResolver(
             skyboxFaces = resolveSkyboxFaces(manifestPath, manifest),
             irradianceFaces = resolveIrradianceFaces(manifestPath, manifest),
             radianceFaces = resolveRadianceFaces(manifestPath, manifest),
-            brdfLut = manifest.generated.brdfLut?.let { brdf -> resolveBrdfLut(manifestPath, brdf.path) },
+            brdfLut = manifest.brdfLut?.let { brdf -> resolveBrdfLut(manifestPath, brdf.path) },
         )
     }
 
@@ -194,7 +194,7 @@ internal class GdxHdrEnvironmentResolver(
         manifestPath: String,
         manifest: EnvironmentManifestDto,
     ): Map<String, String> =
-        manifest.generated.skybox
+        manifest.skybox
             ?.faces
             .orEmpty()
             .mapNotNull { (face, path) ->
@@ -209,7 +209,7 @@ internal class GdxHdrEnvironmentResolver(
     ): Map<String, String> =
         inferCubemapFaces(
             manifestPath = manifestPath,
-            resourcePath = manifest.generated.irradiance?.path,
+            resourcePath = manifest.irradiance?.path,
             directoryStem = "irradiance",
         )
 
@@ -217,7 +217,7 @@ internal class GdxHdrEnvironmentResolver(
         manifestPath: String,
         manifest: EnvironmentManifestDto,
     ): Map<Int, Map<String, String>> =
-        manifest.generated.radiance
+        manifest.radiance
             ?.mips
             .orEmpty()
             .associate { mip ->

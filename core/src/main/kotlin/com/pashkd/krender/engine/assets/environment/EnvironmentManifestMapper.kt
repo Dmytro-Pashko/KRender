@@ -16,9 +16,11 @@ object EnvironmentManifestMapper {
             type = parseEnvironmentType(dto.environmentType),
             description = dto.description,
             sources = dto.sources,
-            generated = dto.generated,
+            skybox = dto.skybox,
+            irradiance = dto.irradiance,
+            radiance = dto.radiance,
+            brdfLut = dto.brdfLut,
             settings = dto.settings,
-            generation = dto.generation,
         )
 
     fun toDto(asset: EnvironmentAsset): EnvironmentManifestDto =
@@ -32,8 +34,10 @@ object EnvironmentManifestMapper {
             description = asset.description,
             settings = asset.settings,
             sources = asset.sources,
-            generated = asset.generated,
-            generation = asset.generation,
+            skybox = asset.skybox,
+            irradiance = asset.irradiance,
+            radiance = asset.radiance,
+            brdfLut = asset.brdfLut,
         )
 
     private fun parseEnvironmentType(value: String): EnvironmentType =

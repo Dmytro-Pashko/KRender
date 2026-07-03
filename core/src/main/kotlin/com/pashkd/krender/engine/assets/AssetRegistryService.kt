@@ -292,10 +292,10 @@ class LocalAssetRegistryService(
                         put("environmentSkyboxIntensity", manifest.settings.skyboxIntensity.toString())
                         put("environmentDiffuseIntensity", manifest.settings.diffuseIntensity.toString())
                         put("environmentSpecularIntensity", manifest.settings.specularIntensity.toString())
-                        put("environmentHasSkybox", (manifest.generated.skybox != null).toString())
-                        put("environmentHasIrradiance", (manifest.generated.irradiance != null).toString())
-                        put("environmentHasRadiance", (manifest.generated.radiance != null).toString())
-                        put("environmentHasBrdfLut", (manifest.generated.brdfLut != null).toString())
+                        put("environmentHasSkybox", (manifest.skybox != null).toString())
+                        put("environmentHasIrradiance", (manifest.irradiance != null).toString())
+                        put("environmentHasRadiance", (manifest.radiance != null).toString())
+                        put("environmentHasBrdfLut", (manifest.brdfLut != null).toString())
                         manifest.description?.let { put("environmentDescription", it) }
                     }
                 } catch (error: Exception) {

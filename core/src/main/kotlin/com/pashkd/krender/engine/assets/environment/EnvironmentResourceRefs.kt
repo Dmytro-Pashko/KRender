@@ -3,17 +3,6 @@ package com.pashkd.krender.engine.assets.environment
 import kotlinx.serialization.Serializable
 
 /**
- * References to all generated IBL resources for an environment.
- */
-@Serializable
-data class EnvironmentGeneratedResources(
-    val skybox: SkyboxResourceSet? = null,
-    val irradiance: CubemapResource? = null,
-    val radiance: RadianceMipChain? = null,
-    val brdfLut: TextureResourceRef? = null,
-)
-
-/**
  * Skybox cubemap face set.
  */
 @Serializable
@@ -59,5 +48,4 @@ data class RadianceMip(
 @Serializable
 data class TextureResourceRef(
     val path: String,
-    val shared: Boolean = false,
 )

@@ -19,8 +19,10 @@ data class EnvironmentManifestDto(
     val description: String? = null,
     val settings: EnvironmentSettings = EnvironmentSettings(),
     val sources: List<EnvironmentSourceVariant> = emptyList(),
-    val generated: EnvironmentGeneratedResources = EnvironmentGeneratedResources(),
-    val generation: EnvironmentGenerationSettings? = null,
+    val skybox: SkyboxResourceSet? = null,
+    val irradiance: CubemapResource? = null,
+    val radiance: RadianceMipChain? = null,
+    val brdfLut: TextureResourceRef? = null,
 )
 
 const val ENVIRONMENT_SCHEMA = "krender.environment"

@@ -140,10 +140,10 @@ data class EnvironmentPreviewAvailability(
             fileService: SceneFileService,
         ): EnvironmentPreviewAvailability =
             EnvironmentPreviewAvailability(
-                hasSkybox = environment.generated.skybox.exists(environment.manifestPath, fileService),
-                hasIrradiance = environment.generated.irradiance.exists(environment.manifestPath, fileService),
-                hasRadiance = environment.generated.radiance.exists(environment.manifestPath, fileService),
-                hasBrdfLut = environment.generated.brdfLut.exists(environment.manifestPath, fileService),
+                hasSkybox = environment.skybox.exists(environment.manifestPath, fileService),
+                hasIrradiance = environment.irradiance.exists(environment.manifestPath, fileService),
+                hasRadiance = environment.radiance.exists(environment.manifestPath, fileService),
+                hasBrdfLut = environment.brdfLut.exists(environment.manifestPath, fileService),
             )
     }
 }

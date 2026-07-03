@@ -14,7 +14,7 @@ value class EnvironmentAssetId(
  * Platform-independent representation of a complete Environment asset.
  *
  * An Environment owns all resources and parameters related to scene lighting/background
- * for PBR rendering: source HDR maps, generated IBL cubemaps, skybox faces, and runtime settings.
+ * for PBR rendering: source HDR maps, skybox/IBL resources, and runtime settings.
  */
 data class EnvironmentAsset(
     val id: EnvironmentAssetId,
@@ -24,9 +24,11 @@ data class EnvironmentAsset(
     val type: EnvironmentType,
     val description: String? = null,
     val sources: List<EnvironmentSourceVariant> = emptyList(),
-    val generated: EnvironmentGeneratedResources = EnvironmentGeneratedResources(),
+    val skybox: SkyboxResourceSet? = null,
+    val irradiance: CubemapResource? = null,
+    val radiance: RadianceMipChain? = null,
+    val brdfLut: TextureResourceRef? = null,
     val settings: EnvironmentSettings = EnvironmentSettings(),
-    val generation: EnvironmentGenerationSettings? = null,
     val metadata: EnvironmentMetadata = EnvironmentMetadata(),
 )
 

@@ -9,8 +9,6 @@ import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
 import com.pashkd.krender.engine.assets.environment.ENVIRONMENT_SCHEMA_VERSION
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
 import com.pashkd.krender.engine.assets.environment.EnvironmentAssetId
-import com.pashkd.krender.engine.assets.environment.EnvironmentGeneratedResources
-import com.pashkd.krender.engine.assets.environment.EnvironmentGenerationSettings
 import com.pashkd.krender.engine.assets.environment.EnvironmentSettings
 import com.pashkd.krender.engine.assets.environment.EnvironmentSourceFormat
 import com.pashkd.krender.engine.assets.environment.EnvironmentSourceVariant
@@ -159,51 +157,39 @@ internal object EnvironmentAssetCreation {
         return result
     }
 
-    private fun defaultGeneratedResources(): EnvironmentGeneratedResources =
-        EnvironmentGeneratedResources(
-            skybox =
-                SkyboxResourceSet(
-                    layout = "SixFaces",
-                    resolution = 1024,
-                    format = "KTX",
-                    faces =
-                        linkedMapOf(
-                            "px" to "generated/skybox/px.ktx",
-                            "nx" to "generated/skybox/nx.ktx",
-                            "py" to "generated/skybox/py.ktx",
-                            "ny" to "generated/skybox/ny.ktx",
-                            "pz" to "generated/skybox/pz.ktx",
-                            "nz" to "generated/skybox/nz.ktx",
-                        ),
+    private fun defaultSkybox(): SkyboxResourceSet =
+        SkyboxResourceSet(
+            layout = "SixFaces",
+            resolution = 1024,
+            format = "KTX",
+            faces =
+                linkedMapOf(
+                    "px" to "generated/skybox/px.ktx",
+                    "nx" to "generated/skybox/nx.ktx",
+                    "py" to "generated/skybox/py.ktx",
+                    "ny" to "generated/skybox/ny.ktx",
+                    "pz" to "generated/skybox/pz.ktx",
+                    "nz" to "generated/skybox/nz.ktx",
                 ),
-            irradiance = CubemapResource(path = "generated/irradiance/irradiance.ktx", resolution = 64, format = "KTX"),
-            radiance =
-                RadianceMipChain(
-                    baseResolution = 256,
-                    mips =
-                        listOf(
-                            RadianceMip(level = 0, roughness = 0f, path = "generated/radiance/radiance_mip_00.ktx"),
-                            RadianceMip(level = 1, roughness = 0.25f, path = "generated/radiance/radiance_mip_01.ktx"),
-                            RadianceMip(level = 2, roughness = 0.5f, path = "generated/radiance/radiance_mip_02.ktx"),
-                            RadianceMip(level = 3, roughness = 0.75f, path = "generated/radiance/radiance_mip_03.ktx"),
-                            RadianceMip(level = 4, roughness = 1f, path = "generated/radiance/radiance_mip_04.ktx"),
-                        ),
-                ),
-            brdfLut = TextureResourceRef(path = "../../shared/pbr/brdf_lut.ktx", shared = true),
         )
 
-    private fun defaultGenerationSettings(): EnvironmentGenerationSettings =
-        EnvironmentGenerationSettings(
-            sourceVariantId = "source",
-            generator = "KRenderIBLGenerator",
-            generatorVersion = "1",
-            generatedAt = null,
-            skyboxResolution = 1024,
-            irradianceResolution = 64,
-            radianceResolution = 256,
-            radianceMipCount = 5,
-            outputFormat = "KTX",
+    private fun defaultIrradiance(): CubemapResource =
+        CubemapResource(path = "generated/irradiance/irradiance.ktx", resolution = 64, format = "KTX")
+
+    private fun defaultRadiance(): RadianceMipChain =
+        RadianceMipChain(
+            baseResolution = 256,
+            mips =
+                listOf(
+                    RadianceMip(level = 0, roughness = 0f, path = "generated/radiance/radiance_mip_00.ktx"),
+                    RadianceMip(level = 1, roughness = 0.25f, path = "generated/radiance/radiance_mip_01.ktx"),
+                    RadianceMip(level = 2, roughness = 0.5f, path = "generated/radiance/radiance_mip_02.ktx"),
+                    RadianceMip(level = 3, roughness = 0.75f, path = "generated/radiance/radiance_mip_03.ktx"),
+                    RadianceMip(level = 4, roughness = 1f, path = "generated/radiance/radiance_mip_04.ktx"),
+                ),
         )
+
+    private fun defaultBrdfLut(): TextureResourceRef = TextureResourceRef(path = "../../shared/pbr/brdf_lut.ktx")
 
     private fun prepareEnvironmentTarget(
         targetRoot: Path,
@@ -261,8 +247,10 @@ internal object EnvironmentAssetCreation {
                         dynamicRange = "HDR",
                     ),
                 ),
-            generated = defaultGeneratedResources(),
-            generation = defaultGenerationSettings(),
+            skybox = defaultSkybox(),
+            irradiance = defaultIrradiance(),
+            radiance = defaultRadiance(),
+            brdfLut = defaultBrdfLut(),
         )
 
     private fun resolveAssetPath(

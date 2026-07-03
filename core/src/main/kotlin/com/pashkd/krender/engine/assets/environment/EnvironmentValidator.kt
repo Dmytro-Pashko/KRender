@@ -73,12 +73,10 @@ object EnvironmentValidator {
         fileService: SceneFileService,
         issues: MutableList<EnvironmentIssue>,
     ) {
-        val gen = asset.generated
-
-        validateSkybox(gen.skybox, asset.manifestPath, fileService, issues)
-        validateIrradiance(gen.irradiance, asset.manifestPath, fileService, issues)
-        validateRadiance(gen.radiance, asset.manifestPath, fileService, issues)
-        validateBrdfLut(gen.brdfLut, asset.manifestPath, fileService, issues)
+        validateSkybox(asset.skybox, asset.manifestPath, fileService, issues)
+        validateIrradiance(asset.irradiance, asset.manifestPath, fileService, issues)
+        validateRadiance(asset.radiance, asset.manifestPath, fileService, issues)
+        validateBrdfLut(asset.brdfLut, asset.manifestPath, fileService, issues)
     }
 
     private fun validateSkybox(

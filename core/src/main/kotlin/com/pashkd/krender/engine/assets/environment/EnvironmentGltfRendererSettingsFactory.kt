@@ -19,7 +19,7 @@ object EnvironmentGltfRendererSettingsFactory {
             exposure = settings.exposure.coerceAtLeast(0f),
             backgroundMode = settings.backgroundMode,
             backgroundColor = (settings.backgroundColor ?: DefaultBackgroundColor).toRenderColor(),
-            showSkybox = settings.backgroundMode == BackgroundMode.Skybox && asset.generated.skybox?.faces?.isNotEmpty() == true,
+            showSkybox = settings.backgroundMode == BackgroundMode.Skybox && asset.skybox?.faces?.isNotEmpty() == true,
             skyboxIntensity = settings.skyboxIntensity.coerceIn(0f, 1f),
             ambientIntensity = settings.diffuseIntensity.coerceAtLeast(0f),
             environmentIntensity = settings.specularIntensity.coerceIn(0f, 1f),
