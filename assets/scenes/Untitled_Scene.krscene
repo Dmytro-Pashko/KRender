@@ -1401,9 +1401,7 @@
       "ambientIntensity": 0.3
     },
     "environment": {
-      "skyboxAssetPath": "skyboxes/default_skybox_studio.krskybox",
-      "showSkybox": true,
-      "environmentIntensity": 1.0
+      "environmentAssetPath": "environments/default/default.environment.json"
     },
     "terrain": {
       "materialLibraryPath": "materials/terrain_materials.json"

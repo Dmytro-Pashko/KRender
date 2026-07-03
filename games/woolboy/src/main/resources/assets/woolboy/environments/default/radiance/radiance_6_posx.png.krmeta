@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:92ddf4c4-459e-46a5-8b94-634363465e10",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "radiance_6_posx",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

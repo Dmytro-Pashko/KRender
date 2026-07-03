@@ -39,9 +39,7 @@ class SceneAssetDetailsRenderer : AssetDetailsRenderer {
 
         ImGui.separator()
         ImGui.text("Environment")
-        assetBrowserTextLine("Skybox: ${asset.metadata["sceneSkyboxPath"] ?: "none"}")
-        assetBrowserTextLine("Skybox visible: ${asset.metadata["sceneSkyboxVisible"] ?: "true"}")
-        assetBrowserTextLine("Environment intensity: ${asset.metadata["sceneEnvironmentIntensity"] ?: "1.00"}")
+        assetBrowserTextLine("Environment asset: ${asset.metadata["sceneEnvironmentAssetPath"] ?: "none"}")
         assetBrowserTextLine("Ambient intensity: ${asset.metadata["sceneAmbientIntensity"] ?: "0.00"}")
 
         ImGui.separator()

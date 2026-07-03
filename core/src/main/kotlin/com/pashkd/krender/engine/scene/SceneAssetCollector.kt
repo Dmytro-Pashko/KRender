@@ -7,8 +7,7 @@ enum class SceneDependencyKind {
     Texture,
     Terrain,
     TerrainMaterialLibrary,
-    SkyboxDescriptor,
-    SkyboxTexture,
+    EnvironmentManifest,
     Material,
     Shader,
     Audio,
@@ -50,10 +49,7 @@ data class SceneDependencyGraph(
 class SceneDependencyCollector(
     private val sceneFiles: SceneFileService,
 ) {
-    fun collect(
-        descriptor: SceneDescriptor,
-        resolvedSkybox: SkyboxAssetDescriptor? = null,
-    ): SceneDependencyGraph {
+    fun collect(descriptor: SceneDescriptor): SceneDependencyGraph {
         val dependencies = linkedMapOf<Pair<SceneDependencyKind, String>, SceneDependency>()
         val warnings = mutableListOf<String>()
         val activeTerrainEntityId = descriptor.settings.activeTerrainEntityId
@@ -127,30 +123,15 @@ class SceneDependencyCollector(
                 }
         }
 
-        descriptor.settings.environment.skyboxAssetPath
+        descriptor.settings.environment.environmentAssetPath
             .normalizedDependencyPath()
             ?.let { path ->
                 dependencies.merge(
                     SceneDependency(
-                        kind = SceneDependencyKind.SkyboxDescriptor,
+                        kind = SceneDependencyKind.EnvironmentManifest,
                         path = path,
                         requirement = SceneDependencyRequirement.Optional,
                         sourceComponentType = "SceneSettingsDescriptor.environment",
-                    ),
-                )
-            }
-
-        resolvedSkybox
-            ?.texturePath
-            .normalizedDependencyPath()
-            ?.let { path ->
-                dependencies.merge(
-                    SceneDependency(
-                        kind = SceneDependencyKind.SkyboxTexture,
-                        path = path,
-                        requirement = SceneDependencyRequirement.Optional,
-                        sourceComponentType = "SkyboxAssetDescriptor",
-                        schedulableAsset = AssetRef.texture(path),
                     ),
                 )
             }

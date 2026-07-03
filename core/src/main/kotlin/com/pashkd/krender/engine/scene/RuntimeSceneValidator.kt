@@ -15,9 +15,7 @@ enum class SceneValidationIssueCode {
     MissingActiveCamera,
     MissingActiveCameraEntity,
     ActiveCameraWithoutCameraComponent,
-    MissingSkyboxPath,
-    MissingSkyboxDescriptor,
-    MissingSkyboxTexture,
+    MissingEnvironmentAsset,
     MissingActiveTerrainEntity,
     ActiveTerrainWithoutTerrainComponent,
     MissingTerrainAsset,
@@ -201,15 +199,6 @@ object RuntimeSceneValidator {
                 )
         }
 
-        if (descriptor.settings.environment.showSkybox && skyboxPath(descriptor) == null) {
-            issues +=
-                SceneValidationIssue(
-                    severity = SceneValidationSeverity.Warning,
-                    code = SceneValidationIssueCode.MissingSkyboxPath,
-                    message = "Scene '${descriptor.name}' enables the skybox but has no skybox descriptor path.",
-                )
-        }
-
         dependencyGraph.missing.forEach { missing ->
             when (missing.dependency.kind) {
                 SceneDependencyKind.Model ->
@@ -243,27 +232,14 @@ object RuntimeSceneValidator {
                             assetPath = missing.dependency.path,
                         )
 
-                SceneDependencyKind.SkyboxDescriptor ->
-                    if (descriptor.settings.environment.showSkybox) {
-                        issues +=
-                            SceneValidationIssue(
-                                severity = SceneValidationSeverity.Warning,
-                                code = SceneValidationIssueCode.MissingSkyboxDescriptor,
-                                message = missing.message,
-                                assetPath = missing.dependency.path,
-                            )
-                    }
-
-                SceneDependencyKind.SkyboxTexture ->
-                    if (descriptor.settings.environment.showSkybox) {
-                        issues +=
-                            SceneValidationIssue(
-                                severity = SceneValidationSeverity.Warning,
-                                code = SceneValidationIssueCode.MissingSkyboxTexture,
-                                message = missing.message,
-                                assetPath = missing.dependency.path,
-                            )
-                    }
+                SceneDependencyKind.EnvironmentManifest ->
+                    issues +=
+                        SceneValidationIssue(
+                            severity = SceneValidationSeverity.Warning,
+                            code = SceneValidationIssueCode.MissingEnvironmentAsset,
+                            message = missing.message,
+                            assetPath = missing.dependency.path,
+                        )
 
                 else -> Unit
             }
@@ -341,8 +317,8 @@ object RuntimeSceneValidator {
         return entity
     }
 
-    fun skyboxPath(descriptor: SceneDescriptor): String? =
-        descriptor.settings.environment.skyboxAssetPath
+    fun environmentAssetPath(descriptor: SceneDescriptor): String? =
+        descriptor.settings.environment.environmentAssetPath
             .normalizedValidationPath()
 
     private fun EntityDescriptor.hasComponent(type: String): Boolean = components.any { component -> component.type == type }

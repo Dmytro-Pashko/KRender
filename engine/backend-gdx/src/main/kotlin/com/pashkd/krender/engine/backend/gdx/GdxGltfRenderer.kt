@@ -7,8 +7,11 @@ import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Cubemap
 import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.graphics.g3d.model.Animation
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.graphics.g3d.utils.AnimationController
+import com.pashkd.krender.engine.api.AnimationPlaybackView
 import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.GltfRendererSettings
 import com.pashkd.krender.engine.api.Logger
@@ -78,10 +81,11 @@ internal class GdxGltfRenderer(
 
             entry.ensureShaderConfiguration(settings)
             applyTransform(entry.scene.modelInstance, command)
+            applyAnimationPreview(entry.scene, command.animation)
             meshPartFilter(entry.scene.modelInstance, command.visibleMeshPartIndices)
             configureEnvironment(entry, settings)
             entry.manager.setCamera(camera)
-            entry.manager.update(Gdx.graphics.deltaTime)
+            entry.manager.update(if (command.animation != null) 0f else Gdx.graphics.deltaTime)
             entry.manager.render()
             true
         } catch (error: Throwable) {
@@ -253,6 +257,50 @@ internal class GdxGltfRenderer(
 
     companion object {
         private const val TAG = "GdxGltfRenderer"
+    }
+
+    private fun applyAnimationPreview(
+        scene: GltfScene,
+        preview: AnimationPlaybackView?,
+    ) {
+        applyAnimationPreview(scene.modelInstance, scene.animationController, preview)
+    }
+
+    private fun applyAnimationPreview(
+        instance: ModelInstance,
+        controller: AnimationController?,
+        preview: AnimationPlaybackView?,
+    ) {
+        if (controller == null || instance.animations.isEmpty) return
+        val animationName = preview?.animationName
+        if (animationName.isNullOrBlank()) {
+            controller.setAnimation(null as String?)
+            controller.update(0f)
+            return
+        }
+        val animation =
+            instance.getAnimation(animationName) ?: run {
+                controller.setAnimation(null as String?)
+                controller.update(0f)
+                return
+            }
+        controller.paused = false
+        controller.setAnimation(animationName, if (preview.loop) -1 else 1, 1f, null)
+        controller.current?.time = normalizedAnimationTime(animation, preview.timeSeconds, preview.loop)
+        controller.update(0f)
+    }
+
+    private fun applyTransform(
+        instance: ModelInstance,
+        command: DrawModel,
+    ) {
+        val transform = command.transform
+        instance.transform.idt()
+        instance.transform.translate(transform.position.x, transform.position.y, transform.position.z)
+        instance.transform.rotate(Vector3.X, transform.eulerDegrees.x)
+        instance.transform.rotate(Vector3.Y, transform.eulerDegrees.y)
+        instance.transform.rotate(Vector3.Z, transform.eulerDegrees.z)
+        instance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
     }
 }
 

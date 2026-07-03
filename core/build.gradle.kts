@@ -28,6 +28,9 @@ dependencies {
 
 tasks.named<Jar>("jar") {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(fileTree("$buildDir/classes/kotlin/main"))
+    from(fileTree("$buildDir/classes/java/main"))
+    from(fileTree("$buildDir/resources/main"))
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {

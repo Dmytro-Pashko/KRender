@@ -112,9 +112,7 @@ class SceneAssetMetadataReaderTest {
                             lighting = SceneLightingDescriptor(ambientIntensity = 0.35f),
                             environment =
                                 SceneEnvironmentDescriptor(
-                                    skyboxAssetPath = "skyboxes/test.krskybox",
-                                    showSkybox = true,
-                                    environmentIntensity = 1.5f,
+                                    environmentAssetPath = "environments/test/test.environment.json",
                                 ),
                             terrain =
                                 SceneTerrainSettingsDescriptor(
@@ -146,9 +144,7 @@ class SceneAssetMetadataReaderTest {
         assertEquals("512 x 256", metadata.activeTerrainSize)
         assertEquals(3, metadata.activeTerrainLayerCount)
         assertEquals(2048, metadata.activeTerrainBakedResolution)
-        assertEquals("skyboxes/test.krskybox", metadata.skyboxPath)
-        assertEquals(true, metadata.showSkybox)
-        assertEquals(1.5f, metadata.environmentIntensity)
+        assertEquals("environments/test/test.environment.json", metadata.environmentAssetPath)
         assertEquals(0.35f, metadata.ambientIntensity)
         assertEquals("materials/terrain_materials.json", metadata.terrainMaterialLibraryPath)
         assertEquals("9.00 x 4.00 x 9.00", metadata.sceneBounds?.formatted())

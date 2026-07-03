@@ -20,6 +20,8 @@ import com.pashkd.krender.engine.api.TaskService
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.NoOpAssetRegistryService
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
+import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.scene.ComponentDescriptor
 import com.pashkd.krender.engine.scene.EditorToolLauncher
 import com.pashkd.krender.engine.scene.EntityDescriptor
@@ -47,7 +49,7 @@ import kotlin.test.assertNotNull
 
 class ScenePlayerBuilderTest {
     @Test
-    fun `builds camera-only runtime scene without terrain or skybox`() {
+    fun `builds camera-only runtime scene without terrain or environment`() {
         val descriptor =
             SceneDescriptor(
                 id = "scene:builder",
@@ -70,8 +72,7 @@ class ScenePlayerBuilderTest {
                         activeTerrainEntityId = null,
                         environment =
                             SceneEnvironmentDescriptor(
-                                skyboxAssetPath = null,
-                                showSkybox = false,
+                                environmentAssetPath = null,
                             ),
                     ),
             )
@@ -84,15 +85,20 @@ class ScenePlayerBuilderTest {
                     ScenePlayerBuildRequest(
                         scenePath = "scenes/builder.krscene",
                         descriptor = descriptor,
-                        skybox = null,
+                        environment = null,
                     ),
             )
 
         assertEquals(1L, result.activeCameraEntityId)
         assertFalse(result.terrainPrepared)
-        assertFalse(result.skyboxEnabled)
+        assertFalse(result.environmentEnabled)
         assertEquals(0, result.validationReport.errors.size)
         assertNotNull(world.getEntity(1L)?.get<ActiveCameraComponent>())
+        assertNotNull(
+            world.all().singleOrNull { entity ->
+                entity.get<LightComponent>()?.type == LightType.Ambient
+            },
+        )
     }
 }
 

@@ -6,7 +6,7 @@ import kotlin.test.assertTrue
 
 class SceneAssetCollectorTest {
     @Test
-    fun `collects model terrain and skybox dependencies with requirement metadata`() {
+    fun `collects model terrain and environment dependencies with requirement metadata`() {
         val graph =
             SceneDependencyCollector(
                 sceneFiles =
@@ -16,8 +16,7 @@ class SceneAssetCollectorTest {
                                 "model/tree.glb",
                                 "terrains/field_b.krterrain",
                                 "materials/terrain_materials.json",
-                                "skyboxes/studio.krskybox",
-                                "textures/studio.png",
+                                "environments/studio/studio.environment.json",
                             ),
                     ),
             ).collect(
@@ -61,14 +60,11 @@ class SceneAssetCollectorTest {
                         settings =
                             SceneSettingsDescriptor(
                                 activeTerrainEntityId = 3L,
-                                environment = SceneEnvironmentDescriptor(skyboxAssetPath = "skyboxes/studio.krskybox"),
+                                environment =
+                                    SceneEnvironmentDescriptor(
+                                        environmentAssetPath = "environments/studio/studio.environment.json",
+                                    ),
                             ),
-                    ),
-                resolvedSkybox =
-                    SkyboxAssetDescriptor(
-                        id = "skybox:studio",
-                        name = "Studio",
-                        texturePath = "textures/studio.png",
                     ),
             )
 
@@ -78,8 +74,7 @@ class SceneAssetCollectorTest {
                 SceneDependencyKind.Terrain to "terrains/field_a.krterrain",
                 SceneDependencyKind.Terrain to "terrains/field_b.krterrain",
                 SceneDependencyKind.TerrainMaterialLibrary to DefaultTerrainMaterialLibraryPath,
-                SceneDependencyKind.SkyboxDescriptor to "skyboxes/studio.krskybox",
-                SceneDependencyKind.SkyboxTexture to "textures/studio.png",
+                SceneDependencyKind.EnvironmentManifest to "environments/studio/studio.environment.json",
             ),
             graph.dependencies.map { it.kind to it.path },
         )
@@ -90,7 +85,6 @@ class SceneAssetCollectorTest {
                 SceneDependencyRequirement.Required,
                 SceneDependencyRequirement.Required,
                 SceneDependencyRequirement.Optional,
-                SceneDependencyRequirement.Optional,
             ),
             graph.dependencies.map { it.requirement },
         )
@@ -99,7 +93,7 @@ class SceneAssetCollectorTest {
             graph.missing.map { it.dependency.path },
         )
         assertEquals(
-            listOf("model/tree.glb", "terrains/field_a.krterrain", "terrains/field_b.krterrain", "textures/studio.png"),
+            listOf("model/tree.glb", "terrains/field_a.krterrain", "terrains/field_b.krterrain"),
             graph.schedulableAssets.map { it.path },
         )
     }
@@ -112,6 +106,10 @@ class SceneAssetCollectorTest {
                     SceneDescriptor(
                         id = "scene:dedupe",
                         name = "Dedupe",
+                        settings =
+                            SceneSettingsDescriptor(
+                                environment = SceneEnvironmentDescriptor(environmentAssetPath = null),
+                            ),
                         entities =
                             listOf(
                                 EntityDescriptor(

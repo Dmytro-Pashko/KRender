@@ -79,8 +79,8 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 
 All discovered categories (`AssetDomain.kt`): `Model`, `Texture`, `Material`, `Terrain`,
 `Scene2D`, `UI` (`.krui`), `Environment`, `Scene`, `Other`. The `Environment` category is the
-single browser home for `.environment.json`, HDR source images, legacy `.krskybox` descriptors,
-and generated environment resources. Scanned roots: `model`, `textures`, `skyboxes`, `materials`,
+single browser home for `.environment.json`, HDR source images, and generated environment
+resources. Scanned roots: `model`, `textures`, `skyboxes`, `materials`,
 `terrains`, `ui/scenes`, `scenes`, `shaders`, `assets`.
 
 ## Current Features

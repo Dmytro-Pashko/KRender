@@ -1,6 +1,9 @@
 package com.pashkd.krender.engine.tools.sceneeditor
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
+import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.EnvironmentGltfRendererSettingsFactory
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
@@ -49,11 +52,13 @@ class SceneEditorViewportGuideSystem(
  */
 class SceneEditorDocumentRenderSystem(
     private val document: SceneEditorDocument,
+    private val environmentState: SceneEditorEnvironmentState,
 ) : System() {
     override fun render(
         world: SceneWorld,
         alpha: Float,
     ) {
+        val gltfRendererSettings = environmentState.gltfRendererSettings
         document.world.all().forEach { entity ->
             if (!entity.active || entity.get<EditorOnlyComponent>() != null) return@forEach
             val transform = entity.get<TransformComponent>() ?: return@forEach
@@ -64,6 +69,7 @@ class SceneEditorDocumentRenderSystem(
                         model = model.model,
                         transform = transform.snapshot(),
                         material = model.material,
+                        gltfRenderer = gltfRendererSettings?.takeIf { model.model.path.endsWith(".glb", true) || model.model.path.endsWith(".gltf", true) },
                     ),
                 )
             }
@@ -73,80 +79,64 @@ class SceneEditorDocumentRenderSystem(
 }
 
 /**
- * Submits scene environment commands so the editor viewport can display the selected skybox.
+ * Resolves the selected scene Environment asset and exposes backend-neutral glTF renderer settings.
  */
-class SceneEditorEnvironmentRenderSystem(
+class SceneEditorEnvironmentSyncSystem(
     private val document: SceneEditorDocument,
+    private val state: SceneEditorEnvironmentState,
     private val sceneFiles: SceneFileService,
     private val logger: Logger,
 ) : System() {
-    private val skyboxAssets = SkyboxAssetService(sceneFiles, logger)
-    private var cachedSkyboxPath: String? = null
-    private var cachedSkybox: SkyboxAssetDescriptor? = null
-    private var failedSkyboxPath: String? = null
+    private val environmentService = DefaultEnvironmentService(sceneFiles)
+    private var cachedEnvironmentPath: String? = null
+    private var cachedEnvironment: EnvironmentAsset? = null
+    private var failedEnvironmentPath: String? = null
 
-    override fun render(
+    override fun update(
         world: SceneWorld,
-        alpha: Float,
+        dt: Float,
     ) {
-        val settings = document.descriptor?.settings ?: return
-        val skybox = resolveSkybox(settings.environment.skyboxAssetPath)
-        world.renderCommands.submit(
-            ApplyEnvironment(
-                skyboxTexture =
-                    skybox?.texturePath?.let { texturePath ->
-                        MaterialTextureRef(
-                            id = texturePath,
-                            channel = "skybox",
-                            uvChannel = 0,
-                        )
-                    },
-                showSkybox = settings.environment.showSkybox,
-                ambientColor = settings.lighting.ambientColor.copy(),
-                ambientIntensity = settings.lighting.ambientIntensity,
-                environmentIntensity = settings.environment.environmentIntensity * (skybox?.intensity ?: 1f),
-            ),
-        )
+        val environmentPath = document.descriptor?.settings?.environment?.environmentAssetPath.normalizedEnvironmentPath()
+        val environment = resolveEnvironment(environmentPath)
+        state.gltfRendererSettings = environment?.let(EnvironmentGltfRendererSettingsFactory::create)
     }
 
-    private fun resolveSkybox(path: String?): SkyboxAssetDescriptor? {
-        val normalizedPath =
-            path
-                ?.trim()
-                ?.replace('\\', '/')
-                ?.takeIf(String::isNotBlank)
-                ?.takeUnless { value -> value.equals("null", ignoreCase = true) }
-        if (normalizedPath == null) {
-            cachedSkyboxPath = null
-            cachedSkybox = null
-            failedSkyboxPath = null
+    private fun resolveEnvironment(path: String?): EnvironmentAsset? {
+        if (path == null) {
+            cachedEnvironmentPath = null
+            cachedEnvironment = null
+            failedEnvironmentPath = null
             return null
         }
-        if (cachedSkyboxPath == normalizedPath) {
-            return cachedSkybox
+        if (cachedEnvironmentPath == path) {
+            return cachedEnvironment
         }
-        if (failedSkyboxPath == normalizedPath) {
+        if (failedEnvironmentPath == path) {
             return null
         }
 
         return try {
-            skyboxAssets.loadRequired(normalizedPath).also { descriptor ->
-                cachedSkyboxPath = normalizedPath
-                cachedSkybox = descriptor
-                failedSkyboxPath = null
+            environmentService.load(path).also { asset ->
+                cachedEnvironmentPath = path
+                cachedEnvironment = asset
+                failedEnvironmentPath = null
             }
         } catch (error: Exception) {
-            logger.warn(TAG, error) { "Scene Editor skybox '$normalizedPath' could not be loaded: ${error.message}" }
-            cachedSkyboxPath = null
-            cachedSkybox = null
-            failedSkyboxPath = normalizedPath
+            logger.warn(TAG, error) { "Scene Editor environment '$path' could not be loaded: ${error.message}" }
+            cachedEnvironmentPath = null
+            cachedEnvironment = null
+            failedEnvironmentPath = path
             null
         }
     }
 
     companion object {
-        private const val TAG = "SceneEditorEnvironment"
+        private const val TAG = "SceneEditorEnvironmentSync"
     }
+}
+
+class SceneEditorEnvironmentState {
+    var gltfRendererSettings: GltfRendererSettings? = null
 }
 
 class SceneEditorBoundingBoxSystem(
@@ -677,3 +667,10 @@ private fun distance(
     val dz = a.z - b.z
     return sqrt(dx * dx + dy * dy + dz * dz)
 }
+
+private fun String?.normalizedEnvironmentPath(): String? =
+    this
+        ?.trim()
+        ?.replace('\\', '/')
+        ?.takeIf(String::isNotBlank)
+        ?.takeUnless { value -> value.equals("null", ignoreCase = true) }

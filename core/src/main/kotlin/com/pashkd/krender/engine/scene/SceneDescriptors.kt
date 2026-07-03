@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.scene
 
 import com.pashkd.krender.engine.api.Color
+import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 
 object SceneComponentTypes {
     const val Name = "NameComponent"
@@ -55,9 +56,7 @@ data class SceneLightingDescriptor(
 )
 
 data class SceneEnvironmentDescriptor(
-    val skyboxAssetPath: String? = null,
-    val showSkybox: Boolean = true,
-    val environmentIntensity: Float = 1f,
+    val environmentAssetPath: String? = HdrEnvironmentAssets.DEFAULT_MANIFEST,
 )
 
 data class SceneTerrainSettingsDescriptor(

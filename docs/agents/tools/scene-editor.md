@@ -27,7 +27,7 @@ scene for composing and inspecting engine scene data".
 | `engine/tools/.../sceneeditor/SceneEditorDocument.kt` | Holds the edited scene's `SceneWorld` + document model. |
 | `engine/tools/.../sceneeditor/SceneEditorOperations.kt` | New/open/save, entity add/remove, edits. |
 | `engine/tools/.../sceneeditor/SceneEditorState.kt` | Editor UI state (selection, camera, scene name/path). |
-| `engine/tools/.../sceneeditor/SceneEditorSystems.kt` | Selection, bounding box, light gizmo/sync, terrain sync, environment, document render systems. |
+| `engine/tools/.../sceneeditor/SceneEditorSystems.kt` | Selection, bounding box, light gizmo/sync, terrain sync, environment sync, document render systems. |
 | `engine/tools/.../sceneeditor/SceneEditorComponents.kt` | `EditorOnlyComponent` + editor components. |
 | `engine/tools/.../sceneeditor/SceneEditorBounds.kt` | `SceneEditorBoundsProvider` + bounds services. |
 | `engine/tools/.../sceneeditor/SceneEditorPanels.kt` | Toolbar, hierarchy, inspector, viewport panels. |
@@ -45,7 +45,7 @@ scene for composing and inspecting engine scene data".
 | `SceneEditorBoundingBoxSystem` | Selection bounds rendering. |
 | `SceneEditorLightSyncSystem` / `SceneEditorLightGizmoSystem` | Light data sync + gizmos. |
 | `SceneEditorDocumentTerrainSyncSystem` | Terrain entity sync within the document. |
-| `SceneEditorEnvironmentRenderSystem` | Emits `ApplyEnvironment` (skybox/ambient) from document settings. |
+| `SceneEditorEnvironmentSyncSystem` | Resolves the selected `.environment.json` asset and exposes backend-neutral glTF renderer settings for viewport rendering. |
 | `SceneEditorDocumentRenderSystem` | Emits draw commands for document entities. |
 
 ## UI Panels
@@ -67,27 +67,29 @@ scene for composing and inspecting engine scene data".
 2. The asset panel (`SceneAssetBrowserModel`) reuses `LocalAssetRegistryService` to list assets;
    the user adds them to the document via `SceneEditorOperations`.
 3. Editor systems read input → update selection/gizmos; sync systems mirror document data into
-   renderable state; render systems emit `RenderCommand`s (`ApplyEnvironment`, `DrawModel`, ...).
+   renderable state; document render emits `DrawModel` commands and attaches glTF environment settings
+   for `.glb` / `.gltf` models when a scene Environment asset is configured.
 4. Save serializes the document via `SceneSerializer` through `engine.sceneFiles`.
 
 ## Lifecycle
 
 `show()` builds layout, state, document, operations, asset browser model, creates the editor
 camera, then adds systems in a deliberate order (guide, asset browser, UI, camera, selection,
-bounding box, light gizmo, light sync, terrain sync, environment render, document render).
+bounding box, light gizmo, light sync, terrain sync, environment sync, document render).
 `hide()` releases cursor capture. Uses `SceneConfigPresets.EditorTool`.
 
 ## Supported Asset Types
 
 `.krscene` scene documents (read/write). Within a scene: models, lights, terrain references,
-skybox/environment settings. Asset panel surfaces all registry categories for placement.
+and `.environment.json` environment asset references. Asset panel surfaces all registry categories
+for placement.
 
 ## Current Features
 
 - New / open / save `.krscene` documents.
 - Entity hierarchy + inspector editing.
 - Viewport selection with bounding boxes and light gizmos.
-- Environment (skybox/ambient) configuration and preview.
+- Environment asset selection and glTF viewport preview integration.
 - Terrain entity sync within a scene.
 - Asset panel backed by the shared asset registry.
 

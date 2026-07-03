@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.scene
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
@@ -231,10 +232,14 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
         val environmentNode = settings["environment"] as? JsonObject
         val environment =
             if (environmentNode != null) {
+                val environmentAssetPath =
+                    if ("environmentAssetPath" in environmentNode) {
+                        normalizedOptionalProjectPath(environmentNode.stringOrNull("environmentAssetPath"))
+                    } else {
+                        legacyEnvironmentAssetPath(environmentNode)
+                    }
                 SceneEnvironmentDescriptor(
-                    skyboxAssetPath = normalizedOptionalProjectPath(environmentNode.stringOrNull("skyboxAssetPath")),
-                    showSkybox = environmentNode.booleanOrDefault("showSkybox", true),
-                    environmentIntensity = environmentNode.floatOrDefault("environmentIntensity", 1f).coerceAtLeast(0f),
+                    environmentAssetPath = environmentAssetPath,
                 )
             } else {
                 SceneEnvironmentDescriptor()
@@ -316,9 +321,7 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
             put(
                 "environment",
                 buildJsonObject {
-                    put("skyboxAssetPath", environment.skyboxAssetPath?.let(::JsonPrimitive) ?: JsonNull)
-                    put("showSkybox", JsonPrimitive(environment.showSkybox))
-                    put("environmentIntensity", JsonPrimitive(environment.environmentIntensity))
+                    put("environmentAssetPath", environment.environmentAssetPath?.let(::JsonPrimitive) ?: JsonNull)
                 },
             )
             put(
@@ -351,6 +354,17 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
             )
         }
         return defaultValue
+    }
+
+    private fun legacyEnvironmentAssetPath(environmentNode: JsonObject): String? {
+        val legacySkyboxPath = normalizedOptionalProjectPath(environmentNode.stringOrNull("skyboxAssetPath"))
+        val showSkybox = environmentNode.booleanOrDefault("showSkybox", true)
+        val environmentIntensity = environmentNode.floatOrDefault("environmentIntensity", 1f).coerceAtLeast(0f)
+        return if (legacySkyboxPath != null || showSkybox || environmentIntensity > 0f) {
+            HdrEnvironmentAssets.DEFAULT_MANIFEST
+        } else {
+            null
+        }
     }
 }
 

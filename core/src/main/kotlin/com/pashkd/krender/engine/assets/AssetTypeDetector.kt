@@ -64,9 +64,6 @@ object AssetTypeDetector {
             extension == "exr" || extension == "hdr" ->
                 AssetTypeDetection(AssetType.HdrSource, AssetCategory.Environment)
 
-            extension == "krskybox" ->
-                AssetTypeDetection(AssetType.EnvironmentSkybox, AssetCategory.Environment)
-
             extension in textureExtensions && isEnvironmentTexturePath(lowerPath) ->
                 AssetTypeDetection(environmentTextureType(lowerPath), AssetCategory.Environment)
 

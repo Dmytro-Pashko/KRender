@@ -228,9 +228,7 @@
       "ambientIntensity": 0.55
     },
     "environment": {
-      "skyboxAssetPath": "assets/woolboy/skyboxes/default_skybox_studio.krskybox",
-      "showSkybox": true,
-      "environmentIntensity": 1.0
+      "environmentAssetPath": "assets/woolboy/environments/default/default.environment.json"
     },
     "terrain": {
       "materialLibraryPath": "assets/woolboy/materials/terrain_materials.json"

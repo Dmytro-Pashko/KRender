@@ -24,6 +24,7 @@ class SceneEditorScene(
     private lateinit var document: SceneEditorDocument
     private lateinit var operations: SceneEditorOperations
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
+    private lateinit var environmentState: SceneEditorEnvironmentState
 
     override fun show() {
         engine.logger.info(TAG) { "Showing Scene Editor scene path='${scenePath ?: "<memory>"}'" }
@@ -49,6 +50,7 @@ class SceneEditorScene(
             )
         assetPanelState = SceneAssetPanelState()
         document = SceneEditorDocument(world = SceneWorld())
+        environmentState = SceneEditorEnvironmentState()
         operations = SceneEditorOperations(document, editorState, engine, layoutTracker)
         assetBrowser =
             SceneAssetBrowserModel(
@@ -83,8 +85,8 @@ class SceneEditorScene(
         world.systems.add(SceneEditorLightGizmoSystem(document, editorState))
         world.systems.add(SceneEditorLightSyncSystem(document, engine.logger))
         world.systems.add(SceneEditorDocumentTerrainSyncSystem(document, engine.logger))
-        world.systems.add(SceneEditorEnvironmentRenderSystem(document, engine.sceneFiles, engine.logger))
-        world.systems.add(SceneEditorDocumentRenderSystem(document))
+        world.systems.add(SceneEditorEnvironmentSyncSystem(document, environmentState, engine.sceneFiles, engine.logger))
+        world.systems.add(SceneEditorDocumentRenderSystem(document, environmentState))
     }
 
     override fun hide() {

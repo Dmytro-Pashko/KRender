@@ -84,10 +84,10 @@ class RuntimeSceneValidatorTest {
                                     name = "Camera",
                                     components = listOf(ComponentDescriptor(SceneComponentTypes.Camera)),
                                 ),
-                            ),
+                        ),
                         activeCameraEntityId = 1L,
                         activeTerrainEntityId = null,
-                        showSkybox = false,
+                        environmentAssetPath = null,
                     ),
                 existingFiles = emptySet(),
             )
@@ -119,7 +119,31 @@ class RuntimeSceneValidatorTest {
     }
 
     @Test
-    fun `skybox absent with showSkybox false is valid`() {
+    fun `environment absent when disabled is valid`() {
+        val report =
+            validate(
+                descriptor =
+                    descriptor(
+                        entities =
+                            listOf(
+                                EntityDescriptor(
+                                    id = 1L,
+                                    name = "Camera",
+                                    components = listOf(ComponentDescriptor(SceneComponentTypes.Camera)),
+                                ),
+                        ),
+                        activeCameraEntityId = 1L,
+                        environmentAssetPath = null,
+                    ),
+                existingFiles = emptySet(),
+            )
+
+        assertTrue(report.isValid)
+        assertTrue(report.warnings.none { it.code == SceneValidationIssueCode.MissingEnvironmentAsset })
+    }
+
+    @Test
+    fun `missing environment manifest is a warning`() {
         val report =
             validate(
                 descriptor =
@@ -133,14 +157,13 @@ class RuntimeSceneValidatorTest {
                                 ),
                             ),
                         activeCameraEntityId = 1L,
-                        showSkybox = false,
-                        skyboxAssetPath = null,
+                        environmentAssetPath = "environments/missing.environment.json",
                     ),
                 existingFiles = emptySet(),
             )
 
         assertTrue(report.isValid)
-        assertTrue(report.warnings.none { it.code == SceneValidationIssueCode.MissingSkyboxPath })
+        assertTrue(report.warnings.any { it.code == SceneValidationIssueCode.MissingEnvironmentAsset })
     }
 
     private fun validate(
@@ -156,8 +179,7 @@ class RuntimeSceneValidatorTest {
         entities: List<EntityDescriptor> = emptyList(),
         activeCameraEntityId: Long? = null,
         activeTerrainEntityId: Long? = null,
-        showSkybox: Boolean = true,
-        skyboxAssetPath: String? = null,
+        environmentAssetPath: String? = null,
     ): SceneDescriptor =
         SceneDescriptor(
             id = "scene:demo",
@@ -169,8 +191,7 @@ class RuntimeSceneValidatorTest {
                     activeTerrainEntityId = activeTerrainEntityId,
                     environment =
                         SceneEnvironmentDescriptor(
-                            skyboxAssetPath = skyboxAssetPath,
-                            showSkybox = showSkybox,
+                            environmentAssetPath = environmentAssetPath,
                         ),
                 ),
         )
