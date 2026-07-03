@@ -41,7 +41,8 @@ object EnvironmentRuntimeCacheKeyFactory {
                 .forEach { source ->
                     add("source:${source.id}:${source.path}:${source.isDefault}")
                 }
-            environment.skybox?.faces
+            environment.skybox
+                ?.faces
                 ?.toSortedMap()
                 ?.forEach { (face, path) ->
                     add("skybox:$face:$path")
@@ -49,7 +50,8 @@ object EnvironmentRuntimeCacheKeyFactory {
             environment.irradiance?.let { irradiance ->
                 add("irradiance:${irradiance.path}:${irradiance.resolution}:${irradiance.format}")
             }
-            environment.radiance?.mips
+            environment.radiance
+                ?.mips
                 ?.sortedBy(RadianceMip::level)
                 ?.forEach { mip ->
                     add("radiance:${mip.level}:${mip.roughness}:${mip.path}")

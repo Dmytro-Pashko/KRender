@@ -17,8 +17,8 @@ import com.pashkd.krender.engine.render3d.ModelComponent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ModelViewerSystemTest {
     @Test

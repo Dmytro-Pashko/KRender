@@ -7,61 +7,7 @@ import kotlin.test.assertTrue
 class SceneAssetCollectorTest {
     @Test
     fun `collects model and terrain dependencies with requirement metadata`() {
-        val graph =
-            SceneDependencyCollector(
-                sceneFiles =
-                    TestSceneFiles(
-                        existing =
-                            setOf(
-                                "model/tree.glb",
-                                "terrains/field_b.krterrain",
-                                "materials/terrain_materials.json",
-                            ),
-                    ),
-            ).collect(
-                descriptor =
-                    SceneDescriptor(
-                        id = "scene:assets",
-                        name = "Assets",
-                        entities =
-                            listOf(
-                                EntityDescriptor(
-                                    id = 1L,
-                                    name = "Model",
-                                    components =
-                                        listOf(
-                                            ComponentDescriptor(SceneComponentTypes.Model, mapOf("model" to "model/tree.glb")),
-                                        ),
-                                ),
-                                EntityDescriptor(
-                                    id = 2L,
-                                    name = "Terrain A",
-                                    components =
-                                        listOf(
-                                            ComponentDescriptor(
-                                                SceneComponentTypes.Terrain,
-                                                mapOf("terrain" to "terrains/field_a.krterrain"),
-                                            ),
-                                        ),
-                                ),
-                                EntityDescriptor(
-                                    id = 3L,
-                                    name = "Terrain B",
-                                    components =
-                                        listOf(
-                                            ComponentDescriptor(
-                                                SceneComponentTypes.Terrain,
-                                                mapOf("terrain" to "terrains/field_b.krterrain"),
-                                            ),
-                                        ),
-                                ),
-                            ),
-                        settings =
-                            SceneSettingsDescriptor(
-                                activeTerrainEntityId = 3L,
-                            ),
-                    ),
-            )
+        val graph = collector(existingAssetPaths()).collect(assetSceneDescriptor())
 
         assertEquals(
             listOf(
@@ -104,7 +50,10 @@ class SceneAssetCollectorTest {
                                 EntityDescriptor(
                                     id = 1L,
                                     name = "Model A",
-                                    components = listOf(ComponentDescriptor(SceneComponentTypes.Model, mapOf("model" to "model/tree.glb"))),
+                                    components =
+                                        listOf(
+                                            ComponentDescriptor(SceneComponentTypes.Model, mapOf("model" to "model/tree.glb")),
+                                        ),
                                 ),
                                 EntityDescriptor(
                                     id = 2L,
@@ -115,12 +64,63 @@ class SceneAssetCollectorTest {
                                         ),
                                 ),
                             ),
+                        settings =
+                            SceneSettingsDescriptor(
+                                environment = SceneEnvironmentDescriptor(environmentAssetPath = null),
+                            ),
                     ),
             )
 
-        assertEquals(listOf(SceneDependencyKind.Model to "model/tree.glb"), graph.dependencies.map { it.kind to it.path })
+        assertEquals(
+            listOf(SceneDependencyKind.Model to "model/tree.glb"),
+            graph.dependencies.map { it.kind to it.path },
+        )
         assertTrue(graph.missing.isEmpty())
     }
+
+    private fun collector(existing: Set<String>): SceneDependencyCollector = SceneDependencyCollector(sceneFiles = TestSceneFiles(existing = existing))
+
+    private fun existingAssetPaths(): Set<String> =
+        setOf(
+            "model/tree.glb",
+            "terrains/field_b.krterrain",
+            "materials/terrain_materials.json",
+        )
+
+    private fun assetSceneDescriptor(): SceneDescriptor =
+        SceneDescriptor(
+            id = "scene:assets",
+            name = "Assets",
+            entities =
+                listOf(
+                    modelEntity(),
+                    terrainEntity(id = 2L, name = "Terrain A", path = "terrains/field_a.krterrain"),
+                    terrainEntity(id = 3L, name = "Terrain B", path = "terrains/field_b.krterrain"),
+                ),
+            settings =
+                SceneSettingsDescriptor(
+                    activeTerrainEntityId = 3L,
+                    environment = SceneEnvironmentDescriptor(environmentAssetPath = null),
+                ),
+        )
+
+    private fun modelEntity(): EntityDescriptor =
+        EntityDescriptor(
+            id = 1L,
+            name = "Model",
+            components = listOf(ComponentDescriptor(SceneComponentTypes.Model, mapOf("model" to "model/tree.glb"))),
+        )
+
+    private fun terrainEntity(
+        id: Long,
+        name: String,
+        path: String,
+    ): EntityDescriptor =
+        EntityDescriptor(
+            id = id,
+            name = name,
+            components = listOf(ComponentDescriptor(SceneComponentTypes.Terrain, mapOf("terrain" to path))),
+        )
 }
 
 private class TestSceneFiles(

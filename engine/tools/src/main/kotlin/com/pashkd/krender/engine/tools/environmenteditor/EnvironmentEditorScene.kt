@@ -1,7 +1,7 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
-import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetPack
+import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
 import com.pashkd.krender.engine.scene.SceneConfig

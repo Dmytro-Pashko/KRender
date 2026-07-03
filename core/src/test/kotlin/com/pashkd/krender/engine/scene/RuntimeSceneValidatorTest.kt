@@ -84,7 +84,7 @@ class RuntimeSceneValidatorTest {
                                     name = "Camera",
                                     components = listOf(ComponentDescriptor(SceneComponentTypes.Camera)),
                                 ),
-                        ),
+                            ),
                         activeCameraEntityId = 1L,
                         activeTerrainEntityId = null,
                     ),

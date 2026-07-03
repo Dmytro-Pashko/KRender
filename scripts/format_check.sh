@@ -4,6 +4,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${ROOT_DIR}"
+source "${SCRIPT_DIR}/gradle_runner.sh"
 
 MODE="check"
 if [[ $# -gt 1 ]]; then
@@ -19,34 +20,10 @@ if [[ $# -eq 1 ]]; then
   fi
 fi
 
-to_windows_path() {
-  local path="$1"
-  if command -v cygpath >/dev/null 2>&1; then
-    cygpath -aw "${path}"
-  elif command -v wslpath >/dev/null 2>&1; then
-    wslpath -w "${path}"
-  else
-    printf '%s\n' "${path}"
-  fi
-}
-
-GRADLEW_SH="${ROOT_DIR}/gradlew"
-GRADLEW_BAT="${ROOT_DIR}/gradlew.bat"
-
-if [[ ! -x "${GRADLEW_SH}" ]]; then
-  chmod +x "${GRADLEW_SH}" 2>/dev/null || true
-fi
-
-if [[ -f "${GRADLEW_BAT}" && ( "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* ) ]]; then
-  GRADLE_BASE=("${GRADLEW_BAT}" "--no-daemon" "--console=plain")
-else
-  GRADLE_BASE=("${GRADLEW_SH}" "--no-daemon" "--console=plain")
-fi
-
 if [[ "${MODE}" == "fix" ]]; then
-  echo "Running formatter: ${GRADLE_BASE[*]} ktlintFormat"
-  "${GRADLE_BASE[@]}" ktlintFormat
+  echo "Running formatter: $(gradle_command_string ktlintFormat)"
+  run_gradle ktlintFormat
 fi
 
-echo "Running format check: ${GRADLE_BASE[*]} ktlintCheck"
-"${GRADLE_BASE[@]}" ktlintCheck
+echo "Running format check: $(gradle_command_string ktlintCheck)"
+run_gradle ktlintCheck

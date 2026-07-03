@@ -164,7 +164,9 @@ object SceneAssetMetadataReader {
                     ?.get("bakedTextureResolution")
                     ?.trim()
                     ?.toIntOrNull(),
-            environmentAssetPath = descriptor.settings.environment.environmentAssetPath?.normalizeAssetPath(),
+            environmentAssetPath =
+                descriptor.settings.environment.environmentAssetPath
+                    ?.normalizeAssetPath(),
             ambientIntensity = descriptor.settings.lighting.ambientIntensity,
             terrainMaterialLibraryPath =
                 descriptor.settings.terrain.materialLibraryPath

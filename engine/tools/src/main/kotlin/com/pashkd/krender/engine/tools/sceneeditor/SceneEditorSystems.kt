@@ -96,29 +96,36 @@ class SceneEditorEnvironmentSyncSystem(
         world: SceneWorld,
         dt: Float,
     ) {
-        val environmentPath = document.descriptor?.settings?.environment?.environmentAssetPath.normalizedEnvironmentPath()
+        val environmentPath =
+            document.descriptor
+                ?.settings
+                ?.environment
+                ?.environmentAssetPath
+                .normalizedEnvironmentPath()
         val environment = resolveEnvironment(environmentPath)
         state.gltfRendererSettings = environment?.let(EnvironmentGltfRendererSettingsFactory::create)
     }
 
-    private fun resolveEnvironment(path: String?): Environment? {
-        if (path == null) {
-            cachedEnvironmentPath = null
-            cachedEnvironment = null
-            failedEnvironmentPath = null
-            return null
-        }
-        if (cachedEnvironmentPath == path) {
-            return cachedEnvironment
-        }
-        if (failedEnvironmentPath == path) {
-            return null
+    private fun resolveEnvironment(path: String?): Environment? =
+        when {
+            path == null -> clearEnvironmentCache()
+            cachedEnvironmentPath == path -> cachedEnvironment
+            failedEnvironmentPath == path -> null
+            else -> loadEnvironment(path)
         }
 
-        return try {
-            environmentService.load(path).also { asset ->
+    private fun clearEnvironmentCache(): Environment? {
+        cachedEnvironmentPath = null
+        cachedEnvironment = null
+        failedEnvironmentPath = null
+        return null
+    }
+
+    private fun loadEnvironment(path: String): Environment? =
+        try {
+            environmentService.load(path).also { environment ->
                 cachedEnvironmentPath = path
-                cachedEnvironment = asset
+                cachedEnvironment = environment
                 failedEnvironmentPath = null
             }
         } catch (error: Exception) {
@@ -128,7 +135,6 @@ class SceneEditorEnvironmentSyncSystem(
             failedEnvironmentPath = path
             null
         }
-    }
 
     companion object {
         private const val TAG = "SceneEditorEnvironmentSync"

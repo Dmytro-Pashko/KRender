@@ -79,8 +79,7 @@ class ModelRenderSystem(
     }
 }
 
-private fun AssetRef<ModelAsset>.supportsGltfPbr(): Boolean =
-    path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true)
+private fun AssetRef<ModelAsset>.supportsGltfPbr(): Boolean = path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true)
 
 class WorldGridSystem(
     private val halfExtentCells: Int = 20,

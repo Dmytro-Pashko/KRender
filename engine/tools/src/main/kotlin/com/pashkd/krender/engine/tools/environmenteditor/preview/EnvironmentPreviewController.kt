@@ -153,11 +153,12 @@ private fun EnvironmentColor.toRenderColor(): Color = Color(r, g, b, a)
 private fun SkyboxResourceSet?.exists(
     manifestPath: String,
     fileService: SceneFileService,
-): Boolean {
-    val faces = this?.faces ?: return false
-    if (faces.isEmpty()) return false
-    return faces.values.all { path -> fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, path)) }
-}
+): Boolean =
+    this
+        ?.faces
+        ?.takeIf(Map<String, String>::isNotEmpty)
+        ?.values
+        ?.all { path -> fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, path)) } == true
 
 private fun CubemapResource?.exists(
     manifestPath: String,
@@ -170,11 +171,11 @@ private fun CubemapResource?.exists(
 private fun RadianceMipChain?.exists(
     manifestPath: String,
     fileService: SceneFileService,
-): Boolean {
-    val mips = this?.mips ?: return false
-    if (mips.isEmpty()) return false
-    return mips.all { mip -> fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, mip.path)) }
-}
+): Boolean =
+    this
+        ?.mips
+        ?.takeIf(List<com.pashkd.krender.engine.assets.environment.RadianceMip>::isNotEmpty)
+        ?.all { mip -> fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, mip.path)) } == true
 
 private fun TextureResourceRef?.exists(
     manifestPath: String,

@@ -884,7 +884,6 @@ class SceneInspectorPanel(
     private val cameraValueBuffer = FloatArray(1)
     private val ambientColorBuffer = FloatArray(4)
     private val ambientValueBuffer = FloatArray(1)
-    private val environmentValueBuffer = FloatArray(1)
     private val lightColorBuffer = FloatArray(4)
     private val lightValueBuffer = FloatArray(1)
     private val lightVectorBuffer = FloatArray(3)

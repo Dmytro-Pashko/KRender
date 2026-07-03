@@ -172,8 +172,7 @@ internal object EnvironmentAssetCreation {
                 ),
         )
 
-    private fun defaultIrradiance(): CubemapResource =
-        CubemapResource(path = "generated/irradiance/irradiance.ktx", resolution = 64, format = "KTX")
+    private fun defaultIrradiance(): CubemapResource = CubemapResource(path = "generated/irradiance/irradiance.ktx", resolution = 64, format = "KTX")
 
     private fun defaultRadiance(): RadianceMipChain =
         RadianceMipChain(
