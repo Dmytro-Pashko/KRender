@@ -82,7 +82,7 @@ class EditorViewportCameraSystem(
         cameraState.navigating = navigating
         input.setCursorCaptured(navigating)
 
-        if (mouseAvailable && snapshot.scrollDelta != 0f) {
+        if (navigating && snapshot.scrollDelta != 0f) {
             val speedScale = CameraSpeedWheelStep.pow(-snapshot.scrollDelta)
             cameraState.speed = (cameraState.speed * speedScale).coerceIn(MinCameraSpeed, MaxCameraSpeed)
         }

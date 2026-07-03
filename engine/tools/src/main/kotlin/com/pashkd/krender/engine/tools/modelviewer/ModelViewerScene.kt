@@ -100,7 +100,7 @@ class ModelViewerScene(
                 modelScale = modelScale,
             )
         engine.logger.debug(TAG) {
-            "ModelViewer state created model='${viewerState.modelPath}' displayMode=${viewerState.displayMode} " +
+            "ModelViewer state created model='${viewerState.modelPath}' rendererMode=${viewerState.rendererMode} " +
                 "debugMode=${viewerState.debugMode} grid=${viewerState.showGrid} axes=${viewerState.showAxes} " +
                 "bounds=${viewerState.showBoundingBox}"
         }
@@ -278,7 +278,6 @@ class ModelViewerScene(
      */
     private fun createModelViewerSystem(): ModelViewerSystem =
         ModelViewerSystem(
-            input = engine.input,
             assets = engine.assets,
             logger = engine.logger,
             state = viewerState,
