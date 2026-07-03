@@ -14,6 +14,11 @@ Environment Editor opens one `.environment.json` asset and provides:
 - a live PBR preview using the bundled `model/tests/MetalRoughSpheres.glb`;
 - file save/reload/revert, layout persistence, diagnostics, and logs.
 
+Desktop route:
+
+- `krender.scene=environment-editor`
+- `krender.environment.path=<path>`
+
 The MVP does not generate skybox, irradiance, radiance, or BRDF LUT resources. The manifest may
 carry generation metadata for future tooling, but no generator service or generation UI is
 installed in Environment Editor.
@@ -33,6 +38,17 @@ installed in Environment Editor.
 
 No tool class imports LibGDX or gdx-gltf. The preview crosses the backend boundary only through
 `AssetRef`, ECS components, `DrawModel`, and `GltfRendererSettings`.
+
+## Panels
+
+- `Environment Editor Control Panel` — file/session actions, dirty state, path, resolved path, size, status, and exit.
+- `Inspector` — flat label/value manifest summary.
+- `Settings` — runtime settings, background mode selector, and mode-specific options.
+- `Sources` — source variants with default-source switching.
+- `Tools` — generated skybox, irradiance, radiance, and BRDF LUT references.
+- `Diagnostics` — validation status and issue list.
+- `Preview` — preview test-model list, auto-rotate, camera reset, resource availability, fallback mode, and live preview status.
+- `Logs` — shared engine log stream for Environment Editor activity.
 
 ## Lifecycle
 

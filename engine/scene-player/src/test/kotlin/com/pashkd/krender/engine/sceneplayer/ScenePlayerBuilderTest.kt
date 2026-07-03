@@ -28,7 +28,6 @@ import com.pashkd.krender.engine.scene.EntityDescriptor
 import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.SceneComponentTypes
 import com.pashkd.krender.engine.scene.SceneDescriptor
-import com.pashkd.krender.engine.scene.SceneEnvironmentDescriptor
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
 import com.pashkd.krender.engine.scene.UnsupportedEditorToolLauncher
@@ -44,12 +43,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 
 class ScenePlayerBuilderTest {
     @Test
-    fun `builds camera-only runtime scene without terrain or environment`() {
+    fun `builds camera-only runtime scene without terrain`() {
         val descriptor =
             SceneDescriptor(
                 id = "scene:builder",
@@ -70,10 +68,6 @@ class ScenePlayerBuilderTest {
                     SceneSettingsDescriptor(
                         activeCameraEntityId = 1L,
                         activeTerrainEntityId = null,
-                        environment =
-                            SceneEnvironmentDescriptor(
-                                environmentAssetPath = null,
-                            ),
                     ),
             )
         val world = SceneWorld()
@@ -90,8 +84,7 @@ class ScenePlayerBuilderTest {
             )
 
         assertEquals(1L, result.activeCameraEntityId)
-        assertFalse(result.terrainPrepared)
-        assertFalse(result.environmentEnabled)
+        kotlin.test.assertFalse(result.terrainPrepared)
         assertEquals(0, result.validationReport.errors.size)
         assertNotNull(world.getEntity(1L)?.get<ActiveCameraComponent>())
         assertNotNull(

@@ -2,7 +2,7 @@
 
 ![KRender SDK banner](docs/images/KRender_banner.png)
 
-KRender SDK is a Kotlin + libGDX engine workspace built around a backend-neutral core, a separate LibGDX runtime backend module, a dedicated scene player module, and standalone editor tools for assets, models, animations, terrain, scenes, UI documents, and Scene2D Skin/style assets.
+KRender SDK is a Kotlin + libGDX engine workspace built around a backend-neutral core, a separate LibGDX runtime backend module, a dedicated scene player module, and standalone editor tools for assets, PBR environments, models, animations, terrain, scenes, UI documents, and Scene2D Skin/style assets.
 
 Hosted documentation: [dmytro-pashko.github.io/KRender](https://dmytro-pashko.github.io/KRender)
 
@@ -37,7 +37,7 @@ into dedicated `games/` and `apps/` modules so the engine/SDK and a sample clien
 - **Rendering pipeline**, including models, terrain meshes, debug grids, axes, bounding boxes, wireframes, lights, and
   UI overlays.
 - **Scene Player** for runtime playback of `.krscene` scene documents.
-- **Editor tools** for browsing assets and inspecting or authoring models, animations, terrain, scenes, UI documents, and Scene2D Skin/style assets.
+- **Editor tools** for browsing assets and inspecting or authoring environments, models, animations, terrain, scenes, UI documents, and Scene2D Skin/style assets.
 - **Scene2D UI asset workflow** covering atlas packing, skin/style editing, and visual UI composition through dedicated tools.
 - **PBR-first 3D workflow** with glTF / GLB as the primary model formats and HDR / IBL environment assets for the main renderer path.
 
@@ -48,32 +48,41 @@ KRender now treats glTF / PBR as the primary direction for 3D model preview and 
 - Primary 3D model formats: `.glb`, `.gltf`
 - Primary renderer direction: `glTF / PBR`
 - Fallback / inspection renderer: `LibGDX / Legacy`
-- Environment lighting source: HDR environment manifests under `assets/hdr/<environment>/environment.json`
+- Environment lighting source: manifest-driven Environment assets under `assets/environments/<environment>/<environment>.environment.json`
 
 Legacy LibGDX rendering remains available for fallback, compatibility checks, and inspection-oriented workflows, but new renderer and asset workflow changes should assume the glTF / PBR path first.
 
-## PBR / HDR Asset Workflow
+## PBR / Environment Asset Workflow
 
-KRender supports a manifest-driven HDR environment pipeline for PBR lighting.
+KRender supports a manifest-driven Environment pipeline for PBR lighting.
 
 Environment assets live under:
 
 ```text
-assets/hdr/<environment_name>/
+assets/environments/<environment_name>/
 ```
 
 The default environment currently lives under:
 
 ```text
-assets/hdr/default/
+assets/environments/default/
+```
+
+Each Environment manifest is stored as:
+
+```text
+assets/environments/<environment_name>/<environment_name>.environment.json
 ```
 
 Environment manifests can describe multiple source variants for the same environment, including `.exr` and `.hdr` sources. Generated environment assets include:
 
+- source variants under `sources/`
 - skybox cubemap faces
-- irradiance cubemap faces
+- irradiance cubemap
 - radiance cubemap mip chain
-- shared BRDF LUT under `assets/hdr/_common/brdf/`
+- BRDF LUT texture reference
+
+The Environment Editor opens one `.environment.json` manifest, lets you edit runtime/background settings, validates generated resources, and previews the result on a bundled glTF test model through the shared PBR renderer path.
 
 See [docs/assets/gltf-workflow.md](docs/assets/gltf-workflow.md) for the current glTF / HDR / IBL workflow and generation commands.
 
@@ -106,7 +115,7 @@ flowchart LR
         ScenePlayer["Scene-player\n.krscene playback"]
     end
     subgraph SDKTools["Tools"]
-        Tools["Editor tools\n[Asset Browser, Texture Atlas Editor,\nSkin Editor, UI Composer,\nModel/Animation Viewer,\nTerrain/Scene Editor]"]
+        Tools["Editor tools\n[Asset Browser, Environment Editor,\nTexture Atlas Editor, Skin Editor,\nUI Composer, Model/Animation Viewer,\nTerrain/Scene Editor]"]
     end
     subgraph BackendComponent["Backends"]
         Backend["LibGDX backend"]
@@ -181,6 +190,16 @@ Switch between metallic and roughness visualization to validate packed material 
 Inspect how geometry maps to materials by selecting materials and isolating the matching mesh parts.</p>
 
 <img src="engine/tools/docs/screenshots/model_viewer/model_viewer_mesh_and_material_isolation.gif" alt="Model Viewer mesh and material isolation preview" />
+
+</details>
+
+<details>
+<summary><strong>Environment Editor</strong></summary>
+
+<p>Edit one <code>.environment.json</code> manifest, inspect generated IBL resources, validate source/generated paths, and preview the current Environment on the bundled Metal Rough Spheres test model.</p>
+
+<p><strong>Current MVP scope</strong><br/>
+Adjust exposure, rotation, diffuse/specular intensity, and background mode; inspect source variants, diagnostics, logs, and the live preview state without running a separate generator pass inside the tool.</p>
 
 </details>
 

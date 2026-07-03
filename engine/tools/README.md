@@ -10,6 +10,7 @@ Full user-facing documentation is published in the hosted docs:
 ## Included Tools
 
 - Asset Browser
+- Environment Editor
 - Bitmap Font Editor
 - Texture Atlas Editor
 - Model Viewer
@@ -43,6 +44,7 @@ Examples:
 
 ```sh
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=asset-browser
+./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=environment-editor -Pkrender.environment.path=environments/default/default.environment.json
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=model-viewer -Pkrender.model.path=model/example.glb
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=animation-viewer -Pkrender.model.path=model/example.glb
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=terrain-editor -Pkrender.terrain.path=terrain/example.krterrain
@@ -54,6 +56,8 @@ Examples:
 ```
 
 Skin Editor accepts an optional `krender.skin.path=<path>` property. When omitted, the tool starts in an empty/no-skin state until a skin path is provided.
+
+Environment Editor requires `krender.environment.path=<path>` and opens one `.environment.json` manifest per window.
 
 Convenience launch scripts are available in `engine/tools/scripts/`:
 

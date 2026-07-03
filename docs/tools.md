@@ -33,7 +33,7 @@ The Asset Browser is the default desktop tool. It scans project assets, maintain
 Features:
 
 - Scans configured local asset directories and stores stable asset metadata in `.krmeta` sidecars.
-- Detects model, texture, skybox, material, terrain, scene, UI scene, and Scene2D Skin assets.
+- Detects model, texture, environment, HDR source, material, terrain, scene, UI scene, and Scene2D Skin assets.
 - Groups unsupported files under the `Other` category so they remain visible without being treated as editable engine
   assets.
 - Supports category filters, search with quick clear, list-only asset browsing, and sorting by name, type, modified
@@ -108,6 +108,52 @@ Example:
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=asset-browser
 ```
 
+### Environment Editor
+
+The Environment Editor is the dedicated tool for one `.environment.json` manifest. It is focused on
+runtime/background tuning, generated-resource inspection, diagnostics, and a live PBR preview on
+the bundled `MetalRoughSpheres.glb` test model.
+
+Features:
+
+- Opens one Environment asset directly from Asset Browser or from a provided manifest path.
+- Provides an Environment Editor Control Panel with file path, resolved file path, file size, dirty status, status text, and `Save`, `Revert`, `Reload`, `Persist UI`, `Reset UI`, and `Exit` actions.
+- Edits runtime settings such as exposure, rotation, diffuse intensity, and specular intensity.
+- Edits background behavior through a single `Display Background` selector with `Skybox`, `Solid Color`, `Transparent`, and `None`.
+- Allows choosing a solid background color through the shared color selector workflow already used by other tools.
+- Shows read-only manifest metadata in a simplified flat Inspector list.
+- Lists source variants, including default source switching for the current Environment asset.
+- Shows a `Tools` panel with generated skybox, irradiance, radiance, and BRDF LUT references from the manifest.
+- Shows validation diagnostics for missing or inconsistent source/generated resources.
+- Shows a Preview panel with the configured test model list, auto-rotate, camera reset, current environment identity, validation state, generated-resource availability, and active fallback mode.
+- Uses generated environment resources when available and reports clear warnings when skybox, irradiance, radiance, or BRDF LUT data is missing.
+- Includes a dedicated Logs panel for load, save, validation, and live-setting-change diagnostics.
+
+Current scope / limitations:
+
+- Environment Editor is currently an MVP editor for Environment manifest settings and preview control.
+- It does not generate skybox, irradiance, radiance, or BRDF LUT resources inside the tool.
+- It currently previews only the bundled `Metal Rough Spheres` test model configured in `EnvironmentEditorConfig`.
+- Screenshots for this tool will be added later.
+
+Background modes:
+
+- `Skybox` uses generated skybox resources as the visible background.
+- `Solid Color` clears the viewport with the selected RGBA color.
+- `Transparent` clears with alpha `0`; visible transparency still depends on the active desktop backbuffer/compositor.
+- `None` disables background drawing and keeps environment lighting active for the previewed model.
+
+Required properties:
+
+- `krender.scene=environment-editor`
+- `krender.environment.path=<path>`
+
+Example:
+
+```sh
+./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=environment-editor -Pkrender.environment.path=environments/default/default.environment.json
+```
+
 ### Model Viewer
 
 The Model Viewer is a focused single-model inspection tool. It exposes mesh parts, materials, texture-channel debug modes, UV checker previews, bounds, grid/axis helpers, wireframe, and glTF-oriented preview rendering.
@@ -125,8 +171,9 @@ Features:
 - Provides a renderer selector with `LibGDX / Legacy` and `glTF / PBR` modes, with glTF / PBR as the default renderer path.
 - Uses the `gdx-gltf` renderer path for `.gltf` and `.glb` models in `glTF / PBR` mode.
 - Includes viewport controls grouped into camera, shared display options, renderer selection, and renderer-specific options.
-- Includes `glTF / PBR` controls for environment preset, skybox visibility, environment intensity, exposure, rotation, and directional light settings.
-- Uses HDR environment manifests under `assets/hdr/<environment>/environment.json`, including generated skybox, irradiance, radiance, and shared BRDF LUT assets.
+- Includes `glTF / PBR` controls for selecting an Environment asset plus exposure, rotation, background visibility, and environment-lighting controls.
+- Uses Environment manifests under `assets/environments/<environment>/<environment>.environment.json`, including generated skybox, irradiance, radiance, and BRDF LUT assets.
+- Applies saved runtime settings from the selected Environment asset instead of keeping separate hardcoded Model Viewer defaults.
 - Provides channel-display modes separate from shared viewport display modes.
 - Can preview Base Color / Diffuse, Normal, Metallic / Roughness, Occlusion, Emission, and Alpha texture channels directly on the model surface when metadata is available.
 - Includes UV checker preview using texture assets at 1024, 2048, and 4096 resolutions for validating UV layout and scale.

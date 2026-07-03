@@ -6,7 +6,7 @@ import kotlin.test.assertTrue
 
 class SceneAssetCollectorTest {
     @Test
-    fun `collects model terrain and environment dependencies with requirement metadata`() {
+    fun `collects model and terrain dependencies with requirement metadata`() {
         val graph =
             SceneDependencyCollector(
                 sceneFiles =
@@ -16,7 +16,6 @@ class SceneAssetCollectorTest {
                                 "model/tree.glb",
                                 "terrains/field_b.krterrain",
                                 "materials/terrain_materials.json",
-                                "environments/studio/studio.environment.json",
                             ),
                     ),
             ).collect(
@@ -60,10 +59,6 @@ class SceneAssetCollectorTest {
                         settings =
                             SceneSettingsDescriptor(
                                 activeTerrainEntityId = 3L,
-                                environment =
-                                    SceneEnvironmentDescriptor(
-                                        environmentAssetPath = "environments/studio/studio.environment.json",
-                                    ),
                             ),
                     ),
             )
@@ -74,7 +69,6 @@ class SceneAssetCollectorTest {
                 SceneDependencyKind.Terrain to "terrains/field_a.krterrain",
                 SceneDependencyKind.Terrain to "terrains/field_b.krterrain",
                 SceneDependencyKind.TerrainMaterialLibrary to DefaultTerrainMaterialLibraryPath,
-                SceneDependencyKind.EnvironmentManifest to "environments/studio/studio.environment.json",
             ),
             graph.dependencies.map { it.kind to it.path },
         )
@@ -84,7 +78,6 @@ class SceneAssetCollectorTest {
                 SceneDependencyRequirement.Optional,
                 SceneDependencyRequirement.Required,
                 SceneDependencyRequirement.Required,
-                SceneDependencyRequirement.Optional,
             ),
             graph.dependencies.map { it.requirement },
         )
@@ -106,10 +99,6 @@ class SceneAssetCollectorTest {
                     SceneDescriptor(
                         id = "scene:dedupe",
                         name = "Dedupe",
-                        settings =
-                            SceneSettingsDescriptor(
-                                environment = SceneEnvironmentDescriptor(environmentAssetPath = null),
-                            ),
                         entities =
                             listOf(
                                 EntityDescriptor(

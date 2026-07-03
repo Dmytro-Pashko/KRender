@@ -2,7 +2,6 @@ package com.pashkd.krender.engine.scene
 
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Color
-import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.terrain.TerrainComponent
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
@@ -52,10 +51,6 @@ class SceneSerializerTest {
                                 ambientColor = Color(0.1f, 0.2f, 0.3f, 1f),
                                 ambientIntensity = 0.7f,
                             ),
-                        environment =
-                            SceneEnvironmentDescriptor(
-                                environmentAssetPath = "environments/studio/studio.environment.json",
-                            ),
                         terrain =
                             SceneTerrainSettingsDescriptor(
                                 materialLibraryPath = "materials/runtime_terrain_materials.json",
@@ -71,10 +66,6 @@ class SceneSerializerTest {
         assertEquals(0.2f, decoded.settings.lighting.ambientColor.g)
         assertEquals(0.3f, decoded.settings.lighting.ambientColor.b)
         assertEquals(0.7f, decoded.settings.lighting.ambientIntensity)
-        assertEquals(
-            "environments/studio/studio.environment.json",
-            decoded.settings.environment.environmentAssetPath,
-        )
         assertEquals("materials/runtime_terrain_materials.json", decoded.settings.terrain.materialLibraryPath)
     }
 
@@ -106,52 +97,6 @@ class SceneSerializerTest {
     }
 
     @Test
-    fun `decodes literal string null environment path as missing environment`() {
-        val decoded =
-            SceneSerializer.decode(
-                """
-                {
-                  "schemaVersion": 1,
-                  "id": "scene:legacy-null-environment",
-                  "name": "Legacy Null Environment",
-                  "entities": [],
-                  "settings": {
-                    "environment": {
-                      "environmentAssetPath": "null"
-                    }
-                  }
-                }
-                """.trimIndent(),
-            )
-
-        assertEquals(null, decoded.settings.environment.environmentAssetPath)
-    }
-
-    @Test
-    fun `decodes legacy skybox environment settings into default environment manifest`() {
-        val decoded =
-            SceneSerializer.decode(
-                """
-                {
-                  "schemaVersion": 1,
-                  "id": "scene:legacy-skybox",
-                  "name": "Legacy Skybox",
-                  "entities": [],
-                  "settings": {
-                    "environment": {
-                      "skyboxAssetPath": "skyboxes/studio.krskybox",
-                      "showSkybox": true,
-                      "environmentIntensity": 1.0
-                    }
-                  }
-                }
-                """.trimIndent(),
-            )
-
-        assertEquals(HdrEnvironmentAssets.DEFAULT_MANIFEST, decoded.settings.environment.environmentAssetPath)
-    }
-
-    @Test
     fun `serializer writes only new settings format`() {
         val encoded =
             SceneSerializer.encode(
@@ -174,7 +119,6 @@ class SceneSerializerTest {
             )
 
         assertTrue(encoded.contains("\"lighting\""))
-        assertTrue(encoded.contains("\"environment\""))
         assertTrue(encoded.contains("\"terrain\""))
         assertFalse(encoded.contains("\"ambientLightColor\""))
         assertFalse(encoded.contains("\"ambientLightIntensity\""))

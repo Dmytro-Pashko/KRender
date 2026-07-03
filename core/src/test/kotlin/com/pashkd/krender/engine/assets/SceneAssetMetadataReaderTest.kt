@@ -4,7 +4,6 @@ import com.pashkd.krender.engine.scene.ComponentDescriptor
 import com.pashkd.krender.engine.scene.EntityDescriptor
 import com.pashkd.krender.engine.scene.SceneComponentTypes
 import com.pashkd.krender.engine.scene.SceneDescriptor
-import com.pashkd.krender.engine.scene.SceneEnvironmentDescriptor
 import com.pashkd.krender.engine.scene.SceneLightingDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.scene.SceneSettingsDescriptor
@@ -20,7 +19,7 @@ import kotlin.test.assertNull
 
 class SceneAssetMetadataReaderTest {
     @Test
-    fun `reads scene summary including terrain environment and bounds`() {
+    fun `reads scene summary including terrain and bounds`() {
         val baseDir = Files.createTempDirectory("scene-asset-metadata-test")
         baseDir.resolve("scenes").createDirectories()
         baseDir.resolve("terrains").createDirectories()
@@ -110,10 +109,6 @@ class SceneAssetMetadataReaderTest {
                             activeCameraEntityId = 1L,
                             activeTerrainEntityId = 5L,
                             lighting = SceneLightingDescriptor(ambientIntensity = 0.35f),
-                            environment =
-                                SceneEnvironmentDescriptor(
-                                    environmentAssetPath = "environments/test/test.environment.json",
-                                ),
                             terrain =
                                 SceneTerrainSettingsDescriptor(
                                     materialLibraryPath = "materials/terrain_materials.json",
@@ -144,13 +139,12 @@ class SceneAssetMetadataReaderTest {
         assertEquals("512 x 256", metadata.activeTerrainSize)
         assertEquals(3, metadata.activeTerrainLayerCount)
         assertEquals(2048, metadata.activeTerrainBakedResolution)
-        assertEquals("environments/test/test.environment.json", metadata.environmentAssetPath)
         assertEquals(0.35f, metadata.ambientIntensity)
         assertEquals("materials/terrain_materials.json", metadata.terrainMaterialLibraryPath)
         assertEquals("9.00 x 4.00 x 9.00", metadata.sceneBounds?.formatted())
-        assertEquals(4, metadata.dependencyCount)
-        assertEquals(3, metadata.missingDependencyCount)
-        assertEquals(1, metadata.validationWarningCount)
+        assertEquals(3, metadata.dependencyCount)
+        assertEquals(2, metadata.missingDependencyCount)
+        assertEquals(0, metadata.validationWarningCount)
     }
 
     @Test

@@ -26,7 +26,7 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 | `engine/tools/.../assetbrowser/AssetBrowserPanels.kt` | `AssetControlsPanel`, `AssetBrowserPanel`, `AssetDetailsPanel`. |
 | `engine/tools/.../assetbrowser/AssetBrowserLayout.kt` | `AssetBrowserUiLayoutDefaults` (panel layout config). |
 | `engine/tools/.../assetbrowser/AssetBrowserUiOperations.kt` | UI-side operations helper. |
-| `engine/tools/.../assetbrowser/EnvironmentAssetCreation.kt` | Creates Environment manifests from HDR source assets and launches Environment Editor. |
+| `engine/tools/.../assetbrowser/EnvironmentAssetCreation.kt` | Creates Environment manifests from HDR source assets, seeds generated-resource placeholders, and launches Environment Editor. |
 | `engine/tools/.../common/EditorTexturePreviewService.kt` | Shared editor-facing texture preview handle/status lookup used by texture details and other tools. |
 | `engine/assets/AssetRegistryService.kt` | `LocalAssetRegistryService` — filesystem scan + `.krmeta`. |
 | `engine/assets/AssetOperationsService.kt` | `LocalAssetOperationsService` — create/rename/duplicate/delete/reveal. |
@@ -80,8 +80,8 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 All discovered categories (`AssetDomain.kt`): `Model`, `Texture`, `Material`, `Terrain`,
 `Scene2D`, `UI` (`.krui`), `Environment`, `Scene`, `Other`. The `Environment` category is the
 single browser home for `.environment.json`, HDR source images, and generated environment
-resources. Scanned roots: `model`, `textures`, `skyboxes`, `materials`,
-`terrains`, `ui/scenes`, `scenes`, `shaders`, `assets`.
+resources. Scanned roots: `model`, `textures`, `atlases`, `skyboxes`, `environments`,
+`materials`, `terrains`, `ui/scenes`, `ui/skins`, `ui/fonts`, `scenes`, `assets`.
 
 ## Current Features
 
