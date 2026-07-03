@@ -1,6 +1,6 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentSourceVariant
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -36,7 +36,7 @@ class EnvironmentSourceVariantsPanel(
         ImGui.end()
     }
 
-    private fun drawVariants(env: EnvironmentAsset) {
+    private fun drawVariants(env: Environment) {
         if (env.sources.isEmpty()) {
             ImGui.text("No source variants defined.")
             return
@@ -50,7 +50,7 @@ class EnvironmentSourceVariantsPanel(
     }
 
     private fun drawVariant(
-        env: EnvironmentAsset,
+        env: Environment,
         src: EnvironmentSourceVariant,
         index: Int,
     ) {

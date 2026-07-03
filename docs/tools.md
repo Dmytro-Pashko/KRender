@@ -111,7 +111,7 @@ Example:
 ### Environment Editor
 
 The Environment Editor is the dedicated tool for one `.environment.json` manifest. It is focused on
-runtime/background tuning, generated-resource inspection, diagnostics, and a live PBR preview on
+runtime/background tuning, resource inspection, diagnostics, and a live PBR preview on
 the bundled `MetalRoughSpheres.glb` test model.
 
 Features:
@@ -123,10 +123,10 @@ Features:
 - Allows choosing a solid background color through the shared color selector workflow already used by other tools.
 - Shows read-only manifest metadata in a simplified flat Inspector list.
 - Lists source variants, including default source switching for the current Environment asset.
-- Shows a `Tools` panel with generated skybox, irradiance, radiance, and BRDF LUT references from the manifest.
-- Shows validation diagnostics for missing or inconsistent source/generated resources.
-- Shows a Preview panel with the configured test model list, auto-rotate, camera reset, current environment identity, validation state, generated-resource availability, and active fallback mode.
-- Uses generated environment resources when available and reports clear warnings when skybox, irradiance, radiance, or BRDF LUT data is missing.
+- Shows a `Tools` panel with skybox, irradiance, radiance, and BRDF LUT references from the manifest.
+- Shows validation diagnostics for missing or inconsistent source/resource references.
+- Shows a Preview panel with the configured test model list, auto-rotate, camera reset, current environment identity, validation state, resource availability, and active fallback mode.
+- Uses Environment-owned PBR resources when available and reports clear warnings when skybox, irradiance, radiance, or BRDF LUT data is missing.
 - Includes a dedicated Logs panel for load, save, validation, and live-setting-change diagnostics.
 
 Current scope / limitations:
@@ -138,7 +138,7 @@ Current scope / limitations:
 
 Background modes:
 
-- `Skybox` uses generated skybox resources as the visible background.
+- `Skybox` uses the configured skybox resources as the visible background.
 - `Solid Color` clears the viewport with the selected RGBA color.
 - `Transparent` clears with alpha `0`; visible transparency still depends on the active desktop backbuffer/compositor.
 - `None` disables background drawing and keeps environment lighting active for the previewed model.
@@ -172,7 +172,7 @@ Features:
 - Uses the `gdx-gltf` renderer path for `.gltf` and `.glb` models in `glTF / PBR` mode.
 - Includes viewport controls grouped into camera, shared display options, renderer selection, and renderer-specific options.
 - Includes `glTF / PBR` controls for selecting an Environment asset plus exposure, rotation, background visibility, and environment-lighting controls.
-- Uses Environment manifests under `assets/environments/<environment>/<environment>.environment.json`, including generated skybox, irradiance, radiance, and BRDF LUT assets.
+- Uses Environment manifests under `assets/environments/<environment>/<environment>.environment.json`, including direct skybox, irradiance, radiance, and BRDF LUT references.
 - Applies saved runtime settings from the selected Environment asset instead of keeping separate hardcoded Model Viewer defaults.
 - Provides channel-display modes separate from shared viewport display modes.
 - Can preview Base Color / Diffuse, Normal, Metallic / Roughness, Occlusion, Emission, and Alpha texture channels directly on the model surface when metadata is available.

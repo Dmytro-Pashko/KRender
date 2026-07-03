@@ -35,7 +35,7 @@ class EnvironmentAssetDetailsRenderer : AssetDetailsRenderer {
         assetBrowserTextLine("Diffuse Intensity: ${asset.metadata["environmentDiffuseIntensity"] ?: "1.0"}")
         assetBrowserTextLine("Specular Intensity: ${asset.metadata["environmentSpecularIntensity"] ?: "1.0"}")
         assetBrowserTextLine(
-            "Generated Resources: skybox=${availability(asset.metadata["environmentHasSkybox"])}, " +
+            "Environment Resources: skybox=${availability(asset.metadata["environmentHasSkybox"])}, " +
                 "irradiance=${availability(asset.metadata["environmentHasIrradiance"])}, " +
                 "radiance=${availability(asset.metadata["environmentHasRadiance"])}, " +
                 "brdfLut=${availability(asset.metadata["environmentHasBrdfLut"])}",

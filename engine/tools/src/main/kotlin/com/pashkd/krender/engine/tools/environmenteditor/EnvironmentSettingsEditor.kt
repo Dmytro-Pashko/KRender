@@ -2,7 +2,7 @@ package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.environment.BackgroundMode
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentColor
 import com.pashkd.krender.engine.assets.environment.EnvironmentSettings
 import imgui.ImGui
@@ -24,7 +24,7 @@ internal class EnvironmentSettingsEditor(
     private val runtimeSection = EnvironmentRuntimeSettingsSection(mutator)
     private val backgroundSection = EnvironmentBackgroundSettingsSection(mutator)
 
-    fun draw(environment: EnvironmentAsset) {
+    fun draw(environment: Environment) {
         ImGui.text("1. Runtime Settings")
         runtimeSection.draw(environment)
         ImGui.separator()
@@ -41,7 +41,7 @@ private class EnvironmentRuntimeSettingsSection(
 ) {
     private val holder = FloatHolder()
 
-    fun draw(environment: EnvironmentAsset) {
+    fun draw(environment: Environment) {
         val settings = environment.settings
         slider(environment, FloatSetting("Exposure##env_exposure", settings.exposure, 0.01f, 10f, "%.2f", "Adjusts overall preview brightness.")) {
             copy(exposure = it)
@@ -58,7 +58,7 @@ private class EnvironmentRuntimeSettingsSection(
     }
 
     private fun slider(
-        environment: EnvironmentAsset,
+        environment: Environment,
         setting: FloatSetting,
         update: EnvironmentSettings.(Float) -> EnvironmentSettings,
     ) {
@@ -75,7 +75,7 @@ private class EnvironmentBackgroundSettingsSection(
 ) {
     private val holder = FloatHolder()
 
-    fun drawSelector(environment: EnvironmentAsset) {
+    fun drawSelector(environment: Environment) {
         val selectedMode = environment.settings.backgroundMode
         if (ImGui.beginCombo("Display Background##env_bg_mode", selectedMode.displayName)) {
             BackgroundMode.entries.forEach { mode ->
@@ -90,7 +90,7 @@ private class EnvironmentBackgroundSettingsSection(
         tooltipOnHover(selectedMode.description)
     }
 
-    fun drawOptions(environment: EnvironmentAsset) {
+    fun drawOptions(environment: Environment) {
         val settings = environment.settings
         ImGui.textWrapped(settings.backgroundMode.description)
         when (settings.backgroundMode) {
@@ -100,7 +100,7 @@ private class EnvironmentBackgroundSettingsSection(
         }
     }
 
-    private fun drawSkyboxIntensity(environment: EnvironmentAsset) {
+    private fun drawSkyboxIntensity(environment: Environment) {
         holder.value = environment.settings.skyboxIntensity
         if (slider("Skybox Intensity##env_skybox_int", holder::value, 0f, 1f, "%.2f", SliderFlag.AlwaysClamp)) {
             mutator.update(environment) { it.copy(skyboxIntensity = holder.value) }
@@ -108,7 +108,7 @@ private class EnvironmentBackgroundSettingsSection(
         tooltipOnHover("Controls skybox brightness without changing IBL intensity.")
     }
 
-    private fun drawSolidColor(environment: EnvironmentAsset) {
+    private fun drawSolidColor(environment: Environment) {
         val color = environment.settings.backgroundColor ?: EnvironmentEditorConfig.defaultBackgroundColor
         colorEdit4("Background Color##env_background_color", color.r, color.g, color.b, color.a) { r, g, b, a ->
             mutator.update(environment) {
@@ -125,7 +125,7 @@ private class EnvironmentSettingsMutator(
     private val logger: Logger,
 ) {
     fun update(
-        environment: EnvironmentAsset,
+        environment: Environment,
         transform: (EnvironmentSettings) -> EnvironmentSettings,
     ) {
         val updated = transform(environment.settings)

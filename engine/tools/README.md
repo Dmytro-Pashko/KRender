@@ -57,7 +57,7 @@ Examples:
 
 Skin Editor accepts an optional `krender.skin.path=<path>` property. When omitted, the tool starts in an empty/no-skin state until a skin path is provided.
 
-Environment Editor requires `krender.environment.path=<path>` and opens one `.environment.json` manifest per window.
+Environment Editor requires `krender.environment.path=<path>` and opens one `.environment.json` manifest per window. The manifest owns source variants and PBR resource references directly; there is no separate `generated` section in the current schema.
 
 Convenience launch scripts are available in `engine/tools/scripts/`:
 

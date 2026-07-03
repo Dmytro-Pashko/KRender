@@ -10,7 +10,7 @@ Environment Editor opens one `.environment.json` asset and provides:
 - editable exposure, rotation, diffuse intensity, and specular intensity;
 - `Skybox`, `Solid Color`, `Transparent`, and `None` background modes;
 - source-variant selection and manifest validation;
-- a read-only Tools panel for generated resource references;
+- a read-only Tools panel for skybox, irradiance, radiance, and BRDF LUT resource references;
 - a live PBR preview using the bundled `model/tests/MetalRoughSpheres.glb`;
 - file save/reload/revert, layout persistence, diagnostics, and logs.
 
@@ -19,22 +19,21 @@ Desktop route:
 - `krender.scene=environment-editor`
 - `krender.environment.path=<path>`
 
-The MVP does not generate skybox, irradiance, radiance, or BRDF LUT resources. The manifest may
-carry generation metadata for future tooling, but no generator service or generation UI is
-installed in Environment Editor.
+The MVP does not generate skybox, irradiance, radiance, or BRDF LUT resources. Environment Editor
+only edits runtime settings and resource references already owned by the Environment asset.
 
 ## Ownership
 
 | Layer | Main types | Responsibility |
 |---|---|---|
-| Core domain | `EnvironmentAsset`, `EnvironmentSettings`, `EnvironmentGeneratedResources` | Backend-neutral manifest data. |
-| Persistence | `EnvironmentManifestCodec`, `EnvironmentManifestMapper`, `DefaultEnvironmentService` | JSON decode/encode and file IO. |
-| Validation | `EnvironmentValidator` | Source/generated-resource checks through `SceneFileService`. |
+| Core domain | `Environment`, `EnvironmentSettings` | Backend-neutral runtime data and `.environment.json` schema. |
+| Persistence | `EnvironmentSerializer`, `EnvironmentLoader`, `DefaultEnvironmentService` | JSON encode/decode, file IO, validation handoff, and editor/runtime access. |
+| Validation | `EnvironmentValidator` | Source/resource checks through `SceneFileService`. |
 | Tool state | `EnvironmentEditorState`, `EnvironmentEditorController` | Mutable editing session, dirty state, disk commands. |
 | Tool UI | `EnvironmentEditorUiFactory`, `Environment*Panel` | ImGui panels and layout tracking. |
 | Preview adapter | `EnvironmentPreviewController` | Converts the current Environment into `GltfRendererSettings`. |
 | Preview scene | `EnvironmentPreviewSceneAssembler`, camera/render systems | Creates camera/model entities and emits `DrawModel`. |
-| Backend | `GdxHdrEnvironmentResolver`, `GdxGltfRenderer`, `GdxRenderer3D` | Loads generated maps, configures PBR, draws skybox/model, clears background. |
+| Backend | `GdxHdrEnvironmentResolver`, `GdxGltfRenderer`, `GdxRenderer3D` | Loads Environment-owned skybox/IBL resources, configures PBR, draws skybox/model, clears background. |
 
 No tool class imports LibGDX or gdx-gltf. The preview crosses the backend boundary only through
 `AssetRef`, ECS components, `DrawModel`, and `GltfRendererSettings`.
@@ -45,7 +44,7 @@ No tool class imports LibGDX or gdx-gltf. The preview crosses the backend bounda
 - `Inspector` — flat label/value manifest summary.
 - `Settings` — runtime settings, background mode selector, and mode-specific options.
 - `Sources` — source variants with default-source switching.
-- `Tools` — generated skybox, irradiance, radiance, and BRDF LUT references.
+- `Tools` — skybox, irradiance, radiance, and BRDF LUT references.
 - `Diagnostics` — validation status and issue list.
 - `Preview` — preview test-model list, auto-rotate, camera reset, resource availability, fallback mode, and live preview status.
 - `Logs` — shared engine log stream for Environment Editor activity.
@@ -88,8 +87,9 @@ GdxRenderer3D -> GdxGltfRenderer -> gdx-gltf scene manager
        skybox + IBL + material spheres
 ```
 
-`environmentPreset` points to the manifest. `GdxHdrEnvironmentResolver` reads only generated
-resources for runtime PBR lighting; it does not sample the source `.hdr`/`.exr` directly.
+`environmentPreset` points to the manifest. `GdxHdrEnvironmentResolver` reads only the resource
+paths stored directly in the Environment manifest; it does not sample the source `.hdr`/`.exr`
+directly.
 
 ### PBR resources
 
@@ -99,7 +99,7 @@ resources for runtime PBR lighting; it does not sample the source `.hdr`/`.exr` 
   reflections. Smooth metal samples sharper levels; rough materials sample blurrier levels.
 - **BRDF LUT** stores the view/roughness integration term used by split-sum specular IBL.
 
-If generated maps are absent, the preview remains usable: the controller disables unavailable
+If required resources are absent, the preview remains usable: the controller disables unavailable
 skybox rendering, reports specific warnings, and increases direct-light fallback intensity.
 Backend load failures after manifest resolution are reported in Logs.
 
@@ -113,14 +113,14 @@ Backend load failures after manifest resolution are reported in Logs.
 | `diffuseIntensity` | Scales ambient/irradiance contribution. |
 | `specularIntensity` | Scales radiance/specular IBL; valid editor range is `0..1`. |
 
-Changes replace the immutable `EnvironmentAsset` in state and mark the session dirty. The render
+Changes replace the immutable `Environment` in state and mark the session dirty. The render
 system reads state every frame, so no event bus or renderer restart is needed.
 
 ## Background Semantics
 
 `BackgroundMode` is the single source of truth for background visibility:
 
-- `Skybox` draws the generated cubemap when available.
+- `Skybox` draws the configured skybox cubemap when available.
 - `Solid Color` clears the viewport using `backgroundColor`.
 - `Transparent` clears with alpha zero. Actual window transparency depends on the target
   backbuffer/compositor.

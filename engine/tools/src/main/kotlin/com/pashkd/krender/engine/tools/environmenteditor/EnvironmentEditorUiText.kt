@@ -14,7 +14,7 @@ internal val BackgroundMode.displayName: String
 internal val BackgroundMode.description: String
     get() =
         when (this) {
-            BackgroundMode.Skybox -> "Uses the generated skybox cubemap as the preview background."
+            BackgroundMode.Skybox -> "Uses the configured skybox cubemap as the preview background."
             BackgroundMode.SolidColor -> "Uses the selected flat color as the preview background."
             BackgroundMode.Transparent -> "Clears with zero alpha when the target backbuffer supports transparency."
             BackgroundMode.None -> "Disables background drawing while keeping environment lighting active."

@@ -4,22 +4,22 @@ import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.GltfRendererSettings
 
 /**
- * Converts a persisted [EnvironmentAsset] into runtime glTF/PBR renderer settings.
+ * Converts a persisted [Environment] into runtime glTF/PBR renderer settings.
  *
  * Runtime scenes, Scene Editor, and other non-editor preview flows share this mapping so
  * `.environment.json` remains the single source of truth for environment behavior.
  */
 object EnvironmentGltfRendererSettingsFactory {
-    fun create(asset: EnvironmentAsset): GltfRendererSettings {
-        val settings = asset.settings
+    fun create(environment: Environment): GltfRendererSettings {
+        val settings = environment.settings
         return GltfRendererSettings(
             enabled = true,
-            environmentPreset = asset.manifestPath,
-            environmentCacheKey = EnvironmentRuntimeCacheKeyFactory.create(asset),
+            environmentPreset = environment.manifestPath,
+            environmentCacheKey = EnvironmentRuntimeCacheKeyFactory.create(environment),
             exposure = settings.exposure.coerceAtLeast(0f),
             backgroundMode = settings.backgroundMode,
             backgroundColor = (settings.backgroundColor ?: DefaultBackgroundColor).toRenderColor(),
-            showSkybox = settings.backgroundMode == BackgroundMode.Skybox && asset.skybox?.faces?.isNotEmpty() == true,
+            showSkybox = settings.backgroundMode == BackgroundMode.Skybox && environment.skybox?.faces?.isNotEmpty() == true,
             skyboxIntensity = settings.skyboxIntensity.coerceIn(0f, 1f),
             ambientIntensity = settings.diffuseIntensity.coerceAtLeast(0f),
             environmentIntensity = settings.specularIntensity.coerceIn(0f, 1f),

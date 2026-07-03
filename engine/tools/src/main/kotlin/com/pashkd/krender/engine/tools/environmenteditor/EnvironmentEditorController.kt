@@ -30,7 +30,7 @@ class EnvironmentEditorController(
             state.invalidateEnvironmentCache()
             state.statusMessage = "Environment saved."
             engine.logger.info(TAG) {
-                "Environment saved id='${env.id.path}' path='${state.manifestPath}' cacheRevision=${state.environmentCacheRevision}"
+                "Environment saved id='${env.id}' path='${state.manifestPath}' cacheRevision=${state.environmentCacheRevision}"
             }
         } catch (error: Exception) {
             state.statusMessage = "Save failed: ${error.message}"
@@ -85,7 +85,7 @@ class EnvironmentEditorController(
             state.loadError = null
             state.statusMessage = "Environment $action."
             engine.logger.info(TAG) {
-                "Environment $action id='${asset.id.path}' path='${state.manifestPath}'"
+                "Environment $action id='${asset.id}' path='${state.manifestPath}'"
             }
         } catch (error: Exception) {
             if (clearStateOnFailure) {

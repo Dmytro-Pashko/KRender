@@ -6,7 +6,7 @@ import com.pashkd.krender.engine.api.GltfRendererSettings
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.assets.environment.CubemapResource
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentColor
 import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
 import com.pashkd.krender.engine.assets.environment.EnvironmentRuntimeCacheKeyFactory
@@ -29,7 +29,7 @@ class EnvironmentPreviewController(
 ) {
     val previewModel = AssetRef.model(EnvironmentEditorConfig.defaultPreviewModel.assetPath)
 
-    fun availability(environment: EnvironmentAsset): EnvironmentPreviewAvailability {
+    fun availability(environment: Environment): EnvironmentPreviewAvailability {
         val resources = EnvironmentPreviewAvailability.from(environment, fileService)
         val wantsSkybox = environment.settings.backgroundMode == BackgroundMode.Skybox
         val warnings = resourceWarnings(resources, wantsSkybox)
@@ -60,7 +60,7 @@ class EnvironmentPreviewController(
         )
     }
 
-    fun liveStatusMessage(environment: EnvironmentAsset): String {
+    fun liveStatusMessage(environment: Environment): String {
         val availability = availability(environment)
         val settings = environment.settings
         return buildString {
@@ -84,7 +84,7 @@ class EnvironmentPreviewController(
     ): List<String> =
         buildList {
             if (!availability.hasIblLighting && !availability.hasBrdfLut) {
-                add("Generated IBL maps are missing. Generate them before using the full PBR preview.")
+                add("Environment IBL resources are missing. Add skybox, irradiance, radiance, and BRDF LUT files for the full PBR preview.")
             }
             if (wantsSkybox && !availability.hasSkybox) {
                 add("Skybox map is missing. Preview uses a neutral background.")
@@ -106,7 +106,7 @@ class EnvironmentPreviewController(
         }
 
     private fun rendererCacheKey(
-        environment: EnvironmentAsset,
+        environment: Environment,
         revision: Long,
     ): String = EnvironmentRuntimeCacheKeyFactory.create(environment, revision)
 
@@ -136,7 +136,7 @@ data class EnvironmentPreviewAvailability(
 
     companion object {
         fun from(
-            environment: EnvironmentAsset,
+            environment: Environment,
             fileService: SceneFileService,
         ): EnvironmentPreviewAvailability =
             EnvironmentPreviewAvailability(

@@ -106,7 +106,7 @@ class EnvironmentDiagnosticsPanel(
         data object NoReport : DiagnosticsContent
 
         data class Report(
-            val environment: com.pashkd.krender.engine.assets.environment.EnvironmentAsset,
+            val environment: com.pashkd.krender.engine.assets.environment.Environment,
             val report: com.pashkd.krender.engine.assets.environment.EnvironmentValidationReport,
         ) : DiagnosticsContent
     }

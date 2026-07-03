@@ -54,7 +54,7 @@ HDR 4K
 
 Only one source variant is active at a time.
 
-IBL generated maps:
+IBL runtime resources:
 
 - diffuse IBL = irradiance cubemap
 - specular IBL = prefiltered radiance cubemap with mip levels
@@ -67,7 +67,7 @@ Every Environment uses `<environment_name>.environment.json` with schema
 
 - runtime settings such as exposure, rotation, diffuse/specular intensity, and background mode;
 - one or more source variants (`.exr` / `.hdr`);
-- generated skybox / irradiance / radiance / BRDF LUT resource references;
+- skybox / irradiance / radiance / BRDF LUT resource references;
 - optional generation metadata used by the broader workflow.
 
 All resource paths resolve relative to the manifest directory. Source files must exist when used by
@@ -79,7 +79,7 @@ Viewer should stay functional and report clear warnings when full PBR inputs are
 1. Create `assets/environments/<environment_name>/<environment_name>.environment.json`.
 2. Add one or more equirectangular EXR or HDR files under `sources/`.
 3. Add manifest source entries with stable ids and one `isDefault = true` source.
-4. Define generated resource targets for skybox, irradiance, radiance, and BRDF LUT.
+4. Define resource targets for skybox, irradiance, radiance, and BRDF LUT.
 5. Generate and commit the derived IBL assets.
 6. Open the manifest in Environment Editor for validation and runtime/background tuning.
 7. Select the Environment asset in Model Viewer, Scene Editor, Scene Player, or game/runtime code.

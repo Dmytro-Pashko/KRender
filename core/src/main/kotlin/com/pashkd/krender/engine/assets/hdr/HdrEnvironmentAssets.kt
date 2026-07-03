@@ -8,7 +8,6 @@ import java.nio.file.Path
 object HdrEnvironmentAssets {
     const val DEFAULT_PRESET = "default"
     const val DEFAULT_MANIFEST = "environments/default/default.environment.json"
-    const val SHARED_BRDF_LUT = "hdr/_common/brdf/brdfLUT.png"
 
     fun manifestPathForPreset(presetNameOrPath: String): String =
         when {

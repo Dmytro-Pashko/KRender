@@ -74,7 +74,7 @@ Each Environment manifest is stored as:
 assets/environments/<environment_name>/<environment_name>.environment.json
 ```
 
-Environment manifests can describe multiple source variants for the same environment, including `.exr` and `.hdr` sources. Generated environment assets include:
+Environment manifests can describe multiple source variants for the same environment, including `.exr` and `.hdr` sources. Each manifest also stores direct references to the runtime PBR resources it uses:
 
 - source variants under `sources/`
 - skybox cubemap faces
@@ -82,7 +82,7 @@ Environment manifests can describe multiple source variants for the same environ
 - radiance cubemap mip chain
 - BRDF LUT texture reference
 
-The Environment Editor opens one `.environment.json` manifest, lets you edit runtime/background settings, validates generated resources, and previews the result on a bundled glTF test model through the shared PBR renderer path.
+The Environment Editor opens one `.environment.json` manifest, lets you edit runtime/background settings, validates referenced resources, and previews the result on a bundled glTF test model through the shared PBR renderer path.
 
 See [docs/assets/gltf-workflow.md](docs/assets/gltf-workflow.md) for the current glTF / HDR / IBL workflow and generation commands.
 

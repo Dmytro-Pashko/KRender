@@ -3,7 +3,7 @@ package com.pashkd.krender.engine.tools.environmenteditor
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 
 /**
  * Logs semantic editor-state transitions once, rather than emitting per-frame noise.
@@ -85,7 +85,7 @@ private data class EnvironmentEditorLogSnapshot(
     }
 }
 
-private fun EnvironmentAsset?.backgroundColorString(): String? {
+private fun Environment?.backgroundColorString(): String? {
     val color = this?.settings?.backgroundColor ?: return null
     return "(${color.r},${color.g},${color.b},${color.a})"
 }

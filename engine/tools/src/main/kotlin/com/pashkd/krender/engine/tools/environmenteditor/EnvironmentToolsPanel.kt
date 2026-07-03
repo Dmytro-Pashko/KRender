@@ -1,6 +1,6 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -25,7 +25,7 @@ class EnvironmentToolsPanel(
         ImGui.end()
     }
 
-    private fun drawResources(environment: EnvironmentAsset) {
+    private fun drawResources(environment: Environment) {
         drawSkybox(environment)
         ImGui.separator()
         drawIrradiance(environment)
@@ -35,7 +35,7 @@ class EnvironmentToolsPanel(
         drawBrdfLut(environment)
     }
 
-    private fun drawSkybox(environment: EnvironmentAsset) {
+    private fun drawSkybox(environment: Environment) {
         ImGui.text("Skybox")
         val skybox = environment.skybox
         if (skybox == null) {
@@ -52,7 +52,7 @@ class EnvironmentToolsPanel(
         }
     }
 
-    private fun drawIrradiance(environment: EnvironmentAsset) {
+    private fun drawIrradiance(environment: Environment) {
         ImGui.text("Irradiance")
         val irradiance = environment.irradiance
         if (irradiance == null) {
@@ -64,7 +64,7 @@ class EnvironmentToolsPanel(
         ImGui.text("  Format: ${irradiance.format}")
     }
 
-    private fun drawRadiance(environment: EnvironmentAsset) {
+    private fun drawRadiance(environment: Environment) {
         ImGui.text("Radiance")
         val radiance = environment.radiance
         if (radiance == null) {
@@ -78,7 +78,7 @@ class EnvironmentToolsPanel(
         }
     }
 
-    private fun drawBrdfLut(environment: EnvironmentAsset) {
+    private fun drawBrdfLut(environment: Environment) {
         ImGui.text("BRDF LUT")
         val brdfLut = environment.brdfLut
         if (brdfLut == null) {

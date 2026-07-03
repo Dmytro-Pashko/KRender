@@ -6,15 +6,14 @@ import com.badlogic.gdx.files.FileHandle
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.assets.environment.ENVIRONMENT_SCHEMA
-import com.pashkd.krender.engine.assets.environment.EnvironmentManifestCodec
-import com.pashkd.krender.engine.assets.environment.EnvironmentManifestDto
+import com.pashkd.krender.engine.assets.environment.Environment
+import com.pashkd.krender.engine.assets.environment.EnvironmentSerializer
 import com.pashkd.krender.engine.assets.environment.EnvironmentSourceVariant
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentDefaults
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifest
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifestCodec
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifestLoader
-import com.pashkd.krender.engine.backend.gdx.tools.hdr.SharedBrdfLutExporter
 
 internal class GdxHdrEnvironmentResolver(
     private val logger: Logger,
@@ -84,7 +83,7 @@ internal class GdxHdrEnvironmentResolver(
         manifestPath: String,
         manifestText: String,
     ): GdxResolvedHdrEnvironment {
-        val manifest = EnvironmentManifestCodec.decode(manifestText)
+        val manifest = EnvironmentSerializer.decode(manifestText)
         validateEnvironment(manifest, manifestPath)
         val activeSource = manifest.sources.firstOrNull(EnvironmentSourceVariant::isDefault) ?: manifest.sources.first()
         return GdxResolvedHdrEnvironment(
@@ -135,7 +134,7 @@ internal class GdxHdrEnvironmentResolver(
     }
 
     private fun validateEnvironment(
-        manifest: EnvironmentManifestDto,
+        manifest: Environment,
         manifestPath: String,
     ) {
         require(manifest.schema == ENVIRONMENT_SCHEMA) {
@@ -166,7 +165,7 @@ internal class GdxHdrEnvironmentResolver(
         }
         if (environment.brdfLut == null) {
             logger.warn(TAG) {
-                "HDR environment '${environment.preset}' BRDF LUT is missing from the manifest, shared assets, and gdx-gltf."
+                "HDR environment '${environment.preset}' BRDF LUT is missing; runtime fallback will be used."
             }
         }
     }
@@ -174,25 +173,18 @@ internal class GdxHdrEnvironmentResolver(
     private fun resolveBrdfLut(
         manifestPath: String,
         manifestBrdfPath: String,
-    ): GdxHdrAssetLocation? =
-        listOf(
+    ): GdxHdrAssetLocation? {
+        val location =
             GdxHdrAssetLocation(
                 path = resolvePath(manifestPath, manifestBrdfPath),
                 type = Files.FileType.Internal,
-            ),
-            GdxHdrAssetLocation(
-                path = HdrEnvironmentAssets.SHARED_BRDF_LUT,
-                type = Files.FileType.Internal,
-            ),
-            GdxHdrAssetLocation(
-                path = SharedBrdfLutExporter.BUNDLED_BRDF_LUT,
-                type = Files.FileType.Classpath,
-            ),
-        ).firstOrNull { location -> location.file().exists() }
+            )
+        return location.takeIf { it.file().exists() }
+    }
 
     private fun resolveSkyboxFaces(
         manifestPath: String,
-        manifest: EnvironmentManifestDto,
+        manifest: Environment,
     ): Map<String, String> =
         manifest.skybox
             ?.faces
@@ -205,7 +197,7 @@ internal class GdxHdrEnvironmentResolver(
 
     private fun resolveIrradianceFaces(
         manifestPath: String,
-        manifest: EnvironmentManifestDto,
+        manifest: Environment,
     ): Map<String, String> =
         inferCubemapFaces(
             manifestPath = manifestPath,
@@ -215,7 +207,7 @@ internal class GdxHdrEnvironmentResolver(
 
     private fun resolveRadianceFaces(
         manifestPath: String,
-        manifest: EnvironmentManifestDto,
+        manifest: Environment,
     ): Map<Int, Map<String, String>> =
         manifest.radiance
             ?.mips
@@ -285,7 +277,7 @@ internal class GdxHdrEnvironmentResolver(
 
     private fun detectSchema(manifestText: String): String? = schemaRegex.find(manifestText)?.groupValues?.getOrNull(1)
 
-    private fun EnvironmentManifestDto.defaults(): HdrEnvironmentDefaults =
+    private fun Environment.defaults(): HdrEnvironmentDefaults =
         HdrEnvironmentDefaults(
             exposure = settings.exposure.toDouble(),
             toneMapping = "ACES",

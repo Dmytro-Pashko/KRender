@@ -9,7 +9,7 @@ import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.VelocityComponent
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentGltfRendererSettingsFactory
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
@@ -45,7 +45,7 @@ class WoolboyScene : Scene(SceneId) {
 
     private val woolboyModel = AssetRef.model(WoolboyModelPath)
     private var descriptorCache: SceneDescriptor? = null
-    private var environmentCache: EnvironmentAsset? = null
+    private var environmentCache: Environment? = null
     private val gameState = WoolboyGameState()
 
     override val config: SceneConfig = SceneConfigPresets.RuntimeGame16By9
@@ -111,7 +111,7 @@ class WoolboyScene : Scene(SceneId) {
         engine.logger.info(TAG) { "Woolboy player created id=${player.id} model='$WoolboyModelPath'" }
     }
 
-    private fun createSystems(environment: EnvironmentAsset?) {
+    private fun createSystems(environment: Environment?) {
         addSystem(
             "TerrainAssetSyncSystem",
             TerrainAssetSyncSystem(
@@ -172,7 +172,7 @@ class WoolboyScene : Scene(SceneId) {
         return SceneSerializer.decode(engine.sceneFiles.readText(SceneAssetPath))
     }
 
-    private fun loadEnvironment(descriptor: SceneDescriptor): EnvironmentAsset? {
+    private fun loadEnvironment(descriptor: SceneDescriptor): Environment? {
         val environmentPath = descriptor.settings.environment.environmentAssetPath ?: return null
         return runCatching {
             DefaultEnvironmentService(engine.sceneFiles).load(environmentPath)

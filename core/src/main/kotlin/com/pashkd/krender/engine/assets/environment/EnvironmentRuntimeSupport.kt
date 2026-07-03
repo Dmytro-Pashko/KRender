@@ -28,33 +28,33 @@ object EnvironmentPathResolver {
  */
 object EnvironmentRuntimeCacheKeyFactory {
     fun create(
-        asset: EnvironmentAsset,
+        environment: Environment,
         revision: Long = 0L,
     ): String =
         buildList {
-            add("manifest=${asset.manifestPath}")
+            add("manifest=${environment.manifestPath}")
             add("revision=$revision")
-            add("type=${asset.type}")
-            add("defaultSource=${asset.sources.firstOrNull { source -> source.isDefault }?.id.orEmpty()}")
-            asset.sources
+            add("type=${environment.type}")
+            add("defaultSource=${environment.sources.firstOrNull { source -> source.isDefault }?.id.orEmpty()}")
+            environment.sources
                 .sortedWith(compareBy<EnvironmentSourceVariant> { it.id }.thenBy { it.path })
                 .forEach { source ->
                     add("source:${source.id}:${source.path}:${source.isDefault}")
                 }
-            asset.skybox?.faces
+            environment.skybox?.faces
                 ?.toSortedMap()
                 ?.forEach { (face, path) ->
                     add("skybox:$face:$path")
                 }
-            asset.irradiance?.let { irradiance ->
+            environment.irradiance?.let { irradiance ->
                 add("irradiance:${irradiance.path}:${irradiance.resolution}:${irradiance.format}")
             }
-            asset.radiance?.mips
+            environment.radiance?.mips
                 ?.sortedBy(RadianceMip::level)
                 ?.forEach { mip ->
                     add("radiance:${mip.level}:${mip.roughness}:${mip.path}")
                 }
-            asset.brdfLut?.let { lut ->
+            environment.brdfLut?.let { lut ->
                 add("brdf:${lut.path}")
             }
         }.joinToString("|")

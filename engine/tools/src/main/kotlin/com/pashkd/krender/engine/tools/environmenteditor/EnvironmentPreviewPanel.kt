@@ -1,6 +1,6 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.ValidationStatus
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewAvailability
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewCamera
@@ -49,7 +49,7 @@ class EnvironmentPreviewPanel(
         }
     }
 
-    private fun drawPreview(env: EnvironmentAsset) {
+    private fun drawPreview(env: Environment) {
         val availability = controller.availability(env)
         drawPreviewControls()
         ImGui.separator()
@@ -73,15 +73,15 @@ class EnvironmentPreviewPanel(
     }
 
     private fun drawPreviewStatus(
-        env: EnvironmentAsset,
+        env: Environment,
         availability: EnvironmentPreviewAvailability,
     ) {
         ImGui.text("Environment: ${env.name}")
-        ImGui.text("Environment Id: ${env.id.path}")
+        ImGui.text("Environment Id: ${env.id}")
         ImGui.text("Type: ${env.type}")
         drawValidationStatus()
         ImGui.separator()
-        ImGui.text("Generated Resources")
+        ImGui.text("Environment Resources")
         ImGui.text("Skybox: ${availabilityLabel(availability.hasSkybox)}")
         ImGui.text("Irradiance: ${availabilityLabel(availability.hasIrradiance)}")
         ImGui.text("Radiance: ${availabilityLabel(availability.hasRadiance)}")
@@ -92,7 +92,7 @@ class EnvironmentPreviewPanel(
         ImGui.textWrapped(controller.liveStatusMessage(env))
         availability.warnings.forEach(ImGui::textWrapped)
         if (availability.warnings.isEmpty()) {
-            ImGui.textWrapped("Preview uses the current environment manifest and generated IBL maps.")
+            ImGui.textWrapped("Preview uses the current environment manifest and its referenced IBL resources.")
         }
     }
 

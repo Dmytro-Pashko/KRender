@@ -3,23 +3,23 @@ package com.pashkd.krender.engine.assets.environment
 import com.pashkd.krender.engine.scene.SceneFileService
 
 /**
- * Validates an [EnvironmentAsset] and returns a structured [EnvironmentValidationReport].
+ * Validates an [Environment] and returns a structured [EnvironmentValidationReport].
  *
- * Validation checks cover manifest completeness, source availability, and generated resource
+ * Validation checks cover manifest completeness, source availability, and referenced runtime resource
  * presence. File existence is checked through [SceneFileService] so the validator stays
  * platform-neutral.
  */
 object EnvironmentValidator {
     fun validate(
-        asset: EnvironmentAsset,
+        environment: Environment,
         fileService: SceneFileService,
     ): EnvironmentValidationReport {
         val issues = mutableListOf<EnvironmentIssue>()
 
-        validateManifest(asset, issues)
-        validateSources(asset, fileService, issues)
-        validateGenerated(asset, fileService, issues)
-        validateSettings(asset, issues)
+        validateManifest(environment, issues)
+        validateSources(environment, fileService, issues)
+        validateResources(environment, fileService, issues)
+        validateSettings(environment, issues)
 
         val status =
             when {
@@ -31,32 +31,32 @@ object EnvironmentValidator {
     }
 
     private fun validateManifest(
-        asset: EnvironmentAsset,
+        environment: Environment,
         issues: MutableList<EnvironmentIssue>,
     ) {
-        if (asset.name.isBlank()) {
+        if (environment.name.isBlank()) {
             issues += error(Codes.MISSING_NAME, "Environment name is empty.")
         }
-        if (asset.id.path.isBlank()) {
+        if (environment.id.isBlank()) {
             issues += error(Codes.MISSING_ID, "Environment id is empty.")
         }
     }
 
     private fun validateSources(
-        asset: EnvironmentAsset,
+        environment: Environment,
         fileService: SceneFileService,
         issues: MutableList<EnvironmentIssue>,
     ) {
-        if (asset.sources.isEmpty()) {
+        if (environment.sources.isEmpty()) {
             issues += error(Codes.NO_SOURCES, "No source variants defined.")
             return
         }
-        val hasDefault = asset.sources.any { it.isDefault }
+        val hasDefault = environment.sources.any { it.isDefault }
         if (!hasDefault) {
             issues += warning(Codes.NO_DEFAULT_SOURCE, "No source variant is marked as default.")
         }
-        for (source in asset.sources) {
-            val resolvedPath = EnvironmentPathResolver.resolvePath(asset.manifestPath, source.path)
+        for (source in environment.sources) {
+            val resolvedPath = EnvironmentPathResolver.resolvePath(environment.manifestPath, source.path)
             if (!fileService.exists(resolvedPath)) {
                 issues +=
                     warning(
@@ -68,15 +68,15 @@ object EnvironmentValidator {
         }
     }
 
-    private fun validateGenerated(
-        asset: EnvironmentAsset,
+    private fun validateResources(
+        environment: Environment,
         fileService: SceneFileService,
         issues: MutableList<EnvironmentIssue>,
     ) {
-        validateSkybox(asset.skybox, asset.manifestPath, fileService, issues)
-        validateIrradiance(asset.irradiance, asset.manifestPath, fileService, issues)
-        validateRadiance(asset.radiance, asset.manifestPath, fileService, issues)
-        validateBrdfLut(asset.brdfLut, asset.manifestPath, fileService, issues)
+        validateSkybox(environment.skybox, environment.manifestPath, fileService, issues)
+        validateIrradiance(environment.irradiance, environment.manifestPath, fileService, issues)
+        validateRadiance(environment.radiance, environment.manifestPath, fileService, issues)
+        validateBrdfLut(environment.brdfLut, environment.manifestPath, fileService, issues)
     }
 
     private fun validateSkybox(
@@ -176,10 +176,10 @@ object EnvironmentValidator {
     }
 
     private fun validateSettings(
-        asset: EnvironmentAsset,
+        environment: Environment,
         issues: MutableList<EnvironmentIssue>,
     ) {
-        val s = asset.settings
+        val s = environment.settings
         if (s.exposure <= 0f) {
             issues += warning(Codes.INVALID_EXPOSURE, "Exposure should be positive, got ${s.exposure}.")
         }

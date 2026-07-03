@@ -1,7 +1,7 @@
 package com.pashkd.krender.engine.assets.environment
 
 /**
- * Result of validating an [EnvironmentAsset].
+ * Result of validating an [Environment].
  */
 data class EnvironmentValidationReport(
     val status: ValidationStatus,

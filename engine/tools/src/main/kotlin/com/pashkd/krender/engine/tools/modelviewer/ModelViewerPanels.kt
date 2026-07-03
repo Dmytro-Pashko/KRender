@@ -3,7 +3,7 @@ package com.pashkd.krender.engine.tools.modelviewer
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.environment.BackgroundMode
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentGltfRendererSettingsFactory
 import com.pashkd.krender.engine.assets.environment.EnvironmentService
 import com.pashkd.krender.engine.ui.editor.*
@@ -389,7 +389,7 @@ internal class PbrRendererOptionsPanel(
     }
 
     private fun resetEnvironment() {
-        if (loadEnvironmentAsset(state.pbrEnvironmentPreset) != null) {
+        if (loadEnvironment(state.pbrEnvironmentPreset) != null) {
             applyEnvironmentDefaults(state.pbrEnvironmentPreset, reason = "reset")
             return
         }
@@ -422,9 +422,9 @@ internal class PbrRendererOptionsPanel(
         reason: String,
         environmentName: String? = null,
     ) {
-        val manifest = loadEnvironmentAsset(manifestPath) ?: return
-        val settings = EnvironmentGltfRendererSettingsFactory.create(manifest)
-        state.pbrEnvironmentPreset = manifest.manifestPath
+        val environment = loadEnvironment(manifestPath) ?: return
+        val settings = EnvironmentGltfRendererSettingsFactory.create(environment)
+        state.pbrEnvironmentPreset = environment.manifestPath
         state.pbrShowSkybox = settings.showSkybox
         state.pbrSkyboxIntensity = settings.skyboxIntensity
         state.pbrDiffuseIntensity = settings.ambientIntensity
@@ -433,10 +433,10 @@ internal class PbrRendererOptionsPanel(
         state.pbrEnvironmentRotationDegrees = settings.environmentRotationDegrees
         state.pbrBackgroundMode = settings.backgroundMode
         state.pbrBackgroundColor = settings.backgroundColor.copy()
-        state.pbrEnvironmentCacheKey = settings.environmentCacheKey ?: manifest.manifestPath
-        state.pbrAppliedEnvironmentPreset = manifest.manifestPath
+        state.pbrEnvironmentCacheKey = settings.environmentCacheKey ?: environment.manifestPath
+        state.pbrAppliedEnvironmentPreset = environment.manifestPath
         logger.info(TAG) {
-            "ModelViewer environment applied reason=$reason preset='${manifest.manifestPath}' name='${environmentName ?: manifest.name}' " +
+            "ModelViewer environment applied reason=$reason preset='${environment.manifestPath}' name='${environmentName ?: environment.name}' " +
                 "showSkybox=${state.pbrShowSkybox} skyboxIntensity=${state.pbrSkyboxIntensity} " +
                 "diffuseIntensity=${state.pbrDiffuseIntensity} specularIntensity=${state.pbrSpecularIntensity} " +
                 "exposure=${state.pbrExposure} rotation=${state.pbrEnvironmentRotationDegrees} " +
@@ -445,7 +445,7 @@ internal class PbrRendererOptionsPanel(
         }
     }
 
-    private fun loadEnvironmentAsset(manifestPath: String): EnvironmentAsset? =
+    private fun loadEnvironment(manifestPath: String): Environment? =
         try {
             environmentService.load(manifestPath)
         } catch (error: Exception) {

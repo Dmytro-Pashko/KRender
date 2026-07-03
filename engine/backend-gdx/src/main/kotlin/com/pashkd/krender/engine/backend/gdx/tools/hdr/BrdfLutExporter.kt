@@ -6,7 +6,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
-internal class SharedBrdfLutExporter {
+internal class BrdfLutExporter {
     fun export(
         manifestPath: Path,
         manifest: HdrEnvironmentManifest,

@@ -2,7 +2,7 @@ package com.pashkd.krender.engine.assets
 
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.environment.BackgroundMode
-import com.pashkd.krender.engine.assets.environment.EnvironmentManifestCodec
+import com.pashkd.krender.engine.assets.environment.EnvironmentSerializer
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -275,12 +275,12 @@ class LocalAssetRegistryService(
         return when (type) {
             AssetType.Environment -> {
                 try {
-                    val manifest = EnvironmentManifestCodec.decode(file.readText(StandardCharsets.UTF_8))
+                    val manifest = EnvironmentSerializer.decode(file.readText(StandardCharsets.UTF_8))
                     buildMap {
                         put("environmentId", manifest.id)
                         put("environmentName", manifest.name)
                         put("environmentSchemaVersion", manifest.schemaVersion.toString())
-                        put("environmentType", manifest.environmentType)
+                        put("environmentType", manifest.type.name)
                         put("environmentSourceCount", manifest.sources.size.toString())
                         put("environmentBackgroundMode", manifest.settings.backgroundMode.name)
                         put(

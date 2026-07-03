@@ -7,8 +7,7 @@ import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.assets.environment.CubemapResource
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
 import com.pashkd.krender.engine.assets.environment.ENVIRONMENT_SCHEMA_VERSION
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
-import com.pashkd.krender.engine.assets.environment.EnvironmentAssetId
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentSettings
 import com.pashkd.krender.engine.assets.environment.EnvironmentSourceFormat
 import com.pashkd.krender.engine.assets.environment.EnvironmentSourceVariant
@@ -135,10 +134,10 @@ internal object EnvironmentAssetCreation {
         val baseId = sanitizeEnvironmentId(request.preferredEnvironmentId ?: environmentBaseId(sourcePath.fileName.toString()))
         val target = prepareEnvironmentTarget(targetRoot, baseId)
         val manifestSourcePath = prepareEnvironmentSource(request, targetRoot, target.directory, sourcePath)
-        val environmentAsset = buildEnvironmentAsset(target, manifestSourcePath, request.sourceFormat)
+        val environment = buildEnvironment(target, manifestSourcePath, request.sourceFormat)
 
         val environmentService = DefaultEnvironmentService(engine.sceneFiles)
-        environmentService.save(environmentAsset)
+        environmentService.save(environment)
         val createdAsset = environmentService.load(target.manifestPath)
         environmentService.validate(createdAsset)
         if (request.openAfterCreate) {
@@ -189,7 +188,7 @@ internal object EnvironmentAssetCreation {
                 ),
         )
 
-    private fun defaultBrdfLut(): TextureResourceRef = TextureResourceRef(path = "../../shared/pbr/brdf_lut.ktx")
+    private fun defaultBrdfLut(): TextureResourceRef = TextureResourceRef(path = "brdf/brdfLUT.png")
 
     private fun prepareEnvironmentTarget(
         targetRoot: Path,
@@ -221,16 +220,16 @@ internal object EnvironmentAssetCreation {
         }
     }
 
-    private fun buildEnvironmentAsset(
+    private fun buildEnvironment(
         target: EnvironmentTarget,
         manifestSourcePath: String,
         sourceFormat: EnvironmentSourceFormat,
-    ): EnvironmentAsset =
-        EnvironmentAsset(
-            id = EnvironmentAssetId(target.environmentId),
+    ): Environment =
+        Environment(
+            schemaVersion = ENVIRONMENT_SCHEMA_VERSION,
+            id = target.environmentId,
             name = environmentDisplayName(target.environmentId),
             manifestPath = target.manifestPath,
-            version = ENVIRONMENT_SCHEMA_VERSION,
             type = EnvironmentType.HdrIbl,
             description = null,
             settings = EnvironmentSettings(),

@@ -1,7 +1,7 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.assets.environment.BackgroundMode
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -34,12 +34,12 @@ class EnvironmentInspectorPanel(
         ImGui.end()
     }
 
-    private fun drawInspector(env: EnvironmentAsset) {
+    private fun drawInspector(env: Environment) {
         val settings = env.settings
-        labeledText("ID", env.id.path)
+        labeledText("ID", env.id)
         labeledText("Name", env.name)
         labeledText("Type", env.type.name)
-        labeledText("Version", env.version.toString())
+        labeledText("Version", env.schemaVersion.toString())
         labeledText("Manifest", env.manifestPath)
         labeledText("Description", env.description ?: "(none)")
         labeledText("Exposure", "%.2f".format(settings.exposure))

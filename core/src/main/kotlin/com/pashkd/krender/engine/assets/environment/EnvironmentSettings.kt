@@ -21,7 +21,7 @@ data class EnvironmentSettings(
  */
 @Serializable
 enum class BackgroundMode {
-    /** Displays the generated skybox while keeping IBL active. */
+    /** Displays the configured skybox while keeping IBL active. */
     Skybox,
 
     /** Clears the viewport with [EnvironmentSettings.backgroundColor]. */

@@ -3,7 +3,7 @@ package com.pashkd.krender.engine.sceneplayer
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.scene.RuntimeSceneValidator
 import com.pashkd.krender.engine.scene.SceneDependencyCollector
 import com.pashkd.krender.engine.scene.SceneDescriptor
@@ -16,7 +16,7 @@ class ScenePlayerScene(
     private val scenePath: String,
 ) : Scene("scene_player") {
     private var descriptorCache: SceneDescriptor? = null
-    private var environmentCache: EnvironmentAsset? = null
+    private var environmentCache: Environment? = null
 
     override fun scheduleAssets(assets: AssetService) {
         val descriptor = loadSceneDescriptor()
@@ -70,7 +70,7 @@ class ScenePlayerScene(
         return SceneSerializer.decode(text)
     }
 
-    private fun resolveEnvironment(descriptor: SceneDescriptor): EnvironmentAsset? {
+    private fun resolveEnvironment(descriptor: SceneDescriptor): Environment? {
         val environmentPath = RuntimeSceneValidator.environmentAssetPath(descriptor) ?: return null
         return runCatching {
             DefaultEnvironmentService(engine.sceneFiles).load(environmentPath)

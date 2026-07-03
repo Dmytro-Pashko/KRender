@@ -2,7 +2,7 @@ package com.pashkd.krender.engine.tools.sceneeditor
 
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentGltfRendererSettingsFactory
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
@@ -89,7 +89,7 @@ class SceneEditorEnvironmentSyncSystem(
 ) : System() {
     private val environmentService = DefaultEnvironmentService(sceneFiles)
     private var cachedEnvironmentPath: String? = null
-    private var cachedEnvironment: EnvironmentAsset? = null
+    private var cachedEnvironment: Environment? = null
     private var failedEnvironmentPath: String? = null
 
     override fun update(
@@ -101,7 +101,7 @@ class SceneEditorEnvironmentSyncSystem(
         state.gltfRendererSettings = environment?.let(EnvironmentGltfRendererSettingsFactory::create)
     }
 
-    private fun resolveEnvironment(path: String?): EnvironmentAsset? {
+    private fun resolveEnvironment(path: String?): Environment? {
         if (path == null) {
             cachedEnvironmentPath = null
             cachedEnvironment = null

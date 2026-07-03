@@ -3,7 +3,7 @@ package com.pashkd.krender.engine.sceneplayer
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Entity
 import com.pashkd.krender.engine.api.SceneWorld
-import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentGltfRendererSettingsFactory
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
@@ -28,7 +28,7 @@ import com.pashkd.krender.engine.terrain.TerrainRuntimeLoader
 data class ScenePlayerBuildRequest(
     val scenePath: String,
     val descriptor: SceneDescriptor,
-    val environment: EnvironmentAsset?,
+    val environment: Environment?,
 )
 
 data class ScenePlayerBuildResult(
@@ -104,7 +104,7 @@ class ScenePlayerBuilder(
 
     private fun registerSystems(
         world: SceneWorld,
-        environment: EnvironmentAsset?,
+        environment: Environment?,
         terrainPrepared: Boolean,
         materialBakeService: TerrainMaterialBakeService?,
     ) {

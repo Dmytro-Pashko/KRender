@@ -1,0 +1,65 @@
+2026-07-03 17:08:12.549 [Info] [AssetImporterRegistry] [frame=0] Registered importer 'gltf' (glTF Model)
+2026-07-03 17:08:12.564 [Info] [AssetImporterRegistry] [frame=0] Registered importer 'obj' (Wavefront OBJ)
+2026-07-03 17:08:12.564 [Info] [AssetImporterRegistry] [frame=0] Registered importer 'gdx-model' (libGDX Model)
+2026-07-03 17:08:12.565 [Info] [AssetImporterRegistry] [frame=0] Registered importer 'texture' (Texture)
+2026-07-03 17:08:12.565 [Info] [AssetImporterRegistry] [frame=0] Registered importer 'scene2d-font' (Scene2D Font)
+2026-07-03 17:08:12.566 [Info] [AssetImporterRegistry] [frame=0] Registered importer 'terrain' (Terrain)
+2026-07-03 17:08:12.567 [Info] [AssetImporterRegistry] [frame=0] Registered importer 'scene2d-skin' (Scene2D Skin)
+2026-07-03 17:08:12.568 [Info] [AssetImporterRegistry] [frame=0] Registered importer 'ui-scene' (UI Scene)
+2026-07-03 17:08:12.569 [Info] [AssetImporterRegistry] [frame=0] Registered importer 'material' (Material)
+2026-07-03 17:08:12.625 [Info] [GdxModelViewerDebugRenderer] [frame=0] ModelViewer debug shader compiled name='model-viewer-debug-fallback'
+2026-07-03 17:08:12.635 [Info] [GdxRenderer3D] [frame=0] Configured LibGDX default shader maxBones=96
+2026-07-03 17:08:12.636 [Info] [GdxEngineApplication] [frame=0] OpenGL context: Type: OpenGL
+Version: 4:6:0
+Vendor: NVIDIA Corporation
+Renderer: NVIDIA GeForce RTX 4060 Ti/PCIe/SSE2
+2026-07-03 17:08:12.667 [Info] [WoolboyScene] [frame=0] Loading Woolboy authored scene path='assets/woolboy/scenes/woolboy_sandbox_scene.krscene'
+2026-07-03 17:08:12.762 [Info] [WoolboyScene] [frame=0] Woolboy demo scheduleAssets scene='assets/woolboy/scenes/woolboy_sandbox_scene.krscene' model='assets/woolboy/model/wool_boy_animated.glb' dependencies=Terrain:assets/woolboy/terrains/woolboy_sandbox_scene.json:Required, TerrainMaterialLibrary:assets/woolboy/materials/terrain_materials.json:Required, EnvironmentManifest:assets/woolboy/environments/default/default.environment.json:Optional
+2026-07-03 17:08:12.767 [Info] [GdxAssetService] [frame=0] Queue asset type=model path='assets/woolboy/model/wool_boy_animated.glb' gltf=true
+2026-07-03 17:08:12.769 [Info] [GdxAssetService] [frame=0] Ignoring queued terrain asset path='assets/woolboy/terrains/woolboy_sandbox_scene.json'. Runtime terrain loading is handled outside AssetService.
+2026-07-03 17:08:12.783 [Info] [SceneManager] [frame=0] Applying scene config id='woolboy-demo' window=Windowed 1920x1080 viewport=1920x1080 policy=ScaleByHeight
+2026-07-03 17:08:12.805 [Info] [GdxWindowService] [frame=0] Window apply requested=Windowed 1920x1080 before=Windowed 1280x720 after=Windowed 1920x1080
+2026-07-03 17:08:12.808 [Info] [SceneManager] [frame=0] Scene config applied id='woolboy-demo' actualWindow=Windowed 1920x1080
+2026-07-03 17:08:12.808 [Info] [WoolboyScene] [frame=0] Woolboy demo started engine='KRender' module='games:woolboy' assets='bundled assets/woolboy'
+2026-07-03 17:08:12.809 [Info] [WoolboyScene] [frame=0] WoolboyScene show start scene='assets/woolboy/scenes/woolboy_sandbox_scene.krscene'
+2026-07-03 17:08:12.826 [Info] [WoolboyScene] [frame=0] Woolboy authored scene loaded path='assets/woolboy/scenes/woolboy_sandbox_scene.krscene' terrainEntityId=1 cameraEntityId=7 lights=5
+2026-07-03 17:08:12.831 [Info] [WoolboyScene] [frame=0] Woolboy player created id=9 model='assets/woolboy/model/wool_boy_animated.glb'
+2026-07-03 17:08:12.842 [Info] [WoolboyScene] [frame=0] Woolboy system added name='TerrainAssetSyncSystem'
+2026-07-03 17:08:12.845 [Debug] [RuntimeUiService] [frame=0] Runtime UI action handler updated.
+2026-07-03 17:08:12.845 [Info] [WoolboyScene] [frame=0] Woolboy system added name='WoolboyUiControllerSystem'
+2026-07-03 17:08:12.847 [Info] [WoolboyScene] [frame=0] Woolboy system added name='PlayerControllerSystem'
+2026-07-03 17:08:12.848 [Info] [WoolboyScene] [frame=0] Woolboy system added name='CharacterAnimationSystem'
+2026-07-03 17:08:12.849 [Info] [WoolboyScene] [frame=0] Woolboy system added name='ThirdPersonCameraFollowSystem'
+2026-07-03 17:08:12.850 [Info] [WoolboyScene] [frame=0] Woolboy system added name='TerrainRenderSystem'
+2026-07-03 17:08:12.865 [Info] [WoolboyScene] [frame=0] Woolboy system added name='EnvironmentAwareModelRenderSystem'
+2026-07-03 17:08:12.866 [Info] [WoolboyScene] [frame=0] WoolboyScene show complete entities=9
+2026-07-03 17:08:12.867 [Info] [SceneManager] [frame=0] Switched to 'woolboy-demo'
+2026-07-03 17:08:12.892 [Info] [EngineRuntime] [frame=0] Resize scene='woolboy-demo' window=1920x1080 viewportLogical=1920.00x1080.00 scale=1.0000 offset=0.00,0.00
+2026-07-03 17:08:12.894 [Info] [EngineRuntime] [frame=0] Runtime started
+2026-07-03 17:08:12.894 [Info] [EngineRuntime] [frame=0] Resize scene='woolboy-demo' window=1920x1080 viewportLogical=1920.00x1080.00 scale=1.0000 offset=0.00,0.00
+2026-07-03 17:08:15.551 [Info] [GdxAssetService] [frame=1] Asset loaded type=gltf-scene path='assets/woolboy/model/wool_boy_animated.glb'
+2026-07-03 17:08:15.576 [Info] [TerrainPersistence] [frame=1] Loading terrain data from 'assets/woolboy/terrains/woolboy_sandbox_scene.json'
+2026-07-03 17:08:15.579 [Debug] [TerrainPersistence] [frame=1] Decoding terrain descriptor (117278 chars)
+2026-07-03 17:08:15.620 [Debug] [TerrainPersistence] [frame=1] Validating terrain descriptor 'woolboy_sandbox_scene' format=1 (size=64x64 spacing=1.00 layers=1 [1:Layer 1])
+2026-07-03 17:08:15.621 [Debug] [TerrainPersistence] [frame=1] Validated terrain descriptor 'woolboy_sandbox_scene'
+2026-07-03 17:08:15.623 [Debug] [TerrainPersistence] [frame=1] Decoded terrain descriptor 'woolboy_sandbox_scene' format=1 (size=64x64 spacing=1.00 layers=1 [1:Layer 1])
+2026-07-03 17:08:15.637 [Info] [TerrainPersistence] [frame=1] Loaded terrain data from 'assets/woolboy/terrains/woolboy_sandbox_scene.json' (size=64x64 spacing=1.00 layers=1 [1:Layer 1])
+2026-07-03 17:08:16.519 [Info] [TerrainMaterialBakeService] [frame=1] Baked runtime terrain final splat texture id='runtime:scene-terrain-preview:terrain_asset_assets_woolboy_terrains_woolboy_sandbox_scene_json' revision=2079 resolution=2048x2048 blendMode=OrderedAlpha sampledDistinctColors=32 layers=1:terrain/grass:visible=true:tiling=8.00
+2026-07-03 17:08:16.526 [Info] [TerrainAssetRuntimeSync] [frame=1] Loaded terrain asset 'assets/woolboy/terrains/woolboy_sandbox_scene.json' for entityId=1 previewMode=MaterialTexture bakedTextureResolution=2048
+2026-07-03 17:08:16.535 [Debug] [RuntimeUiService] [frame=1] Set runtime UI layer 'modal' to screen 'woolboy.loading'.
+2026-07-03 17:08:16.646 [Debug] [GdxRuntimeUiBackend] [frame=1] Synced 1 runtime UI layer(s).
+2026-07-03 17:08:16.661 [Info] [ThirdPersonCameraFollowSystem] [frame=1] Woolboy orbit camera following playerId=9 cameraId=7 distance=18.00 pitch=14.81
+2026-07-03 17:08:16.672 [Info] [GdxRenderer3D] [frame=1] Frame clear settings changed mode=Skybox color=Color(r=0.08, g=0.09, b=0.11, a=1.0) showSkybox=true
+2026-07-03 17:08:16.845 [Info] [GdxAssetService] [frame=1] Uploaded runtime texture id='runtime:scene-terrain-preview:terrain_asset_assets_woolboy_terrains_woolboy_sandbox_scene_json' revision=2079 size=2048x2048 filter=Linear/Linear wrap=Repeat/Repeat
+2026-07-03 17:08:16.853 [Debug] [GdxAssetService] [frame=1] Texture binding resolved id='runtime:scene-terrain-preview:terrain_asset_assets_woolboy_terrains_woolboy_sandbox_scene_json' source=runtime size=2048x2048
+2026-07-03 17:08:16.935 [Info] [GdxGltfRenderer] [frame=1] Created glTF renderer scene for 'assets/woolboy/model/wool_boy_animated.glb'.
+2026-07-03 17:08:17.270 [Info] [GdxGltfRenderer] [frame=1] Configured glTF environment preset='assets/woolboy/environments/default/default.environment.json' backgroundMode=Skybox backgroundColor=(0.2675326,0.8101266,0.030764278,1.0) showSkybox=true exposure=1.18 ambientIntensity=0.51 environmentIntensity=0.39 rotation=76.7 hasSkybox=true hasIrradiance=true hasRadiance=true hasBrdfLut=true resolvedIntensity=0.5430359
+2026-07-03 17:08:17.516 [Debug] [RuntimeUiService] [frame=2] Set runtime UI layer 'modal' to screen 'woolboy.main_menu'.
+2026-07-03 17:08:17.521 [Debug] [GdxRuntimeUiBackend] [frame=2] Synced 1 runtime UI layer(s).
+2026-07-03 17:08:18.626 [Debug] [RuntimeUiService] [frame=69] Cleared runtime UI layer 'modal'.
+2026-07-03 17:08:18.626 [Debug] [GdxRuntimeUiBackend] [frame=69] Synced 0 runtime UI layer(s).
+2026-07-03 17:08:18.628 [Debug] [RuntimeUiService] [frame=69] Set runtime UI layer 'hud' to screen 'woolboy.hud'.
+2026-07-03 17:08:18.639 [Debug] [GdxRuntimeUiBackend] [frame=69] Synced 1 runtime UI layer(s).
+2026-07-03 17:08:18.642 [Info] [PlayerControllerSystem] [frame=70] Woolboy player controller active entityId=9
+2026-07-03 17:08:42.585 [Debug] [RuntimeUiService] [frame=1502] Runtime UI action handler updated.
+2026-07-03 17:08:42.586 [Debug] [RuntimeUiService] [frame=1502] Cleared all runtime UI layers.
