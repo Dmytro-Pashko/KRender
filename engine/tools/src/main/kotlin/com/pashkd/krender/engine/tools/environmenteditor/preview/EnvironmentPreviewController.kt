@@ -5,8 +5,15 @@ import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.GltfRendererSettings
 import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.assets.environment.BackgroundMode
+import com.pashkd.krender.engine.assets.environment.CubemapResource
 import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
 import com.pashkd.krender.engine.assets.environment.EnvironmentColor
+import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
+import com.pashkd.krender.engine.assets.environment.EnvironmentRuntimeCacheKeyFactory
+import com.pashkd.krender.engine.assets.environment.RadianceMipChain
+import com.pashkd.krender.engine.assets.environment.SkyboxResourceSet
+import com.pashkd.krender.engine.assets.environment.TextureResourceRef
+import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorConfig
 import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorState
 import com.pashkd.krender.engine.tools.environmenteditor.displayName
@@ -17,11 +24,13 @@ import com.pashkd.krender.engine.tools.environmenteditor.displayName
  * The controller is backend-neutral: it resolves manifest availability and emits
  * [GltfRendererSettings], while cubemap loading and PBR rendering stay in `backend-gdx`.
  */
-class EnvironmentPreviewController {
+class EnvironmentPreviewController(
+    private val fileService: SceneFileService,
+) {
     val previewModel = AssetRef.model(EnvironmentEditorConfig.defaultPreviewModel.assetPath)
 
     fun availability(environment: EnvironmentAsset): EnvironmentPreviewAvailability {
-        val resources = EnvironmentPreviewAvailability.from(environment)
+        val resources = EnvironmentPreviewAvailability.from(environment, fileService)
         val wantsSkybox = environment.settings.backgroundMode == BackgroundMode.Skybox
         val warnings = resourceWarnings(resources, wantsSkybox)
         return resources.copy(
@@ -38,7 +47,7 @@ class EnvironmentPreviewController {
         return GltfRendererSettings(
             enabled = true,
             environmentPreset = state.manifestPath,
-            environmentCacheKey = rendererCacheKey(state.manifestPath, environment, availability),
+            environmentCacheKey = rendererCacheKey(environment, state.environmentCacheRevision),
             exposure = settings.exposure.coerceAtLeast(0f),
             backgroundMode = settings.backgroundMode,
             backgroundColor = (settings.backgroundColor ?: EnvironmentEditorConfig.defaultBackgroundColor).toRenderColor(),
@@ -97,26 +106,9 @@ class EnvironmentPreviewController {
         }
 
     private fun rendererCacheKey(
-        manifestPath: String,
         environment: EnvironmentAsset,
-        availability: EnvironmentPreviewAvailability,
-    ): String {
-        val settings = environment.settings
-        return listOf(
-            manifestPath,
-            settings.exposure,
-            settings.rotationDegrees,
-            settings.skyboxIntensity,
-            settings.diffuseIntensity,
-            settings.specularIntensity,
-            settings.backgroundMode,
-            settings.backgroundColor,
-            availability.hasSkybox,
-            availability.hasIrradiance,
-            availability.hasRadiance,
-            availability.hasBrdfLut,
-        ).joinToString("|")
-    }
+        revision: Long,
+    ): String = EnvironmentRuntimeCacheKeyFactory.create(environment, revision)
 
     companion object {
         val PreviewModelScale = Vec3(1.35f, 1.35f, 1.35f)
@@ -127,8 +119,8 @@ class EnvironmentPreviewController {
 /**
  * Availability snapshot used by both preview rendering and status UI.
  *
- * The flags describe manifest references, not successful GPU uploads; backend load
- * failures are reported separately by renderer logs.
+ * The flags describe resource availability on disk, not successful GPU uploads;
+ * backend load failures are reported separately by renderer logs.
  */
 data class EnvironmentPreviewAvailability(
     val hasSkybox: Boolean,
@@ -143,20 +135,51 @@ data class EnvironmentPreviewAvailability(
         get() = hasIrradiance || hasRadiance
 
     companion object {
-        fun from(environment: EnvironmentAsset): EnvironmentPreviewAvailability =
+        fun from(
+            environment: EnvironmentAsset,
+            fileService: SceneFileService,
+        ): EnvironmentPreviewAvailability =
             EnvironmentPreviewAvailability(
-                hasSkybox =
-                    environment.generated.skybox
-                        ?.faces
-                        ?.isNotEmpty() == true,
-                hasIrradiance = environment.generated.irradiance != null,
-                hasRadiance =
-                    environment.generated.radiance
-                        ?.mips
-                        ?.isNotEmpty() == true,
-                hasBrdfLut = environment.generated.brdfLut != null,
+                hasSkybox = environment.generated.skybox.exists(environment.manifestPath, fileService),
+                hasIrradiance = environment.generated.irradiance.exists(environment.manifestPath, fileService),
+                hasRadiance = environment.generated.radiance.exists(environment.manifestPath, fileService),
+                hasBrdfLut = environment.generated.brdfLut.exists(environment.manifestPath, fileService),
             )
     }
 }
 
 private fun EnvironmentColor.toRenderColor(): Color = Color(r, g, b, a)
+
+private fun SkyboxResourceSet?.exists(
+    manifestPath: String,
+    fileService: SceneFileService,
+): Boolean {
+    val faces = this?.faces ?: return false
+    if (faces.isEmpty()) return false
+    return faces.values.all { path -> fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, path)) }
+}
+
+private fun CubemapResource?.exists(
+    manifestPath: String,
+    fileService: SceneFileService,
+): Boolean {
+    val path = this?.path ?: return false
+    return fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, path))
+}
+
+private fun RadianceMipChain?.exists(
+    manifestPath: String,
+    fileService: SceneFileService,
+): Boolean {
+    val mips = this?.mips ?: return false
+    if (mips.isEmpty()) return false
+    return mips.all { mip -> fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, mip.path)) }
+}
+
+private fun TextureResourceRef?.exists(
+    manifestPath: String,
+    fileService: SceneFileService,
+): Boolean {
+    val path = this?.path ?: return false
+    return fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, path))
+}

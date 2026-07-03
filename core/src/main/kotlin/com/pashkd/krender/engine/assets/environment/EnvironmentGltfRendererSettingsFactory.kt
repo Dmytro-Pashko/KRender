@@ -15,7 +15,7 @@ object EnvironmentGltfRendererSettingsFactory {
         return GltfRendererSettings(
             enabled = true,
             environmentPreset = asset.manifestPath,
-            environmentCacheKey = asset.manifestPath,
+            environmentCacheKey = EnvironmentRuntimeCacheKeyFactory.create(asset),
             exposure = settings.exposure.coerceAtLeast(0f),
             backgroundMode = settings.backgroundMode,
             backgroundColor = (settings.backgroundColor ?: DefaultBackgroundColor).toRenderColor(),

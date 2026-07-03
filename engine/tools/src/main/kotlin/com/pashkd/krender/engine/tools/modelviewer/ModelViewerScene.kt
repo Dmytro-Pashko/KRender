@@ -4,6 +4,7 @@ import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
 import com.pashkd.krender.engine.render3d.*
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
@@ -302,13 +303,14 @@ class ModelViewerScene(
                 uiSystem,
                 "Viewport",
                 ModelViewerViewportPanel(
-                    viewerState,
-                    operations,
+                    state = viewerState,
+                    operations = operations,
                     availableEnvironments = ::availableEnvironmentAssets,
+                    environmentService = DefaultEnvironmentService(engine.sceneFiles),
                     logger = engine.logger,
-                    layoutConfig,
-                    layoutTracker,
-                    panelEventLogger,
+                    layoutConfig = layoutConfig,
+                    layoutTracker = layoutTracker,
+                    eventLogger = panelEventLogger,
                 ),
             )
             addPanel(

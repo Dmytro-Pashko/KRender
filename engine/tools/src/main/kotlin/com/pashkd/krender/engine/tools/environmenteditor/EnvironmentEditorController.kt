@@ -27,8 +27,11 @@ class EnvironmentEditorController(
             environmentService.save(env)
             state.validation = environmentService.validate(env)
             state.dirty = false
+            state.invalidateEnvironmentCache()
             state.statusMessage = "Environment saved."
-            engine.logger.info(TAG) { "Environment saved id='${env.id.path}' path='${state.manifestPath}'" }
+            engine.logger.info(TAG) {
+                "Environment saved id='${env.id.path}' path='${state.manifestPath}' cacheRevision=${state.environmentCacheRevision}"
+            }
         } catch (error: Exception) {
             state.statusMessage = "Save failed: ${error.message}"
             engine.logger.error(TAG, error) { "Environment save failed path='${state.manifestPath}': ${error.message}" }

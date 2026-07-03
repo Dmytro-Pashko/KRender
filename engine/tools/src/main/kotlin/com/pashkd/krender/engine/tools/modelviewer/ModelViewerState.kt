@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 import com.pashkd.krender.engine.tools.viewport.EditorViewportCameraState
 import com.pashkd.krender.engine.tools.viewport.EditorViewportState
@@ -118,6 +119,9 @@ data class ModelViewerState(
     var gltfAmbientIntensity: Float = 1f,
     var gltfEnvironmentIntensity: Float = 1f,
     var gltfEnvironmentRotationDegrees: Float = 0f,
+    var gltfBackgroundMode: BackgroundMode = BackgroundMode.Skybox,
+    var gltfBackgroundColor: Color = Color(0.08f, 0.09f, 0.11f, 1f),
+    var gltfEnvironmentCacheKey: String = DEFAULT_GLTF_ENVIRONMENT_PRESET,
     var gltfAppliedEnvironmentPreset: String? = null,
     var gltfToneMapping: PbrToneMapping = PbrToneMapping.Aces,
     var gltfGammaCorrection: Boolean = true,

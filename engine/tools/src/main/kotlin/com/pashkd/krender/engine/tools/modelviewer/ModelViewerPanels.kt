@@ -2,6 +2,10 @@ package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.*
 import com.pashkd.krender.engine.assets.AssetDescriptor
+import com.pashkd.krender.engine.assets.environment.BackgroundMode
+import com.pashkd.krender.engine.assets.environment.EnvironmentAsset
+import com.pashkd.krender.engine.assets.environment.EnvironmentGltfRendererSettingsFactory
+import com.pashkd.krender.engine.assets.environment.EnvironmentService
 import com.pashkd.krender.engine.ui.editor.*
 import imgui.ImGui
 import imgui.SliderFlag
@@ -84,12 +88,13 @@ class ModelViewerViewportPanel(
     private val state: ModelViewerState,
     private val operations: ModelViewerOperations,
     private val availableEnvironments: () -> List<AssetDescriptor>,
+    private val environmentService: EnvironmentService,
     private val logger: Logger,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    private val gltfPbrRendererOptionsPanel = GltfPbrRendererOptionsPanel(state, availableEnvironments, logger)
+    private val gltfPbrRendererOptionsPanel = GltfPbrRendererOptionsPanel(state, availableEnvironments, environmentService, logger)
     private val legacyRendererOptionsPanel = LegacyRendererOptionsPanel(state, operations)
 
     override fun draw() {
@@ -246,6 +251,7 @@ class ModelViewerViewportPanel(
 internal class GltfPbrRendererOptionsPanel(
     private val state: ModelViewerState,
     private val availableEnvironments: () -> List<AssetDescriptor>,
+    private val environmentService: EnvironmentService,
     private val logger: Logger,
 ) {
     fun draw() {
@@ -409,12 +415,16 @@ internal class GltfPbrRendererOptionsPanel(
         state.gltfEnvironmentIntensity = DEFAULT_ENVIRONMENT_INTENSITY
         state.gltfExposure = DEFAULT_EXPOSURE
         state.gltfEnvironmentRotationDegrees = DEFAULT_ENVIRONMENT_ROTATION
+        state.gltfBackgroundMode = BackgroundMode.Skybox
+        state.gltfBackgroundColor = DEFAULT_BACKGROUND_COLOR.copy()
+        state.gltfEnvironmentCacheKey = state.gltfEnvironmentPreset
         state.gltfAppliedEnvironmentPreset = null
         logger.info(TAG) {
             "ModelViewer environment reset to built-in defaults preset='${state.gltfEnvironmentPreset}' " +
                 "showSkybox=${state.gltfShowSkybox} skyboxIntensity=${state.gltfSkyboxIntensity} " +
                 "diffuseIntensity=${state.gltfAmbientIntensity} specularIntensity=${state.gltfEnvironmentIntensity} " +
-                "exposure=${state.gltfExposure} rotation=${state.gltfEnvironmentRotationDegrees}"
+                "exposure=${state.gltfExposure} rotation=${state.gltfEnvironmentRotationDegrees} " +
+                "backgroundMode=${state.gltfBackgroundMode} cacheKey='${state.gltfEnvironmentCacheKey}'"
         }
     }
 
@@ -428,22 +438,37 @@ internal class GltfPbrRendererOptionsPanel(
         environment: AssetDescriptor,
         reason: String,
     ) {
-        state.gltfShowSkybox = environment.metadata["environmentSkyboxVisible"]?.toBooleanStrictOrNull() ?: true
-        state.gltfSkyboxIntensity = environment.metadata["environmentSkyboxIntensity"]?.toFloatOrNull() ?: DEFAULT_SKYBOX_INTENSITY
-        state.gltfAmbientIntensity = environment.metadata["environmentDiffuseIntensity"]?.toFloatOrNull() ?: DEFAULT_AMBIENT_INTENSITY
-        state.gltfEnvironmentIntensity =
-            environment.metadata["environmentSpecularIntensity"]?.toFloatOrNull() ?: DEFAULT_ENVIRONMENT_INTENSITY
-        state.gltfExposure = environment.metadata["environmentExposure"]?.toFloatOrNull() ?: DEFAULT_EXPOSURE
-        state.gltfEnvironmentRotationDegrees =
-            environment.metadata["environmentRotationDegrees"]?.toFloatOrNull() ?: DEFAULT_ENVIRONMENT_ROTATION
+        val manifest = loadEnvironmentAsset(environment) ?: return
+        val settings = EnvironmentGltfRendererSettingsFactory.create(manifest)
+        state.gltfShowSkybox = settings.showSkybox
+        state.gltfSkyboxIntensity = settings.skyboxIntensity
+        state.gltfAmbientIntensity = settings.ambientIntensity
+        state.gltfEnvironmentIntensity = settings.environmentIntensity
+        state.gltfExposure = settings.exposure
+        state.gltfEnvironmentRotationDegrees = settings.environmentRotationDegrees
+        state.gltfBackgroundMode = settings.backgroundMode
+        state.gltfBackgroundColor = settings.backgroundColor.copy()
+        state.gltfEnvironmentCacheKey = settings.environmentCacheKey ?: manifest.manifestPath
         state.gltfAppliedEnvironmentPreset = environment.path
         logger.info(TAG) {
             "ModelViewer environment applied reason=$reason preset='${environment.path}' name='${environment.name}' " +
                 "showSkybox=${state.gltfShowSkybox} skyboxIntensity=${state.gltfSkyboxIntensity} " +
                 "diffuseIntensity=${state.gltfAmbientIntensity} specularIntensity=${state.gltfEnvironmentIntensity} " +
-                "exposure=${state.gltfExposure} rotation=${state.gltfEnvironmentRotationDegrees}"
+                "exposure=${state.gltfExposure} rotation=${state.gltfEnvironmentRotationDegrees} " +
+                "backgroundMode=${state.gltfBackgroundMode} " +
+                "backgroundColor=${state.gltfBackgroundColor} cacheKey='${state.gltfEnvironmentCacheKey}'"
         }
     }
+
+    private fun loadEnvironmentAsset(environment: AssetDescriptor): EnvironmentAsset? =
+        try {
+            environmentService.load(environment.path)
+        } catch (error: Exception) {
+            logger.warn(TAG, error) {
+                "ModelViewer failed to load environment manifest preset='${environment.path}' name='${environment.name}': ${error.message}"
+            }
+            null
+        }
 
     private fun resetDirectLight() {
         state.gltfDirectionalLightEnabled = true
@@ -460,6 +485,7 @@ internal class GltfPbrRendererOptionsPanel(
         private const val DEFAULT_ENVIRONMENT_INTENSITY = 1f
         private const val DEFAULT_EXPOSURE = 1f
         private const val DEFAULT_ENVIRONMENT_ROTATION = 0f
+        private val DEFAULT_BACKGROUND_COLOR = Color(0.08f, 0.09f, 0.11f, 1f)
         private const val DEFAULT_DIRECTIONAL_INTENSITY = 1f
         private const val DEFAULT_DIRECTIONAL_YAW = 45f
         private const val DEFAULT_DIRECTIONAL_PITCH = -35f

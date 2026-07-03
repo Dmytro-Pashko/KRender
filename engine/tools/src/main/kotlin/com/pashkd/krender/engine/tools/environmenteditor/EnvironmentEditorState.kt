@@ -17,11 +17,13 @@ class EnvironmentEditorState(
     var dirty: Boolean = false
     var loadError: String? = null
     var statusMessage: String? = null
+    var environmentCacheRevision: Long = 0L
 
     /** Replaces editor data with a clean snapshot loaded from disk. */
     fun applyLoadedEnvironment(asset: EnvironmentAsset) {
         environment = asset
         dirty = false
+        environmentCacheRevision += 1L
     }
 
     /** Applies an in-memory edit and marks the manifest as modified. */
@@ -32,5 +34,10 @@ class EnvironmentEditorState(
             environment = updated
             dirty = true
         }
+    }
+
+    /** Forces the preview/runtime environment preset cache key to advance after disk writes. */
+    fun invalidateEnvironmentCache() {
+        environmentCacheRevision += 1L
     }
 }

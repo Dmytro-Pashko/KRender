@@ -12,18 +12,37 @@ internal class GdxGltfEnvironment(
     private val resolver = GdxHdrEnvironmentResolver(logger)
     private val assetLoader = GdxGltfEnvironmentAssetLoader(logger)
     private val presets = mutableMapOf<String, GdxGltfEnvironmentPreset?>()
+    private val presetOwners = mutableMapOf<String, String>()
 
     fun preset(
         nameOrPath: String,
         cacheKey: String = nameOrPath,
-    ): GdxGltfEnvironmentPreset? =
-        presets.getOrPut(cacheKey) {
+    ): GdxGltfEnvironmentPreset? {
+        invalidateStaleEntries(nameOrPath, cacheKey)
+        presetOwners[cacheKey] = nameOrPath
+        return presets.getOrPut(cacheKey) {
             resolver.resolve(nameOrPath)?.let(assetLoader::loadPreset)
         }
+    }
+
+    private fun invalidateStaleEntries(
+        nameOrPath: String,
+        activeCacheKey: String,
+    ) {
+        val staleKeys =
+            presetOwners.entries
+                .filter { (cacheKey, owner) -> owner == nameOrPath && cacheKey != activeCacheKey }
+                .map { entry -> entry.key }
+        staleKeys.forEach { cacheKey ->
+            presets.remove(cacheKey)?.dispose()
+            presetOwners.remove(cacheKey)
+        }
+    }
 
     override fun dispose() {
         presets.values.filterNotNull().forEach(GdxGltfEnvironmentPreset::dispose)
         presets.clear()
+        presetOwners.clear()
     }
 }
 

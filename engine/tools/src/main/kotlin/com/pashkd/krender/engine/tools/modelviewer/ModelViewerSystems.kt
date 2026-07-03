@@ -323,7 +323,10 @@ class ModelViewerSystem(
         val snapshot =
             ModelViewerEnvironmentLogSnapshot(
                 preset = state.gltfEnvironmentPreset,
+                cacheKey = state.gltfEnvironmentCacheKey,
                 appliedPreset = state.gltfAppliedEnvironmentPreset,
+                backgroundMode = state.gltfBackgroundMode.name,
+                backgroundColor = state.gltfBackgroundColor.copy(),
                 showSkybox = state.gltfShowSkybox,
                 skyboxIntensity = state.gltfSkyboxIntensity,
                 diffuseIntensity = state.gltfAmbientIntensity,
@@ -334,6 +337,8 @@ class ModelViewerSystem(
         if (snapshot == lastEnvironmentLogSnapshot) return
         logger.info(TAG) {
             "ModelViewer glTF environment state preset='${snapshot.preset}' applied='${snapshot.appliedPreset}' " +
+                "cacheKey='${snapshot.cacheKey}' backgroundMode=${snapshot.backgroundMode} " +
+                "backgroundColor=${snapshot.backgroundColor} " +
                 "showSkybox=${snapshot.showSkybox} skyboxIntensity=${snapshot.skyboxIntensity} " +
                 "diffuseIntensity=${snapshot.diffuseIntensity} specularIntensity=${snapshot.specularIntensity} " +
                 "exposure=${snapshot.exposure} rotation=${snapshot.rotationDegrees}"
@@ -458,7 +463,10 @@ class ModelViewerSystem(
 
 private data class ModelViewerEnvironmentLogSnapshot(
     val preset: String,
+    val cacheKey: String,
     val appliedPreset: String?,
+    val backgroundMode: String,
+    val backgroundColor: Color,
     val showSkybox: Boolean,
     val skyboxIntensity: Float,
     val diffuseIntensity: Float,
@@ -565,7 +573,10 @@ class ModelViewerModelRenderSystem(
         return GltfRendererSettings(
             enabled = debugView?.active != true,
             environmentPreset = gltfEnvironmentPreset,
+            environmentCacheKey = gltfEnvironmentCacheKey,
             exposure = gltfExposure.coerceAtLeast(0f),
+            backgroundMode = gltfBackgroundMode,
+            backgroundColor = gltfBackgroundColor.copy(),
             showSkybox = gltfShowSkybox,
             skyboxIntensity = gltfSkyboxIntensity.coerceIn(0f, 1f),
             ambientIntensity = gltfAmbientIntensity.coerceAtLeast(0f),

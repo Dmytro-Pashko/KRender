@@ -39,6 +39,7 @@ class EnvironmentEditorStateLoggingSystem(
 
 private data class EnvironmentEditorLogSnapshot(
     val dirty: Boolean,
+    val environmentCacheRevision: Long,
     val loadError: String?,
     val backgroundMode: String?,
     val backgroundColor: String?,
@@ -49,12 +50,13 @@ private data class EnvironmentEditorLogSnapshot(
     val specularIntensity: Float?,
 ) {
     fun describe(): String =
-        "dirty=$dirty loadError=$loadError backgroundMode=$backgroundMode " +
+        "dirty=$dirty cacheRevision=$environmentCacheRevision loadError=$loadError backgroundMode=$backgroundMode " +
             "backgroundColor=$backgroundColor autoRotate=$autoRotate exposure=$exposure " +
             "rotation=$rotationDegrees diffuse=$diffuseIntensity specular=$specularIntensity"
 
     fun diff(previous: EnvironmentEditorLogSnapshot): String =
         "dirty ${previous.dirty} -> $dirty; " +
+            "cacheRevision ${previous.environmentCacheRevision} -> $environmentCacheRevision; " +
             "backgroundMode ${previous.backgroundMode} -> $backgroundMode; " +
             "backgroundColor ${previous.backgroundColor} -> $backgroundColor; " +
             "autoRotate ${previous.autoRotate} -> $autoRotate; " +
@@ -69,6 +71,7 @@ private data class EnvironmentEditorLogSnapshot(
             val environment = state.environment
             return EnvironmentEditorLogSnapshot(
                 dirty = state.dirty,
+                environmentCacheRevision = state.environmentCacheRevision,
                 loadError = state.loadError,
                 backgroundMode = environment?.settings?.backgroundMode?.name,
                 backgroundColor = environment.backgroundColorString(),

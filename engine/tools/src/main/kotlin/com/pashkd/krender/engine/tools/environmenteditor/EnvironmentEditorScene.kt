@@ -1,5 +1,6 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
+import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.AssetPack
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
@@ -19,12 +20,12 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 class EnvironmentEditorScene(
     val environmentPath: String,
 ) : Scene("environment_editor") {
-    private val previewController = EnvironmentPreviewController()
+    private lateinit var previewController: EnvironmentPreviewController
 
     override val requiredAssets: List<AssetPack> =
         listOf(
             object : AssetPack {
-                override val assets = listOf(previewController.previewModel)
+                override val assets = listOf(AssetRef.model(EnvironmentEditorConfig.defaultPreviewModel.assetPath))
             },
         )
 
@@ -34,6 +35,7 @@ class EnvironmentEditorScene(
         engine.logger.info(TAG) { "Environment Editor opened path='$environmentPath'" }
         val state = EnvironmentEditorState(environmentPath)
         val environmentService = DefaultEnvironmentService(engine.sceneFiles)
+        previewController = EnvironmentPreviewController(engine.sceneFiles)
         val layoutTracker = loadLayout()
         val controller = EnvironmentEditorController(state, engine, environmentService, layoutTracker)
 

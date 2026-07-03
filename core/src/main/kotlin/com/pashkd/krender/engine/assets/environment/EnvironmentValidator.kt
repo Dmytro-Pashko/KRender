@@ -55,9 +55,8 @@ object EnvironmentValidator {
         if (!hasDefault) {
             issues += warning(Codes.NO_DEFAULT_SOURCE, "No source variant is marked as default.")
         }
-        val manifestDir = manifestDirectory(asset.manifestPath)
         for (source in asset.sources) {
-            val resolvedPath = resolvePath(manifestDir, source.path)
+            val resolvedPath = EnvironmentPathResolver.resolvePath(asset.manifestPath, source.path)
             if (!fileService.exists(resolvedPath)) {
                 issues +=
                     warning(
@@ -75,17 +74,16 @@ object EnvironmentValidator {
         issues: MutableList<EnvironmentIssue>,
     ) {
         val gen = asset.generated
-        val manifestDir = manifestDirectory(asset.manifestPath)
 
-        validateSkybox(gen.skybox, manifestDir, fileService, issues)
-        validateIrradiance(gen.irradiance, manifestDir, fileService, issues)
-        validateRadiance(gen.radiance, manifestDir, fileService, issues)
-        validateBrdfLut(gen.brdfLut, manifestDir, fileService, issues)
+        validateSkybox(gen.skybox, asset.manifestPath, fileService, issues)
+        validateIrradiance(gen.irradiance, asset.manifestPath, fileService, issues)
+        validateRadiance(gen.radiance, asset.manifestPath, fileService, issues)
+        validateBrdfLut(gen.brdfLut, asset.manifestPath, fileService, issues)
     }
 
     private fun validateSkybox(
         skybox: SkyboxResourceSet?,
-        manifestDir: String,
+        manifestPath: String,
         fileService: SceneFileService,
         issues: MutableList<EnvironmentIssue>,
     ) {
@@ -98,7 +96,7 @@ object EnvironmentValidator {
             return
         }
         for ((face, path) in skybox.faces) {
-            val resolved = resolvePath(manifestDir, path)
+            val resolved = EnvironmentPathResolver.resolvePath(manifestPath, path)
             if (!fileService.exists(resolved)) {
                 issues +=
                     warning(
@@ -112,7 +110,7 @@ object EnvironmentValidator {
 
     private fun validateIrradiance(
         irradiance: CubemapResource?,
-        manifestDir: String,
+        manifestPath: String,
         fileService: SceneFileService,
         issues: MutableList<EnvironmentIssue>,
     ) {
@@ -120,7 +118,7 @@ object EnvironmentValidator {
             issues += warning(Codes.MISSING_IRRADIANCE, "No irradiance cubemap defined.")
             return
         }
-        val resolved = resolvePath(manifestDir, irradiance.path)
+        val resolved = EnvironmentPathResolver.resolvePath(manifestPath, irradiance.path)
         if (!fileService.exists(resolved)) {
             issues +=
                 warning(
@@ -133,7 +131,7 @@ object EnvironmentValidator {
 
     private fun validateRadiance(
         radiance: RadianceMipChain?,
-        manifestDir: String,
+        manifestPath: String,
         fileService: SceneFileService,
         issues: MutableList<EnvironmentIssue>,
     ) {
@@ -146,7 +144,7 @@ object EnvironmentValidator {
             return
         }
         for (mip in radiance.mips) {
-            val resolved = resolvePath(manifestDir, mip.path)
+            val resolved = EnvironmentPathResolver.resolvePath(manifestPath, mip.path)
             if (!fileService.exists(resolved)) {
                 issues +=
                     warning(
@@ -160,7 +158,7 @@ object EnvironmentValidator {
 
     private fun validateBrdfLut(
         brdfLut: TextureResourceRef?,
-        manifestDir: String,
+        manifestPath: String,
         fileService: SceneFileService,
         issues: MutableList<EnvironmentIssue>,
     ) {
@@ -168,7 +166,7 @@ object EnvironmentValidator {
             issues += warning(Codes.MISSING_BRDF_LUT, "No BRDF LUT reference defined.")
             return
         }
-        val resolved = resolvePath(manifestDir, brdfLut.path)
+        val resolved = EnvironmentPathResolver.resolvePath(manifestPath, brdfLut.path)
         if (!fileService.exists(resolved)) {
             issues +=
                 warning(
@@ -196,20 +194,6 @@ object EnvironmentValidator {
         if (s.specularIntensity !in 0f..1f) {
             issues += warning(Codes.INVALID_INTENSITY, "Specular intensity must be between 0 and 1, got ${s.specularIntensity}.")
         }
-    }
-
-    private fun manifestDirectory(manifestPath: String): String {
-        val normalized = manifestPath.replace('\\', '/')
-        val lastSlash = normalized.lastIndexOf('/')
-        return if (lastSlash >= 0) normalized.substring(0, lastSlash) else ""
-    }
-
-    private fun resolvePath(
-        manifestDir: String,
-        relativePath: String,
-    ): String {
-        if (manifestDir.isEmpty()) return relativePath.replace('\\', '/')
-        return "$manifestDir/$relativePath".replace('\\', '/')
     }
 
     private fun error(
