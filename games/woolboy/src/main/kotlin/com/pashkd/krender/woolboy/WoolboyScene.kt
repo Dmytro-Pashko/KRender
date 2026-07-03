@@ -8,19 +8,20 @@ import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.VelocityComponent
+import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
+import com.pashkd.krender.engine.assets.environment.Environment
+import com.pashkd.krender.engine.assets.environment.EnvironmentGltfRendererSettingsFactory
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.Material
 import com.pashkd.krender.engine.render3d.ModelComponent
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
-import com.pashkd.krender.engine.render3d.RuntimeEnvironmentFactory
-import com.pashkd.krender.engine.render3d.RuntimeEnvironmentSystem
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.scene.SceneDependencyCollector
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
-import com.pashkd.krender.engine.scene.SkyboxAssetSerializer
 import com.pashkd.krender.engine.terrain.TerrainAssetSyncSystem
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 
@@ -44,6 +45,7 @@ class WoolboyScene : Scene(SceneId) {
 
     private val woolboyModel = AssetRef.model(WoolboyModelPath)
     private var descriptorCache: SceneDescriptor? = null
+    private var environmentCache: Environment? = null
     private val gameState = WoolboyGameState()
 
     override val config: SceneConfig = SceneConfigPresets.RuntimeGame16By9
@@ -58,10 +60,9 @@ class WoolboyScene : Scene(SceneId) {
     override fun scheduleAssets(assets: AssetService) {
         val descriptor = loadSceneDescriptor()
         descriptorCache = descriptor
-        val skybox =
-            descriptor.settings.environment.skyboxAssetPath
-                ?.let(::loadSkyboxDescriptor)
-        val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(descriptor, resolvedSkybox = skybox)
+        val environment = loadEnvironment(descriptor)
+        environmentCache = environment
+        val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(descriptor)
         engine.logger.info(TAG) {
             "Woolboy demo scheduleAssets scene='$SceneAssetPath' model='$WoolboyModelPath' " +
                 "dependencies=${
@@ -82,8 +83,9 @@ class WoolboyScene : Scene(SceneId) {
         engine.logger.info(TAG) { "WoolboyScene show start scene='$SceneAssetPath'" }
         SceneSerializer.applyToWorld(descriptor, world, engine.logger)
         markAuthoredCameraActive(descriptor)
+        installAmbientLight(descriptor)
         createPlayer()
-        createSystems(descriptor)
+        createSystems(environmentCache ?: loadEnvironment(descriptor).also { environmentCache = it })
         engine.logger.info(TAG) { "WoolboyScene show complete entities=${world.all().size}" }
     }
 
@@ -109,7 +111,7 @@ class WoolboyScene : Scene(SceneId) {
         engine.logger.info(TAG) { "Woolboy player created id=${player.id} model='$WoolboyModelPath'" }
     }
 
-    private fun createSystems(descriptor: SceneDescriptor) {
+    private fun createSystems(environment: Environment?) {
         addSystem(
             "TerrainAssetSyncSystem",
             TerrainAssetSyncSystem(
@@ -145,18 +147,11 @@ class WoolboyScene : Scene(SceneId) {
             ),
         )
         addSystem("TerrainRenderSystem", TerrainRenderSystem())
+        val gltfRendererSettings = environment?.let(EnvironmentGltfRendererSettingsFactory::create)
         addSystem(
-            "RuntimeEnvironmentSystem",
-            RuntimeEnvironmentSystem(
-                RuntimeEnvironmentFactory.fromSceneSettings(
-                    descriptor.settings,
-                    skybox =
-                        descriptor.settings.environment.skyboxAssetPath
-                            ?.let(::loadSkyboxDescriptor),
-                ),
-            ),
+            "EnvironmentAwareModelRenderSystem",
+            AnimatedModelRenderSystem(gltfRendererSettings),
         )
-        addSystem("AnimatedModelRenderSystem", AnimatedModelRenderSystem())
     }
 
     private fun markAuthoredCameraActive(descriptor: SceneDescriptor) {
@@ -177,9 +172,28 @@ class WoolboyScene : Scene(SceneId) {
         return SceneSerializer.decode(engine.sceneFiles.readText(SceneAssetPath))
     }
 
-    private fun loadSkyboxDescriptor(
-        path: String,
-    ) = SkyboxAssetSerializer.decode(engine.sceneFiles.readText(path))
+    private fun loadEnvironment(descriptor: SceneDescriptor): Environment? {
+        val environmentPath = descriptor.settings.environment.environmentAssetPath ?: return null
+        return runCatching {
+            DefaultEnvironmentService(engine.sceneFiles).load(environmentPath)
+        }.getOrElse { error ->
+            engine.logger.warn(TAG, error) {
+                "Woolboy environment '$environmentPath' could not be loaded: ${error.message}"
+            }
+            null
+        }
+    }
+
+    private fun installAmbientLight(descriptor: SceneDescriptor) {
+        val lighting = descriptor.settings.lighting
+        world.createEntity("Scene Ambient Light").add(
+            LightComponent(
+                type = LightType.Ambient,
+                color = lighting.ambientColor.copy(),
+                intensity = lighting.ambientIntensity,
+            ),
+        )
+    }
 
     private fun addSystem(
         name: String,

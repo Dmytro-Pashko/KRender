@@ -8,7 +8,9 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Cubemap
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
+import com.badlogic.gdx.graphics.g3d.utils.AnimationController
 import com.badlogic.gdx.math.Vector3
+import com.pashkd.krender.engine.api.AnimationPlaybackView
 import com.pashkd.krender.engine.api.DrawModel
 import com.pashkd.krender.engine.api.GltfRendererSettings
 import com.pashkd.krender.engine.api.Logger
@@ -35,6 +37,7 @@ internal class GdxGltfRenderer(
     private val entries = mutableMapOf<ModelCacheKey, GltfSceneEntry>()
     private val warnedKeys = mutableSetOf<String>()
     private val gltfEnvironment = GdxGltfEnvironment(logger)
+    private var lastEnvironmentLogKey: String? = null
 
     fun render(
         command: DrawModel,
@@ -77,10 +80,11 @@ internal class GdxGltfRenderer(
 
             entry.ensureShaderConfiguration(settings)
             applyTransform(entry.scene.modelInstance, command)
+            applyAnimationPreview(entry.scene, command.animation)
             meshPartFilter(entry.scene.modelInstance, command.visibleMeshPartIndices)
             configureEnvironment(entry, settings)
             entry.manager.setCamera(camera)
-            entry.manager.update(Gdx.graphics.deltaTime)
+            entry.manager.update(if (command.animation != null) 0f else Gdx.graphics.deltaTime)
             entry.manager.render()
             true
         } catch (error: Throwable) {
@@ -101,16 +105,55 @@ internal class GdxGltfRenderer(
         entry: GltfSceneEntry,
         settings: GltfRendererSettings,
     ) {
-        val preset = gltfEnvironment.preset(settings.environmentPreset)
+        val preset = gltfEnvironment.preset(settings.environmentPreset, settings.environmentCacheKey ?: settings.environmentPreset)
         val direction = gltfLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
         val environmentState = resolveEnvironmentState(preset, settings)
         entry.manager.environment.clear()
-        applyAmbientLight(entry, environmentState.intensity, environmentState.presetAmbientIntensity)
+        applyAmbientLight(entry, environmentState.intensity, settings.ambientIntensity.coerceAtLeast(0f))
         applyDirectionalLight(entry, settings, direction)
         applyEnvironmentRotation(entry, settings)
         syncEnvironmentFallback(entry, settings, preset, direction, environmentState.intensity)
         applyEnvironmentMaps(entry, preset)
         applySkybox(entry, preset, settings)
+        logEnvironmentConfiguration(settings, preset, environmentState)
+    }
+
+    private fun logEnvironmentConfiguration(
+        settings: GltfRendererSettings,
+        preset: GdxGltfEnvironmentPreset?,
+        environmentState: ResolvedEnvironmentState,
+    ) {
+        val logKey =
+            listOf(
+                settings.environmentCacheKey ?: settings.environmentPreset,
+                settings.backgroundMode,
+                settings.backgroundColor.r,
+                settings.backgroundColor.g,
+                settings.backgroundColor.b,
+                settings.backgroundColor.a,
+                settings.showSkybox,
+                settings.skyboxIntensity,
+                settings.ambientIntensity,
+                settings.environmentIntensity,
+                settings.environmentRotationDegrees,
+                preset?.skybox != null,
+                preset?.irradiance != null,
+                preset?.radiance != null,
+                preset?.brdfLut != null,
+            ).joinToString("|")
+        if (lastEnvironmentLogKey == logKey) return
+        lastEnvironmentLogKey = logKey
+        logger.info(TAG) {
+            "Configured glTF environment preset='${settings.environmentPreset}' " +
+                "backgroundMode=${settings.backgroundMode} " +
+                "backgroundColor=(${settings.backgroundColor.r},${settings.backgroundColor.g},${settings.backgroundColor.b},${settings.backgroundColor.a}) " +
+                "showSkybox=${settings.showSkybox} exposure=${settings.exposure} " +
+                "ambientIntensity=${settings.ambientIntensity} environmentIntensity=${settings.environmentIntensity} " +
+                "rotation=${settings.environmentRotationDegrees} " +
+                "hasSkybox=${preset?.skybox != null} hasIrradiance=${preset?.irradiance != null} " +
+                "hasRadiance=${preset?.radiance != null} hasBrdfLut=${preset?.brdfLut != null} " +
+                "resolvedIntensity=${environmentState.intensity}"
+        }
     }
 
     private fun GltfSceneEntry.ensureShaderConfiguration(settings: GltfRendererSettings) {
@@ -214,11 +257,54 @@ internal class GdxGltfRenderer(
     companion object {
         private const val TAG = "GdxGltfRenderer"
     }
+
+    private fun applyAnimationPreview(
+        scene: GltfScene,
+        preview: AnimationPlaybackView?,
+    ) {
+        applyAnimationPreview(scene.modelInstance, scene.animationController, preview)
+    }
+
+    private fun applyAnimationPreview(
+        instance: ModelInstance,
+        controller: AnimationController?,
+        preview: AnimationPlaybackView?,
+    ) {
+        if (controller == null || instance.animations.isEmpty) return
+        val animationName = preview?.animationName
+        if (animationName.isNullOrBlank()) {
+            controller.setAnimation(null as String?)
+            controller.update(0f)
+            return
+        }
+        val animation =
+            instance.getAnimation(animationName) ?: run {
+                controller.setAnimation(null as String?)
+                controller.update(0f)
+                return
+            }
+        controller.paused = false
+        controller.setAnimation(animationName, if (preview.loop) -1 else 1, 1f, null)
+        controller.current?.time = normalizedAnimationTime(animation, preview.timeSeconds, preview.loop)
+        controller.update(0f)
+    }
+
+    private fun applyTransform(
+        instance: ModelInstance,
+        command: DrawModel,
+    ) {
+        val transform = command.transform
+        instance.transform.idt()
+        instance.transform.translate(transform.position.x, transform.position.y, transform.position.z)
+        instance.transform.rotate(Vector3.X, transform.eulerDegrees.x)
+        instance.transform.rotate(Vector3.Y, transform.eulerDegrees.y)
+        instance.transform.rotate(Vector3.Z, transform.eulerDegrees.z)
+        instance.transform.scale(transform.scale.x, transform.scale.y, transform.scale.z)
+    }
 }
 
 private data class ResolvedEnvironmentState(
     val intensity: Float,
-    val presetAmbientIntensity: Float,
 )
 
 private fun GdxGltfRenderer.resolveEnvironmentState(
@@ -226,25 +312,23 @@ private fun GdxGltfRenderer.resolveEnvironmentState(
     settings: GltfRendererSettings,
 ): ResolvedEnvironmentState {
     val presetExposure = preset?.defaults?.exposure?.toFloat() ?: 1f
-    val presetAmbientIntensity = preset?.defaults?.ambientIntensity?.toFloat() ?: 1f
     val intensity = (settings.environmentIntensity * settings.exposure * presetExposure).coerceAtLeast(0f)
     return ResolvedEnvironmentState(
         intensity = intensity,
-        presetAmbientIntensity = presetAmbientIntensity,
     )
 }
 
 private fun GdxGltfRenderer.applyAmbientLight(
     entry: GltfSceneEntry,
     intensity: Float,
-    presetAmbientIntensity: Float,
+    ambientIntensity: Float,
 ) {
     entry.manager.environment.set(
         ColorAttribute(
             ColorAttribute.AmbientLight,
-            0.08f * intensity * presetAmbientIntensity,
-            0.09f * intensity * presetAmbientIntensity,
-            0.1f * intensity * presetAmbientIntensity,
+            0.08f * intensity * ambientIntensity,
+            0.09f * intensity * ambientIntensity,
+            0.1f * intensity * ambientIntensity,
             1f,
         ),
     )
@@ -302,6 +386,12 @@ private fun GdxGltfRenderer.applySkybox(
     }
     val skyboxKey = preset?.skybox?.let { "preset:${settings.environmentPreset}" } ?: "procedural"
     entry.ensureSceneSkybox(skyboxKey, skyboxMap)
+    entry.skybox?.color?.set(
+        settings.skyboxIntensity.coerceAtLeast(0f),
+        settings.skyboxIntensity.coerceAtLeast(0f),
+        settings.skyboxIntensity.coerceAtLeast(0f),
+        1f,
+    )
     entry.manager.skyBox = entry.skybox
 }
 

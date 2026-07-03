@@ -3,18 +3,18 @@ package com.pashkd.krender.engine.sceneplayer
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Entity
 import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.assets.environment.Environment
+import com.pashkd.krender.engine.assets.environment.EnvironmentGltfRendererSettingsFactory
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
+import com.pashkd.krender.engine.render3d.LightComponent
+import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelRenderSystem
-import com.pashkd.krender.engine.render3d.RuntimeEnvironment
-import com.pashkd.krender.engine.render3d.RuntimeEnvironmentFactory
-import com.pashkd.krender.engine.render3d.RuntimeEnvironmentSystem
 import com.pashkd.krender.engine.scene.RuntimeSceneValidator
 import com.pashkd.krender.engine.scene.RuntimeTerrainMaterialLibraryService
 import com.pashkd.krender.engine.scene.SceneDependencyCollector
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
 import com.pashkd.krender.engine.scene.SceneValidationReport
-import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
 import com.pashkd.krender.engine.terrain.RuntimeTerrainMeshSystem
 import com.pashkd.krender.engine.terrain.RuntimeTerrainService
 import com.pashkd.krender.engine.terrain.TerrainCameraControllerComponent
@@ -28,13 +28,13 @@ import com.pashkd.krender.engine.terrain.TerrainRuntimeLoader
 data class ScenePlayerBuildRequest(
     val scenePath: String,
     val descriptor: SceneDescriptor,
-    val skybox: SkyboxAssetDescriptor?,
+    val environment: Environment?,
 )
 
 data class ScenePlayerBuildResult(
     val activeCameraEntityId: Long,
     val terrainPrepared: Boolean,
-    val skyboxEnabled: Boolean,
+    val environmentEnabled: Boolean,
     val validationReport: SceneValidationReport,
 )
 
@@ -46,29 +46,23 @@ class ScenePlayerBuilder(
         world: SceneWorld,
         request: ScenePlayerBuildRequest,
     ): ScenePlayerBuildResult {
-        val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(request.descriptor, request.skybox)
+        val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(request.descriptor)
         val validationReport = RuntimeSceneValidator.validate(request.descriptor, dependencyGraph)
         RuntimeSceneValidator.requireValid(request.descriptor, validationReport)
 
         SceneSerializer.applyToWorld(request.descriptor, world, engine.logger)
         val activeCamera = RuntimeSceneValidator.requireActiveCamera(world, request.descriptor)
         activeCamera.add(ActiveCameraComponent())
-
-        val resolvedSkybox = resolveSkybox(request)
-        val environment =
-            RuntimeEnvironmentFactory.fromSceneSettings(
-                settings = request.descriptor.settings,
-                skybox = resolvedSkybox,
-            )
+        installAmbientLight(world, request.descriptor)
 
         val materialBakeService = prepareTerrain(world, request, activeCamera)
         val terrainPrepared = materialBakeService != null
-        registerSystems(world, environment, terrainPrepared, materialBakeService)
+        registerSystems(world, request.environment, terrainPrepared, materialBakeService)
 
         return ScenePlayerBuildResult(
             activeCameraEntityId = activeCamera.id,
             terrainPrepared = terrainPrepared,
-            skyboxEnabled = environment.showSkybox,
+            environmentEnabled = request.environment != null,
             validationReport = validationReport,
         )
     }
@@ -110,15 +104,15 @@ class ScenePlayerBuilder(
 
     private fun registerSystems(
         world: SceneWorld,
-        environment: RuntimeEnvironment,
+        environment: Environment?,
         terrainPrepared: Boolean,
         materialBakeService: TerrainMaterialBakeService?,
     ) {
-        world.systems.add(ModelRenderSystem())
+        val gltfRendererSettings = environment?.let(EnvironmentGltfRendererSettingsFactory::create)
+        world.systems.add(ModelRenderSystem(gltfRendererSettings = { gltfRendererSettings }))
         if (terrainPrepared) {
             world.systems.add(TerrainRenderSystem())
         }
-        world.systems.add(RuntimeEnvironmentSystem(environment))
         if (terrainPrepared && materialBakeService != null) {
             world.systems.add(
                 RuntimeTerrainMeshSystem(
@@ -129,26 +123,17 @@ class ScenePlayerBuilder(
         }
     }
 
-    private fun resolveSkybox(request: ScenePlayerBuildRequest): SkyboxAssetDescriptor? {
-        if (!request.descriptor.settings.environment.showSkybox) {
-            return null
-        }
-        val configuredPath = RuntimeSceneValidator.skyboxPath(request.descriptor)
-        return request.skybox ?: run {
-            if (configuredPath == null) {
-                engine.logger.warn(TAG) {
-                    "ScenePlayer skybox disabled scene='${request.scenePath}' because showSkybox=true but no skybox path is configured."
-                }
-            } else {
-                engine.logger.warn(TAG) {
-                    "ScenePlayer skybox disabled scene='${request.scenePath}' because skybox '$configuredPath' could not be resolved."
-                }
-            }
-            null
-        }
-    }
-
-    private companion object {
-        private const val TAG = "ScenePlayerBuilder"
+    private fun installAmbientLight(
+        world: SceneWorld,
+        descriptor: SceneDescriptor,
+    ) {
+        val lighting = descriptor.settings.lighting
+        world.createEntity("Scene Ambient Light").add(
+            LightComponent(
+                type = LightType.Ambient,
+                color = lighting.ambientColor.copy(),
+                intensity = lighting.ambientIntensity,
+            ),
+        )
     }
 }

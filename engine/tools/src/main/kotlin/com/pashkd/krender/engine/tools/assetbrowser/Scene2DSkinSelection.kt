@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.tools.assetbrowser
 import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetType
+import java.io.File
 
 const val DefaultUiSceneSkinPath = "ui/skins/craftacular-ui.json"
 
@@ -18,6 +19,7 @@ enum class CreatableAssetKind(
     Terrain("Terrain", AssetType.Terrain, AssetCategory.Terrain, "terrains", "json"),
     Scene("Scene", AssetType.Scene, AssetCategory.Scene, "scenes", "krscene"),
     BitmapFont("Bitmap Font", AssetType.Font, AssetCategory.Scene2D, "ui/fonts", "kfont.json"),
+    Environment("Environment", AssetType.Environment, AssetCategory.Environment, "environments", "environment.json"),
 }
 
 data class CreateAssetDraft(
@@ -26,6 +28,7 @@ data class CreateAssetDraft(
     val uiSceneSkinPath: String = DefaultUiSceneSkinPath,
     val atlasWidth: Int = 1024,
     val atlasHeight: Int = 1024,
+    val environmentSourcePath: String = "",
 )
 
 internal fun defaultCreateAssetDraft(assets: List<AssetDescriptor>): CreateAssetDraft = CreateAssetDraft(uiSceneSkinPath = defaultUiSceneSkinPath(assets))
@@ -59,7 +62,13 @@ internal fun CreateAssetDraft.withSyncedDefaults(assets: List<AssetDescriptor>):
         this
     }
 
-internal fun createAssetRelativePath(draft: CreateAssetDraft): String = assetBrowserNormalizePath("${draft.kind.targetDirectory}/${createAssetBaseName(draft)}.${draft.kind.extension}")
+internal fun createAssetRelativePath(draft: CreateAssetDraft): String =
+    if (draft.kind == CreatableAssetKind.Environment) {
+        val baseName = createAssetBaseName(draft)
+        assetBrowserNormalizePath("${draft.kind.targetDirectory}/$baseName/$baseName.${draft.kind.extension}")
+    } else {
+        assetBrowserNormalizePath("${draft.kind.targetDirectory}/${createAssetBaseName(draft)}.${draft.kind.extension}")
+    }
 
 internal fun createAssetBaseName(draft: CreateAssetDraft): String = sanitizedAssetName(draft.name, defaultAssetBaseName(draft.kind.type, draft.kind.category))
 
@@ -73,6 +82,7 @@ internal fun defaultAssetBaseName(
         AssetType.Terrain -> "new_terrain"
         AssetType.Scene -> "new_scene"
         AssetType.Font -> "new_bitmap_font"
+        AssetType.Environment -> "new_environment"
         else -> error("Unsupported asset creation type=$type category=$category")
     }
 
@@ -117,4 +127,30 @@ internal fun createAssetDefaultParams(draft: CreateAssetDraft): List<String> =
                 "Charset: English + Symbols + Ukrainian Cyrillic",
                 "Page: 512 x 512",
             )
+
+        CreatableAssetKind.Environment ->
+            listOf(
+                "Source: ${draft.environmentSourcePath.ifBlank { "<not selected>" }}",
+                "Manifest: ${createAssetRelativePath(draft)}",
+                "Generated maps: placeholder paths only",
+            )
     }
+
+internal fun CreateAssetDraft.withEnvironmentSourcePath(sourcePath: String): CreateAssetDraft {
+    val normalized = sourcePath.trim()
+    val inferredName =
+        File(normalized)
+            .nameWithoutExtension
+            .takeIf { it.isNotBlank() }
+            ?.let(::assetBrowserNormalizePath)
+            ?.substringAfterLast('/')
+            ?.replace(Regex("[^A-Za-z0-9_\\-:.]"), "_")
+            .orEmpty()
+    val nextName =
+        when {
+            kind != CreatableAssetKind.Environment -> name
+            name.isBlank() -> inferredName
+            else -> name
+        }
+    return copy(environmentSourcePath = normalized, name = nextName)
+}

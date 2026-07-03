@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:ea6d0cd1-59de-4766-b9f0-250a59d13280",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "environment_posx",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

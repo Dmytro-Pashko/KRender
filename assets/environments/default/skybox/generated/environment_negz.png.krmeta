@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:8667ffab-ab06-43a6-b76b-4e481c758f2d",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "environment_negz",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

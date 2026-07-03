@@ -59,7 +59,6 @@ class AssetImporterRegistry(
                 register(GdxModelImporter())
                 register(TextureImporter())
                 register(Scene2DFontImporter())
-                register(SkyboxImporter())
                 register(TerrainImporter())
                 register(Scene2DSkinImporter(logger))
                 register(UiSceneImporter(logger))
@@ -133,19 +132,6 @@ class Scene2DFontImporter : AssetImporter {
     override val supportedExtensions = setOf("fnt", "ttf", "otf")
     override val outputType = AssetType.Font
     override val outputCategory = AssetCategory.Scene2D
-
-    override fun canImport(path: String): Boolean = normalizedExtension(path) in supportedExtensions
-}
-
-/**
- * Scene skybox descriptors.
- */
-class SkyboxImporter : AssetImporter {
-    override val id = "skybox"
-    override val displayName = "Skybox"
-    override val supportedExtensions = setOf("krskybox")
-    override val outputType = AssetType.Skybox
-    override val outputCategory = AssetCategory.Skybox
 
     override fun canImport(path: String): Boolean = normalizedExtension(path) in supportedExtensions
 }

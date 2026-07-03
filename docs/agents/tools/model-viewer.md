@@ -70,7 +70,7 @@ ambient light + model entity, add systems (guide, viewer, UI, camera, bounding b
 ## Supported Asset Types
 
 Models: glTF (`.gltf`/`.glb`), libGDX (`.g3dj`/`.g3db`), Wavefront (`.obj`). Textures for the
-UV-checker options and the default skybox preview.
+UV-checker options plus `.environment.json` manifests used by the glTF / PBR preview path.
 
 ## Current Features
 

@@ -11,7 +11,7 @@ internal class GdxGltfEnvironmentAssetLoader(
     fun loadPreset(resolved: GdxResolvedHdrEnvironment): GdxGltfEnvironmentPreset =
         GdxGltfEnvironmentPreset(
             name = resolved.preset,
-            defaults = resolved.manifest.defaults,
+            defaults = resolved.defaults,
             skybox = loadCubemap(resolved, "skybox", resolved.skyboxFaces),
             irradiance = loadCubemap(resolved, "irradiance", resolved.irradianceFaces),
             radiance = loadRadiance(resolved),

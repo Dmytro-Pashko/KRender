@@ -87,7 +87,6 @@ class RuntimeSceneValidatorTest {
                             ),
                         activeCameraEntityId = 1L,
                         activeTerrainEntityId = null,
-                        showSkybox = false,
                     ),
                 existingFiles = emptySet(),
             )
@@ -118,31 +117,6 @@ class RuntimeSceneValidatorTest {
         assertTrue(report.errors.any { it.code == SceneValidationIssueCode.MissingActiveTerrainEntity })
     }
 
-    @Test
-    fun `skybox absent with showSkybox false is valid`() {
-        val report =
-            validate(
-                descriptor =
-                    descriptor(
-                        entities =
-                            listOf(
-                                EntityDescriptor(
-                                    id = 1L,
-                                    name = "Camera",
-                                    components = listOf(ComponentDescriptor(SceneComponentTypes.Camera)),
-                                ),
-                            ),
-                        activeCameraEntityId = 1L,
-                        showSkybox = false,
-                        skyboxAssetPath = null,
-                    ),
-                existingFiles = emptySet(),
-            )
-
-        assertTrue(report.isValid)
-        assertTrue(report.warnings.none { it.code == SceneValidationIssueCode.MissingSkyboxPath })
-    }
-
     private fun validate(
         descriptor: SceneDescriptor,
         existingFiles: Set<String>,
@@ -156,8 +130,6 @@ class RuntimeSceneValidatorTest {
         entities: List<EntityDescriptor> = emptyList(),
         activeCameraEntityId: Long? = null,
         activeTerrainEntityId: Long? = null,
-        showSkybox: Boolean = true,
-        skyboxAssetPath: String? = null,
     ): SceneDescriptor =
         SceneDescriptor(
             id = "scene:demo",
@@ -167,11 +139,6 @@ class RuntimeSceneValidatorTest {
                 SceneSettingsDescriptor(
                     activeCameraEntityId = activeCameraEntityId,
                     activeTerrainEntityId = activeTerrainEntityId,
-                    environment =
-                        SceneEnvironmentDescriptor(
-                            skyboxAssetPath = skyboxAssetPath,
-                            showSkybox = showSkybox,
-                        ),
                 ),
         )
 }

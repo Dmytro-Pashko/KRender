@@ -27,6 +27,8 @@ interface EditorToolLauncher {
     fun launchUiComposer(uiScenePath: String)
 
     fun launchBitmapFontEditor(fontPath: String?)
+
+    fun launchEnvironmentEditor(environmentPath: String)
 }
 
 /**
@@ -62,6 +64,10 @@ object UnsupportedEditorToolLauncher : EditorToolLauncher {
     }
 
     override fun launchBitmapFontEditor(fontPath: String?) {
+        unsupported()
+    }
+
+    override fun launchEnvironmentEditor(environmentPath: String) {
         unsupported()
     }
 

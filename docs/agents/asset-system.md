@@ -40,13 +40,14 @@ readiness in `show()`.
 
 Core + impl: `core/.../engine/assets/`.
 
-- **Domain** (`AssetDomain.kt`): `AssetId` (value class), `AssetCategory` (Model, Texture, Skybox,
-  Material, Terrain, UI, Shader, Scene, Audio, Script, Unknown), `AssetType` (GltfModel, ObjModel,
-  GdxModel, Texture, Skybox, Terrain, UiScene, Scene, Material, Shader, Unknown), `AssetDescriptor`
+- **Domain** (`AssetDomain.kt`): `AssetId` (value class), `AssetCategory` (Model, Texture,
+  Material, Terrain, Scene2D, UI, Environment, Scene, Other), `AssetType` (GltfModel, ObjModel,
+  GdxModel, Texture, Atlas, Font, Terrain, UiScene, Scene2DSkin, Environment, HdrSource,
+  EnvironmentSkybox, EnvironmentCubemap, EnvironmentGeneratedMap, BrdfLut, Scene, Material, Unknown), `AssetDescriptor`
   (id, name, path, category, type, extension, size, mtime, tags, metadata map).
-- **`LocalAssetRegistryService`** scans root folders (`model`, `textures`, `skyboxes`, `materials`,
-  `terrains`, `ui/scenes`, `scenes`, `shaders`, `assets`), resolving type via `AssetImporter`
-  registry or `AssetTypeDetector`.
+- **`LocalAssetRegistryService`** scans root folders (`model`, `textures`, `atlases`, `skyboxes`,
+  `environments`, `materials`, `terrains`, `ui/scenes`, `ui/skins`, `ui/fonts`, `scenes`,
+  `assets`), resolving type via `AssetImporter` registry or `AssetTypeDetector`.
 - **`.krmeta` sidecars:** each asset gets a sibling `<file>.krmeta` JSON (`AssetMetadataCodec`)
   with a stable `asset:<uuid>` id, type/category, display name, tags, importer id, import settings.
   Missing/malformed metadata is recreated. Sidecars are not themselves indexed.
@@ -56,8 +57,8 @@ Core + impl: `core/.../engine/assets/`.
   - `applySnapshot(snapshot)` — mutates the in-memory descriptor list. **Main thread only.**
   - See `AssetBrowserSystem.requestScan`: `tasks.launchBackground { scanSnapshot() }` then
     `tasks.postToMain { applySnapshot(...) }`.
-- **Category metadata:** texture (resolution/alpha/format), terrain (size/layers), and scene
-  metadata are read during `describe`.
+- **Category metadata:** texture (resolution/alpha/format), terrain (size/layers), scene, and
+  Environment metadata are read during `describe`.
 
 ### Shared registry
 - `EngineContext.assetRegistry` exposes a single backend-provided `AssetRegistryService`.

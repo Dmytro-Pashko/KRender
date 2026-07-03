@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:23bcd62e-1024-45de-bc47-4bd0b4e0b677",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "radiance_5_posz",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

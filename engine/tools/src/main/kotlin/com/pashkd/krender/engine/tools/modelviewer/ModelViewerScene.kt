@@ -1,6 +1,10 @@
 package com.pashkd.krender.engine.tools.modelviewer
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.AssetCategory
+import com.pashkd.krender.engine.assets.AssetDescriptor
+import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
 import com.pashkd.krender.engine.render3d.*
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
@@ -297,7 +301,16 @@ class ModelViewerScene(
             addPanel(
                 uiSystem,
                 "Viewport",
-                ModelViewerViewportPanel(viewerState, operations, layoutConfig, layoutTracker, panelEventLogger),
+                ModelViewerViewportPanel(
+                    state = viewerState,
+                    operations = operations,
+                    availableEnvironments = ::availableEnvironmentAssets,
+                    environmentService = DefaultEnvironmentService(engine.sceneFiles),
+                    logger = engine.logger,
+                    layoutConfig = layoutConfig,
+                    layoutTracker = layoutTracker,
+                    eventLogger = panelEventLogger,
+                ),
             )
             addPanel(
                 uiSystem,
@@ -381,6 +394,13 @@ class ModelViewerScene(
     }
 
     private fun formatVec3(value: Vec3): String = "%.3f,%.3f,%.3f".format(value.x, value.y, value.z)
+
+    private fun availableEnvironmentAssets(): List<AssetDescriptor> =
+        engine.assetRegistry.assets
+            .asSequence()
+            .filter { asset -> asset.category == AssetCategory.Environment && asset.type == AssetType.Environment }
+            .sortedBy { asset -> asset.name.lowercase() }
+            .toList()
 
     companion object {
         private const val TAG = "ModelViewerScene"

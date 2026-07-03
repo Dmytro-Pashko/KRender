@@ -6,6 +6,7 @@ import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.canOpenWithTools
 import com.pashkd.krender.engine.tools.assetbrowser.details.AssetDetailsRenderContext
 import com.pashkd.krender.engine.tools.assetbrowser.details.AtlasAssetDetailsRenderer
+import com.pashkd.krender.engine.tools.assetbrowser.details.EnvironmentAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.GenericAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.ModelAssetDetailsRenderer
 import com.pashkd.krender.engine.tools.assetbrowser.details.Scene2DSkinAssetDetailsRenderer
@@ -42,6 +43,7 @@ class AssetDetailsPanel(
             UiSceneAssetDetailsRenderer(),
             Scene2DSkinAssetDetailsRenderer(),
             SceneAssetDetailsRenderer(),
+            EnvironmentAssetDetailsRenderer(),
             GenericAssetDetailsRenderer(),
         )
 
@@ -90,9 +92,14 @@ class AssetDetailsPanel(
     }
 
     private fun drawActions(asset: AssetDescriptor) {
-        if (!asset.canOpenWithTools() || asset.category == AssetCategory.Scene) return
-        val tools = operations.toolsFor(asset)
-        if (tools.isEmpty()) return
+        val tools =
+            if (asset.canOpenWithTools() && asset.category != AssetCategory.Scene) {
+                operations.toolsFor(asset)
+            } else {
+                emptyList()
+            }
+        val actions = operations.actionsFor(asset)
+        if (tools.isEmpty() && actions.isEmpty()) return
 
         ImGui.separator()
         ImGui.text("Actions")
@@ -100,6 +107,13 @@ class AssetDetailsPanel(
             with(dsl) {
                 button("${tool.label}##${panelId}_tool_${tool.id}") {
                     operations.openWith(asset, tool.id)
+                }
+            }
+        }
+        actions.forEach { action ->
+            with(dsl) {
+                button("${action.label}##${panelId}_action_${action.id}") {
+                    operations.runAction(asset, action.id)
                 }
             }
         }

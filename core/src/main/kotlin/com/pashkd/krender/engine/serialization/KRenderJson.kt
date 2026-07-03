@@ -10,7 +10,7 @@ import kotlinx.serialization.json.Json
  * a format has a specific compatibility reason not to.
  */
 object KRenderJson {
-    /** Pretty JSON config used for `.krscene`, `.krskybox`, `.krui`, and future formats. */
+    /** Pretty JSON config used for `.krscene`, `.environment.json`, `.krui`, and future formats. */
     val Pretty: Json =
         Json {
             prettyPrint = true

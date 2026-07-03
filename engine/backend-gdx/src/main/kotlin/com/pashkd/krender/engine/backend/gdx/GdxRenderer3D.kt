@@ -24,12 +24,14 @@ import com.pashkd.krender.engine.api.ApplyEnvironment
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.DrawDynamicModel
 import com.pashkd.krender.engine.api.DrawModel
+import com.pashkd.krender.engine.api.GltfRendererSettings
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.RenderContext
 import com.pashkd.krender.engine.api.Renderer
 import com.pashkd.krender.engine.api.RuntimeTextureFilter
 import com.pashkd.krender.engine.api.RuntimeTextureWrap
 import com.pashkd.krender.engine.api.TransformComponent
+import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.render3d.ActiveCameraComponent
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
@@ -80,6 +82,7 @@ class GdxRenderer3D(
     private val wireframeTmpVertex = Vector3()
     private val forceBackBufferAlphaOpaque = systemBoolean("krender.gl.forceOpaqueAlpha", default = false)
     private val warnedGltfRenderKeys = mutableSetOf<String>()
+    private var lastFrameClearSettings: FrameClearSettings? = null
 
     private var width: Int = Gdx.graphics.width
     private var height: Int = Gdx.graphics.height
@@ -92,7 +95,21 @@ class GdxRenderer3D(
     override fun render(context: RenderContext) {
         prepareSceneFrame()
         Gdx.gl.glViewport(0, 0, width, height)
-        Gdx.gl.glClearColor(0.08f, 0.09f, 0.11f, 1f)
+        val clearSettings = clearSettingsFor(context)
+        if (clearSettings != lastFrameClearSettings) {
+            logger.info(TAG) {
+                "Frame clear settings changed mode=${clearSettings.backgroundMode} " +
+                    "color=${clearSettings.clearColor} " +
+                    "showSkybox=${clearSettings.showSkybox}"
+            }
+            lastFrameClearSettings = clearSettings
+        }
+        Gdx.gl.glClearColor(
+            clearSettings.clearColor.r,
+            clearSettings.clearColor.g,
+            clearSettings.clearColor.b,
+            clearSettings.clearColor.a,
+        )
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT)
 
         val camera = cameraFor(context)
@@ -177,6 +194,30 @@ class GdxRenderer3D(
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST)
         Gdx.gl.glDepthMask(true)
         Gdx.gl.glColorMask(true, true, true, true)
+    }
+
+    private fun clearSettingsFor(context: RenderContext): FrameClearSettings {
+        val gltfSettings =
+            context.commands
+                .filterIsInstance<DrawModel>()
+                .mapNotNull { it.gltfRenderer?.takeIf(GltfRendererSettings::enabled) }
+                .firstOrNull()
+                ?: return DefaultFrameClearSettings
+
+        val clearColor =
+            when (gltfSettings.backgroundMode) {
+                BackgroundMode.SolidColor -> gltfSettings.backgroundColor.copy()
+                BackgroundMode.Transparent ->
+                    com.pashkd.krender.engine.api
+                        .Color(0f, 0f, 0f, 0f)
+                BackgroundMode.Skybox, BackgroundMode.None -> DefaultFrameClearSettings.clearColor
+            }
+
+        return FrameClearSettings(
+            backgroundMode = gltfSettings.backgroundMode,
+            clearColor = clearColor,
+            showSkybox = gltfSettings.showSkybox,
+        )
     }
 
     /**
@@ -987,6 +1028,19 @@ class GdxRenderer3D(
         private const val UNSIGNED_SHORT_MASK = 0xFFFF
     }
 }
+
+private data class FrameClearSettings(
+    val backgroundMode: BackgroundMode,
+    val clearColor: EngineColor,
+    val showSkybox: Boolean,
+)
+
+private val DefaultFrameClearSettings =
+    FrameClearSettings(
+        backgroundMode = BackgroundMode.None,
+        clearColor = EngineColor(0.08f, 0.09f, 0.11f, 1f),
+        showSkybox = false,
+    )
 
 /** Cached LibGDX model entry keyed by the engine dynamic mesh revision. */
 private data class DynamicModelCacheEntry(

@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.tools.assetbrowser.creation
 
+import com.pashkd.krender.engine.assets.importing.EnvironmentSourceFileDialogFilters
+import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserOperationsHandler
 import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserState
 import com.pashkd.krender.engine.tools.assetbrowser.CreatableAssetKind
@@ -9,6 +11,7 @@ import com.pashkd.krender.engine.tools.assetbrowser.assetBrowserWriteBuffer
 import com.pashkd.krender.engine.tools.assetbrowser.createAssetDefaultParams
 import com.pashkd.krender.engine.tools.assetbrowser.createAssetRelativePath
 import com.pashkd.krender.engine.tools.assetbrowser.discoveredScene2DSkinAssets
+import com.pashkd.krender.engine.tools.assetbrowser.withEnvironmentSourcePath
 import com.pashkd.krender.engine.tools.assetbrowser.withSyncedDefaults
 import glm_.vec2.Vec2
 import imgui.Cond
@@ -21,13 +24,17 @@ import imgui.dsl
 class CreateAssetDialog(
     private val state: AssetBrowserState,
     private val operations: AssetBrowserOperationsHandler,
+    private val fileDialogService: FileDialogService,
     private val panelId: String,
 ) {
     private val createNameByteBuffer = ByteArray(TextInputBufferSize)
+    private val environmentSourceBuffer = ByteArray(SourcePathBufferSize)
     private var createBufferSynced = false
+    private var sourceBufferSynced = false
 
     fun resetForOpen() {
         createBufferSynced = false
+        sourceBufferSynced = false
     }
 
     fun draw() {
@@ -36,8 +43,12 @@ class CreateAssetDialog(
             assetBrowserWriteBuffer(createNameByteBuffer, state.createDraft.name)
             createBufferSynced = true
         }
+        if (!sourceBufferSynced) {
+            assetBrowserWriteBuffer(environmentSourceBuffer, state.createDraft.environmentSourcePath)
+            sourceBufferSynced = true
+        }
         ImGui.openPopup("Create Asset##${panelId}_create")
-        ImGui.setNextWindowSize(Vec2(500f, 250f), Cond.Always)
+        ImGui.setNextWindowSize(Vec2(620f, 320f), Cond.Always)
         if (!ImGui.beginPopupModal("Create Asset##${panelId}_create")) return
 
         drawCreateAssetKindSelector()
@@ -52,21 +63,27 @@ class CreateAssetDialog(
         assetBrowserTextLine(".${state.createDraft.kind.extension}")
         drawCreateAtlasSizeSelector()
         drawCreateUiSceneSkinSelector()
+        drawCreateEnvironmentSourceSelector()
 
         ImGui.separator()
+        val canCreate = canCreate()
+        if (!canCreate) ImGui.beginDisabled(true)
         with(dsl) {
             button("Create##${panelId}_create_ok") {
                 operations.create(state.createDraft.withSyncedDefaults(state.assets))
                 state.showCreateDialog = false
                 createBufferSynced = false
+                sourceBufferSynced = false
                 ImGui.closeCurrentPopup()
             }
         }
+        if (!canCreate) ImGui.endDisabled()
         ImGui.sameLine()
         with(dsl) {
             button("Cancel##${panelId}_create_cancel") {
                 state.showCreateDialog = false
                 createBufferSynced = false
+                sourceBufferSynced = false
                 ImGui.closeCurrentPopup()
             }
         }
@@ -83,6 +100,9 @@ class CreateAssetDialog(
                 state.createDraft = state.createDraft.copy(kind = kind).withSyncedDefaults(state.assets)
                 if (kind == CreatableAssetKind.UiScene) {
                     assetBrowserWriteBuffer(createNameByteBuffer, state.createDraft.name)
+                }
+                if (kind == CreatableAssetKind.Environment) {
+                    assetBrowserWriteBuffer(environmentSourceBuffer, state.createDraft.environmentSourcePath)
                 }
             }
         }
@@ -129,6 +149,28 @@ class CreateAssetDialog(
         }
     }
 
+    private fun drawCreateEnvironmentSourceSelector() {
+        if (state.createDraft.kind != CreatableAssetKind.Environment) return
+        ImGui.text("Source")
+        ImGui.sameLine()
+        ImGui.pushItemWidth(360f)
+        if (ImGui.inputText("##${panelId}_create_environment_source", environmentSourceBuffer)) {
+            state.createDraft = state.createDraft.withEnvironmentSourcePath(assetBrowserReadBuffer(environmentSourceBuffer))
+        }
+        ImGui.popItemWidth()
+        ImGui.sameLine()
+        with(dsl) {
+            button("Browse...##${panelId}_create_environment_source_browse") {
+                val selected = fileDialogService.openFile(EnvironmentSourceFileDialogFilters) ?: return@button
+                state.createDraft = state.createDraft.withEnvironmentSourcePath(selected)
+                assetBrowserWriteBuffer(environmentSourceBuffer, state.createDraft.environmentSourcePath)
+                if (state.createDraft.name.isNotBlank()) {
+                    assetBrowserWriteBuffer(createNameByteBuffer, state.createDraft.name)
+                }
+            }
+        }
+    }
+
     private fun drawPageSizeCombo(
         label: String,
         selected: Int,
@@ -156,8 +198,15 @@ class CreateAssetDialog(
         }
     }
 
+    private fun canCreate(): Boolean =
+        when (state.createDraft.kind) {
+            CreatableAssetKind.Environment -> state.createDraft.environmentSourcePath.isNotBlank()
+            else -> true
+        }
+
     companion object {
         private const val TextInputBufferSize = 256
+        private const val SourcePathBufferSize = 512
         private val PageSizeOptions = intArrayOf(128, 256, 512, 1024, 2048, 4096)
     }
 }

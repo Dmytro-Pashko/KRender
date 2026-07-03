@@ -40,8 +40,8 @@ internal object HdrEnvironmentGeneratorMain {
             println("Generated ${outputs.size} radiance mip faces for '${loaded.manifest.name}'.")
         }
         if (BRDF_OPTION in options || ALL_OPTION in options) {
-            val output = SharedBrdfLutExporter().export(manifestPath, updatedManifest)
-            println("Exported shared BRDF LUT to '$output'.")
+            val output = BrdfLutExporter().export(manifestPath, updatedManifest)
+            println("Exported BRDF LUT to '$output'.")
         }
         if (updatedManifest != loaded.manifest) {
             Files.writeString(

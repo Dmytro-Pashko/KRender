@@ -30,9 +30,7 @@ data class SceneAssetMetadata(
     val activeTerrainSize: String?,
     val activeTerrainLayerCount: Int?,
     val activeTerrainBakedResolution: Int?,
-    val skyboxPath: String?,
-    val showSkybox: Boolean,
-    val environmentIntensity: Float,
+    val environmentAssetPath: String?,
     val ambientIntensity: Float,
     val terrainMaterialLibraryPath: String,
     val dependencyCount: Int,
@@ -62,9 +60,7 @@ data class SceneAssetMetadata(
             activeTerrainSize?.let { put("sceneTerrainSize", it) }
             activeTerrainLayerCount?.let { put("sceneTerrainLayerCount", it.toString()) }
             activeTerrainBakedResolution?.let { put("sceneTerrainBakedResolution", it.toString()) }
-            skyboxPath?.let { put("sceneSkyboxPath", it) }
-            put("sceneSkyboxVisible", showSkybox.toString())
-            put("sceneEnvironmentIntensity", formatSceneDecimal(environmentIntensity))
+            environmentAssetPath?.let { put("sceneEnvironmentAssetPath", it) }
             put("sceneAmbientIntensity", formatSceneDecimal(ambientIntensity))
             put("sceneTerrainMaterialLibraryPath", terrainMaterialLibraryPath)
             put("sceneDependencyCount", dependencyCount.toString())
@@ -104,18 +100,7 @@ object SceneAssetMetadataReader {
         baseDirectory: File,
     ): SceneAssetMetadata {
         val sceneFiles = DirectorySceneFileService(baseDirectory)
-        val resolvedSkybox =
-            RuntimeSceneValidator
-                .skyboxPath(descriptor)
-                ?.let { path ->
-                    runCatching {
-                        SkyboxAssetService(
-                            sceneFiles,
-                            MetadataLogger,
-                        ).loadRequired(path)
-                    }.getOrNull()
-                }
-        val dependencyGraph = SceneDependencyCollector(sceneFiles).collect(descriptor, resolvedSkybox)
+        val dependencyGraph = SceneDependencyCollector(sceneFiles).collect(descriptor)
         val validationReport = RuntimeSceneValidator.validate(descriptor, dependencyGraph)
         val entities = descriptor.entities
         val lightEntities = entities.filter { entity -> entity.hasComponent(SceneComponentTypes.Light) }
@@ -179,11 +164,9 @@ object SceneAssetMetadataReader {
                     ?.get("bakedTextureResolution")
                     ?.trim()
                     ?.toIntOrNull(),
-            skyboxPath =
-                descriptor.settings.environment.skyboxAssetPath
+            environmentAssetPath =
+                descriptor.settings.environment.environmentAssetPath
                     ?.normalizeAssetPath(),
-            showSkybox = descriptor.settings.environment.showSkybox,
-            environmentIntensity = descriptor.settings.environment.environmentIntensity,
             ambientIntensity = descriptor.settings.lighting.ambientIntensity,
             terrainMaterialLibraryPath =
                 descriptor.settings.terrain.materialLibraryPath

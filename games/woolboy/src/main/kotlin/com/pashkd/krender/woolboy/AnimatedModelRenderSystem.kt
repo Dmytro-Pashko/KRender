@@ -3,6 +3,7 @@ package com.pashkd.krender.woolboy
 import com.pashkd.krender.engine.animation.AnimationComponent
 import com.pashkd.krender.engine.animation.toPlaybackView
 import com.pashkd.krender.engine.api.DrawModel
+import com.pashkd.krender.engine.api.GltfRendererSettings
 import com.pashkd.krender.engine.api.SceneWorld
 import com.pashkd.krender.engine.api.System
 import com.pashkd.krender.engine.api.TransformComponent
@@ -11,7 +12,9 @@ import com.pashkd.krender.engine.render3d.ModelComponent
 /**
  * Emits model draw commands with optional backend-neutral animation playback.
  */
-class AnimatedModelRenderSystem : System() {
+class AnimatedModelRenderSystem(
+    private val gltfRendererSettings: GltfRendererSettings? = null,
+) : System() {
     override fun render(
         world: SceneWorld,
         alpha: Float,
@@ -26,6 +29,7 @@ class AnimatedModelRenderSystem : System() {
                     model = model.model,
                     transform = transform.snapshot(),
                     material = model.material,
+                    gltfRenderer = gltfRendererSettings?.takeIf { model.model.path.endsWith(".glb", true) || model.model.path.endsWith(".gltf", true) },
                     animation = animation?.toPlaybackView(),
                 ),
             )

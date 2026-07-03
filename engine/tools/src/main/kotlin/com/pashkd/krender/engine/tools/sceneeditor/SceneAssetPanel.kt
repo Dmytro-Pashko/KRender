@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetRegistryService
 import com.pashkd.krender.engine.assets.AssetRegistrySnapshot
+import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -85,7 +86,10 @@ class SceneAssetBrowserModel(
 
     fun terrainAssets(): List<AssetDescriptor> = assets.filter { asset -> asset.category == AssetCategory.Terrain }
 
-    fun skyboxAssets(): List<AssetDescriptor> = assets.filter { asset -> asset.category == AssetCategory.Skybox }
+    fun environmentAssets(): List<AssetDescriptor> =
+        assets.filter { asset ->
+            asset.category == AssetCategory.Environment && asset.type == AssetType.Environment
+        }
 
     fun filteredModelAssets(): List<AssetDescriptor> {
         val query = state.searchQuery.trim().lowercase()
@@ -111,9 +115,9 @@ class SceneAssetBrowserModel(
             .toList()
     }
 
-    fun filteredSkyboxAssets(): List<AssetDescriptor> {
+    fun filteredEnvironmentAssets(): List<AssetDescriptor> {
         val query = state.searchQuery.trim().lowercase()
-        return skyboxAssets()
+        return environmentAssets()
             .asSequence()
             .filter { asset ->
                 query.isBlank() ||
@@ -128,7 +132,7 @@ class SceneAssetBrowserModel(
         assets = snapshot.assets
         errorMessage = snapshot.errors.firstOrNull()?.let { "Scan error: ${it.path} (${it.message})" }
         state.statusMessage =
-            "Indexed ${modelAssets().size} model assets, ${terrainAssets().size} terrain assets, and ${skyboxAssets().size} skyboxes."
+            "Indexed ${modelAssets().size} model assets, ${terrainAssets().size} terrain assets, and ${environmentAssets().size} Environment assets."
         isScanning = false
         scanInFlight = false
     }
@@ -258,28 +262,28 @@ class SceneAssetPanel(
 
         ImGui.separator()
 
-        ImGui.text("Skyboxes:")
-        ImGui.beginChild("scene_assets_skybox_list", Vec2(0f, AssetListHeight), true)
-        val allSkyboxes = assetBrowser.skyboxAssets()
-        val visibleSkyboxes = assetBrowser.filteredSkyboxAssets()
+        ImGui.text("Environments:")
+        ImGui.beginChild("scene_assets_environment_list", Vec2(0f, AssetListHeight), true)
+        val allEnvironments = assetBrowser.environmentAssets()
+        val visibleEnvironments = assetBrowser.filteredEnvironmentAssets()
         when {
-            allSkyboxes.isEmpty() -> {
-                ImGui.text("No skybox assets found.")
+            allEnvironments.isEmpty() -> {
+                ImGui.text("No Environment assets found.")
                 with(dsl) {
-                    button("Refresh##scene_assets_empty_skybox_refresh") {
+                    button("Refresh##scene_assets_empty_environment_refresh") {
                         assetBrowser.requestRefresh()
                     }
                 }
             }
 
-            visibleSkyboxes.isEmpty() -> {
-                ImGui.text("No skybox assets match the current search.")
+            visibleEnvironments.isEmpty() -> {
+                ImGui.text("No Environment assets match the current search.")
             }
 
-            else -> visibleSkyboxes.forEach(::drawAssetRow)
+            else -> visibleEnvironments.forEach(::drawAssetRow)
         }
         ImGui.endChild()
-        drawSkyboxSelectionDetails()
+        drawEnvironmentSelectionDetails()
     }
 
     private fun drawAssetRow(asset: AssetDescriptor) {
@@ -342,19 +346,19 @@ class SceneAssetPanel(
         }
     }
 
-    private fun drawSkyboxSelectionDetails() {
-        val skyboxPath = selectedSkyboxPath()
-        ImGui.text("Selected skybox: ${selectedSkyboxName()}")
-        ImGui.textWrapped("Skybox Path: ${skyboxPath ?: "<none>"}")
+    private fun drawEnvironmentSelectionDetails() {
+        val environmentPath = selectedEnvironmentPath()
+        ImGui.text("Selected Environment: ${selectedEnvironmentName()}")
+        ImGui.textWrapped("Environment Path: ${environmentPath ?: "<none>"}")
         with(dsl) {
-            button("Use Scene Skybox##scene_assets_use_selected_skybox") {
-                useSelectedSkybox()
+            button("Use Scene Environment##scene_assets_use_selected_environment") {
+                useSelectedEnvironment()
             }
         }
         ImGui.sameLine()
         with(dsl) {
-            button("Clear Scene Skybox##scene_assets_clear_scene_skybox") {
-                clearSceneSkybox()
+            button("Clear Scene Environment##scene_assets_clear_scene_environment") {
+                clearSceneEnvironment()
             }
         }
     }
@@ -384,8 +388,8 @@ class SceneAssetPanel(
                 panelState.statusMessage = "Selected terrain: ${asset.path}"
             }
 
-            AssetCategory.Skybox -> {
-                panelState.statusMessage = "Selected skybox: ${asset.path}"
+            AssetCategory.Environment -> {
+                panelState.statusMessage = "Selected Environment: ${asset.path}"
             }
 
             else -> {
@@ -450,20 +454,20 @@ class SceneAssetPanel(
         panelState.statusMessage = editorState.statusMessage
     }
 
-    private fun useSelectedSkybox() {
-        val selectedPath = selectedSkyboxPath()
+    private fun useSelectedEnvironment() {
+        val selectedPath = selectedEnvironmentPath()
         if (selectedPath.isNullOrBlank()) {
-            panelState.statusMessage = "Select a skybox first."
+            panelState.statusMessage = "Select an Environment first."
             editorState.statusMessage = panelState.statusMessage
             return
         }
 
-        operations.setSkyboxAsset(selectedPath)
+        operations.setEnvironmentAsset(selectedPath)
         panelState.statusMessage = editorState.statusMessage
     }
 
-    private fun clearSceneSkybox() {
-        operations.setSkyboxAsset(null)
+    private fun clearSceneEnvironment() {
+        operations.setEnvironmentAsset(null)
         panelState.statusMessage = editorState.statusMessage
     }
 
@@ -485,9 +489,9 @@ class SceneAssetPanel(
             else -> editorState.terrainPlacementPath.takeIf(String::isNotBlank)
         }
 
-    private fun selectedSkyboxPath(): String? =
+    private fun selectedEnvironmentPath(): String? =
         when (panelState.selectedAssetCategory) {
-            AssetCategory.Skybox -> panelState.selectedAssetPath
+            AssetCategory.Environment -> panelState.selectedAssetPath
             else -> null
         }
 
@@ -495,7 +499,7 @@ class SceneAssetPanel(
 
     private fun selectedTerrainName(): String = selectedAssetName(AssetCategory.Terrain, selectedTerrainPath())
 
-    private fun selectedSkyboxName(): String = selectedAssetName(AssetCategory.Skybox, selectedSkyboxPath())
+    private fun selectedEnvironmentName(): String = selectedAssetName(AssetCategory.Environment, selectedEnvironmentPath())
 
     private fun selectedAssetName(
         category: AssetCategory,
@@ -514,9 +518,9 @@ class SceneAssetPanel(
                         .terrainAssets()
                         .firstOrNull { descriptor -> descriptor.path == assetPath }
 
-                AssetCategory.Skybox ->
+                AssetCategory.Environment ->
                     assetBrowser
-                        .skyboxAssets()
+                        .environmentAssets()
                         .firstOrNull { descriptor -> descriptor.path == assetPath }
 
                 else -> null

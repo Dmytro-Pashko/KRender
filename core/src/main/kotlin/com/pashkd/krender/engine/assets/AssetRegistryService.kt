@@ -1,6 +1,8 @@
 package com.pashkd.krender.engine.assets
 
 import com.pashkd.krender.engine.api.Logger
+import com.pashkd.krender.engine.assets.environment.BackgroundMode
+import com.pashkd.krender.engine.assets.environment.EnvironmentSerializer
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -131,12 +133,15 @@ class LocalAssetRegistryService(
 
     private fun describe(file: File): AssetDescriptor {
         val path = relativeAssetPath(file)
+        val detected = AssetTypeDetector.detect(path)
         val importer = importers.resolve(path)
         val detection =
-            if (importer != null) {
+            if (detected.type != AssetType.Unknown || detected.category != AssetCategory.Other) {
+                detected
+            } else if (importer != null) {
                 AssetTypeDetection(importer.outputType, importer.outputCategory)
             } else {
-                AssetTypeDetector.detect(path)
+                detected
             }
         if (!detection.canHaveMetadataSidecar()) {
             return describeVisibleOnly(file, path, detection)
@@ -159,6 +164,7 @@ class LocalAssetRegistryService(
                 putAll(textureMetadata(file, category, type))
                 putAll(terrainMetadata(file, category))
                 putAll(sceneMetadata(file, category))
+                putAll(environmentMetadata(file, category, type))
             }
         return AssetDescriptor(
             id = AssetId(document.id),
@@ -194,7 +200,7 @@ class LocalAssetRegistryService(
                     "displayName" to file.nameWithoutExtension,
                     "sourcePath" to path,
                     "indexPolicy" to "visibleOnly",
-                ),
+                ) + environmentMetadata(file, detection.category, detection.type),
         )
 
     private fun encodeImportSettings(settings: Map<String, Any?>): String {
@@ -257,6 +263,70 @@ class LocalAssetRegistryService(
                 "Failed to read scene metadata '${relativeAssetPath(file)}': ${error.message}"
             }
             emptyMap()
+        }
+    }
+
+    private fun environmentMetadata(
+        file: File,
+        category: AssetCategory,
+        type: AssetType,
+    ): Map<String, String> {
+        if (category != AssetCategory.Environment) return emptyMap()
+        return when (type) {
+            AssetType.Environment -> {
+                try {
+                    val manifest = EnvironmentSerializer.decode(file.readText(StandardCharsets.UTF_8))
+                    buildMap {
+                        put("environmentId", manifest.id)
+                        put("environmentName", manifest.name)
+                        put("environmentSchemaVersion", manifest.schemaVersion.toString())
+                        put("environmentType", manifest.type.name)
+                        put("environmentSourceCount", manifest.sources.size.toString())
+                        put("environmentBackgroundMode", manifest.settings.backgroundMode.name)
+                        put(
+                            "environmentSkyboxVisible",
+                            (manifest.settings.backgroundMode == BackgroundMode.Skybox).toString(),
+                        )
+                        put("environmentExposure", manifest.settings.exposure.toString())
+                        put("environmentRotationDegrees", manifest.settings.rotationDegrees.toString())
+                        put("environmentSkyboxIntensity", manifest.settings.skyboxIntensity.toString())
+                        put("environmentDiffuseIntensity", manifest.settings.diffuseIntensity.toString())
+                        put("environmentSpecularIntensity", manifest.settings.specularIntensity.toString())
+                        put("environmentHasSkybox", (manifest.skybox != null).toString())
+                        put("environmentHasIrradiance", (manifest.irradiance != null).toString())
+                        put("environmentHasRadiance", (manifest.radiance != null).toString())
+                        put("environmentHasBrdfLut", (manifest.brdfLut != null).toString())
+                        manifest.description?.let { put("environmentDescription", it) }
+                    }
+                } catch (error: Exception) {
+                    logger.warn(TAG, error) {
+                        "Failed to read environment metadata '${relativeAssetPath(file)}': ${error.message}"
+                    }
+                    mapOf("environmentParseError" to (error.message ?: error.javaClass.simpleName))
+                }
+            }
+
+            AssetType.HdrSource ->
+                mapOf(
+                    "environmentSourceKind" to
+                        when {
+                            file.extension.equals("hdr", ignoreCase = true) -> "HDR"
+                            file.extension.equals("exr", ignoreCase = true) -> "EXR"
+                            else -> file.extension.uppercase().ifBlank { "unknown" }
+                        },
+                )
+
+            AssetType.EnvironmentSkybox ->
+                mapOf("environmentResourceKind" to "Skybox")
+
+            AssetType.EnvironmentCubemap ->
+                mapOf("environmentResourceKind" to "Cubemap")
+
+            AssetType.EnvironmentGeneratedMap,
+            AssetType.BrdfLut,
+            -> mapOf("environmentResourceKind" to "Generated Map")
+
+            else -> emptyMap()
         }
     }
 
@@ -339,6 +409,8 @@ class LocalAssetRegistryService(
          * The `ui/scenes` entry exists so `.krui` UiScene documents under `assets/ui/scenes` are indexed by
          * Asset Browser. `ui/skins` indexes LibGDX Scene2D Skin JSON descriptors for `.krui` creation and
          * `atlases` keeps Texture Atlas Editor outputs discoverable after in-editor asset creation.
+         * `environments` indexes Environment manifests, HDR/EXR source files, and generated IBL resources
+         * under `assets/environments`.
          * Those `.atlas` files are routed as managed Scene2D assets so they show up immediately for browsing,
          * reopening in the atlas editor, and downstream picker workflows.
          *
@@ -352,6 +424,7 @@ class LocalAssetRegistryService(
                 "textures",
                 "atlases",
                 "skyboxes",
+                "environments",
                 "materials",
                 "terrains",
                 "ui/scenes",

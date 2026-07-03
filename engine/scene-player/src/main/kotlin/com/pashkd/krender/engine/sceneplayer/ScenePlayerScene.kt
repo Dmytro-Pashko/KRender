@@ -2,12 +2,12 @@ package com.pashkd.krender.engine.sceneplayer
 
 import com.pashkd.krender.engine.api.AssetService
 import com.pashkd.krender.engine.api.Scene
+import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
+import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.scene.RuntimeSceneValidator
 import com.pashkd.krender.engine.scene.SceneDependencyCollector
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
-import com.pashkd.krender.engine.scene.SkyboxAssetDescriptor
-import com.pashkd.krender.engine.scene.SkyboxAssetService
 
 /**
  * Runtime-only scene loaded from a `.krscene` descriptor.
@@ -16,15 +16,15 @@ class ScenePlayerScene(
     private val scenePath: String,
 ) : Scene("scene_player") {
     private var descriptorCache: SceneDescriptor? = null
-    private var skyboxCache: SkyboxAssetDescriptor? = null
+    private var environmentCache: Environment? = null
 
     override fun scheduleAssets(assets: AssetService) {
         val descriptor = loadSceneDescriptor()
-        val skybox = resolveSkybox(descriptor)
+        val environment = resolveEnvironment(descriptor)
         descriptorCache = descriptor
-        skyboxCache = skybox
+        environmentCache = environment
 
-        val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(descriptor, skybox)
+        val dependencyGraph = SceneDependencyCollector(engine.sceneFiles).collect(descriptor)
         engine.logger.info(TAG) {
             "ScenePlayer scheduleAssets scene='$scenePath' dependencies=${
                 dependencyGraph.dependencies.joinToString { dependency ->
@@ -37,13 +37,13 @@ class ScenePlayerScene(
 
     override fun show() {
         val descriptor = descriptorCache ?: loadSceneDescriptor().also { descriptorCache = it }
-        val skybox = skyboxCache ?: resolveSkybox(descriptor).also { skyboxCache = it }
+        val environment = environmentCache ?: resolveEnvironment(descriptor).also { environmentCache = it }
 
         engine.logger.info(TAG) {
             "ScenePlayer show scene='$scenePath' id='${descriptor.id}' name='${descriptor.name}' entities=${descriptor.entities.size} " +
                 "activeCameraEntityId=${descriptor.settings.activeCameraEntityId ?: "<none>"} " +
                 "activeTerrainEntityId=${descriptor.settings.activeTerrainEntityId ?: "<none>"} " +
-                "skybox='${descriptor.settings.environment.skyboxAssetPath ?: "<none>"}'"
+                "environment='${descriptor.settings.environment.environmentAssetPath ?: "<none>"}'"
         }
 
         val result =
@@ -53,12 +53,12 @@ class ScenePlayerScene(
                     ScenePlayerBuildRequest(
                         scenePath = scenePath,
                         descriptor = descriptor,
-                        skybox = skybox,
+                        environment = environment,
                     ),
             )
         engine.logger.info(TAG) {
             "ScenePlayer built scene='$scenePath' activeCameraEntityId=${result.activeCameraEntityId} terrainPrepared=${result.terrainPrepared} " +
-                "skyboxEnabled=${result.skyboxEnabled} validationErrors=${result.validationReport.errors.size} validationWarnings=${result.validationReport.warnings.size}"
+                "environmentEnabled=${result.environmentEnabled} validationErrors=${result.validationReport.errors.size} validationWarnings=${result.validationReport.warnings.size}"
         }
     }
 
@@ -70,13 +70,13 @@ class ScenePlayerScene(
         return SceneSerializer.decode(text)
     }
 
-    private fun resolveSkybox(descriptor: SceneDescriptor): SkyboxAssetDescriptor? {
-        val skyboxPath = RuntimeSceneValidator.skyboxPath(descriptor) ?: return null
+    private fun resolveEnvironment(descriptor: SceneDescriptor): Environment? {
+        val environmentPath = RuntimeSceneValidator.environmentAssetPath(descriptor) ?: return null
         return runCatching {
-            SkyboxAssetService(engine.sceneFiles, engine.logger).loadRequired(skyboxPath)
+            DefaultEnvironmentService(engine.sceneFiles).load(environmentPath)
         }.getOrElse { error ->
             engine.logger.warn(TAG, error) {
-                "ScenePlayer optional skybox '$skyboxPath' could not be loaded: ${error.message}"
+                "ScenePlayer optional environment '$environmentPath' could not be loaded: ${error.message}"
             }
             null
         }

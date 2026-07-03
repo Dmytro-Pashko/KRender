@@ -4,35 +4,12 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${ROOT_DIR}"
+source "${SCRIPT_DIR}/gradle_runner.sh"
 
 REPORT_DIR="${ROOT_DIR}/build/reports/unit-test-coverage"
 LOG_DIR="${REPORT_DIR}/logs"
 SUMMARY="${REPORT_DIR}/summary.md"
 mkdir -p "${REPORT_DIR}" "${LOG_DIR}"
-
-to_windows_path() {
-  local path="$1"
-  if command -v cygpath >/dev/null 2>&1; then
-    cygpath -aw "${path}"
-  elif command -v wslpath >/dev/null 2>&1; then
-    wslpath -w "${path}"
-  else
-    printf '%s\n' "${path}"
-  fi
-}
-
-GRADLEW_SH="${ROOT_DIR}/gradlew"
-GRADLEW_BAT="${ROOT_DIR}/gradlew.bat"
-
-if [[ ! -x "${GRADLEW_SH}" ]]; then
-  chmod +x "${GRADLEW_SH}" 2>/dev/null || true
-fi
-
-if [[ -f "${GRADLEW_BAT}" && ( "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* ) ]]; then
-  GRADLE_BASE=("${GRADLEW_BAT}" "--no-daemon" "--console=plain")
-else
-  GRADLE_BASE=("${GRADLEW_SH}" "--no-daemon" "--console=plain")
-fi
 
 STEP_EXIT_CODES=""
 TESTS_CMD=""
@@ -42,13 +19,14 @@ run_step() {
   local step_name="$1"
   shift
   local log_file="${LOG_DIR}/${step_name}.log"
-  local cmd="${GRADLE_BASE[*]} $*"
+  local cmd
+  cmd="$(gradle_command_string "$@")"
   case "${step_name}" in
     tests) TESTS_CMD="${cmd}" ;;
     coverage) COVERAGE_CMD="${cmd}" ;;
   esac
   echo "Running ${step_name}: ${cmd}"
-  "${GRADLE_BASE[@]}" "$@" >"${log_file}" 2>&1
+  run_gradle "$@" >"${log_file}" 2>&1
   local exit_code=$?
   case "${step_name}" in
     tests) STEP_EXIT_CODES="${exit_code}" ;;

@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.tools.sceneeditor
 
 import com.pashkd.krender.engine.api.*
+import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
 import com.pashkd.krender.engine.render3d.ModelComponent
@@ -423,68 +424,28 @@ class SceneEditorOperations(
         context.logger.debug(TAG) { "Updated ambient light intensity value=$intensity" }
     }
 
-    fun setSkyboxAsset(path: String?) {
+    fun setEnvironmentAsset(path: String?) {
         val normalizedPath = normalizeOptionalAssetPath(path)
         val currentPath =
             document.descriptor
                 ?.settings
                 ?.environment
-                ?.skyboxAssetPath
+                ?.environmentAssetPath
         if (currentPath == normalizedPath) return
 
         updateSceneSettings { settings ->
             settings.copy(
-                environment = settings.environment.copy(skyboxAssetPath = normalizedPath),
+                environment = settings.environment.copy(environmentAssetPath = normalizedPath),
             )
         }
         markSceneChanged(
             if (normalizedPath == null) {
-                "Cleared scene skybox."
+                "Cleared scene Environment."
             } else {
-                "Scene skybox set to $normalizedPath"
+                "Scene Environment set to $normalizedPath"
             },
         )
-        context.logger.info(TAG) { "Updated scene skybox asset path='${normalizedPath ?: "<none>"}'" }
-    }
-
-    fun setSkyboxVisible(visible: Boolean) {
-        val current =
-            document.descriptor
-                ?.settings
-                ?.environment
-                ?.showSkybox ?: SceneEnvironmentDescriptor().showSkybox
-        if (current == visible) return
-
-        updateSceneSettings { settings ->
-            settings.copy(
-                environment = settings.environment.copy(showSkybox = visible),
-            )
-        }
-        markSceneChanged(if (visible) "Scene skybox enabled." else "Scene skybox hidden.")
-        context.logger.info(TAG) { "Updated scene skybox visibility visible=$visible" }
-    }
-
-    fun setEnvironmentIntensity(intensity: Float) {
-        if (!intensity.isFinite() || intensity < 0f) {
-            state.statusMessage = "Environment intensity must be finite and greater than or equal to 0."
-            context.logger.warn(TAG) { "Rejected environment intensity edit value=$intensity" }
-            return
-        }
-        val current =
-            document.descriptor
-                ?.settings
-                ?.environment
-                ?.environmentIntensity
-                ?: SceneEnvironmentDescriptor().environmentIntensity
-        if (current == intensity) return
-
-        updateSceneSettings { settings ->
-            settings.copy(
-                environment = settings.environment.copy(environmentIntensity = intensity),
-            )
-        }
-        markSceneChanged("Updated environment intensity.")
-        context.logger.debug(TAG) { "Updated environment intensity value=$intensity" }
+        context.logger.info(TAG) { "Updated scene environment asset path='${normalizedPath ?: "<none>"}'" }
     }
 
     fun setCameraFov(
@@ -888,18 +849,7 @@ class SceneEditorOperations(
         descriptor: SceneDescriptor,
         updateStatusMessage: Boolean,
     ): SceneValidationReport {
-        val resolvedSkybox =
-            RuntimeSceneValidator
-                .skyboxPath(descriptor)
-                ?.let { path ->
-                    runCatching {
-                        SkyboxAssetService(
-                            context.sceneFiles,
-                            context.logger,
-                        ).loadRequired(path)
-                    }.getOrNull()
-                }
-        val dependencyGraph = SceneDependencyCollector(context.sceneFiles).collect(descriptor, resolvedSkybox)
+        val dependencyGraph = SceneDependencyCollector(context.sceneFiles).collect(descriptor)
         val report = RuntimeSceneValidator.validate(descriptor, dependencyGraph)
         state.validationReport = report
         state.validationDirty = false
@@ -1265,9 +1215,7 @@ object SceneEditorSceneFactory {
                             ),
                         environment =
                             SceneEnvironmentDescriptor(
-                                skyboxAssetPath = DefaultSceneSkyboxAssetPath,
-                                showSkybox = true,
-                                environmentIntensity = 1f,
+                                environmentAssetPath = DefaultSceneEnvironmentAssetPath,
                             ),
                     ),
             )
@@ -1309,5 +1257,5 @@ object SceneEditorSceneFactory {
 
     private fun generateSceneId(): String = "scene:${UUID.randomUUID()}"
 
-    private const val DefaultSceneSkyboxAssetPath = "skyboxes/default_skybox_studio.krskybox"
+    private const val DefaultSceneEnvironmentAssetPath = HdrEnvironmentAssets.DEFAULT_MANIFEST
 }

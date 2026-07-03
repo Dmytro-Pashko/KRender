@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:b41ca31b-cac2-4ad6-a254-39677ca9d78e",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "irradiance_negy",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

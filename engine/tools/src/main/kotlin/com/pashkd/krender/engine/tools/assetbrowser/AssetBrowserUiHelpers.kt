@@ -39,36 +39,40 @@ internal fun assetBrowserFormatTimestamp(millis: Long): String = AssetBrowserTim
 
 internal fun assetBrowserNormalizePath(path: String): String = path.replace('\\', '/').trim().trimStart('/')
 
-internal fun assetBrowserIcon(asset: AssetDescriptor): String =
-    when {
-        asset.type == AssetType.Scene2DSkin -> "[Skin]"
-        asset.type == AssetType.Atlas -> "[Atlas]"
-        asset.type == AssetType.Font -> "[Font]"
-        else ->
-            when (asset.category) {
-                AssetCategory.Model -> "[M]"
-                AssetCategory.Texture -> "[T]"
-                AssetCategory.Skybox -> "[Sky]"
-                AssetCategory.Material -> "[Mat]"
-                AssetCategory.Terrain -> "[Ter]"
-                AssetCategory.Scene2D -> "[S2D]"
-                AssetCategory.UI -> "[UI]"
-                AssetCategory.Scene -> "[Sc]"
-                AssetCategory.Other -> "[?]"
-            }
-    }
+internal fun assetBrowserIcon(asset: AssetDescriptor): String = AssetTypeIcons[asset.type] ?: AssetCategoryIcons.getValue(asset.category)
 
 internal val SupportedBrowserCategories =
     setOf(
         AssetCategory.Model,
         AssetCategory.Texture,
-        AssetCategory.Skybox,
         AssetCategory.Material,
         AssetCategory.Terrain,
         AssetCategory.Scene2D,
         AssetCategory.UI,
+        AssetCategory.Environment,
         AssetCategory.Scene,
         AssetCategory.Other,
     )
 
 private val AssetBrowserTimestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+private val AssetTypeIcons =
+    mapOf(
+        AssetType.Scene2DSkin to "[Skin]",
+        AssetType.Atlas to "[Atlas]",
+        AssetType.Font to "[Font]",
+        AssetType.HdrSource to "[HDR]",
+    )
+
+private val AssetCategoryIcons =
+    mapOf(
+        AssetCategory.Model to "[M]",
+        AssetCategory.Texture to "[T]",
+        AssetCategory.Material to "[Mat]",
+        AssetCategory.Terrain to "[Ter]",
+        AssetCategory.Scene2D to "[S2D]",
+        AssetCategory.UI to "[UI]",
+        AssetCategory.Environment to "[Env]",
+        AssetCategory.Scene to "[Sc]",
+        AssetCategory.Other to "[?]",
+    )

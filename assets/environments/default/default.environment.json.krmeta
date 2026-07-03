@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:ee1600c2-b5e9-49e8-a0ba-ea89aec8b1e8",
+  "type": "Environment",
+  "category": "Environment",
+  "displayName": "default.environment",
+  "tags": [],
+  "importerId": null,
+  "importSettings": {}
+}

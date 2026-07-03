@@ -382,7 +382,7 @@ class SceneInspectorPanel(
     private val nameBuffer = ByteArray(NameInputBufferSize)
     private var bufferedEntityId: EntityId? = null
     private var nameInputActive = false
-    private var selectedSkyboxPath: String? = null
+    private var selectedEnvironmentPath: String? = null
 
     override fun draw() {
         val expanded = beginSceneEditorPanel(SceneEditorPanelIds.Inspector, layoutConfig, layoutTracker, eventLogger)
@@ -531,7 +531,7 @@ class SceneInspectorPanel(
         val ambientColor = settings?.lighting?.ambientColor?.copy() ?: defaultAmbientLightColor()
         val ambientIntensity = settings?.lighting?.ambientIntensity ?: DefaultAmbientLightIntensity
         val environment = settings?.environment ?: SceneEnvironmentDescriptor()
-        val availableSkyboxes = assetBrowser.skyboxAssets()
+        val availableEnvironments = assetBrowser.environmentAssets()
 
         ImGui.text("Scene Settings")
         val activeTerrain = settings?.activeTerrainEntityId?.let(document.world::getEntity)
@@ -578,35 +578,17 @@ class SceneInspectorPanel(
 
         ImGui.separator()
         ImGui.text("Environment")
-        syncSelectedSkyboxPath(environment.skyboxAssetPath, availableSkyboxes)
-        drawSkyboxSelector(environment.skyboxAssetPath, availableSkyboxes)
-        val showSkybox = booleanArrayOf(environment.showSkybox)
-        if (ImGui.checkbox("Show Skybox##scene_inspector_show_skybox", showSkybox)) {
-            operations.setSkyboxVisible(showSkybox[0])
-        }
-        environmentValueBuffer[0] = environment.environmentIntensity
-        if (
-            ImGui.drag(
-                "Environment Intensity##scene_inspector_environment_intensity",
-                environmentValueBuffer,
-                CameraPlaneDragSpeed,
-                0f,
-                0f,
-                "%.2f",
-                SliderFlag.AlwaysClamp,
-            )
-        ) {
-            operations.setEnvironmentIntensity(environmentValueBuffer[0])
-        }
+        syncSelectedEnvironmentPath(environment.environmentAssetPath, availableEnvironments)
+        drawEnvironmentSelector(environment.environmentAssetPath, availableEnvironments)
         with(dsl) {
-            button("Set Skybox##scene_inspector_set_skybox") {
-                operations.setSkyboxAsset(selectedSkyboxPath)
+            button("Set Environment##scene_inspector_set_environment") {
+                operations.setEnvironmentAsset(selectedEnvironmentPath)
             }
         }
         ImGui.sameLine()
         with(dsl) {
-            button("Clear Skybox##scene_inspector_clear_skybox") {
-                operations.setSkyboxAsset(null)
+            button("Clear Environment##scene_inspector_clear_environment") {
+                operations.setEnvironmentAsset(null)
             }
         }
     }
@@ -637,52 +619,52 @@ class SceneInspectorPanel(
         }
     }
 
-    private fun drawSkyboxSelector(
-        currentSkyboxPath: String?,
-        availableSkyboxes: List<com.pashkd.krender.engine.assets.AssetDescriptor>,
+    private fun drawEnvironmentSelector(
+        currentEnvironmentPath: String?,
+        availableEnvironments: List<com.pashkd.krender.engine.assets.AssetDescriptor>,
     ) {
-        if (availableSkyboxes.isEmpty()) {
-            ImGui.textWrapped("Skybox Asset: ${currentSkyboxPath ?: "<none>"}")
-            ImGui.text("No .krskybox assets found.")
+        if (availableEnvironments.isEmpty()) {
+            ImGui.textWrapped("Environment Asset: ${currentEnvironmentPath ?: "<none>"}")
+            ImGui.text("No `.environment.json` assets found.")
             return
         }
 
-        val preview = skyboxLabelFor(selectedSkyboxPath, availableSkyboxes)
-        if (!ImGui.beginCombo("Skybox Asset##scene_inspector_skybox_asset", preview)) return
+        val preview = environmentLabelFor(selectedEnvironmentPath, availableEnvironments)
+        if (!ImGui.beginCombo("Environment Asset##scene_inspector_environment_asset", preview)) return
 
-        if (ImGui.selectable("<none>##scene_inspector_skybox_none", selectedSkyboxPath == null)) {
-            selectedSkyboxPath = null
+        if (ImGui.selectable("<none>##scene_inspector_environment_none", selectedEnvironmentPath == null)) {
+            selectedEnvironmentPath = null
         }
-        availableSkyboxes.forEach { asset ->
-            val selected = asset.path == selectedSkyboxPath
-            if (ImGui.selectable("${asset.name}##scene_inspector_skybox_${asset.id.value}", selected)) {
-                selectedSkyboxPath = asset.path
+        availableEnvironments.forEach { asset ->
+            val selected = asset.path == selectedEnvironmentPath
+            if (ImGui.selectable("${asset.name}##scene_inspector_environment_${asset.id.value}", selected)) {
+                selectedEnvironmentPath = asset.path
             }
         }
         ImGui.endCombo()
     }
 
-    private fun syncSelectedSkyboxPath(
-        currentSkyboxPath: String?,
-        availableSkyboxes: List<com.pashkd.krender.engine.assets.AssetDescriptor>,
+    private fun syncSelectedEnvironmentPath(
+        currentEnvironmentPath: String?,
+        availableEnvironments: List<com.pashkd.krender.engine.assets.AssetDescriptor>,
     ) {
-        if (selectedSkyboxPath == null || selectedSkyboxPath == currentSkyboxPath) {
-            selectedSkyboxPath = currentSkyboxPath
+        if (selectedEnvironmentPath == null || selectedEnvironmentPath == currentEnvironmentPath) {
+            selectedEnvironmentPath = currentEnvironmentPath
             return
         }
 
-        val currentSelectionExists = availableSkyboxes.any { asset -> asset.path == selectedSkyboxPath }
+        val currentSelectionExists = availableEnvironments.any { asset -> asset.path == selectedEnvironmentPath }
         if (!currentSelectionExists) {
-            selectedSkyboxPath = currentSkyboxPath
+            selectedEnvironmentPath = currentEnvironmentPath
         }
     }
 
-    private fun skyboxLabelFor(
+    private fun environmentLabelFor(
         path: String?,
-        availableSkyboxes: List<com.pashkd.krender.engine.assets.AssetDescriptor>,
+        availableEnvironments: List<com.pashkd.krender.engine.assets.AssetDescriptor>,
     ): String {
         if (path == null) return "<none>"
-        val asset = availableSkyboxes.firstOrNull { candidate -> candidate.path == path }
+        val asset = availableEnvironments.firstOrNull { candidate -> candidate.path == path }
         return asset?.name?.takeIf(String::isNotBlank) ?: path
     }
 
@@ -902,7 +884,6 @@ class SceneInspectorPanel(
     private val cameraValueBuffer = FloatArray(1)
     private val ambientColorBuffer = FloatArray(4)
     private val ambientValueBuffer = FloatArray(1)
-    private val environmentValueBuffer = FloatArray(1)
     private val lightColorBuffer = FloatArray(4)
     private val lightValueBuffer = FloatArray(1)
     private val lightVectorBuffer = FloatArray(3)

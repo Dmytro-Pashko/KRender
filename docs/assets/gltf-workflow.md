@@ -8,36 +8,39 @@ glTF / GLB are the primary 3D model formats for the current KRender workflow. Th
 LibGDX renderer remains available as a fallback and inspection path, but new 3D workflow changes
 should target glTF / PBR first.
 
-## HDR / IBL Environment Layout
+## Environment / IBL Layout
 
 KRender PBR environments live in:
 
 ```text
-hdr/<environment_name>/
+environments/<environment_name>/
 ```
 
 The default environment is:
 
 ```text
-hdr/default/
+environments/default/
 ```
 
 Current default environment files:
 
 ```text
-hdr/default/environment.json
-hdr/default/skybox/default_skybox_studio.png
-hdr/default/source/aerial-green-landscape-clouds_2K.exr
-hdr/default/source/aerial-green-landscape-clouds_4K.exr
+environments/default/default.environment.json
+environments/default/sources/aerial-green-landscape-clouds_2K.exr
+environments/default/sources/aerial-green-landscape-clouds_4K.exr
 ```
 
 Generated files:
 
 ```text
-hdr/default/skybox/generated/environment_{face}.png
-hdr/default/irradiance/irradiance_{face}.png
-hdr/default/radiance/radiance_{mip}_{face}.png
-hdr/_common/brdf/brdfLUT.png
+environments/default/generated/skybox/{face}.ktx
+environments/default/generated/irradiance/irradiance.ktx
+environments/default/generated/radiance/radiance_mip_00.ktx
+environments/default/generated/radiance/radiance_mip_01.ktx
+environments/default/generated/radiance/radiance_mip_02.ktx
+environments/default/generated/radiance/radiance_mip_03.ktx
+environments/default/generated/radiance/radiance_mip_04.ktx
+shared/pbr/brdf_lut.ktx
 ```
 
 KRender environment manifests support multiple source variants:
@@ -51,38 +54,40 @@ HDR 4K
 
 Only one source variant is active at a time.
 
-IBL generated maps:
+IBL runtime resources:
 
 - diffuse IBL = irradiance cubemap
 - specular IBL = prefiltered radiance cubemap with mip levels
 - BRDF LUT = shared lookup texture, not environment-specific
 
-### Manifest schema version 2
+### Manifest schema version 1
 
-Every environment uses `environment.json` with schema `krender.hdr-environment` and version 2 or
-newer. `source.variants` lists all available source files, while `source.activeVariant` selects one
-variant by id. Source paths, skybox paths, generated face patterns, and the BRDF LUT path resolve
-relative to the manifest directory.
+Every Environment uses `<environment_name>.environment.json` with schema
+`krender.environment` and version `1`. The manifest stores:
 
-The active source and cubemap-cross skybox must exist when the manifest is loaded. Irradiance and
-radiance files may be absent before generation. The BRDF LUT path normally points to the shared
-`hdr/_common/brdf/brdfLUT.png`; the renderer can fall back to the copy bundled with gdx-gltf.
+- runtime settings such as exposure, rotation, diffuse/specular intensity, and background mode;
+- one or more source variants (`.exr` / `.hdr`);
+- skybox / irradiance / radiance / BRDF LUT resource references;
+- optional generation metadata used by the broader workflow.
+
+All resource paths resolve relative to the manifest directory. Source files must exist when used by
+editor tooling. Generated IBL resources may be absent temporarily; Environment Editor and Model
+Viewer should stay functional and report clear warnings when full PBR inputs are missing.
 
 ### Add an environment
 
-1. Create `assets/hdr/<environment_name>/environment.json`.
-2. Add one or more equirectangular EXR or HDR files under `source/`.
-3. Add a 4x3 cubemap-cross PNG under `skybox/`.
-4. Copy the v2 manifest structure, assign unique source variant ids, and select `activeVariant`.
-5. Keep the standard six face names: `negx`, `posx`, `negy`, `posy`, `negz`, `posz`.
-6. Generate and commit the derived PNG assets.
-7. Select the environment by setting the renderer environment preset to the manifest preset name,
-   for example `default`.
+1. Create `assets/environments/<environment_name>/<environment_name>.environment.json`.
+2. Add one or more equirectangular EXR or HDR files under `sources/`.
+3. Add manifest source entries with stable ids and one `isDefault = true` source.
+4. Define resource targets for skybox, irradiance, radiance, and BRDF LUT.
+5. Generate and commit the derived IBL assets.
+6. Open the manifest in Environment Editor for validation and runtime/background tuning.
+7. Select the Environment asset in Model Viewer, Scene Editor, Scene Player, or game/runtime code.
 
 From the repository root, generate the complete default environment with:
 
 ```bash
-./gradlew :engine:backend-gdx:generateHdrEnvironment --args="generate-hdr-env hdr/default/environment.json --all"
+./gradlew :engine:backend-gdx:generateHdrEnvironment --args="generate-hdr-env environments/default/default.environment.json --all"
 ```
 
 On Windows, use `.\gradlew.bat` in place of `./gradlew`. The Gradle task uses `assets/` as its
@@ -115,7 +120,7 @@ The current Model Viewer channel workflow supports:
 - No physically exact cosine-weighted irradiance convolution yet
 - No GGX importance-sampled radiance prefilter yet
 - No per-environment BRDF LUT generation; BRDF LUT remains shared by design
-- No full Environment Editor / Asset Browser authoring workflow yet
+- Environment generation is still outside the current Environment Editor MVP
 
 The current generator is intentionally an MVP approximation. A future implementation can replace
 these operations with physically correct cosine-weighted irradiance convolution and GGX

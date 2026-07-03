@@ -65,3 +65,10 @@ val AssetImportFileDialogFilters =
         FileDialogFilter("Binary model", listOf("glb")),
         FileDialogFilter("Scene2D Skin", listOf("json")),
     )
+
+val EnvironmentSourceFileDialogFilters =
+    listOf(
+        FileDialogFilter("HDR Environment Sources", listOf("exr", "hdr")),
+        FileDialogFilter("OpenEXR", listOf("exr")),
+        FileDialogFilter("Radiance HDR", listOf("hdr")),
+    )

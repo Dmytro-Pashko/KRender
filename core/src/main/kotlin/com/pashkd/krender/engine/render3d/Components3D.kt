@@ -55,11 +55,14 @@ data class LightComponent(
     val direction: Vec3 = Vec3(-1f, -0.8f, -0.2f),
 ) : Component
 
-class ModelRenderSystem : System() {
+class ModelRenderSystem(
+    private val gltfRendererSettings: (() -> GltfRendererSettings?)? = null,
+) : System() {
     override fun render(
         world: SceneWorld,
         alpha: Float,
     ) {
+        val rendererSettings = gltfRendererSettings?.invoke()
         world.query<TransformComponent, ModelComponent>().forEach { entity ->
             val model = entity.get<ModelComponent>() ?: return@forEach
             val transform = entity.get<TransformComponent>() ?: return@forEach
@@ -69,11 +72,14 @@ class ModelRenderSystem : System() {
                     model = model.model,
                     transform = transform.snapshot(),
                     material = model.material,
+                    gltfRenderer = rendererSettings?.takeIf { model.model.supportsGltfPbr() },
                 ),
             )
         }
     }
 }
+
+private fun AssetRef<ModelAsset>.supportsGltfPbr(): Boolean = path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true)
 
 class WorldGridSystem(
     private val halfExtentCells: Int = 20,
