@@ -23,7 +23,7 @@ const val UV_CHECKER_TEXTURE_1K = "textures/uv_checker_1k.png"
 const val UV_CHECKER_TEXTURE_2K = "textures/uv_checker_2k.png"
 const val UV_CHECKER_TEXTURE_4K = "textures/uv_checker_4k.png"
 const val DEFAULT_UV_CHECKER_TEXTURE = "textures/uv_checker_2k.png"
-const val DEFAULT_GLTF_ENVIRONMENT_PRESET = HdrEnvironmentAssets.DEFAULT_MANIFEST
+const val DEFAULT_ENVIRONMENT_PRESET = HdrEnvironmentAssets.DEFAULT_MANIFEST
 
 val UV_CHECKER_TEXTURE_OPTIONS =
     listOf(
@@ -100,29 +100,29 @@ data class ModelViewerState(
     /** Current debug-rendering warning surfaced in the UI. */
     var debugWarning: String? = null,
     /** Current renderer warning surfaced in the UI. */
-    var gltfRendererWarning: String? = null,
+    var pbrRendererWarning: String? = null,
     /** Current renderer path for shaded model rendering. */
     var rendererMode: ModelViewerRendererMode = DEFAULT_MODEL_VIEWER_RENDERER_MODE,
-    var gltfEnvironmentPreset: String = DEFAULT_GLTF_ENVIRONMENT_PRESET,
-    var gltfExposure: Float = 1f,
-    var gltfShowSkybox: Boolean = true,
-    var gltfSkyboxIntensity: Float = 1f,
-    var gltfAmbientIntensity: Float = 1f,
-    var gltfEnvironmentIntensity: Float = 1f,
-    var gltfEnvironmentRotationDegrees: Float = 0f,
-    var gltfBackgroundMode: BackgroundMode = BackgroundMode.Skybox,
-    var gltfBackgroundColor: Color = Color(0.08f, 0.09f, 0.11f, 1f),
-    var gltfEnvironmentCacheKey: String = DEFAULT_GLTF_ENVIRONMENT_PRESET,
-    var gltfAppliedEnvironmentPreset: String? = null,
-    var gltfToneMapping: PbrToneMapping = PbrToneMapping.Aces,
-    var gltfGammaCorrection: Boolean = true,
-    var gltfSrgbTextures: Boolean = true,
-    var gltfDirectionalLightEnabled: Boolean = true,
-    var gltfDirectionalLightIntensity: Float = 1f,
-    var gltfDirectionalLightColor: Color = Color.white(),
-    var gltfDirectionalLightYawDegrees: Float = 45f,
-    var gltfDirectionalLightPitchDegrees: Float = -35f,
-    var gltfWireframeOverlay: Boolean = false,
+    var pbrEnvironmentPreset: String = DEFAULT_ENVIRONMENT_PRESET,
+    var pbrExposure: Float = 1f,
+    var pbrShowSkybox: Boolean = true,
+    var pbrSkyboxIntensity: Float = 1f,
+    var pbrDiffuseIntensity: Float = 1f,
+    var pbrSpecularIntensity: Float = 1f,
+    var pbrEnvironmentRotationDegrees: Float = 0f,
+    var pbrBackgroundMode: BackgroundMode = BackgroundMode.Skybox,
+    var pbrBackgroundColor: Color = Color(0.08f, 0.09f, 0.11f, 1f),
+    var pbrEnvironmentCacheKey: String = DEFAULT_ENVIRONMENT_PRESET,
+    var pbrAppliedEnvironmentPreset: String? = null,
+    var pbrToneMapping: PbrToneMapping = PbrToneMapping.Aces,
+    var pbrGammaCorrection: Boolean = true,
+    var pbrSrgbTextures: Boolean = true,
+    var pbrDirectionalLightEnabled: Boolean = true,
+    var pbrDirectionalLightIntensity: Float = 1f,
+    var pbrDirectionalLightColor: Color = Color.white(),
+    var pbrDirectionalLightYawDegrees: Float = 45f,
+    var pbrDirectionalLightPitchDegrees: Float = -35f,
+    var pbrWireframeOverlay: Boolean = false,
     /** Currently selected mesh part in the Mesh Parts panel. */
     var selectedMeshPartIndex: Int? = null,
     /** Currently selected material in the Materials panel. */

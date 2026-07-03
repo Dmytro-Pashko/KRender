@@ -111,7 +111,7 @@ class ModelViewerSystem(
         val wireframeOverlay =
             when (state.rendererMode) {
                 ModelViewerRendererMode.LibGdx -> state.legacyWireframeOverlay
-                ModelViewerRendererMode.GltfPbr -> state.gltfWireframeOverlay
+                ModelViewerRendererMode.GltfPbr -> state.pbrWireframeOverlay
                 ModelViewerRendererMode.Wireframe -> false
             }
         val materialChanged =
@@ -231,7 +231,7 @@ class ModelViewerSystem(
         }
 
         state.debugWarning = debugWarningFor(effectiveDebugMode, selectedMaterialIndex)
-        state.gltfRendererWarning = gltfRendererWarningFor()
+        state.pbrRendererWarning = pbrRendererWarningFor()
         val warning = state.debugWarning
         if (warning != null && warning != lastDebugWarning) {
             logger.warn(TAG) { warning }
@@ -301,7 +301,7 @@ class ModelViewerSystem(
         }
     }
 
-    private fun gltfRendererWarningFor(): String? {
+    private fun pbrRendererWarningFor(): String? {
         if (state.rendererMode != ModelViewerRendererMode.GltfPbr) return null
         return when {
             !state.model.path.isGltfPath() ->
@@ -318,21 +318,21 @@ class ModelViewerSystem(
         if (state.rendererMode != ModelViewerRendererMode.GltfPbr) return
         val snapshot =
             ModelViewerEnvironmentLogSnapshot(
-                preset = state.gltfEnvironmentPreset,
-                cacheKey = state.gltfEnvironmentCacheKey,
-                appliedPreset = state.gltfAppliedEnvironmentPreset,
-                backgroundMode = state.gltfBackgroundMode.name,
-                backgroundColor = state.gltfBackgroundColor.copy(),
-                showSkybox = state.gltfShowSkybox,
-                skyboxIntensity = state.gltfSkyboxIntensity,
-                diffuseIntensity = state.gltfAmbientIntensity,
-                specularIntensity = state.gltfEnvironmentIntensity,
-                exposure = state.gltfExposure,
-                rotationDegrees = state.gltfEnvironmentRotationDegrees,
+                preset = state.pbrEnvironmentPreset,
+                cacheKey = state.pbrEnvironmentCacheKey,
+                appliedPreset = state.pbrAppliedEnvironmentPreset,
+                backgroundMode = state.pbrBackgroundMode.name,
+                backgroundColor = state.pbrBackgroundColor.copy(),
+                showSkybox = state.pbrShowSkybox,
+                skyboxIntensity = state.pbrSkyboxIntensity,
+                diffuseIntensity = state.pbrDiffuseIntensity,
+                specularIntensity = state.pbrSpecularIntensity,
+                exposure = state.pbrExposure,
+                rotationDegrees = state.pbrEnvironmentRotationDegrees,
             )
         if (snapshot == lastEnvironmentLogSnapshot) return
         logger.info(TAG) {
-            "ModelViewer glTF environment state preset='${snapshot.preset}' applied='${snapshot.appliedPreset}' " +
+            "ModelViewer PBR environment state preset='${snapshot.preset}' applied='${snapshot.appliedPreset}' " +
                 "cacheKey='${snapshot.cacheKey}' backgroundMode=${snapshot.backgroundMode} " +
                 "backgroundColor=${snapshot.backgroundColor} " +
                 "showSkybox=${snapshot.showSkybox} skyboxIntensity=${snapshot.skyboxIntensity} " +
@@ -530,7 +530,7 @@ class ModelViewerModelRenderSystem(
                 material = model.material,
                 visibleMeshPartIndices = visibleMeshPartIndices,
                 debugView = debugView,
-                gltfRenderer = state.gltfRendererSettings(debugView),
+                gltfRenderer = state.pbrRendererSettings(debugView),
             ),
         )
     }
@@ -562,28 +562,28 @@ class ModelViewerModelRenderSystem(
         )
     }
 
-    private fun ModelViewerState.gltfRendererSettings(debugView: MaterialDebugView?): GltfRendererSettings? {
+    private fun ModelViewerState.pbrRendererSettings(debugView: MaterialDebugView?): GltfRendererSettings? {
         if (rendererMode != ModelViewerRendererMode.GltfPbr) return null
         return GltfRendererSettings(
             enabled = debugView?.active != true,
-            environmentPreset = gltfEnvironmentPreset,
-            environmentCacheKey = gltfEnvironmentCacheKey,
-            exposure = gltfExposure.coerceAtLeast(0f),
-            backgroundMode = gltfBackgroundMode,
-            backgroundColor = gltfBackgroundColor.copy(),
-            showSkybox = gltfShowSkybox,
-            skyboxIntensity = gltfSkyboxIntensity.coerceIn(0f, 1f),
-            ambientIntensity = gltfAmbientIntensity.coerceAtLeast(0f),
-            environmentIntensity = gltfEnvironmentIntensity.coerceAtLeast(0f),
-            environmentRotationDegrees = gltfEnvironmentRotationDegrees,
-            toneMapping = gltfToneMapping,
-            gammaCorrection = gltfGammaCorrection,
-            srgbTextures = gltfSrgbTextures,
-            directionalLightEnabled = gltfDirectionalLightEnabled,
-            directionalLightIntensity = gltfDirectionalLightIntensity.coerceAtLeast(0f),
-            directionalLightColor = gltfDirectionalLightColor.copy(),
-            directionalLightYawDegrees = gltfDirectionalLightYawDegrees,
-            directionalLightPitchDegrees = gltfDirectionalLightPitchDegrees,
+            environmentPreset = pbrEnvironmentPreset,
+            environmentCacheKey = pbrEnvironmentCacheKey,
+            exposure = pbrExposure.coerceAtLeast(0f),
+            backgroundMode = pbrBackgroundMode,
+            backgroundColor = pbrBackgroundColor.copy(),
+            showSkybox = pbrShowSkybox,
+            skyboxIntensity = pbrSkyboxIntensity.coerceIn(0f, 1f),
+            ambientIntensity = pbrDiffuseIntensity.coerceAtLeast(0f),
+            environmentIntensity = pbrSpecularIntensity.coerceAtLeast(0f),
+            environmentRotationDegrees = pbrEnvironmentRotationDegrees,
+            toneMapping = pbrToneMapping,
+            gammaCorrection = pbrGammaCorrection,
+            srgbTextures = pbrSrgbTextures,
+            directionalLightEnabled = pbrDirectionalLightEnabled,
+            directionalLightIntensity = pbrDirectionalLightIntensity.coerceAtLeast(0f),
+            directionalLightColor = pbrDirectionalLightColor.copy(),
+            directionalLightYawDegrees = pbrDirectionalLightYawDegrees,
+            directionalLightPitchDegrees = pbrDirectionalLightPitchDegrees,
         )
     }
 
