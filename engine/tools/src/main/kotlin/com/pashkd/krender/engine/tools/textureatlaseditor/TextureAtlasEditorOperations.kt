@@ -312,31 +312,26 @@ class TextureAtlasEditorOperations(
             return
         }
 
-        val regionWidth = region.size.first.coerceAtLeast(1)
-        val regionHeight = region.size.second.coerceAtLeast(1)
-        val zoom =
-            minOf(
-                canvas.width / regionWidth.toFloat(),
-                canvas.height / regionHeight.toFloat(),
-            ).times(0.9f).coerceIn(TextureAtlasMinPreviewZoom, TextureAtlasMaxPreviewZoom)
+        val focus =
+            computeRegionFocus(
+                rect = canvas,
+                textureWidth = textureWidth,
+                textureHeight = textureHeight,
+                previewState = state.preview,
+                region = region,
+            ) ?: run {
+                state.statusMessage = "Select a region with valid bounds to focus it."
+                return
+            }
 
-        val imageWidth = textureWidth * zoom
-        val imageHeight = textureHeight * zoom
-        val baseImageX = canvas.x + (canvas.width - imageWidth) * 0.5f
-        val baseImageY = canvas.y + (canvas.height - imageHeight) * 0.5f
-        val regionCenterX = region.xy.first + regionWidth * 0.5f
-        val regionCenterY = region.xy.second + regionHeight * 0.5f
-        val desiredCenterX = canvas.x + canvas.width * 0.5f
-        val desiredCenterY = canvas.y + canvas.height * 0.5f
-
-        state.preview.customZoom = zoom
-        state.preview.viewport.zoom = zoom
+        state.preview.customZoom = focus.zoom
+        state.preview.viewport.zoom = focus.zoom
         state.preview.zoomMode = TexturePreviewZoomMode.Custom
-        state.preview.viewport.panX = desiredCenterX - (baseImageX + regionCenterX * zoom)
-        state.preview.viewport.panY = desiredCenterY - (baseImageY + regionCenterY * zoom)
+        state.preview.viewport.panX = focus.panX
+        state.preview.viewport.panY = focus.panY
         logPreviewCameraState("focus-region:${region.id.regionName}")
         engine.logger.info(TAG) {
-            "Texture Atlas Editor fit selected region='${region.id.regionName}' page='${region.id.pageName}' zoom=$zoom"
+            "Texture Atlas Editor fit selected region='${region.id.regionName}' page='${region.id.pageName}' zoom=${focus.zoom}"
         }
     }
 

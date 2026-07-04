@@ -1,6 +1,10 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
 import com.pashkd.krender.engine.api.TexturePreviewHandle
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewOverlays
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewRegion
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewRegionSelection
+import com.pashkd.krender.engine.tools.textureatlaseditor.AtlasRegionId
 import com.pashkd.krender.engine.tools.textureatlaseditor.BitmapFontGlyph
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDraft
@@ -19,25 +23,7 @@ import glm_.vec2.Vec2 as ImVec2
 
 internal object TextureAtlasEditorPreviewOverlays {
     fun drawCheckerboard(layout: TexturePreviewViewportLayout) {
-        val drawList = ImGui.windowDrawList
-        val tile = (16f * layout.effectiveZoom).coerceIn(8f, 32f)
-        var row = 0
-        var y = layout.surfaceY
-        while (y < layout.surfaceY + layout.surfaceHeight) {
-            var column = 0
-            var x = layout.surfaceX
-            while (x < layout.surfaceX + layout.surfaceWidth) {
-                drawList.addRectFilled(
-                    ImVec2(x, y),
-                    ImVec2(minOf(x + tile, layout.surfaceX + layout.surfaceWidth), minOf(y + tile, layout.surfaceY + layout.surfaceHeight)),
-                    if ((row + column) % 2 == 0) CheckerLight else CheckerDark,
-                )
-                x += tile
-                column++
-            }
-            y += tile
-            row++
-        }
+        TexturePreviewOverlays.drawCheckerboard(layout)
     }
 
     fun drawGrid(
@@ -45,19 +31,7 @@ internal object TextureAtlasEditorPreviewOverlays {
         spacingPixels: Int = 32,
         color: Int = GridColor,
     ) {
-        val spacing = spacingPixels * layout.effectiveZoom
-        if (spacing < 8f) return
-        val drawList = ImGui.windowDrawList
-        var x = layout.surfaceX
-        while (x <= layout.surfaceX + layout.surfaceWidth) {
-            drawList.addLine(ImVec2(x, layout.surfaceY), ImVec2(x, layout.surfaceY + layout.surfaceHeight), color, 1f)
-            x += spacing
-        }
-        var y = layout.surfaceY
-        while (y <= layout.surfaceY + layout.surfaceHeight) {
-            drawList.addLine(ImVec2(layout.surfaceX, y), ImVec2(layout.surfaceX + layout.surfaceWidth, y), color, 1f)
-            y += spacing
-        }
+        TexturePreviewOverlays.drawGrid(layout, spacingPixels, color)
     }
 
     fun drawRegionBounds(
@@ -66,35 +40,19 @@ internal object TextureAtlasEditorPreviewOverlays {
         selectedRegion: TextureAtlasRegion?,
         hoveredRegion: TextureAtlasRegion?,
     ) {
-        val drawList = ImGui.windowDrawList
-        regions.forEach { region ->
-            val rect = atlasRegionScreenRect(region, layout) ?: return@forEach
-            val strokeColor =
-                when {
-                    selectedRegion?.id == region.id -> SelectedColor
-                    hoveredRegion?.id == region.id -> HoverColor
-                    else -> BoundsColor
-                }
-            val fillColor =
-                when {
-                    selectedRegion?.id == region.id -> SelectedFillColor
-                    hoveredRegion?.id == region.id -> HoverFillColor
-                    else -> null
-                }
-            fillColor?.let { color ->
-                drawList.addRectFilled(ImVec2(rect.minX, rect.minY), ImVec2(rect.maxX, rect.maxY), color)
-            }
-            drawList.addRect(ImVec2(rect.minX, rect.minY), ImVec2(rect.maxX, rect.maxY), strokeColor, 0f, thickness = 2f)
-        }
+        TexturePreviewOverlays.drawRegionBounds(
+            regions = regions.mapNotNull(TextureAtlasRegion::toPreviewRegion),
+            layout = layout,
+            selection = TexturePreviewRegionSelection(selectedRegion?.id, hoveredRegion?.id),
+        )
     }
 
     fun labelRegion(
         region: TextureAtlasRegion,
         layout: TexturePreviewViewportLayout,
     ) {
-        val rect = atlasRegionScreenRect(region, layout) ?: return
-        val drawList = ImGui.windowDrawList
-        drawList.addText(ImVec2(rect.minX + 4f, rect.minY + 4f), LabelColor, region.id.regionName)
+        val previewRegion = region.toPreviewRegion() ?: return
+        TexturePreviewOverlays.labelRegion(previewRegion, layout)
     }
 
     fun drawNinePatchGuides(
@@ -506,12 +464,9 @@ internal object TextureAtlasEditorPreviewOverlays {
             screenX >= rect.minX && screenX <= rect.maxX && screenY >= rect.minY && screenY <= rect.maxY
         }
 
-    private val CheckerLight = packImColor(104, 104, 104, 255)
-    private val CheckerDark = packImColor(72, 72, 72, 255)
     private val GridColor = packImColor(255, 255, 255, 48)
     private val BoundsColor = packImColor(255, 214, 102, 180)
     private val HoverFillColor = packImColor(64, 173, 255, 56)
-    private val HoverColor = packImColor(64, 173, 255, 220)
     private val SelectedFillColor = packImColor(255, 92, 92, 56)
     private val SelectedColor = packImColor(255, 92, 92, 255)
     private val LabelColor = packImColor(255, 255, 255, 255)
@@ -614,6 +569,19 @@ internal object TextureAtlasEditorPreviewOverlays {
             )
         }
     }
+}
+
+private fun TextureAtlasRegion.toPreviewRegion(): TexturePreviewRegion<AtlasRegionId>? {
+    val xy = xy ?: return null
+    val size = size ?: return null
+    return TexturePreviewRegion(
+        id = id,
+        label = id.regionName,
+        x = xy.first,
+        y = xy.second,
+        width = size.first,
+        height = size.second,
+    )
 }
 
 private fun packedRegionScreenRect(
