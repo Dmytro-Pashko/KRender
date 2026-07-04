@@ -37,6 +37,8 @@ data class EnvironmentResourcePreviewModel(
     val contentWidth: Int,
     val contentHeight: Int,
     val items: List<EnvironmentResourceCanvasItem>,
+    val canvasPreviewHandle: TexturePreviewHandle? = null,
+    val drawItemsAsOverlayRegions: Boolean = false,
     val diagnostics: List<String> = emptyList(),
     val selectedItem: EnvironmentResourceCanvasItem? = null,
     val hoveredItem: EnvironmentResourceCanvasItem? = null,

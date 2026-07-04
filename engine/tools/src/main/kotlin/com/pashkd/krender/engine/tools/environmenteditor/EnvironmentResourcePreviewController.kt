@@ -29,6 +29,7 @@ class EnvironmentResourcePreviewController(
                 selectedMipLevel = inspectorState.selectedRadianceMip,
                 selectedItemId = inspectorState.selectedRegionOrFace,
                 hoveredItemId = inspectorState.hoveredRegionOrFace,
+                skyboxImportState = state.skyboxImportState,
             )
         syncSelection(model)
         return model

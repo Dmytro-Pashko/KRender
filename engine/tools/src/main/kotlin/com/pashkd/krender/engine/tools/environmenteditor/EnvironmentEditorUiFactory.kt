@@ -21,6 +21,7 @@ class EnvironmentEditorUiFactory(
     private val previewController: EnvironmentPreviewController,
     private val resourcePreviewController: EnvironmentResourcePreviewController,
     private val selectedResourcePreviewController: EnvironmentSelectedResourcePreviewController,
+    private val skyboxImportController: SkyboxAtlasImportController,
     private val environmentService: EnvironmentService,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val engine: EngineContext,
@@ -46,7 +47,14 @@ class EnvironmentEditorUiFactory(
             )
             ui.addSafePanel(
                 "Resource Inspector",
-                EnvironmentResourceInspectorPanel(state, resourcePreviewController, layout, layoutTracker, eventLogger),
+                EnvironmentResourceInspectorPanel(
+                    state,
+                    resourcePreviewController,
+                    skyboxImportController,
+                    layout,
+                    layoutTracker,
+                    eventLogger,
+                ),
             )
             ui.addSafePanel(
                 "Diagnostics",

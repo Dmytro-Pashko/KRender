@@ -38,6 +38,7 @@ class EnvironmentEditorScene(
         previewController = EnvironmentPreviewController(engine.sceneFiles)
         val resourcePreviewController = EnvironmentResourcePreviewController(state, engine)
         val selectedResourcePreviewController = EnvironmentSelectedResourcePreviewController(state)
+        val skyboxImportController = SkyboxAtlasImportController(state, engine.assetRegistry.baseDir())
         val layoutTracker = loadLayout()
         val controller = EnvironmentEditorController(state, engine, environmentService, layoutTracker)
 
@@ -51,6 +52,7 @@ class EnvironmentEditorScene(
                 previewController,
                 resourcePreviewController,
                 selectedResourcePreviewController,
+                skyboxImportController,
                 environmentService,
                 layoutTracker,
                 engine,

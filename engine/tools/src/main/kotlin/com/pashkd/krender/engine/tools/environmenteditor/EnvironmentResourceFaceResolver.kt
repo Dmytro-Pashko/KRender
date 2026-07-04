@@ -21,13 +21,20 @@ class EnvironmentResourceFaceResolver(
         selectedMipLevel: Int,
         selectedItemId: String?,
         hoveredItemId: String?,
+        skyboxImportState: SkyboxImportState? = null,
     ): EnvironmentResourcePreviewModel {
         return when (mode) {
             EnvironmentResourceMode.Skybox -> buildSkyboxModel(environment, selectedItemId, hoveredItemId)
             EnvironmentResourceMode.Irradiance -> buildIrradianceModel(environment, selectedItemId, hoveredItemId)
             EnvironmentResourceMode.Radiance -> buildRadianceModel(environment, selectedMipLevel, selectedItemId, hoveredItemId)
             EnvironmentResourceMode.BrdfLut -> buildBrdfLutModel(environment, selectedItemId, hoveredItemId)
-            EnvironmentResourceMode.ImportedSkyboxSource -> buildImportedSourceModel(environment)
+            EnvironmentResourceMode.ImportedSkyboxSource ->
+                buildImportedSourceModel(
+                    environment = environment,
+                    importState = skyboxImportState,
+                    selectedItemId = selectedItemId,
+                    hoveredItemId = hoveredItemId,
+                )
         }
     }
 
@@ -151,37 +158,86 @@ class EnvironmentResourceFaceResolver(
         return buildModel(EnvironmentResourceMode.BrdfLut, items, selectedItemId, hoveredItemId, diagnostics, singleTextureCanvas = true)
     }
 
-    private fun buildImportedSourceModel(environment: Environment): EnvironmentResourcePreviewModel {
-        val source = environment.sources.firstOrNull { it.isDefault } ?: environment.sources.firstOrNull()
-        val previewable = source?.path?.let { path -> isPreviewableTexture(path) } == true
-        if (source == null || !previewable) {
+    private fun buildImportedSourceModel(
+        environment: Environment,
+        importState: SkyboxImportState?,
+        selectedItemId: String? = null,
+        hoveredItemId: String? = null,
+    ): EnvironmentResourcePreviewModel {
+        val sourcePath = importState?.sourcePath?.takeIf(String::isNotBlank)
+        val preview =
+            sourcePath
+                ?.takeIf(::isPreviewableTexture)
+                ?.let { path ->
+                    queueTexture(path)
+                    texturePreviewService.preview(path)
+                }
+        val previewHandle = (preview as? TexturePreviewResult.Available)?.handle
+        val sourceFile = sourcePath?.let { path -> File(assetRoot, path) }
+        val metadata = sourceFile?.takeIf(File::isFile)?.let(TextureMetadataReader::read)
+        if (sourcePath == null || previewHandle == null || importState == null) {
             return EnvironmentResourcePreviewModel(
                 mode = EnvironmentResourceMode.ImportedSkyboxSource,
                 contentWidth = 1,
                 contentHeight = 1,
                 items = emptyList(),
-                diagnostics = listOf("No imported skybox source preview is available yet for the current Environment source."),
+                diagnostics = listOf("No imported skybox source preview is available yet. Enter a previewable source texture path in Skybox Import."),
                 statusMessage = "Imported Skybox Source preview is not available.",
             )
         }
-        val item =
-            buildCanvasItem(
-                environmentManifestPath = environment.manifestPath,
-                label = source.id,
-                id = "imported_source",
-                resourceMode = EnvironmentResourceMode.ImportedSkyboxSource,
-                manifestPath = source.path,
-                formatHint = source.format.name,
-                regionIndex = 0,
-                singleTextureCanvas = true,
-            )
-        return buildModel(
+        val items =
+            importState.regions.values
+                .sortedBy { it.face.ordinal }
+                .map { region ->
+                    EnvironmentResourceCanvasItem(
+                        id = region.face.id,
+                        label = region.face.id,
+                        resourceMode = EnvironmentResourceMode.ImportedSkyboxSource,
+                        region =
+                            TexturePreviewRegion(
+                                id = region.face.id,
+                                label = region.face.id,
+                                x = region.x,
+                                y = region.y,
+                                width = region.width,
+                                height = region.height,
+                            ),
+                        manifestPath = sourcePath,
+                        resolvedPath = sourcePath,
+                        previewHandle = previewHandle,
+                        width = previewHandle.width,
+                        height = previewHandle.height,
+                        format = sourcePath.substringAfterLast('.', "").uppercase(),
+                        exists = sourceFile?.exists() == true,
+                        sourceRegion =
+                            EnvironmentResourceSourceRegion(
+                                x = region.x,
+                                y = region.y,
+                                width = region.width,
+                                height = region.height,
+                                u0 = region.x / previewHandle.width.toFloat(),
+                                v0 = region.y / previewHandle.height.toFloat(),
+                                u1 = (region.x + region.width) / previewHandle.width.toFloat(),
+                                v1 = (region.y + region.height) / previewHandle.height.toFloat(),
+                            ),
+                        warnings =
+                            buildList {
+                                if (sourceFile?.exists() != true) add("Source file is missing.")
+                            },
+                    )
+                }
+        val selected = items.firstOrNull { it.id == selectedItemId } ?: items.firstOrNull()
+        return EnvironmentResourcePreviewModel(
             mode = EnvironmentResourceMode.ImportedSkyboxSource,
-            items = listOf(item),
-            selectedItemId = item.id,
-            hoveredItemId = null,
-            diagnostics = if (item.exists) emptyList() else listOf("Imported skybox source file is missing."),
-            singleTextureCanvas = true,
+            contentWidth = metadata?.width ?: previewHandle.width,
+            contentHeight = metadata?.height ?: previewHandle.height,
+            items = items,
+            canvasPreviewHandle = previewHandle,
+            drawItemsAsOverlayRegions = true,
+            diagnostics = if (sourceFile?.exists() == true) emptyList() else listOf("Imported skybox source file is missing."),
+            selectedItem = selected,
+            hoveredItem = items.firstOrNull { it.id == hoveredItemId },
+            statusMessage = if (selected != null) "Inspecting imported source region ${selected.label}." else "Inspecting imported skybox source.",
         )
     }
 
@@ -210,6 +266,8 @@ class EnvironmentResourceFaceResolver(
             contentWidth = contentWidth,
             contentHeight = contentHeight,
             items = items,
+            canvasPreviewHandle = null,
+            drawItemsAsOverlayRegions = false,
             diagnostics = diagnostics,
             selectedItem = selected,
             hoveredItem = hovered,
