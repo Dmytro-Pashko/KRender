@@ -10,7 +10,9 @@ Environment Editor opens one `.environment.json` asset and provides:
 - editable exposure, rotation, diffuse intensity, and specular intensity;
 - `Skybox`, `Solid Color`, `Transparent`, and `None` background modes;
 - source-variant selection and manifest validation;
-- a read-only Tools panel for skybox, irradiance, radiance, and BRDF LUT resource references;
+- a `Resource Inspector` panel for skybox, irradiance, radiance, BRDF LUT, and imported skybox source texture inspection;
+- a separate `Selected Resource Preview` panel with its own viewport state;
+- a skybox atlas/cross/row import workflow that exports separate runtime face files and updates `environment.skybox.faces`;
 - a live PBR preview using the bundled `model/tests/MetalRoughSpheres.glb`;
 - file save/reload/revert, layout persistence, diagnostics, and logs.
 
@@ -19,8 +21,10 @@ Desktop route:
 - `krender.scene=environment-editor`
 - `krender.environment.path=<path>`
 
-The MVP does not generate skybox, irradiance, radiance, or BRDF LUT resources. Environment Editor
-only edits runtime settings and resource references already owned by the Environment asset.
+Environment Editor still does not generate irradiance, radiance, or BRDF LUT resources. The current
+import workflow only splits skybox source textures into separate runtime face files and updates the
+manifest. Future IBL generation must also target separate face-file outputs instead of shared runtime
+atlases.
 
 ## Ownership
 
@@ -44,9 +48,10 @@ No tool class imports LibGDX or gdx-gltf. The preview crosses the backend bounda
 - `Inspector` — flat label/value manifest summary.
 - `Settings` — runtime settings, background mode selector, and mode-specific options.
 - `Sources` — source variants with default-source switching.
-- `Tools` — skybox, irradiance, radiance, and BRDF LUT references.
+- `Resource Inspector` — 2D resource canvas for runtime skybox/irradiance/radiance/BRDF LUT inspection plus imported skybox source region overlays.
+- `Selected Resource Preview` — isolated selected face/region viewport with independent fit/reset/zoom/pan controls and selected-item diagnostics.
 - `Diagnostics` — validation status and issue list.
-- `Preview` — preview test-model list, auto-rotate, camera reset, resource availability, fallback mode, and live preview status.
+- `Preview` — preview test-model list, auto-rotate, camera distance, yaw, pitch, camera reset, resource availability, fallback mode, and live preview status.
 - `Logs` — shared engine log stream for Environment Editor activity.
 
 ## Lifecycle
@@ -57,7 +62,7 @@ No tool class imports LibGDX or gdx-gltf. The preview crosses the backend bounda
 2. Load the panel layout and create `EnvironmentEditorController`.
 3. Reload the manifest into a clean state and validate it.
 4. Install state logging plus preview camera/model/render systems.
-5. Build all editor panels through `EnvironmentEditorUiFactory`.
+5. Build all editor panels through `EnvironmentEditorUiFactory`, including the resource inspector stack and selected-preview stack.
 
 The test model is declared in `requiredAssets`, so loading remains asynchronous. The renderer and
 asset service tolerate the model not being ready during early active frames.
@@ -99,6 +104,18 @@ directly.
   reflections. Smooth metal samples sharper levels; rough materials sample blurrier levels.
 - **BRDF LUT** stores the view/roughness integration term used by split-sum specular IBL.
 
+### Runtime resource layout
+
+Runtime Environment resources must resolve to separate files:
+
+- `skybox/<face>.png`
+- `irradiance/<face>.png`
+- `radiance/mip_<n>/<face>.png`
+- `brdf_lut.png`
+
+Atlas/cross/row textures are editor/import formats only. Environment Editor V2 does not depend on a
+shared runtime cubemap atlas.
+
 If required resources are absent, the preview remains usable: the controller disables unavailable
 skybox rendering, reports specific warnings, and increases direct-light fallback intensity.
 Backend load failures after manifest resolution are reported in Logs.
@@ -138,6 +155,19 @@ is true only when mode is `Skybox` and the manifest defines a skybox.
 - **Persist UI** saves the current ImGui layout.
 - **Reset UI** restores built-in layout defaults.
 
+## Skybox Import
+
+The `Imported Skybox Source` mode plus `Skybox Import` controls provide:
+
+- manual source texture path entry;
+- preset-based default face regions for `CubeCross4x3`, `HorizontalRow6x1`, `VerticalColumn1x6`, and `Custom`;
+- numeric per-face region editing;
+- per-face rotate/flip metadata used during export;
+- split/export to separate PNG face files;
+- in-memory Environment manifest update for `skybox.faces`.
+
+Saving still happens through the normal Environment save workflow after import.
+
 ## Extension Points
 
 Add preview models in `EnvironmentEditorConfig.testModels`; the first item is the active MVP model.
@@ -152,6 +182,13 @@ When changing manifest settings, update all of:
 - `EnvironmentPreviewController`;
 - Model Viewer Environment-default synchronization;
 - this document.
+
+## Current limitations
+
+- Imported skybox source preview currently targets previewable 2D textures and does not split HDR/EXR sources directly.
+- Import region editing is numeric-only; drag/resize handles are not implemented yet.
+- Environment Editor still does not generate irradiance, radiance, or BRDF LUT assets.
+- The selected-resource preview panel is wired for cropped-region previews, but only skybox source import currently provides source-region data.
 
 ## Validation
 
