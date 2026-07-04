@@ -39,4 +39,5 @@ class EnvironmentResourceInspectorState {
     var hoveredRegionOrFace: String? = null
     var selectedRegionOrFace: String? = EnvironmentCubemapFace.PosX.id
     val resourcePreviewState: TexturePreviewState = TexturePreviewState()
+    val selectedResourcePreviewState: TexturePreviewState = TexturePreviewState()
 }

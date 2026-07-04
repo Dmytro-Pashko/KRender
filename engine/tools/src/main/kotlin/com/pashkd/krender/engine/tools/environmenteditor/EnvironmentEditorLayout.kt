@@ -12,6 +12,7 @@ object EnvironmentEditorPanelIds {
     const val Tools = "environment_editor_generated_maps"
     const val Diagnostics = "environment_editor_diagnostics"
     const val Preview = "environment_editor_preview"
+    const val SelectedResourcePreview = "environment_editor_selected_resource_preview"
     const val Logs = "environment_editor_logs"
 }
 
@@ -27,18 +28,20 @@ object EnvironmentEditorUiLayoutDefaults {
                         ImGuiPanelLayout("Environment Editor Control Panel", 16f, 16f, 1580f, 128f),
                     EnvironmentEditorPanelIds.Preview to
                         ImGuiPanelLayout("Preview", 16f, 160f, 980f, 340f),
+                    EnvironmentEditorPanelIds.SelectedResourcePreview to
+                        ImGuiPanelLayout("Selected Resource Preview", 1012f, 160f, 776f, 340f),
                     EnvironmentEditorPanelIds.Settings to
-                        ImGuiPanelLayout("Settings", 1012f, 160f, 380f, 340f),
+                        ImGuiPanelLayout("Settings", 16f, 516f, 420f, 360f),
                     EnvironmentEditorPanelIds.Inspector to
-                        ImGuiPanelLayout("Inspector", 1408f, 160f, 380f, 340f),
+                        ImGuiPanelLayout("Inspector", 452f, 516f, 420f, 360f),
                     EnvironmentEditorPanelIds.Sources to
-                        ImGuiPanelLayout("Source Variants", 16f, 516f, 680f, 300f),
+                        ImGuiPanelLayout("Source Variants", 888f, 516f, 420f, 360f),
                     EnvironmentEditorPanelIds.Tools to
-                        ImGuiPanelLayout("Resource Inspector", 712f, 516f, 640f, 360f),
+                        ImGuiPanelLayout("Resource Inspector", 1324f, 516f, 464f, 360f),
                     EnvironmentEditorPanelIds.Diagnostics to
-                        ImGuiPanelLayout("Diagnostics", 1368f, 516f, 420f, 360f),
+                        ImGuiPanelLayout("Diagnostics", 16f, 892f, 900f, 160f),
                     EnvironmentEditorPanelIds.Logs to
-                        ImGuiPanelLayout("Logs", 16f, 892f, 1772f, 160f),
+                        ImGuiPanelLayout("Logs", 932f, 892f, 856f, 160f),
                 ),
         )
 }

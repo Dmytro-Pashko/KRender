@@ -3,6 +3,17 @@ package com.pashkd.krender.engine.tools.environmenteditor
 import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewRegion
 
+data class EnvironmentResourceSourceRegion(
+    val x: Int,
+    val y: Int,
+    val width: Int,
+    val height: Int,
+    val u0: Float,
+    val v0: Float,
+    val u1: Float,
+    val v1: Float,
+)
+
 data class EnvironmentResourceCanvasItem(
     val id: String,
     val label: String,
@@ -15,6 +26,7 @@ data class EnvironmentResourceCanvasItem(
     val height: Int? = null,
     val format: String? = null,
     val exists: Boolean = false,
+    val sourceRegion: EnvironmentResourceSourceRegion? = null,
     val mipLevel: Int? = null,
     val roughness: Float? = null,
     val warnings: List<String> = emptyList(),

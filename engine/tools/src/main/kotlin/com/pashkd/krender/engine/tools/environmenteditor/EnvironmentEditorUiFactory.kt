@@ -20,6 +20,7 @@ class EnvironmentEditorUiFactory(
     private val controller: EnvironmentEditorController,
     private val previewController: EnvironmentPreviewController,
     private val resourcePreviewController: EnvironmentResourcePreviewController,
+    private val selectedResourcePreviewController: EnvironmentSelectedResourcePreviewController,
     private val environmentService: EnvironmentService,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val engine: EngineContext,
@@ -32,6 +33,17 @@ class EnvironmentEditorUiFactory(
             ui.addSafePanel("Inspector", EnvironmentInspectorPanel(state, layout, layoutTracker, eventLogger))
             ui.addSafePanel("Settings", EnvironmentSettingsPanel(state, engine.logger, layout, layoutTracker, eventLogger))
             ui.addSafePanel("Sources", EnvironmentSourceVariantsPanel(state, layout, layoutTracker, eventLogger))
+            ui.addSafePanel(
+                "Selected Resource Preview",
+                EnvironmentSelectedResourcePreviewPanel(
+                    state,
+                    resourcePreviewController,
+                    selectedResourcePreviewController,
+                    layout,
+                    layoutTracker,
+                    eventLogger,
+                ),
+            )
             ui.addSafePanel(
                 "Resource Inspector",
                 EnvironmentResourceInspectorPanel(state, resourcePreviewController, layout, layoutTracker, eventLogger),
