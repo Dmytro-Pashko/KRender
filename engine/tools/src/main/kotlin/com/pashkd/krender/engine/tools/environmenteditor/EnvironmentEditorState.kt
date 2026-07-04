@@ -11,6 +11,7 @@ class EnvironmentEditorState(
     val manifestPath: String,
 ) {
     val previewState = EnvironmentPreviewState()
+    val resourceInspectorState = EnvironmentResourceInspectorState()
     var previewModelEntityId: Long? = null
     var environment: Environment? = null
     var validation: EnvironmentValidationReport? = null

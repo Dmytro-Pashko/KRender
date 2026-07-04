@@ -34,11 +34,11 @@ object EnvironmentEditorUiLayoutDefaults {
                     EnvironmentEditorPanelIds.Sources to
                         ImGuiPanelLayout("Source Variants", 16f, 516f, 680f, 300f),
                     EnvironmentEditorPanelIds.Tools to
-                        ImGuiPanelLayout("Tools", 712f, 516f, 520f, 300f),
+                        ImGuiPanelLayout("Resource Inspector", 712f, 516f, 640f, 360f),
                     EnvironmentEditorPanelIds.Diagnostics to
-                        ImGuiPanelLayout("Diagnostics", 1248f, 516f, 540f, 300f),
+                        ImGuiPanelLayout("Diagnostics", 1368f, 516f, 420f, 360f),
                     EnvironmentEditorPanelIds.Logs to
-                        ImGuiPanelLayout("Logs", 16f, 832f, 1772f, 220f),
+                        ImGuiPanelLayout("Logs", 16f, 892f, 1772f, 160f),
                 ),
         )
 }

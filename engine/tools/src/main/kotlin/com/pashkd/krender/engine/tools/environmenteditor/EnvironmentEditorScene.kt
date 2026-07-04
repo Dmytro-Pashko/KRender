@@ -36,6 +36,7 @@ class EnvironmentEditorScene(
         val state = EnvironmentEditorState(environmentPath)
         val environmentService = DefaultEnvironmentService(engine.sceneFiles)
         previewController = EnvironmentPreviewController(engine.sceneFiles)
+        val resourcePreviewController = EnvironmentResourcePreviewController(state, engine)
         val layoutTracker = loadLayout()
         val controller = EnvironmentEditorController(state, engine, environmentService, layoutTracker)
 
@@ -47,6 +48,7 @@ class EnvironmentEditorScene(
                 state,
                 controller,
                 previewController,
+                resourcePreviewController,
                 environmentService,
                 layoutTracker,
                 engine,
