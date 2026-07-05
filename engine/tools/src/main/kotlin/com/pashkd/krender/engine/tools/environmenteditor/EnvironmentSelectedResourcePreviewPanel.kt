@@ -4,15 +4,18 @@ import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewOverl
 import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewZoomMode
 import com.pashkd.krender.engine.tools.common.texturepreview.computeTexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.common.texturepreview.formatZoomMode
+import com.pashkd.krender.engine.tools.common.texturepreview.packColor
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import imgui.ColorEditFlag
 import imgui.ImGui
 import imgui.MouseButton
 import imgui.SliderFlag
 import imgui.WindowFlag
+import imgui.api.colorEdit4
 import imgui.api.slider
 import imgui.or
 import kotlin.math.abs
@@ -97,6 +100,29 @@ class EnvironmentSelectedResourcePreviewPanel(
         if (ImGui.checkbox("Bounds##env_selected_preview_bounds", showBounds)) {
             previewState.showBounds = showBounds[0]
         }
+        if (previewState.showGrid) {
+            ImGui.sameLine()
+            ImGui.setNextItemWidth(96f)
+            slider("Grid##env_selected_preview_grid_size", previewState::gridSpacingPixels, 4, 128, "%d", SliderFlag.AlwaysClamp)
+            ImGui.sameLine()
+            val color = previewState.gridColor
+            colorEdit4(
+                "Grid Color##env_selected_preview_grid_color",
+                color.red,
+                color.green,
+                color.blue,
+                color.alpha,
+                ColorEditFlag.NoInputs,
+            ) { red, green, blue, alpha ->
+                previewState.gridColor =
+                    com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewColor(
+                        red = red,
+                        green = green,
+                        blue = blue,
+                        alpha = alpha,
+                    )
+            }
+        }
     }
 
     private fun drawCanvas(selected: EnvironmentResourceCanvasItem) {
@@ -138,9 +164,13 @@ class EnvironmentSelectedResourcePreviewPanel(
             )
         } ?: ImGui.text("Preview unavailable for selected resource.")
         if (previewState.showGrid) {
-            TexturePreviewOverlays.drawGrid(layout, spacingPixels = previewState.gridSpacingPixels)
+            TexturePreviewOverlays.drawGrid(
+                layout,
+                spacingPixels = previewState.gridSpacingPixels,
+                color = packPreviewColor(previewState.gridColor),
+            )
         }
-        if (previewState.showBounds) {
+        if (previewState.showBounds && selected.sourceRegion != null) {
             ImGui.windowDrawList.addRect(
                 ImVec2(layout.imageX, layout.imageY),
                 ImVec2(layout.imageX + layout.imageWidth, layout.imageY + layout.imageHeight),
@@ -153,7 +183,7 @@ class EnvironmentSelectedResourcePreviewPanel(
         ImGui.invisibleButton("##environment_selected_resource_canvas_hit", ImVec2(rect.width, rect.height))
         if (ImGui.isItemHovered()) {
             val io = ImGui.io
-            if (io.mouseWheel != 0f) {
+            if (io.keyCtrl && io.mouseWheel != 0f) {
                 selectedPreviewController.setPreviewZoom(previewState.customZoom * (1f + io.mouseWheel * 0.1f))
             }
             if (ImGui.run { MouseButton.Right.isDragging() } && (io.mouseDelta.x != 0f || io.mouseDelta.y != 0f)) {
@@ -191,4 +221,12 @@ class EnvironmentSelectedResourcePreviewPanel(
             warnings.forEach(ImGui::bulletText)
         }
     }
+
+    private fun packPreviewColor(color: com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewColor): Int =
+        packColor(
+            (color.red * 255f).toInt().coerceIn(0, 255),
+            (color.green * 255f).toInt().coerceIn(0, 255),
+            (color.blue * 255f).toInt().coerceIn(0, 255),
+            (color.alpha * 255f).toInt().coerceIn(0, 255),
+        )
 }

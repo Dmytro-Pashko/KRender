@@ -43,28 +43,34 @@ class EnvironmentResourceFaceResolver(
         selectedItemId: String?,
         hoveredItemId: String?,
     ): EnvironmentResourcePreviewModel {
+        val skybox = environment.skybox
         val items =
-            EnvironmentCubemapFace.ordered.map { face ->
-                val path =
-                    environment.skybox
-                        ?.faces
-                        ?.entries
-                        ?.firstOrNull { (key, _) -> EnvironmentCubemapFace.fromIdOrAlias(key) == face }
-                        ?.value
-                buildCanvasItem(
-                    environmentManifestPath = environment.manifestPath,
-                    label = face.id,
-                    id = face.id,
-                    resourceMode = EnvironmentResourceMode.Skybox,
-                    manifestPath = path,
-                    formatHint = environment.skybox?.format,
-                    regionIndex = EnvironmentCubemapFace.ordered.indexOf(face),
-                )
+            if (skybox == null || skybox.faces.isEmpty()) {
+                emptyList()
+            } else {
+                EnvironmentCubemapFace.ordered.mapNotNull { face ->
+                    val path =
+                        skybox.faces
+                            .entries
+                            .firstOrNull { (key, _) -> EnvironmentCubemapFace.fromIdOrAlias(key) == face }
+                            ?.value
+                            ?: return@mapNotNull null
+                    buildCanvasItem(
+                        environmentManifestPath = environment.manifestPath,
+                        label = face.id,
+                        id = face.id,
+                        resourceMode = EnvironmentResourceMode.Skybox,
+                        manifestPath = path,
+                        formatHint = skybox.format,
+                        regionIndex = EnvironmentCubemapFace.ordered.indexOf(face),
+                    )
+                }
             }
         val diagnostics =
             buildList {
-                if (environment.skybox == null) add("Skybox resource set is not defined.")
-                if (environment.skybox != null && items.any { !it.exists }) add("One or more skybox face files are missing.")
+                if (skybox == null) add("Skybox resource set is not defined.")
+                if (skybox != null && skybox.faces.isEmpty()) add("Skybox face list is empty.")
+                if (skybox != null && items.any { !it.exists }) add("One or more skybox face files are missing.")
             }
         return buildModel(EnvironmentResourceMode.Skybox, items, selectedItemId, hoveredItemId, diagnostics)
     }
@@ -169,7 +175,7 @@ class EnvironmentResourceFaceResolver(
             sourcePath
                 ?.takeIf(::isPreviewableTexture)
                 ?.let { path ->
-                    queueTexture(path)
+                    queueTextureSafely(path)
                     texturePreviewService.preview(path)
                 }
         val previewHandle = (preview as? TexturePreviewResult.Available)?.handle
@@ -249,13 +255,14 @@ class EnvironmentResourceFaceResolver(
         diagnostics: List<String>,
         singleTextureCanvas: Boolean = false,
     ): EnvironmentResourcePreviewModel {
-        val contentWidth = if (singleTextureCanvas) items.firstOrNull()?.region?.width ?: 1 else DefaultCanvasWidth
-        val contentHeight = if (singleTextureCanvas) items.firstOrNull()?.region?.height ?: 1 else DefaultCanvasHeight
-        val selected = items.firstOrNull { it.id == selectedItemId } ?: items.firstOrNull()
-        val hovered = items.firstOrNull { it.id == hoveredItemId }
+        val positionedItems = if (singleTextureCanvas) items else layoutFaceGrid(items)
+        val contentWidth = if (singleTextureCanvas) positionedItems.firstOrNull()?.region?.width ?: 1 else computeContentWidth(positionedItems)
+        val contentHeight = if (singleTextureCanvas) positionedItems.firstOrNull()?.region?.height ?: 1 else computeContentHeight(positionedItems)
+        val selected = positionedItems.firstOrNull { it.id == selectedItemId } ?: positionedItems.firstOrNull()
+        val hovered = positionedItems.firstOrNull { it.id == hoveredItemId }
         val status =
             when {
-                items.isEmpty() -> "No previewable resources are available for ${mode.label()}."
+                positionedItems.isEmpty() -> "No previewable resources are available for ${mode.label()}."
                 selected == null -> "Select a resource face to inspect it."
                 selected.previewHandle == null && selected.exists -> "Preview handle is not available for '${selected.label}' yet."
                 selected.previewHandle == null -> "Resource '${selected.label}' is missing."
@@ -265,7 +272,7 @@ class EnvironmentResourceFaceResolver(
             mode = mode,
             contentWidth = contentWidth,
             contentHeight = contentHeight,
-            items = items,
+            items = positionedItems,
             canvasPreviewHandle = null,
             drawItemsAsOverlayRegions = false,
             diagnostics = diagnostics,
@@ -296,7 +303,7 @@ class EnvironmentResourceFaceResolver(
             resolvedPath
                 ?.takeIf(::isPreviewableTexture)
                 ?.let { path ->
-                    queueTexture(path)
+                    queueTextureSafely(path)
                     texturePreviewService.preview(path)
                 }
         val previewHandle = (preview as? TexturePreviewResult.Available)?.handle
@@ -317,13 +324,7 @@ class EnvironmentResourceFaceResolver(
                     height = (previewHandle?.height ?: metadata?.height ?: 512).coerceAtLeast(1),
                 )
             } else {
-                faceGridRegion(
-                    id = id,
-                    label = label,
-                    index = regionIndex,
-                    width = previewHandle?.width ?: metadata?.width ?: DefaultTileSize,
-                    height = previewHandle?.height ?: metadata?.height ?: DefaultTileSize,
-                )
+                faceGridRegion(id = id, label = label, index = regionIndex, width = previewHandle?.width ?: metadata?.width ?: DefaultTileSize, height = previewHandle?.height ?: metadata?.height ?: DefaultTileSize)
             }
         return EnvironmentResourceCanvasItem(
             id = id,
@@ -350,25 +351,49 @@ class EnvironmentResourceFaceResolver(
         width: Int,
         height: Int,
     ): TexturePreviewRegion<String> {
-        val column = index % 3
-        val row = index / 3
         return TexturePreviewRegion(
             id = id,
             label = label,
-            x = FaceGridPadding + column * (DefaultTileSize + FaceGridGap),
-            y = FaceGridPadding + row * (DefaultTileSize + FaceGridGap),
+            x = FaceGridPadding,
+            y = FaceGridPadding + index * FaceGridGap,
             width = width.coerceAtLeast(1),
             height = height.coerceAtLeast(1),
         )
     }
+
+    private fun layoutFaceGrid(items: List<EnvironmentResourceCanvasItem>): List<EnvironmentResourceCanvasItem> {
+        if (items.isEmpty()) return items
+        val cellWidth = items.maxOf { it.region.width }.coerceAtLeast(1)
+        val cellHeight = items.maxOf { it.region.height }.coerceAtLeast(1)
+        return items.mapIndexed { index, item ->
+            val column = index % FaceGridColumns
+            val row = index / FaceGridColumns
+            item.copy(
+                region =
+                    item.region.copy(
+                        x = FaceGridPadding + column * (cellWidth + FaceGridGap),
+                        y = FaceGridPadding + row * (cellHeight + FaceGridGap),
+                    ),
+            )
+        }
+    }
+
+    private fun computeContentWidth(items: List<EnvironmentResourceCanvasItem>): Int =
+        items.maxOfOrNull { it.region.x + it.region.width + FaceGridPadding } ?: 1
+
+    private fun computeContentHeight(items: List<EnvironmentResourceCanvasItem>): Int =
+        items.maxOfOrNull { it.region.y + it.region.height + FaceGridPadding } ?: 1
 
     private fun resolveCubemapFaces(
         environment: Environment,
         cubemap: CubemapResource?,
     ): List<ResolvedEnvironmentFace> {
         val resourcePath = cubemap?.path ?: return emptyList()
-        return inferCubemapFaces(environment.manifestPath, resourcePath).map { (face, path) ->
-            ResolvedEnvironmentFace(face, path)
+        return inferEnvironmentCubemapFacePaths(
+            resourcePath = resourcePath,
+            directoryStem = directoryStem(resourcePath, "irradiance"),
+        ).map { (face, path) ->
+            ResolvedEnvironmentFace(face, EnvironmentPathResolver.resolvePath(manifestPath = environment.manifestPath, relativePath = path))
         }
     }
 
@@ -376,44 +401,11 @@ class EnvironmentResourceFaceResolver(
         environment: Environment,
         mip: RadianceMip,
     ): List<ResolvedEnvironmentFace> {
-        return inferCubemapFaces(environment.manifestPath, mip.path).map { (face, path) ->
-            ResolvedEnvironmentFace(face, path)
-        }
-    }
-
-    private fun inferCubemapFaces(
-        manifestPath: String,
-        resourcePath: String,
-    ): List<Pair<EnvironmentCubemapFace, String>> {
-        val normalized = resourcePath.replace('\\', '/').trim()
-        if (normalized.isBlank()) return emptyList()
-        return when {
-            normalized.contains(FaceToken) ->
-                EnvironmentCubemapFace.ordered.map { face ->
-                    face to normalized.replace(FaceToken, face.id)
-                }
-            !normalized.substringAfterLast('/').contains('.') ->
-                EnvironmentCubemapFace.ordered.map { face ->
-                    face to "${normalized}_${
-                        face.id
-                    }.png"
-                }
-            else -> inferSiblingFaceFiles(normalized)
-        }
-    }
-
-    private fun inferSiblingFaceFiles(resourcePath: String): List<Pair<EnvironmentCubemapFace, String>> {
-        val fileName = resourcePath.substringAfterLast('/')
-        val parent = resourcePath.substringBeforeLast('/', "")
-        val extension = fileName.substringAfterLast('.', "")
-        val stem = fileName.substringBeforeLast('.')
-        val matchedFace = EnvironmentCubemapFace.fromIdOrAlias(stem.substringAfterLast('_', stem.substringAfterLast('-', stem)))
-        if (matchedFace == null) return emptyList()
-        val separator = if (stem.endsWith("-${matchedFace.id}")) "-" else "_"
-        val baseStem = stem.removeSuffix("$separator${matchedFace.id}")
-        val prefix = if (parent.isBlank()) baseStem else "$parent/$baseStem"
-        return EnvironmentCubemapFace.ordered.map { face ->
-            face to "$prefix$separator${face.id}.$extension"
+        return inferEnvironmentCubemapFacePaths(
+            resourcePath = mip.path,
+            directoryStem = directoryStem(mip.path, "radiance_${mip.level}"),
+        ).map { (face, path) ->
+            ResolvedEnvironmentFace(face, EnvironmentPathResolver.resolvePath(manifestPath = environment.manifestPath, relativePath = path))
         }
     }
 
@@ -421,18 +413,68 @@ class EnvironmentResourceFaceResolver(
 
     private fun isPreviewableTexture(path: String): Boolean = path.substringAfterLast('.', "").lowercase() in PreviewableTextureExtensions
 
+    private fun queueTextureSafely(path: String) {
+        runCatching { queueTexture(path) }
+    }
+
     private data class ResolvedEnvironmentFace(
         val face: EnvironmentCubemapFace,
         val path: String,
     )
 
     private companion object {
-        private const val FaceToken = "{face}"
         private const val DefaultTileSize = 256
+        private const val FaceGridColumns = 3
         private const val FaceGridPadding = 24
         private const val FaceGridGap = 24
-        private const val DefaultCanvasWidth = FaceGridPadding * 2 + DefaultTileSize * 3 + FaceGridGap * 2
-        private const val DefaultCanvasHeight = FaceGridPadding * 2 + DefaultTileSize * 2 + FaceGridGap
         private val PreviewableTextureExtensions = setOf("png", "jpg", "jpeg", "webp")
     }
 }
+
+internal fun inferEnvironmentCubemapFacePaths(
+    resourcePath: String,
+    directoryStem: String,
+): List<Pair<EnvironmentCubemapFace, String>> {
+    val normalized = resourcePath.replace('\\', '/').trim()
+    if (normalized.isBlank()) return emptyList()
+    val fileName = normalized.substringAfterLast('/')
+    val parent = normalized.substringBeforeLast('/', "")
+    return when {
+        normalized.contains(EnvironmentCubemapFaceToken) ->
+            EnvironmentCubemapFace.ordered.map { face ->
+                face to normalized.replace(EnvironmentCubemapFaceToken, face.id)
+            }
+        !fileName.contains('.') ->
+            EnvironmentCubemapFace.ordered.map { face ->
+                val prefix = listOfNotNull(parent.takeIf(String::isNotBlank), fileName, directoryStem).joinToString("/")
+                face to "${prefix}_${face.id}.png"
+            }
+        else -> inferSiblingEnvironmentFaceFiles(normalized)
+    }
+}
+
+internal fun directoryStem(
+    resourcePath: String,
+    fallback: String,
+): String {
+    val normalized = resourcePath.replace('\\', '/').trim().trimEnd('/')
+    val lastSegment = normalized.substringAfterLast('/', "")
+    return lastSegment.ifBlank { fallback }
+}
+
+private fun inferSiblingEnvironmentFaceFiles(resourcePath: String): List<Pair<EnvironmentCubemapFace, String>> {
+    val fileName = resourcePath.substringAfterLast('/')
+    val parent = resourcePath.substringBeforeLast('/', "")
+    val extension = fileName.substringAfterLast('.', "")
+    val stem = fileName.substringBeforeLast('.')
+    val matchedFace = EnvironmentCubemapFace.fromIdOrAlias(stem.substringAfterLast('_', stem.substringAfterLast('-', stem)))
+    if (matchedFace == null) return emptyList()
+    val separator = if (stem.endsWith("-${matchedFace.id}")) "-" else "_"
+    val baseStem = stem.removeSuffix("$separator${matchedFace.id}")
+    val prefix = if (parent.isBlank()) baseStem else "$parent/$baseStem"
+    return EnvironmentCubemapFace.ordered.map { face ->
+        face to "$prefix$separator${face.id}.$extension"
+    }
+}
+
+private const val EnvironmentCubemapFaceToken = "{face}"

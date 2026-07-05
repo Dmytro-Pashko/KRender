@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.api.EngineContext
+import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.assets.environment.EnvironmentService
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -25,6 +26,7 @@ class EnvironmentEditorUiFactory(
     private val environmentService: EnvironmentService,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val engine: EngineContext,
+    private val fileDialogService: FileDialogService,
 ) {
     fun create(): UiSystem {
         val layout = layoutTracker.currentConfig()
@@ -34,6 +36,18 @@ class EnvironmentEditorUiFactory(
             ui.addSafePanel("Inspector", EnvironmentInspectorPanel(state, layout, layoutTracker, eventLogger))
             ui.addSafePanel("Settings", EnvironmentSettingsPanel(state, engine.logger, layout, layoutTracker, eventLogger))
             ui.addSafePanel("Sources", EnvironmentSourceVariantsPanel(state, layout, layoutTracker, eventLogger))
+            ui.addSafePanel(
+                "Tools",
+                EnvironmentToolsPanel(
+                    state,
+                    resourcePreviewController,
+                    skyboxImportController,
+                    fileDialogService,
+                    layout,
+                    layoutTracker,
+                    eventLogger,
+                ),
+            )
             ui.addSafePanel(
                 "Selected Resource Preview",
                 EnvironmentSelectedResourcePreviewPanel(
@@ -46,11 +60,10 @@ class EnvironmentEditorUiFactory(
                 ),
             )
             ui.addSafePanel(
-                "Resource Inspector",
+                "Cubemap Preview",
                 EnvironmentResourceInspectorPanel(
                     state,
                     resourcePreviewController,
-                    skyboxImportController,
                     layout,
                     layoutTracker,
                     eventLogger,

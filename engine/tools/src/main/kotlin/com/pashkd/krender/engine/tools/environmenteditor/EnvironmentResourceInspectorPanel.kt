@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.tools.common.texturepreview.computeTexturePrevi
 import com.pashkd.krender.engine.tools.common.texturepreview.computeTexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.common.texturepreview.formatZoomMode
 import com.pashkd.krender.engine.tools.common.texturepreview.hitTestTexturePreviewRegion
+import com.pashkd.krender.engine.tools.common.texturepreview.packColor
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -24,27 +25,17 @@ import glm_.vec2.Vec2 as ImVec2
 class EnvironmentResourceInspectorPanel(
     private val state: EnvironmentEditorState,
     private val controller: EnvironmentResourcePreviewController,
-    private val skyboxImportController: SkyboxAtlasImportController,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    private val sourcePathBuffer = ByteArray(256)
-    private val outputDirectoryBuffer = ByteArray(128)
-    private val regionXBuffer = ByteArray(16)
-    private val regionYBuffer = ByteArray(16)
-    private val regionWidthBuffer = ByteArray(16)
-    private val regionHeightBuffer = ByteArray(16)
-    private var sourcePathSynced = false
-    private var outputDirectorySynced = false
-    private var syncedRegionKey: String? = null
     private var clickDragDistance = 0f
     private var cursorText: String = "Cursor: <outside>"
 
     override fun draw() {
-        val layout = layoutConfig.panels.getValue(EnvironmentEditorPanelIds.Tools)
-        val expanded = beginImGuiPanel(EnvironmentEditorPanelIds.Tools, layout, layoutTracker)
-        eventLogger.observe(EnvironmentEditorPanelIds.Tools, layout.title)
+        val layout = layoutConfig.panels.getValue(EnvironmentEditorPanelIds.CubemapPreview)
+        val expanded = beginImGuiPanel(EnvironmentEditorPanelIds.CubemapPreview, layout, layoutTracker)
+        eventLogger.observe(EnvironmentEditorPanelIds.CubemapPreview, layout.title)
         if (!expanded) {
             ImGui.end()
             return
@@ -58,11 +49,15 @@ class EnvironmentResourceInspectorPanel(
         }
 
         val model = controller.buildModel(environment)
-        drawToolbar(environment, model)
-        if (state.resourceInspectorState.selectedResourceMode == EnvironmentResourceMode.ImportedSkyboxSource) {
+        if (model.items.isEmpty()) {
+            drawToolbar(model)
             ImGui.separator()
-            drawSkyboxImportSection()
+            ImGui.text("Preview unavailable for ${state.resourceInspectorState.selectedResourceMode.label()}.")
+            model.diagnostics.forEach(ImGui::textWrapped)
+            ImGui.end()
+            return
         }
+        drawToolbar(model)
         ImGui.separator()
         drawSelectionSummary(model)
         ImGui.separator()
@@ -72,36 +67,16 @@ class EnvironmentResourceInspectorPanel(
         ImGui.end()
     }
 
-    private fun drawToolbar(
-        environment: com.pashkd.krender.engine.assets.environment.Environment,
-        model: EnvironmentResourcePreviewModel,
-    ) {
+    private fun drawToolbar(model: EnvironmentResourcePreviewModel) {
         val inspectorState = state.resourceInspectorState
         ImGui.setNextItemWidth(220f)
         if (ImGui.beginCombo("Mode##env_resource_mode", inspectorState.selectedResourceMode.label())) {
-            EnvironmentResourceMode.entries.forEach { mode ->
+            EnvironmentResourceMode.entries.filterNot { it == EnvironmentResourceMode.ImportedSkyboxSource }.forEach { mode ->
                 if (ImGui.selectable(mode.label(), inspectorState.selectedResourceMode == mode)) {
                     controller.setMode(mode)
                 }
             }
             ImGui.endCombo()
-        }
-        if (inspectorState.selectedResourceMode == EnvironmentResourceMode.Radiance) {
-            val selectedMip =
-                environment.radiance
-                    ?.mips
-                    ?.firstOrNull { it.level == inspectorState.selectedRadianceMip }
-                    ?: environment.radiance?.mips?.firstOrNull()
-            ImGui.sameLine()
-            ImGui.setNextItemWidth(220f)
-            if (ImGui.beginCombo("Mip##env_resource_mip", selectedMip?.let { "Mip ${it.level} (roughness ${"%.2f".format(it.roughness)})" } ?: "<none>")) {
-                environment.radiance?.mips?.forEach { mip ->
-                    if (ImGui.selectable("Mip ${mip.level} (roughness ${"%.2f".format(mip.roughness)})", mip.level == selectedMip?.level)) {
-                        controller.setSelectedRadianceMip(mip.level)
-                    }
-                }
-                ImGui.endCombo()
-            }
         }
         ImGui.sameLine()
         ImGui.setNextItemWidth(160f)
@@ -151,53 +126,6 @@ class EnvironmentResourceInspectorPanel(
         if (model.diagnostics.isNotEmpty()) {
             ImGui.textWrapped(model.diagnostics.joinToString(" | "))
         }
-    }
-
-    private fun drawSkyboxImportSection() {
-        syncImportBuffers()
-        val importState = state.skyboxImportState
-        ImGui.text("Skybox Import")
-        ImGui.setNextItemWidth(ImGui.contentRegionAvail.x)
-        if (ImGui.inputText("##env_skybox_import_source_path", sourcePathBuffer)) {
-            skyboxImportController.setSourcePath(readBuffer(sourcePathBuffer))
-        }
-        ImGui.text("Source texture path")
-        ImGui.setNextItemWidth(200f)
-        if (ImGui.beginCombo("Layout##env_skybox_import_layout", importState.layoutPreset.name)) {
-            SkyboxImportLayoutPreset.entries.forEach { preset ->
-                if (ImGui.selectable(preset.name, importState.layoutPreset == preset)) {
-                    skyboxImportController.setLayoutPreset(preset)
-                }
-            }
-            ImGui.endCombo()
-        }
-        ImGui.sameLine()
-        if (ImGui.button("Apply Layout##env_skybox_import_apply_layout")) {
-            skyboxImportController.refreshDefaultRegions()
-        }
-        ImGui.sameLine()
-        ImGui.setNextItemWidth(180f)
-        if (ImGui.inputText("##env_skybox_import_output_dir", outputDirectoryBuffer)) {
-            skyboxImportController.setOutputDirectory(readBuffer(outputDirectoryBuffer))
-        }
-        ImGui.text("Output directory")
-
-        val selectedFace = state.skyboxImportState.selectedFace
-        ImGui.setNextItemWidth(180f)
-        if (ImGui.beginCombo("Face##env_skybox_import_face", selectedFace.id)) {
-            EnvironmentCubemapFace.ordered.forEach { face ->
-                if (ImGui.selectable(face.id, face == selectedFace)) {
-                    skyboxImportController.selectFace(face)
-                    controller.setSelectedItem(face.id)
-                }
-            }
-            ImGui.endCombo()
-        }
-        drawSelectedImportRegionEditor(selectedFace)
-        if (ImGui.button("Split And Update Manifest##env_skybox_import_commit")) {
-            skyboxImportController.importIntoEnvironment()
-        }
-        tooltipOnHover("Splits the configured source image into six face PNGs and updates environment.skybox.faces. Save still uses the normal Environment save action.")
     }
 
     private fun drawSelectionSummary(model: EnvironmentResourcePreviewModel) {
@@ -255,7 +183,7 @@ class EnvironmentResourceInspectorPanel(
             }
         }
         if (previewState.showGrid) {
-            TexturePreviewOverlays.drawGrid(layout, spacingPixels = previewState.gridSpacingPixels)
+            TexturePreviewOverlays.drawGrid(layout, spacingPixels = previewState.gridSpacingPixels, color = packPreviewColor(previewState.gridColor))
         }
         if (!model.drawItemsAsOverlayRegions) {
             model.items.forEach { item ->
@@ -334,7 +262,7 @@ class EnvironmentResourceInspectorPanel(
             return
         }
         val io = ImGui.io
-        if (io.mouseWheel != 0f) {
+        if (io.keyCtrl && io.mouseWheel != 0f) {
             controller.setPreviewZoom(state.resourceInspectorState.resourcePreviewState.customZoom * (1f + io.mouseWheel * 0.1f))
         }
         if (ImGui.run { MouseButton.Right.isDragging() } && (io.mouseDelta.x != 0f || io.mouseDelta.y != 0f)) {
@@ -375,74 +303,12 @@ class EnvironmentResourceInspectorPanel(
         private const val ClickDragThreshold = 6f
     }
 
-    private fun drawSelectedImportRegionEditor(face: EnvironmentCubemapFace) {
-        val region = state.skyboxImportState.regions[face] ?: return
-        syncSelectedRegionBuffers(face, region)
-        ImGui.text("Region")
-        if (ImGui.inputText("##env_import_region_x", regionXBuffer)) {
-            readBuffer(regionXBuffer).toIntOrNull()?.let { value -> skyboxImportController.updateRegion(face, x = value) }
-        }
-        ImGui.sameLine()
-        if (ImGui.inputText("##env_import_region_y", regionYBuffer)) {
-            readBuffer(regionYBuffer).toIntOrNull()?.let { value -> skyboxImportController.updateRegion(face, y = value) }
-        }
-        ImGui.sameLine()
-        if (ImGui.inputText("##env_import_region_width", regionWidthBuffer)) {
-            readBuffer(regionWidthBuffer).toIntOrNull()?.let { value -> skyboxImportController.updateRegion(face, width = value) }
-        }
-        ImGui.sameLine()
-        if (ImGui.inputText("##env_import_region_height", regionHeightBuffer)) {
-            readBuffer(regionHeightBuffer).toIntOrNull()?.let { value -> skyboxImportController.updateRegion(face, height = value) }
-        }
-        ImGui.text("x / y / width / height")
-        ImGui.setNextItemWidth(140f)
-        if (ImGui.beginCombo("Rotate##env_import_face_rotate", region.transform.rotateDegrees.toString())) {
-            listOf(0, 90, 180, 270).forEach { option ->
-                if (ImGui.selectable(option.toString(), option == region.transform.rotateDegrees)) {
-                    skyboxImportController.updateTransform(face, rotateDegrees = option)
-                }
-            }
-            ImGui.endCombo()
-        }
-        ImGui.sameLine()
-        val flipX = booleanArrayOf(region.transform.flipX)
-        if (ImGui.checkbox("Flip X##env_import_face_flip_x", flipX)) {
-            skyboxImportController.updateTransform(face, flipX = flipX[0])
-        }
-        ImGui.sameLine()
-        val flipY = booleanArrayOf(region.transform.flipY)
-        if (ImGui.checkbox("Flip Y##env_import_face_flip_y", flipY)) {
-            skyboxImportController.updateTransform(face, flipY = flipY[0])
-        }
-    }
+    private fun packPreviewColor(color: com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewColor): Int =
+        packColor(
+            (color.red * 255f).toInt().coerceIn(0, 255),
+            (color.green * 255f).toInt().coerceIn(0, 255),
+            (color.blue * 255f).toInt().coerceIn(0, 255),
+            (color.alpha * 255f).toInt().coerceIn(0, 255),
+        )
 
-    private fun syncImportBuffers() {
-        if (!sourcePathSynced || readBuffer(sourcePathBuffer) != state.skyboxImportState.sourcePath) {
-            writeBuffer(sourcePathBuffer, state.skyboxImportState.sourcePath)
-            sourcePathSynced = true
-        }
-        if (!outputDirectorySynced || readBuffer(outputDirectoryBuffer) != state.skyboxImportState.outputDirectory) {
-            writeBuffer(outputDirectoryBuffer, state.skyboxImportState.outputDirectory)
-            outputDirectorySynced = true
-        }
-    }
-
-    private fun syncSelectedRegionBuffers(
-        face: EnvironmentCubemapFace,
-        region: SkyboxImportRegion,
-    ) {
-        if (syncedRegionKey == face.id &&
-            readBuffer(regionXBuffer) == region.x.toString() &&
-            readBuffer(regionYBuffer) == region.y.toString() &&
-            readBuffer(regionWidthBuffer) == region.width.toString() &&
-            readBuffer(regionHeightBuffer) == region.height.toString()
-        ) {
-            return
-        }
-        writeBuffer(regionXBuffer, region.x.toString())
-        writeBuffer(regionYBuffer, region.y.toString())
-        writeBuffer(regionWidthBuffer, region.width.toString())
-        writeBuffer(regionHeightBuffer, region.height.toString())
-        syncedRegionKey = face.id
-    }
 }

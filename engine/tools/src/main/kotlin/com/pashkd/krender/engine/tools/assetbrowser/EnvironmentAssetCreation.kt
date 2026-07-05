@@ -27,7 +27,7 @@ internal data class CreateEnvironmentFromSourceRequest(
     val targetRoot: Path,
     val preferredEnvironmentId: String? = null,
     val copySource: Boolean = true,
-    val openAfterCreate: Boolean = true,
+    val openAfterCreate: Boolean = false,
 )
 
 internal data class CreateEnvironmentResult(
@@ -71,7 +71,7 @@ internal object EnvironmentAssetCreation {
                     targetRoot = targetRoot,
                     preferredEnvironmentId = environmentBaseId(sourcePath.fileName.toString()),
                     copySource = true,
-                    openAfterCreate = true,
+                    openAfterCreate = false,
                 ),
             engine = engine,
             logger = logger,
@@ -98,7 +98,7 @@ internal object EnvironmentAssetCreation {
                             .normalize(),
                     preferredEnvironmentId = preferredEnvironmentId,
                     copySource = true,
-                    openAfterCreate = true,
+                    openAfterCreate = false,
                 ),
             engine = engine,
             logger = logger,
@@ -156,39 +156,6 @@ internal object EnvironmentAssetCreation {
         return result
     }
 
-    private fun defaultSkybox(): SkyboxResourceSet =
-        SkyboxResourceSet(
-            layout = "SixFaces",
-            resolution = 1024,
-            format = "KTX",
-            faces =
-                linkedMapOf(
-                    "px" to "generated/skybox/px.ktx",
-                    "nx" to "generated/skybox/nx.ktx",
-                    "py" to "generated/skybox/py.ktx",
-                    "ny" to "generated/skybox/ny.ktx",
-                    "pz" to "generated/skybox/pz.ktx",
-                    "nz" to "generated/skybox/nz.ktx",
-                ),
-        )
-
-    private fun defaultIrradiance(): CubemapResource = CubemapResource(path = "generated/irradiance/irradiance.ktx", resolution = 64, format = "KTX")
-
-    private fun defaultRadiance(): RadianceMipChain =
-        RadianceMipChain(
-            baseResolution = 256,
-            mips =
-                listOf(
-                    RadianceMip(level = 0, roughness = 0f, path = "generated/radiance/radiance_mip_00.ktx"),
-                    RadianceMip(level = 1, roughness = 0.25f, path = "generated/radiance/radiance_mip_01.ktx"),
-                    RadianceMip(level = 2, roughness = 0.5f, path = "generated/radiance/radiance_mip_02.ktx"),
-                    RadianceMip(level = 3, roughness = 0.75f, path = "generated/radiance/radiance_mip_03.ktx"),
-                    RadianceMip(level = 4, roughness = 1f, path = "generated/radiance/radiance_mip_04.ktx"),
-                ),
-        )
-
-    private fun defaultBrdfLut(): TextureResourceRef = TextureResourceRef(path = "brdf/brdfLUT.png")
-
     private fun prepareEnvironmentTarget(
         targetRoot: Path,
         baseId: String,
@@ -245,10 +212,10 @@ internal object EnvironmentAssetCreation {
                         dynamicRange = "HDR",
                     ),
                 ),
-            skybox = defaultSkybox(),
-            irradiance = defaultIrradiance(),
-            radiance = defaultRadiance(),
-            brdfLut = defaultBrdfLut(),
+            skybox = null,
+            irradiance = null,
+            radiance = null,
+            brdfLut = null,
         )
 
     private fun resolveAssetPath(

@@ -150,6 +150,8 @@ data class GltfRendererSettings(
     val environmentPreset: String = "default",
     /** Invalidates backend environment caches when live editor values change. */
     val environmentCacheKey: String? = null,
+    /** Optional in-memory manifest override used by editor previews before the file is saved. */
+    val environmentManifestText: String? = null,
     val exposure: Float = 1f,
     /** Single source of truth for viewport background presentation. */
     val backgroundMode: BackgroundMode = BackgroundMode.Skybox,

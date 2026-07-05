@@ -101,12 +101,9 @@ class EnvironmentPreviewPanel(
         ImGui.text("Radiance: ${availabilityLabel(availability.hasRadiance)}")
         ImGui.text("BRDF LUT: ${availabilityLabel(availability.hasBrdfLut)}")
         ImGui.separator()
-        ImGui.text("Background Mode: ${env.settings.backgroundMode.displayName}")
-        ImGui.textWrapped("Fallback: ${availability.fallbackMode}")
-        ImGui.textWrapped(controller.liveStatusMessage(env))
         availability.warnings.forEach(ImGui::textWrapped)
         if (availability.warnings.isEmpty()) {
-            ImGui.textWrapped("Preview uses the current environment manifest and its referenced IBL resources.")
+            ImGui.textWrapped("Preview uses the current Environment resources.")
         }
     }
 

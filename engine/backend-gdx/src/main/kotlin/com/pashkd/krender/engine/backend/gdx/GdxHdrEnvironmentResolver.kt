@@ -18,15 +18,18 @@ import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifestLoader
 internal class GdxHdrEnvironmentResolver(
     private val logger: Logger,
 ) {
-    fun resolve(presetNameOrPath: String = DEFAULT_ENVIRONMENT_PRESET): GdxResolvedHdrEnvironment? {
+    fun resolve(
+        presetNameOrPath: String = DEFAULT_ENVIRONMENT_PRESET,
+        manifestTextOverride: String? = null,
+    ): GdxResolvedHdrEnvironment? {
         val manifestPath = manifestPathFor(presetNameOrPath)
         val manifestFile = Gdx.files.internal(manifestPath)
-        if (!manifestFile.exists()) {
+        if (manifestTextOverride.isNullOrBlank() && !manifestFile.exists()) {
             logger.warn(TAG) { "HDR environment manifest is missing: '$manifestPath'." }
             return null
         }
         return try {
-            val manifestText = manifestFile.readString("UTF-8")
+            val manifestText = manifestTextOverride ?: manifestFile.readString("UTF-8")
             val resolved =
                 when (detectSchema(manifestText)) {
                     ENVIRONMENT_SCHEMA -> resolveEnvironmentManifest(manifestPath, manifestText)

@@ -41,6 +41,7 @@ private data class EnvironmentEditorLogSnapshot(
     val dirty: Boolean,
     val environmentCacheRevision: Long,
     val loadError: String?,
+    val validationStatus: String?,
     val backgroundMode: String?,
     val backgroundColor: String?,
     val autoRotate: Boolean,
@@ -48,15 +49,22 @@ private data class EnvironmentEditorLogSnapshot(
     val rotationDegrees: Float?,
     val diffuseIntensity: Float?,
     val specularIntensity: Float?,
+    val hasSkybox: Boolean,
+    val skyboxFaceCount: Int,
+    val hasIrradiance: Boolean,
+    val radianceMipCount: Int,
+    val hasBrdfLut: Boolean,
 ) {
     fun describe(): String =
-        "dirty=$dirty cacheRevision=$environmentCacheRevision loadError=$loadError backgroundMode=$backgroundMode " +
+        "dirty=$dirty cacheRevision=$environmentCacheRevision loadError=$loadError validation=$validationStatus backgroundMode=$backgroundMode " +
             "backgroundColor=$backgroundColor autoRotate=$autoRotate exposure=$exposure " +
-            "rotation=$rotationDegrees diffuse=$diffuseIntensity specular=$specularIntensity"
+            "rotation=$rotationDegrees diffuse=$diffuseIntensity specular=$specularIntensity " +
+            "hasSkybox=$hasSkybox skyboxFaceCount=$skyboxFaceCount hasIrradiance=$hasIrradiance radianceMipCount=$radianceMipCount hasBrdfLut=$hasBrdfLut"
 
     fun diff(previous: EnvironmentEditorLogSnapshot): String =
         "dirty ${previous.dirty} -> $dirty; " +
             "cacheRevision ${previous.environmentCacheRevision} -> $environmentCacheRevision; " +
+            "validation ${previous.validationStatus} -> $validationStatus; " +
             "backgroundMode ${previous.backgroundMode} -> $backgroundMode; " +
             "backgroundColor ${previous.backgroundColor} -> $backgroundColor; " +
             "autoRotate ${previous.autoRotate} -> $autoRotate; " +
@@ -64,6 +72,11 @@ private data class EnvironmentEditorLogSnapshot(
             "rotation ${previous.rotationDegrees} -> $rotationDegrees; " +
             "diffuse ${previous.diffuseIntensity} -> $diffuseIntensity; " +
             "specular ${previous.specularIntensity} -> $specularIntensity; " +
+            "hasSkybox ${previous.hasSkybox} -> $hasSkybox; " +
+            "skyboxFaceCount ${previous.skyboxFaceCount} -> $skyboxFaceCount; " +
+            "hasIrradiance ${previous.hasIrradiance} -> $hasIrradiance; " +
+            "radianceMipCount ${previous.radianceMipCount} -> $radianceMipCount; " +
+            "hasBrdfLut ${previous.hasBrdfLut} -> $hasBrdfLut; " +
             "loadError ${previous.loadError} -> $loadError"
 
     companion object {
@@ -73,6 +86,7 @@ private data class EnvironmentEditorLogSnapshot(
                 dirty = state.dirty,
                 environmentCacheRevision = state.environmentCacheRevision,
                 loadError = state.loadError,
+                validationStatus = state.validation?.status?.name,
                 backgroundMode = environment?.settings?.backgroundMode?.name,
                 backgroundColor = environment.backgroundColorString(),
                 autoRotate = state.previewState.autoRotate,
@@ -80,6 +94,11 @@ private data class EnvironmentEditorLogSnapshot(
                 rotationDegrees = environment?.settings?.rotationDegrees,
                 diffuseIntensity = environment?.settings?.diffuseIntensity,
                 specularIntensity = environment?.settings?.specularIntensity,
+                hasSkybox = environment?.skybox != null,
+                skyboxFaceCount = environment?.skybox?.faces?.size ?: 0,
+                hasIrradiance = environment?.irradiance != null,
+                radianceMipCount = environment?.radiance?.mips?.size ?: 0,
+                hasBrdfLut = environment?.brdfLut != null,
             )
         }
     }

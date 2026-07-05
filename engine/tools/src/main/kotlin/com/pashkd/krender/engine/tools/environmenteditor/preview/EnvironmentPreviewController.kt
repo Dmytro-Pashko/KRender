@@ -10,6 +10,7 @@ import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentColor
 import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
 import com.pashkd.krender.engine.assets.environment.EnvironmentRuntimeCacheKeyFactory
+import com.pashkd.krender.engine.assets.environment.EnvironmentSerializer
 import com.pashkd.krender.engine.assets.environment.RadianceMipChain
 import com.pashkd.krender.engine.assets.environment.SkyboxResourceSet
 import com.pashkd.krender.engine.assets.environment.TextureResourceRef
@@ -48,6 +49,7 @@ class EnvironmentPreviewController(
             enabled = true,
             environmentPreset = state.manifestPath,
             environmentCacheKey = rendererCacheKey(environment, state.environmentCacheRevision),
+            environmentManifestText = EnvironmentSerializer.encode(environment),
             exposure = settings.exposure.coerceAtLeast(0f),
             backgroundMode = settings.backgroundMode,
             backgroundColor = (settings.backgroundColor ?: EnvironmentEditorConfig.defaultBackgroundColor).toRenderColor(),
