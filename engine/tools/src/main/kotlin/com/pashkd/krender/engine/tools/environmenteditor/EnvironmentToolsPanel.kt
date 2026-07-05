@@ -362,8 +362,18 @@ class EnvironmentToolsPanel(
             onChanged = { request.outputDirectory = it },
         )
         drawResolvedOutputLabel("Resolved output", request.outputDirectory)
-        slider("Resolution##env_tools_hdr_irradiance_resolution", request::resolution, 16, 512, "%d", SliderFlag.AlwaysClamp)
-        slider("Sample count##env_tools_hdr_irradiance_samples", request::sampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
+        drawResolutionCombo(
+            label = "Resolution##env_tools_hdr_irradiance_resolution",
+            selected = request.resolution,
+            options = IrradianceResolutionOptions,
+        ) { request.resolution = it }
+        tooltipOnHover("Choose a preset irradiance face resolution from 64 up to 1024.")
+        drawIntOptionCombo(
+            label = "Sample count##env_tools_hdr_irradiance_samples",
+            selected = request.sampleCount,
+            options = SampleCountOptions,
+        ) { request.sampleCount = it }
+        tooltipOnHover("Choose a preset sample count. Free-form values are intentionally disabled.")
         drawOutputFormatCombo("Output format##env_tools_hdr_irradiance_format", request.format) { request.format = it }
         drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_irradiance_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
         drawRememberSourceCheckbox { request.rememberSource = it }
@@ -396,9 +406,19 @@ class EnvironmentToolsPanel(
             onChanged = { request.outputDirectory = it },
         )
         drawResolvedOutputLabel("Resolved output", request.outputDirectory)
-        slider("Base resolution##env_tools_hdr_radiance_base_resolution", request::baseResolution, 16, 2048, "%d", SliderFlag.AlwaysClamp)
+        drawResolutionCombo(
+            label = "Base resolution##env_tools_hdr_radiance_base_resolution",
+            selected = request.baseResolution,
+            options = RadianceResolutionOptions,
+        ) { request.baseResolution = it }
+        tooltipOnHover("Choose a preset radiance base resolution from 64 up to 2048.")
         slider("Mip count##env_tools_hdr_radiance_mip_count", request::mipCount, 1, 12, "%d", SliderFlag.AlwaysClamp)
-        slider("Sample count##env_tools_hdr_radiance_samples", request::sampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
+        drawIntOptionCombo(
+            label = "Sample count##env_tools_hdr_radiance_samples",
+            selected = request.sampleCount,
+            options = SampleCountOptions,
+        ) { request.sampleCount = it }
+        tooltipOnHover("Choose a preset sample count. Free-form values are intentionally disabled.")
         drawRoughnessDistributionCombo(
             "Roughness distribution##env_tools_hdr_radiance_distribution",
             request.roughnessDistribution,
@@ -504,8 +524,12 @@ class EnvironmentToolsPanel(
                 options = IrradianceResolutionOptions,
             ) { request.irradianceResolution = it }
             tooltipOnHover("Output resolution per cubemap face. Irradiance supports 64 up to 1024.")
-            slider("Sample count##env_tools_hdr_all_irradiance_samples", request::irradianceSampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
-            tooltipOnHover("Reserved for future irradiance convolution quality control.")
+            drawIntOptionCombo(
+                label = "Sample count##env_tools_hdr_all_irradiance_samples",
+                selected = request.irradianceSampleCount,
+                options = SampleCountOptions,
+            ) { request.irradianceSampleCount = it }
+            tooltipOnHover("Choose a preset sample count for irradiance generation.")
         }
         val radianceEnabled = booleanArrayOf(request.radianceEnabled)
         if (ImGui.checkbox("Radiance##env_tools_hdr_all_radiance_enabled", radianceEnabled)) request.radianceEnabled = radianceEnabled[0]
@@ -519,8 +543,12 @@ class EnvironmentToolsPanel(
             tooltipOnHover("Base mip resolution per cubemap face. Lower mips are derived from this size.")
             slider("Mip count##env_tools_hdr_all_radiance_mip_count", request::radianceMipCount, 1, 12, "%d", SliderFlag.AlwaysClamp)
             tooltipOnHover("Number of radiance roughness levels to describe in the output mip chain.")
-            slider("Sample count##env_tools_hdr_all_radiance_samples", request::radianceSampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
-            tooltipOnHover("Reserved for future radiance prefilter quality control.")
+            drawIntOptionCombo(
+                label = "Sample count##env_tools_hdr_all_radiance_samples",
+                selected = request.radianceSampleCount,
+                options = SampleCountOptions,
+            ) { request.radianceSampleCount = it }
+            tooltipOnHover("Choose a preset sample count for radiance generation.")
         }
         val brdfEnabled = booleanArrayOf(request.brdfLutEnabled)
         if (ImGui.checkbox("BRDF LUT##env_tools_hdr_all_brdf_enabled", brdfEnabled)) request.brdfLutEnabled = brdfEnabled[0]
@@ -587,6 +615,23 @@ class EnvironmentToolsPanel(
     }
 
     private fun drawResolutionCombo(
+        label: String,
+        selected: Int,
+        options: IntArray,
+        onChanged: (Int) -> Unit,
+    ) {
+        ImGui.setNextItemWidth(200f)
+        if (ImGui.beginCombo(label, selected.toString())) {
+            options.forEach { option ->
+                if (ImGui.selectable(option.toString(), option == selected)) {
+                    onChanged(option)
+                }
+            }
+            ImGui.endCombo()
+        }
+    }
+
+    private fun drawIntOptionCombo(
         label: String,
         selected: Int,
         options: IntArray,
@@ -969,6 +1014,7 @@ class EnvironmentToolsPanel(
         private val SkyboxResolutionOptions = intArrayOf(64, 128, 256, 512, 1024, 2048, 4096)
         private val IrradianceResolutionOptions = intArrayOf(64, 128, 256, 512, 1024)
         private val RadianceResolutionOptions = intArrayOf(64, 128, 256, 512, 1024, 2048)
+        private val SampleCountOptions = intArrayOf(64, 128, 256, 512, 1024, 2048, 4096)
 
         private val SkyboxAtlasFileDialogFilters =
             listOf(

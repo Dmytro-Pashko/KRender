@@ -14,7 +14,7 @@ class HdrEnvironmentGenerationController(
 ) {
     private val generatorState = state.hdrGenerationState
     private val manifestUpdater = EnvironmentGenerationManifestUpdater()
-    private val generationService = HdrEnvironmentGenerationService(assetRoot, hdrImageReader = null)
+    private val generationService = HdrEnvironmentGenerationService(assetRoot)
 
     fun open(dialog: HdrEnvironmentGenerationDialog) {
         prepareDefaultPaths(dialog)

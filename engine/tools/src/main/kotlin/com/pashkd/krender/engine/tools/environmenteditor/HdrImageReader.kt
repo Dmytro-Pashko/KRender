@@ -22,16 +22,33 @@ interface HdrImageReader {
 }
 
 /**
+ * Shared failure type for HDR/EXR decoding problems.
+ *
+ * The generator controller uses [message] as user-facing status text, so messages should explain
+ * the problem in editor language instead of surfacing raw low-level library diagnostics only.
+ */
+class HdrReaderException(
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
+
+/**
  * In-memory HDR image stored as linear floating-point RGB pixels.
  *
- * @property width image width in pixels
- * @property height image height in pixels
- * @property pixels packed linear RGB pixel data in row-major order:
+ * @property width number of pixels in one image row
+ * @property height number of pixel rows in the image
+ * @property pixels packed linear RGB pixel data in top-left row-major order:
  * `r0, g0, b0, r1, g1, b1, ...`
  */
 data class HdrImage(
     val width: Int,
     val height: Int,
+    /**
+     * Linear floating-point RGB samples.
+     *
+     * The array always stores exactly three channels per pixel and keeps HDR intensity values
+     * unclamped so later generation stages can apply exposure and tone mapping explicitly.
+     */
     val pixels: FloatArray,
 ) {
     init {

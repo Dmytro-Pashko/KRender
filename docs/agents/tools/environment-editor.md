@@ -25,11 +25,10 @@ Desktop route:
 Environment Editor now clearly separates atlas import from HDR/EXR generation. `Import Skybox Atlas`
 only splits previewable 2D source textures into separate runtime face files and updates the manifest.
 The HDR/EXR generation dialogs are separate and keep generation inputs distinct from runtime resource
-references. The current editor build includes dedicated HDR/EXR generation state, controller,
-manifest-update, and projection scaffolding, but it still does not ship a verified HDR/EXR reader or
-full IBL generators. Unsupported generation actions therefore report a clear unavailable reason instead
-of pretending to run. Future IBL generation must also target separate face-file outputs instead of
-shared runtime atlases.
+references. The current editor build includes a verified HDR/EXR reader plus skybox, irradiance,
+and radiance generators that write separate runtime face files. BRDF LUT generation is still a
+follow-up task and must remain explicitly unavailable instead of silently pretending to run. Future
+IBL generation must also target separate face-file outputs instead of shared runtime atlases.
 
 ## Ownership
 
@@ -191,8 +190,10 @@ HDR/EXR dialogs keep authoring inputs separate from runtime resources:
 - runtime output still targets `skybox/<face>.png`, `irradiance/<face>.png`,
   `radiance/mip_<n>/<face>.png`, and `brdf_lut.png`.
 
-Until a verified HDR/EXR reader is added, the dialog `Generate` actions stay explicitly unavailable
-with a visible reason.
+`Generate Skybox From HDR/EXR`, `Generate Irradiance`, `Generate Radiance`, and the corresponding
+enabled stages inside `Generate All IBL` now run against the verified HDR/EXR reader and emit
+runtime PNG face files. `Generate BRDF LUT` remains explicitly unavailable with a visible reason,
+and `Generate All IBL` must stop with a clear message when BRDF LUT is still enabled.
 
 ## Extension Points
 
@@ -213,8 +214,8 @@ When changing manifest settings, update all of:
 
 - Imported skybox source preview currently targets previewable 2D textures and does not split HDR/EXR sources directly.
 - Import region editing is numeric-only; drag/resize handles are not implemented yet.
-- HDR/EXR generation UI, config, and manifest-update scaffolding are present, but no verified HDR/EXR reader is wired yet.
-- Irradiance, radiance, BRDF LUT, and combined IBL generation are still not implemented beyond explicit unavailable-state messaging.
+- BRDF LUT generation is still not implemented and must stay explicitly unavailable.
+- Irradiance and radiance outputs currently follow the existing PNG runtime contract, so HDR range is reduced during export.
 - The selected-resource preview panel is wired for cropped-region previews, but only skybox source import currently provides source-region data.
 
 ## Validation
