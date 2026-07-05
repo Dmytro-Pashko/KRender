@@ -125,8 +125,9 @@ Features:
 - Lists source variants, including default source switching for the current Environment asset.
 - Shows a `Resource Inspector` panel with interactive 2D preview for skybox faces, irradiance faces, radiance mips, BRDF LUT, and imported skybox source regions.
 - Shows a separate `Selected Resource Preview` panel with its own viewport controls for the currently selected face/region.
-- Supports skybox source import from atlas/cross/row textures using preset region layouts and numeric region editing.
+- Supports `Import Skybox Atlas` for atlas/cross/row textures using preset region layouts and numeric region editing.
 - Splits imported skybox source textures into separate runtime face PNG files and updates `environment.skybox.faces`.
+- Exposes separate HDR/EXR-oriented actions for `Generate Skybox From HDR/EXR`, `Generate Irradiance`, `Generate Radiance`, `Generate BRDF LUT`, and `Generate All IBL`.
 - Shows validation diagnostics for missing or inconsistent source/resource references.
 - Shows a Preview panel with the configured test model list, auto-rotate, camera distance, yaw, pitch, camera reset, current environment identity, validation state, resource availability, and active fallback mode.
 - Uses Environment-owned PBR resources when available and reports clear warnings when skybox, irradiance, radiance, or BRDF LUT data is missing.
@@ -135,7 +136,8 @@ Features:
 Current scope / limitations:
 
 - Environment Editor is currently an MVP editor for Environment manifest settings and preview control.
-- It does not generate irradiance, radiance, or BRDF LUT resources inside the tool.
+- The atlas import workflow is real and remains separate from HDR/EXR generation.
+- HDR/EXR generation dialogs, config, and manifest-update scaffolding are present, but the current build does not include a verified HDR/EXR reader or full IBL generators yet, so those actions report explicit unavailable-state messages.
 - Runtime Environment resources use separate face files instead of a shared runtime atlas.
 - Imported skybox source splitting currently targets previewable 2D texture sources and uses numeric region editing rather than drag handles.
 - It currently previews only the bundled `Metal Rough Spheres` test model configured in `EnvironmentEditorConfig`.

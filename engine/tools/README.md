@@ -57,7 +57,10 @@ Examples:
 
 Skin Editor accepts an optional `krender.skin.path=<path>` property. When omitted, the tool starts in an empty/no-skin state until a skin path is provided.
 
-Environment Editor requires `krender.environment.path=<path>` and opens one `.environment.json` manifest per window. The manifest owns source variants and PBR resource references directly; there is no separate `generated` section in the current schema.
+Environment Editor requires `krender.environment.path=<path>` and opens one `.environment.json` manifest per window. The manifest owns source variants and PBR resource references directly; there is no separate `generated` section in the current schema. The current tool split is:
+
+- `Import Skybox Atlas` for previewable 2D atlas/cross/row textures that are exported to six runtime face PNGs.
+- HDR/EXR generation dialogs for skybox, irradiance, radiance, BRDF LUT, and `Generate All IBL`, with explicit unavailable-state messaging until a verified HDR reader/generator is wired in.
 
 Convenience launch scripts are available in `engine/tools/scripts/`:
 

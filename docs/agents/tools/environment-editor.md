@@ -12,7 +12,8 @@ Environment Editor opens one `.environment.json` asset and provides:
 - source-variant selection and manifest validation;
 - a `Resource Inspector` panel for skybox, irradiance, radiance, BRDF LUT, and imported skybox source texture inspection;
 - a separate `Selected Resource Preview` panel with its own viewport state;
-- a skybox atlas/cross/row import workflow that exports separate runtime face files and updates `environment.skybox.faces`;
+- a renamed `Import Skybox Atlas` workflow for atlas/cross/row textures that exports separate runtime face files and updates `environment.skybox.faces`;
+- explicit HDR/EXR generation dialogs for skybox, irradiance, radiance, BRDF LUT, and `Generate All IBL`, with clear unavailable-state messaging when a real HDR reader/generator is not available;
 - a live PBR preview using the bundled `model/tests/MetalRoughSpheres.glb`;
 - file save/reload/revert, layout persistence, diagnostics, and logs.
 
@@ -21,10 +22,14 @@ Desktop route:
 - `krender.scene=environment-editor`
 - `krender.environment.path=<path>`
 
-Environment Editor still does not generate irradiance, radiance, or BRDF LUT resources. The current
-import workflow only splits skybox source textures into separate runtime face files and updates the
-manifest. Future IBL generation must also target separate face-file outputs instead of shared runtime
-atlases.
+Environment Editor now clearly separates atlas import from HDR/EXR generation. `Import Skybox Atlas`
+only splits previewable 2D source textures into separate runtime face files and updates the manifest.
+The HDR/EXR generation dialogs are separate and keep generation inputs distinct from runtime resource
+references. The current editor build includes dedicated HDR/EXR generation state, controller,
+manifest-update, and projection scaffolding, but it still does not ship a verified HDR/EXR reader or
+full IBL generators. Unsupported generation actions therefore report a clear unavailable reason instead
+of pretending to run. Future IBL generation must also target separate face-file outputs instead of
+shared runtime atlases.
 
 ## Ownership
 
@@ -168,6 +173,27 @@ The `Imported Skybox Source` mode plus `Skybox Import` controls provide:
 
 Saving still happens through the normal Environment save workflow after import.
 
+## HDR / EXR Generation
+
+The `Generation` block now exposes six explicit actions:
+
+- `Import Skybox Atlas`
+- `Generate Skybox From HDR/EXR`
+- `Generate Irradiance`
+- `Generate Radiance`
+- `Generate BRDF LUT`
+- `Generate All IBL`
+
+HDR/EXR dialogs keep authoring inputs separate from runtime resources:
+
+- selected HDR/EXR files are generation inputs, not automatic runtime dependencies;
+- `Remember HDR/EXR source in Environment metadata` is optional and defaults to off;
+- runtime output still targets `skybox/<face>.png`, `irradiance/<face>.png`,
+  `radiance/mip_<n>/<face>.png`, and `brdf_lut.png`.
+
+Until a verified HDR/EXR reader is added, the dialog `Generate` actions stay explicitly unavailable
+with a visible reason.
+
 ## Extension Points
 
 Add preview models in `EnvironmentEditorConfig.testModels`; the first item is the active MVP model.
@@ -187,7 +213,8 @@ When changing manifest settings, update all of:
 
 - Imported skybox source preview currently targets previewable 2D textures and does not split HDR/EXR sources directly.
 - Import region editing is numeric-only; drag/resize handles are not implemented yet.
-- Environment Editor still does not generate irradiance, radiance, or BRDF LUT assets.
+- HDR/EXR generation UI, config, and manifest-update scaffolding are present, but no verified HDR/EXR reader is wired yet.
+- Irradiance, radiance, BRDF LUT, and combined IBL generation are still not implemented beyond explicit unavailable-state messaging.
 - The selected-resource preview panel is wired for cropped-region previews, but only skybox source import currently provides source-region data.
 
 ## Validation

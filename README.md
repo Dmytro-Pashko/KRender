@@ -82,7 +82,7 @@ Environment manifests can describe multiple source variants for the same environ
 - radiance cubemap mip chain
 - BRDF LUT texture reference
 
-The Environment Editor opens one `.environment.json` manifest, lets you edit runtime/background settings, validates referenced resources, and previews the result on a bundled glTF test model through the shared PBR renderer path.
+The Environment Editor opens one `.environment.json` manifest, lets you edit runtime/background settings, validates referenced resources, previews the result on a bundled glTF test model through the shared PBR renderer path, and now clearly separates `Import Skybox Atlas` from HDR/EXR-oriented IBL generation actions.
 
 See [docs/assets/gltf-workflow.md](docs/assets/gltf-workflow.md) for the current glTF / HDR / IBL workflow and generation commands.
 
@@ -199,7 +199,7 @@ Inspect how geometry maps to materials by selecting materials and isolating the 
 <p>Edit one <code>.environment.json</code> manifest, inspect generated IBL resources, validate source/generated paths, and preview the current Environment on the bundled Metal Rough Spheres test model.</p>
 
 <p><strong>Current MVP scope</strong><br/>
-Adjust exposure, rotation, diffuse/specular intensity, and background mode; inspect source variants, diagnostics, logs, and the live preview state without running a separate generator pass inside the tool.</p>
+Adjust exposure, rotation, diffuse/specular intensity, and background mode; inspect source variants, diagnostics, logs, and the live preview state; import skybox atlas/cross/row textures into six runtime face PNGs; and use explicit HDR/EXR generation dialogs that currently stay disabled until a verified HDR reader/generator is added.</p>
 
 </details>
 
