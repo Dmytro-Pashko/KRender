@@ -13,6 +13,7 @@ class EnvironmentEditorState(
     val previewState = EnvironmentPreviewState()
     val resourceInspectorState = EnvironmentResourceInspectorState()
     val skyboxImportState = SkyboxImportState()
+    val hdrGenerationState = HdrEnvironmentGenerationState()
     var previewModelEntityId: Long? = null
     var environment: Environment? = null
     var validation: EnvironmentValidationReport? = null

@@ -4,17 +4,27 @@ package com.pashkd.krender.engine.assets.environment
  * Backend-neutral configuration for generating runtime Environment IBL resources.
  *
  * Future implementations should emit separate face files for cubemap outputs:
- * irradiance/<face>.png and radiance/mip_<n>/<face>.png, plus brdf_lut.png.
+ * skybox/<face>.png, irradiance/<face>.png, radiance/mip_<n>/<face>.png,
+ * plus brdf_lut.png.
  */
 data class EnvironmentIblGenerationConfig(
-    val sourceEnvironmentPath: String,
+    val environmentManifestPath: String,
+    val sourceHdrPath: String,
     val outputDirectory: String,
     val format: EnvironmentIblOutputFormat = EnvironmentIblOutputFormat.PNG,
     val overwritePolicy: EnvironmentIblOverwritePolicy = EnvironmentIblOverwritePolicy.Fail,
     val faceNaming: EnvironmentIblFaceNaming = EnvironmentIblFaceNaming.PosNegAxes,
+    val skybox: SkyboxGenerationConfig = SkyboxGenerationConfig(),
     val irradiance: IrradianceGenerationConfig = IrradianceGenerationConfig(),
     val radiance: RadianceGenerationConfig = RadianceGenerationConfig(),
     val brdfLut: BrdfLutGenerationConfig = BrdfLutGenerationConfig(),
+)
+
+data class SkyboxGenerationConfig(
+    val enabled: Boolean = true,
+    val resolution: Int = 1024,
+    val exposure: Float = 1f,
+    val toneMapping: EnvironmentToneMapping = EnvironmentToneMapping.ACES,
 )
 
 data class IrradianceGenerationConfig(
@@ -55,7 +65,14 @@ enum class EnvironmentRoughnessDistribution {
     Linear,
 }
 
+enum class EnvironmentToneMapping {
+    None,
+    Reinhard,
+    ACES,
+}
+
 data class EnvironmentIblGenerationResult(
+    val skyboxFaces: Map<String, String> = emptyMap(),
     val irradianceFaces: Map<String, String> = emptyMap(),
     val radianceMipFaces: Map<Int, Map<String, String>> = emptyMap(),
     val brdfLutPath: String? = null,

@@ -1,9 +1,14 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
+import com.pashkd.krender.engine.assets.environment.Environment
+import com.pashkd.krender.engine.assets.environment.EnvironmentIblOutputFormat
+import com.pashkd.krender.engine.assets.environment.EnvironmentIblOverwritePolicy
+import com.pashkd.krender.engine.assets.environment.EnvironmentRoughnessDistribution
+import com.pashkd.krender.engine.assets.environment.EnvironmentToneMapping
+import com.pashkd.krender.engine.assets.environment.RadianceMip
+import com.pashkd.krender.engine.assets.importing.EnvironmentSourceFileDialogFilters
 import com.pashkd.krender.engine.assets.importing.FileDialogFilter
 import com.pashkd.krender.engine.assets.importing.FileDialogService
-import com.pashkd.krender.engine.assets.environment.Environment
-import com.pashkd.krender.engine.assets.environment.RadianceMip
 import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewOverlays
 import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewRegionSelection
 import com.pashkd.krender.engine.tools.common.texturepreview.computeTexturePreviewViewportLayout
@@ -30,6 +35,7 @@ class EnvironmentToolsPanel(
     private val state: EnvironmentEditorState,
     private val controller: EnvironmentResourcePreviewController,
     private val skyboxImportController: SkyboxAtlasImportController,
+    private val hdrGenerationController: HdrEnvironmentGenerationController,
     private val fileDialogService: FileDialogService,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
@@ -41,10 +47,17 @@ class EnvironmentToolsPanel(
     private val regionYBuffer = ByteArray(16)
     private val regionWidthBuffer = ByteArray(16)
     private val regionHeightBuffer = ByteArray(16)
-    private var sourceBufferSynced = false
-    private var outputBufferSynced = false
+    private val hdrSkyboxSourceBuffer = ByteArray(512)
+    private val hdrSkyboxOutputBuffer = ByteArray(256)
+    private val irradianceSourceBuffer = ByteArray(512)
+    private val irradianceOutputBuffer = ByteArray(256)
+    private val radianceSourceBuffer = ByteArray(512)
+    private val radianceOutputBuffer = ByteArray(256)
+    private val brdfOutputBuffer = ByteArray(256)
+    private val allSourceBuffer = ByteArray(512)
+    private val allOutputRootBuffer = ByteArray(256)
     private var syncedRegionKey: String? = null
-    private var openCreateSkyboxDialog = false
+    private var openImportSkyboxDialog = false
     private var importCanvasClickDragDistance = 0f
 
     override fun draw() {
@@ -57,12 +70,13 @@ class EnvironmentToolsPanel(
         }
         syncBuffers()
         state.environment?.let(::drawResources) ?: ImGui.text("No environment loaded.")
-        drawCreateSkyboxDialog()
+        drawImportSkyboxDialog()
+        drawHdrGenerationDialogs()
         ImGui.end()
     }
 
     private fun drawResources(environment: Environment) {
-        drawGeneration(environment)
+        drawGeneration()
         ImGui.separator()
         drawSkybox(environment)
         ImGui.separator()
@@ -73,14 +87,29 @@ class EnvironmentToolsPanel(
         drawBrdf(environment)
     }
 
-    private fun drawGeneration(environment: Environment) {
+    private fun drawGeneration() {
         ImGui.text("Generation")
-        withDisabledButton("Create Skybox##env_tools_create_skybox", enabled = environment.skybox == null) {
-            openCreateSkyboxDialog = true
+        if (ImGui.button("Import Skybox Atlas##env_tools_import_skybox_atlas")) {
+            openImportSkyboxDialog = true
         }
-        withDisabledButton("Generate Radiance##env_tools_generate_radiance", enabled = false) {}
-        withDisabledButton("Generate Irradiance##env_tools_generate_irradiance", enabled = false) {}
-        withDisabledButton("Generate BRDF##env_tools_generate_brdf", enabled = false) {}
+        tooltipOnHover("Split an atlas/cross/row PNG/JPG/JPEG/WEBP/BMP source into six skybox face PNG files.")
+        if (ImGui.button("Generate Skybox From HDR/EXR##env_tools_generate_hdr_skybox")) {
+            hdrGenerationController.open(HdrEnvironmentGenerationDialog.Skybox)
+        }
+        tooltipOnHover("Project an equirectangular HDR/EXR source into six cubemap face PNG files.")
+        if (ImGui.button("Generate Irradiance##env_tools_generate_irradiance")) {
+            hdrGenerationController.open(HdrEnvironmentGenerationDialog.Irradiance)
+        }
+        if (ImGui.button("Generate Radiance##env_tools_generate_radiance")) {
+            hdrGenerationController.open(HdrEnvironmentGenerationDialog.Radiance)
+        }
+        if (ImGui.button("Generate BRDF LUT##env_tools_generate_brdf_lut")) {
+            hdrGenerationController.open(HdrEnvironmentGenerationDialog.BrdfLut)
+        }
+        if (ImGui.button("Generate All IBL##env_tools_generate_all_ibl")) {
+            hdrGenerationController.open(HdrEnvironmentGenerationDialog.AllIbl)
+        }
+        state.hdrGenerationState.statusMessage?.let(ImGui::textWrapped)
     }
 
     private fun drawSkybox(environment: Environment) {
@@ -184,40 +213,36 @@ class EnvironmentToolsPanel(
         }
     }
 
-    private fun drawCreateSkyboxDialog() {
-        if (!openCreateSkyboxDialog) return
-        ImGui.openPopup("Create Skybox##env_tools_create_skybox_dialog")
+    private fun drawImportSkyboxDialog() {
+        if (!openImportSkyboxDialog) return
+        ImGui.openPopup("Import Skybox Atlas##env_tools_import_skybox_dialog")
         ImGui.setNextWindowSize(Vec2(900f, 860f), Cond.Appearing)
-        if (!ImGui.beginPopupModal("Create Skybox##env_tools_create_skybox_dialog")) return
+        if (!ImGui.beginPopupModal("Import Skybox Atlas##env_tools_import_skybox_dialog")) return
 
-        state.environment?.let { environment ->
-            drawCreateSkyboxDialogContent(environment)
-        } ?: ImGui.text("No environment loaded.")
+        state.environment?.let(::drawImportSkyboxDialogContent) ?: ImGui.text("No environment loaded.")
         ImGui.endPopup()
     }
 
-    private fun drawCreateSkyboxDialogContent(environment: Environment) {
+    private fun drawImportSkyboxDialogContent(environment: Environment) {
         ImGui.text("Source")
         ImGui.sameLine()
         ImGui.pushItemWidth(520f)
-        if (ImGui.inputText("##env_tools_create_skybox_source", skyboxSourceBuffer)) {
+        if (ImGui.inputText("##env_tools_import_skybox_source", skyboxSourceBuffer)) {
             skyboxImportController.setSourcePath(readBuffer(skyboxSourceBuffer))
         }
         ImGui.popItemWidth()
         ImGui.sameLine()
-        if (ImGui.button("Browse...##env_tools_create_skybox_browse")) {
-            val selected = fileDialogService.openFile(SkyboxSourceFileDialogFilters) ?: ""
+        if (ImGui.button("Browse...##env_tools_import_skybox_browse")) {
+            val selected = fileDialogService.openFile(SkyboxAtlasFileDialogFilters) ?: ""
             if (selected.isNotBlank()) {
                 skyboxImportController.setSourcePath(selected)
-                writeBuffer(skyboxSourceBuffer, state.skyboxImportState.sourcePath)
-                sourceBufferSynced = true
             }
         }
-        ImGui.text("Source texture path")
+        ImGui.text("Source atlas/cross/row texture path")
 
         val importState = state.skyboxImportState
         ImGui.setNextItemWidth(200f)
-        if (ImGui.beginCombo("Layout##env_tools_create_skybox_layout", importState.layoutPreset.name)) {
+        if (ImGui.beginCombo("Layout##env_tools_import_skybox_layout", importState.layoutPreset.name)) {
             SkyboxImportLayoutPreset.entries.forEach { preset ->
                 if (ImGui.selectable(preset.name, importState.layoutPreset == preset)) {
                     skyboxImportController.setLayoutPreset(preset)
@@ -226,11 +251,11 @@ class EnvironmentToolsPanel(
             ImGui.endCombo()
         }
         ImGui.sameLine()
-        if (ImGui.button("Apply Layout##env_tools_create_skybox_apply_layout")) {
+        if (ImGui.button("Apply Layout##env_tools_import_skybox_apply_layout")) {
             skyboxImportController.refreshDefaultRegions()
         }
         ImGui.pushItemWidth(300f)
-        if (ImGui.inputText("##env_tools_create_skybox_output", skyboxOutputBuffer)) {
+        if (ImGui.inputText("##env_tools_import_skybox_output", skyboxOutputBuffer)) {
             skyboxImportController.setOutputDirectory(readBuffer(skyboxOutputBuffer))
         }
         ImGui.popItemWidth()
@@ -244,7 +269,7 @@ class EnvironmentToolsPanel(
 
         ImGui.separator()
         ImGui.text("Faces")
-        ImGui.beginChild("##env_tools_create_skybox_faces", ImVec2(180f, 120f), true)
+        ImGui.beginChild("##env_tools_import_skybox_faces", ImVec2(180f, 120f), true)
         EnvironmentCubemapFace.ordered.forEach { face ->
             if (ImGui.selectable(face.id, face == state.skyboxImportState.selectedFace)) {
                 skyboxImportController.selectFace(face)
@@ -257,15 +282,340 @@ class EnvironmentToolsPanel(
         drawImportedSourcePreview(model)
         drawSelectedImportRegionEditor(state.skyboxImportState.selectedFace)
 
-        if (ImGui.button("Create##env_tools_create_skybox_commit")) {
+        if (ImGui.button("Import##env_tools_import_skybox_commit")) {
             skyboxImportController.importIntoEnvironment()
-            openCreateSkyboxDialog = false
+            openImportSkyboxDialog = false
             ImGui.closeCurrentPopup()
         }
-        tooltipOnHover("Splits the configured source image into six face PNGs and updates environment.skybox.faces. Save still uses the normal Environment save action.")
+        tooltipOnHover("Exports six skybox face PNG files and updates environment.skybox.faces.")
         ImGui.sameLine()
-        if (ImGui.button("Close##env_tools_create_skybox_close_inline")) {
-            openCreateSkyboxDialog = false
+        if (ImGui.button("Cancel##env_tools_import_skybox_cancel")) {
+            openImportSkyboxDialog = false
+            ImGui.closeCurrentPopup()
+        }
+    }
+
+    private fun drawHdrGenerationDialogs() {
+        when (state.hdrGenerationState.openDialog) {
+            HdrEnvironmentGenerationDialog.Skybox -> drawHdrSkyboxDialog()
+            HdrEnvironmentGenerationDialog.Irradiance -> drawIrradianceDialog()
+            HdrEnvironmentGenerationDialog.Radiance -> drawRadianceDialog()
+            HdrEnvironmentGenerationDialog.BrdfLut -> drawBrdfLutDialog()
+            HdrEnvironmentGenerationDialog.AllIbl -> drawAllIblDialog()
+            null -> Unit
+        }
+    }
+
+    private fun drawHdrSkyboxDialog() {
+        val dialog = HdrEnvironmentGenerationDialog.Skybox
+        val request = state.hdrGenerationState.skyboxRequest
+        val availability = hdrGenerationController.availability(dialog)
+        ImGui.openPopup("${dialog.title}##env_tools_hdr_skybox_dialog")
+        ImGui.setNextWindowSize(Vec2(720f, 460f), Cond.Appearing)
+        if (!ImGui.beginPopupModal("${dialog.title}##env_tools_hdr_skybox_dialog")) return
+
+        drawHdrSourceInput(
+            label = "Source HDR/EXR file",
+            buffer = hdrSkyboxSourceBuffer,
+            onChanged = { hdrGenerationController.setSkyboxSourcePath(it) },
+        )
+        drawPathInput("Output directory", hdrSkyboxOutputBuffer) { request.outputDirectory = it }
+        slider("Resolution##env_tools_hdr_skybox_resolution", request::resolution, 64, 4096, "%d", SliderFlag.AlwaysClamp)
+        drawOutputFormatCombo("Output format##env_tools_hdr_skybox_format", request.format) { request.format = it }
+        slider("Exposure##env_tools_hdr_skybox_exposure", request::exposure, 0.1f, 8f, "%.2f", SliderFlag.AlwaysClamp)
+        drawToneMappingCombo("Tone mapping##env_tools_hdr_skybox_tone_mapping", request.toneMapping) { request.toneMapping = it }
+        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_skybox_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
+        drawRememberSourceCheckbox { request.rememberSource = it }
+        drawGenerationAvailability(availability)
+        drawGenerateCancelRow(
+            canGenerate = availability.available && request.sourceHdrPath.isNotBlank(),
+            generateLabel = "Generate##env_tools_hdr_skybox_generate",
+            missingInputMessage = "Select a source HDR/EXR file.",
+            availability = availability,
+            onGenerate = hdrGenerationController::generateSkybox,
+        )
+    }
+
+    private fun drawIrradianceDialog() {
+        val dialog = HdrEnvironmentGenerationDialog.Irradiance
+        val request = state.hdrGenerationState.irradianceRequest
+        val availability = hdrGenerationController.availability(dialog)
+        ImGui.openPopup("${dialog.title}##env_tools_hdr_irradiance_dialog")
+        ImGui.setNextWindowSize(Vec2(720f, 420f), Cond.Appearing)
+        if (!ImGui.beginPopupModal("${dialog.title}##env_tools_hdr_irradiance_dialog")) return
+
+        drawHdrSourceInput(
+            label = "Source HDR/EXR file",
+            buffer = irradianceSourceBuffer,
+            onChanged = { hdrGenerationController.setIrradianceSourcePath(it) },
+        )
+        drawPathInput("Output directory", irradianceOutputBuffer) { request.outputDirectory = it }
+        slider("Resolution##env_tools_hdr_irradiance_resolution", request::resolution, 16, 512, "%d", SliderFlag.AlwaysClamp)
+        slider("Sample count##env_tools_hdr_irradiance_samples", request::sampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
+        drawOutputFormatCombo("Output format##env_tools_hdr_irradiance_format", request.format) { request.format = it }
+        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_irradiance_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
+        drawRememberSourceCheckbox { request.rememberSource = it }
+        drawGenerationAvailability(availability)
+        drawGenerateCancelRow(
+            canGenerate = availability.available && request.sourceHdrPath.isNotBlank(),
+            generateLabel = "Generate##env_tools_hdr_irradiance_generate",
+            missingInputMessage = "Select a source HDR/EXR file.",
+            availability = availability,
+            onGenerate = hdrGenerationController::generateIrradiance,
+        )
+    }
+
+    private fun drawRadianceDialog() {
+        val dialog = HdrEnvironmentGenerationDialog.Radiance
+        val request = state.hdrGenerationState.radianceRequest
+        val availability = hdrGenerationController.availability(dialog)
+        ImGui.openPopup("${dialog.title}##env_tools_hdr_radiance_dialog")
+        ImGui.setNextWindowSize(Vec2(720f, 470f), Cond.Appearing)
+        if (!ImGui.beginPopupModal("${dialog.title}##env_tools_hdr_radiance_dialog")) return
+
+        drawHdrSourceInput(
+            label = "Source HDR/EXR file",
+            buffer = radianceSourceBuffer,
+            onChanged = { hdrGenerationController.setRadianceSourcePath(it) },
+        )
+        drawPathInput("Output directory", radianceOutputBuffer) { request.outputDirectory = it }
+        slider("Base resolution##env_tools_hdr_radiance_base_resolution", request::baseResolution, 16, 2048, "%d", SliderFlag.AlwaysClamp)
+        slider("Mip count##env_tools_hdr_radiance_mip_count", request::mipCount, 1, 12, "%d", SliderFlag.AlwaysClamp)
+        slider("Sample count##env_tools_hdr_radiance_samples", request::sampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
+        drawRoughnessDistributionCombo(
+            "Roughness distribution##env_tools_hdr_radiance_distribution",
+            request.roughnessDistribution,
+        ) { request.roughnessDistribution = it }
+        drawOutputFormatCombo("Output format##env_tools_hdr_radiance_format", request.format) { request.format = it }
+        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_radiance_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
+        drawRememberSourceCheckbox { request.rememberSource = it }
+        drawGenerationAvailability(availability)
+        drawGenerateCancelRow(
+            canGenerate = availability.available && request.sourceHdrPath.isNotBlank(),
+            generateLabel = "Generate##env_tools_hdr_radiance_generate",
+            missingInputMessage = "Select a source HDR/EXR file.",
+            availability = availability,
+            onGenerate = hdrGenerationController::generateRadiance,
+        )
+    }
+
+    private fun drawBrdfLutDialog() {
+        val dialog = HdrEnvironmentGenerationDialog.BrdfLut
+        val request = state.hdrGenerationState.brdfLutRequest
+        val availability = hdrGenerationController.availability(dialog)
+        ImGui.openPopup("${dialog.title}##env_tools_hdr_brdf_dialog")
+        ImGui.setNextWindowSize(Vec2(720f, 300f), Cond.Appearing)
+        if (!ImGui.beginPopupModal("${dialog.title}##env_tools_hdr_brdf_dialog")) return
+
+        drawPathInput("Output path", brdfOutputBuffer) { request.outputPath = it }
+        slider("Resolution##env_tools_hdr_brdf_resolution", request::resolution, 16, 2048, "%d", SliderFlag.AlwaysClamp)
+        slider("Sample count##env_tools_hdr_brdf_samples", request::sampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
+        drawOutputFormatCombo("Output format##env_tools_hdr_brdf_format", request.format) { request.format = it }
+        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_brdf_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
+        drawGenerationAvailability(availability)
+        drawGenerateCancelRow(
+            canGenerate = availability.available,
+            generateLabel = "Generate##env_tools_hdr_brdf_generate",
+            missingInputMessage = null,
+            availability = availability,
+            onGenerate = hdrGenerationController::generateBrdfLut,
+        )
+    }
+
+    private fun drawAllIblDialog() {
+        val dialog = HdrEnvironmentGenerationDialog.AllIbl
+        val request = state.hdrGenerationState.allIblRequest
+        val availability = hdrGenerationController.availability(dialog)
+        ImGui.openPopup("${dialog.title}##env_tools_hdr_all_dialog")
+        ImGui.setNextWindowSize(Vec2(760f, 620f), Cond.Appearing)
+        if (!ImGui.beginPopupModal("${dialog.title}##env_tools_hdr_all_dialog")) return
+
+        drawHdrSourceInput(
+            label = "Source HDR/EXR file",
+            buffer = allSourceBuffer,
+            onChanged = { hdrGenerationController.setAllSourcePath(it) },
+        )
+        drawPathInput("Output root", allOutputRootBuffer) { request.outputRoot = it }
+        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_all_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
+        drawRememberSourceCheckbox { request.rememberSource = it }
+        ImGui.separator()
+        val skyboxEnabled = booleanArrayOf(request.skyboxEnabled)
+        if (ImGui.checkbox("Skybox enabled##env_tools_hdr_all_skybox_enabled", skyboxEnabled)) request.skyboxEnabled = skyboxEnabled[0]
+        if (request.skyboxEnabled) {
+            slider("Skybox resolution##env_tools_hdr_all_skybox_resolution", request::skyboxResolution, 64, 4096, "%d", SliderFlag.AlwaysClamp)
+            slider("Skybox exposure##env_tools_hdr_all_skybox_exposure", request::skyboxExposure, 0.1f, 8f, "%.2f", SliderFlag.AlwaysClamp)
+            drawToneMappingCombo("Skybox tone mapping##env_tools_hdr_all_skybox_tone_mapping", request.skyboxToneMapping) { request.skyboxToneMapping = it }
+        }
+        val irradianceEnabled = booleanArrayOf(request.irradianceEnabled)
+        if (ImGui.checkbox("Irradiance enabled##env_tools_hdr_all_irradiance_enabled", irradianceEnabled)) request.irradianceEnabled = irradianceEnabled[0]
+        if (request.irradianceEnabled) {
+            slider("Irradiance resolution##env_tools_hdr_all_irradiance_resolution", request::irradianceResolution, 16, 512, "%d", SliderFlag.AlwaysClamp)
+            slider("Irradiance sample count##env_tools_hdr_all_irradiance_samples", request::irradianceSampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
+        }
+        val radianceEnabled = booleanArrayOf(request.radianceEnabled)
+        if (ImGui.checkbox("Radiance enabled##env_tools_hdr_all_radiance_enabled", radianceEnabled)) request.radianceEnabled = radianceEnabled[0]
+        if (request.radianceEnabled) {
+            slider("Radiance base resolution##env_tools_hdr_all_radiance_base_resolution", request::radianceBaseResolution, 16, 2048, "%d", SliderFlag.AlwaysClamp)
+            slider("Radiance mip count##env_tools_hdr_all_radiance_mip_count", request::radianceMipCount, 1, 12, "%d", SliderFlag.AlwaysClamp)
+            slider("Radiance sample count##env_tools_hdr_all_radiance_samples", request::radianceSampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
+        }
+        val brdfEnabled = booleanArrayOf(request.brdfLutEnabled)
+        if (ImGui.checkbox("BRDF LUT enabled##env_tools_hdr_all_brdf_enabled", brdfEnabled)) request.brdfLutEnabled = brdfEnabled[0]
+        if (request.brdfLutEnabled) {
+            slider("BRDF LUT resolution##env_tools_hdr_all_brdf_resolution", request::brdfLutResolution, 16, 2048, "%d", SliderFlag.AlwaysClamp)
+            slider("BRDF LUT sample count##env_tools_hdr_all_brdf_samples", request::brdfLutSampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
+        }
+        drawGenerationAvailability(availability)
+        drawGenerateCancelRow(
+            canGenerate = availability.available && request.sourceHdrPath.isNotBlank(),
+            generateLabel = "Generate##env_tools_hdr_all_generate",
+            missingInputMessage = "Select a source HDR/EXR file.",
+            availability = availability,
+            onGenerate = hdrGenerationController::generateAll,
+        )
+    }
+
+    private fun drawHdrSourceInput(
+        label: String,
+        buffer: ByteArray,
+        onChanged: (String) -> Unit,
+    ) {
+        ImGui.text(label)
+        ImGui.sameLine()
+        ImGui.pushItemWidth(440f)
+        if (ImGui.inputText("##${label}_input", buffer)) {
+            onChanged(readBuffer(buffer))
+        }
+        ImGui.popItemWidth()
+        ImGui.sameLine()
+        if (ImGui.button("Browse...##${label}_browse")) {
+            val selected = fileDialogService.openFile(EnvironmentSourceFileDialogFilters) ?: ""
+            if (selected.isNotBlank()) {
+                onChanged(selected)
+            }
+        }
+    }
+
+    private fun drawPathInput(
+        label: String,
+        buffer: ByteArray,
+        onChanged: (String) -> Unit,
+    ) {
+        ImGui.text(label)
+        ImGui.sameLine()
+        ImGui.pushItemWidth(440f)
+        if (ImGui.inputText("##${label}_input", buffer)) {
+            onChanged(readBuffer(buffer))
+        }
+        ImGui.popItemWidth()
+    }
+
+    private fun drawOutputFormatCombo(
+        label: String,
+        selected: EnvironmentIblOutputFormat,
+        onChanged: (EnvironmentIblOutputFormat) -> Unit,
+    ) {
+        ImGui.setNextItemWidth(200f)
+        if (ImGui.beginCombo(label, selected.name)) {
+            EnvironmentIblOutputFormat.entries.forEach { option ->
+                if (ImGui.selectable(option.name, option == selected)) {
+                    onChanged(option)
+                }
+            }
+            ImGui.endCombo()
+        }
+    }
+
+    private fun drawOverwritePolicyCombo(
+        label: String,
+        selected: EnvironmentIblOverwritePolicy,
+        onChanged: (EnvironmentIblOverwritePolicy) -> Unit,
+    ) {
+        ImGui.setNextItemWidth(200f)
+        if (ImGui.beginCombo(label, selected.name)) {
+            EnvironmentIblOverwritePolicy.entries.forEach { option ->
+                if (ImGui.selectable(option.name, option == selected)) {
+                    onChanged(option)
+                }
+            }
+            ImGui.endCombo()
+        }
+    }
+
+    private fun drawToneMappingCombo(
+        label: String,
+        selected: EnvironmentToneMapping,
+        onChanged: (EnvironmentToneMapping) -> Unit,
+    ) {
+        ImGui.setNextItemWidth(200f)
+        if (ImGui.beginCombo(label, selected.name)) {
+            EnvironmentToneMapping.entries.forEach { option ->
+                if (ImGui.selectable(option.name, option == selected)) {
+                    onChanged(option)
+                }
+            }
+            ImGui.endCombo()
+        }
+    }
+
+    private fun drawRoughnessDistributionCombo(
+        label: String,
+        selected: EnvironmentRoughnessDistribution,
+        onChanged: (EnvironmentRoughnessDistribution) -> Unit,
+    ) {
+        ImGui.setNextItemWidth(200f)
+        if (ImGui.beginCombo(label, selected.name)) {
+            EnvironmentRoughnessDistribution.entries.forEach { option ->
+                if (ImGui.selectable(option.name, option == selected)) {
+                    onChanged(option)
+                }
+            }
+            ImGui.endCombo()
+        }
+    }
+
+    private fun drawRememberSourceCheckbox(onChanged: (Boolean) -> Unit) {
+        val value = booleanArrayOf(false)
+        val currentDialog = state.hdrGenerationState.openDialog
+        value[0] =
+            when (currentDialog) {
+                HdrEnvironmentGenerationDialog.Skybox -> state.hdrGenerationState.skyboxRequest.rememberSource
+                HdrEnvironmentGenerationDialog.Irradiance -> state.hdrGenerationState.irradianceRequest.rememberSource
+                HdrEnvironmentGenerationDialog.Radiance -> state.hdrGenerationState.radianceRequest.rememberSource
+                HdrEnvironmentGenerationDialog.AllIbl -> state.hdrGenerationState.allIblRequest.rememberSource
+                HdrEnvironmentGenerationDialog.BrdfLut,
+                null,
+                -> false
+            }
+        if (ImGui.checkbox("Remember HDR/EXR source in Environment metadata", value)) {
+            onChanged(value[0])
+        }
+    }
+
+    private fun drawGenerationAvailability(availability: HdrEnvironmentGenerationAvailability) {
+        if (availability.reason != null) {
+            ImGui.textWrapped(availability.reason)
+        }
+    }
+
+    private fun drawGenerateCancelRow(
+        canGenerate: Boolean,
+        generateLabel: String,
+        missingInputMessage: String?,
+        availability: HdrEnvironmentGenerationAvailability,
+        onGenerate: () -> Unit,
+    ) {
+        if (!canGenerate) ImGui.beginDisabled()
+        if (ImGui.button(generateLabel) && canGenerate) {
+            onGenerate()
+        }
+        if (!canGenerate) {
+            ImGui.endDisabled()
+            tooltipOnHover(availability.reason ?: missingInputMessage.orEmpty())
+        }
+        ImGui.sameLine()
+        if (ImGui.button("Cancel##$generateLabel")) {
+            hdrGenerationController.close()
             ImGui.closeCurrentPopup()
         }
     }
@@ -273,7 +623,7 @@ class EnvironmentToolsPanel(
     private fun drawImportedSourcePreview(model: EnvironmentResourcePreviewModel) {
         val previewState = state.resourceInspectorState.resourcePreviewState
         ImGui.setNextItemWidth(160f)
-        if (ImGui.beginCombo("Zoom##env_tools_create_skybox_zoom", formatZoomMode(previewState.zoomMode))) {
+        if (ImGui.beginCombo("Zoom##env_tools_import_skybox_zoom", formatZoomMode(previewState.zoomMode))) {
             com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewZoomMode.entries.forEach { mode ->
                 if (ImGui.selectable(formatZoomMode(mode), previewState.zoomMode == mode)) {
                     controller.setZoomMode(mode)
@@ -284,36 +634,36 @@ class EnvironmentToolsPanel(
         if (previewState.zoomMode == com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewZoomMode.Custom) {
             ImGui.sameLine()
             ImGui.setNextItemWidth(120f)
-            if (slider("Custom##env_tools_create_skybox_custom_zoom", previewState::customZoom, 0.05f, 25f, "%.2f", SliderFlag.AlwaysClamp)) {
+            if (slider("Custom##env_tools_import_skybox_custom_zoom", previewState::customZoom, 0.05f, 25f, "%.2f", SliderFlag.AlwaysClamp)) {
                 controller.setPreviewZoom(previewState.customZoom)
             }
         }
-        if (ImGui.button("Fit##env_tools_create_skybox_fit")) {
+        if (ImGui.button("Fit##env_tools_import_skybox_fit")) {
             controller.fitPreview()
         }
         ImGui.sameLine()
-        if (ImGui.button("Reset##env_tools_create_skybox_reset")) {
+        if (ImGui.button("Reset##env_tools_import_skybox_reset")) {
             controller.resetPreviewCamera()
         }
         ImGui.sameLine()
         val showGrid = booleanArrayOf(previewState.showGrid)
-        if (ImGui.checkbox("Grid##env_tools_create_skybox_grid", showGrid)) {
+        if (ImGui.checkbox("Grid##env_tools_import_skybox_grid", showGrid)) {
             previewState.showGrid = showGrid[0]
         }
         ImGui.sameLine()
         val showChecker = booleanArrayOf(previewState.showCheckerboard)
-        if (ImGui.checkbox("Checkerboard##env_tools_create_skybox_checker", showChecker)) {
+        if (ImGui.checkbox("Checkerboard##env_tools_import_skybox_checker", showChecker)) {
             previewState.showCheckerboard = showChecker[0]
         }
         ImGui.sameLine()
         val showBounds = booleanArrayOf(previewState.showBounds)
-        if (ImGui.checkbox("Bounds##env_tools_create_skybox_bounds", showBounds)) {
+        if (ImGui.checkbox("Bounds##env_tools_import_skybox_bounds", showBounds)) {
             previewState.showBounds = showBounds[0]
         }
         ImGui.separator()
 
         ImGui.beginChild(
-            "environment_tools_create_skybox_canvas",
+            "environment_tools_import_skybox_canvas",
             ImVec2(0f, 360f),
             true,
             WindowFlag.NoScrollbar or WindowFlag.NoScrollWithMouse,
@@ -364,7 +714,7 @@ class EnvironmentToolsPanel(
             }
         }
         ImGui.cursorScreenPos = ImVec2(canvasRect.x, canvasRect.y)
-        ImGui.invisibleButton("##environment_tools_create_skybox_canvas_hit", ImVec2(canvasRect.width, canvasRect.height))
+        ImGui.invisibleButton("##environment_tools_import_skybox_canvas_hit", ImVec2(canvasRect.width, canvasRect.height))
         handleImportedSourceCanvasInteraction(model, layout)
         ImGui.endChild()
     }
@@ -448,14 +798,17 @@ class EnvironmentToolsPanel(
     }
 
     private fun syncBuffers() {
-        if (!sourceBufferSynced || readBuffer(skyboxSourceBuffer) != state.skyboxImportState.sourcePath) {
-            writeBuffer(skyboxSourceBuffer, state.skyboxImportState.sourcePath)
-            sourceBufferSynced = true
-        }
-        if (!outputBufferSynced || readBuffer(skyboxOutputBuffer) != state.skyboxImportState.outputDirectory) {
-            writeBuffer(skyboxOutputBuffer, state.skyboxImportState.outputDirectory)
-            outputBufferSynced = true
-        }
+        syncBuffer(skyboxSourceBuffer, state.skyboxImportState.sourcePath)
+        syncBuffer(skyboxOutputBuffer, state.skyboxImportState.outputDirectory)
+        syncBuffer(hdrSkyboxSourceBuffer, state.hdrGenerationState.skyboxRequest.sourceHdrPath)
+        syncBuffer(hdrSkyboxOutputBuffer, state.hdrGenerationState.skyboxRequest.outputDirectory)
+        syncBuffer(irradianceSourceBuffer, state.hdrGenerationState.irradianceRequest.sourceHdrPath)
+        syncBuffer(irradianceOutputBuffer, state.hdrGenerationState.irradianceRequest.outputDirectory)
+        syncBuffer(radianceSourceBuffer, state.hdrGenerationState.radianceRequest.sourceHdrPath)
+        syncBuffer(radianceOutputBuffer, state.hdrGenerationState.radianceRequest.outputDirectory)
+        syncBuffer(brdfOutputBuffer, state.hdrGenerationState.brdfLutRequest.outputPath)
+        syncBuffer(allSourceBuffer, state.hdrGenerationState.allIblRequest.sourceHdrPath)
+        syncBuffer(allOutputRootBuffer, state.hdrGenerationState.allIblRequest.outputRoot)
     }
 
     private fun syncSelectedRegionBuffers(
@@ -477,24 +830,21 @@ class EnvironmentToolsPanel(
         syncedRegionKey = face.id
     }
 
+    private fun syncBuffer(
+        buffer: ByteArray,
+        value: String,
+    ) {
+        if (readBuffer(buffer) != value) {
+            writeBuffer(buffer, value)
+        }
+    }
+
     private fun isSelected(
         mode: EnvironmentResourceMode,
         itemId: String,
     ): Boolean =
         state.resourceInspectorState.selectedResourceMode == mode &&
             state.resourceInspectorState.selectedRegionOrFace == itemId
-
-    private fun withDisabledButton(
-        label: String,
-        enabled: Boolean,
-        onClick: () -> Unit,
-    ) {
-        if (!enabled) ImGui.beginDisabled()
-        if (ImGui.button(label) && enabled) {
-            onClick()
-        }
-        if (!enabled) ImGui.endDisabled()
-    }
 
     private fun packPreviewColor(color: com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewColor): Int =
         packColor(
@@ -507,9 +857,9 @@ class EnvironmentToolsPanel(
     private companion object {
         private const val ImportCanvasClickDragThreshold = 6f
 
-        private val SkyboxSourceFileDialogFilters =
+        private val SkyboxAtlasFileDialogFilters =
             listOf(
-                FileDialogFilter("Skybox Source Textures", listOf("png", "jpg", "jpeg", "bmp", "webp")),
+                FileDialogFilter("Skybox Atlas Textures", listOf("png", "jpg", "jpeg", "bmp", "webp")),
             )
     }
 }

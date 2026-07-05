@@ -49,6 +49,13 @@ class EnvironmentEditorScene(
             ) { updatedEnvironment ->
                 state.validation = environmentService.validate(updatedEnvironment)
             }
+        val hdrGenerationController =
+            HdrEnvironmentGenerationController(
+                state,
+                engine.assetRegistry.baseDir(),
+                environmentService,
+                engine.logger,
+            )
         val layoutTracker = loadLayout()
         val controller = EnvironmentEditorController(state, engine, environmentService, layoutTracker)
 
@@ -62,6 +69,7 @@ class EnvironmentEditorScene(
                 resourcePreviewController,
                 selectedResourcePreviewController,
                 skyboxImportController,
+                hdrGenerationController,
                 environmentService,
                 layoutTracker,
                 engine,

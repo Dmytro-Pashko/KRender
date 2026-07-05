@@ -48,7 +48,6 @@ object EnvironmentValidator {
         issues: MutableList<EnvironmentIssue>,
     ) {
         if (environment.sources.isEmpty()) {
-            issues += error(Codes.NO_SOURCES, "No source variants defined.")
             return
         }
         val hasDefault = environment.sources.any { it.isDefault }
