@@ -4,9 +4,7 @@ import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.tools.common.EditorTexturePreviewService
-import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewRegion
 import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewZoomMode
-import java.io.File
 
 class EnvironmentResourcePreviewController(
     private val state: EnvironmentEditorState,
@@ -99,13 +97,9 @@ class EnvironmentResourcePreviewController(
         setSelectedItem("brdf_lut")
     }
 
-    fun showImportedSkyboxSource(face: EnvironmentCubemapFace? = state.skyboxImportState.selectedFace) {
-        setMode(EnvironmentResourceMode.ImportedSkyboxSource)
-        setSelectedItem(face?.id)
-    }
-
     fun removeSkybox() {
         state.updateEnvironment { environment -> environment.copy(skybox = null) }
+        state.skyboxImportState.reset()
         if (state.resourceInspectorState.selectedResourceMode == EnvironmentResourceMode.Skybox) {
             state.resourceInspectorState.selectedRegionOrFace = null
             state.resourceInspectorState.selectedFace = null

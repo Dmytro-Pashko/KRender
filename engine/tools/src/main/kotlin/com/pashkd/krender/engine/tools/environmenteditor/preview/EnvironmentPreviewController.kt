@@ -17,7 +17,6 @@ import com.pashkd.krender.engine.assets.environment.TextureResourceRef
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorConfig
 import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorState
-import com.pashkd.krender.engine.tools.environmenteditor.displayName
 
 /**
  * Adapts the currently edited Environment to the shared glTF renderer contract.
@@ -60,24 +59,6 @@ class EnvironmentPreviewController(
             environmentRotationDegrees = settings.rotationDegrees,
             directionalLightIntensity = if (availability.hasIblLighting) 0.3f else 0.85f,
         )
-    }
-
-    fun liveStatusMessage(environment: Environment): String {
-        val availability = availability(environment)
-        val settings = environment.settings
-        return buildString {
-            append("Live preview uses the current editor state. ")
-            append(
-                "Exposure %.2f, rotation %.1f deg, diffuse %.2f, specular %.2f. ".format(
-                    settings.exposure,
-                    settings.rotationDegrees,
-                    settings.diffuseIntensity,
-                    settings.specularIntensity,
-                ),
-            )
-            append("Background mode ${settings.backgroundMode.displayName}.")
-            if (availability.warnings.isNotEmpty()) append(" ${availability.fallbackMode}.")
-        }
     }
 
     private fun resourceWarnings(

@@ -48,20 +48,11 @@ class EnvironmentEditorScene(
                 engine.logger,
             ) { updatedEnvironment ->
                 state.validation = environmentService.validate(updatedEnvironment)
-                val availability = previewController.availability(updatedEnvironment)
-                engine.logger.info(TAG) {
-                    "Skybox import applied to editor state manifest='${updatedEnvironment.manifestPath}' " +
-                        "validation=${state.validation?.status} cacheRevision=${state.environmentCacheRevision} " +
-                        "hasSkybox=${availability.hasSkybox} hasIrradiance=${availability.hasIrradiance} " +
-                        "hasRadiance=${availability.hasRadiance} hasBrdfLut=${availability.hasBrdfLut} " +
-                        "showSkybox=${availability.effectiveShowSkybox}"
-                }
             }
         val layoutTracker = loadLayout()
         val controller = EnvironmentEditorController(state, engine, environmentService, layoutTracker)
 
         controller.reload()
-        world.systems.add(EnvironmentEditorStateLoggingSystem(state, engine.logger))
         EnvironmentPreviewSceneAssembler(world, state, previewController).install()
         world.systems.add(
             EnvironmentEditorUiFactory(

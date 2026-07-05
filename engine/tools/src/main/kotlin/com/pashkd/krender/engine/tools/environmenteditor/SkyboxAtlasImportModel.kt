@@ -28,4 +28,12 @@ class SkyboxImportState {
     var outputDirectory: String = "skybox"
     var selectedFace: EnvironmentCubemapFace = EnvironmentCubemapFace.PosX
     var regions: Map<EnvironmentCubemapFace, SkyboxImportRegion> = emptyMap()
+
+    fun reset() {
+        sourcePath = ""
+        layoutPreset = SkyboxImportLayoutPreset.CubeCross4x3
+        outputDirectory = "skybox"
+        selectedFace = EnvironmentCubemapFace.PosX
+        regions = emptyMap()
+    }
 }
