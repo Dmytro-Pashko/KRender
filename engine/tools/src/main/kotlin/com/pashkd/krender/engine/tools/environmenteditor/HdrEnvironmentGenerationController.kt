@@ -2,6 +2,7 @@ package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.environment.Environment
+import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
 import com.pashkd.krender.engine.assets.environment.EnvironmentService
 import java.io.File
 
@@ -16,6 +17,7 @@ class HdrEnvironmentGenerationController(
     private val generationService = HdrEnvironmentGenerationService(assetRoot, hdrImageReader = null)
 
     fun open(dialog: HdrEnvironmentGenerationDialog) {
+        prepareDefaultPaths(dialog)
         generatorState.openDialog = dialog
         generatorState.statusMessage = generationService.availability(dialog).reason
         state.statusMessage = dialog.title
@@ -85,6 +87,16 @@ class HdrEnvironmentGenerationController(
         runGeneration(HdrEnvironmentGenerationDialog.AllIbl, environment, rememberSource = generatorState.allIblRequest.rememberSource) {
             val result = generationService.generateAll(config)
             manifestUpdater.applyAll(environment, config, result, generatorState.allIblRequest.rememberSource)
+        }
+    }
+
+    private fun prepareDefaultPaths(dialog: HdrEnvironmentGenerationDialog) {
+        val environment = state.environment ?: return
+        when (dialog) {
+            HdrEnvironmentGenerationDialog.AllIbl -> {
+                generatorState.allIblRequest.outputRoot = EnvironmentPathResolver.manifestDirectory(environment.manifestPath)
+            }
+            else -> Unit
         }
     }
 

@@ -65,6 +65,19 @@ enum class EnvironmentRoughnessDistribution {
     Linear,
 }
 
+/**
+ * Tone-mapping operator applied when HDR data must be collapsed into an LDR output such as PNG.
+ *
+ * The generator samples source environment data in linear HDR space, optionally multiplies it by
+ * exposure, and then uses one of these operators before converting the result to sRGB 8-bit output.
+ *
+ * - [None] keeps values unchanged and only clamps them during LDR conversion. This is useful for
+ *   debugging or already tone-mapped inputs, but it can easily blow out highlights.
+ * - [Reinhard] applies a simple photographic compression curve `x / (1 + x)`. It is cheap and
+ *   stable, but tends to flatten bright highlights more aggressively.
+ * - [ACES] applies an ACES-inspired filmic curve. It generally preserves highlight roll-off and
+ *   contrast better for skyboxes authored from HDR/EXR sources, so it is the current default.
+ */
 enum class EnvironmentToneMapping {
     None,
     Reinhard,
