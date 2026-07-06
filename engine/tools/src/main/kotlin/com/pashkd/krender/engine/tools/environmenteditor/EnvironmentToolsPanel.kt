@@ -1,10 +1,8 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.assets.environment.Environment
-import com.pashkd.krender.engine.assets.environment.EnvironmentIblOutputFormat
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblOverwritePolicy
 import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
-import com.pashkd.krender.engine.assets.environment.EnvironmentRoughnessDistribution
 import com.pashkd.krender.engine.assets.environment.EnvironmentToneMapping
 import com.pashkd.krender.engine.assets.environment.RadianceMip
 import com.pashkd.krender.engine.assets.importing.EnvironmentSourceFileDialogFilters
@@ -49,13 +47,6 @@ class EnvironmentToolsPanel(
     private val regionYBuffer = ByteArray(16)
     private val regionWidthBuffer = ByteArray(16)
     private val regionHeightBuffer = ByteArray(16)
-    private val hdrSkyboxSourceBuffer = ByteArray(512)
-    private val hdrSkyboxOutputBuffer = ByteArray(256)
-    private val irradianceSourceBuffer = ByteArray(512)
-    private val irradianceOutputBuffer = ByteArray(256)
-    private val radianceSourceBuffer = ByteArray(512)
-    private val radianceOutputBuffer = ByteArray(256)
-    private val brdfOutputBuffer = ByteArray(256)
     private val allSourceBuffer = ByteArray(512)
     private val allOutputRootBuffer = ByteArray(256)
     private var syncedRegionKey: String? = null
@@ -95,22 +86,20 @@ class EnvironmentToolsPanel(
             openImportSkyboxDialog = true
         }
         tooltipOnHover("Split an atlas/cross/row PNG/JPG/JPEG/WEBP/BMP source into six skybox face PNG files.")
-        if (ImGui.button("Generate Skybox From HDR/EXR##env_tools_generate_hdr_skybox")) {
-            hdrGenerationController.open(HdrEnvironmentGenerationDialog.Skybox)
-        }
-        tooltipOnHover("Project an equirectangular HDR/EXR source into six cubemap face PNG files.")
-        if (ImGui.button("Generate Irradiance##env_tools_generate_irradiance")) {
-            hdrGenerationController.open(HdrEnvironmentGenerationDialog.Irradiance)
-        }
-        if (ImGui.button("Generate Radiance##env_tools_generate_radiance")) {
-            hdrGenerationController.open(HdrEnvironmentGenerationDialog.Radiance)
-        }
-        if (ImGui.button("Generate BRDF LUT##env_tools_generate_brdf_lut")) {
-            hdrGenerationController.open(HdrEnvironmentGenerationDialog.BrdfLut)
-        }
-        if (ImGui.button("Generate All IBL##env_tools_generate_all_ibl")) {
+
+        if (ImGui.button("Generate IBL##env_tools_generate_ibl")) {
             hdrGenerationController.open(HdrEnvironmentGenerationDialog.AllIbl)
         }
+        tooltipOnHover("Generate skybox, irradiance, and radiance resources from one HDR/EXR source.")
+
+        if (ImGui.button("Import BRDF LUT##env_tools_import_brdf_lut")) {
+            val selected = fileDialogService.openFile(BrdfLutFileDialogFilters) ?: ""
+            if (selected.isNotBlank()) {
+                hdrGenerationController.importBrdfLut(selected)
+            }
+        }
+        tooltipOnHover("Copy an existing BRDF LUT texture into the current environment and update the manifest.")
+
         state.hdrGenerationState.statusMessage?.let(ImGui::textWrapped)
     }
 
@@ -299,169 +288,9 @@ class EnvironmentToolsPanel(
 
     private fun drawHdrGenerationDialogs() {
         when (state.hdrGenerationState.openDialog) {
-            HdrEnvironmentGenerationDialog.Skybox -> drawHdrSkyboxDialog()
-            HdrEnvironmentGenerationDialog.Irradiance -> drawIrradianceDialog()
-            HdrEnvironmentGenerationDialog.Radiance -> drawRadianceDialog()
-            HdrEnvironmentGenerationDialog.BrdfLut -> drawBrdfLutDialog()
             HdrEnvironmentGenerationDialog.AllIbl -> drawAllIblDialog()
             null -> Unit
         }
-    }
-
-    private fun drawHdrSkyboxDialog() {
-        val dialog = HdrEnvironmentGenerationDialog.Skybox
-        val request = state.hdrGenerationState.skyboxRequest
-        val availability = hdrGenerationController.availability(dialog)
-        ImGui.openPopup("${dialog.title}##env_tools_hdr_skybox_dialog")
-        ImGui.setNextWindowSize(Vec2(720f, 460f), Cond.Appearing)
-        if (!ImGui.beginPopupModal("${dialog.title}##env_tools_hdr_skybox_dialog")) return
-
-        drawHdrSourceInput(
-            label = "Source HDR/EXR file",
-            buffer = hdrSkyboxSourceBuffer,
-            onChanged = { hdrGenerationController.setSkyboxSourcePath(it) },
-        )
-        drawPathInput(
-            label = "Output directory",
-            buffer = hdrSkyboxOutputBuffer,
-            onChanged = { request.outputDirectory = it },
-        )
-        drawResolvedOutputLabel("Resolved output", request.outputDirectory)
-        slider("Resolution##env_tools_hdr_skybox_resolution", request::resolution, 64, 4096, "%d", SliderFlag.AlwaysClamp)
-        drawOutputFormatCombo("Output format##env_tools_hdr_skybox_format", request.format) { request.format = it }
-        slider("Exposure##env_tools_hdr_skybox_exposure", request::exposure, 0.1f, 8f, "%.2f", SliderFlag.AlwaysClamp)
-        drawToneMappingCombo("Tone mapping##env_tools_hdr_skybox_tone_mapping", request.toneMapping) { request.toneMapping = it }
-        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_skybox_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
-        drawRememberSourceCheckbox { request.rememberSource = it }
-        drawGenerationAvailability(availability)
-        drawGenerateCancelRow(
-            canGenerate = availability.available && request.sourceHdrPath.isNotBlank(),
-            generateLabel = "Generate##env_tools_hdr_skybox_generate",
-            missingInputMessage = "Select a source HDR/EXR file.",
-            availability = availability,
-            onGenerate = hdrGenerationController::generateSkybox,
-        )
-    }
-
-    private fun drawIrradianceDialog() {
-        val dialog = HdrEnvironmentGenerationDialog.Irradiance
-        val request = state.hdrGenerationState.irradianceRequest
-        val availability = hdrGenerationController.availability(dialog)
-        ImGui.openPopup("${dialog.title}##env_tools_hdr_irradiance_dialog")
-        ImGui.setNextWindowSize(Vec2(720f, 420f), Cond.Appearing)
-        if (!ImGui.beginPopupModal("${dialog.title}##env_tools_hdr_irradiance_dialog")) return
-
-        drawHdrSourceInput(
-            label = "Source HDR/EXR file",
-            buffer = irradianceSourceBuffer,
-            onChanged = { hdrGenerationController.setIrradianceSourcePath(it) },
-        )
-        drawPathInput(
-            label = "Output directory",
-            buffer = irradianceOutputBuffer,
-            onChanged = { request.outputDirectory = it },
-        )
-        drawResolvedOutputLabel("Resolved output", request.outputDirectory)
-        drawResolutionCombo(
-            label = "Resolution##env_tools_hdr_irradiance_resolution",
-            selected = request.resolution,
-            options = IrradianceResolutionOptions,
-        ) { request.resolution = it }
-        tooltipOnHover("Choose a preset irradiance face resolution from 64 up to 1024.")
-        drawIntOptionCombo(
-            label = "Sample count##env_tools_hdr_irradiance_samples",
-            selected = request.sampleCount,
-            options = SampleCountOptions,
-        ) { request.sampleCount = it }
-        tooltipOnHover("Choose a preset sample count. Free-form values are intentionally disabled.")
-        drawOutputFormatCombo("Output format##env_tools_hdr_irradiance_format", request.format) { request.format = it }
-        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_irradiance_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
-        drawRememberSourceCheckbox { request.rememberSource = it }
-        drawGenerationAvailability(availability)
-        drawGenerateCancelRow(
-            canGenerate = availability.available && request.sourceHdrPath.isNotBlank(),
-            generateLabel = "Generate##env_tools_hdr_irradiance_generate",
-            missingInputMessage = "Select a source HDR/EXR file.",
-            availability = availability,
-            onGenerate = hdrGenerationController::generateIrradiance,
-        )
-    }
-
-    private fun drawRadianceDialog() {
-        val dialog = HdrEnvironmentGenerationDialog.Radiance
-        val request = state.hdrGenerationState.radianceRequest
-        val availability = hdrGenerationController.availability(dialog)
-        ImGui.openPopup("${dialog.title}##env_tools_hdr_radiance_dialog")
-        ImGui.setNextWindowSize(Vec2(720f, 470f), Cond.Appearing)
-        if (!ImGui.beginPopupModal("${dialog.title}##env_tools_hdr_radiance_dialog")) return
-
-        drawHdrSourceInput(
-            label = "Source HDR/EXR file",
-            buffer = radianceSourceBuffer,
-            onChanged = { hdrGenerationController.setRadianceSourcePath(it) },
-        )
-        drawPathInput(
-            label = "Output directory",
-            buffer = radianceOutputBuffer,
-            onChanged = { request.outputDirectory = it },
-        )
-        drawResolvedOutputLabel("Resolved output", request.outputDirectory)
-        drawResolutionCombo(
-            label = "Base resolution##env_tools_hdr_radiance_base_resolution",
-            selected = request.baseResolution,
-            options = RadianceResolutionOptions,
-        ) { request.baseResolution = it }
-        tooltipOnHover("Choose a preset radiance base resolution from 64 up to 2048.")
-        slider("Mip count##env_tools_hdr_radiance_mip_count", request::mipCount, 1, 12, "%d", SliderFlag.AlwaysClamp)
-        drawIntOptionCombo(
-            label = "Sample count##env_tools_hdr_radiance_samples",
-            selected = request.sampleCount,
-            options = SampleCountOptions,
-        ) { request.sampleCount = it }
-        tooltipOnHover("Choose a preset sample count. Free-form values are intentionally disabled.")
-        drawRoughnessDistributionCombo(
-            "Roughness distribution##env_tools_hdr_radiance_distribution",
-            request.roughnessDistribution,
-        ) { request.roughnessDistribution = it }
-        drawOutputFormatCombo("Output format##env_tools_hdr_radiance_format", request.format) { request.format = it }
-        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_radiance_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
-        drawRememberSourceCheckbox { request.rememberSource = it }
-        drawGenerationAvailability(availability)
-        drawGenerateCancelRow(
-            canGenerate = availability.available && request.sourceHdrPath.isNotBlank(),
-            generateLabel = "Generate##env_tools_hdr_radiance_generate",
-            missingInputMessage = "Select a source HDR/EXR file.",
-            availability = availability,
-            onGenerate = hdrGenerationController::generateRadiance,
-        )
-    }
-
-    private fun drawBrdfLutDialog() {
-        val dialog = HdrEnvironmentGenerationDialog.BrdfLut
-        val request = state.hdrGenerationState.brdfLutRequest
-        val availability = hdrGenerationController.availability(dialog)
-        ImGui.openPopup("${dialog.title}##env_tools_hdr_brdf_dialog")
-        ImGui.setNextWindowSize(Vec2(720f, 300f), Cond.Appearing)
-        if (!ImGui.beginPopupModal("${dialog.title}##env_tools_hdr_brdf_dialog")) return
-
-        drawPathInput(
-            label = "Output path",
-            buffer = brdfOutputBuffer,
-            onChanged = { request.outputPath = it },
-        )
-        drawResolvedOutputLabel("Resolved output", request.outputPath)
-        slider("Resolution##env_tools_hdr_brdf_resolution", request::resolution, 16, 2048, "%d", SliderFlag.AlwaysClamp)
-        slider("Sample count##env_tools_hdr_brdf_samples", request::sampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
-        drawOutputFormatCombo("Output format##env_tools_hdr_brdf_format", request.format) { request.format = it }
-        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_brdf_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
-        drawGenerationAvailability(availability)
-        drawGenerateCancelRow(
-            canGenerate = availability.available,
-            generateLabel = "Generate##env_tools_hdr_brdf_generate",
-            missingInputMessage = null,
-            availability = availability,
-            onGenerate = hdrGenerationController::generateBrdfLut,
-        )
     }
 
     private fun drawAllIblDialog() {
@@ -469,96 +298,76 @@ class EnvironmentToolsPanel(
         val request = state.hdrGenerationState.allIblRequest
         val availability = hdrGenerationController.availability(dialog)
         ImGui.openPopup("${dialog.title}##env_tools_hdr_all_dialog")
-        ImGui.setNextWindowSize(Vec2(760f, 620f), Cond.Appearing)
+        ImGui.setNextWindowSize(Vec2(720f, 520f), Cond.Appearing)
         if (!ImGui.beginPopupModal("${dialog.title}##env_tools_hdr_all_dialog")) return
 
         drawHdrSourceInput(
             label = "Source HDR/EXR file",
             buffer = allSourceBuffer,
-            onChanged = { hdrGenerationController.setAllSourcePath(it) },
+            onChanged = hdrGenerationController::setAllSourcePath,
         )
-        tooltipOnHover("Select the equirectangular HDR/EXR source used for all enabled IBL outputs.")
         drawPathInput(
             label = "Output root",
             buffer = allOutputRootBuffer,
             onChanged = { request.outputRoot = it },
-            browseLabel = "Browse...##env_tools_hdr_all_output_root_browse",
-            browseTooltip = "Pick any existing file inside the target folder; the parent directory will be used as the output root.",
-            onBrowse = {
-                val selected = fileDialogService.openFile(OutputRootBrowseFallbackFilters) ?: ""
-                if (selected.isNotBlank()) {
-                    request.outputRoot = File(selected).parentFile?.path?.replace('\\', '/') ?: request.outputRoot
-                }
-            },
         )
         drawResolvedOutputLabel("Resolved output", request.outputRoot)
-        ImGui.textDisabled("Example: generated/my_environment")
-        tooltipOnHover("The generator writes skybox/, irradiance/, radiance/, and brdf_lut.png under this root.")
-        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_all_overwrite", request.overwritePolicy) { request.overwritePolicy = it }
-        tooltipOnHover("Controls whether existing generated files fail, get replaced, or are reused.")
-        drawRememberSourceCheckbox { request.rememberSource = it }
-        tooltipOnHover("Store the selected HDR/EXR as optional authoring metadata without making it a runtime dependency.")
+        drawOverwritePolicyCombo("Overwrite policy##env_tools_hdr_all_overwrite", request.overwritePolicy) {
+            request.overwritePolicy = it
+        }
+
         ImGui.separator()
         val skyboxEnabled = booleanArrayOf(request.skyboxEnabled)
         if (ImGui.checkbox("Skybox##env_tools_hdr_all_skybox_enabled", skyboxEnabled)) request.skyboxEnabled = skyboxEnabled[0]
-        tooltipOnHover("Enable skybox face generation under <output root>/skybox.")
         if (request.skyboxEnabled) {
             drawResolutionCombo(
                 label = "Resolution##env_tools_hdr_all_skybox_resolution",
                 selected = request.skyboxResolution,
                 options = SkyboxResolutionOptions,
             ) { request.skyboxResolution = it }
-            tooltipOnHover("Output resolution per cubemap face. Skybox supports 64 up to 4096.")
             slider("Exposure##env_tools_hdr_all_skybox_exposure", request::skyboxExposure, 0.1f, 8f, "%.2f", SliderFlag.AlwaysClamp)
-            tooltipOnHover("Scales sampled HDR brightness before tone mapping.")
-            drawToneMappingCombo("Tone mapping##env_tools_hdr_all_skybox_tone_mapping", request.skyboxToneMapping) { request.skyboxToneMapping = it }
-            tooltipOnHover("Defines how HDR values are compressed into PNG output.")
+            drawToneMappingCombo("Tone mapping##env_tools_hdr_all_skybox_tone_mapping", request.skyboxToneMapping) {
+                request.skyboxToneMapping = it
+            }
         }
+
+        ImGui.separator()
         val irradianceEnabled = booleanArrayOf(request.irradianceEnabled)
-        if (ImGui.checkbox("Irradiance##env_tools_hdr_all_irradiance_enabled", irradianceEnabled)) request.irradianceEnabled = irradianceEnabled[0]
-        tooltipOnHover("Enable diffuse IBL cubemap generation under <output root>/irradiance.")
+        if (ImGui.checkbox("Irradiance##env_tools_hdr_all_irradiance_enabled", irradianceEnabled)) {
+            request.irradianceEnabled = irradianceEnabled[0]
+        }
         if (request.irradianceEnabled) {
             drawResolutionCombo(
                 label = "Resolution##env_tools_hdr_all_irradiance_resolution",
                 selected = request.irradianceResolution,
                 options = IrradianceResolutionOptions,
             ) { request.irradianceResolution = it }
-            tooltipOnHover("Output resolution per cubemap face. Irradiance supports 64 up to 1024.")
             drawIntOptionCombo(
                 label = "Sample count##env_tools_hdr_all_irradiance_samples",
                 selected = request.irradianceSampleCount,
                 options = SampleCountOptions,
             ) { request.irradianceSampleCount = it }
-            tooltipOnHover("Choose a preset sample count for irradiance generation.")
         }
+
+        ImGui.separator()
         val radianceEnabled = booleanArrayOf(request.radianceEnabled)
-        if (ImGui.checkbox("Radiance##env_tools_hdr_all_radiance_enabled", radianceEnabled)) request.radianceEnabled = radianceEnabled[0]
-        tooltipOnHover("Enable specular IBL mip-chain generation under <output root>/radiance.")
+        if (ImGui.checkbox("Radiance##env_tools_hdr_all_radiance_enabled", radianceEnabled)) {
+            request.radianceEnabled = radianceEnabled[0]
+        }
         if (request.radianceEnabled) {
             drawResolutionCombo(
-                label = "Resolution##env_tools_hdr_all_radiance_base_resolution",
+                label = "Base resolution##env_tools_hdr_all_radiance_resolution",
                 selected = request.radianceBaseResolution,
                 options = RadianceResolutionOptions,
             ) { request.radianceBaseResolution = it }
-            tooltipOnHover("Base mip resolution per cubemap face. Lower mips are derived from this size.")
             slider("Mip count##env_tools_hdr_all_radiance_mip_count", request::radianceMipCount, 1, 12, "%d", SliderFlag.AlwaysClamp)
-            tooltipOnHover("Number of radiance roughness levels to describe in the output mip chain.")
             drawIntOptionCombo(
                 label = "Sample count##env_tools_hdr_all_radiance_samples",
                 selected = request.radianceSampleCount,
                 options = SampleCountOptions,
             ) { request.radianceSampleCount = it }
-            tooltipOnHover("Choose a preset sample count for radiance generation.")
         }
-        val brdfEnabled = booleanArrayOf(request.brdfLutEnabled)
-        if (ImGui.checkbox("BRDF LUT##env_tools_hdr_all_brdf_enabled", brdfEnabled)) request.brdfLutEnabled = brdfEnabled[0]
-        tooltipOnHover("Enable BRDF integration LUT generation at <output root>/brdf_lut.png.")
-        if (request.brdfLutEnabled) {
-            slider("Resolution##env_tools_hdr_all_brdf_resolution", request::brdfLutResolution, 16, 2048, "%d", SliderFlag.AlwaysClamp)
-            tooltipOnHover("Output resolution for the BRDF LUT texture.")
-            slider("Sample count##env_tools_hdr_all_brdf_samples", request::brdfLutSampleCount, 16, 4096, "%d", SliderFlag.AlwaysClamp)
-            tooltipOnHover("Reserved for future BRDF integration quality control.")
-        }
+
         drawGenerationAvailability(availability)
         drawGenerateCancelRow(
             canGenerate = availability.available && request.sourceHdrPath.isNotBlank(),
@@ -594,9 +403,6 @@ class EnvironmentToolsPanel(
         label: String,
         buffer: ByteArray,
         onChanged: (String) -> Unit,
-        browseLabel: String? = null,
-        browseTooltip: String? = null,
-        onBrowse: (() -> Unit)? = null,
     ) {
         ImGui.text(label)
         ImGui.sameLine()
@@ -605,13 +411,6 @@ class EnvironmentToolsPanel(
             onChanged(readBuffer(buffer))
         }
         ImGui.popItemWidth()
-        if (browseLabel != null && onBrowse != null) {
-            ImGui.sameLine()
-            if (ImGui.button(browseLabel)) {
-                onBrowse()
-            }
-            browseTooltip?.let(::tooltipOnHover)
-        }
     }
 
     private fun drawResolutionCombo(
@@ -665,22 +464,6 @@ class EnvironmentToolsPanel(
         tooltipOnHover("Resolved relative to the current assets tree and environment manifest location.")
     }
 
-    private fun drawOutputFormatCombo(
-        label: String,
-        selected: EnvironmentIblOutputFormat,
-        onChanged: (EnvironmentIblOutputFormat) -> Unit,
-    ) {
-        ImGui.setNextItemWidth(200f)
-        if (ImGui.beginCombo(label, selected.name)) {
-            EnvironmentIblOutputFormat.entries.forEach { option ->
-                if (ImGui.selectable(option.name, option == selected)) {
-                    onChanged(option)
-                }
-            }
-            ImGui.endCombo()
-        }
-    }
-
     private fun drawOverwritePolicyCombo(
         label: String,
         selected: EnvironmentIblOverwritePolicy,
@@ -710,40 +493,6 @@ class EnvironmentToolsPanel(
                 }
             }
             ImGui.endCombo()
-        }
-    }
-
-    private fun drawRoughnessDistributionCombo(
-        label: String,
-        selected: EnvironmentRoughnessDistribution,
-        onChanged: (EnvironmentRoughnessDistribution) -> Unit,
-    ) {
-        ImGui.setNextItemWidth(200f)
-        if (ImGui.beginCombo(label, selected.name)) {
-            EnvironmentRoughnessDistribution.entries.forEach { option ->
-                if (ImGui.selectable(option.name, option == selected)) {
-                    onChanged(option)
-                }
-            }
-            ImGui.endCombo()
-        }
-    }
-
-    private fun drawRememberSourceCheckbox(onChanged: (Boolean) -> Unit) {
-        val value = booleanArrayOf(false)
-        val currentDialog = state.hdrGenerationState.openDialog
-        value[0] =
-            when (currentDialog) {
-                HdrEnvironmentGenerationDialog.Skybox -> state.hdrGenerationState.skyboxRequest.rememberSource
-                HdrEnvironmentGenerationDialog.Irradiance -> state.hdrGenerationState.irradianceRequest.rememberSource
-                HdrEnvironmentGenerationDialog.Radiance -> state.hdrGenerationState.radianceRequest.rememberSource
-                HdrEnvironmentGenerationDialog.AllIbl -> state.hdrGenerationState.allIblRequest.rememberSource
-                HdrEnvironmentGenerationDialog.BrdfLut,
-                null,
-                -> false
-            }
-        if (ImGui.checkbox("Remember HDR/EXR source in Environment metadata", value)) {
-            onChanged(value[0])
         }
     }
 
@@ -955,13 +704,6 @@ class EnvironmentToolsPanel(
     private fun syncBuffers() {
         syncBuffer(skyboxSourceBuffer, state.skyboxImportState.sourcePath)
         syncBuffer(skyboxOutputBuffer, state.skyboxImportState.outputDirectory)
-        syncBuffer(hdrSkyboxSourceBuffer, state.hdrGenerationState.skyboxRequest.sourceHdrPath)
-        syncBuffer(hdrSkyboxOutputBuffer, state.hdrGenerationState.skyboxRequest.outputDirectory)
-        syncBuffer(irradianceSourceBuffer, state.hdrGenerationState.irradianceRequest.sourceHdrPath)
-        syncBuffer(irradianceOutputBuffer, state.hdrGenerationState.irradianceRequest.outputDirectory)
-        syncBuffer(radianceSourceBuffer, state.hdrGenerationState.radianceRequest.sourceHdrPath)
-        syncBuffer(radianceOutputBuffer, state.hdrGenerationState.radianceRequest.outputDirectory)
-        syncBuffer(brdfOutputBuffer, state.hdrGenerationState.brdfLutRequest.outputPath)
         syncBuffer(allSourceBuffer, state.hdrGenerationState.allIblRequest.sourceHdrPath)
         syncBuffer(allOutputRootBuffer, state.hdrGenerationState.allIblRequest.outputRoot)
     }
@@ -1021,12 +763,9 @@ class EnvironmentToolsPanel(
                 FileDialogFilter("Skybox Atlas Textures", listOf("png", "jpg", "jpeg", "bmp", "webp")),
             )
 
-        private val OutputRootBrowseFallbackFilters =
+        private val BrdfLutFileDialogFilters =
             listOf(
-                FileDialogFilter(
-                    "Project Files",
-                    listOf("hdr", "exr", "png", "jpg", "jpeg", "webp", "bmp", "json", "txt", "ktx", "glb"),
-                ),
+                FileDialogFilter("BRDF LUT Textures", listOf("png")),
             )
     }
 }

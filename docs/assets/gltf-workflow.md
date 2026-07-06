@@ -26,8 +26,6 @@ Current default environment files:
 
 ```text
 environments/default/default.environment.json
-environments/default/sources/aerial-green-landscape-clouds_2K.exr
-environments/default/sources/aerial-green-landscape-clouds_4K.exr
 ```
 
 Generated files:
@@ -43,17 +41,6 @@ environments/default/generated/radiance/radiance_mip_04.ktx
 shared/pbr/brdf_lut.ktx
 ```
 
-KRender environment manifests support multiple source variants:
-
-```text
-EXR 2K
-EXR 4K
-HDR 2K
-HDR 4K
-```
-
-Only one source variant is active at a time.
-
 IBL runtime resources:
 
 - diffuse IBL = irradiance cubemap
@@ -66,23 +53,20 @@ Every Environment uses `<environment_name>.environment.json` with schema
 `krender.environment` and version `1`. The manifest stores:
 
 - runtime settings such as exposure, rotation, diffuse/specular intensity, and background mode;
-- one or more source variants (`.exr` / `.hdr`);
 - skybox / irradiance / radiance / BRDF LUT resource references;
-- optional generation metadata used by the broader workflow.
+- no persisted HDR/EXR source metadata.
 
-All resource paths resolve relative to the manifest directory. Source files must exist when used by
-editor tooling. Generated IBL resources may be absent temporarily; Environment Editor and Model
+All resource paths resolve relative to the manifest directory. Generated IBL resources may be absent temporarily; Environment Editor and Model
 Viewer should stay functional and report clear warnings when full PBR inputs are missing.
 
 ### Add an environment
 
 1. Create `assets/environments/<environment_name>/<environment_name>.environment.json`.
-2. Add one or more equirectangular EXR or HDR files under `sources/`.
-3. Add manifest source entries with stable ids and one `isDefault = true` source.
-4. Define resource targets for skybox, irradiance, radiance, and BRDF LUT.
-5. Generate and commit the derived IBL assets.
-6. Open the manifest in Environment Editor for validation and runtime/background tuning.
-7. Select the Environment asset in Model Viewer, Scene Editor, Scene Player, or game/runtime code.
+2. Define resource targets for skybox, irradiance, radiance, and BRDF LUT.
+3. Generate skybox / irradiance / radiance from any external HDR/EXR source through Environment Editor when needed.
+4. Import an existing BRDF LUT texture.
+5. Open the manifest in Environment Editor for validation and runtime/background tuning.
+6. Select the Environment asset in Model Viewer, Scene Editor, Scene Player, or game/runtime code.
 
 From the repository root, generate the complete default environment with:
 

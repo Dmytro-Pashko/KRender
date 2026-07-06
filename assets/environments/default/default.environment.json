@@ -2,7 +2,6 @@
   "schema": "krender.environment",
   "schemaVersion": 1,
   "assetType": "Environment",
-  "environmentType": "HdrIbl",
   "id": "default",
   "name": "Default",
   "settings": {
@@ -19,17 +18,6 @@
       "a": 1.0
     }
   },
-  "sources": [
-    {
-      "id": "source",
-      "path": "sources/suburban_garden_2k.hdr",
-      "format": "HDR",
-      "role": "Source",
-      "isDefault": true,
-      "colorSpace": "Linear",
-      "dynamicRange": "HDR"
-    }
-  ],
   "skybox": {
     "layout": "SixFaces",
     "resolution": 1024,

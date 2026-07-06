@@ -36,7 +36,6 @@ class EnvironmentEditorUiFactory(
             ui.addSafePanel("Control", EnvironmentEditorControlPanel(state, controller, layout, layoutTracker, eventLogger))
             ui.addSafePanel("Inspector", EnvironmentInspectorPanel(state, layout, layoutTracker, eventLogger))
             ui.addSafePanel("Settings", EnvironmentSettingsPanel(state, engine.logger, layout, layoutTracker, eventLogger))
-            ui.addSafePanel("Sources", EnvironmentSourceVariantsPanel(state, layout, layoutTracker, eventLogger))
             ui.addSafePanel(
                 "Tools",
                 EnvironmentToolsPanel(

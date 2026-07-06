@@ -4,13 +4,10 @@ import com.pashkd.krender.engine.assets.environment.CubemapResource
 import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblGenerationConfig
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblGenerationResult
-import com.pashkd.krender.engine.assets.environment.EnvironmentSourceFormat
-import com.pashkd.krender.engine.assets.environment.EnvironmentSourceVariant
 import com.pashkd.krender.engine.assets.environment.RadianceMip
 import com.pashkd.krender.engine.assets.environment.RadianceMipChain
 import com.pashkd.krender.engine.assets.environment.SkyboxResourceSet
 import com.pashkd.krender.engine.assets.environment.TextureResourceRef
-import java.io.File
 
 /**
  * Applies environment-generation results back into the in-memory [Environment] manifest model.
@@ -33,9 +30,8 @@ class EnvironmentGenerationManifestUpdater {
         environment: Environment,
         config: EnvironmentIblGenerationConfig,
         result: EnvironmentIblGenerationResult,
-        rememberSource: Boolean,
     ): Environment =
-        rememberSource(environment, config, rememberSource).copy(
+        environment.copy(
             skybox =
                 SkyboxResourceSet(
                     layout = "SixFaces",
@@ -54,9 +50,8 @@ class EnvironmentGenerationManifestUpdater {
     fun applyIrradiance(
         environment: Environment,
         config: EnvironmentIblGenerationConfig,
-        rememberSource: Boolean,
     ): Environment =
-        rememberSource(environment, config, rememberSource).copy(
+        environment.copy(
             irradiance =
                 CubemapResource(
                     path = "irradiance/{face}.png",
@@ -74,9 +69,8 @@ class EnvironmentGenerationManifestUpdater {
     fun applyRadiance(
         environment: Environment,
         config: EnvironmentIblGenerationConfig,
-        rememberSource: Boolean,
     ): Environment =
-        rememberSource(environment, config, rememberSource).copy(
+        environment.copy(
             radiance =
                 RadianceMipChain(
                     baseResolution = config.radiance.baseResolution,
@@ -114,64 +108,22 @@ class EnvironmentGenerationManifestUpdater {
         environment: Environment,
         config: EnvironmentIblGenerationConfig,
         result: EnvironmentIblGenerationResult,
-        rememberSource: Boolean,
     ): Environment {
-        var updated = rememberSource(environment, config, rememberSource)
+        var updated = environment
         if (result.skyboxFaces.isNotEmpty()) {
-            updated = applySkybox(updated, config, result, rememberSource = false)
+            updated = applySkybox(updated, config, result)
         }
         if (config.irradiance.enabled) {
-            updated = applyIrradiance(updated, config, rememberSource = false)
+            updated = applyIrradiance(updated, config)
         }
         if (config.radiance.enabled) {
-            updated = applyRadiance(updated, config, rememberSource = false)
+            updated = applyRadiance(updated, config)
         }
         if (config.brdfLut.enabled && result.brdfLutPath != null) {
             updated = applyBrdfLut(updated)
         }
         return updated
     }
-
-    /**
-     * Optionally stores the HDR/EXR input as authoring metadata in `environment.sources`.
-     *
-     * This method does not make the source mandatory. If the caller disables `rememberSource`, the
-     * runtime resource references remain fully self-contained.
-     */
-    private fun rememberSource(
-        environment: Environment,
-        config: EnvironmentIblGenerationConfig,
-        rememberSource: Boolean,
-    ): Environment {
-        if (!rememberSource || config.sourceHdrPath.isBlank()) return environment
-        val sourceFormat = sourceFormatFor(config.sourceHdrPath) ?: return environment
-        val sourceFile = File(config.sourceHdrPath)
-        val sourceId = sourceFile.nameWithoutExtension.ifBlank { "hdr-source" }
-        val hasDefault = environment.sources.any(EnvironmentSourceVariant::isDefault)
-        val updatedSource =
-            EnvironmentSourceVariant(
-                id = sourceId,
-                path = config.sourceHdrPath.replace('\\', '/'),
-                format = sourceFormat,
-                isDefault = !hasDefault,
-                dynamicRange = "HDR",
-                colorSpace = "Linear",
-            )
-        // Replace any previous entry that points to the same logical source so repeated generation
-        // does not accumulate duplicate authoring-source rows.
-        val remaining = environment.sources.filterNot { it.id == sourceId || it.path == updatedSource.path }
-        return environment.copy(sources = remaining + updatedSource)
-    }
-
-    /**
-     * Infers the Environment source format from a file extension.
-     */
-    private fun sourceFormatFor(path: String): EnvironmentSourceFormat? =
-        when (path.substringAfterLast('.', "").lowercase()) {
-            "exr" -> EnvironmentSourceFormat.EXR
-            "hdr" -> EnvironmentSourceFormat.HDR
-            else -> null
-        }
 
     /**
      * Rebuilds a face map in canonical cubemap-face order.

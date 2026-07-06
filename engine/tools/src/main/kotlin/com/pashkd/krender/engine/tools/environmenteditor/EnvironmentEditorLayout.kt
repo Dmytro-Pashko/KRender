@@ -8,7 +8,6 @@ object EnvironmentEditorPanelIds {
     const val Control = "environment_editor_control"
     const val Inspector = "environment_editor_inspector"
     const val Settings = "environment_editor_settings"
-    const val Sources = "environment_editor_sources"
     const val Tools = "environment_editor_generated_maps"
     const val CubemapPreview = "environment_editor_cubemap_preview"
     const val Diagnostics = "environment_editor_diagnostics"
@@ -36,9 +35,7 @@ object EnvironmentEditorUiLayoutDefaults {
                     EnvironmentEditorPanelIds.Settings to
                         ImGuiPanelLayout("Settings", 16f, 516f, 420f, 360f),
                     EnvironmentEditorPanelIds.Inspector to
-                        ImGuiPanelLayout("Inspector", 452f, 516f, 420f, 360f),
-                    EnvironmentEditorPanelIds.Sources to
-                        ImGuiPanelLayout("Source Variants", 888f, 516f, 420f, 360f),
+                        ImGuiPanelLayout("Inspector", 452f, 516f, 856f, 360f),
                     EnvironmentEditorPanelIds.Tools to
                         ImGuiPanelLayout("Tools", 1324f, 160f, 464f, 716f),
                     EnvironmentEditorPanelIds.Diagnostics to

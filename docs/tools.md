@@ -122,13 +122,12 @@ Features:
 - Edits background behavior through a single `Display Background` selector with `Skybox`, `Solid Color`, `Transparent`, and `None`.
 - Allows choosing a solid background color through the shared color selector workflow already used by other tools.
 - Shows read-only manifest metadata in a simplified flat Inspector list.
-- Lists source variants, including default source switching for the current Environment asset.
 - Shows a `Resource Inspector` panel with interactive 2D preview for skybox faces, irradiance faces, radiance mips, BRDF LUT, and imported skybox source regions.
 - Shows a separate `Selected Resource Preview` panel with its own viewport controls for the currently selected face/region.
 - Supports `Import Skybox Atlas` for atlas/cross/row textures using preset region layouts and numeric region editing.
 - Splits imported skybox source textures into separate runtime face PNG files and updates `environment.skybox.faces`.
-- Exposes separate HDR/EXR-oriented actions for `Generate Skybox From HDR/EXR`, `Generate Irradiance`, `Generate Radiance`, `Generate BRDF LUT`, and `Generate All IBL`.
-- Shows validation diagnostics for missing or inconsistent source/resource references.
+- Exposes one HDR/EXR-oriented `Generate IBL` dialog for skybox, irradiance, and radiance generation plus an `Import BRDF LUT` action.
+- Shows validation diagnostics for missing or inconsistent runtime resource references.
 - Shows a Preview panel with the configured test model list, auto-rotate, camera distance, yaw, pitch, camera reset, current environment identity, validation state, resource availability, and active fallback mode.
 - Uses Environment-owned PBR resources when available and reports clear warnings when skybox, irradiance, radiance, or BRDF LUT data is missing.
 - Includes a dedicated Logs panel for load, save, validation, and live-setting-change diagnostics.
@@ -137,7 +136,7 @@ Current scope / limitations:
 
 - Environment Editor is currently an MVP editor for Environment manifest settings and preview control.
 - The atlas import workflow is real and remains separate from HDR/EXR generation.
-- HDR/EXR generation dialogs, config, and manifest-update scaffolding are present, but the current build does not include a verified HDR/EXR reader or full IBL generators yet, so those actions report explicit unavailable-state messages.
+- HDR/EXR generation currently targets skybox, irradiance, and radiance only; BRDF LUT generation is intentionally omitted in favor of importing an existing LUT texture.
 - Runtime Environment resources use separate face files instead of a shared runtime atlas.
 - Imported skybox source splitting currently targets previewable 2D texture sources and uses numeric region editing rather than drag handles.
 - It currently previews only the bundled `Metal Rough Spheres` test model configured in `EnvironmentEditorConfig`.

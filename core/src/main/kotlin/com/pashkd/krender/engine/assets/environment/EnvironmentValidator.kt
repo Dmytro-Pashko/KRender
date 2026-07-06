@@ -17,7 +17,6 @@ object EnvironmentValidator {
         val issues = mutableListOf<EnvironmentIssue>()
 
         validateManifest(environment, issues)
-        validateSources(environment, fileService, issues)
         validateResources(environment, fileService, issues)
         validateSettings(environment, issues)
 
@@ -39,31 +38,6 @@ object EnvironmentValidator {
         }
         if (environment.id.isBlank()) {
             issues += error(Codes.MISSING_ID, "Environment id is empty.")
-        }
-    }
-
-    private fun validateSources(
-        environment: Environment,
-        fileService: SceneFileService,
-        issues: MutableList<EnvironmentIssue>,
-    ) {
-        if (environment.sources.isEmpty()) {
-            return
-        }
-        val hasDefault = environment.sources.any { it.isDefault }
-        if (!hasDefault) {
-            issues += warning(Codes.NO_DEFAULT_SOURCE, "No source variant is marked as default.")
-        }
-        for (source in environment.sources) {
-            val resolvedPath = EnvironmentPathResolver.resolvePath(environment.manifestPath, source.path)
-            if (!fileService.exists(resolvedPath)) {
-                issues +=
-                    warning(
-                        Codes.SOURCE_FILE_MISSING,
-                        "Source '${source.id}' file not found: ${source.path}",
-                        source.path,
-                    )
-            }
         }
     }
 
@@ -211,9 +185,6 @@ object EnvironmentValidator {
     object Codes {
         const val MISSING_NAME = "ENV_MISSING_NAME"
         const val MISSING_ID = "ENV_MISSING_ID"
-        const val NO_SOURCES = "ENV_NO_SOURCES"
-        const val NO_DEFAULT_SOURCE = "ENV_NO_DEFAULT_SOURCE"
-        const val SOURCE_FILE_MISSING = "ENV_SOURCE_FILE_MISSING"
         const val MISSING_SKYBOX = "ENV_MISSING_SKYBOX"
         const val SKYBOX_NO_FACES = "ENV_SKYBOX_NO_FACES"
         const val SKYBOX_FACE_MISSING = "ENV_SKYBOX_FACE_MISSING"

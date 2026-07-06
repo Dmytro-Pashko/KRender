@@ -92,7 +92,6 @@ class EnvironmentPreviewPanel(
     ) {
         ImGui.text("Environment: ${env.name}")
         ImGui.text("Environment Id: ${env.id}")
-        ImGui.text("Type: ${env.type}")
         drawValidationStatus()
         ImGui.separator()
         ImGui.text("Environment Resources")

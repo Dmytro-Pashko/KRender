@@ -4,11 +4,14 @@ import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
 import com.pashkd.krender.engine.assets.environment.EnvironmentService
+import com.pashkd.krender.engine.assets.environment.TextureResourceRef
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.io.File
 
 class HdrEnvironmentGenerationController(
     private val state: EnvironmentEditorState,
-    assetRoot: File,
+    private val assetRoot: File,
     private val environmentService: EnvironmentService,
     private val logger: Logger? = null,
 ) {
@@ -30,64 +33,42 @@ class HdrEnvironmentGenerationController(
     fun availability(dialog: HdrEnvironmentGenerationDialog): HdrEnvironmentGenerationAvailability =
         generationService.availability(dialog)
 
-    fun setSkyboxSourcePath(path: String) {
-        generatorState.skyboxRequest.sourceHdrPath = path
-    }
-
-    fun setIrradianceSourcePath(path: String) {
-        generatorState.irradianceRequest.sourceHdrPath = path
-    }
-
-    fun setRadianceSourcePath(path: String) {
-        generatorState.radianceRequest.sourceHdrPath = path
-    }
-
     fun setAllSourcePath(path: String) {
         generatorState.allIblRequest.sourceHdrPath = path
-    }
-
-    fun generateSkybox() {
-        val environment = state.environment ?: return
-        val config = generatorState.skyboxRequest.toConfig(environment.manifestPath)
-        runGeneration(HdrEnvironmentGenerationDialog.Skybox, environment, rememberSource = generatorState.skyboxRequest.rememberSource) {
-            val result = generationService.generateSkybox(config)
-            manifestUpdater.applySkybox(environment, config, result, generatorState.skyboxRequest.rememberSource)
-        }
-    }
-
-    fun generateIrradiance() {
-        val environment = state.environment ?: return
-        val config = generatorState.irradianceRequest.toConfig(environment.manifestPath)
-        runGeneration(HdrEnvironmentGenerationDialog.Irradiance, environment, rememberSource = generatorState.irradianceRequest.rememberSource) {
-            generationService.generateIrradiance(config)
-            manifestUpdater.applyIrradiance(environment, config, generatorState.irradianceRequest.rememberSource)
-        }
-    }
-
-    fun generateRadiance() {
-        val environment = state.environment ?: return
-        val config = generatorState.radianceRequest.toConfig(environment.manifestPath)
-        runGeneration(HdrEnvironmentGenerationDialog.Radiance, environment, rememberSource = generatorState.radianceRequest.rememberSource) {
-            generationService.generateRadiance(config)
-            manifestUpdater.applyRadiance(environment, config, generatorState.radianceRequest.rememberSource)
-        }
-    }
-
-    fun generateBrdfLut() {
-        val environment = state.environment ?: return
-        runGeneration(HdrEnvironmentGenerationDialog.BrdfLut, environment, rememberSource = false) {
-            generationService.generateBrdfLut(generatorState.brdfLutRequest)
-            manifestUpdater.applyBrdfLut(environment)
-        }
     }
 
     fun generateAll() {
         val environment = state.environment ?: return
         val config = generatorState.allIblRequest.toConfig(environment.manifestPath)
-        runGeneration(HdrEnvironmentGenerationDialog.AllIbl, environment, rememberSource = generatorState.allIblRequest.rememberSource) {
+        runGeneration(HdrEnvironmentGenerationDialog.AllIbl, environment) {
             val result = generationService.generateAll(config)
-            manifestUpdater.applyAll(environment, config, result, generatorState.allIblRequest.rememberSource)
+            manifestUpdater.applyAll(environment, config, result)
         }
+    }
+
+    fun importBrdfLut(sourcePath: String) {
+        val environment = state.environment ?: return
+        require(sourcePath.isNotBlank()) { "Select a BRDF LUT image to import." }
+
+        val sourceFile = File(sourcePath).toPath().toAbsolutePath().normalize()
+        require(Files.isRegularFile(sourceFile)) { "BRDF LUT file not found: $sourcePath" }
+
+        val manifestDirectory =
+            File(assetRoot, EnvironmentPathResolver.manifestDirectory(environment.manifestPath))
+                .toPath()
+                .toAbsolutePath()
+                .normalize()
+        val targetFile = manifestDirectory.resolve("brdf").resolve(sourceFile.fileName.toString())
+        Files.createDirectories(targetFile.parent)
+        Files.copy(sourceFile, targetFile, StandardCopyOption.REPLACE_EXISTING)
+
+        val relativePath = manifestDirectory.relativize(targetFile).toString().replace('\\', '/')
+        val updated = environment.copy(brdfLut = TextureResourceRef(relativePath))
+        state.updateEnvironment { updated }
+        state.validation = environmentService.validate(updated)
+        state.invalidateEnvironmentCache()
+        generatorState.statusMessage = "BRDF LUT imported."
+        state.statusMessage = "BRDF LUT imported."
     }
 
     private fun prepareDefaultPaths(dialog: HdrEnvironmentGenerationDialog) {
@@ -96,14 +77,12 @@ class HdrEnvironmentGenerationController(
             HdrEnvironmentGenerationDialog.AllIbl -> {
                 generatorState.allIblRequest.outputRoot = EnvironmentPathResolver.manifestDirectory(environment.manifestPath)
             }
-            else -> Unit
         }
     }
 
     private fun runGeneration(
         dialog: HdrEnvironmentGenerationDialog,
         environment: Environment,
-        rememberSource: Boolean,
         block: () -> Environment,
     ) {
         val availability = generationService.availability(dialog)
@@ -116,7 +95,7 @@ class HdrEnvironmentGenerationController(
         }
         try {
             logger?.info(TAG) {
-                "Environment generation started dialog=${dialog.name} manifest='${environment.manifestPath}' rememberSource=$rememberSource"
+                "Environment generation started dialog=${dialog.name} manifest='${environment.manifestPath}'"
             }
             val updated = block()
             state.updateEnvironment { updated }

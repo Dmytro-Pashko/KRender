@@ -15,14 +15,6 @@ class HdrEnvironmentGenerationService(
 ) {
     fun availability(dialog: HdrEnvironmentGenerationDialog): HdrEnvironmentGenerationAvailability =
         when (dialog) {
-            HdrEnvironmentGenerationDialog.Skybox ->
-                if (hdrImageReader != null) {
-                    HdrEnvironmentGenerationAvailability(true, null)
-                } else {
-                    HdrEnvironmentGenerationAvailability(false, "HDR/EXR reader is not available yet.")
-                }
-            HdrEnvironmentGenerationDialog.Irradiance,
-            HdrEnvironmentGenerationDialog.Radiance,
             HdrEnvironmentGenerationDialog.AllIbl,
             ->
                 if (hdrImageReader != null) {
@@ -30,96 +22,10 @@ class HdrEnvironmentGenerationService(
                 } else {
                     HdrEnvironmentGenerationAvailability(false, "HDR/EXR reader is not available yet.")
                 }
-            HdrEnvironmentGenerationDialog.BrdfLut ->
-                HdrEnvironmentGenerationAvailability(false, "BRDF LUT generator is not available yet.")
         }
-
-    fun generateSkybox(config: EnvironmentIblGenerationConfig): EnvironmentIblGenerationResult {
-        validateConfig(config)
-        val image = readSourceImage(config)
-        val manifestDirectory = manifestDirectoryFile(config.environmentManifestPath)
-        val outputDirectory =
-            resolveOutputDirectory(
-                manifestDirectory = manifestDirectory,
-                manifestPath = config.environmentManifestPath,
-                outputDirectory = config.outputDirectory,
-            )
-        val writtenFiles =
-            cubemapGenerator.generate(
-                source = image,
-                outputDirectory = outputDirectory,
-                outputFormat = config.format.name,
-                overwritePolicy = config.overwritePolicy,
-                config = config.skybox,
-            )
-        return EnvironmentIblGenerationResult(
-            skyboxFaces =
-                writtenFiles.mapValues { (_, file) ->
-                    relativeToManifestDirectory(manifestDirectory, file)
-                },
-        )
-    }
-
-    fun generateIrradiance(config: EnvironmentIblGenerationConfig): EnvironmentIblGenerationResult {
-        validateConfig(config)
-        val image = readSourceImage(config)
-        val manifestDirectory = manifestDirectoryFile(config.environmentManifestPath)
-        val outputDirectory =
-            resolveOutputDirectory(
-                manifestDirectory = manifestDirectory,
-                manifestPath = config.environmentManifestPath,
-                outputDirectory = config.outputDirectory,
-            )
-        val writtenFiles =
-            irradianceGenerator.generate(
-                source = image,
-                outputDirectory = outputDirectory,
-                outputFormat = config.format.name,
-                overwritePolicy = config.overwritePolicy,
-                config = config.irradiance,
-            )
-        return EnvironmentIblGenerationResult(
-            irradianceFaces =
-                writtenFiles.mapValues { (_, file) ->
-                    relativeToManifestDirectory(manifestDirectory, file)
-                },
-        )
-    }
-
-    fun generateRadiance(config: EnvironmentIblGenerationConfig): EnvironmentIblGenerationResult {
-        validateConfig(config)
-        val image = readSourceImage(config)
-        val manifestDirectory = manifestDirectoryFile(config.environmentManifestPath)
-        val outputDirectory =
-            resolveOutputDirectory(
-                manifestDirectory = manifestDirectory,
-                manifestPath = config.environmentManifestPath,
-                outputDirectory = config.outputDirectory,
-            )
-        val writtenFiles =
-            radianceGenerator.generate(
-                source = image,
-                outputDirectory = outputDirectory,
-                outputFormat = config.format.name,
-                overwritePolicy = config.overwritePolicy,
-                config = config.radiance,
-            )
-        return EnvironmentIblGenerationResult(
-            radianceMipFaces =
-                writtenFiles.mapValues { (_, faces) ->
-                    faces.mapValues { (_, file) -> relativeToManifestDirectory(manifestDirectory, file) }
-                },
-        )
-    }
-
-    fun generateBrdfLut(config: HdrBrdfLutGenerationRequest): EnvironmentIblGenerationResult =
-        unsupported("BRDF LUT generator is not available yet.")
 
     fun generateAll(config: EnvironmentIblGenerationConfig): EnvironmentIblGenerationResult {
         validateConfig(config)
-        if (config.brdfLut.enabled) {
-            unsupported("BRDF LUT generation is not implemented yet. Disable BRDF LUT to continue.")
-        }
 
         val image = readSourceImage(config)
         val manifestDirectory = manifestDirectoryFile(config.environmentManifestPath)
@@ -239,7 +145,6 @@ class HdrEnvironmentGenerationService(
             .relativize(file.toPath())
             .toString()
             .replace('\\', '/')
-    private fun unsupported(message: String): Nothing = throw UnsupportedOperationException(message)
 }
 
 data class HdrEnvironmentGenerationAvailability(

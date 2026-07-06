@@ -34,13 +34,6 @@ object EnvironmentRuntimeCacheKeyFactory {
         buildList {
             add("manifest=${environment.manifestPath}")
             add("revision=$revision")
-            add("type=${environment.type}")
-            add("defaultSource=${environment.sources.firstOrNull { source -> source.isDefault }?.id.orEmpty()}")
-            environment.sources
-                .sortedWith(compareBy<EnvironmentSourceVariant> { it.id }.thenBy { it.path })
-                .forEach { source ->
-                    add("source:${source.id}:${source.path}:${source.isDefault}")
-                }
             environment.skybox
                 ?.faces
                 ?.toSortedMap()

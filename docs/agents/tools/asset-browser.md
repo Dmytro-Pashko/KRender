@@ -26,7 +26,7 @@ duplicate, delete, reveal), and **open each asset in the correct editor tool** v
 | `engine/tools/.../assetbrowser/AssetBrowserPanels.kt` | `AssetControlsPanel`, `AssetBrowserPanel`, `AssetDetailsPanel`. |
 | `engine/tools/.../assetbrowser/AssetBrowserLayout.kt` | `AssetBrowserUiLayoutDefaults` (panel layout config). |
 | `engine/tools/.../assetbrowser/AssetBrowserUiOperations.kt` | UI-side operations helper. |
-| `engine/tools/.../assetbrowser/EnvironmentAssetCreation.kt` | Creates Environment assets from HDR source assets, seeds runtime resource placeholders, and launches Environment Editor. |
+| `engine/tools/.../assetbrowser/EnvironmentAssetCreation.kt` | Creates empty Environment manifests or derives a new Environment id from an HDR source asset, then launches Environment Editor. |
 | `engine/tools/.../common/EditorTexturePreviewService.kt` | Shared editor-facing texture preview handle/status lookup used by texture details and other tools. |
 | `engine/assets/AssetRegistryService.kt` | `LocalAssetRegistryService` — filesystem scan + `.krmeta`. |
 | `engine/assets/AssetOperationsService.kt` | `LocalAssetOperationsService` — create/rename/duplicate/delete/reveal. |
@@ -90,11 +90,9 @@ resources. Scanned roots: `model`, `textures`, `atlases`, `skyboxes`, `environme
 - Model metadata preview (triangle/vertex/material counts via `ModelAssetInfo`).
 - Create / rename / duplicate / delete / reveal operations with sensible default content
   (skybox, scene, terrain, `.krui`, material templates).
-- The Create Asset flow now includes `Environment`, with an EXR/HDR file picker that copies an
-  external source into `environments/<name>/sources/`, creates `<name>.environment.json`, and opens
-  the result in Environment Editor.
-- HDR source (`.exr` / `.hdr`) context actions that create a new Environment manifest,
-  copy the selected source into `environments/<name>/sources/`, and open the result in Environment Editor.
+- The Create Asset flow now includes `Environment`, creating an empty
+  `environments/<name>/<name>.environment.json` manifest that can be filled in later inside Environment Editor.
+- HDR source (`.exr` / `.hdr`) context actions still create a new Environment manifest and open the result in Environment Editor, but the manifest itself no longer stores source variants.
 - Generated Environment resources expose `Open Parent Environment`, which locates the closest
   surrounding `.environment.json` and launches Environment Editor for that manifest.
 - `.krui` UI assets route to UI Composer for validation, Scene2D preview, hierarchy/inspector editing, undo/redo, and save workflows.

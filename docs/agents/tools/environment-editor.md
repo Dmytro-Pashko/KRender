@@ -9,11 +9,10 @@ Environment Editor opens one `.environment.json` asset and provides:
 
 - editable exposure, rotation, diffuse intensity, and specular intensity;
 - `Skybox`, `Solid Color`, `Transparent`, and `None` background modes;
-- source-variant selection and manifest validation;
 - a `Resource Inspector` panel for skybox, irradiance, radiance, BRDF LUT, and imported skybox source texture inspection;
 - a separate `Selected Resource Preview` panel with its own viewport state;
 - a renamed `Import Skybox Atlas` workflow for atlas/cross/row textures that exports separate runtime face files and updates `environment.skybox.faces`;
-- explicit HDR/EXR generation dialogs for skybox, irradiance, radiance, BRDF LUT, and `Generate All IBL`, with clear unavailable-state messaging when a real HDR reader/generator is not available;
+- one `Generate IBL` dialog for HDR/EXR-driven skybox, irradiance, and radiance generation plus a separate `Import BRDF LUT` action;
 - a live PBR preview using the bundled `model/tests/MetalRoughSpheres.glb`;
 - file save/reload/revert, layout persistence, diagnostics, and logs.
 
@@ -24,11 +23,11 @@ Desktop route:
 
 Environment Editor now clearly separates atlas import from HDR/EXR generation. `Import Skybox Atlas`
 only splits previewable 2D source textures into separate runtime face files and updates the manifest.
-The HDR/EXR generation dialogs are separate and keep generation inputs distinct from runtime resource
-references. The current editor build includes a verified HDR/EXR reader plus skybox, irradiance,
-and radiance generators that write separate runtime face files. BRDF LUT generation is still a
-follow-up task and must remain explicitly unavailable instead of silently pretending to run. Future
-IBL generation must also target separate face-file outputs instead of shared runtime atlases.
+The HDR/EXR generation dialog keeps generation inputs distinct from runtime resource references. The
+current editor build includes a verified HDR/EXR reader plus skybox, irradiance, and radiance
+generators that write separate runtime face files. BRDF LUT generation is intentionally omitted;
+users import an existing BRDF LUT texture instead. Future IBL generation must also target separate
+face-file outputs instead of shared runtime atlases.
 
 ## Ownership
 
@@ -36,7 +35,7 @@ IBL generation must also target separate face-file outputs instead of shared run
 |---|---|---|
 | Core domain | `Environment`, `EnvironmentSettings` | Backend-neutral runtime data and `.environment.json` schema. |
 | Persistence | `EnvironmentSerializer`, `EnvironmentLoader`, `DefaultEnvironmentService` | JSON encode/decode, file IO, validation handoff, and editor/runtime access. |
-| Validation | `EnvironmentValidator` | Source/resource checks through `SceneFileService`. |
+| Validation | `EnvironmentValidator` | Runtime resource checks through `SceneFileService`. |
 | Tool state | `EnvironmentEditorState`, `EnvironmentEditorController` | Mutable editing session, dirty state, disk commands. |
 | Tool UI | `EnvironmentEditorUiFactory`, `Environment*Panel` | ImGui panels and layout tracking. |
 | Preview adapter | `EnvironmentPreviewController` | Converts the current Environment into `GltfRendererSettings`. |
@@ -51,7 +50,6 @@ No tool class imports LibGDX or gdx-gltf. The preview crosses the backend bounda
 - `Environment Editor Control Panel` — file/session actions, dirty state, path, resolved path, size, status, and exit.
 - `Inspector` — flat label/value manifest summary.
 - `Settings` — runtime settings, background mode selector, and mode-specific options.
-- `Sources` — source variants with default-source switching.
 - `Resource Inspector` — 2D resource canvas for runtime skybox/irradiance/radiance/BRDF LUT inspection plus imported skybox source region overlays.
 - `Selected Resource Preview` — isolated selected face/region viewport with independent fit/reset/zoom/pan controls and selected-item diagnostics.
 - `Diagnostics` — validation status and issue list.
@@ -97,8 +95,7 @@ GdxRenderer3D -> GdxGltfRenderer -> gdx-gltf scene manager
 ```
 
 `environmentPreset` points to the manifest. `GdxHdrEnvironmentResolver` reads only the resource
-paths stored directly in the Environment manifest; it does not sample the source `.hdr`/`.exr`
-directly.
+paths stored directly in the Environment manifest.
 
 ### PBR resources
 
@@ -174,26 +171,21 @@ Saving still happens through the normal Environment save workflow after import.
 
 ## HDR / EXR Generation
 
-The `Generation` block now exposes six explicit actions:
+The `Generation` block now exposes three actions:
 
 - `Import Skybox Atlas`
-- `Generate Skybox From HDR/EXR`
-- `Generate Irradiance`
-- `Generate Radiance`
-- `Generate BRDF LUT`
-- `Generate All IBL`
+- `Generate IBL`
+- `Import BRDF LUT`
 
-HDR/EXR dialogs keep authoring inputs separate from runtime resources:
+`Generate IBL` keeps HDR/EXR authoring input separate from runtime resources:
 
 - selected HDR/EXR files are generation inputs, not automatic runtime dependencies;
-- `Remember HDR/EXR source in Environment metadata` is optional and defaults to off;
 - runtime output still targets `skybox/<face>.png`, `irradiance/<face>.png`,
   `radiance/mip_<n>/<face>.png`, and `brdf_lut.png`.
 
-`Generate Skybox From HDR/EXR`, `Generate Irradiance`, `Generate Radiance`, and the corresponding
-enabled stages inside `Generate All IBL` now run against the verified HDR/EXR reader and emit
-runtime PNG face files. `Generate BRDF LUT` remains explicitly unavailable with a visible reason,
-and `Generate All IBL` must stop with a clear message when BRDF LUT is still enabled.
+`Generate IBL` now runs against the verified HDR/EXR reader and emits runtime PNG face files for
+skybox, irradiance, and radiance. `Import BRDF LUT` copies an existing texture into the current
+environment and updates `brdfLut`.
 
 ## Extension Points
 
@@ -214,7 +206,7 @@ When changing manifest settings, update all of:
 
 - Imported skybox source preview currently targets previewable 2D textures and does not split HDR/EXR sources directly.
 - Import region editing is numeric-only; drag/resize handles are not implemented yet.
-- BRDF LUT generation is still not implemented and must stay explicitly unavailable.
+- BRDF LUT generation is intentionally omitted; the workflow is to import an existing LUT texture.
 - Irradiance and radiance outputs currently follow the existing PNG runtime contract, so HDR range is reduced during export.
 - The selected-resource preview panel is wired for cropped-region previews, but only skybox source import currently provides source-region data.
 

@@ -10,16 +10,12 @@ import com.pashkd.krender.engine.assets.environment.ENVIRONMENT_SCHEMA_VERSION
 import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentSettings
 import com.pashkd.krender.engine.assets.environment.EnvironmentSourceFormat
-import com.pashkd.krender.engine.assets.environment.EnvironmentSourceVariant
-import com.pashkd.krender.engine.assets.environment.EnvironmentType
 import com.pashkd.krender.engine.assets.environment.RadianceMip
 import com.pashkd.krender.engine.assets.environment.RadianceMipChain
 import com.pashkd.krender.engine.assets.environment.SkyboxResourceSet
-import com.pashkd.krender.engine.assets.environment.SourceVariantRole
 import com.pashkd.krender.engine.assets.environment.TextureResourceRef
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 
 internal data class CreateEnvironmentFromSourceRequest(
     val sourcePath: Path,
@@ -33,7 +29,7 @@ internal data class CreateEnvironmentFromSourceRequest(
 internal data class CreateEnvironmentResult(
     val environmentId: String,
     val manifestPath: String,
-    val sourcePath: String,
+    val sourcePath: String? = null,
 )
 
 internal object EnvironmentAssetCreation {
@@ -105,6 +101,39 @@ internal object EnvironmentAssetCreation {
         )
     }
 
+    fun createEmptyEnvironment(
+        preferredEnvironmentId: String?,
+        engine: EngineContext,
+        logger: Logger,
+    ): CreateEnvironmentResult {
+        val targetRoot =
+            engine.assetRegistry
+                .baseDir()
+                .toPath()
+                .toAbsolutePath()
+                .normalize()
+        require(Files.exists(targetRoot)) { "Target asset root does not exist: $targetRoot" }
+
+        val baseId = sanitizeEnvironmentId(preferredEnvironmentId ?: "environment")
+        val target = prepareEnvironmentTarget(targetRoot, baseId)
+        val environment = buildEnvironment(target)
+
+        val environmentService = DefaultEnvironmentService(engine.sceneFiles)
+        environmentService.save(environment)
+        val createdAsset = environmentService.load(target.manifestPath)
+        environmentService.validate(createdAsset)
+
+        val result =
+            CreateEnvironmentResult(
+                environmentId = target.environmentId,
+                manifestPath = target.manifestPath,
+            )
+        logger.info(TAG) {
+            "Created empty environment id='${result.environmentId}' manifest='${result.manifestPath}'"
+        }
+        return result
+    }
+
     fun runAction(
         asset: AssetDescriptor,
         actionId: String,
@@ -133,8 +162,7 @@ internal object EnvironmentAssetCreation {
 
         val baseId = sanitizeEnvironmentId(request.preferredEnvironmentId ?: environmentBaseId(sourcePath.fileName.toString()))
         val target = prepareEnvironmentTarget(targetRoot, baseId)
-        val manifestSourcePath = prepareEnvironmentSource(request, targetRoot, target.directory, sourcePath)
-        val environment = buildEnvironment(target, manifestSourcePath, request.sourceFormat)
+        val environment = buildEnvironment(target)
 
         val environmentService = DefaultEnvironmentService(engine.sceneFiles)
         environmentService.save(environment)
@@ -148,10 +176,9 @@ internal object EnvironmentAssetCreation {
             CreateEnvironmentResult(
                 environmentId = target.environmentId,
                 manifestPath = target.manifestPath,
-                sourcePath = manifestSourcePath,
             )
         logger.info(TAG) {
-            "Created environment id='${result.environmentId}' manifest='${result.manifestPath}' source='${result.sourcePath}' from='$sourcePath'"
+            "Created environment id='${result.environmentId}' manifest='${result.manifestPath}' from='$sourcePath'"
         }
         return result
     }
@@ -166,52 +193,16 @@ internal object EnvironmentAssetCreation {
         return EnvironmentTarget(environmentId, directory, manifestPath)
     }
 
-    private fun prepareEnvironmentSource(
-        request: CreateEnvironmentFromSourceRequest,
-        targetRoot: Path,
-        environmentDir: Path,
-        sourcePath: Path,
-    ): String {
-        val sourceFileName = sourcePath.fileName.toString()
-        val copiedSourcePath = resolveInside(environmentDir, "sources/$sourceFileName")
-        Files.createDirectories(copiedSourcePath.parent)
-        return if (request.copySource) {
-            Files.copy(sourcePath, copiedSourcePath, StandardCopyOption.COPY_ATTRIBUTES)
-            "sources/$sourceFileName"
-        } else {
-            require(sourcePath.startsWith(targetRoot)) {
-                "Non-copy environment sources must stay inside the asset root: $sourcePath"
-            }
-            environmentDir.relativize(sourcePath).toString().replace('\\', '/')
-        }
-    }
-
     private fun buildEnvironment(
         target: EnvironmentTarget,
-        manifestSourcePath: String,
-        sourceFormat: EnvironmentSourceFormat,
     ): Environment =
         Environment(
             schemaVersion = ENVIRONMENT_SCHEMA_VERSION,
             id = target.environmentId,
             name = environmentDisplayName(target.environmentId),
             manifestPath = target.manifestPath,
-            type = EnvironmentType.HdrIbl,
             description = null,
             settings = EnvironmentSettings(),
-            sources =
-                listOf(
-                    EnvironmentSourceVariant(
-                        id = "source",
-                        path = manifestSourcePath,
-                        format = sourceFormat,
-                        role = SourceVariantRole.Source,
-                        isDefault = true,
-                        resolution = null,
-                        colorSpace = "Linear",
-                        dynamicRange = "HDR",
-                    ),
-                ),
             skybox = null,
             irradiance = null,
             radiance = null,
