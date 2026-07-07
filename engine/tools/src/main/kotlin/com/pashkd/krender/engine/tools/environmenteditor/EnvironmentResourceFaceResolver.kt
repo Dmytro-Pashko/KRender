@@ -393,7 +393,7 @@ class EnvironmentResourceFaceResolver(
             resourcePath = resourcePath,
             directoryStem = directoryStem(resourcePath, "irradiance"),
         ).map { (face, path) ->
-            ResolvedEnvironmentFace(face, EnvironmentPathResolver.resolvePath(manifestPath = environment.manifestPath, relativePath = path))
+            ResolvedEnvironmentFace(face, path)
         }
     }
 
@@ -405,7 +405,7 @@ class EnvironmentResourceFaceResolver(
             resourcePath = mip.path,
             directoryStem = directoryStem(mip.path, "radiance_${mip.level}"),
         ).map { (face, path) ->
-            ResolvedEnvironmentFace(face, EnvironmentPathResolver.resolvePath(manifestPath = environment.manifestPath, relativePath = path))
+            ResolvedEnvironmentFace(face, path)
         }
     }
 

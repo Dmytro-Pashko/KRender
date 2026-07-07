@@ -89,8 +89,11 @@ object EnvironmentValidator {
             issues += warning(Codes.MISSING_IRRADIANCE, "No irradiance cubemap defined.")
             return
         }
-        val resolved = EnvironmentPathResolver.resolvePath(manifestPath, irradiance.path)
-        if (!fileService.exists(resolved)) {
+        val hasAllFaces =
+            EnvironmentPathResolver
+                .resolveCubemapFacePaths(manifestPath, irradiance.path)
+                .all(fileService::exists)
+        if (!hasAllFaces) {
             issues +=
                 warning(
                     Codes.IRRADIANCE_FILE_MISSING,
@@ -115,8 +118,11 @@ object EnvironmentValidator {
             return
         }
         for (mip in radiance.mips) {
-            val resolved = EnvironmentPathResolver.resolvePath(manifestPath, mip.path)
-            if (!fileService.exists(resolved)) {
+            val hasAllFaces =
+                EnvironmentPathResolver
+                    .resolveCubemapFacePaths(manifestPath, mip.path)
+                    .all(fileService::exists)
+            if (!hasAllFaces) {
                 issues +=
                     warning(
                         Codes.RADIANCE_MIP_MISSING,

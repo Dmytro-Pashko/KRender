@@ -148,7 +148,7 @@ private fun CubemapResource?.exists(
     fileService: SceneFileService,
 ): Boolean {
     val path = this?.path ?: return false
-    return fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, path))
+    return EnvironmentPathResolver.resolveCubemapFacePaths(manifestPath, path).all(fileService::exists)
 }
 
 private fun RadianceMipChain?.exists(
@@ -158,7 +158,7 @@ private fun RadianceMipChain?.exists(
     this
         ?.mips
         ?.takeIf(List<com.pashkd.krender.engine.assets.environment.RadianceMip>::isNotEmpty)
-        ?.all { mip -> fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, mip.path)) } == true
+        ?.all { mip -> EnvironmentPathResolver.resolveCubemapFacePaths(manifestPath, mip.path).all(fileService::exists) } == true
 
 private fun TextureResourceRef?.exists(
     manifestPath: String,

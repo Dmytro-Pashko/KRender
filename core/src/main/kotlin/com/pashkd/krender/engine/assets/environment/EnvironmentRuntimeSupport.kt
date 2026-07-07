@@ -4,6 +4,8 @@ package com.pashkd.krender.engine.assets.environment
  * Resolves Environment manifest-relative resource paths without depending on a backend.
  */
 object EnvironmentPathResolver {
+    val orderedFaceNames: List<String> = listOf("posx", "negx", "posy", "negy", "posz", "negz")
+
     fun manifestDirectory(manifestPath: String): String {
         val normalized = manifestPath.replace('\\', '/')
         val lastSlash = normalized.lastIndexOf('/')
@@ -14,9 +16,26 @@ object EnvironmentPathResolver {
         manifestPath: String,
         relativePath: String,
     ): String {
+        val normalizedRelative = relativePath.replace('\\', '/')
         val manifestDir = manifestDirectory(manifestPath)
-        if (manifestDir.isEmpty()) return relativePath.replace('\\', '/')
-        return "$manifestDir/$relativePath".replace('\\', '/')
+        if (manifestDir.isEmpty()) return normalizedRelative
+        if (normalizedRelative == manifestDir || normalizedRelative.startsWith("$manifestDir/")) {
+            return normalizedRelative
+        }
+        return "$manifestDir/$normalizedRelative".replace('\\', '/')
+    }
+
+    fun resolveCubemapFacePaths(
+        manifestPath: String,
+        resourcePath: String?,
+    ): List<String> {
+        val normalized = resourcePath?.replace('\\', '/')?.trim().orEmpty()
+        if (normalized.isBlank()) return emptyList()
+        return if (normalized.contains(EnvironmentCubemapFaceToken)) {
+            orderedFaceNames.map { face -> resolvePath(manifestPath, normalized.replace(EnvironmentCubemapFaceToken, face)) }
+        } else {
+            listOf(resolvePath(manifestPath, normalized))
+        }
     }
 }
 
@@ -54,3 +73,5 @@ object EnvironmentRuntimeCacheKeyFactory {
             }
         }.joinToString("|")
 }
+
+private const val EnvironmentCubemapFaceToken = "{face}"
