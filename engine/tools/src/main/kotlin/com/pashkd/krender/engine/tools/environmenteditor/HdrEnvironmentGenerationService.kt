@@ -97,8 +97,10 @@ class HdrEnvironmentGenerationService(
             "Only PNG output is currently supported."
         }
         require(config.skybox.resolution > 0) { "Skybox resolution must be positive." }
+        require(config.skybox.exposure >= 0f) { "Skybox exposure must be non-negative." }
         require(config.irradiance.resolution > 0) { "Irradiance resolution must be positive." }
         require(config.irradiance.sampleCount > 0) { "Irradiance sample count must be positive." }
+        require(config.irradiance.exposure >= 0f) { "Irradiance exposure must be non-negative." }
         require(config.radiance.baseResolution > 0) { "Radiance base resolution must be positive." }
         require(config.radiance.mipCount >= 1) { "Radiance mip count must be at least 1." }
         require(config.radiance.sampleCount > 0) { "Radiance sample count must be positive." }

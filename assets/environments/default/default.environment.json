@@ -20,19 +20,19 @@
   },
   "skybox": {
     "layout": "SixFaces",
-    "resolution": 1024,
+    "resolution": 512,
     "format": "PNG",
     "faces": {
-      "px": "skybox/generated/environment_posx.png",
-      "nx": "skybox/generated/environment_negx.png",
-      "py": "skybox/generated/environment_posy.png",
-      "ny": "skybox/generated/environment_negy.png",
-      "pz": "skybox/generated/environment_posz.png",
-      "nz": "skybox/generated/environment_negz.png"
+      "posx": "skybox/posx.png",
+      "negx": "skybox/negx.png",
+      "posy": "skybox/posy.png",
+      "negy": "skybox/negy.png",
+      "posz": "skybox/posz.png",
+      "negz": "skybox/negz.png"
     }
   },
   "irradiance": {
-    "path": "irradiance",
+    "path": "irradiance/{face}.png",
     "resolution": 64,
     "format": "PNG"
   },
@@ -42,52 +42,52 @@
       {
         "level": 0,
         "roughness": 0.0,
-        "path": "radiance/radiance_0_posx.png"
+        "path": "radiance/mip_0/{face}.png"
       },
       {
         "level": 1,
         "roughness": 0.11111111,
-        "path": "radiance/radiance_1_posx.png"
+        "path": "radiance/mip_1/{face}.png"
       },
       {
         "level": 2,
         "roughness": 0.22222222,
-        "path": "radiance/radiance_2_posx.png"
+        "path": "radiance/mip_2/{face}.png"
       },
       {
         "level": 3,
         "roughness": 0.33333334,
-        "path": "radiance/radiance_3_posx.png"
+        "path": "radiance/mip_3/{face}.png"
       },
       {
         "level": 4,
         "roughness": 0.44444445,
-        "path": "radiance/radiance_4_posx.png"
+        "path": "radiance/mip_4/{face}.png"
       },
       {
         "level": 5,
         "roughness": 0.5555556,
-        "path": "radiance/radiance_5_posx.png"
+        "path": "radiance/mip_5/{face}.png"
       },
       {
         "level": 6,
         "roughness": 0.6666667,
-        "path": "radiance/radiance_6_posx.png"
+        "path": "radiance/mip_6/{face}.png"
       },
       {
         "level": 7,
         "roughness": 0.7777778,
-        "path": "radiance/radiance_7_posx.png"
+        "path": "radiance/mip_7/{face}.png"
       },
       {
         "level": 8,
         "roughness": 0.8888889,
-        "path": "radiance/radiance_8_posx.png"
+        "path": "radiance/mip_8/{face}.png"
       },
       {
         "level": 9,
         "roughness": 1.0,
-        "path": "radiance/radiance_9_posx.png"
+        "path": "radiance/mip_9/{face}.png"
       }
     ]
   },

@@ -1,11 +1,8 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
-import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblOverwritePolicy
-import com.pashkd.krender.engine.assets.environment.EnvironmentToneMapping
 import com.pashkd.krender.engine.assets.environment.SkyboxGenerationConfig
 import java.io.File
-import kotlin.math.pow
 
 /**
  * Converts an equirectangular HDR environment into six cubemap face PNG files.
@@ -59,43 +56,12 @@ class EquirectangularToCubemapGenerator {
                 )
             // Equirectangular HDR textures are sampled in latitude-longitude UV space.
             val uv = EquirectangularProjection.directionToEquirectangularUv(direction)
-            val hdr = source.sampleEquirectangular(uv.x, uv.y) * config.exposure
             // PNG export is LDR, so the tone-mapped linear color must be encoded to sRGB.
-            toneMap(hdr, config.toneMapping)
+            EnvironmentLdrToneMapper.prepare(
+                color = source.sampleEquirectangular(uv.x, uv.y),
+                exposure = config.exposure,
+                toneMapping = config.toneMapping,
+            )
         }
     }
-
-    /**
-     * Compresses linear HDR values into an LDR-friendly range.
-     *
-     * Tone mapping is only relevant because PNG cannot preserve the original HDR radiance range.
-     */
-    private fun toneMap(
-        color: Vec3,
-        mode: EnvironmentToneMapping,
-    ): Vec3 =
-        when (mode) {
-            EnvironmentToneMapping.None -> color
-            EnvironmentToneMapping.Reinhard ->
-                Vec3(
-                    // Classic Reinhard operator: simple, stable, and monotonic.
-                    color.x / (1f + color.x),
-                    color.y / (1f + color.y),
-                    color.z / (1f + color.z),
-                )
-            EnvironmentToneMapping.ACES -> Vec3(aces(color.x), aces(color.y), aces(color.z))
-        }
-
-    /**
-     * Applies an ACES-inspired filmic curve to one channel.
-     */
-    private fun aces(value: Float): Float {
-        val a = 2.51f
-        val b = 0.03f
-        val c = 2.43f
-        val d = 0.59f
-        val e = 0.14f
-        return ((value * (a * value + b)) / (value * (c * value + d) + e)).coerceIn(0f, 1f)
-    }
-
 }

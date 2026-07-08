@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:eae7d6d2-2c64-4e8e-992e-54bd3eed8a91",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "posz",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

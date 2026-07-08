@@ -33,6 +33,8 @@ data class HdrAllIblGenerationRequest(
     var irradianceEnabled: Boolean = true,
     var irradianceResolution: Int = 64,
     var irradianceSampleCount: Int = 512,
+    var irradianceExposure: Float = 0.3183099f,
+    var irradianceToneMapping: EnvironmentToneMapping = EnvironmentToneMapping.ACES,
     var radianceEnabled: Boolean = true,
     var radianceBaseResolution: Int = 256,
     var radianceMipCount: Int = 8,
@@ -56,6 +58,8 @@ data class HdrAllIblGenerationRequest(
                     enabled = irradianceEnabled,
                     resolution = irradianceResolution,
                     sampleCount = irradianceSampleCount,
+                    exposure = irradianceExposure,
+                    toneMapping = irradianceToneMapping,
                 ),
             radiance =
                 RadianceGenerationConfig(

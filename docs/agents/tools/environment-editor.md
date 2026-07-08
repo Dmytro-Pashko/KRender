@@ -185,7 +185,9 @@ The `Generation` block now exposes three actions:
 
 `Generate IBL` now runs against the verified HDR/EXR reader and emits runtime PNG face files for
 skybox, irradiance, and radiance. `Import BRDF LUT` copies an existing texture into the current
-environment and updates `brdfLut`.
+environment and updates `brdfLut`. Skybox and irradiance export apply exposure plus tone mapping
+before writing PNG files; irradiance defaults to a lower diffuse exposure so HDR convolution does
+not collapse into clipped white LDR faces.
 
 ## Extension Points
 

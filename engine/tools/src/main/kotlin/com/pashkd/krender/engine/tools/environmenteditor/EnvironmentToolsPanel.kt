@@ -347,6 +347,17 @@ class EnvironmentToolsPanel(
                 selected = request.irradianceSampleCount,
                 options = SampleCountOptions,
             ) { request.irradianceSampleCount = it }
+            slider(
+                "Exposure##env_tools_hdr_all_irradiance_exposure",
+                request::irradianceExposure,
+                0.05f,
+                4f,
+                "%.2f",
+                SliderFlag.AlwaysClamp,
+            )
+            drawToneMappingCombo("Tone mapping##env_tools_hdr_all_irradiance_tone_mapping", request.irradianceToneMapping) {
+                request.irradianceToneMapping = it
+            }
         }
 
         ImGui.separator()

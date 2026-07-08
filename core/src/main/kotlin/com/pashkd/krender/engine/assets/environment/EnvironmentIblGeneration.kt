@@ -31,6 +31,8 @@ data class IrradianceGenerationConfig(
     val enabled: Boolean = true,
     val resolution: Int = 64,
     val sampleCount: Int = 512,
+    val exposure: Float = 0.3183099f,
+    val toneMapping: EnvironmentToneMapping = EnvironmentToneMapping.ACES,
 )
 
 data class RadianceGenerationConfig(

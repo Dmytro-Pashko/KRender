@@ -228,7 +228,7 @@
       "ambientIntensity": 0.55
     },
     "environment": {
-      "environmentAssetPath": "environments/default/default.environment.json"
+      "environmentAssetPath": "environments/meadow/meadow.environment.json"
     },
     "terrain": {
       "materialLibraryPath": "materials/terrain_materials.json"

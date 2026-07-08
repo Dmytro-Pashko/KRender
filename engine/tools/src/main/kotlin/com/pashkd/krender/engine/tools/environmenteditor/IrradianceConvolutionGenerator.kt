@@ -29,7 +29,11 @@ class IrradianceConvolutionGenerator(
             overwritePolicy = overwritePolicy,
         ) { face, x, y ->
             val normal = CubemapDirectionMath.cubemapFacePixelToDirection(face, x, y, config.resolution)
-            convolveDiffuseIrradiance(source, normal, config.sampleCount)
+            EnvironmentLdrToneMapper.prepare(
+                color = convolveDiffuseIrradiance(source, normal, config.sampleCount),
+                exposure = config.exposure,
+                toneMapping = config.toneMapping,
+            )
         }
     }
 
