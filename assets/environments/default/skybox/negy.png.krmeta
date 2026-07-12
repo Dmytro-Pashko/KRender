@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:1b45447b-07f5-4c59-bf23-5c1cef2732cf",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "negy",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

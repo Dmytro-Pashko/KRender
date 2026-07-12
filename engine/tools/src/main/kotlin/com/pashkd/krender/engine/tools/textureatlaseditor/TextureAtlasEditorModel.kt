@@ -1,6 +1,9 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor
 
 import com.pashkd.krender.engine.api.TexturePreviewHandle
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewCanvasRect
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewColor
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewViewportState
 import java.io.File
 
 enum class TextureAtlasEditorAssetKind {
@@ -10,19 +13,8 @@ enum class TextureAtlasEditorAssetKind {
     Unknown,
 }
 
-enum class TexturePreviewZoomMode {
-    Fit,
-    Percent50,
-    Percent100,
-    Percent200,
-    Custom,
-}
-
-enum class TexturePreviewSurfaceMode {
-    Actual,
-    Padding,
-    Custom,
-}
+typealias TexturePreviewZoomMode = com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewZoomMode
+typealias TexturePreviewSurfaceMode = com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewSurfaceMode
 
 enum class TextureAtlasRegionSortMode {
     Name,
@@ -36,12 +28,7 @@ enum class TextureAtlasCanvasMode {
     FinalPackedAtlas,
 }
 
-data class TextureAtlasEditorColor(
-    val red: Float = 1f,
-    val green: Float = 1f,
-    val blue: Float = 1f,
-    val alpha: Float = 1f,
-)
+typealias TextureAtlasEditorColor = TexturePreviewColor
 
 data class TextureAtlasEditorTextureInfo(
     val width: Int? = null,
@@ -107,11 +94,7 @@ data class TextureAtlasRegion(
     val details: Map<String, String> = emptyMap(),
 )
 
-data class TextureAtlasEditorPreviewViewportState(
-    var panX: Float = 0f,
-    var panY: Float = 0f,
-    var zoom: Float = 1f,
-)
+typealias TextureAtlasEditorPreviewViewportState = TexturePreviewViewportState
 
 data class TextureAtlasEditorPreviewState(
     var canvasMode: TextureAtlasCanvasMode = TextureAtlasCanvasMode.TextureAtlas,
@@ -131,14 +114,7 @@ data class TextureAtlasEditorPreviewState(
     var ninePatchStretch: TextureAtlasNinePatchStretchState = TextureAtlasNinePatchStretchState(),
 )
 
-data class TextureAtlasEditorCanvasRect(
-    val x: Float = 0f,
-    val y: Float = 0f,
-    val width: Float = 0f,
-    val height: Float = 0f,
-) {
-    val isValid: Boolean get() = width > 1f && height > 1f
-}
+typealias TextureAtlasEditorCanvasRect = TexturePreviewCanvasRect
 
 data class TextureAtlasEditorPreviewSlice(
     val sourceX: Int,

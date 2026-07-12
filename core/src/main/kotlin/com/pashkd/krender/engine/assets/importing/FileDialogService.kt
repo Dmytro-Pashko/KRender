@@ -1,5 +1,7 @@
 package com.pashkd.krender.engine.assets.importing
 
+import java.awt.FileDialog
+import java.awt.Frame
 import java.io.File
 import java.io.FilenameFilter
 
@@ -22,41 +24,31 @@ object NoOpFileDialogService : FileDialogService {
 class AwtFileDialogService : FileDialogService {
     override fun openFile(filters: List<FileDialogFilter>): String? =
         runCatching {
-            val frameClass = Class.forName("java.awt.Frame")
-            val fileDialogClass = Class.forName("java.awt.FileDialog")
-            val loadMode = fileDialogClass.getField("LOAD").getInt(null)
-            val dialog =
-                fileDialogClass
-                    .getConstructor(frameClass, String::class.java, Int::class.javaPrimitiveType)
-                    .newInstance(null, "Import Asset", loadMode)
-            val acceptedExtensions =
-                filters
-                    .flatMap(FileDialogFilter::extensions)
-                    .map { extension ->
-                        extension
-                            .trim()
-                            .trimStart('*')
-                            .trimStart('.')
-                            .lowercase()
-                    }.filter(String::isNotBlank)
-                    .toSet()
+            val dialog = FileDialog(null as Frame?, "Import Asset", FileDialog.LOAD)
+            val acceptedExtensions = filters.normalizedExtensions()
             if (acceptedExtensions.isNotEmpty()) {
-                val filenameFilter =
+                dialog.filenameFilter =
                     FilenameFilter { _, name ->
                         name.substringAfterLast('.', "").lowercase() in acceptedExtensions
                     }
-                fileDialogClass
-                    .getMethod("setFilenameFilter", FilenameFilter::class.java)
-                    .invoke(dialog, filenameFilter)
             }
-            fileDialogClass
-                .getMethod("setVisible", Boolean::class.javaPrimitiveType)
-                .invoke(dialog, true)
-            val file = fileDialogClass.getMethod("getFile").invoke(dialog) as? String ?: return null
-            val directory = fileDialogClass.getMethod("getDirectory").invoke(dialog) as? String ?: ""
+            dialog.isVisible = true
+            val file = dialog.file ?: return null
+            val directory = dialog.directory ?: ""
             File(directory, file).path
         }.getOrNull()
 }
+
+private fun List<FileDialogFilter>.normalizedExtensions(): Set<String> =
+    flatMap(FileDialogFilter::extensions)
+        .map { extension ->
+            extension
+                .trim()
+                .trimStart('*')
+                .trimStart('.')
+                .lowercase()
+        }.filter(String::isNotBlank)
+        .toSet()
 
 val AssetImportFileDialogFilters =
     listOf(

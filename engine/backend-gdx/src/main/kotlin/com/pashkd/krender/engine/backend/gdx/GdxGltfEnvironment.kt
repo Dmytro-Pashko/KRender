@@ -17,11 +17,12 @@ internal class GdxGltfEnvironment(
     fun preset(
         nameOrPath: String,
         cacheKey: String = nameOrPath,
+        manifestText: String? = null,
     ): GdxGltfEnvironmentPreset? {
         invalidateStaleEntries(nameOrPath, cacheKey)
         presetOwners[cacheKey] = nameOrPath
         return presets.getOrPut(cacheKey) {
-            resolver.resolve(nameOrPath)?.let(assetLoader::loadPreset)
+            resolver.resolve(nameOrPath, manifestText)?.let(assetLoader::loadPreset)
         }
     }
 

@@ -4,22 +4,13 @@ import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetType
-import com.pashkd.krender.engine.assets.environment.CubemapResource
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
 import com.pashkd.krender.engine.assets.environment.ENVIRONMENT_SCHEMA_VERSION
 import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentSettings
 import com.pashkd.krender.engine.assets.environment.EnvironmentSourceFormat
-import com.pashkd.krender.engine.assets.environment.EnvironmentSourceVariant
-import com.pashkd.krender.engine.assets.environment.EnvironmentType
-import com.pashkd.krender.engine.assets.environment.RadianceMip
-import com.pashkd.krender.engine.assets.environment.RadianceMipChain
-import com.pashkd.krender.engine.assets.environment.SkyboxResourceSet
-import com.pashkd.krender.engine.assets.environment.SourceVariantRole
-import com.pashkd.krender.engine.assets.environment.TextureResourceRef
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 
 internal data class CreateEnvironmentFromSourceRequest(
     val sourcePath: Path,
@@ -27,13 +18,13 @@ internal data class CreateEnvironmentFromSourceRequest(
     val targetRoot: Path,
     val preferredEnvironmentId: String? = null,
     val copySource: Boolean = true,
-    val openAfterCreate: Boolean = true,
+    val openAfterCreate: Boolean = false,
 )
 
 internal data class CreateEnvironmentResult(
     val environmentId: String,
     val manifestPath: String,
-    val sourcePath: String,
+    val sourcePath: String? = null,
 )
 
 internal object EnvironmentAssetCreation {
@@ -71,7 +62,7 @@ internal object EnvironmentAssetCreation {
                     targetRoot = targetRoot,
                     preferredEnvironmentId = environmentBaseId(sourcePath.fileName.toString()),
                     copySource = true,
-                    openAfterCreate = true,
+                    openAfterCreate = false,
                 ),
             engine = engine,
             logger = logger,
@@ -98,11 +89,44 @@ internal object EnvironmentAssetCreation {
                             .normalize(),
                     preferredEnvironmentId = preferredEnvironmentId,
                     copySource = true,
-                    openAfterCreate = true,
+                    openAfterCreate = false,
                 ),
             engine = engine,
             logger = logger,
         )
+    }
+
+    fun createEmptyEnvironment(
+        preferredEnvironmentId: String?,
+        engine: EngineContext,
+        logger: Logger,
+    ): CreateEnvironmentResult {
+        val targetRoot =
+            engine.assetRegistry
+                .baseDir()
+                .toPath()
+                .toAbsolutePath()
+                .normalize()
+        require(Files.exists(targetRoot)) { "Target asset root does not exist: $targetRoot" }
+
+        val baseId = sanitizeEnvironmentId(preferredEnvironmentId ?: "environment")
+        val target = prepareEnvironmentTarget(targetRoot, baseId)
+        val environment = buildEnvironment(target)
+
+        val environmentService = DefaultEnvironmentService(engine.sceneFiles)
+        environmentService.save(environment)
+        val createdAsset = environmentService.load(target.manifestPath)
+        environmentService.validate(createdAsset)
+
+        val result =
+            CreateEnvironmentResult(
+                environmentId = target.environmentId,
+                manifestPath = target.manifestPath,
+            )
+        logger.info(TAG) {
+            "Created empty environment id='${result.environmentId}' manifest='${result.manifestPath}'"
+        }
+        return result
     }
 
     fun runAction(
@@ -133,8 +157,7 @@ internal object EnvironmentAssetCreation {
 
         val baseId = sanitizeEnvironmentId(request.preferredEnvironmentId ?: environmentBaseId(sourcePath.fileName.toString()))
         val target = prepareEnvironmentTarget(targetRoot, baseId)
-        val manifestSourcePath = prepareEnvironmentSource(request, targetRoot, target.directory, sourcePath)
-        val environment = buildEnvironment(target, manifestSourcePath, request.sourceFormat)
+        val environment = buildEnvironment(target)
 
         val environmentService = DefaultEnvironmentService(engine.sceneFiles)
         environmentService.save(environment)
@@ -148,46 +171,12 @@ internal object EnvironmentAssetCreation {
             CreateEnvironmentResult(
                 environmentId = target.environmentId,
                 manifestPath = target.manifestPath,
-                sourcePath = manifestSourcePath,
             )
         logger.info(TAG) {
-            "Created environment id='${result.environmentId}' manifest='${result.manifestPath}' source='${result.sourcePath}' from='$sourcePath'"
+            "Created environment id='${result.environmentId}' manifest='${result.manifestPath}' from='$sourcePath'"
         }
         return result
     }
-
-    private fun defaultSkybox(): SkyboxResourceSet =
-        SkyboxResourceSet(
-            layout = "SixFaces",
-            resolution = 1024,
-            format = "KTX",
-            faces =
-                linkedMapOf(
-                    "px" to "generated/skybox/px.ktx",
-                    "nx" to "generated/skybox/nx.ktx",
-                    "py" to "generated/skybox/py.ktx",
-                    "ny" to "generated/skybox/ny.ktx",
-                    "pz" to "generated/skybox/pz.ktx",
-                    "nz" to "generated/skybox/nz.ktx",
-                ),
-        )
-
-    private fun defaultIrradiance(): CubemapResource = CubemapResource(path = "generated/irradiance/irradiance.ktx", resolution = 64, format = "KTX")
-
-    private fun defaultRadiance(): RadianceMipChain =
-        RadianceMipChain(
-            baseResolution = 256,
-            mips =
-                listOf(
-                    RadianceMip(level = 0, roughness = 0f, path = "generated/radiance/radiance_mip_00.ktx"),
-                    RadianceMip(level = 1, roughness = 0.25f, path = "generated/radiance/radiance_mip_01.ktx"),
-                    RadianceMip(level = 2, roughness = 0.5f, path = "generated/radiance/radiance_mip_02.ktx"),
-                    RadianceMip(level = 3, roughness = 0.75f, path = "generated/radiance/radiance_mip_03.ktx"),
-                    RadianceMip(level = 4, roughness = 1f, path = "generated/radiance/radiance_mip_04.ktx"),
-                ),
-        )
-
-    private fun defaultBrdfLut(): TextureResourceRef = TextureResourceRef(path = "brdf/brdfLUT.png")
 
     private fun prepareEnvironmentTarget(
         targetRoot: Path,
@@ -199,56 +188,20 @@ internal object EnvironmentAssetCreation {
         return EnvironmentTarget(environmentId, directory, manifestPath)
     }
 
-    private fun prepareEnvironmentSource(
-        request: CreateEnvironmentFromSourceRequest,
-        targetRoot: Path,
-        environmentDir: Path,
-        sourcePath: Path,
-    ): String {
-        val sourceFileName = sourcePath.fileName.toString()
-        val copiedSourcePath = resolveInside(environmentDir, "sources/$sourceFileName")
-        Files.createDirectories(copiedSourcePath.parent)
-        return if (request.copySource) {
-            Files.copy(sourcePath, copiedSourcePath, StandardCopyOption.COPY_ATTRIBUTES)
-            "sources/$sourceFileName"
-        } else {
-            require(sourcePath.startsWith(targetRoot)) {
-                "Non-copy environment sources must stay inside the asset root: $sourcePath"
-            }
-            environmentDir.relativize(sourcePath).toString().replace('\\', '/')
-        }
-    }
-
     private fun buildEnvironment(
         target: EnvironmentTarget,
-        manifestSourcePath: String,
-        sourceFormat: EnvironmentSourceFormat,
     ): Environment =
         Environment(
             schemaVersion = ENVIRONMENT_SCHEMA_VERSION,
             id = target.environmentId,
             name = environmentDisplayName(target.environmentId),
             manifestPath = target.manifestPath,
-            type = EnvironmentType.HdrIbl,
             description = null,
             settings = EnvironmentSettings(),
-            sources =
-                listOf(
-                    EnvironmentSourceVariant(
-                        id = "source",
-                        path = manifestSourcePath,
-                        format = sourceFormat,
-                        role = SourceVariantRole.Source,
-                        isDefault = true,
-                        resolution = null,
-                        colorSpace = "Linear",
-                        dynamicRange = "HDR",
-                    ),
-                ),
-            skybox = defaultSkybox(),
-            irradiance = defaultIrradiance(),
-            radiance = defaultRadiance(),
-            brdfLut = defaultBrdfLut(),
+            skybox = null,
+            irradiance = null,
+            radiance = null,
+            brdfLut = null,
         )
 
     private fun resolveAssetPath(

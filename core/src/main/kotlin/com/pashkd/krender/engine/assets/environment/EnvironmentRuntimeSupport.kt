@@ -4,6 +4,8 @@ package com.pashkd.krender.engine.assets.environment
  * Resolves Environment manifest-relative resource paths without depending on a backend.
  */
 object EnvironmentPathResolver {
+    val orderedFaceNames: List<String> = listOf("posx", "negx", "posy", "negy", "posz", "negz")
+
     fun manifestDirectory(manifestPath: String): String {
         val normalized = manifestPath.replace('\\', '/')
         val lastSlash = normalized.lastIndexOf('/')
@@ -13,10 +15,28 @@ object EnvironmentPathResolver {
     fun resolvePath(
         manifestPath: String,
         relativePath: String,
-    ): String {
-        val manifestDir = manifestDirectory(manifestPath)
-        if (manifestDir.isEmpty()) return relativePath.replace('\\', '/')
-        return "$manifestDir/$relativePath".replace('\\', '/')
+    ): String =
+        run {
+            val normalizedRelative = relativePath.replace('\\', '/')
+            val manifestDir = manifestDirectory(manifestPath)
+            when {
+                manifestDir.isEmpty() -> normalizedRelative
+                normalizedRelative == manifestDir || normalizedRelative.startsWith("$manifestDir/") -> normalizedRelative
+                else -> "$manifestDir/$normalizedRelative".replace('\\', '/')
+            }
+        }
+
+    fun resolveCubemapFacePaths(
+        manifestPath: String,
+        resourcePath: String?,
+    ): List<String> {
+        val normalized = resourcePath?.replace('\\', '/')?.trim().orEmpty()
+        if (normalized.isBlank()) return emptyList()
+        return if (normalized.contains(ENVIRONMENT_CUBEMAP_FACE_TOKEN)) {
+            orderedFaceNames.map { face -> resolvePath(manifestPath, normalized.replace(ENVIRONMENT_CUBEMAP_FACE_TOKEN, face)) }
+        } else {
+            listOf(resolvePath(manifestPath, normalized))
+        }
     }
 }
 
@@ -34,13 +54,6 @@ object EnvironmentRuntimeCacheKeyFactory {
         buildList {
             add("manifest=${environment.manifestPath}")
             add("revision=$revision")
-            add("type=${environment.type}")
-            add("defaultSource=${environment.sources.firstOrNull { source -> source.isDefault }?.id.orEmpty()}")
-            environment.sources
-                .sortedWith(compareBy<EnvironmentSourceVariant> { it.id }.thenBy { it.path })
-                .forEach { source ->
-                    add("source:${source.id}:${source.path}:${source.isDefault}")
-                }
             environment.skybox
                 ?.faces
                 ?.toSortedMap()
@@ -61,3 +74,5 @@ object EnvironmentRuntimeCacheKeyFactory {
             }
         }.joinToString("|")
 }
+
+private const val ENVIRONMENT_CUBEMAP_FACE_TOKEN = "{face}"

@@ -4,6 +4,8 @@ import com.pashkd.krender.engine.api.AssetPack
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
+import com.pashkd.krender.engine.assets.importing.FileDialogService
+import com.pashkd.krender.engine.assets.importing.NoOpFileDialogService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController
@@ -19,6 +21,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
  */
 class EnvironmentEditorScene(
     val environmentPath: String,
+    private val fileDialogService: FileDialogService = NoOpFileDialogService,
 ) : Scene("environment_editor") {
     private lateinit var previewController: EnvironmentPreviewController
 
@@ -36,20 +39,41 @@ class EnvironmentEditorScene(
         val state = EnvironmentEditorState(environmentPath)
         val environmentService = DefaultEnvironmentService(engine.sceneFiles)
         previewController = EnvironmentPreviewController(engine.sceneFiles)
+        val resourcePreviewController = EnvironmentResourcePreviewController(state, engine)
+        val selectedResourcePreviewController = EnvironmentSelectedResourcePreviewController(state)
+        val skyboxImportController =
+            SkyboxAtlasImportController(
+                state,
+                engine.assetRegistry.baseDir(),
+                engine.logger,
+            ) { updatedEnvironment ->
+                state.validation = environmentService.validate(updatedEnvironment)
+            }
+        val hdrGenerationController =
+            HdrEnvironmentGenerationController(
+                state,
+                engine.assetRegistry.baseDir(),
+                environmentService,
+                engine.logger,
+            )
         val layoutTracker = loadLayout()
         val controller = EnvironmentEditorController(state, engine, environmentService, layoutTracker)
 
         controller.reload()
-        world.systems.add(EnvironmentEditorStateLoggingSystem(state, engine.logger))
         EnvironmentPreviewSceneAssembler(world, state, previewController).install()
         world.systems.add(
             EnvironmentEditorUiFactory(
                 state,
                 controller,
                 previewController,
+                resourcePreviewController,
+                selectedResourcePreviewController,
+                skyboxImportController,
+                hdrGenerationController,
                 environmentService,
                 layoutTracker,
                 engine,
+                fileDialogService,
             ).create(),
         )
     }

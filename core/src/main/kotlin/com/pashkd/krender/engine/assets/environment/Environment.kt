@@ -1,6 +1,5 @@
 package com.pashkd.krender.engine.assets.environment
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -17,11 +16,8 @@ data class Environment(
     val assetType: String = "Environment",
     val id: String,
     val name: String,
-    @SerialName("environmentType")
-    val type: EnvironmentType = EnvironmentType.HdrIbl,
     val description: String? = null,
     val settings: EnvironmentSettings = EnvironmentSettings(),
-    val sources: List<EnvironmentSourceVariant> = emptyList(),
     val skybox: SkyboxResourceSet? = null,
     val irradiance: CubemapResource? = null,
     val radiance: RadianceMipChain? = null,
@@ -34,12 +30,6 @@ data class Environment(
 
 const val ENVIRONMENT_SCHEMA = "krender.environment"
 const val ENVIRONMENT_SCHEMA_VERSION = 1
-
-/** Top-level Environment type supported by the current manifest and renderer. */
-@Serializable
-enum class EnvironmentType {
-    HdrIbl,
-}
 
 /**
  * Simple metadata bag for optional extra environment information.

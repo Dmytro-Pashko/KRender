@@ -38,7 +38,6 @@ class EnvironmentInspectorPanel(
         val settings = env.settings
         labeledText("ID", env.id)
         labeledText("Name", env.name)
-        labeledText("Type", env.type.name)
         labeledText("Version", env.schemaVersion.toString())
         labeledText("Manifest", env.manifestPath)
         labeledText("Description", env.description ?: "(none)")
@@ -52,23 +51,6 @@ class EnvironmentInspectorPanel(
         labeledText("Background Mode", settings.backgroundMode.displayName)
         settings.backgroundColor?.let { color ->
             labeledText("Background Color", "(%.2f, %.2f, %.2f, %.2f)".format(color.r, color.g, color.b, color.a))
-        }
-        labeledText("Source Count", env.sources.size.toString())
-        env.sources.forEachIndexed { index, source ->
-            val prefix = "Source ${index + 1}"
-            labeledText("$prefix ID", source.id)
-            labeledText("$prefix Format", source.format.toString())
-            labeledText(
-                "$prefix Role",
-                buildString {
-                    append(source.role.toString())
-                    if (source.isDefault) append(" [default]")
-                },
-            )
-            labeledText("$prefix Path", source.path)
-            source.resolution?.let { labeledText("$prefix Resolution", it) }
-            source.colorSpace?.let { labeledText("$prefix Color Space", it) }
-            source.dynamicRange?.let { labeledText("$prefix Dynamic Range", it) }
         }
         env.metadata.author?.let { labeledText("Author", it) }
         if (env.metadata.tags.isNotEmpty()) {

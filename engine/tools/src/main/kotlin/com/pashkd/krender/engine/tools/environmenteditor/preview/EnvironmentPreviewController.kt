@@ -10,13 +10,13 @@ import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentColor
 import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
 import com.pashkd.krender.engine.assets.environment.EnvironmentRuntimeCacheKeyFactory
+import com.pashkd.krender.engine.assets.environment.EnvironmentSerializer
 import com.pashkd.krender.engine.assets.environment.RadianceMipChain
 import com.pashkd.krender.engine.assets.environment.SkyboxResourceSet
 import com.pashkd.krender.engine.assets.environment.TextureResourceRef
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorConfig
 import com.pashkd.krender.engine.tools.environmenteditor.EnvironmentEditorState
-import com.pashkd.krender.engine.tools.environmenteditor.displayName
 
 /**
  * Adapts the currently edited Environment to the shared glTF renderer contract.
@@ -48,6 +48,7 @@ class EnvironmentPreviewController(
             enabled = true,
             environmentPreset = state.manifestPath,
             environmentCacheKey = rendererCacheKey(environment, state.environmentCacheRevision),
+            environmentManifestText = EnvironmentSerializer.encode(environment),
             exposure = settings.exposure.coerceAtLeast(0f),
             backgroundMode = settings.backgroundMode,
             backgroundColor = (settings.backgroundColor ?: EnvironmentEditorConfig.defaultBackgroundColor).toRenderColor(),
@@ -58,24 +59,6 @@ class EnvironmentPreviewController(
             environmentRotationDegrees = settings.rotationDegrees,
             directionalLightIntensity = if (availability.hasIblLighting) 0.3f else 0.85f,
         )
-    }
-
-    fun liveStatusMessage(environment: Environment): String {
-        val availability = availability(environment)
-        val settings = environment.settings
-        return buildString {
-            append("Live preview uses the current editor state. ")
-            append(
-                "Exposure %.2f, rotation %.1f deg, diffuse %.2f, specular %.2f. ".format(
-                    settings.exposure,
-                    settings.rotationDegrees,
-                    settings.diffuseIntensity,
-                    settings.specularIntensity,
-                ),
-            )
-            append("Background mode ${settings.backgroundMode.displayName}.")
-            if (availability.warnings.isNotEmpty()) append(" ${availability.fallbackMode}.")
-        }
     }
 
     private fun resourceWarnings(
@@ -165,7 +148,7 @@ private fun CubemapResource?.exists(
     fileService: SceneFileService,
 ): Boolean {
     val path = this?.path ?: return false
-    return fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, path))
+    return EnvironmentPathResolver.resolveCubemapFacePaths(manifestPath, path).all(fileService::exists)
 }
 
 private fun RadianceMipChain?.exists(
@@ -175,7 +158,7 @@ private fun RadianceMipChain?.exists(
     this
         ?.mips
         ?.takeIf(List<com.pashkd.krender.engine.assets.environment.RadianceMip>::isNotEmpty)
-        ?.all { mip -> fileService.exists(EnvironmentPathResolver.resolvePath(manifestPath, mip.path)) } == true
+        ?.all { mip -> EnvironmentPathResolver.resolveCubemapFacePaths(manifestPath, mip.path).all(fileService::exists) } == true
 
 private fun TextureResourceRef?.exists(
     manifestPath: String,

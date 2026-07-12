@@ -11,6 +11,8 @@ import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
+import imgui.SliderFlag
+import imgui.api.slider
 
 /**
  * Environment preview controls and status.
@@ -66,6 +68,18 @@ class EnvironmentPreviewPanel(
         tooltipOnHover("Shows the configured Environment preview test models.")
         ImGui.checkbox("Auto Rotate##env_preview_auto_rotate", preview::autoRotate)
         tooltipOnHover("Slowly rotates the preview camera around the scene.")
+        if (slider("Camera Distance##env_preview_camera_distance", preview::cameraDistance, 2f, 20f, "%.2f", SliderFlag.AlwaysClamp)) {
+            state.statusMessage = "Preview camera distance set to ${"%.2f".format(preview.cameraDistance)}."
+        }
+        tooltipOnHover("Moves the preview camera closer to or farther from the test model without reloading the Environment.")
+        if (slider("Yaw##env_preview_camera_yaw", preview::cameraYawDegrees, -180f, 180f, "%.1f", SliderFlag.AlwaysClamp)) {
+            state.statusMessage = "Preview camera yaw set to ${"%.1f".format(preview.cameraYawDegrees)} degrees."
+        }
+        tooltipOnHover("Adjusts the preview camera orbit yaw around the test model.")
+        if (slider("Pitch##env_preview_camera_pitch", preview::cameraPitchDegrees, -80f, 80f, "%.1f", SliderFlag.AlwaysClamp)) {
+            state.statusMessage = "Preview camera pitch set to ${"%.1f".format(preview.cameraPitchDegrees)} degrees."
+        }
+        tooltipOnHover("Adjusts the preview camera orbit pitch while keeping the same focus target.")
         if (ImGui.button("Reset Camera##env_preview_reset_camera")) {
             EnvironmentPreviewCamera.reset(preview)
         }
@@ -78,7 +92,6 @@ class EnvironmentPreviewPanel(
     ) {
         ImGui.text("Environment: ${env.name}")
         ImGui.text("Environment Id: ${env.id}")
-        ImGui.text("Type: ${env.type}")
         drawValidationStatus()
         ImGui.separator()
         ImGui.text("Environment Resources")
@@ -87,12 +100,9 @@ class EnvironmentPreviewPanel(
         ImGui.text("Radiance: ${availabilityLabel(availability.hasRadiance)}")
         ImGui.text("BRDF LUT: ${availabilityLabel(availability.hasBrdfLut)}")
         ImGui.separator()
-        ImGui.text("Background Mode: ${env.settings.backgroundMode.displayName}")
-        ImGui.textWrapped("Fallback: ${availability.fallbackMode}")
-        ImGui.textWrapped(controller.liveStatusMessage(env))
         availability.warnings.forEach(ImGui::textWrapped)
         if (availability.warnings.isEmpty()) {
-            ImGui.textWrapped("Preview uses the current environment manifest and its referenced IBL resources.")
+            ImGui.textWrapped("Preview uses the current Environment resources.")
         }
     }
 

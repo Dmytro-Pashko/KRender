@@ -80,6 +80,7 @@ class ModelViewerScene(
     }
 
     private fun showInternal() {
+        refreshAssetRegistry()
         engine.logger.debug(TAG) {
             "Loading ModelViewer UI layout path='${ModelViewerUiLayoutDefaults.assetPath}' fallbackPanels=${ModelViewerUiLayoutDefaults.config.panels.keys.joinToString()}"
         }
@@ -401,6 +402,21 @@ class ModelViewerScene(
             .filter { asset -> asset.category == AssetCategory.Environment && asset.type == AssetType.Environment }
             .sortedBy { asset -> asset.name.lowercase() }
             .toList()
+
+    private fun refreshAssetRegistry() {
+        if (engine.assetRegistry.assets.isNotEmpty()) return
+        runCatching {
+            val snapshot = engine.assetRegistry.scanSnapshot()
+            engine.assetRegistry.applySnapshot(snapshot)
+            engine.logger.info(TAG) {
+                "ModelViewer asset registry refreshed assets=${snapshot.assets.size} errors=${snapshot.errors.size}"
+            }
+        }.onFailure { error ->
+            engine.logger.warn(TAG, error) {
+                "ModelViewer failed to refresh asset registry: ${error.message}"
+            }
+        }
+    }
 
     companion object {
         private const val TAG = "ModelViewerScene"

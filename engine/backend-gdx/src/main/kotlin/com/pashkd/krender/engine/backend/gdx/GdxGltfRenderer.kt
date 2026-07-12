@@ -37,7 +37,6 @@ internal class GdxGltfRenderer(
     private val entries = mutableMapOf<ModelCacheKey, GltfSceneEntry>()
     private val warnedKeys = mutableSetOf<String>()
     private val gltfEnvironment = GdxGltfEnvironment(logger)
-    private var lastEnvironmentLogKey: String? = null
 
     fun render(
         command: DrawModel,
@@ -105,55 +104,22 @@ internal class GdxGltfRenderer(
         entry: GltfSceneEntry,
         settings: GltfRendererSettings,
     ) {
-        val preset = gltfEnvironment.preset(settings.environmentPreset, settings.environmentCacheKey ?: settings.environmentPreset)
+        val preset =
+            gltfEnvironment.preset(
+                settings.environmentPreset,
+                settings.environmentCacheKey ?: settings.environmentPreset,
+                settings.environmentManifestText,
+            )
         val direction = gltfLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
         val environmentState = resolveEnvironmentState(preset, settings)
+        val fallbackPlan = fallbackPlan(preset, settings)
         entry.manager.environment.clear()
         applyAmbientLight(entry, environmentState.intensity, settings.ambientIntensity.coerceAtLeast(0f))
         applyDirectionalLight(entry, settings, direction)
         applyEnvironmentRotation(entry, settings)
-        syncEnvironmentFallback(entry, settings, preset, direction, environmentState.intensity)
+        syncEnvironmentFallback(entry, direction, environmentState.intensity, fallbackPlan)
         applyEnvironmentMaps(entry, preset)
         applySkybox(entry, preset, settings)
-        logEnvironmentConfiguration(settings, preset, environmentState)
-    }
-
-    private fun logEnvironmentConfiguration(
-        settings: GltfRendererSettings,
-        preset: GdxGltfEnvironmentPreset?,
-        environmentState: ResolvedEnvironmentState,
-    ) {
-        val logKey =
-            listOf(
-                settings.environmentCacheKey ?: settings.environmentPreset,
-                settings.backgroundMode,
-                settings.backgroundColor.r,
-                settings.backgroundColor.g,
-                settings.backgroundColor.b,
-                settings.backgroundColor.a,
-                settings.showSkybox,
-                settings.skyboxIntensity,
-                settings.ambientIntensity,
-                settings.environmentIntensity,
-                settings.environmentRotationDegrees,
-                preset?.skybox != null,
-                preset?.irradiance != null,
-                preset?.radiance != null,
-                preset?.brdfLut != null,
-            ).joinToString("|")
-        if (lastEnvironmentLogKey == logKey) return
-        lastEnvironmentLogKey = logKey
-        logger.info(TAG) {
-            "Configured glTF environment preset='${settings.environmentPreset}' " +
-                "backgroundMode=${settings.backgroundMode} " +
-                "backgroundColor=(${settings.backgroundColor.r},${settings.backgroundColor.g},${settings.backgroundColor.b},${settings.backgroundColor.a}) " +
-                "showSkybox=${settings.showSkybox} exposure=${settings.exposure} " +
-                "ambientIntensity=${settings.ambientIntensity} environmentIntensity=${settings.environmentIntensity} " +
-                "rotation=${settings.environmentRotationDegrees} " +
-                "hasSkybox=${preset?.skybox != null} hasIrradiance=${preset?.irradiance != null} " +
-                "hasRadiance=${preset?.radiance != null} hasBrdfLut=${preset?.brdfLut != null} " +
-                "resolvedIntensity=${environmentState.intensity}"
-        }
     }
 
     private fun GltfSceneEntry.ensureShaderConfiguration(settings: GltfRendererSettings) {
@@ -193,19 +159,50 @@ internal class GdxGltfRenderer(
 
     private fun syncEnvironmentFallback(
         entry: GltfSceneEntry,
-        settings: GltfRendererSettings,
-        preset: GdxGltfEnvironmentPreset?,
         direction: Vector3,
         intensity: Float,
+        fallbackPlan: ResolvedEnvironmentFallbackPlan,
     ) {
-        val needsProceduralFallback =
-            preset?.irradiance == null ||
-                preset.radiance == null ||
-                (settings.showSkybox && preset.skybox == null)
-        if (needsProceduralFallback) {
+        if (fallbackPlan.requiresProceduralFallback) {
             entry.ensureIbl(direction, intensity.coerceAtLeast(0.01f))
         } else {
             entry.disposeProceduralEnvironment()
+        }
+    }
+
+    private fun fallbackPlan(
+        preset: GdxGltfEnvironmentPreset?,
+        settings: GltfRendererSettings,
+    ): ResolvedEnvironmentFallbackPlan {
+        val hasSkybox = preset?.skybox != null
+        val hasIrradiance = preset?.irradiance != null
+        val hasRadiance = preset?.radiance != null
+        return when {
+            preset == null ->
+                ResolvedEnvironmentFallbackPlan(
+                    requiresProceduralFallback = true,
+                    reason = "Preset unavailable; use procedural fallback if possible.",
+                )
+            hasSkybox && (!hasIrradiance || !hasRadiance) ->
+                ResolvedEnvironmentFallbackPlan(
+                    requiresProceduralFallback = false,
+                    reason = "Skybox is available; skip procedural fallback even though irradiance/radiance are missing.",
+                )
+            !hasIrradiance || !hasRadiance ->
+                ResolvedEnvironmentFallbackPlan(
+                    requiresProceduralFallback = true,
+                    reason = "IBL maps are incomplete and no runtime skybox is available.",
+                )
+            settings.showSkybox && !hasSkybox ->
+                ResolvedEnvironmentFallbackPlan(
+                    requiresProceduralFallback = true,
+                    reason = "Skybox background is requested but no runtime skybox is available.",
+                )
+            else ->
+                ResolvedEnvironmentFallbackPlan(
+                    requiresProceduralFallback = false,
+                    reason = "Runtime environment resources are sufficient; procedural fallback is not needed.",
+                )
         }
     }
 
@@ -307,6 +304,11 @@ private data class ResolvedEnvironmentState(
     val intensity: Float,
 )
 
+private data class ResolvedEnvironmentFallbackPlan(
+    val requiresProceduralFallback: Boolean,
+    val reason: String,
+)
+
 private fun GdxGltfRenderer.resolveEnvironmentState(
     preset: GdxGltfEnvironmentPreset?,
     settings: GltfRendererSettings,
@@ -384,7 +386,10 @@ private fun GdxGltfRenderer.applySkybox(
         entry.manager.skyBox = null
         return
     }
-    val skyboxKey = preset?.skybox?.let { "preset:${settings.environmentPreset}" } ?: "procedural"
+    val skyboxKey =
+        preset?.skybox?.let {
+            "preset:${settings.environmentCacheKey ?: settings.environmentPreset}"
+        } ?: "procedural"
     entry.ensureSceneSkybox(skyboxKey, skyboxMap)
     entry.skybox?.color?.set(
         settings.skyboxIntensity.coerceAtLeast(0f),

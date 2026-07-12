@@ -4,57 +4,64 @@
       "title": "Environment Editor Control Panel",
       "x": 2,
       "y": 5,
-      "width": 610,
-      "height": 156
+      "width": 609,
+      "height": 168
     },
     "environment_editor_preview": {
       "title": "Preview",
-      "x": 1738,
-      "y": 728,
-      "width": 404,
-      "height": 612
+      "x": 3,
+      "y": 495,
+      "width": 365,
+      "height": 617
+    },
+    "environment_editor_selected_resource_preview": {
+      "title": "Selected Resource Preview",
+      "x": 1225,
+      "y": 0,
+      "width": 510,
+      "height": 502
+    },
+    "environment_editor_cubemap_preview": {
+      "title": "Cubemap Preview",
+      "x": 1633,
+      "y": 686,
+      "width": 508,
+      "height": 653
     },
     "environment_editor_settings": {
       "title": "Settings",
       "x": 2,
-      "y": 164,
-      "width": 355,
-      "height": 334
+      "y": 176,
+      "width": 353,
+      "height": 315
     },
     "environment_editor_inspector": {
       "title": "Inspector",
-      "x": 2,
-      "y": 699,
-      "width": 354,
-      "height": 639
-    },
-    "environment_editor_sources": {
-      "title": "Source Variants",
-      "x": 2,
-      "y": 501,
-      "width": 354,
-      "height": 195
+      "x": 1738,
+      "y": 362,
+      "width": 406,
+      "height": 324
     },
     "environment_editor_generated_maps": {
       "title": "Tools",
       "x": 1737,
       "y": 3,
-      "width": 406,
-      "height": 722
+      "width": 405,
+      "height": 359
     },
     "environment_editor_diagnostics": {
       "title": "Diagnostics",
       "x": 614,
       "y": 5,
-      "width": 824,
-      "height": 156
+      "width": 551,
+      "height": 168
     },
     "environment_editor_logs": {
       "title": "Logs",
-      "x": 358,
-      "y": 1086,
-      "width": 1377,
-      "height": 253
+      "x": 1,
+      "y": 1116,
+      "width": 1631,
+      "height": 225
     }
   }
 }

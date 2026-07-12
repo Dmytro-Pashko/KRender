@@ -8,7 +8,6 @@ import com.pashkd.krender.engine.assets.environment.BackgroundMode
 import com.pashkd.krender.engine.assets.environment.ENVIRONMENT_SCHEMA
 import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentSerializer
-import com.pashkd.krender.engine.assets.environment.EnvironmentSourceVariant
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentAssets
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentDefaults
 import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifest
@@ -18,15 +17,18 @@ import com.pashkd.krender.engine.assets.hdr.HdrEnvironmentManifestLoader
 internal class GdxHdrEnvironmentResolver(
     private val logger: Logger,
 ) {
-    fun resolve(presetNameOrPath: String = DEFAULT_ENVIRONMENT_PRESET): GdxResolvedHdrEnvironment? {
+    fun resolve(
+        presetNameOrPath: String = DEFAULT_ENVIRONMENT_PRESET,
+        manifestTextOverride: String? = null,
+    ): GdxResolvedHdrEnvironment? {
         val manifestPath = manifestPathFor(presetNameOrPath)
         val manifestFile = Gdx.files.internal(manifestPath)
-        if (!manifestFile.exists()) {
+        if (manifestTextOverride.isNullOrBlank() && !manifestFile.exists()) {
             logger.warn(TAG) { "HDR environment manifest is missing: '$manifestPath'." }
             return null
         }
         return try {
-            val manifestText = manifestFile.readString("UTF-8")
+            val manifestText = manifestTextOverride ?: manifestFile.readString("UTF-8")
             val resolved =
                 when (detectSchema(manifestText)) {
                     ENVIRONMENT_SCHEMA -> resolveEnvironmentManifest(manifestPath, manifestText)
@@ -85,12 +87,11 @@ internal class GdxHdrEnvironmentResolver(
     ): GdxResolvedHdrEnvironment {
         val manifest = EnvironmentSerializer.decode(manifestText)
         validateEnvironment(manifest, manifestPath)
-        val activeSource = manifest.sources.firstOrNull(EnvironmentSourceVariant::isDefault) ?: manifest.sources.first()
         return GdxResolvedHdrEnvironment(
             preset = manifest.name,
             manifestPath = manifestPath,
             defaults = manifest.defaults(),
-            activeSource = resolvePath(manifestPath, activeSource.path),
+            activeSource = null,
             skyboxCross = null,
             skyboxFaces = resolveSkyboxFaces(manifestPath, manifest),
             irradianceFaces = resolveIrradianceFaces(manifestPath, manifest),
@@ -139,13 +140,6 @@ internal class GdxHdrEnvironmentResolver(
     ) {
         require(manifest.schema == ENVIRONMENT_SCHEMA) {
             "Unsupported environment schema '${manifest.schema}' in '$manifestPath'."
-        }
-        require(manifest.sources.isNotEmpty()) {
-            "Environment sources must not be empty."
-        }
-        val activeSource = manifest.sources.firstOrNull(EnvironmentSourceVariant::isDefault) ?: manifest.sources.first()
-        require(Gdx.files.internal(resolvePath(manifestPath, activeSource.path)).exists()) {
-            "Environment source is missing: '${activeSource.path}'."
         }
     }
 
@@ -310,7 +304,7 @@ internal data class GdxResolvedHdrEnvironment(
     val preset: String,
     val manifestPath: String,
     val defaults: HdrEnvironmentDefaults,
-    val activeSource: String,
+    val activeSource: String?,
     val skyboxCross: String?,
     val skyboxFaces: Map<String, String>,
     val irradianceFaces: Map<String, String>,

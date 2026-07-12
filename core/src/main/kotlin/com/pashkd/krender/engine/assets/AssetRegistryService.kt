@@ -125,7 +125,7 @@ class LocalAssetRegistryService(
     override fun findById(id: AssetId): AssetDescriptor? = descriptors.firstOrNull { it.id == id }
 
     override fun findByPath(path: String): AssetDescriptor? {
-        val normalized = normalizePath(path)
+        val normalized = normalizeAssetPath(path)
         return descriptors.firstOrNull { it.path == normalized }
     }
 
@@ -280,8 +280,6 @@ class LocalAssetRegistryService(
                         put("environmentId", manifest.id)
                         put("environmentName", manifest.name)
                         put("environmentSchemaVersion", manifest.schemaVersion.toString())
-                        put("environmentType", manifest.type.name)
-                        put("environmentSourceCount", manifest.sources.size.toString())
                         put("environmentBackgroundMode", manifest.settings.backgroundMode.name)
                         put(
                             "environmentSkyboxVisible",
@@ -380,8 +378,10 @@ class LocalAssetRegistryService(
     private fun relativeAssetPath(file: File): String {
         val basePath = baseDirectory.toPath().toAbsolutePath().normalize()
         val filePath = file.toPath().toAbsolutePath().normalize()
-        return normalizePath(basePath.relativize(filePath).toString())
+        return normalizeAssetPath(basePath.relativize(filePath).toString())
     }
+
+    private fun normalizeAssetPath(path: String): String = path.replace('\\', '/').trim().trimStart('/')
 
     private fun isIgnoredFile(file: File): Boolean =
         file.name.endsWith(".krmeta", ignoreCase = true) ||

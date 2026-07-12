@@ -25,8 +25,6 @@ class EnvironmentAssetDetailsRenderer : AssetDetailsRenderer {
         assetBrowserTextLine("Environment ID: ${asset.metadata["environmentId"] ?: asset.name}")
         assetBrowserTextLine("Display Name: ${asset.metadata["environmentName"] ?: asset.name}")
         assetBrowserTextLine("Schema Version: ${asset.metadata["environmentSchemaVersion"] ?: "unknown"}")
-        assetBrowserTextLine("Environment Type: ${asset.metadata["environmentType"] ?: "unknown"}")
-        assetBrowserTextLine("Source Variants: ${asset.metadata["environmentSourceCount"] ?: "0"}")
         assetBrowserTextLine("Background Mode: ${environmentModeLabel(asset.metadata["environmentBackgroundMode"])}")
         assetBrowserTextLine("Skybox Visible: ${asset.metadata["environmentSkyboxVisible"] ?: "unknown"}")
         assetBrowserTextLine("Exposure: ${asset.metadata["environmentExposure"] ?: "1.0"}")

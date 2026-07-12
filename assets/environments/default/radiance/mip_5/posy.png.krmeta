@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:9b186544-4c19-42d5-8813-35dbb55a8548",
+  "type": "EnvironmentGeneratedMap",
+  "category": "Environment",
+  "displayName": "posy",
+  "tags": [],
+  "importerId": "texture",
+  "importSettings": {}
+}

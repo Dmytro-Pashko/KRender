@@ -40,7 +40,7 @@ object ToolsModule {
             "texture-atlas-editor" -> TextureAtlasEditorScene(initialAtlasPath = atlasPath, fileDialogService = AwtFileDialogService())
             "ui-composer" -> UiComposerScene(uiScenePath ?: throw missingProperty("krender.ui.scene.path", sceneName))
             "bitmap-font-editor" -> BitmapFontEditorScene(initialFontPath = fontPath, fileDialogService = AwtFileDialogService())
-            "environment-editor" -> EnvironmentEditorScene(environmentPath ?: throw missingProperty("krender.environment.path", sceneName))
+            "environment-editor" -> EnvironmentEditorScene(environmentPath ?: throw missingProperty("krender.environment.path", sceneName), fileDialogService = AwtFileDialogService())
             else -> null
         }
 

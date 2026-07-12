@@ -3,7 +3,6 @@ package com.pashkd.krender.engine.tools.assetbrowser
 import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetType
-import java.io.File
 
 const val DefaultUiSceneSkinPath = "ui/skins/craftacular-ui.json"
 
@@ -28,7 +27,6 @@ data class CreateAssetDraft(
     val uiSceneSkinPath: String = DefaultUiSceneSkinPath,
     val atlasWidth: Int = 1024,
     val atlasHeight: Int = 1024,
-    val environmentSourcePath: String = "",
 )
 
 internal fun defaultCreateAssetDraft(assets: List<AssetDescriptor>): CreateAssetDraft = CreateAssetDraft(uiSceneSkinPath = defaultUiSceneSkinPath(assets))
@@ -130,27 +128,7 @@ internal fun createAssetDefaultParams(draft: CreateAssetDraft): List<String> =
 
         CreatableAssetKind.Environment ->
             listOf(
-                "Source: ${draft.environmentSourcePath.ifBlank { "<not selected>" }}",
                 "Manifest: ${createAssetRelativePath(draft)}",
-                "Generated maps: placeholder paths only",
+                "Resources: add skybox/irradiance/radiance/BRDF later",
             )
     }
-
-internal fun CreateAssetDraft.withEnvironmentSourcePath(sourcePath: String): CreateAssetDraft {
-    val normalized = sourcePath.trim()
-    val inferredName =
-        File(normalized)
-            .nameWithoutExtension
-            .takeIf { it.isNotBlank() }
-            ?.let(::assetBrowserNormalizePath)
-            ?.substringAfterLast('/')
-            ?.replace(Regex("[^A-Za-z0-9_\\-:.]"), "_")
-            .orEmpty()
-    val nextName =
-        when {
-            kind != CreatableAssetKind.Environment -> name
-            name.isBlank() -> inferredName
-            else -> name
-        }
-    return copy(environmentSourcePath = normalized, name = nextName)
-}

@@ -111,7 +111,7 @@ Example:
 ### Environment Editor
 
 The Environment Editor is the dedicated tool for one `.environment.json` manifest. It is focused on
-runtime/background tuning, resource inspection, diagnostics, and a live PBR preview on
+runtime/background tuning, resource inspection, diagnostics, skybox source import/splitting, and a live PBR preview on
 the bundled `MetalRoughSpheres.glb` test model.
 
 Features:
@@ -122,17 +122,23 @@ Features:
 - Edits background behavior through a single `Display Background` selector with `Skybox`, `Solid Color`, `Transparent`, and `None`.
 - Allows choosing a solid background color through the shared color selector workflow already used by other tools.
 - Shows read-only manifest metadata in a simplified flat Inspector list.
-- Lists source variants, including default source switching for the current Environment asset.
-- Shows a `Tools` panel with skybox, irradiance, radiance, and BRDF LUT references from the manifest.
-- Shows validation diagnostics for missing or inconsistent source/resource references.
-- Shows a Preview panel with the configured test model list, auto-rotate, camera reset, current environment identity, validation state, resource availability, and active fallback mode.
+- Shows a `Resource Inspector` panel with interactive 2D preview for skybox faces, irradiance faces, radiance mips, BRDF LUT, and imported skybox source regions.
+- Shows a separate `Selected Resource Preview` panel with its own viewport controls for the currently selected face/region.
+- Supports `Import Skybox Atlas` for atlas/cross/row textures using preset region layouts and numeric region editing.
+- Splits imported skybox source textures into separate runtime face PNG files and updates `environment.skybox.faces`.
+- Exposes one HDR/EXR-oriented `Generate IBL` dialog for skybox, irradiance, and radiance generation plus an `Import BRDF LUT` action.
+- Shows validation diagnostics for missing or inconsistent runtime resource references.
+- Shows a Preview panel with the configured test model list, auto-rotate, camera distance, yaw, pitch, camera reset, current environment identity, validation state, resource availability, and active fallback mode.
 - Uses Environment-owned PBR resources when available and reports clear warnings when skybox, irradiance, radiance, or BRDF LUT data is missing.
 - Includes a dedicated Logs panel for load, save, validation, and live-setting-change diagnostics.
 
 Current scope / limitations:
 
 - Environment Editor is currently an MVP editor for Environment manifest settings and preview control.
-- It does not generate skybox, irradiance, radiance, or BRDF LUT resources inside the tool.
+- The atlas import workflow is real and remains separate from HDR/EXR generation.
+- HDR/EXR generation currently targets skybox, irradiance, and radiance only; BRDF LUT generation is intentionally omitted in favor of importing an existing LUT texture.
+- Runtime Environment resources use separate face files instead of a shared runtime atlas.
+- Imported skybox source splitting currently targets previewable 2D texture sources and uses numeric region editing rather than drag handles.
 - It currently previews only the bundled `Metal Rough Spheres` test model configured in `EnvironmentEditorConfig`.
 - Screenshots for this tool will be added later.
 

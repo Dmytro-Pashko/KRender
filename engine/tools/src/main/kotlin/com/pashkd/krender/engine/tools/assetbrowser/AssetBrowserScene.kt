@@ -323,8 +323,7 @@ private class SceneOperationsHandler(
     private fun createEnvironmentAsset(draft: CreateAssetDraft) {
         try {
             val result =
-                EnvironmentAssetCreation.createFromExternalSourcePath(
-                    sourcePath = draft.environmentSourcePath,
+                EnvironmentAssetCreation.createEmptyEnvironment(
                     preferredEnvironmentId = draft.name.takeIf { it.isNotBlank() },
                     engine = engineProvider(),
                     logger = logger,
