@@ -31,6 +31,7 @@ import java.io.File
 import kotlin.math.abs
 import glm_.vec2.Vec2 as ImVec2
 
+@Suppress("LargeClass", "LongMethod", "CyclomaticComplexMethod", "ComplexCondition")
 class EnvironmentToolsPanel(
     private val state: EnvironmentEditorState,
     private val controller: EnvironmentResourcePreviewController,
@@ -113,9 +114,12 @@ class EnvironmentToolsPanel(
         }
         ImGui.text("Layout: ${skybox.layout}")
         ImGui.text("Resolution: ${skybox.resolution}px")
-        val faces = EnvironmentCubemapFace.ordered.mapNotNull { face ->
-            skybox.faces.entries.firstOrNull { (key, _) -> EnvironmentCubemapFace.fromIdOrAlias(key) == face }?.let { face to it.value }
-        }
+        val faces =
+            EnvironmentCubemapFace.ordered.mapNotNull { face ->
+                skybox.faces.entries
+                    .firstOrNull { (key, _) -> EnvironmentCubemapFace.fromIdOrAlias(key) == face }
+                    ?.let { face to it.value }
+            }
         if (ImGui.treeNode("Faces(${faces.size})##env_tools_skybox_faces")) {
             faces.forEach { (face, path) ->
                 val selected = isSelected(EnvironmentResourceMode.Skybox, face.id)

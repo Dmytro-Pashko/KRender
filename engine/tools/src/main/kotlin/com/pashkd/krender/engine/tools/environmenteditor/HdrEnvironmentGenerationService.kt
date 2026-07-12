@@ -2,7 +2,6 @@ package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblGenerationConfig
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblGenerationResult
-import com.pashkd.krender.engine.assets.environment.EnvironmentIblOverwritePolicy
 import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
 import java.io.File
 
@@ -38,41 +37,44 @@ class HdrEnvironmentGenerationService(
 
         val skyboxFaces =
             if (config.skybox.enabled) {
-                cubemapGenerator.generate(
-                    source = image,
-                    outputDirectory = File(outputRoot, "skybox"),
-                    outputFormat = config.format.name,
-                    overwritePolicy = config.overwritePolicy,
-                    config = config.skybox,
-                ).mapValues { (_, file) -> relativeToManifestDirectory(manifestDirectory, file) }
+                cubemapGenerator
+                    .generate(
+                        source = image,
+                        outputDirectory = File(outputRoot, "skybox"),
+                        outputFormat = config.format.name,
+                        overwritePolicy = config.overwritePolicy,
+                        config = config.skybox,
+                    ).mapValues { (_, file) -> relativeToManifestDirectory(manifestDirectory, file) }
             } else {
                 emptyMap()
             }
 
         val irradianceFaces =
             if (config.irradiance.enabled) {
-                irradianceGenerator.generate(
-                    source = image,
-                    outputDirectory = File(outputRoot, "irradiance"),
-                    outputFormat = config.format.name,
-                    overwritePolicy = config.overwritePolicy,
-                    config = config.irradiance,
-                ).mapValues { (_, file) -> relativeToManifestDirectory(manifestDirectory, file) }
+                irradianceGenerator
+                    .generate(
+                        source = image,
+                        outputDirectory = File(outputRoot, "irradiance"),
+                        outputFormat = config.format.name,
+                        overwritePolicy = config.overwritePolicy,
+                        config = config.irradiance,
+                    ).mapValues { (_, file) -> relativeToManifestDirectory(manifestDirectory, file) }
             } else {
                 emptyMap()
             }
 
         val radianceMipFaces =
             if (config.radiance.enabled) {
-                radianceGenerator.generate(
-                    source = image,
-                    outputDirectory = File(outputRoot, "radiance"),
-                    outputFormat = config.format.name,
-                    overwritePolicy = config.overwritePolicy,
-                    config = config.radiance,
-                ).mapValues { (_, faces) ->
-                    faces.mapValues { (_, file) -> relativeToManifestDirectory(manifestDirectory, file) }
-                }
+                radianceGenerator
+                    .generate(
+                        source = image,
+                        outputDirectory = File(outputRoot, "radiance"),
+                        outputFormat = config.format.name,
+                        overwritePolicy = config.overwritePolicy,
+                        config = config.radiance,
+                    ).mapValues { (_, faces) ->
+                        faces.mapValues { (_, file) -> relativeToManifestDirectory(manifestDirectory, file) }
+                    }
             } else {
                 emptyMap()
             }
@@ -116,8 +118,7 @@ class HdrEnvironmentGenerationService(
         return File(manifestDirectory, inputPath).takeIf(File::exists) ?: File(assetRoot, inputPath)
     }
 
-    private fun manifestDirectoryFile(manifestPath: String): File =
-        File(assetRoot, EnvironmentPathResolver.manifestDirectory(manifestPath))
+    private fun manifestDirectoryFile(manifestPath: String): File = File(assetRoot, EnvironmentPathResolver.manifestDirectory(manifestPath))
 
     private fun resolveOutputDirectory(
         manifestDirectory: File,
@@ -125,17 +126,16 @@ class HdrEnvironmentGenerationService(
         outputDirectory: String,
     ): File {
         val direct = File(outputDirectory)
-        if (direct.isAbsolute) return direct
+        if (direct.isAbsolute) {
+            return direct
+        }
 
         val normalized = outputDirectory.replace('\\', '/').trim()
         val manifestDirectoryPath = EnvironmentPathResolver.manifestDirectory(manifestPath).trim('/').trim()
-        if (
+        val pointsToAssetRootLocation =
             manifestDirectoryPath.isNotBlank() &&
-            (normalized == manifestDirectoryPath || normalized.startsWith("$manifestDirectoryPath/"))
-        ) {
-            return File(assetRoot, normalized)
-        }
-        return File(manifestDirectory, normalized)
+                (normalized == manifestDirectoryPath || normalized.startsWith("$manifestDirectoryPath/"))
+        return if (pointsToAssetRootLocation) File(assetRoot, normalized) else File(manifestDirectory, normalized)
     }
 
     private fun relativeToManifestDirectory(

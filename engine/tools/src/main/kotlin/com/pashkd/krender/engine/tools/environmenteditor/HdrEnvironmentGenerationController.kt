@@ -5,9 +5,9 @@ import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
 import com.pashkd.krender.engine.assets.environment.EnvironmentService
 import com.pashkd.krender.engine.assets.environment.TextureResourceRef
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import java.io.File
 
 class HdrEnvironmentGenerationController(
     private val state: EnvironmentEditorState,
@@ -30,8 +30,7 @@ class HdrEnvironmentGenerationController(
         generatorState.openDialog = null
     }
 
-    fun availability(dialog: HdrEnvironmentGenerationDialog): HdrEnvironmentGenerationAvailability =
-        generationService.availability(dialog)
+    fun availability(dialog: HdrEnvironmentGenerationDialog): HdrEnvironmentGenerationAvailability = generationService.availability(dialog)
 
     fun setAllSourcePath(path: String) {
         generatorState.allIblRequest.sourceHdrPath = path

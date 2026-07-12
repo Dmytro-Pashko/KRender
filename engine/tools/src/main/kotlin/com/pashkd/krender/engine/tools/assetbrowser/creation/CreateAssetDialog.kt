@@ -1,6 +1,5 @@
 package com.pashkd.krender.engine.tools.assetbrowser.creation
 
-import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserOperationsHandler
 import com.pashkd.krender.engine.tools.assetbrowser.AssetBrowserState
 import com.pashkd.krender.engine.tools.assetbrowser.CreatableAssetKind
@@ -22,7 +21,6 @@ import imgui.dsl
 class CreateAssetDialog(
     private val state: AssetBrowserState,
     private val operations: AssetBrowserOperationsHandler,
-    private val fileDialogService: FileDialogService,
     private val panelId: String,
 ) {
     private val createNameByteBuffer = ByteArray(TextInputBufferSize)
@@ -56,7 +54,7 @@ class CreateAssetDialog(
         drawCreateUiSceneSkinSelector()
 
         ImGui.separator()
-        val canCreate = canCreate()
+        val canCreate = true
         if (!canCreate) ImGui.beginDisabled(true)
         with(dsl) {
             button("Create##${panelId}_create_ok") {
@@ -160,8 +158,6 @@ class CreateAssetDialog(
             assetBrowserTextLine("  $param")
         }
     }
-
-    private fun canCreate(): Boolean = true
 
     companion object {
         private const val TextInputBufferSize = 256

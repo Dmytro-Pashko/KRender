@@ -3,9 +3,9 @@ package com.pashkd.krender.engine.tools.environmenteditor
 import com.pashkd.krender.engine.api.AssetPack
 import com.pashkd.krender.engine.api.AssetRef
 import com.pashkd.krender.engine.api.Scene
+import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
 import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.assets.importing.NoOpFileDialogService
-import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController

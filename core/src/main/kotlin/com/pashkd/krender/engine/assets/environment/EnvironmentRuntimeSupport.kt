@@ -15,15 +15,16 @@ object EnvironmentPathResolver {
     fun resolvePath(
         manifestPath: String,
         relativePath: String,
-    ): String {
-        val normalizedRelative = relativePath.replace('\\', '/')
-        val manifestDir = manifestDirectory(manifestPath)
-        if (manifestDir.isEmpty()) return normalizedRelative
-        if (normalizedRelative == manifestDir || normalizedRelative.startsWith("$manifestDir/")) {
-            return normalizedRelative
+    ): String =
+        run {
+            val normalizedRelative = relativePath.replace('\\', '/')
+            val manifestDir = manifestDirectory(manifestPath)
+            when {
+                manifestDir.isEmpty() -> normalizedRelative
+                normalizedRelative == manifestDir || normalizedRelative.startsWith("$manifestDir/") -> normalizedRelative
+                else -> "$manifestDir/$normalizedRelative".replace('\\', '/')
+            }
         }
-        return "$manifestDir/$normalizedRelative".replace('\\', '/')
-    }
 
     fun resolveCubemapFacePaths(
         manifestPath: String,
@@ -31,8 +32,8 @@ object EnvironmentPathResolver {
     ): List<String> {
         val normalized = resourcePath?.replace('\\', '/')?.trim().orEmpty()
         if (normalized.isBlank()) return emptyList()
-        return if (normalized.contains(EnvironmentCubemapFaceToken)) {
-            orderedFaceNames.map { face -> resolvePath(manifestPath, normalized.replace(EnvironmentCubemapFaceToken, face)) }
+        return if (normalized.contains(ENVIRONMENT_CUBEMAP_FACE_TOKEN)) {
+            orderedFaceNames.map { face -> resolvePath(manifestPath, normalized.replace(ENVIRONMENT_CUBEMAP_FACE_TOKEN, face)) }
         } else {
             listOf(resolvePath(manifestPath, normalized))
         }
@@ -74,4 +75,4 @@ object EnvironmentRuntimeCacheKeyFactory {
         }.joinToString("|")
 }
 
-private const val EnvironmentCubemapFaceToken = "{face}"
+private const val ENVIRONMENT_CUBEMAP_FACE_TOKEN = "{face}"

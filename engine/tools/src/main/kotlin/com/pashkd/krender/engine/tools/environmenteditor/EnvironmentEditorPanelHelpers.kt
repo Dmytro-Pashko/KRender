@@ -18,6 +18,7 @@ internal fun writeBuffer(
     value: String,
 ) {
     buffer.fill(0)
-    value.encodeToByteArray()
+    value
+        .encodeToByteArray()
         .copyInto(buffer, endIndex = minOf(buffer.size - 1, value.encodeToByteArray().size))
 }

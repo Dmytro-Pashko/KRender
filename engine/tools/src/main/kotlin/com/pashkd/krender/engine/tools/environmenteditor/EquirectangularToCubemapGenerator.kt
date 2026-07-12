@@ -39,8 +39,8 @@ class EquirectangularToCubemapGenerator {
         outputFormat: String,
         overwritePolicy: EnvironmentIblOverwritePolicy,
         config: SkyboxGenerationConfig,
-    ): Map<String, File> {
-        return exportSupport.exportFaces(
+    ): Map<String, File> =
+        exportSupport.exportFaces(
             outputDirectory = outputDirectory,
             resolution = config.resolution,
             outputFormat = outputFormat,
@@ -63,5 +63,4 @@ class EquirectangularToCubemapGenerator {
                 toneMapping = config.toneMapping,
             )
         }
-    }
 }

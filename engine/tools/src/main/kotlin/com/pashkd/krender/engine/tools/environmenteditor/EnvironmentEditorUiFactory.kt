@@ -1,8 +1,8 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.api.EngineContext
-import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.assets.environment.EnvironmentService
+import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.tools.environmenteditor.preview.EnvironmentPreviewController
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
@@ -16,6 +16,7 @@ import com.pashkd.krender.engine.ui.editor.UiSystem
  * Panel construction lives outside the Scene so lifecycle setup remains readable
  * and every panel receives the same layout snapshot, tracker, and event logger.
  */
+@Suppress("LongParameterList")
 class EnvironmentEditorUiFactory(
     private val state: EnvironmentEditorState,
     private val controller: EnvironmentEditorController,
@@ -29,6 +30,7 @@ class EnvironmentEditorUiFactory(
     private val engine: EngineContext,
     private val fileDialogService: FileDialogService,
 ) {
+    @Suppress("LongMethod")
     fun create(): UiSystem {
         val layout = layoutTracker.currentConfig()
         val eventLogger = ImGuiWindowEventLogger(engine.logger, "EnvironmentEditorUi")

@@ -22,21 +22,19 @@ class EnvironmentResourceFaceResolver(
         selectedItemId: String?,
         hoveredItemId: String?,
         skyboxImportState: SkyboxImportState? = null,
-    ): EnvironmentResourcePreviewModel {
-        return when (mode) {
+    ): EnvironmentResourcePreviewModel =
+        when (mode) {
             EnvironmentResourceMode.Skybox -> buildSkyboxModel(environment, selectedItemId, hoveredItemId)
             EnvironmentResourceMode.Irradiance -> buildIrradianceModel(environment, selectedItemId, hoveredItemId)
             EnvironmentResourceMode.Radiance -> buildRadianceModel(environment, selectedMipLevel, selectedItemId, hoveredItemId)
             EnvironmentResourceMode.BrdfLut -> buildBrdfLutModel(environment, selectedItemId, hoveredItemId)
             EnvironmentResourceMode.ImportedSkyboxSource ->
                 buildImportedSourceModel(
-                    environment = environment,
                     importState = skyboxImportState,
                     selectedItemId = selectedItemId,
                     hoveredItemId = hoveredItemId,
                 )
         }
-    }
 
     private fun buildSkyboxModel(
         environment: Environment,
@@ -81,7 +79,7 @@ class EnvironmentResourceFaceResolver(
         hoveredItemId: String?,
     ): EnvironmentResourcePreviewModel {
         val items =
-            resolveCubemapFaces(environment, environment.irradiance)
+            resolveCubemapFaces(environment.irradiance)
                 .mapIndexed { index, resolved ->
                     buildCanvasItem(
                         environmentManifestPath = environment.manifestPath,
@@ -110,22 +108,23 @@ class EnvironmentResourceFaceResolver(
         val radiance = environment.radiance
         val mip = radiance?.mips?.firstOrNull { it.level == selectedMipLevel } ?: radiance?.mips?.firstOrNull()
         val items =
-            mip?.let { selectedMip ->
-                resolveRadianceFaces(environment, selectedMip)
-                    .mapIndexed { index, resolved ->
-                        buildCanvasItem(
-                            environmentManifestPath = environment.manifestPath,
-                            label = resolved.face.id,
-                            id = resolved.face.id,
-                            resourceMode = EnvironmentResourceMode.Radiance,
-                            manifestPath = resolved.path,
-                            formatHint = "PNG",
-                            regionIndex = index,
-                            mipLevel = selectedMip.level,
-                            roughness = selectedMip.roughness,
-                        )
-                    }
-            }.orEmpty()
+            mip
+                ?.let { selectedMip ->
+                    resolveRadianceFaces(selectedMip)
+                        .mapIndexed { index, resolved ->
+                            buildCanvasItem(
+                                environmentManifestPath = environment.manifestPath,
+                                label = resolved.face.id,
+                                id = resolved.face.id,
+                                resourceMode = EnvironmentResourceMode.Radiance,
+                                manifestPath = resolved.path,
+                                formatHint = "PNG",
+                                regionIndex = index,
+                                mipLevel = selectedMip.level,
+                                roughness = selectedMip.roughness,
+                            )
+                        }
+                }.orEmpty()
         val diagnostics =
             buildList {
                 if (radiance == null) add("Radiance mip chain is not defined.")
@@ -164,8 +163,8 @@ class EnvironmentResourceFaceResolver(
         return buildModel(EnvironmentResourceMode.BrdfLut, items, selectedItemId, hoveredItemId, diagnostics, singleTextureCanvas = true)
     }
 
+    @Suppress("LongMethod")
     private fun buildImportedSourceModel(
-        environment: Environment,
         importState: SkyboxImportState?,
         selectedItemId: String? = null,
         hoveredItemId: String? = null,
@@ -282,6 +281,7 @@ class EnvironmentResourceFaceResolver(
         )
     }
 
+    @Suppress("LongParameterList", "CyclomaticComplexMethod")
     private fun buildCanvasItem(
         environmentManifestPath: String,
         label: String,
@@ -294,9 +294,10 @@ class EnvironmentResourceFaceResolver(
         roughness: Float? = null,
         singleTextureCanvas: Boolean = false,
     ): EnvironmentResourceCanvasItem {
-        val resolvedPath = manifestPath?.let { relativePath ->
-            EnvironmentPathResolver.resolvePath(manifestPath = environmentManifestPath, relativePath = relativePath)
-        }
+        val resolvedPath =
+            manifestPath?.let { relativePath ->
+                EnvironmentPathResolver.resolvePath(manifestPath = environmentManifestPath, relativePath = relativePath)
+            }
         val file = resolvedPath?.let(::resolveAbsoluteFile)
         val metadata = file?.takeIf(File::isFile)?.let(TextureMetadataReader::read)
         val preview =
@@ -336,7 +337,12 @@ class EnvironmentResourceFaceResolver(
             previewHandle = previewHandle,
             width = previewHandle?.width ?: metadata?.width,
             height = previewHandle?.height ?: metadata?.height,
-            format = formatHint ?: manifestPath?.substringAfterLast('.', "").orEmpty().uppercase().ifBlank { null },
+            format =
+                formatHint ?: manifestPath
+                    ?.substringAfterLast('.', "")
+                    .orEmpty()
+                    .uppercase()
+                    .ifBlank { null },
             exists = file?.exists() == true,
             mipLevel = mipLevel,
             roughness = roughness,
@@ -350,8 +356,8 @@ class EnvironmentResourceFaceResolver(
         index: Int,
         width: Int,
         height: Int,
-    ): TexturePreviewRegion<String> {
-        return TexturePreviewRegion(
+    ): TexturePreviewRegion<String> =
+        TexturePreviewRegion(
             id = id,
             label = label,
             x = FaceGridPadding,
@@ -359,7 +365,6 @@ class EnvironmentResourceFaceResolver(
             width = width.coerceAtLeast(1),
             height = height.coerceAtLeast(1),
         )
-    }
 
     private fun layoutFaceGrid(items: List<EnvironmentResourceCanvasItem>): List<EnvironmentResourceCanvasItem> {
         if (items.isEmpty()) return items
@@ -378,16 +383,11 @@ class EnvironmentResourceFaceResolver(
         }
     }
 
-    private fun computeContentWidth(items: List<EnvironmentResourceCanvasItem>): Int =
-        items.maxOfOrNull { it.region.x + it.region.width + FaceGridPadding } ?: 1
+    private fun computeContentWidth(items: List<EnvironmentResourceCanvasItem>): Int = items.maxOfOrNull { it.region.x + it.region.width + FaceGridPadding } ?: 1
 
-    private fun computeContentHeight(items: List<EnvironmentResourceCanvasItem>): Int =
-        items.maxOfOrNull { it.region.y + it.region.height + FaceGridPadding } ?: 1
+    private fun computeContentHeight(items: List<EnvironmentResourceCanvasItem>): Int = items.maxOfOrNull { it.region.y + it.region.height + FaceGridPadding } ?: 1
 
-    private fun resolveCubemapFaces(
-        environment: Environment,
-        cubemap: CubemapResource?,
-    ): List<ResolvedEnvironmentFace> {
+    private fun resolveCubemapFaces(cubemap: CubemapResource?): List<ResolvedEnvironmentFace> {
         val resourcePath = cubemap?.path ?: return emptyList()
         return inferEnvironmentCubemapFacePaths(
             resourcePath = resourcePath,
@@ -397,17 +397,13 @@ class EnvironmentResourceFaceResolver(
         }
     }
 
-    private fun resolveRadianceFaces(
-        environment: Environment,
-        mip: RadianceMip,
-    ): List<ResolvedEnvironmentFace> {
-        return inferEnvironmentCubemapFacePaths(
+    private fun resolveRadianceFaces(mip: RadianceMip): List<ResolvedEnvironmentFace> =
+        inferEnvironmentCubemapFacePaths(
             resourcePath = mip.path,
             directoryStem = directoryStem(mip.path, "radiance_${mip.level}"),
         ).map { (face, path) ->
             ResolvedEnvironmentFace(face, path)
         }
-    }
 
     private fun resolveAbsoluteFile(relativePath: String): File = File(assetRoot, relativePath)
 
@@ -440,9 +436,9 @@ internal fun inferEnvironmentCubemapFacePaths(
     val fileName = normalized.substringAfterLast('/')
     val parent = normalized.substringBeforeLast('/', "")
     return when {
-        normalized.contains(EnvironmentCubemapFaceToken) ->
+        normalized.contains(ENVIRONMENT_CUBEMAP_FACE_TOKEN) ->
             EnvironmentCubemapFace.ordered.map { face ->
-                face to normalized.replace(EnvironmentCubemapFaceToken, face.id)
+                face to normalized.replace(ENVIRONMENT_CUBEMAP_FACE_TOKEN, face.id)
             }
         !fileName.contains('.') ->
             EnvironmentCubemapFace.ordered.map { face ->
@@ -477,4 +473,4 @@ private fun inferSiblingEnvironmentFaceFiles(resourcePath: String): List<Pair<En
     }
 }
 
-private const val EnvironmentCubemapFaceToken = "{face}"
+private const val ENVIRONMENT_CUBEMAP_FACE_TOKEN = "{face}"

@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package com.pashkd.krender.engine.tools.common.texturepreview
 
 import kotlin.math.roundToInt
@@ -18,7 +20,12 @@ fun computeTexturePreviewCursorInfo(
 ): TexturePreviewCursorInfo {
     val textureX = screenToTexturePixelX(screenX, layout).roundToInt()
     val textureY = screenToTexturePixelY(screenY, layout).roundToInt()
-    if (textureX < 0 || textureY < 0 || textureX >= textureWidth || textureY >= textureHeight) {
+    val outsideTextureBounds =
+        textureX < 0 ||
+            textureY < 0 ||
+            textureX >= textureWidth ||
+            textureY >= textureHeight
+    if (outsideTextureBounds) {
         return TexturePreviewCursorInfo()
     }
     return TexturePreviewCursorInfo(textureX = textureX, textureY = textureY)

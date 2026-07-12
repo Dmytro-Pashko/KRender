@@ -83,10 +83,12 @@ class OpenExrHdrReader : HdrImageReader {
     }
 
     private fun prepareRequestedPixelTypes(header: EXRHeader) {
-        val pixelTypes = header.pixel_types()
-            ?: throw HdrReaderException("EXR image does not expose pixel type information.")
-        val requestedPixelTypes = header.requested_pixel_types()
-            ?: throw HdrReaderException("EXR image does not expose requested pixel type information.")
+        val pixelTypes =
+            header.pixel_types()
+                ?: throw HdrReaderException("EXR image does not expose pixel type information.")
+        val requestedPixelTypes =
+            header.requested_pixel_types()
+                ?: throw HdrReaderException("EXR image does not expose requested pixel type information.")
 
         for (channelIndex in 0 until header.num_channels()) {
             // TinyEXR may decode HALF and UINT source channels, but the generator pipeline wants a
@@ -96,6 +98,7 @@ class OpenExrHdrReader : HdrImageReader {
         }
     }
 
+    @Suppress("ThrowsCount")
     private fun extractChannelPlanes(
         header: EXRHeader,
         image: EXRImage,
@@ -107,11 +110,13 @@ class OpenExrHdrReader : HdrImageReader {
             throw HdrReaderException("EXR image does not contain any channels.")
         }
 
-        val imagePointers = image.images()
-            ?: throw HdrReaderException("EXR image channel buffer is empty.")
+        val imagePointers =
+            image.images()
+                ?: throw HdrReaderException("EXR image channel buffer is empty.")
         val pixelCount = width * height
-        val channels = header.channels()
-            ?: throw HdrReaderException("EXR image channel metadata is missing.")
+        val channels =
+            header.channels()
+                ?: throw HdrReaderException("EXR image channel metadata is missing.")
 
         val channelPlanes = linkedMapOf<String, FloatArray>()
         for (channelIndex in 0 until numChannels) {

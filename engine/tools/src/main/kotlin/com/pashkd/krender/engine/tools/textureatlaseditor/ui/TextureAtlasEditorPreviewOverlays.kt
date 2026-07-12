@@ -17,7 +17,6 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingPag
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TexturePreviewViewportLayout
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureRegionScreenRect
 import imgui.ImGui
 import glm_.vec2.Vec2 as ImVec2
 
@@ -572,16 +571,20 @@ internal object TextureAtlasEditorPreviewOverlays {
 }
 
 private fun TextureAtlasRegion.toPreviewRegion(): TexturePreviewRegion<AtlasRegionId>? {
-    val xy = xy ?: return null
-    val size = size ?: return null
-    return TexturePreviewRegion(
-        id = id,
-        label = id.regionName,
-        x = xy.first,
-        y = xy.second,
-        width = size.first,
-        height = size.second,
-    )
+    val regionXy = xy
+    val regionSize = size
+    return if (regionXy != null && regionSize != null) {
+        TexturePreviewRegion(
+            id = id,
+            label = id.regionName,
+            x = regionXy.first,
+            y = regionXy.second,
+            width = regionSize.first,
+            height = regionSize.second,
+        )
+    } else {
+        null
+    }
 }
 
 private fun packedRegionScreenRect(
@@ -669,20 +672,4 @@ internal enum class NinePatchGuideHandleRole {
 internal enum class NinePatchGuideOrientation {
     Horizontal,
     Vertical,
-}
-
-private fun atlasRegionScreenRect(
-    region: TextureAtlasRegion,
-    layout: TexturePreviewViewportLayout,
-): TextureRegionScreenRect? {
-    val xy = region.xy ?: return null
-    val size = region.size ?: return null
-    val minX = layout.imageX + xy.first * layout.effectiveZoom
-    val minY = layout.imageY + xy.second * layout.effectiveZoom
-    return TextureRegionScreenRect(
-        minX = minX,
-        minY = minY,
-        maxX = minX + size.first * layout.effectiveZoom,
-        maxY = minY + size.second * layout.effectiveZoom,
-    )
 }

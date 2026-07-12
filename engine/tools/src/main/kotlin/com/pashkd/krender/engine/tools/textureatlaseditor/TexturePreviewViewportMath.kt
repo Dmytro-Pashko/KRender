@@ -4,12 +4,12 @@ import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewFocus
 import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewRegion
 import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewScreenRect
 import com.pashkd.krender.engine.tools.common.texturepreview.computeTexturePreviewFocus
+import com.pashkd.krender.engine.tools.common.texturepreview.hitTestTexturePreviewRegion
+import com.pashkd.krender.engine.tools.common.texturepreview.textureRegionScreenRect
 import com.pashkd.krender.engine.tools.common.texturepreview.computeTexturePreviewViewportLayout as computeSharedTexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.common.texturepreview.formatZoomMode as formatSharedZoomMode
-import com.pashkd.krender.engine.tools.common.texturepreview.hitTestTexturePreviewRegion
 import com.pashkd.krender.engine.tools.common.texturepreview.screenToTexturePixelX as screenToTexturePreviewPixelX
 import com.pashkd.krender.engine.tools.common.texturepreview.screenToTexturePixelY as screenToTexturePreviewPixelY
-import com.pashkd.krender.engine.tools.common.texturepreview.textureRegionScreenRect
 
 internal typealias TexturePreviewViewportLayout = com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewViewportLayout
 internal typealias TextureRegionScreenRect = TexturePreviewScreenRect
@@ -29,8 +29,8 @@ internal fun computeTexturePreviewViewportLayout(
     textureHeight: Int,
     previewState: TextureAtlasEditorPreviewState,
     contentPaddingPixels: Int = 0,
-): TexturePreviewViewportLayout {
-    return computeSharedTexturePreviewViewportLayout(
+): TexturePreviewViewportLayout =
+    computeSharedTexturePreviewViewportLayout(
         rect = rect,
         textureWidth = textureWidth,
         textureHeight = textureHeight,
@@ -50,7 +50,6 @@ internal fun computeTexturePreviewViewportLayout(
             ),
         contentPaddingPixels = contentPaddingPixels,
     )
-}
 
 internal fun atlasRegionScreenRect(
     region: TextureAtlasRegion,
@@ -134,14 +133,18 @@ internal fun computeRegionFocus(
 }
 
 private fun TextureAtlasRegion.asTexturePreviewRegion(): TexturePreviewRegion<AtlasRegionId>? {
-    val xy = xy ?: return null
-    val size = size ?: return null
-    return TexturePreviewRegion(
-        id = id,
-        label = id.regionName,
-        x = xy.first,
-        y = xy.second,
-        width = size.first,
-        height = size.second,
-    )
+    val regionXy = xy
+    val regionSize = size
+    return if (regionXy != null && regionSize != null) {
+        TexturePreviewRegion(
+            id = id,
+            label = id.regionName,
+            x = regionXy.first,
+            y = regionXy.second,
+            width = regionSize.first,
+            height = regionSize.second,
+        )
+    } else {
+        null
+    }
 }

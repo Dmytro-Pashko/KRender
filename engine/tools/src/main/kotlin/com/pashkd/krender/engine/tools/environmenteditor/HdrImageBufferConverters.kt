@@ -2,7 +2,6 @@ package com.pashkd.krender.engine.tools.environmenteditor
 
 import java.awt.image.BufferedImage
 import java.awt.image.Raster
-import kotlin.math.max
 
 /**
  * Converts decoded image buffers into the shared [HdrImage] contract.

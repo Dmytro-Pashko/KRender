@@ -109,7 +109,9 @@ class SkyboxAtlasImportController(
                 environment = environment,
                 sourceFile = sourceFile,
                 outputDirectory = state.skyboxImportState.outputDirectory,
-                regions = state.skyboxImportState.regions.values.sortedBy { it.face.ordinal },
+                regions =
+                    state.skyboxImportState.regions.values
+                        .sortedBy { it.face.ordinal },
             )
         state.updateEnvironment { updated }
         state.invalidateEnvironmentCache()
@@ -117,7 +119,7 @@ class SkyboxAtlasImportController(
         state.statusMessage = "Imported skybox source and updated manifest faces."
         logger?.info(TAG) {
             "Skybox import completed manifest='${updated.manifestPath}' " +
-                "skyboxFaces=${updated.skybox?.faces?.size ?: 0} cacheRevision ${previousRevision} -> ${state.environmentCacheRevision} " +
+                "skyboxFaces=${updated.skybox?.faces?.size ?: 0} cacheRevision $previousRevision -> ${state.environmentCacheRevision} " +
                 "facePaths=${updated.skybox?.faces.orEmpty().entries.joinToString { (face, path) -> "$face=$path" }}"
         }
     }

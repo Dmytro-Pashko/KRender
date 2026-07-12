@@ -2,9 +2,7 @@ package com.pashkd.krender.engine.tools.environmenteditor
 
 import com.pashkd.krender.engine.assets.environment.BrdfLutGenerationConfig
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblGenerationConfig
-import com.pashkd.krender.engine.assets.environment.EnvironmentIblOutputFormat
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblOverwritePolicy
-import com.pashkd.krender.engine.assets.environment.EnvironmentRoughnessDistribution
 import com.pashkd.krender.engine.assets.environment.EnvironmentToneMapping
 import com.pashkd.krender.engine.assets.environment.IrradianceGenerationConfig
 import com.pashkd.krender.engine.assets.environment.RadianceGenerationConfig

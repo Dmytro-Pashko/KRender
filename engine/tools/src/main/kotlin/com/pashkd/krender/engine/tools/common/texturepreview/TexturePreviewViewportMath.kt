@@ -1,8 +1,8 @@
 package com.pashkd.krender.engine.tools.common.texturepreview
 
-private const val MinPreviewScale = 0.05f
-private const val MaxPreviewScale = 25f
-private const val DefaultSurfacePaddingPixels = 100
+private const val MIN_PREVIEW_SCALE = 0.05f
+private const val MAX_PREVIEW_SCALE = 25f
+private const val DEFAULT_SURFACE_PADDING_PIXELS = 100
 
 fun computeTexturePreviewViewportLayout(
     rect: TexturePreviewCanvasRect,
@@ -25,14 +25,14 @@ fun computeTexturePreviewViewportLayout(
         minOf(
             rect.width / viewportWidth.coerceAtLeast(1).toFloat(),
             rect.height / viewportHeight.coerceAtLeast(1).toFloat(),
-        ).coerceAtLeast(MinPreviewScale)
+        ).coerceAtLeast(MIN_PREVIEW_SCALE)
     val effectiveZoom =
         when (previewState.zoomMode) {
             TexturePreviewZoomMode.Fit -> fitZoom
             TexturePreviewZoomMode.Percent50 -> 0.5f
             TexturePreviewZoomMode.Percent100 -> 1f
             TexturePreviewZoomMode.Percent200 -> 2f
-            TexturePreviewZoomMode.Custom -> previewState.customZoom.coerceIn(MinPreviewScale, MaxPreviewScale)
+            TexturePreviewZoomMode.Custom -> previewState.customZoom.coerceIn(MIN_PREVIEW_SCALE, MAX_PREVIEW_SCALE)
         }
     val imageWidth = textureWidth * effectiveZoom
     val imageHeight = textureHeight * effectiveZoom
@@ -59,6 +59,7 @@ fun computeTexturePreviewViewportLayout(
     )
 }
 
+@Suppress("LongParameterList")
 fun computeTexturePreviewFocus(
     rect: TexturePreviewCanvasRect,
     textureWidth: Int,
@@ -85,7 +86,7 @@ fun computeTexturePreviewFocus(
             rect.width / region.width.coerceAtLeast(1).toFloat(),
             rect.height / region.height.coerceAtLeast(1).toFloat(),
         ).times(focusPaddingFactor)
-            .coerceIn(MinPreviewScale, MaxPreviewScale)
+            .coerceIn(MIN_PREVIEW_SCALE, MAX_PREVIEW_SCALE)
     val imagePaddingX = ((viewportWidth - textureWidth) * 0.5f) * zoom
     val imagePaddingY = ((viewportHeight - textureHeight) * 0.5f) * zoom
     val baseSurfaceX = rect.x + (rect.width - viewportWidth * zoom) * 0.5f
@@ -128,15 +129,14 @@ fun <T> hitTestTexturePreviewRegion(
     layout: TexturePreviewViewportLayout,
     mouseX: Float,
     mouseY: Float,
-): TexturePreviewRegion<T>? {
-    return regions
+): TexturePreviewRegion<T>? =
+    regions
         .filter { region ->
             val rect = textureRegionScreenRect(region, layout)
             mouseX >= rect.minX && mouseX <= rect.maxX && mouseY >= rect.minY && mouseY <= rect.maxY
         }.minByOrNull { region ->
             region.width * region.height
         }
-}
 
 private data class TexturePreviewSurfaceDimensions(
     val width: Int,
@@ -149,19 +149,18 @@ private fun computeTexturePreviewSurfaceDimensions(
     surfaceMode: TexturePreviewSurfaceMode,
     customSurfaceWidth: Int,
     customSurfaceHeight: Int,
-): TexturePreviewSurfaceDimensions {
-    return TexturePreviewSurfaceDimensions(
+): TexturePreviewSurfaceDimensions =
+    TexturePreviewSurfaceDimensions(
         width =
             when (surfaceMode) {
                 TexturePreviewSurfaceMode.Actual -> textureWidth
-                TexturePreviewSurfaceMode.Padding -> textureWidth + DefaultSurfacePaddingPixels * 2
+                TexturePreviewSurfaceMode.Padding -> textureWidth + DEFAULT_SURFACE_PADDING_PIXELS * 2
                 TexturePreviewSurfaceMode.Custom -> customSurfaceWidth.coerceAtLeast(1)
             },
         height =
             when (surfaceMode) {
                 TexturePreviewSurfaceMode.Actual -> textureHeight
-                TexturePreviewSurfaceMode.Padding -> textureHeight + DefaultSurfacePaddingPixels * 2
+                TexturePreviewSurfaceMode.Padding -> textureHeight + DEFAULT_SURFACE_PADDING_PIXELS * 2
                 TexturePreviewSurfaceMode.Custom -> customSurfaceHeight.coerceAtLeast(1)
             },
     )
-}

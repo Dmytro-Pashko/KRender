@@ -22,6 +22,7 @@ import imgui.or
 import kotlin.math.abs
 import glm_.vec2.Vec2 as ImVec2
 
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 class EnvironmentResourceInspectorPanel(
     private val state: EnvironmentEditorState,
     private val controller: EnvironmentResourcePreviewController,
@@ -32,6 +33,7 @@ class EnvironmentResourceInspectorPanel(
     private var clickDragDistance = 0f
     private var cursorText: String = "Cursor: <outside>"
 
+    @Suppress("ReturnCount")
     override fun draw() {
         val layout = layoutConfig.panels.getValue(EnvironmentEditorPanelIds.CubemapPreview)
         val expanded = beginImGuiPanel(EnvironmentEditorPanelIds.CubemapPreview, layout, layoutTracker)
@@ -187,7 +189,9 @@ class EnvironmentResourceInspectorPanel(
         }
         if (!model.drawItemsAsOverlayRegions) {
             model.items.forEach { item ->
-                val rect = com.pashkd.krender.engine.tools.common.texturepreview.textureRegionScreenRect(item.region, layout)
+                val rect =
+                    com.pashkd.krender.engine.tools.common.texturepreview
+                        .textureRegionScreenRect(item.region, layout)
                 val handle = item.previewHandle
                 if (handle != null) {
                     ImGui.windowDrawList.addImage(
@@ -310,5 +314,4 @@ class EnvironmentResourceInspectorPanel(
             (color.blue * 255f).toInt().coerceIn(0, 255),
             (color.alpha * 255f).toInt().coerceIn(0, 255),
         )
-
 }

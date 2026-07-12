@@ -4,16 +4,11 @@ import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetType
-import com.pashkd.krender.engine.assets.environment.CubemapResource
 import com.pashkd.krender.engine.assets.environment.DefaultEnvironmentService
 import com.pashkd.krender.engine.assets.environment.ENVIRONMENT_SCHEMA_VERSION
 import com.pashkd.krender.engine.assets.environment.Environment
 import com.pashkd.krender.engine.assets.environment.EnvironmentSettings
 import com.pashkd.krender.engine.assets.environment.EnvironmentSourceFormat
-import com.pashkd.krender.engine.assets.environment.RadianceMip
-import com.pashkd.krender.engine.assets.environment.RadianceMipChain
-import com.pashkd.krender.engine.assets.environment.SkyboxResourceSet
-import com.pashkd.krender.engine.assets.environment.TextureResourceRef
 import java.nio.file.Files
 import java.nio.file.Path
 

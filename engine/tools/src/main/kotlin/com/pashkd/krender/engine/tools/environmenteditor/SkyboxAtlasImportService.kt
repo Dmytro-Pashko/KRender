@@ -18,7 +18,12 @@ class SkyboxAtlasImportService(
         regions: Collection<SkyboxImportRegion>,
     ): Environment {
         val sourceImage = ImageIO.read(sourceFile) ?: error("Failed to read source image '${sourceFile.path}'.")
-        val normalizedOutputDirectory = outputDirectory.trim().replace('\\', '/').trim('/').ifBlank { "skybox" }
+        val normalizedOutputDirectory =
+            outputDirectory
+                .trim()
+                .replace('\\', '/')
+                .trim('/')
+                .ifBlank { "skybox" }
         val manifestDirectory = environment.manifestPath.replace('\\', '/').substringBeforeLast('/', "")
         val targetRoot = if (manifestDirectory.isBlank()) assetRoot else File(assetRoot, manifestDirectory)
         val facePaths = linkedMapOf<String, String>()

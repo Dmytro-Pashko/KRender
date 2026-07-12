@@ -1,15 +1,15 @@
 package com.pashkd.krender.engine.tools.environmenteditor
 
 object EnvironmentResourceDiagnostics {
-    fun buildSummary(model: EnvironmentResourcePreviewModel): List<String> {
-        return buildList {
+    fun buildSummary(model: EnvironmentResourcePreviewModel): List<String> =
+        buildList {
             addAll(model.diagnostics)
             model.selectedItem?.warnings?.forEach { warning ->
                 if (warning !in this) add(warning)
             }
         }
-    }
 
+    @Suppress("CyclomaticComplexMethod")
     fun buildSelectedPreviewWarnings(model: EnvironmentResourcePreviewModel): List<String> {
         val selected = model.selectedItem ?: return model.diagnostics
         return buildSet {
@@ -18,7 +18,11 @@ object EnvironmentResourceDiagnostics {
             if (!selected.exists) {
                 add("Missing file.")
             }
-            if (selected.resourceMode in setOf(EnvironmentResourceMode.Skybox, EnvironmentResourceMode.Irradiance, EnvironmentResourceMode.Radiance)) {
+            val isCubemapResource =
+                selected.resourceMode == EnvironmentResourceMode.Skybox ||
+                    selected.resourceMode == EnvironmentResourceMode.Irradiance ||
+                    selected.resourceMode == EnvironmentResourceMode.Radiance
+            if (isCubemapResource) {
                 val width = selected.width
                 val height = selected.height
                 if (width != null && height != null && width != height) {
@@ -28,7 +32,11 @@ object EnvironmentResourceDiagnostics {
                     model.items
                         .mapNotNull { item -> item.width?.let { w -> item.height?.let { h -> w to h } } }
                         .firstOrNull()
-                if (referenceSize != null && width != null && height != null && (width != referenceSize.first || height != referenceSize.second)) {
+                val hasComparableFaceSize = referenceSize != null && width != null && height != null
+                val hasMismatchedFaceSize =
+                    hasComparableFaceSize &&
+                        (width != referenceSize.first || height != referenceSize.second)
+                if (hasMismatchedFaceSize) {
                     add("Face size mismatch.")
                 }
             }

@@ -26,4 +26,6 @@ fun packColor(
     g: Int,
     b: Int,
     a: Int,
-): Int = com.pashkd.krender.engine.tools.common.texturepreview.packColor(r, g, b, a)
+): Int =
+    com.pashkd.krender.engine.tools.common.texturepreview
+        .packColor(r, g, b, a)

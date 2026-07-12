@@ -7,25 +7,23 @@ class SkyboxAtlasLayoutResolver {
     fun readSourceSize(
         assetRoot: File,
         path: String,
-    ): Pair<Int, Int>? {
-        val file = resolveSourceFile(assetRoot, path) ?: return null
-        val metadata = TextureMetadataReader.read(file) ?: return null
-        return metadata.width to metadata.height
-    }
+    ): Pair<Int, Int>? =
+        resolveSourceFile(assetRoot, path)
+            ?.let(TextureMetadataReader::read)
+            ?.let { metadata -> metadata.width to metadata.height }
 
     fun resolveRegions(
         width: Int,
         height: Int,
         preset: SkyboxImportLayoutPreset,
         existing: Map<EnvironmentCubemapFace, SkyboxImportRegion> = emptyMap(),
-    ): Map<EnvironmentCubemapFace, SkyboxImportRegion> {
-        return when (preset) {
+    ): Map<EnvironmentCubemapFace, SkyboxImportRegion> =
+        when (preset) {
             SkyboxImportLayoutPreset.CubeCross4x3 -> buildCrossLayout(width, height)
             SkyboxImportLayoutPreset.HorizontalRow6x1 -> buildHorizontalRow(width, height)
             SkyboxImportLayoutPreset.VerticalColumn1x6 -> buildVerticalColumn(width, height)
             SkyboxImportLayoutPreset.Custom -> existing.ifEmpty { buildCrossLayout(width, height) }
         }
-    }
 
     private fun buildCrossLayout(
         width: Int,
@@ -49,9 +47,10 @@ class SkyboxAtlasLayoutResolver {
         height: Int,
     ): Map<EnvironmentCubemapFace, SkyboxImportRegion> {
         val cellWidth = width / 6
-        return EnvironmentCubemapFace.ordered.mapIndexed { index, face ->
-            face to SkyboxImportRegion(face, cellWidth * index, 0, cellWidth.coerceAtLeast(1), height.coerceAtLeast(1))
-        }.toMap()
+        return EnvironmentCubemapFace.ordered
+            .mapIndexed { index, face ->
+                face to SkyboxImportRegion(face, cellWidth * index, 0, cellWidth.coerceAtLeast(1), height.coerceAtLeast(1))
+            }.toMap()
     }
 
     private fun buildVerticalColumn(
@@ -59,9 +58,10 @@ class SkyboxAtlasLayoutResolver {
         height: Int,
     ): Map<EnvironmentCubemapFace, SkyboxImportRegion> {
         val cellHeight = height / 6
-        return EnvironmentCubemapFace.ordered.mapIndexed { index, face ->
-            face to SkyboxImportRegion(face, 0, cellHeight * index, width.coerceAtLeast(1), cellHeight.coerceAtLeast(1))
-        }.toMap()
+        return EnvironmentCubemapFace.ordered
+            .mapIndexed { index, face ->
+                face to SkyboxImportRegion(face, 0, cellHeight * index, width.coerceAtLeast(1), cellHeight.coerceAtLeast(1))
+            }.toMap()
     }
 
     fun resolveSourceFile(

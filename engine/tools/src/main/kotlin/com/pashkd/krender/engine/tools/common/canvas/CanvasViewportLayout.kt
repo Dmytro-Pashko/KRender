@@ -10,11 +10,10 @@ fun computeCanvasViewportLayout(
     contentWidth: Int,
     contentHeight: Int,
     previewState: CanvasPreviewState,
-): CanvasViewportLayout {
-    return computeTexturePreviewViewportLayout(
+): CanvasViewportLayout =
+    computeTexturePreviewViewportLayout(
         rect = rect,
         textureWidth = contentWidth,
         textureHeight = contentHeight,
         previewState = previewState,
     )
-}

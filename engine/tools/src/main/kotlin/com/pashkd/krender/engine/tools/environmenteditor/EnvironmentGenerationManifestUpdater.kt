@@ -92,8 +92,7 @@ class EnvironmentGenerationManifestUpdater {
     /**
      * Writes the canonical BRDF LUT reference.
      */
-    fun applyBrdfLut(environment: Environment): Environment =
-        environment.copy(brdfLut = TextureResourceRef("brdf_lut.png"))
+    fun applyBrdfLut(environment: Environment): Environment = environment.copy(brdfLut = TextureResourceRef("brdf_lut.png"))
 
     /**
      * Applies all enabled generation outputs in one pass.

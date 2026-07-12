@@ -21,6 +21,7 @@ import imgui.or
 import kotlin.math.abs
 import glm_.vec2.Vec2 as ImVec2
 
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 class EnvironmentSelectedResourcePreviewPanel(
     private val state: EnvironmentEditorState,
     private val resourcePreviewController: EnvironmentResourcePreviewController,
@@ -31,6 +32,7 @@ class EnvironmentSelectedResourcePreviewPanel(
 ) : UiPanel {
     private var clickDragDistance = 0f
 
+    @Suppress("ReturnCount")
     override fun draw() {
         val layout = layoutConfig.panels.getValue(EnvironmentEditorPanelIds.SelectedResourcePreview)
         val expanded = beginImGuiPanel(EnvironmentEditorPanelIds.SelectedResourcePreview, layout, layoutTracker)
