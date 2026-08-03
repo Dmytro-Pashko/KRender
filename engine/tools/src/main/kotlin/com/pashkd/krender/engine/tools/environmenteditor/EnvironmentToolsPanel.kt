@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.assets.environment.EnvironmentIblOverwritePolic
 import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
 import com.pashkd.krender.engine.assets.environment.EnvironmentToneMapping
 import com.pashkd.krender.engine.assets.environment.RadianceMip
+import com.pashkd.krender.engine.assets.environment.requiredRadianceMipCount
 import com.pashkd.krender.engine.assets.importing.EnvironmentSourceFileDialogFilters
 import com.pashkd.krender.engine.assets.importing.FileDialogFilter
 import com.pashkd.krender.engine.assets.importing.FileDialogService
@@ -374,8 +375,11 @@ class EnvironmentToolsPanel(
                 label = "Base resolution##env_tools_hdr_all_radiance_resolution",
                 selected = request.radianceBaseResolution,
                 options = RadianceResolutionOptions,
-            ) { request.radianceBaseResolution = it }
-            slider("Mip count##env_tools_hdr_all_radiance_mip_count", request::radianceMipCount, 1, 12, "%d", SliderFlag.AlwaysClamp)
+            ) {
+                request.radianceBaseResolution = it
+                request.radianceMipCount = requiredRadianceMipCount(it)
+            }
+            ImGui.text("Mip count: ${requiredRadianceMipCount(request.radianceBaseResolution)}")
             drawIntOptionCombo(
                 label = "Sample count##env_tools_hdr_all_radiance_samples",
                 selected = request.radianceSampleCount,

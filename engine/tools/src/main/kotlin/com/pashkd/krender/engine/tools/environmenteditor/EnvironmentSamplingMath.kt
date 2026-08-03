@@ -71,14 +71,25 @@ object EnvironmentSamplingMath {
         normal: Vec3,
         sampleIndex: Int,
         sampleCount: Int,
+        sequenceOffset: Vec2,
     ): Vec3 {
-        val xi = hammersley(sampleIndex, sampleCount)
+        val baseXi = hammersley(sampleIndex, sampleCount)
+        val xi = Vec2(fract(baseXi.x + sequenceOffset.x), fract(baseXi.y + sequenceOffset.y))
         val radius = sqrt(xi.x)
         val phi = (2.0 * PI * xi.y).toFloat()
         val x = radius * cos(phi)
         val y = radius * sin(phi)
         val z = sqrt(max(0f, 1f - xi.x))
         return localToWorld(buildBasis(normal), Vec3(x, y, z))
+    }
+
+    fun sampleSequenceOffset(
+        faceIndex: Int,
+        x: Int,
+        y: Int,
+    ): Vec2 {
+        val seed = hash(faceIndex * 0x9E3779B9.toInt() xor x * 0x85EBCA6B.toInt() xor y * 0xC2B2AE35.toInt())
+        return Vec2(unitFloat(seed), unitFloat(hash(seed xor 0x27D4EB2D)))
     }
 
     /**
@@ -131,6 +142,17 @@ object EnvironmentSamplingMath {
         index: Int,
         count: Int,
     ): Vec2 = Vec2(index.toFloat() / count.coerceAtLeast(1).toFloat(), radicalInverseVdc(index))
+
+    private fun fract(value: Float): Float = value - kotlin.math.floor(value)
+
+    private fun hash(value: Int): Int {
+        var mixed = value
+        mixed = (mixed xor (mixed ushr 16)) * 0x7FEB352D
+        mixed = (mixed xor (mixed ushr 15)) * 0x846CA68B.toInt()
+        return mixed xor (mixed ushr 16)
+    }
+
+    private fun unitFloat(value: Int): Float = value.toUInt().toFloat() * 2.3283064e-10f
 
     private fun radicalInverseVdc(bits: Int): Float {
         var value = bits

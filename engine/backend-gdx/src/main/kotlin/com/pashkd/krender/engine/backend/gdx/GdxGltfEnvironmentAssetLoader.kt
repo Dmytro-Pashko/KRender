@@ -8,13 +8,17 @@ import com.pashkd.krender.engine.api.Logger
 internal class GdxGltfEnvironmentAssetLoader(
     private val logger: Logger,
 ) {
-    fun loadPreset(resolved: GdxResolvedHdrEnvironment): GdxGltfEnvironmentPreset =
+    fun loadPreset(
+        resolved: GdxResolvedHdrEnvironment,
+        diffuseIntensity: Float,
+        specularIntensity: Float,
+    ): GdxGltfEnvironmentPreset =
         GdxGltfEnvironmentPreset(
             name = resolved.preset,
             defaults = resolved.defaults,
             skybox = loadCubemap(resolved, "skybox", resolved.skyboxFaces),
-            irradiance = loadCubemap(resolved, "irradiance", resolved.irradianceFaces),
-            radiance = loadRadiance(resolved),
+            irradiance = loadCubemap(resolved, "irradiance", resolved.irradianceFaces, diffuseIntensity),
+            radiance = loadRadiance(resolved, specularIntensity),
             brdfLut = loadBrdfLut(resolved),
         )
 
@@ -22,27 +26,31 @@ internal class GdxGltfEnvironmentAssetLoader(
         resolved: GdxResolvedHdrEnvironment,
         label: String,
         faces: Map<String, String>,
+        intensity: Float = 1f,
     ): Cubemap? {
         if (faces.isEmpty() || faces.values.any { !Gdx.files.internal(it).exists() }) {
             logger.warn(TAG) { "HDR environment '${resolved.preset}' has missing $label faces." }
             return null
         }
         return try {
-            GdxHdrCubemapLoader.loadFaces(faces)
+            GdxHdrCubemapLoader.loadFaces(faces, intensity)
         } catch (error: Throwable) {
             logger.warn(TAG, error) { "Failed to load $label cubemap for '${resolved.preset}'." }
             null
         }
     }
 
-    private fun loadRadiance(resolved: GdxResolvedHdrEnvironment): Cubemap? {
+    private fun loadRadiance(
+        resolved: GdxResolvedHdrEnvironment,
+        intensity: Float,
+    ): Cubemap? {
         val faces = resolved.radianceFaces
         if (faces.isEmpty() || faces.values.flatMap { it.values }.any { !Gdx.files.internal(it).exists() }) {
             logger.warn(TAG) { "HDR environment '${resolved.preset}' has missing radiance mip faces." }
             return null
         }
         return try {
-            GdxHdrCubemapLoader.loadMipFaces(faces)
+            GdxHdrCubemapLoader.loadMipFaces(faces, intensity)
         } catch (error: Throwable) {
             logger.warn(TAG, error) { "Failed to load radiance cubemap for '${resolved.preset}'." }
             null

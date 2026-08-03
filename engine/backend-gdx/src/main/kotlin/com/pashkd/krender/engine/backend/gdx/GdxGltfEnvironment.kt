@@ -18,11 +18,16 @@ internal class GdxGltfEnvironment(
         nameOrPath: String,
         cacheKey: String = nameOrPath,
         manifestText: String? = null,
+        diffuseIntensity: Float = 1f,
+        specularIntensity: Float = 1f,
     ): GdxGltfEnvironmentPreset? {
-        invalidateStaleEntries(nameOrPath, cacheKey)
-        presetOwners[cacheKey] = nameOrPath
-        return presets.getOrPut(cacheKey) {
-            resolver.resolve(nameOrPath, manifestText)?.let(assetLoader::loadPreset)
+        val intensityCacheKey = "$cacheKey|diffuse=${diffuseIntensity.toRawBits()}|specular=${specularIntensity.toRawBits()}"
+        invalidateStaleEntries(nameOrPath, intensityCacheKey)
+        presetOwners[intensityCacheKey] = nameOrPath
+        return presets.getOrPut(intensityCacheKey) {
+            resolver.resolve(nameOrPath, manifestText)?.let { resolved ->
+                assetLoader.loadPreset(resolved, diffuseIntensity, specularIntensity)
+            }
         }
     }
 

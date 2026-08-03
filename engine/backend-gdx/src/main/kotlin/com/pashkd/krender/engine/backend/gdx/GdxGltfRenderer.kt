@@ -109,12 +109,14 @@ internal class GdxGltfRenderer(
                 settings.environmentPreset,
                 settings.environmentCacheKey ?: settings.environmentPreset,
                 settings.environmentManifestText,
+                settings.ambientIntensity.coerceAtLeast(0f),
+                settings.environmentIntensity.coerceAtLeast(0f),
             )
         val direction = gltfLightDirection(settings.directionalLightYawDegrees, settings.directionalLightPitchDegrees)
-        val environmentState = resolveEnvironmentState(preset, settings)
+        val environmentState = resolveEnvironmentState(settings)
         val fallbackPlan = fallbackPlan(preset, settings)
         entry.manager.environment.clear()
-        applyAmbientLight(entry, environmentState.intensity, settings.ambientIntensity.coerceAtLeast(0f))
+        applyAmbientLight(entry, environmentState.intensity)
         applyDirectionalLight(entry, settings, direction)
         applyEnvironmentRotation(entry, settings)
         syncEnvironmentFallback(entry, direction, environmentState.intensity, fallbackPlan)
@@ -309,12 +311,8 @@ private data class ResolvedEnvironmentFallbackPlan(
     val reason: String,
 )
 
-private fun GdxGltfRenderer.resolveEnvironmentState(
-    preset: GdxGltfEnvironmentPreset?,
-    settings: GltfRendererSettings,
-): ResolvedEnvironmentState {
-    val presetExposure = preset?.defaults?.exposure?.toFloat() ?: 1f
-    val intensity = (settings.environmentIntensity * settings.exposure * presetExposure).coerceAtLeast(0f)
+private fun GdxGltfRenderer.resolveEnvironmentState(settings: GltfRendererSettings): ResolvedEnvironmentState {
+    val intensity = settings.exposure.coerceAtLeast(0f)
     return ResolvedEnvironmentState(
         intensity = intensity,
     )
@@ -323,14 +321,13 @@ private fun GdxGltfRenderer.resolveEnvironmentState(
 private fun GdxGltfRenderer.applyAmbientLight(
     entry: GltfSceneEntry,
     intensity: Float,
-    ambientIntensity: Float,
 ) {
     entry.manager.environment.set(
         ColorAttribute(
             ColorAttribute.AmbientLight,
-            0.08f * intensity * ambientIntensity,
-            0.09f * intensity * ambientIntensity,
-            0.1f * intensity * ambientIntensity,
+            0.08f * intensity,
+            0.09f * intensity,
+            0.1f * intensity,
             1f,
         ),
     )

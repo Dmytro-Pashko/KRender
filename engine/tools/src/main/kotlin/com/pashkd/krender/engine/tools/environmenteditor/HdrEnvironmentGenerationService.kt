@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.tools.environmenteditor
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblGenerationConfig
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblGenerationResult
 import com.pashkd.krender.engine.assets.environment.EnvironmentPathResolver
+import com.pashkd.krender.engine.assets.environment.requiredRadianceMipCount
 import java.io.File
 
 class HdrEnvironmentGenerationService(
@@ -104,7 +105,10 @@ class HdrEnvironmentGenerationService(
         require(config.irradiance.sampleCount > 0) { "Irradiance sample count must be positive." }
         require(config.irradiance.exposure >= 0f) { "Irradiance exposure must be non-negative." }
         require(config.radiance.baseResolution > 0) { "Radiance base resolution must be positive." }
-        require(config.radiance.mipCount >= 1) { "Radiance mip count must be at least 1." }
+        require(config.radiance.mipCount == requiredRadianceMipCount(config.radiance.baseResolution)) {
+            "Radiance mip count must be ${requiredRadianceMipCount(config.radiance.baseResolution)} for " +
+                "a ${config.radiance.baseResolution}px base resolution."
+        }
         require(config.radiance.sampleCount > 0) { "Radiance sample count must be positive." }
     }
 

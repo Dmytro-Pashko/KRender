@@ -4,6 +4,8 @@ import com.pashkd.krender.engine.api.Vec3
 import com.pashkd.krender.engine.assets.environment.EnvironmentIblOverwritePolicy
 import com.pashkd.krender.engine.assets.environment.EnvironmentRoughnessDistribution
 import com.pashkd.krender.engine.assets.environment.RadianceGenerationConfig
+import com.pashkd.krender.engine.assets.environment.radianceMipResolution
+import com.pashkd.krender.engine.assets.environment.requiredRadianceMipCount
 import java.io.File
 
 /**
@@ -20,7 +22,10 @@ class RadiancePrefilterGenerator(
         config: RadianceGenerationConfig,
     ): Map<Int, Map<String, File>> {
         require(config.baseResolution > 0) { "Radiance base resolution must be positive." }
-        require(config.mipCount >= 1) { "Radiance mip count must be at least 1." }
+        require(config.mipCount == requiredRadianceMipCount(config.baseResolution)) {
+            "Radiance mip count must be ${requiredRadianceMipCount(config.baseResolution)} for " +
+                "a ${config.baseResolution}px base resolution."
+        }
         require(config.sampleCount > 0) { "Radiance sample count must be positive." }
         require(config.roughnessDistribution == EnvironmentRoughnessDistribution.Linear) {
             "Only linear roughness distribution is supported."
@@ -29,7 +34,7 @@ class RadiancePrefilterGenerator(
         val mipFiles = linkedMapOf<Int, Map<String, File>>()
         for (level in 0 until config.mipCount) {
             val roughness = roughnessFor(level, config.mipCount)
-            val resolution = mipResolution(config.baseResolution, level)
+            val resolution = radianceMipResolution(config.baseResolution, level)
             val mipDirectory = File(outputDirectory, "mip_$level")
             val faces =
                 exportSupport.exportFaces(
@@ -76,11 +81,6 @@ class RadiancePrefilterGenerator(
         }
         return if (totalWeight > 0f) accumulated * (1f / totalWeight) else Vec3.zero()
     }
-
-    private fun mipResolution(
-        baseResolution: Int,
-        level: Int,
-    ): Int = (baseResolution shr level).coerceAtLeast(1)
 
     private fun roughnessFor(
         level: Int,

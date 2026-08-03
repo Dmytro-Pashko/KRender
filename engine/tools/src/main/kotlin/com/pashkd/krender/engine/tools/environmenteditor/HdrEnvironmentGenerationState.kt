@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.assets.environment.EnvironmentToneMapping
 import com.pashkd.krender.engine.assets.environment.IrradianceGenerationConfig
 import com.pashkd.krender.engine.assets.environment.RadianceGenerationConfig
 import com.pashkd.krender.engine.assets.environment.SkyboxGenerationConfig
+import com.pashkd.krender.engine.assets.environment.requiredRadianceMipCount
 
 enum class HdrEnvironmentGenerationDialog(
     val title: String,
@@ -35,7 +36,7 @@ data class HdrAllIblGenerationRequest(
     var irradianceToneMapping: EnvironmentToneMapping = EnvironmentToneMapping.ACES,
     var radianceEnabled: Boolean = true,
     var radianceBaseResolution: Int = 256,
-    var radianceMipCount: Int = 8,
+    var radianceMipCount: Int = requiredRadianceMipCount(radianceBaseResolution),
     var radianceSampleCount: Int = 1024,
 ) {
     fun toConfig(manifestPath: String): EnvironmentIblGenerationConfig =

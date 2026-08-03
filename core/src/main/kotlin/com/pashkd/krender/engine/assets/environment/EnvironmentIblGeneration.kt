@@ -38,7 +38,7 @@ data class IrradianceGenerationConfig(
 data class RadianceGenerationConfig(
     val enabled: Boolean = true,
     val baseResolution: Int = 256,
-    val mipCount: Int = 10,
+    val mipCount: Int = requiredRadianceMipCount(baseResolution),
     val sampleCount: Int = 1024,
     val roughnessDistribution: EnvironmentRoughnessDistribution = EnvironmentRoughnessDistribution.Linear,
 )
@@ -65,6 +65,19 @@ enum class EnvironmentIblFaceNaming {
 
 enum class EnvironmentRoughnessDistribution {
     Linear,
+}
+
+fun requiredRadianceMipCount(baseResolution: Int): Int {
+    require(baseResolution > 0) { "Radiance base resolution must be positive." }
+    return Int.SIZE_BITS - Integer.numberOfLeadingZeros(baseResolution)
+}
+
+fun radianceMipResolution(
+    baseResolution: Int,
+    level: Int,
+): Int {
+    require(level >= 0) { "Radiance mip level must not be negative." }
+    return (baseResolution shr level).coerceAtLeast(1)
 }
 
 /**
