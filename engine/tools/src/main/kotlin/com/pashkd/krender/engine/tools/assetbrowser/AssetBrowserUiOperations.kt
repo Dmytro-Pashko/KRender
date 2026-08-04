@@ -53,9 +53,9 @@ class AssetBrowserUiOperations(
                 ?.joinToString(prefix = "Log cleanup failed: ") { failure -> "${failure.fileName} (${failure.message})" }
         state.statusMessage =
             if (result.failures.isEmpty()) {
-                "Logs cleared. Deleted ${result.deletedCount} saved log file(s)."
+                "Logs cleared. Deleted ${result.deletedCount} saved log item(s)."
             } else {
-                "Logs cleared in memory. Deleted ${result.deletedCount} saved log file(s), failed ${result.failures.size}."
+                "Logs cleared in memory. Deleted ${result.deletedCount} saved log item(s), failed ${result.failures.size}."
             }
     }
 
@@ -127,9 +127,10 @@ internal object AssetBrowserLogCleaner {
 
         var deletedCount = 0
         val failures = mutableListOf<AssetBrowserLogCleanupFailure>()
-        Files.list(logsDirectory).use { entries ->
+        Files.walk(logsDirectory).use { entries ->
             entries
-                .filter(Files::isRegularFile)
+                .filter { entry -> entry != logsDirectory }
+                .sorted(Comparator.reverseOrder())
                 .forEach { file ->
                     try {
                         Files.deleteIfExists(file)
