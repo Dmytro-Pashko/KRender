@@ -22,43 +22,42 @@ class FileLogSink(
     logsDirectory: Path = defaultLogsDirectory(),
 ) : LogSink {
     private val sessionTimestamp = FILE_NAME_FORMATTER.format(Instant.now().atZone(ZoneId.systemDefault()))
-    private val logFile = logsDirectory.resolve("runtime-$sessionTimestamp.log")
+    private val logsDirectory = Files.createDirectories(logsDirectory)
+    private val logFile = this.logsDirectory.resolve("runtime-$sessionTimestamp.log")
+    private val lock = Any()
 
-    private val writer =
-        Files.newBufferedWriter(
-            Files.createDirectories(logsDirectory).resolve(logFile.fileName),
+    init {
+        Files.writeString(
+            logFile,
+            "",
             StandardCharsets.UTF_8,
-            StandardOpenOption.CREATE_NEW,
-            StandardOpenOption.WRITE,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.APPEND,
         )
+    }
 
     /** Appends one formatted log line and optional stacktrace to the session file. */
     override fun write(entry: LogEntry) {
-        synchronized(writer) {
-            writer.appendLine(formatEntry(entry))
-            val error = entry.error
-            if (error != null) {
-                val stackTrace = formatStackTrace(error)
-                writer.append(stackTrace)
-                if (!stackTrace.endsWith(System.lineSeparator())) {
-                    writer.newLine()
+        val text =
+            buildString {
+                appendLine(formatEntry(entry))
+                val error = entry.error
+                if (error != null) {
+                    val stackTrace = formatStackTrace(error)
+                    append(stackTrace)
+                    if (!stackTrace.endsWith(System.lineSeparator())) {
+                        appendLine()
+                    }
                 }
             }
-            writer.flush()
-        }
-    }
-
-    /** Flushes the session file writer. */
-    override fun flush() {
-        synchronized(writer) {
-            writer.flush()
-        }
-    }
-
-    /** Closes the session file writer. */
-    override fun dispose() {
-        synchronized(writer) {
-            writer.close()
+        synchronized(lock) {
+            Files.writeString(
+                logFile,
+                text,
+                StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND,
+            )
         }
     }
 
@@ -84,7 +83,7 @@ class FileLogSink(
                         .file()
                         .toPath()
 
-                else -> Path.of("logs")
+                else -> Path.of("assets", "logs")
             }
     }
 }

@@ -4,6 +4,9 @@ import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import java.awt.Desktop
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * UI-level actions for the Asset Browser scene.
@@ -43,7 +46,17 @@ class AssetBrowserUiOperations(
 
     fun cleanLogs() {
         context.logs.clear()
-        state.statusMessage = "Logs cleared."
+        val result = AssetBrowserLogCleaner.clean(savedLogsDirectory(context.assetRegistry.baseDir()))
+        state.errorMessage =
+            result.failures
+                .takeIf { it.isNotEmpty() }
+                ?.joinToString(prefix = "Log cleanup failed: ") { failure -> "${failure.fileName} (${failure.message})" }
+        state.statusMessage =
+            if (result.failures.isEmpty()) {
+                "Logs cleared. Deleted ${result.deletedCount} saved log file(s)."
+            } else {
+                "Logs cleared in memory. Deleted ${result.deletedCount} saved log file(s), failed ${result.failures.size}."
+            }
     }
 
     fun saveUiLayout() {
@@ -72,5 +85,64 @@ class AssetBrowserUiOperations(
 
     companion object {
         private const val TAG = "AssetBrowserUiOperations"
+
+        private fun savedLogsDirectory(assetBaseDir: File): Path {
+            val basePath = assetBaseDir.toPath().toAbsolutePath().normalize()
+            return if (basePath.fileName?.toString().equals("assets", ignoreCase = true)) {
+                basePath.resolve("logs")
+            } else {
+                basePath.resolve("assets").resolve("logs")
+            }
+        }
+    }
+}
+
+internal data class AssetBrowserLogCleanupResult(
+    val deletedCount: Int,
+    val failures: List<AssetBrowserLogCleanupFailure>,
+)
+
+internal data class AssetBrowserLogCleanupFailure(
+    val fileName: String,
+    val message: String,
+)
+
+internal object AssetBrowserLogCleaner {
+    fun clean(logsDirectory: Path): AssetBrowserLogCleanupResult {
+        if (!Files.exists(logsDirectory)) {
+            return AssetBrowserLogCleanupResult(deletedCount = 0, failures = emptyList())
+        }
+        if (!Files.isDirectory(logsDirectory)) {
+            return AssetBrowserLogCleanupResult(
+                deletedCount = 0,
+                failures =
+                    listOf(
+                        AssetBrowserLogCleanupFailure(
+                            logsDirectory.fileName?.toString() ?: logsDirectory.toString(),
+                            "not a directory",
+                        ),
+                    ),
+            )
+        }
+
+        var deletedCount = 0
+        val failures = mutableListOf<AssetBrowserLogCleanupFailure>()
+        Files.list(logsDirectory).use { entries ->
+            entries
+                .filter(Files::isRegularFile)
+                .forEach { file ->
+                    try {
+                        Files.deleteIfExists(file)
+                        deletedCount += 1
+                    } catch (error: Exception) {
+                        failures +=
+                            AssetBrowserLogCleanupFailure(
+                                file.fileName?.toString() ?: file.toString(),
+                                error.message ?: error.javaClass.simpleName,
+                            )
+                    }
+                }
+        }
+        return AssetBrowserLogCleanupResult(deletedCount = deletedCount, failures = failures)
     }
 }
