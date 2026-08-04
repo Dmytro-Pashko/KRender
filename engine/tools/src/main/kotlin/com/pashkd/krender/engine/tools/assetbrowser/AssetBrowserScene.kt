@@ -113,6 +113,17 @@ class AssetBrowserScene : Scene("asset_browser") {
                 ),
             )
             uiSystem.addPanel(
+                AssetHierarchyExplorerPanel(
+                    state = browserState,
+                    operations = operationsHandler,
+                    onAssetSelected = { asset -> browserState.selectedAssetId = asset.id },
+                    onAssetActivated = { asset -> browserState.activationRequestedAssetId = asset.id },
+                    layoutConfig = layoutConfig,
+                    layoutTracker = layoutTracker,
+                    eventLogger = panelEventLogger,
+                ),
+            )
+            uiSystem.addPanel(
                 AssetBrowserPanel(
                     state = browserState,
                     onAssetSelected = { asset -> browserState.selectedAssetId = asset.id },
@@ -212,11 +223,25 @@ private class SceneOperationsHandler(
         }
     }
 
+    override fun createFolder(
+        parentDirectory: String,
+        name: String,
+    ) {
+        consumeResult(operations.createFolder(parentDirectory, name))
+    }
+
     override fun rename(
         asset: AssetDescriptor,
         newName: String,
     ) {
         consumeResult(operations.rename(asset, newName))
+    }
+
+    override fun renameDirectory(
+        directoryPath: String,
+        newName: String,
+    ) {
+        consumeResult(operations.renameDirectory(directoryPath, newName))
     }
 
     override fun duplicate(
@@ -226,12 +251,27 @@ private class SceneOperationsHandler(
         consumeResult(operations.duplicate(asset, targetName))
     }
 
+    override fun duplicateDirectory(
+        directoryPath: String,
+        targetName: String,
+    ) {
+        consumeResult(operations.duplicateDirectory(directoryPath, targetName))
+    }
+
     override fun delete(asset: AssetDescriptor) {
         consumeResult(operations.delete(asset))
     }
 
+    override fun trashDirectory(directoryPath: String) {
+        consumeResult(operations.deleteDirectory(directoryPath, DeleteMode.Trash))
+    }
+
     override fun reveal(asset: AssetDescriptor) {
         consumeResult(operations.reveal(asset))
+    }
+
+    override fun revealDirectory(directoryPath: String) {
+        consumeResult(operations.revealDirectory(directoryPath))
     }
 
     override fun toolsFor(asset: AssetDescriptor): List<AssetToolDescriptor> =

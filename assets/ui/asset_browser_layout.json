@@ -9,10 +9,17 @@
     },
     "assetBrowser": {
       "title": "Asset Browser",
+      "x": 448,
+      "y": 136,
+      "width": 836,
+      "height": 649
+    },
+    "assetHierarchyExplorer": {
+      "title": "Hierarchy Explorer",
       "x": 2,
       "y": 133,
-      "width": 1283,
-      "height": 653
+      "width": 442,
+      "height": 655
     },
     "assetDetails": {
       "title": "Asset Details",

@@ -83,6 +83,7 @@ class AssetBrowserSystem(
     private fun applyScanResult(snapshot: AssetRegistrySnapshot) {
         registry.applySnapshot(snapshot)
         state.assets = snapshot.assets
+        state.hierarchyRoot = AssetHierarchyBuilder.build(registry.baseDir(), snapshot.assets)
         state.scanErrorCount = snapshot.errors.size
         state.lastScanFinishedAtMillis = snapshot.scannedAtMillis
         state.errorMessage = snapshot.errors.firstOrNull()?.let { "Scan error: ${it.path} (${it.message})" }

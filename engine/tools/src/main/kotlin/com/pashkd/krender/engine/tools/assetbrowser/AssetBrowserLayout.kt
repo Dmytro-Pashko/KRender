@@ -7,6 +7,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
  */
 object AssetBrowserPanelIds {
     const val Controls = "assetBrowserControls"
+    const val Hierarchy = "assetHierarchyExplorer"
     const val Browser = "assetBrowser"
     const val Details = "assetDetails"
     const val Logs = "runtimeLogs"
@@ -33,9 +34,17 @@ object AssetBrowserUiLayoutDefaults {
                     AssetBrowserPanelIds.Browser to
                         ImGuiPanelLayout(
                             title = "Asset Browser",
+                            x = 328f,
+                            y = 16f,
+                            width = 448f,
+                            height = 560f,
+                        ),
+                    AssetBrowserPanelIds.Hierarchy to
+                        ImGuiPanelLayout(
+                            title = "Hierarchy Explorer",
                             x = 16f,
                             y = 16f,
-                            width = 760f,
+                            width = 296f,
                             height = 560f,
                         ),
                     AssetBrowserPanelIds.Details to

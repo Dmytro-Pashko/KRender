@@ -182,6 +182,82 @@ class AssetOperationsServiceTest {
         assertTrue(outside.toFile().exists())
     }
 
+    @Test
+    fun `create folder creates a unique child folder`() {
+        val fixture = fixture()
+        fixture.baseDir.resolve("textures").createDirectories()
+
+        val result = fixture.service.createFolder("textures", "materials")
+
+        val success = assertIs<AssetOperationResult.Success>(result)
+        assertEquals("textures/materials", success.path)
+        assertTrue(fixture.changed)
+        assertTrue(fixture.baseDir.resolve("textures/materials").toFile().isDirectory)
+    }
+
+    @Test
+    fun `rename directory moves the folder inside asset root`() {
+        val fixture = fixture()
+        fixture.baseDir.resolve("textures/source").createDirectories()
+        fixture.baseDir.resolve("textures/source/albedo.png").writeBytes(pngBytes())
+
+        val result = fixture.service.renameDirectory("textures/source", "renamed")
+
+        val success = assertIs<AssetOperationResult.Success>(result)
+        assertEquals("textures/renamed", success.path)
+        assertTrue(fixture.changed)
+        assertFalse(fixture.baseDir.resolve("textures/source").toFile().exists())
+        assertTrue(fixture.baseDir.resolve("textures/renamed/albedo.png").toFile().exists())
+    }
+
+    @Test
+    fun `duplicate directory copies files and rewrites managed metadata ids`() {
+        val fixture = fixture()
+        val sourceDir = fixture.baseDir.resolve("model/props").createDirectories()
+        sourceDir.resolve("prop.glb").writeBytes(byteArrayOf(0x67, 0x6c, 0x54, 0x46))
+        val original = fixture.scanAsset("model/props/prop.glb")
+        val originalMeta = fixture.metadataFor(sourceDir.resolve("prop.glb.krmeta").readText(StandardCharsets.UTF_8))
+
+        val result = fixture.service.duplicateDirectory("model/props", "props_copy")
+
+        val success = assertIs<AssetOperationResult.Success>(result)
+        assertEquals("model/props_copy", success.path)
+        assertTrue(fixture.changed)
+        assertTrue(fixture.baseDir.resolve("model/props/prop.glb").toFile().exists())
+        assertTrue(fixture.baseDir.resolve("model/props_copy/prop.glb").toFile().exists())
+        val copiedMeta = fixture.metadataFor(fixture.baseDir.resolve("model/props_copy/prop.glb.krmeta").readText(StandardCharsets.UTF_8))
+        assertNotEquals(originalMeta.id, copiedMeta.id)
+        assertEquals(original.name, copiedMeta.displayName)
+    }
+
+    @Test
+    fun `delete directory moves the folder to trash by default`() {
+        val fixture = fixture()
+        fixture.baseDir.resolve("textures/source").createDirectories()
+        fixture.baseDir.resolve("textures/source/albedo.png").writeBytes(pngBytes())
+
+        val result = fixture.service.deleteDirectory("textures/source")
+
+        assertIs<AssetOperationResult.Success>(result)
+        assertTrue(fixture.changed)
+        assertFalse(fixture.baseDir.resolve("textures/source").toFile().exists())
+        assertTrue(fixture.baseDir.resolve(".trash/textures/source/albedo.png").toFile().exists())
+    }
+
+    @Test
+    fun `directory operations refuse paths that escape asset root`() {
+        val fixture = fixture()
+
+        val renameResult = fixture.service.renameDirectory("../outside", "x")
+        val duplicateResult = fixture.service.duplicateDirectory("../outside", "x")
+        val deleteResult = fixture.service.deleteDirectory("../outside")
+
+        assertIs<AssetOperationResult.Failure>(renameResult)
+        assertIs<AssetOperationResult.Failure>(duplicateResult)
+        assertIs<AssetOperationResult.Failure>(deleteResult)
+        assertFalse(fixture.changed)
+    }
+
     private fun fixture(): OperationFixture {
         val logger = EngineLogService()
         val baseDir = Files.createTempDirectory("krender-asset-ops")

@@ -37,6 +37,7 @@ class AssetBrowserPanel(
     private val importDialog = ImportAssetDialog(state, importService, fileDialogService, panelId)
     private var searchInputActive = false
     private var renameBufferSynced = false
+    private var renameBufferAssetId: String? = null
 
     override fun draw() {
         syncSearchBuffer()
@@ -260,11 +261,14 @@ class AssetBrowserPanel(
         val asset = state.selectedAssetId?.let { id -> state.assets.firstOrNull { it.id == id } }
         if (asset == null) {
             state.showRenameDialog = false
+            renameBufferSynced = false
+            renameBufferAssetId = null
             return
         }
-        if (!renameBufferSynced) {
+        if (!renameBufferSynced || renameBufferAssetId != asset.id.value) {
             assetBrowserWriteBuffer(renameByteBuffer, state.renameBuffer)
             renameBufferSynced = true
+            renameBufferAssetId = asset.id.value
         }
         ImGui.openPopup("Rename Asset##${panelId}_rename")
         if (!ImGui.beginPopupModal("Rename Asset##${panelId}_rename")) return
@@ -280,6 +284,7 @@ class AssetBrowserPanel(
                 operations.rename(asset, state.renameBuffer)
                 state.showRenameDialog = false
                 renameBufferSynced = false
+                renameBufferAssetId = null
                 ImGui.closeCurrentPopup()
             }
         }
@@ -288,6 +293,7 @@ class AssetBrowserPanel(
             button("Cancel##${panelId}_rename_cancel") {
                 state.showRenameDialog = false
                 renameBufferSynced = false
+                renameBufferAssetId = null
                 ImGui.closeCurrentPopup()
             }
         }

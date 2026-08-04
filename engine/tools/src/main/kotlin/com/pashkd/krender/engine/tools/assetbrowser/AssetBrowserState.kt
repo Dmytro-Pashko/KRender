@@ -38,6 +38,8 @@ data class AssetBrowserState(
     var importPlan: AssetImportPlan? = null,
     var showImportOverwriteConfirmDialog: Boolean = false,
     var pendingImportPlan: AssetImportPlan? = null,
+    var hierarchyRoot: AssetHierarchyNode? = null,
+    val hierarchyExpandedPaths: MutableSet<String> = mutableSetOf(""),
 )
 
 enum class AssetSortMode {

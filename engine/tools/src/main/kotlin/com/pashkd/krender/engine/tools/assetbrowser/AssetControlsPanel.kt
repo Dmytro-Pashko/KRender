@@ -45,6 +45,18 @@ class AssetControlsPanel(
         }
         ImGui.sameLine()
         with(dsl) {
+            button("Open Assets Folder##${panelId}_open_assets_folder") {
+                operations.openAssetsFolder()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Clean Logs##${panelId}_clean_logs") {
+                operations.cleanLogs()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
             button("Persist UI##${panelId}_persist_ui") {
                 operations.saveUiLayout()
             }

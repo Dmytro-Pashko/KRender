@@ -80,8 +80,18 @@ sealed interface AssetOperationResult {
 interface AssetOperationsService {
     fun create(request: CreateAssetRequest): AssetOperationResult
 
+    fun createFolder(
+        parentDirectory: String,
+        name: String,
+    ): AssetOperationResult
+
     fun rename(
         asset: AssetDescriptor,
+        newName: String,
+    ): AssetOperationResult
+
+    fun renameDirectory(
+        directoryPath: String,
         newName: String,
     ): AssetOperationResult
 
@@ -90,12 +100,24 @@ interface AssetOperationsService {
         targetName: String,
     ): AssetOperationResult
 
+    fun duplicateDirectory(
+        directoryPath: String,
+        targetName: String,
+    ): AssetOperationResult
+
     fun delete(
         asset: AssetDescriptor,
         mode: DeleteMode = DeleteMode.Permanent,
     ): AssetOperationResult
 
+    fun deleteDirectory(
+        directoryPath: String,
+        mode: DeleteMode = DeleteMode.Trash,
+    ): AssetOperationResult
+
     fun reveal(asset: AssetDescriptor): AssetOperationResult
+
+    fun revealDirectory(directoryPath: String): AssetOperationResult
 }
 
 /**
@@ -153,6 +175,30 @@ class LocalAssetOperationsService(
         }
     }
 
+    override fun createFolder(
+        parentDirectory: String,
+        name: String,
+    ): AssetOperationResult {
+        val parent =
+            resolveTargetDirectory(parentDirectory)
+                ?: return failure("Target directory is outside asset root: '$parentDirectory'")
+        if (!parent.exists() || !parent.isDirectory) return failure("Parent directory does not exist: '$parentDirectory'")
+        val folderName = sanitizeFileName(name).ifBlank { "New Folder" }
+        val target = uniqueDirectory(parent, folderName)
+        return runCatching {
+            if (!target.mkdirs()) {
+                error("mkdir '${target.name}' failed")
+            }
+            val rel = relativePath(target)
+            logger.info(TAG) { "Created asset folder '$rel'" }
+            onChanged()
+            AssetOperationResult.Success(rel, "Created folder '$rel'")
+        }.getOrElse { error ->
+            logger.error(TAG, error) { "Create folder failed parent='$parentDirectory': ${error.message}" }
+            failure("Create folder failed: ${error.message}")
+        }
+    }
+
     override fun rename(
         asset: AssetDescriptor,
         newName: String,
@@ -188,6 +234,32 @@ class LocalAssetOperationsService(
         }
     }
 
+    override fun renameDirectory(
+        directoryPath: String,
+        newName: String,
+    ): AssetOperationResult {
+        val normalized = normalizePath(directoryPath)
+        if (normalized.isBlank()) return failure("Asset root cannot be renamed")
+        val source =
+            resolveDirectory(normalized)
+                ?: return failure("Directory path is outside asset root: '$directoryPath'")
+        if (!source.exists() || !source.isDirectory) return failure("Directory no longer exists at '$normalized'")
+        val sanitized = sanitizeFileName(newName)
+        if (sanitized.isBlank()) return failure("Name cannot be blank")
+        val target = File(source.parentFile, sanitized)
+        if (target.exists()) return failure("'${target.name}' already exists")
+        return runCatching {
+            move(source, target)
+            val rel = relativePath(target)
+            logger.info(TAG) { "Renamed directory '$normalized' -> '$rel'" }
+            onChanged()
+            AssetOperationResult.Success(rel, "Renamed folder to '$rel'")
+        }.getOrElse { error ->
+            logger.error(TAG, error) { "Rename directory failed for '$normalized': ${error.message}" }
+            failure("Rename folder failed: ${error.message}")
+        }
+    }
+
     override fun duplicate(
         asset: AssetDescriptor,
         targetName: String,
@@ -219,6 +291,30 @@ class LocalAssetOperationsService(
         }.getOrElse { error ->
             logger.error(TAG, error) { "Duplicate failed for '${asset.path}': ${error.message}" }
             failure("Duplicate failed: ${error.message}")
+        }
+    }
+
+    override fun duplicateDirectory(
+        directoryPath: String,
+        targetName: String,
+    ): AssetOperationResult {
+        val normalized = normalizePath(directoryPath)
+        if (normalized.isBlank()) return failure("Asset root cannot be duplicated")
+        val source =
+            resolveDirectory(normalized)
+                ?: return failure("Directory path is outside asset root: '$directoryPath'")
+        if (!source.exists() || !source.isDirectory) return failure("Directory no longer exists at '$normalized'")
+        val targetBaseName = sanitizeFileName(targetName).ifBlank { "${source.name}_copy" }
+        val target = uniqueDirectory(source.parentFile, targetBaseName)
+        return runCatching {
+            copyDirectory(source, target)
+            val rel = relativePath(target)
+            logger.info(TAG) { "Duplicated directory '$normalized' -> '$rel'" }
+            onChanged()
+            AssetOperationResult.Success(rel, "Duplicated folder to '$rel'")
+        }.getOrElse { error ->
+            logger.error(TAG, error) { "Duplicate directory failed for '$normalized': ${error.message}" }
+            failure("Duplicate folder failed: ${error.message}")
         }
     }
 
@@ -259,6 +355,31 @@ class LocalAssetOperationsService(
         }
     }
 
+    override fun deleteDirectory(
+        directoryPath: String,
+        mode: DeleteMode,
+    ): AssetOperationResult {
+        val normalized = normalizePath(directoryPath)
+        if (normalized.isBlank()) return failure("Asset root cannot be deleted")
+        val source =
+            resolveDirectory(normalized)
+                ?: return failure("Directory path is outside asset root: '$directoryPath'")
+        if (!source.exists() || !source.isDirectory) return failure("Directory no longer exists at '$normalized'")
+        if (normalized == ".trash" || normalized.startsWith(".trash/")) return failure("Trash folders cannot be deleted from Asset Browser")
+        return runCatching {
+            when (mode) {
+                DeleteMode.Permanent -> deleteTree(source)
+                DeleteMode.Trash -> trashDirectory(source, normalized)
+            }
+            logger.info(TAG) { "Deleted directory '$normalized' mode=$mode" }
+            onChanged()
+            AssetOperationResult.Success(normalized, "Moved folder '$normalized' to trash")
+        }.getOrElse { error ->
+            logger.error(TAG, error) { "Delete directory failed for '$normalized': ${error.message}" }
+            failure("Delete folder failed: ${error.message}")
+        }
+    }
+
     override fun reveal(asset: AssetDescriptor): AssetOperationResult {
         if (!asset.assetCapabilities().canReveal) return failure("Reveal is unavailable for '${asset.path}'")
         val file =
@@ -275,6 +396,25 @@ class LocalAssetOperationsService(
         }.getOrElse { error ->
             logger.warn(TAG, error) { "Reveal failed for '${asset.path}': ${error.message}" }
             failure("Reveal failed: ${error.message}")
+        }
+    }
+
+    override fun revealDirectory(directoryPath: String): AssetOperationResult {
+        val normalized = normalizePath(directoryPath)
+        val directory =
+            resolveDirectory(normalized)
+                ?: return failure("Directory path is outside asset root: '$directoryPath'")
+        if (!directory.exists() || !directory.isDirectory) return failure("Directory no longer exists at '$normalized'")
+        return runCatching {
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(directory)
+            }
+            val label = normalized.ifBlank { "." }
+            logger.info(TAG) { "Revealed asset directory '$label' in '${directory.path}'" }
+            AssetOperationResult.Success(normalized, "Revealed folder '$label'")
+        }.getOrElse { error ->
+            logger.warn(TAG, error) { "Reveal directory failed for '$normalized': ${error.message}" }
+            failure("Reveal folder failed: ${error.message}")
         }
     }
 
@@ -363,6 +503,8 @@ class LocalAssetOperationsService(
 
     private fun resolveTargetDirectory(relativePath: String): File? = resolveRelativePath(relativePath)
 
+    private fun resolveDirectory(relativePath: String): File? = resolveRelativePath(relativePath)
+
     private fun resolveRelativePath(relativePath: String): File? {
         val target = basePath.resolve(normalizePath(relativePath)).normalize()
         return if (target.startsWith(basePath)) target.toFile() else null
@@ -435,6 +577,53 @@ class LocalAssetOperationsService(
     ) {
         target.parentFile?.mkdirs()
         Files.copy(source.toPath(), target.toPath())
+    }
+
+    private fun copyDirectory(
+        source: File,
+        target: File,
+    ) {
+        source.walkTopDown().forEach { entry ->
+            val relative = source.toPath().relativize(entry.toPath())
+            val destination = target.toPath().resolve(relative).toFile()
+            if (entry.isDirectory) {
+                if (!destination.exists() && !destination.mkdirs()) {
+                    error("mkdir '${destination.name}' failed")
+                }
+            } else {
+                copy(entry, destination)
+                if (entry.name.endsWith(".krmeta", ignoreCase = true)) {
+                    rewriteCopiedMetadata(destination)
+                }
+            }
+        }
+    }
+
+    private fun rewriteCopiedMetadata(metadataFile: File) {
+        runCatching {
+            val document = AssetMetadataCodec.decode(metadataFile.readText(StandardCharsets.UTF_8))
+            metadataFile.writeText(
+                AssetMetadataCodec.encode(document.copy(id = "asset:${UUID.randomUUID()}")),
+                StandardCharsets.UTF_8,
+            )
+        }.onFailure { error ->
+            logger.warn(TAG, error) { "Copied metadata '${relativePath(metadataFile)}' kept unchanged: ${error.message}" }
+        }
+    }
+
+    private fun trashDirectory(
+        source: File,
+        normalizedPath: String,
+    ) {
+        val parentRelative = normalizedPath.substringBeforeLast('/', "")
+        val trashParent =
+            resolveTargetDirectory(".trash/$parentRelative")
+                ?: error("trash directory is outside asset root")
+        if (!trashParent.exists() && !trashParent.mkdirs()) {
+            error("mkdir '${trashParent.path}' failed")
+        }
+        val target = uniqueDirectory(trashParent, source.name)
+        move(source, target)
     }
 
     private fun deletePath(file: File) {

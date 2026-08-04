@@ -27,8 +27,18 @@ data class AssetActionDescriptor(
 interface AssetBrowserOperationsHandler {
     fun create(draft: CreateAssetDraft)
 
+    fun createFolder(
+        parentDirectory: String,
+        name: String,
+    )
+
     fun rename(
         asset: AssetDescriptor,
+        newName: String,
+    )
+
+    fun renameDirectory(
+        directoryPath: String,
         newName: String,
     )
 
@@ -37,9 +47,18 @@ interface AssetBrowserOperationsHandler {
         targetName: String,
     )
 
+    fun duplicateDirectory(
+        directoryPath: String,
+        targetName: String,
+    )
+
     fun delete(asset: AssetDescriptor)
 
+    fun trashDirectory(directoryPath: String)
+
     fun reveal(asset: AssetDescriptor)
+
+    fun revealDirectory(directoryPath: String)
 
     fun toolsFor(asset: AssetDescriptor): List<AssetToolDescriptor>
 
@@ -61,8 +80,18 @@ interface AssetBrowserOperationsHandler {
             object : AssetBrowserOperationsHandler {
                 override fun create(draft: CreateAssetDraft) = Unit
 
+                override fun createFolder(
+                    parentDirectory: String,
+                    name: String,
+                ) = Unit
+
                 override fun rename(
                     asset: AssetDescriptor,
+                    newName: String,
+                ) = Unit
+
+                override fun renameDirectory(
+                    directoryPath: String,
                     newName: String,
                 ) = Unit
 
@@ -71,9 +100,18 @@ interface AssetBrowserOperationsHandler {
                     targetName: String,
                 ) = Unit
 
+                override fun duplicateDirectory(
+                    directoryPath: String,
+                    targetName: String,
+                ) = Unit
+
                 override fun delete(asset: AssetDescriptor) = Unit
 
+                override fun trashDirectory(directoryPath: String) = Unit
+
                 override fun reveal(asset: AssetDescriptor) = Unit
+
+                override fun revealDirectory(directoryPath: String) = Unit
 
                 override fun toolsFor(asset: AssetDescriptor): List<AssetToolDescriptor> = emptyList()
 
