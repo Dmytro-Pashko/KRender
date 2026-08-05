@@ -156,7 +156,7 @@ class AssetHierarchyExplorerPanel(
             state.showDeleteDialog = true
         }
         ImGui.separator()
-        if (capabilities.canReveal && ImGui.menuItem("Reveal in Files")) {
+        if (capabilities.canReveal && ImGui.menuItem("Open In File Provider")) {
             operations.reveal(asset)
         }
         ImGui.endPopup()
@@ -191,7 +191,7 @@ class AssetHierarchyExplorerPanel(
             state.refreshRequested = true
             state.statusMessage = "Refresh requested."
         }
-        if (ImGui.menuItem("Reveal in Files")) {
+        if (ImGui.menuItem("Open In File Provider")) {
             operations.revealDirectory(node.path)
         }
         ImGui.endPopup()

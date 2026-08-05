@@ -41,6 +41,16 @@ internal fun assetBrowserNormalizePath(path: String): String = path.replace('\\'
 
 internal fun assetBrowserIcon(asset: AssetDescriptor): String = AssetTypeIcons[asset.type] ?: AssetCategoryIcons.getValue(asset.category)
 
+internal fun assetBrowserSupportsTexturePreview(asset: AssetDescriptor): Boolean =
+    asset.extension.lowercase() in PreviewableTextureExtensions &&
+        (
+            asset.type == AssetType.Texture ||
+                (
+                    asset.category == AssetCategory.Environment &&
+                        asset.type in PreviewableEnvironmentTextureTypes
+                )
+        )
+
 internal val SupportedBrowserCategories =
     setOf(
         AssetCategory.Model,
@@ -55,6 +65,15 @@ internal val SupportedBrowserCategories =
     )
 
 private val AssetBrowserTimestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+private val PreviewableTextureExtensions = setOf("png", "bmp", "jpg", "jpeg", "ktx", "webp")
+
+private val PreviewableEnvironmentTextureTypes =
+    setOf(
+        AssetType.EnvironmentSkybox,
+        AssetType.EnvironmentCubemap,
+        AssetType.EnvironmentGeneratedMap,
+    )
 
 private val AssetTypeIcons =
     mapOf(

@@ -168,7 +168,7 @@ class AssetBrowserSystem(
 
     private fun syncSelectedTexturePreview() {
         val selected = selectedAsset()
-        if (selected == null || selected.type != AssetType.Texture) {
+        if (selected == null || !assetBrowserSupportsTexturePreview(selected)) {
             queuedTexturePath = null
             return
         }

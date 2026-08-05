@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.tools.assetbrowser.details
 import com.pashkd.krender.engine.assets.AssetCategory
 import com.pashkd.krender.engine.assets.AssetDescriptor
 import com.pashkd.krender.engine.assets.AssetType
+import com.pashkd.krender.engine.tools.assetbrowser.assetBrowserSupportsTexturePreview
 import com.pashkd.krender.engine.tools.assetbrowser.assetBrowserTextLine
 import imgui.ImGui
 
@@ -17,7 +18,7 @@ class EnvironmentAssetDetailsRenderer : AssetDetailsRenderer {
         when (asset.type) {
             AssetType.Environment -> renderEnvironmentManifest(asset)
             AssetType.HdrSource -> renderHdrSource(asset)
-            else -> renderEnvironmentResource(asset)
+            else -> renderEnvironmentResource(asset, context)
         }
     }
 
@@ -48,7 +49,15 @@ class EnvironmentAssetDetailsRenderer : AssetDetailsRenderer {
         assetBrowserTextLine("Index Policy: ${asset.metadata["indexPolicy"] ?: "managed"}")
     }
 
-    private fun renderEnvironmentResource(asset: AssetDescriptor) {
+    private fun renderEnvironmentResource(
+        asset: AssetDescriptor,
+        context: AssetDetailsRenderContext,
+    ) {
+        if (assetBrowserSupportsTexturePreview(asset)) {
+            ImGui.text("Preview")
+            drawAssetTexturePreview(asset, context)
+            ImGui.separator()
+        }
         assetBrowserTextLine("Resource Kind: ${asset.metadata["environmentResourceKind"] ?: asset.type.name}")
         assetBrowserTextLine("Environment Category: Generated or support resource.")
         assetBrowserTextLine("Index Policy: ${asset.metadata["indexPolicy"] ?: "managed"}")

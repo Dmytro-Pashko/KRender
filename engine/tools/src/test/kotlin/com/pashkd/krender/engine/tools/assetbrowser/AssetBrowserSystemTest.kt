@@ -57,6 +57,44 @@ class AssetBrowserSystemTest {
         assertEquals("Failed: Unsupported glTF extension.", state.selectedModelStatus)
         assertEquals(null, state.selectedModelInfo)
     }
+
+    @Test
+    fun `selected generated environment png is queued as texture preview`() {
+        val descriptor =
+            AssetDescriptor(
+                id = AssetId("asset:env:radiance:px"),
+                name = "px",
+                path = "environments/studio/generated/radiance/mip_0/px.png",
+                category = AssetCategory.Environment,
+                type = AssetType.EnvironmentCubemap,
+                extension = "png",
+                sizeBytes = 1L,
+                modifiedAtMillis = 1L,
+            )
+        val registry = FakeAssetRegistryService(listOf(descriptor))
+        val assets = FakeAssetService()
+        val state =
+            AssetBrowserState(
+                assets = listOf(descriptor),
+                selectedAssetId = descriptor.id,
+            )
+        val system =
+            AssetBrowserSystem(
+                registry = registry,
+                assets = assets,
+                tasks = ImmediateTaskService,
+                logger = NoopLogger,
+                state = state,
+                onAssetActivated = {},
+            )
+        val world = SceneWorld()
+        world.systems.add(system)
+
+        world.update(0.016f)
+
+        assertEquals(1, assets.queuedAssets.size)
+        assertEquals(descriptor.path, assets.queuedAssets.single().path)
+    }
 }
 
 private class FakeAssetRegistryService(
@@ -88,7 +126,11 @@ private class FakeAssetRegistryService(
 private class FakeAssetService(
     private val loadFailure: String? = null,
 ) : AssetService {
-    override fun queue(asset: AssetRef<*>) = Unit
+    val queuedAssets = mutableListOf<AssetRef<*>>()
+
+    override fun queue(asset: AssetRef<*>) {
+        queuedAssets += asset
+    }
 
     override fun update(budgetMs: Int): Float = 0f
 

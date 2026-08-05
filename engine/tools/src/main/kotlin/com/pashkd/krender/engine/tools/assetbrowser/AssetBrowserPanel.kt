@@ -209,7 +209,7 @@ class AssetBrowserPanel(
             state.showDeleteDialog = true
         }
         ImGui.separator()
-        if (capabilities.canReveal && ImGui.menuItem("Reveal in Files")) {
+        if (capabilities.canReveal && ImGui.menuItem("Open In File Provider")) {
             operations.reveal(asset)
         }
         ImGui.endPopup()
