@@ -1,5 +1,11 @@
 package com.pashkd.krender.engine.tools.skin.ui
 
+import com.pashkd.krender.engine.tools.common.ninepatch.NinePatchPreviewOverlays
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewCanvasRect
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewOverlays
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewRegion
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewState
+import com.pashkd.krender.engine.tools.common.texturepreview.computeTexturePreviewViewportLayout
 import com.pashkd.krender.engine.tools.skin.EditableStyle
 import com.pashkd.krender.engine.tools.skin.EditableStyleField
 import com.pashkd.krender.engine.tools.skin.ResourceSearchWidth
@@ -8,10 +14,13 @@ import com.pashkd.krender.engine.tools.skin.SkinEditorPanelIds
 import com.pashkd.krender.engine.tools.skin.SkinEditorState
 import com.pashkd.krender.engine.tools.skin.SkinResourceCategory
 import com.pashkd.krender.engine.tools.skin.SkinResourceInfo
+import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewInfo
+import com.pashkd.krender.engine.tools.skin.SkinResourceVisualPreviewKind
 import com.pashkd.krender.engine.tools.skin.SkinStyleTemplates
 import com.pashkd.krender.engine.tools.skin.StyleKey
 import com.pashkd.krender.engine.tools.skin.findEditableStyle
 import com.pashkd.krender.engine.tools.skin.readBuffer
+import com.pashkd.krender.engine.tools.skin.styleFieldPreviewKey
 import com.pashkd.krender.engine.tools.skin.writeBuffer
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
@@ -19,6 +28,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
 import imgui.ImGui
+import glm_.vec2.Vec2 as ImVec2
 
 class SkinEditorStyleInspectorPanel(
     private val state: SkinEditorState,
@@ -108,6 +118,7 @@ class SkinEditorStyleInspectorPanel(
         ImGui.textUnformatted(field.name)
         if (field.isReference) {
             drawReferencePicker(style, field)
+            drawReferencePreview(style, field)
         } else {
             drawRawField(style, field)
         }
@@ -133,11 +144,84 @@ class SkinEditorStyleInspectorPanel(
             options.forEach { resource ->
                 val label = "${resource.name} [${resource.category}]"
                 if (ImGui.selectable("$label##${resource.category}_${resource.name}", resource.name == field.value)) {
-                    operations.updateStyleField(style.key, field.name, resource.name)
+                    operations.selectStyleFieldResource(style.key, field.name, resource)
                 }
             }
             ImGui.endCombo()
         }
+    }
+
+    private fun drawReferencePreview(
+        style: EditableStyle,
+        field: EditableStyleField,
+    ) {
+        if (field.referenceCategory !in PreviewableFieldCategories || field.value.isBlank()) return
+        val key = styleFieldPreviewKey(style.key, field.name)
+        val info = state.styleFieldResourcePreviewInfos[key] ?: return
+        ImGui.spacing()
+        if (info.kind != SkinResourceVisualPreviewKind.Texture || info.texturePreviewHandle == null) {
+            ImGui.textWrapped(info.statusMessage)
+            return
+        }
+        drawTextureReferencePreview(field, info)
+    }
+
+    private fun drawTextureReferencePreview(
+        field: EditableStyleField,
+        info: SkinResourceVisualPreviewInfo,
+    ) {
+        val handle = info.texturePreviewHandle ?: return
+        val sourceWidth = info.regionWidth ?: handle.width
+        val sourceHeight = info.regionHeight ?: handle.height
+        if (sourceWidth <= 0 || sourceHeight <= 0) return
+        val width = ImGui.contentRegionAvail.x.coerceAtLeast(1f)
+        val height = InlinePreviewHeight
+        ImGui.beginChild("skin_editor_field_preview_${field.name}", ImVec2(width, height), true)
+        val min = ImGui.cursorScreenPos
+        val available = ImGui.contentRegionAvail
+        val layout =
+            computeTexturePreviewViewportLayout(
+                rect = TexturePreviewCanvasRect(min.x, min.y, available.x.coerceAtLeast(1f), available.y.coerceAtLeast(1f)),
+                textureWidth = sourceWidth,
+                textureHeight = sourceHeight,
+                previewState = TexturePreviewState(),
+                contentPaddingPixels = InlinePreviewPadding,
+            )
+        TexturePreviewOverlays.drawCheckerboard(layout)
+        val regionX = info.regionX ?: 0
+        val regionY = info.regionY ?: 0
+        val uSpan = handle.u1 - handle.u0
+        val vSpan = handle.v1 - handle.v0
+        val u0 = handle.u0 + (regionX.toFloat() / handle.width.coerceAtLeast(1).toFloat()) * uSpan
+        val v0 = handle.v0 + (regionY.toFloat() / handle.height.coerceAtLeast(1).toFloat()) * vSpan
+        val u1 = handle.u0 + ((regionX + sourceWidth).toFloat() / handle.width.coerceAtLeast(1).toFloat()) * uSpan
+        val v1 = handle.v0 + ((regionY + sourceHeight).toFloat() / handle.height.coerceAtLeast(1).toFloat()) * vSpan
+        ImGui.windowDrawList.addImage(
+            handle.id,
+            ImVec2(layout.imageX, layout.imageY),
+            ImVec2(layout.imageX + layout.imageWidth, layout.imageY + layout.imageHeight),
+            ImVec2(u0, v0),
+            ImVec2(u1, v1),
+        )
+        TexturePreviewOverlays.drawRegionBounds(
+            regions =
+                listOf(
+                    TexturePreviewRegion(
+                        id = field.name,
+                        label = field.value,
+                        x = 0,
+                        y = 0,
+                        width = sourceWidth,
+                        height = sourceHeight,
+                    ),
+                ),
+            layout = layout,
+        )
+        info.ninePatchDraft?.let { draft ->
+            NinePatchPreviewOverlays.drawDraftGuides(NinePatchPreviewOverlays.buildDraftOverlay(draft, layout))
+        }
+        ImGui.dummy(ImVec2(available.x.coerceAtLeast(1f), available.y.coerceAtLeast(1f)))
+        ImGui.endChild()
     }
 
     private fun drawRawField(
@@ -237,5 +321,12 @@ class SkinEditorStyleInspectorPanel(
 
     private companion object {
         private const val MaxVisibleChanges = 20
+        private const val InlinePreviewHeight = 112f
+        private const val InlinePreviewPadding = 8
+        private val PreviewableFieldCategories =
+            setOf(
+                SkinResourceCategory.Drawable,
+                SkinResourceCategory.Texture,
+            )
     }
 }

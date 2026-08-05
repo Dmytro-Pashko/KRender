@@ -1,7 +1,13 @@
 package com.pashkd.krender.engine.tools.skin
 
 import com.pashkd.krender.engine.api.TexturePreviewHandle
+import com.pashkd.krender.engine.tools.common.canvas.CanvasRect
 import com.pashkd.krender.engine.tools.common.canvas.CanvasZoomMode
+import com.pashkd.krender.engine.tools.common.ninepatch.NinePatchDraft
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewState
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewSurfaceMode
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewViewportState
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewZoomMode
 import java.io.File
 
 /**
@@ -119,13 +125,7 @@ data class SkinProblemFilterState(
     var showErrors: Boolean = true,
 )
 
-enum class SkinResourceVisualPreviewZoomMode {
-    Fit,
-    Percent50,
-    Percent100,
-    Percent200,
-    Custom,
-}
+typealias SkinResourceVisualPreviewZoomMode = TexturePreviewZoomMode
 
 /**
  * Atlas-only overlay toggles used by the ImGui resource preview viewport.
@@ -148,13 +148,29 @@ data class SkinAtlasPreviewVisualOptions(
  * from Scene2D preview camera state used by the Preview Canvas.
  */
 data class SkinResourcePreviewViewportState(
-    var panX: Float = 0f,
-    var panY: Float = 0f,
-    var zoom: Float = 1f,
+    var viewport: TexturePreviewViewportState = TexturePreviewViewportState(),
     var clickSelectRegionEnabled: Boolean = true,
     var contentKey: String? = null,
     var atlasVisuals: SkinAtlasPreviewVisualOptions = SkinAtlasPreviewVisualOptions(),
-)
+) {
+    var panX: Float
+        get() = viewport.panX
+        set(value) {
+            viewport.panX = value
+        }
+
+    var panY: Float
+        get() = viewport.panY
+        set(value) {
+            viewport.panY = value
+        }
+
+    var zoom: Float
+        get() = viewport.zoom
+        set(value) {
+            viewport.zoom = value
+        }
+}
 
 data class SkinFontPreviewState(
     var sampleText: String = DefaultFontPreviewSampleText,
@@ -183,7 +199,19 @@ data class SkinResourceVisualPreviewState(
     var selectedAtlasRegionName: String? = null,
     var viewport: SkinResourcePreviewViewportState = SkinResourcePreviewViewportState(),
     var fontPreview: SkinFontPreviewState = SkinFontPreviewState(),
-)
+) {
+    fun toTexturePreviewState(): TexturePreviewState =
+        TexturePreviewState(
+            zoomMode = zoomMode,
+            surfaceMode = TexturePreviewSurfaceMode.Actual,
+            customZoom = viewport.zoom,
+            viewport = viewport.viewport,
+            showCheckerboard = viewport.atlasVisuals.showCheckerboard,
+            showGrid = viewport.atlasVisuals.showGrid,
+            gridSpacingPixels = viewport.atlasVisuals.gridSize,
+            showBounds = showRegionBounds,
+        )
+}
 
 /**
  * Opaque result of one resource preview refresh.
@@ -205,6 +233,11 @@ data class SkinResourceVisualPreviewInfo(
     val texturePreviewHandle: TexturePreviewHandle? = null,
     val textureWidth: Int = 0,
     val textureHeight: Int = 0,
+    val regionX: Int? = null,
+    val regionY: Int? = null,
+    val regionWidth: Int? = null,
+    val regionHeight: Int? = null,
+    val ninePatchDraft: NinePatchDraft? = null,
     val atlasPageName: String? = null,
     val selectedRegionName: String? = null,
     val resolvedFontPath: String? = null,
@@ -275,14 +308,7 @@ data class SkinLoadResult(
     val previewSkinAvailable: Boolean = false,
 )
 
-data class SkinEditorCanvasRect(
-    val x: Float = 0f,
-    val y: Float = 0f,
-    val width: Float = 0f,
-    val height: Float = 0f,
-) {
-    val isValid: Boolean get() = width > 1f && height > 1f
-}
+typealias SkinEditorCanvasRect = CanvasRect
 
 data class SkinEditorPreviewItem(
     val key: String,
@@ -437,6 +463,7 @@ data class SkinEditorState(
     var canvasRect: SkinEditorCanvasRect = SkinEditorCanvasRect(),
     var resourceVisualPreview: SkinResourceVisualPreviewState = SkinResourceVisualPreviewState(),
     var resourceVisualPreviewInfo: SkinResourceVisualPreviewInfo = SkinResourceVisualPreviewInfo(),
+    val styleFieldResourcePreviewInfos: MutableMap<String, SkinResourceVisualPreviewInfo> = mutableMapOf(),
     var previewLayoutId: String = DefaultWidgetPreviewLayout.Id,
     var previewSettings: SkinPreviewSettings = SkinPreviewSettings(),
     var previewDirty: Boolean = true,
