@@ -28,8 +28,19 @@ fun validateStyleReferences(
 fun UiComposerSkinMetadata.toValidationMetadata(): UiSceneSkinValidationMetadata =
     UiSceneSkinValidationMetadata(
         labelStyles = labelStyles.toSet(),
+        buttonStyles = buttonStyles.toSet(),
         textButtonStyles = textButtonStyles.toSet(),
+        checkBoxStyles = checkBoxStyles.toSet(),
+        textFieldStyles = textFieldStyles.toSet(),
+        selectBoxStyles = selectBoxStyles.toSet(),
+        listStyles = listStyles.toSet(),
+        scrollPaneStyles = scrollPaneStyles.toSet(),
+        splitPaneStyles = splitPaneStyles.toSet(),
+        sliderStyles = sliderStyles.toSet(),
         progressBarStyles = progressBarStyles.toSet(),
+        treeStyles = treeStyles.toSet(),
+        textTooltipStyles = textTooltipStyles.toSet(),
+        windowStyles = windowStyles.toSet(),
         drawables = drawables.toSet(),
         loadError = loadError,
     )

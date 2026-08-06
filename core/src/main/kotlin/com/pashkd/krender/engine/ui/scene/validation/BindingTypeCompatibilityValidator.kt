@@ -13,7 +13,9 @@ object BindingTypeCompatibilityValidator : UiSceneValidationRule {
     ): List<UiSceneValidationIssue> {
         val issues = mutableListOf<UiSceneValidationIssue>()
         when (node.type) {
-            UiSceneNodeType.ProgressBar -> {
+            UiSceneNodeType.ProgressBar,
+            UiSceneNodeType.Slider,
+            -> {
                 node.valueBinding
                     ?.trim()
                     ?.takeIf(String::isNotBlank)
@@ -25,7 +27,7 @@ object BindingTypeCompatibilityValidator : UiSceneValidationRule {
                             requiredType = UiSceneBindingType.Number,
                             context = context,
                             issues = issues,
-                            messagePrefix = "ProgressBar.valueBinding must reference Number binding",
+                            messagePrefix = "${node.type}.valueBinding must reference Number binding",
                         )
                     }
             }
@@ -74,7 +76,13 @@ object BindingTypeCompatibilityValidator : UiSceneValidationRule {
                     }
             }
 
-            UiSceneNodeType.Label -> {
+            UiSceneNodeType.Label,
+            UiSceneNodeType.Button,
+            UiSceneNodeType.CheckBox,
+            UiSceneNodeType.TextField,
+            UiSceneNodeType.TextTooltip,
+            UiSceneNodeType.Window,
+            -> {
                 collectBindingReferences(context.document)
                     .filter { reference -> reference.nodeId == node.id && reference.fieldName == "text" }
                     .forEach { reference ->
@@ -85,6 +93,11 @@ object BindingTypeCompatibilityValidator : UiSceneValidationRule {
             UiSceneNodeType.Stack,
             UiSceneNodeType.Table,
             UiSceneNodeType.Container,
+            UiSceneNodeType.SelectBox,
+            UiSceneNodeType.List,
+            UiSceneNodeType.ScrollPane,
+            UiSceneNodeType.SplitPane,
+            UiSceneNodeType.Tree,
             UiSceneNodeType.Space,
             -> Unit
         }

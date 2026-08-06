@@ -7,12 +7,14 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
+import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.Scaling
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiActionHandler
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiBindingContract
 import com.pashkd.krender.engine.ui.scene.*
+import com.badlogic.gdx.scenes.scene2d.ui.List as GdxList
 
 /**
  * Builds LibGDX Scene2D actors from shared `.krui` documents.
@@ -30,6 +32,7 @@ class GdxUiSceneBuilder(
     companion object {
         private const val TAG = "GdxUiSceneBuilder"
         private const val DefaultProgressStyle = "default-horizontal"
+        private const val DefaultSliderStyle = "default-horizontal"
     }
 
     private val skinCache = mutableMapOf<String, Skin>()
@@ -95,9 +98,20 @@ class GdxUiSceneBuilder(
                 UiSceneNodeType.Stack -> buildStack(node, skin, payload, actionHandler, isRoot, onActorBuilt)
                 UiSceneNodeType.Table -> buildTable(node, skin, payload, actionHandler, isRoot, onActorBuilt)
                 UiSceneNodeType.Container -> buildContainer(node, skin, payload, actionHandler, isRoot, onActorBuilt)
+                UiSceneNodeType.Window -> buildWindow(node, skin, payload, actionHandler, isRoot, onActorBuilt)
                 UiSceneNodeType.Label -> buildLabel(node, skin, payload)
+                UiSceneNodeType.Button -> buildButton(node, skin, payload)
                 UiSceneNodeType.TextButton -> buildTextButton(node, skin, payload, actionHandler)
+                UiSceneNodeType.CheckBox -> buildCheckBox(node, skin, payload)
+                UiSceneNodeType.TextField -> buildTextField(node, skin, payload)
+                UiSceneNodeType.SelectBox -> buildSelectBox(node, skin)
+                UiSceneNodeType.List -> buildList(node, skin)
+                UiSceneNodeType.ScrollPane -> buildScrollPane(node, skin, payload, actionHandler, onActorBuilt)
+                UiSceneNodeType.SplitPane -> buildSplitPane(node, skin, payload, actionHandler, onActorBuilt)
+                UiSceneNodeType.Slider -> buildSlider(node, skin, payload)
                 UiSceneNodeType.ProgressBar -> buildProgressBar(node, skin, payload)
+                UiSceneNodeType.Tree -> buildTree(node, skin)
+                UiSceneNodeType.TextTooltip -> buildTextTooltip(node, skin, payload)
                 UiSceneNodeType.Image -> buildImage(node, payload)
                 UiSceneNodeType.Space -> Actor()
             }
@@ -218,6 +232,24 @@ class GdxUiSceneBuilder(
         }
     }
 
+    private fun buildButton(
+        node: UiSceneNode,
+        skin: Skin,
+        payload: Map<String, String>,
+    ): Button {
+        val actor =
+            if (node.style.isNullOrBlank()) {
+                Button(skin)
+            } else {
+                Button(skin, node.style)
+            }
+        node.text
+            ?.let { UiSceneBindings.bindText(it, payload) }
+            ?.takeIf(String::isNotBlank)
+            ?.let { text -> actor.add(Label(text, skin)) }
+        return actor
+    }
+
     private fun buildTextButton(
         node: UiSceneNode,
         skin: Skin,
@@ -249,6 +281,132 @@ class GdxUiSceneBuilder(
             )
         }
         return button
+    }
+
+    private fun buildCheckBox(
+        node: UiSceneNode,
+        skin: Skin,
+        payload: Map<String, String>,
+    ): CheckBox {
+        val text = UiSceneBindings.bindText(node.text ?: "", payload)
+        return if (node.style.isNullOrBlank()) {
+            CheckBox(text, skin)
+        } else {
+            CheckBox(text, skin, node.style)
+        }
+    }
+
+    private fun buildTextField(
+        node: UiSceneNode,
+        skin: Skin,
+        payload: Map<String, String>,
+    ): TextField {
+        val text = UiSceneBindings.bindText(node.text ?: "", payload)
+        return if (node.style.isNullOrBlank()) {
+            TextField(text, skin)
+        } else {
+            TextField(text, skin, node.style)
+        }
+    }
+
+    private fun buildSelectBox(
+        node: UiSceneNode,
+        skin: Skin,
+    ): SelectBox<String> {
+        val actor =
+            if (node.style.isNullOrBlank()) {
+                SelectBox<String>(skin)
+            } else {
+                SelectBox<String>(skin, node.style)
+            }
+        actor.items = Array.with(*(node.items.ifEmpty { listOf("First", "Second", "Third") }).toTypedArray())
+        return actor
+    }
+
+    private fun buildList(
+        node: UiSceneNode,
+        skin: Skin,
+    ): GdxList<String> {
+        val actor =
+            if (node.style.isNullOrBlank()) {
+                GdxList<String>(skin)
+            } else {
+                GdxList<String>(skin, node.style)
+            }
+        actor.setItems(Array.with(*(node.items.ifEmpty { listOf("First", "Second", "Third") }).toTypedArray()))
+        return actor
+    }
+
+    private fun buildScrollPane(
+        node: UiSceneNode,
+        skin: Skin,
+        payload: Map<String, String>,
+        actionHandler: RuntimeUiActionHandler?,
+        onActorBuilt: ((UiSceneNode, Actor) -> Unit)?,
+    ): ScrollPane {
+        val child =
+            node.children.firstOrNull()?.let { child ->
+                buildNode(child, skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
+            } ?: Table()
+        return if (node.style.isNullOrBlank()) {
+            ScrollPane(child, skin)
+        } else {
+            ScrollPane(child, skin, node.style)
+        }.apply {
+            setFadeScrollBars(false)
+        }
+    }
+
+    private fun buildSplitPane(
+        node: UiSceneNode,
+        skin: Skin,
+        payload: Map<String, String>,
+        actionHandler: RuntimeUiActionHandler?,
+        onActorBuilt: ((UiSceneNode, Actor) -> Unit)?,
+    ): SplitPane {
+        val first =
+            node.children.getOrNull(0)?.let { child ->
+                buildNode(child, skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
+            } ?: Table()
+        val second =
+            node.children.getOrNull(1)?.let { child ->
+                buildNode(child, skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
+            } ?: Table()
+        return if (node.style.isNullOrBlank()) {
+            SplitPane(first, second, node.vertical, skin)
+        } else {
+            SplitPane(first, second, node.vertical, skin, node.style)
+        }.apply {
+            splitAmount = node.splitAmount.coerceIn(0f, 1f)
+        }
+    }
+
+    private fun buildSlider(
+        node: UiSceneNode,
+        skin: Skin,
+        payload: Map<String, String>,
+    ): Slider {
+        require(node.max > node.min) {
+            "Slider '${node.id}' must have max greater than min, but min=${node.min}, max=${node.max}."
+        }
+        require(node.step > 0f) {
+            "Slider '${node.id}' must have positive step, but step=${node.step}."
+        }
+        val styleName = node.style?.takeIf(String::isNotBlank) ?: DefaultSliderStyle
+        val slider =
+            Slider(
+                node.min,
+                node.max,
+                node.step,
+                node.vertical,
+                skin.get(styleName, Slider.SliderStyle::class.java),
+            )
+        val fallback = node.value ?: node.min
+        slider.value =
+            UiSceneBindings
+                .boundFloat(node.valueBinding, payload, fallback)
+                .coerceIn(node.min, node.max)
+        return slider
     }
 
     private fun buildProgressBar(
@@ -295,6 +453,92 @@ class GdxUiSceneBuilder(
         val texture = texture(texturePath)
         return Image(texture).apply {
             setScaling(toGdxScaling(node.scaling))
+        }
+    }
+
+    private fun buildTree(
+        node: UiSceneNode,
+        skin: Skin,
+    ): Tree<PreviewTreeNode, String> {
+        val actor =
+            if (node.style.isNullOrBlank()) {
+                Tree<PreviewTreeNode, String>(skin)
+            } else {
+                Tree<PreviewTreeNode, String>(skin, node.style)
+            }
+        val nodes = linkedMapOf<String, PreviewTreeNode>()
+        node.items.ifEmpty { listOf("Root", "Root/Child", "Root/Child/Leaf") }.forEach { path ->
+            var currentPath = ""
+            var parentNode: PreviewTreeNode? = null
+            path.split('/').filter(String::isNotBlank).forEach { segment ->
+                currentPath = if (currentPath.isBlank()) segment else "$currentPath/$segment"
+                val treeNode =
+                    nodes.getOrPut(currentPath) {
+                        PreviewTreeNode(Label(segment, skin), currentPath).also { created ->
+                            if (parentNode == null) {
+                                actor.add(created)
+                            } else {
+                                parentNode?.add(created)
+                            }
+                        }
+                    }
+                parentNode = treeNode
+            }
+        }
+        actor.expandAll()
+        return actor
+    }
+
+    private fun buildTextTooltip(
+        node: UiSceneNode,
+        skin: Skin,
+        payload: Map<String, String>,
+    ): Actor {
+        val text = UiSceneBindings.bindText(node.text ?: "", payload)
+        val tooltip =
+            if (node.style.isNullOrBlank()) {
+                TextTooltip(text, skin)
+            } else {
+                TextTooltip(text, skin, node.style)
+            }
+        return tooltip.container
+    }
+
+    private fun buildWindow(
+        node: UiSceneNode,
+        skin: Skin,
+        payload: Map<String, String>,
+        actionHandler: RuntimeUiActionHandler?,
+        isRoot: Boolean,
+        onActorBuilt: ((UiSceneNode, Actor) -> Unit)?,
+    ): Window {
+        val title = UiSceneBindings.bindText(node.text ?: node.id, payload)
+        return if (node.style.isNullOrBlank()) {
+            Window(title, skin)
+        } else {
+            Window(title, skin, node.style)
+        }.apply {
+            setFillParent(isRoot)
+            applyPadding(node.padding)
+            node.background?.takeIf(String::isNotBlank)?.let { drawableName -> setBackground(skin.getDrawable(drawableName)) }
+            node.children.forEachIndexed { index, child ->
+                val childActor =
+                    buildNode(child, skin, payload, actionHandler, isRoot = false, onActorBuilt = onActorBuilt)
+                val cell = add(childActor).applyNodeSize(child)
+                if (index < node.children.lastIndex) {
+                    cell.padBottom(node.spacing)
+                    row()
+                }
+            }
+        }
+    }
+
+    private class PreviewTreeNode(
+        actor: Actor,
+        value: String,
+    ) : Tree.Node<PreviewTreeNode, String, Actor>(actor) {
+        init {
+            setValue(value)
         }
     }
 

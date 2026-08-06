@@ -32,8 +32,19 @@ fun UiSceneNode.flattenNodes(): List<UiSceneNode> = listOf(this) + children.flat
  */
 data class UiSceneSkinValidationMetadata(
     val labelStyles: Set<String> = emptySet(),
+    val buttonStyles: Set<String> = emptySet(),
     val textButtonStyles: Set<String> = emptySet(),
+    val checkBoxStyles: Set<String> = emptySet(),
+    val textFieldStyles: Set<String> = emptySet(),
+    val selectBoxStyles: Set<String> = emptySet(),
+    val listStyles: Set<String> = emptySet(),
+    val scrollPaneStyles: Set<String> = emptySet(),
+    val splitPaneStyles: Set<String> = emptySet(),
+    val sliderStyles: Set<String> = emptySet(),
     val progressBarStyles: Set<String> = emptySet(),
+    val treeStyles: Set<String> = emptySet(),
+    val textTooltipStyles: Set<String> = emptySet(),
+    val windowStyles: Set<String> = emptySet(),
     val drawables: Set<String> = emptySet(),
     val loadError: String? = null,
 )

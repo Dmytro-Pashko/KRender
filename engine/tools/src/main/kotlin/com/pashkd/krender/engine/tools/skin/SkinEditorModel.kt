@@ -464,7 +464,7 @@ data class SkinEditorState(
     var resourceVisualPreview: SkinResourceVisualPreviewState = SkinResourceVisualPreviewState(),
     var resourceVisualPreviewInfo: SkinResourceVisualPreviewInfo = SkinResourceVisualPreviewInfo(),
     val styleFieldResourcePreviewInfos: MutableMap<String, SkinResourceVisualPreviewInfo> = mutableMapOf(),
-    var previewLayoutId: String = DefaultWidgetPreviewLayout.Id,
+    var previewLayoutId: String = "all",
     var previewSettings: SkinPreviewSettings = SkinPreviewSettings(),
     var previewDirty: Boolean = true,
     var reloadRequested: Boolean = false,

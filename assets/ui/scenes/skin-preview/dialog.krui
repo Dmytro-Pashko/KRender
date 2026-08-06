@@ -1,0 +1,25 @@
+{
+    "schemaVersion": 1,
+    "id": "skin_preview_dialog",
+    "skin": "ui/skins/default/uiskin.json",
+    "bindings": [
+        { "key": "labelText", "type": "Text", "defaultValue": "Save changes before closing?" },
+        { "key": "buttonText", "type": "Text", "defaultValue": "Save" },
+        { "key": "textFieldPlaceholder", "type": "Text", "defaultValue": "Dialog name" }
+    ],
+    "root": {
+        "id": "dialog_window",
+        "type": "Window",
+        "text": "Unsaved Changes",
+        "spacing": 8,
+        "children": [
+            { "id": "dialog_message", "type": "Label", "text": "{labelText}" },
+            { "id": "dialog_ukrainian", "type": "Label", "text": "Зберегти зміни перед закриттям?" },
+            { "id": "dialog_name", "type": "TextField", "text": "{textFieldPlaceholder}" },
+            { "id": "dialog_remember", "type": "CheckBox", "text": "Remember my choice" },
+            { "id": "dialog_save", "type": "TextButton", "text": "{buttonText}" },
+            { "id": "dialog_discard", "type": "TextButton", "text": "Discard" },
+            { "id": "dialog_cancel", "type": "TextButton", "text": "Cancel" }
+        ]
+    }
+}

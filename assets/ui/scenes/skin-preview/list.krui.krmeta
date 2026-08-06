@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:06eaaa78-de20-47d7-a007-0824fb5e8820",
+  "type": "UiScene",
+  "category": "UI",
+  "displayName": "skin_preview_list",
+  "tags": [],
+  "importerId": "ui-scene",
+  "importSettings": {}
+}

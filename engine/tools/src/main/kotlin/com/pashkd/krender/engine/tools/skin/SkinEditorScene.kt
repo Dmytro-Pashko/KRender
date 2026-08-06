@@ -35,7 +35,7 @@ class SkinEditorScene(
     private lateinit var reloadService: SkinReloadService
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
     private lateinit var operations: SkinEditorOperations
-    private val previewLayouts = PreviewLayoutRegistry()
+    private lateinit var previewLayouts: PreviewLayoutRegistry
     private var lastLoggedProblemsSignature: String? = null
 
     init {
@@ -46,6 +46,7 @@ class SkinEditorScene(
         engine.logger.info(TAG) { "Showing Skin Editor path='${editorState.currentInputPath ?: "<none>"}'" }
         preview = GdxSkinEditorPreview(engine.logger)
         resourcePreview = GdxSkinResourcePreview(engine.logger)
+        previewLayouts = PreviewLayoutRegistry(sceneFiles = engine.sceneFiles)
         reloadService =
             SkinReloadService(
                 logger = engine.logger,
@@ -341,17 +342,24 @@ private class SkinEditorPreviewUpdateSystem(
                         logicalWidth = preset.width,
                         logicalHeight = preset.height,
                         scale = state.previewSettings.scale,
-                        fallbackIssueCount = buildResult.issues.size,
+                        fallbackIssueCount = layout.issues.size + buildResult.issues.size,
                     )
                 replacePreviewProblems(
                     if (state.previewSettings.showFallbackWarnings) {
-                        buildResult.issues.map { issue ->
+                        layout.issues.map { issue ->
                             SkinProblem(
                                 severity = SkinProblemSeverity.Warning,
                                 category = SkinProblemCategory.Preview,
-                                message = issue.message,
+                                message = issue,
                             )
-                        }
+                        } +
+                            buildResult.issues.map { issue ->
+                                SkinProblem(
+                                    severity = SkinProblemSeverity.Warning,
+                                    category = SkinProblemCategory.Preview,
+                                    message = issue.message,
+                                )
+                            }
                     } else {
                         emptyList()
                     },

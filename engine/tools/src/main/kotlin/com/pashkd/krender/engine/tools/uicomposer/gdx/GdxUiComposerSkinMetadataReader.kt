@@ -2,15 +2,26 @@ package com.pashkd.krender.engine.tools.uicomposer.gdx
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.scenes.scene2d.ui.CheckBox
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.ui.Slider
+import com.badlogic.gdx.scenes.scene2d.ui.SplitPane
+import com.badlogic.gdx.scenes.scene2d.ui.TextField
+import com.badlogic.gdx.scenes.scene2d.ui.TextTooltip
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.scenes.scene2d.ui.Tree
+import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Disposable
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TexturePreviewHandle
 import com.pashkd.krender.engine.tools.uicomposer.UiComposerSkinMetadata
+import com.badlogic.gdx.scenes.scene2d.ui.List as GdxList
 
 /**
  * Reads LibGDX `Skin` names into immutable editor metadata for UiComposer pickers.
@@ -59,8 +70,19 @@ class GdxUiComposerSkinMetadataReader(
             UiComposerSkinMetadata(
                 skinPath = skinPath,
                 labelStyles = skin.namesFor(Label.LabelStyle::class.java),
+                buttonStyles = skin.namesFor(Button.ButtonStyle::class.java),
                 textButtonStyles = skin.namesFor(TextButton.TextButtonStyle::class.java),
+                checkBoxStyles = skin.namesFor(CheckBox.CheckBoxStyle::class.java),
+                textFieldStyles = skin.namesFor(TextField.TextFieldStyle::class.java),
+                selectBoxStyles = skin.namesFor(SelectBox.SelectBoxStyle::class.java),
+                listStyles = skin.namesFor(GdxList.ListStyle::class.java),
+                scrollPaneStyles = skin.namesFor(ScrollPane.ScrollPaneStyle::class.java),
+                splitPaneStyles = skin.namesFor(SplitPane.SplitPaneStyle::class.java),
+                sliderStyles = skin.namesFor(Slider.SliderStyle::class.java),
                 progressBarStyles = skin.namesFor(ProgressBar.ProgressBarStyle::class.java),
+                treeStyles = skin.namesFor(Tree.TreeStyle::class.java),
+                textTooltipStyles = skin.namesFor(TextTooltip.TextTooltipStyle::class.java),
+                windowStyles = skin.namesFor(Window.WindowStyle::class.java),
                 drawables = drawableNames,
                 drawablePreviewHandles =
                     drawableNames
@@ -71,8 +93,19 @@ class GdxUiComposerSkinMetadataReader(
                 metadataCache[skinPath] = metadata
                 logger.debug(TAG) {
                     "Loaded UiComposer Skin metadata path='$skinPath' labelStyles=${metadata.labelStyles.size} " +
+                        "buttonStyles=${metadata.buttonStyles.size} " +
                         "textButtonStyles=${metadata.textButtonStyles.size} " +
+                        "checkBoxStyles=${metadata.checkBoxStyles.size} " +
+                        "textFieldStyles=${metadata.textFieldStyles.size} " +
+                        "selectBoxStyles=${metadata.selectBoxStyles.size} " +
+                        "listStyles=${metadata.listStyles.size} " +
+                        "scrollPaneStyles=${metadata.scrollPaneStyles.size} " +
+                        "splitPaneStyles=${metadata.splitPaneStyles.size} " +
+                        "sliderStyles=${metadata.sliderStyles.size} " +
                         "progressBarStyles=${metadata.progressBarStyles.size} drawables=${metadata.drawables.size} " +
+                        "treeStyles=${metadata.treeStyles.size} " +
+                        "textTooltipStyles=${metadata.textTooltipStyles.size} " +
+                        "windowStyles=${metadata.windowStyles.size} " +
                         "drawablePreviewHandles=${metadata.drawablePreviewHandles.size}"
                 }
                 logger.debug(TAG) {

@@ -28,13 +28,31 @@ object NodeShapeValidator : UiSceneValidationRule {
                     fieldName = "children",
                 )
         }
-        if (node.type == UiSceneNodeType.ProgressBar) {
-            validateProgressBar(node, nodeId, issues)
+        if (node.type == UiSceneNodeType.ScrollPane && node.children.size > 1) {
+            issues +=
+                warning(
+                    code = UiSceneValidationCode.ContainerHasMultipleChildren,
+                    message = "ScrollPane should define at most one child.",
+                    nodeId = nodeId,
+                    fieldName = "children",
+                )
+        }
+        if (node.type == UiSceneNodeType.SplitPane && node.children.size > 2) {
+            issues +=
+                warning(
+                    code = UiSceneValidationCode.ContainerHasMultipleChildren,
+                    message = "SplitPane should define at most two children.",
+                    nodeId = nodeId,
+                    fieldName = "children",
+                )
+        }
+        if (node.type == UiSceneNodeType.ProgressBar || node.type == UiSceneNodeType.Slider) {
+            validateRangeWidget(node, nodeId, issues)
         }
         return issues
     }
 
-    private fun validateProgressBar(
+    private fun validateRangeWidget(
         node: UiSceneNode,
         nodeId: String?,
         issues: MutableList<UiSceneValidationIssue>,
@@ -43,7 +61,7 @@ object NodeShapeValidator : UiSceneValidationRule {
             issues +=
                 warning(
                     code = UiSceneValidationCode.MissingProgressBarValue,
-                    message = "ProgressBar should define either value or valueBinding.",
+                    message = "${node.type} should define either value or valueBinding.",
                     nodeId = nodeId,
                     fieldName = "valueBinding",
                 )
@@ -52,7 +70,7 @@ object NodeShapeValidator : UiSceneValidationRule {
             issues +=
                 error(
                     code = UiSceneValidationCode.InvalidProgressBarRange,
-                    message = "ProgressBar max must be greater than min.",
+                    message = "${node.type} max must be greater than min.",
                     nodeId = nodeId,
                     fieldName = "max",
                 )
@@ -61,7 +79,7 @@ object NodeShapeValidator : UiSceneValidationRule {
             issues +=
                 error(
                     code = UiSceneValidationCode.InvalidProgressBarStep,
-                    message = "ProgressBar step must be positive.",
+                    message = "${node.type} step must be positive.",
                     nodeId = nodeId,
                     fieldName = "step",
                 )
@@ -71,7 +89,15 @@ object NodeShapeValidator : UiSceneValidationRule {
 
 private fun UiSceneNodeType.isLeaf(): Boolean =
     this == UiSceneNodeType.Label ||
+        this == UiSceneNodeType.Button ||
         this == UiSceneNodeType.TextButton ||
+        this == UiSceneNodeType.CheckBox ||
+        this == UiSceneNodeType.TextField ||
+        this == UiSceneNodeType.SelectBox ||
+        this == UiSceneNodeType.List ||
         this == UiSceneNodeType.Image ||
+        this == UiSceneNodeType.Slider ||
         this == UiSceneNodeType.ProgressBar ||
+        this == UiSceneNodeType.Tree ||
+        this == UiSceneNodeType.TextTooltip ||
         this == UiSceneNodeType.Space
