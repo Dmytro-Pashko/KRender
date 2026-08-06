@@ -565,11 +565,25 @@ class UiComposerInspectorPanel(
     ) {
         when (node.type) {
             UiSceneNodeType.Label,
+            UiSceneNodeType.Button,
             UiSceneNodeType.TextButton,
+            UiSceneNodeType.CheckBox,
+            UiSceneNodeType.TextField,
+            UiSceneNodeType.SelectBox,
+            UiSceneNodeType.List,
+            UiSceneNodeType.ScrollPane,
+            UiSceneNodeType.SplitPane,
+            UiSceneNodeType.Slider,
             UiSceneNodeType.ProgressBar,
+            UiSceneNodeType.Tree,
+            UiSceneNodeType.TextTooltip,
+            UiSceneNodeType.Window,
             -> {
                 drawSkinPickerWarning(document, skinMetadata)
                 drawStyleEditor(node, skinMetadata)
+                if (node.type == UiSceneNodeType.Window) {
+                    drawBackgroundEditor(node, skinMetadata)
+                }
                 ImGui.separator()
             }
 
@@ -595,9 +609,25 @@ class UiComposerInspectorPanel(
                 drawAlignEditor(node)
             }
 
+            UiSceneNodeType.Button,
+            UiSceneNodeType.CheckBox,
+            UiSceneNodeType.TextField,
+            UiSceneNodeType.TextTooltip,
+            UiSceneNodeType.Window,
+            -> {
+                drawTextEditor(node)
+            }
+
             UiSceneNodeType.TextButton -> {
                 drawTextEditor(node)
                 drawActionEditor(node)
+            }
+
+            UiSceneNodeType.SelectBox,
+            UiSceneNodeType.List,
+            UiSceneNodeType.Tree,
+            -> {
+                drawItemsEditor(node)
             }
 
             UiSceneNodeType.Image -> {
@@ -605,8 +635,12 @@ class UiComposerInspectorPanel(
                 drawImageScalingEditor(node)
             }
 
+            UiSceneNodeType.Slider -> {
+                drawRangeWidgetEditor(node, "Slider")
+            }
+
             UiSceneNodeType.ProgressBar -> {
-                drawProgressBarEditor(node)
+                drawRangeWidgetEditor(node, "ProgressBar")
             }
 
             UiSceneNodeType.Table -> {
@@ -615,6 +649,12 @@ class UiComposerInspectorPanel(
 
             UiSceneNodeType.Container -> {
                 drawContainerLayoutEditor(node)
+            }
+
+            UiSceneNodeType.ScrollPane -> Unit
+
+            UiSceneNodeType.SplitPane -> {
+                drawSplitPaneEditor(node)
             }
 
             UiSceneNodeType.Stack,
@@ -669,13 +709,34 @@ class UiComposerInspectorPanel(
         }
     }
 
-    private fun drawProgressBarEditor(node: UiSceneNode) {
+    private fun drawItemsEditor(node: UiSceneNode) {
+        editableString(
+            node,
+            "items",
+            node.items.joinToString(", "),
+            emptyAsNull = false,
+            tooltip = "Comma-separated preview items for SelectBox, List, and Tree widgets.",
+        ) { value ->
+            val items =
+                value
+                    .orEmpty()
+                    .split(',')
+                    .map(String::trim)
+                    .filter(String::isNotBlank)
+            operations.updateSelectedNode { it.copy(items = items) }
+        }
+    }
+
+    private fun drawRangeWidgetEditor(
+        node: UiSceneNode,
+        widgetName: String,
+    ) {
         editableFloat(
             node,
             "value",
             node.value,
             allowNull = true,
-            tooltip = "Static ProgressBar value used when no valueBinding overrides it.",
+            tooltip = "Static $widgetName value used when no valueBinding overrides it.",
         ) { value ->
             operations.updateSelectedNode { it.copy(value = value) }
         }
@@ -684,7 +745,7 @@ class UiComposerInspectorPanel(
             "valueBinding",
             node.valueBinding,
             emptyAsNull = true,
-            tooltip = "Raw binding key used by ProgressBar to read its preview/runtime value.",
+            tooltip = "Raw binding key used by $widgetName to read its preview/runtime value.",
         ) { value ->
             operations.updateSelectedNode { it.copy(valueBinding = value) }
         }
@@ -715,6 +776,21 @@ class UiComposerInspectorPanel(
             tooltip = "ProgressBar increment size used by the underlying widget.",
         ) { value ->
             operations.updateSelectedNode { it.copy(step = value ?: it.step) }
+        }
+    }
+
+    private fun drawSplitPaneEditor(node: UiSceneNode) {
+        editableBoolean(node, "vertical", node.vertical) { value ->
+            operations.updateSelectedNode { it.copy(vertical = value) }
+        }
+        editableFloat(
+            node,
+            "splitAmount",
+            node.splitAmount,
+            allowNull = false,
+            tooltip = "Initial SplitPane divider position from 0 to 1.",
+        ) { value ->
+            operations.updateSelectedNode { it.copy(splitAmount = (value ?: it.splitAmount).coerceIn(0f, 1f)) }
         }
     }
 
@@ -1009,8 +1085,19 @@ class UiComposerInspectorPanel(
             -> drawContainerPreview(node)
 
             UiSceneNodeType.Label,
+            UiSceneNodeType.Window,
+            UiSceneNodeType.Button,
             UiSceneNodeType.TextButton,
+            UiSceneNodeType.CheckBox,
+            UiSceneNodeType.TextField,
+            UiSceneNodeType.SelectBox,
+            UiSceneNodeType.List,
+            UiSceneNodeType.ScrollPane,
+            UiSceneNodeType.SplitPane,
+            UiSceneNodeType.Slider,
             UiSceneNodeType.ProgressBar,
+            UiSceneNodeType.Tree,
+            UiSceneNodeType.TextTooltip,
             UiSceneNodeType.Space,
             -> ImGui.textUnformatted("Preview rendering skipped for ${node.type}.")
         }
@@ -1218,8 +1305,19 @@ class UiComposerInspectorPanel(
         val explicitStyle = node.style?.takeIf(String::isNotBlank)
         return when (node.type) {
             UiSceneNodeType.Label -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.Button -> explicitStyle ?: DefaultScene2dStyle
             UiSceneNodeType.TextButton -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.CheckBox -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.TextField -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.SelectBox -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.List -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.ScrollPane -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.SplitPane -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.Slider -> explicitStyle ?: DefaultProgressBarStyle
             UiSceneNodeType.ProgressBar -> explicitStyle ?: DefaultProgressBarStyle
+            UiSceneNodeType.Tree -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.TextTooltip -> explicitStyle ?: DefaultScene2dStyle
+            UiSceneNodeType.Window -> explicitStyle ?: DefaultScene2dStyle
             UiSceneNodeType.Stack,
             UiSceneNodeType.Table,
             UiSceneNodeType.Container,
@@ -1975,7 +2073,13 @@ private fun payloadInputId(key: String): String = key.filter { char -> char.isLe
 
 private val BindingPlaceholderRegex = Regex("""\{([^{}]+)}""")
 
-private fun UiSceneNodeType.isContainerLike(): Boolean = this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container
+private fun UiSceneNodeType.isContainerLike(): Boolean =
+    this == UiSceneNodeType.Stack ||
+        this == UiSceneNodeType.Table ||
+        this == UiSceneNodeType.Container ||
+        this == UiSceneNodeType.Window ||
+        this == UiSceneNodeType.ScrollPane ||
+        this == UiSceneNodeType.SplitPane
 
 private fun styleOptionsFor(
     nodeType: UiSceneNodeType,
@@ -1984,8 +2088,19 @@ private fun styleOptionsFor(
     val metadata = skinMetadata?.takeUnless { it.loadError != null } ?: return null
     return when (nodeType) {
         UiSceneNodeType.Label -> metadata.labelStyles
+        UiSceneNodeType.Button -> metadata.buttonStyles
         UiSceneNodeType.TextButton -> metadata.textButtonStyles
+        UiSceneNodeType.CheckBox -> metadata.checkBoxStyles
+        UiSceneNodeType.TextField -> metadata.textFieldStyles
+        UiSceneNodeType.SelectBox -> metadata.selectBoxStyles
+        UiSceneNodeType.List -> metadata.listStyles
+        UiSceneNodeType.ScrollPane -> metadata.scrollPaneStyles
+        UiSceneNodeType.SplitPane -> metadata.splitPaneStyles
+        UiSceneNodeType.Slider -> metadata.sliderStyles
         UiSceneNodeType.ProgressBar -> metadata.progressBarStyles
+        UiSceneNodeType.Tree -> metadata.treeStyles
+        UiSceneNodeType.TextTooltip -> metadata.textTooltipStyles
+        UiSceneNodeType.Window -> metadata.windowStyles
         UiSceneNodeType.Stack,
         UiSceneNodeType.Table,
         UiSceneNodeType.Container,

@@ -97,6 +97,16 @@ class SkinEditorOperations(
         editService.updateStyleField(styleKey, fieldName, value)
     }
 
+    fun selectStyleFieldResource(
+        styleKey: StyleKey,
+        fieldName: String,
+        resource: SkinResourceInfo,
+    ) {
+        state.selectedEditFieldName = fieldName
+        selectResource(resource)
+        updateStyleField(styleKey, fieldName, resource.name)
+    }
+
     fun resetStyleField(
         styleKey: StyleKey,
         fieldName: String,

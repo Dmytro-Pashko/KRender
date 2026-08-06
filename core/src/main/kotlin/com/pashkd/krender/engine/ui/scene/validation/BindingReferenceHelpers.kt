@@ -33,7 +33,13 @@ fun collectBindingReferences(document: UiSceneDocument): List<UiSceneBindingRefe
 
     fun visit(node: UiSceneNode) {
         when (node.type) {
-            UiSceneNodeType.Label -> {
+            UiSceneNodeType.Label,
+            UiSceneNodeType.Button,
+            UiSceneNodeType.CheckBox,
+            UiSceneNodeType.TextField,
+            UiSceneNodeType.TextTooltip,
+            UiSceneNodeType.Window,
+            -> {
                 collectPlaceholderReferences(node, fieldName = "text", value = node.text, references = references)
             }
 
@@ -46,7 +52,9 @@ fun collectBindingReferences(document: UiSceneDocument): List<UiSceneBindingRefe
                 collectPlaceholderReferences(node, fieldName = "texture", value = node.texture, references = references)
             }
 
-            UiSceneNodeType.ProgressBar -> {
+            UiSceneNodeType.ProgressBar,
+            UiSceneNodeType.Slider,
+            -> {
                 val key = node.valueBinding?.trim().orEmpty()
                 if (key.isNotBlank()) {
                     references +=
@@ -62,6 +70,11 @@ fun collectBindingReferences(document: UiSceneDocument): List<UiSceneBindingRefe
             UiSceneNodeType.Stack,
             UiSceneNodeType.Table,
             UiSceneNodeType.Container,
+            UiSceneNodeType.SelectBox,
+            UiSceneNodeType.List,
+            UiSceneNodeType.ScrollPane,
+            UiSceneNodeType.SplitPane,
+            UiSceneNodeType.Tree,
             UiSceneNodeType.Space,
             -> Unit
         }

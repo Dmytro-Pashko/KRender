@@ -1,29 +1,16 @@
 package com.pashkd.krender.engine.tools.skin
 
-/**
- * Screen-space layout of one resource preview viewport.
- *
- * Atlas preview UI overlays and hit-testing use this computed mapping from
- * image-space pixels into the current ImGui child viewport.
- */
-internal data class ResourcePreviewViewportLayout(
-    val viewportX: Float,
-    val viewportY: Float,
-    val viewportWidth: Float,
-    val viewportHeight: Float,
-    val imageX: Float,
-    val imageY: Float,
-    val imageWidth: Float,
-    val imageHeight: Float,
-    val effectiveZoom: Float,
-)
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewCanvasRect
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewRegion
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewScreenRect
+import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewViewportLayout
+import com.pashkd.krender.engine.tools.common.texturepreview.computeTexturePreviewViewportLayout
+import com.pashkd.krender.engine.tools.common.texturepreview.hitTestTexturePreviewRegion
+import com.pashkd.krender.engine.tools.common.texturepreview.textureRegionScreenRect
 
-/**
- * Parsed atlas region bounds using atlas metadata.
- *
- * Atlas `xy` is treated as top-left image-space coordinates, matching the
- * indexed metadata currently produced by the Skin Editor loader.
- */
+internal typealias ResourcePreviewViewportLayout = TexturePreviewViewportLayout
+internal typealias AtlasRegionScreenRect = TexturePreviewScreenRect
+
 internal data class AtlasRegionHitInfo(
     val resource: SkinResourceInfo,
     val pageName: String?,
@@ -35,28 +22,6 @@ internal data class AtlasRegionHitInfo(
     val area: Int get() = width * height
 }
 
-/** Screen-space rectangle derived from atlas image-space coordinates. */
-internal data class AtlasRegionScreenRect(
-    val minX: Float,
-    val minY: Float,
-    val maxX: Float,
-    val maxY: Float,
-) {
-    val width: Float get() = maxX - minX
-    val height: Float get() = maxY - minY
-}
-
-internal fun computeFitZoom(
-    viewportWidth: Float,
-    viewportHeight: Float,
-    imageWidth: Int,
-    imageHeight: Int,
-): Float =
-    minOf(
-        viewportWidth / imageWidth.coerceAtLeast(1).toFloat(),
-        viewportHeight / imageHeight.coerceAtLeast(1).toFloat(),
-    ).coerceAtLeast(MinInlineResourcePreviewScale)
-
 internal fun computeResourcePreviewViewportLayout(
     viewportX: Float,
     viewportY: Float,
@@ -65,45 +30,38 @@ internal fun computeResourcePreviewViewportLayout(
     imageWidth: Int,
     imageHeight: Int,
     previewState: SkinResourceVisualPreviewState,
-): ResourcePreviewViewportLayout {
-    val fitZoom = computeFitZoom(viewportWidth, viewportHeight, imageWidth, imageHeight)
-    val effectiveZoom =
-        when (previewState.zoomMode) {
-            SkinResourceVisualPreviewZoomMode.Fit -> fitZoom
-            else -> previewState.viewport.zoom.coerceAtLeast(MinInlineResourcePreviewScale)
-        }
-    val renderedWidth = imageWidth * effectiveZoom
-    val renderedHeight = imageHeight * effectiveZoom
-    val baseX = viewportX + (viewportWidth - renderedWidth) * 0.5f
-    val baseY = viewportY + (viewportHeight - renderedHeight) * 0.5f
-    return ResourcePreviewViewportLayout(
-        viewportX = viewportX,
-        viewportY = viewportY,
-        viewportWidth = viewportWidth,
-        viewportHeight = viewportHeight,
-        imageX = baseX + previewState.viewport.panX,
-        imageY = baseY + previewState.viewport.panY,
-        imageWidth = renderedWidth,
-        imageHeight = renderedHeight,
-        effectiveZoom = effectiveZoom,
+): ResourcePreviewViewportLayout =
+    computeTexturePreviewViewportLayout(
+        rect =
+            TexturePreviewCanvasRect(
+                x = viewportX,
+                y = viewportY,
+                width = viewportWidth,
+                height = viewportHeight,
+            ),
+        textureWidth = imageWidth,
+        textureHeight = imageHeight,
+        previewState = previewState.toTexturePreviewState(),
     )
+
+internal fun atlasRegionScreenRect(
+    region: AtlasRegionHitInfo,
+    layout: ResourcePreviewViewportLayout,
+): AtlasRegionScreenRect = textureRegionScreenRect(region.toPreviewRegion(), layout)
+
+internal fun hitTestAtlasRegion(
+    regions: List<AtlasRegionHitInfo>,
+    layout: ResourcePreviewViewportLayout,
+    imageWidth: Int,
+    imageHeight: Int,
+    mouseX: Float,
+    mouseY: Float,
+): AtlasRegionHitInfo? {
+    if (mouseX < layout.imageX || mouseX > layout.imageX + layout.imageWidth || mouseY < layout.imageY || mouseY > layout.imageY + layout.imageHeight) return null
+    val hit = hitTestTexturePreviewRegion(regions.map(AtlasRegionHitInfo::toPreviewRegion), layout, mouseX, mouseY) ?: return null
+    return regions.firstOrNull { region -> region.resource.key == hit.id }
+        ?.takeIf { imageWidth > 0 && imageHeight > 0 }
 }
-
-internal fun screenToImageX(
-    screenX: Float,
-    layout: ResourcePreviewViewportLayout,
-): Float = (screenX - layout.imageX) / layout.effectiveZoom
-
-/**
- * Converts screen Y into atlas image-space Y using a top-left image origin.
- *
- * This convention must stay aligned with [parseAtlasRegionHitInfo] and every
- * overlay/hit-test helper that works with atlas `xy` metadata.
- */
-internal fun screenToImageYTopLeft(
-    screenY: Float,
-    layout: ResourcePreviewViewportLayout,
-): Float = (screenY - layout.imageY) / layout.effectiveZoom
 
 @Suppress("ReturnCount")
 internal fun parseAtlasRegionHitInfo(resource: SkinResourceInfo): AtlasRegionHitInfo? {
@@ -119,52 +77,15 @@ internal fun parseAtlasRegionHitInfo(resource: SkinResourceInfo): AtlasRegionHit
     )
 }
 
-internal fun atlasRegionScreenRect(
-    region: AtlasRegionHitInfo,
-    layout: ResourcePreviewViewportLayout,
-): AtlasRegionScreenRect {
-    val minX = layout.imageX + region.x * layout.effectiveZoom
-    val minY = layout.imageY + region.y * layout.effectiveZoom
-    return AtlasRegionScreenRect(
-        minX = minX,
-        minY = minY,
-        maxX = minX + region.width * layout.effectiveZoom,
-        maxY = minY + region.height * layout.effectiveZoom,
+internal fun AtlasRegionHitInfo.toPreviewRegion(): TexturePreviewRegion<SkinResourceKey> =
+    TexturePreviewRegion(
+        id = resource.key,
+        label = resource.name,
+        x = x,
+        y = y,
+        width = width,
+        height = height,
     )
-}
-
-internal fun clipRectToViewport(
-    rect: AtlasRegionScreenRect,
-    layout: ResourcePreviewViewportLayout,
-): AtlasRegionScreenRect? {
-    val minX = maxOf(rect.minX, layout.viewportX)
-    val minY = maxOf(rect.minY, layout.viewportY)
-    val maxX = minOf(rect.maxX, layout.viewportX + layout.viewportWidth)
-    val maxY = minOf(rect.maxY, layout.viewportY + layout.viewportHeight)
-    if (maxX <= minX || maxY <= minY) return null
-    return AtlasRegionScreenRect(minX = minX, minY = minY, maxX = maxX, maxY = maxY)
-}
-
-internal fun hitTestAtlasRegion(
-    regions: List<AtlasRegionHitInfo>,
-    layout: ResourcePreviewViewportLayout,
-    imageWidth: Int,
-    imageHeight: Int,
-    mouseX: Float,
-    mouseY: Float,
-): AtlasRegionHitInfo? {
-    val imageX = screenToImageX(mouseX, layout)
-    val imageY = screenToImageYTopLeft(mouseY, layout)
-    @Suppress("ComplexCondition")
-    if (imageX < 0f || imageY < 0f || imageX > imageWidth || imageY > imageHeight) return null
-    return regions
-        .filter { region ->
-            imageX >= region.x &&
-                imageX <= region.x + region.width &&
-                imageY >= region.y &&
-                imageY <= region.y + region.height
-        }.minWithOrNull(compareBy<AtlasRegionHitInfo>({ it.area }, { it.resource.name }))
-}
 
 @Suppress("ReturnCount")
 internal fun String.parseIntPair(): Pair<Int, Int>? {

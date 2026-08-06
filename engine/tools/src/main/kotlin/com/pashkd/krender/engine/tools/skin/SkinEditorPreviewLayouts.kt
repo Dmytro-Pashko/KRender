@@ -1,7 +1,7 @@
 package com.pashkd.krender.engine.tools.skin
 
 class FormsPreviewLayout : PreviewLayout {
-    override val id: String = "forms"
+    override val id: String = Id
     override val displayName: String = "Form"
 
     override fun build(
@@ -27,10 +27,14 @@ class FormsPreviewLayout : PreviewLayout {
                     factory.textButton("forms_reset", "Reset"),
                 ),
         )
+
+    companion object {
+        const val Id = "forms"
+    }
 }
 
 class TablesPreviewLayout : PreviewLayout {
-    override val id: String = "tables"
+    override val id: String = Id
     override val displayName: String = "Tables"
 
     override fun build(
@@ -63,10 +67,14 @@ class TablesPreviewLayout : PreviewLayout {
                 ),
         )
     }
+
+    companion object {
+        const val Id = "tables"
+    }
 }
 
 class DialogsPreviewLayout : PreviewLayout {
-    override val id: String = "dialogs"
+    override val id: String = Id
     override val displayName: String = "Dialog"
 
     override fun build(
@@ -87,10 +95,14 @@ class DialogsPreviewLayout : PreviewLayout {
                     factory.textButton("dialogs_cancel", "Cancel"),
                 ),
         )
+
+    companion object {
+        const val Id = "dialogs"
+    }
 }
 
 class StressPreviewLayout : PreviewLayout {
-    override val id: String = "stress"
+    override val id: String = Id
     override val displayName: String = "List"
 
     override fun build(
@@ -125,6 +137,10 @@ class StressPreviewLayout : PreviewLayout {
                     factory.progressBar("stress_progress"),
                 ),
         )
+    }
+
+    companion object {
+        const val Id = "stress"
     }
 }
 

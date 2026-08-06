@@ -15,6 +15,7 @@ import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 import com.pashkd.krender.engine.api.Logger
 import com.pashkd.krender.engine.api.TexturePreviewHandle
+import com.pashkd.krender.engine.tools.common.ninepatch.buildNinePatchDraft
 import com.pashkd.krender.engine.tools.skin.DefaultFontPreviewSampleText
 import com.pashkd.krender.engine.tools.skin.SkinColorValueParser
 import com.pashkd.krender.engine.tools.skin.SkinEditSession
@@ -56,6 +57,7 @@ class GdxSkinResourcePreview(
     private var currentInfo: SkinResourceVisualPreviewInfo = SkinResourceVisualPreviewInfo()
     private var lastFontLoadFailure: String? = null
     private val warnedFailureKeys = mutableSetOf<String>()
+    private val inlineTextures = mutableMapOf<String, Texture>()
 
     fun update(
         project: SkinProject?,
@@ -100,6 +102,11 @@ class GdxSkinResourcePreview(
                         texturePreviewHandle = previewHandle,
                         textureWidth = texture?.width ?: 0,
                         textureHeight = texture?.height ?: 0,
+                        regionX = resolved.region?.x,
+                        regionY = resolved.region?.y,
+                        regionWidth = resolved.region?.width,
+                        regionHeight = resolved.region?.height,
+                        ninePatchDraft = selectedResource?.let { resource -> buildNinePatchDraftForResource(resource, resolved.texturePath) },
                         atlasPageName = resolved.atlasPageName,
                         selectedRegionName = resolved.region?.name,
                     )
@@ -117,6 +124,56 @@ class GdxSkinResourcePreview(
         return currentInfo
     }
 
+    fun updateInlinePreview(
+        project: SkinProject?,
+        resourceIndex: SkinResourceIndex,
+        selectedResource: SkinResourceInfo?,
+        previewState: SkinResourceVisualPreviewState,
+        loadedSkin: LoadedSkinHandle?,
+        editSession: SkinEditSession,
+    ): SkinResourceVisualPreviewInfo {
+        val resolved = resolveResourcePreview(project, resourceIndex, selectedResource, previewState, loadedSkin, editSession)
+        val texturePath = resolved.texturePath
+        if (texturePath == null || resolved.kind != SkinResourceVisualPreviewKind.Texture) {
+            return SkinResourceVisualPreviewInfo(statusMessage = resolved.message, kind = resolved.kind)
+        }
+        val texture =
+            inlineTextures[texturePath]
+                ?: loadInlineTexture(texturePath)
+                ?: return SkinResourceVisualPreviewInfo(
+                    statusMessage = "Failed to load texture preview: ${File(texturePath).name}",
+                    kind = resolved.kind,
+                    resolvedTexturePath = texturePath,
+                    atlasPageName = resolved.atlasPageName,
+                    selectedRegionName = resolved.region?.name,
+                )
+        return SkinResourceVisualPreviewInfo(
+            statusMessage = resolved.message,
+            kind = resolved.kind,
+            resolvedTexturePath = texturePath,
+            texturePreviewHandle =
+                TexturePreviewHandle(
+                    id = texture.textureObjectHandle,
+                    width = texture.width,
+                    height = texture.height,
+                ),
+            textureWidth = texture.width,
+            textureHeight = texture.height,
+            regionX = resolved.region?.x,
+            regionY = resolved.region?.y,
+            regionWidth = resolved.region?.width,
+            regionHeight = resolved.region?.height,
+            ninePatchDraft = selectedResource?.let { resource -> buildNinePatchDraftForResource(resource, texturePath) },
+            atlasPageName = resolved.atlasPageName,
+            selectedRegionName = resolved.region?.name,
+        )
+    }
+
+    fun clearInlinePreviewCache() {
+        inlineTextures.values.forEach(Texture::dispose)
+        inlineTextures.clear()
+    }
+
     override fun dispose() {
         unloadTexture()
         unloadPreviewFont()
@@ -124,6 +181,7 @@ class GdxSkinResourcePreview(
         fontPreviewBuffer = null
         imagePreviewBuffer?.dispose()
         imagePreviewBuffer = null
+        clearInlinePreviewCache()
         overlayShapes.dispose()
         batch.dispose()
     }
@@ -303,6 +361,19 @@ class GdxSkinResourcePreview(
             },
         )
     }
+
+    private fun loadInlineTexture(path: String): Texture? =
+        runCatching {
+            Texture(Gdx.files.absolute(path)).also { texture ->
+                inlineTextures[path] = texture
+            }
+        }.getOrElse { error ->
+            val failureKey = "inline:$path:${error.message}"
+            if (warnedFailureKeys.add(failureKey)) {
+                logger.warn(TAG, error) { "Skin inline resource preview failed to load texture '$path': ${error.message}" }
+            }
+            null
+        }
 
     private fun unloadTexture() {
         loadedTexture?.dispose()
@@ -653,6 +724,28 @@ class GdxSkinResourcePreview(
             height = size.second,
         )
     }
+
+    private fun buildNinePatchDraftForResource(
+        resource: SkinResourceInfo,
+        texturePath: String,
+    ): com.pashkd.krender.engine.tools.common.ninepatch.NinePatchDraft? {
+        val size = resource.details["size"]?.parseIntPair() ?: return null
+        val split = resource.details["split"]?.parseIntList() ?: emptyList()
+        val pad = resource.details["pad"]?.parseIntList() ?: emptyList()
+        if (split.size != 4 && pad.size != 4) return null
+        return buildNinePatchDraft(
+            sourcePath = texturePath,
+            contentWidth = size.first,
+            contentHeight = size.second,
+            split = split,
+            pad = pad,
+        )
+    }
+
+    private fun String.parseIntList(): List<Int> =
+        split(',')
+            .map(String::trim)
+            .mapNotNull(String::toIntOrNull)
 
     private data class ResolvedPreview(
         val kind: SkinResourceVisualPreviewKind = SkinResourceVisualPreviewKind.None,

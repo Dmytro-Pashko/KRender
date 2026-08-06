@@ -61,12 +61,15 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
             text = node.stringOrNull("text"),
             action = node.stringOrNull("action"),
             texture = node.stringOrNull("texture")?.let(::normalizedProjectPath),
+            items = readStringList(node["items"], node.stringOrDefault("id", context)),
             scaling = node.enumOrDefault("scaling", DocumentName, UiSceneScaling.Fit, UiSceneScaling::valueOf),
             value = node.floatOrNull("value"),
             valueBinding = node.stringOrNull("valueBinding"),
             min = node.floatOrDefault("min", 0f),
             max = node.floatOrDefault("max", 1f),
             step = node.floatOrDefault("step", 0.01f),
+            splitAmount = node.floatOrDefault("splitAmount", 0.5f),
+            vertical = node.booleanOrDefault("vertical", false),
             width = node.floatOrNull("width"),
             height = node.floatOrNull("height"),
             align = node.enumOrNull("align", DocumentName, UiSceneAlign::valueOf),
@@ -108,6 +111,17 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
                     ),
                 defaultValue = binding.stringOrDefault("defaultValue", ""),
             )
+        }
+    }
+
+    private fun readStringList(
+        element: JsonElement?,
+        nodeId: String,
+    ): List<String> {
+        val items = element as? JsonArray ?: return emptyList()
+        return items.mapIndexed { index, item ->
+            item.jsonPrimitive.contentOrNull
+                ?: throw IllegalArgumentException("UI scene node '$nodeId.items[$index]' must be a string")
         }
     }
 
@@ -154,12 +168,22 @@ class UiSceneSerializer : KRenderSerializer<UiSceneDocument> {
             putIfNotNull("text", text)
             putIfNotNull("action", action)
             putIfNotNull("texture", texture?.let(::normalizedProjectPath))
+            if (items.isNotEmpty()) {
+                put(
+                    "items",
+                    buildJsonArray {
+                        items.forEach { item -> add(JsonPrimitive(item)) }
+                    },
+                )
+            }
             putIfNonDefault("scaling", scaling.name, UiSceneScaling.Fit.name)
             putIfNotNull("value", value)
             putIfNotNull("valueBinding", valueBinding)
             putIfNonDefault("min", min, 0f)
             putIfNonDefault("max", max, 1f)
             putIfNonDefault("step", step, 0.01f)
+            putIfNonDefault("splitAmount", splitAmount, 0.5f)
+            putIfNonDefault("vertical", vertical, false)
             putIfNotNull("width", width)
             putIfNotNull("height", height)
             putIfNotNull("align", align?.name)

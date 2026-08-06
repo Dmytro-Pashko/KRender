@@ -1,0 +1,57 @@
+{
+    "schemaVersion": 1,
+    "id": "skin_preview_list",
+    "skin": "ui/skins/default/uiskin.json",
+    "bindings": [
+        { "key": "labelText", "type": "Text", "defaultValue": "Widget Stress Preview" },
+        { "key": "buttonText", "type": "Text", "defaultValue": "Apply" },
+        { "key": "textFieldPlaceholder", "type": "Text", "defaultValue": "Editable text" }
+    ],
+    "root": {
+        "id": "list_window",
+        "type": "Window",
+        "text": "Widget Stress Preview",
+        "spacing": 8,
+        "children": [
+            { "id": "list_long", "type": "Label", "text": "{labelText}" },
+            { "id": "list_symbols", "type": "Label", "text": "0123456789 !@#$%^&*()_+-=[]();':\",./<>?" },
+            { "id": "list_ukrainian", "type": "Label", "text": "Українська абетка: А Б В Г Ґ Д Е Є Ж З И І Ї Й" },
+            { "id": "list_field", "type": "TextField", "text": "{textFieldPlaceholder}" },
+            {
+                "id": "list_select",
+                "type": "SelectBox",
+                "items": [
+                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
+                    "0123456789 !@#$%^&*()_+-=[]();':\",./<>?",
+                    "Українська абетка: А Б В Г Ґ Д Е Є Ж З И І Ї Й",
+                    "A deliberately long line intended to reveal clipping"
+                ]
+            },
+            {
+                "id": "list_scroll",
+                "type": "ScrollPane",
+                "height": 160,
+                "children": [
+                    {
+                        "id": "list_items",
+                        "type": "List",
+                        "items": [
+                            "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
+                            "0123456789 !@#$%^&*()_+-=[]();':\",./<>?",
+                            "Українська абетка: А Б В Г Ґ Д Е Є Ж З И І Ї Й",
+                            "A deliberately long line intended to reveal clipping, wrapping, padding, and narrow-screen behavior.",
+                            "Disabled-like placeholder: [ unavailable action ]",
+                            "Mixed: KRender 2.0 / рушій / 1920x1080 / 100%"
+                        ]
+                    }
+                ]
+            },
+            { "id": "list_checkbox_a", "type": "CheckBox", "text": "Short option" },
+            { "id": "list_checkbox_b", "type": "CheckBox", "text": "Надзвичайно довгий підпис параметра для перевірки компонування" },
+            { "id": "list_button_a", "type": "TextButton", "text": "{buttonText}" },
+            { "id": "list_button_b", "type": "TextButton", "text": "Додаткова дія" },
+            { "id": "list_slider", "type": "Slider", "value": 0.72 },
+            { "id": "list_progress", "type": "ProgressBar", "value": 0.72 }
+        ]
+    }
+}
