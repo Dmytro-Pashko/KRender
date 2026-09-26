@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "asset:42187ee7-be32-477b-b56c-1144f4010fd6",
+  "type": "UiScene",
+  "category": "UI",
+  "displayName": "skin_preview_form",
+  "tags": [],
+  "importerId": "ui-scene",
+  "importSettings": {}
+}

@@ -42,6 +42,7 @@ class TerrainEditorScene(
     private lateinit var editorState: TerrainEditorState
     private lateinit var editorSystem: TerrainEditorSystem
     private lateinit var meshSyncSystem: TerrainEditorMeshSyncSystem
+    private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
 
     /**
      * Creates the terrain editor camera, lights, terrain entity, and terrain systems.
@@ -66,6 +67,7 @@ class TerrainEditorScene(
                 assetPath = TerrainEditorUiLayoutDefaults.assetPath,
                 fallback = TerrainEditorUiLayoutDefaults.config,
             ).load(engine.logger, engine.sceneFiles)
+        layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "TerrainEditorUi")
         editorState =
             TerrainEditorState(
@@ -149,7 +151,7 @@ class TerrainEditorScene(
                 logger = engine.logger,
             )
         world.systems.add(meshSyncSystem)
-        world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
+        world.systems.add(createUiSystem(layoutConfig, layoutTracker, panelEventLogger))
         world.systems.add(
             com.pashkd.krender.engine.terrain
                 .TerrainRenderSystem(),
@@ -172,6 +174,7 @@ class TerrainEditorScene(
      */
     private fun createUiSystem(
         layoutConfig: ImGuiLayoutConfig,
+        layoutTracker: ImGuiLayoutRuntimeTracker,
         panelEventLogger: ImGuiWindowEventLogger,
     ): UiSystem =
         UiSystem(engine.ui).also { uiSystem ->
@@ -180,15 +183,47 @@ class TerrainEditorScene(
                     engine.runtimeStats,
                     engine.profiler,
                     layoutConfig,
+                    layoutTracker,
                     panelEventLogger,
                 ),
             )
-            uiSystem.addPanel(TerrainEditorTerrainPanel(editorState, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(TerrainEditorBrushPanel(editorState, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(TerrainEditorLayersPanel(editorState, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(TerrainEditorControlsPanel(editorState, layoutConfig, panelEventLogger))
-            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger))
+            uiSystem.addPanel(TerrainEditorTerrainPanel(editorState, layoutConfig, layoutTracker, panelEventLogger))
+            uiSystem.addPanel(TerrainEditorBrushPanel(editorState, layoutConfig, layoutTracker, panelEventLogger))
+            uiSystem.addPanel(TerrainEditorLayersPanel(editorState, layoutConfig, layoutTracker, panelEventLogger))
+            uiSystem.addPanel(
+                TerrainEditorControlsPanel(
+                    editorState,
+                    layoutConfig,
+                    layoutTracker,
+                    panelEventLogger,
+                    ::saveUiLayout,
+                    ::restoreUiLayout,
+                ),
+            )
+            uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger, layoutTracker = layoutTracker))
         }
+
+    private fun saveUiLayout() {
+        val config = layoutTracker.currentConfig()
+        runCatching {
+            ImGuiLayoutConfigCodec.save(TerrainEditorUiLayoutDefaults.assetPath, config, engine.sceneFiles)
+        }.onSuccess {
+            engine.logger.info(TAG) {
+                "Terrain Editor UI layout saved path='${TerrainEditorUiLayoutDefaults.assetPath}' panels=${config.panels.size}"
+            }
+        }.onFailure { error ->
+            engine.logger.error(TAG, error) {
+                "Failed to save Terrain Editor UI layout path='${TerrainEditorUiLayoutDefaults.assetPath}': ${error.message}"
+            }
+        }
+    }
+
+    private fun restoreUiLayout() {
+        layoutTracker.requestRestore(TerrainEditorUiLayoutDefaults.config)
+        engine.logger.info(TAG) {
+            "Terrain Editor UI layout reset to default panels=${TerrainEditorUiLayoutDefaults.config.panels.size}"
+        }
+    }
 
     /**
      * Creates the editor camera with a fixed look-at target.

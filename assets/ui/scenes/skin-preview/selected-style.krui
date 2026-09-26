@@ -1,0 +1,73 @@
+{
+    "schemaVersion": 1,
+    "id": "skin_preview_selected_style",
+    "skin": "ui/skins/default/uiskin.json",
+    "bindings": [
+        { "key": "labelText", "type": "Text", "defaultValue": "Selected style preview" },
+        { "key": "buttonText", "type": "Text", "defaultValue": "Apply" },
+        { "key": "textFieldPlaceholder", "type": "Text", "defaultValue": "Editable text" },
+        { "key": "selectedStyleType", "type": "Text", "defaultValue": "LabelStyle" },
+        { "key": "selectedStyleName", "type": "Text", "defaultValue": "default" }
+    ],
+    "root": {
+        "id": "selected_style_root",
+        "type": "Table",
+        "spacing": 8,
+        "children": [
+            { "id": "selected_style_title", "type": "Label", "text": "{selectedStyleType}.{selectedStyleName}" },
+            { "id": "selected_label_short", "type": "Label", "style": "{selectedStyleName}", "text": "{labelText}" },
+            { "id": "selected_label_ukrainian", "type": "Label", "style": "{selectedStyleName}", "text": "Український текст: Привіт, рушій!" },
+            { "id": "selected_text_button", "type": "TextButton", "style": "{selectedStyleName}", "text": "{buttonText}" },
+            { "id": "selected_button", "type": "Button", "style": "{selectedStyleName}", "text": "ButtonStyle Preview" },
+            { "id": "selected_checkbox", "type": "CheckBox", "style": "{selectedStyleName}", "text": "Enabled option" },
+            { "id": "selected_text_field", "type": "TextField", "style": "{selectedStyleName}", "text": "{textFieldPlaceholder}" },
+            { "id": "selected_select", "type": "SelectBox", "style": "{selectedStyleName}", "items": [ "First", "Second", "Третій" ] },
+            { "id": "selected_list", "type": "List", "style": "{selectedStyleName}", "items": [ "Alpha", "Beta", "Український пункт" ] },
+            {
+                "id": "selected_scroll",
+                "type": "ScrollPane",
+                "style": "{selectedStyleName}",
+                "height": 120,
+                "children": [
+                    { "id": "selected_scroll_list", "type": "List", "items": [ "One", "Two", "Three", "Чотири" ] }
+                ]
+            },
+            {
+                "id": "selected_split_pane",
+                "type": "SplitPane",
+                "style": "{selectedStyleName}",
+                "splitAmount": 0.35,
+                "children": [
+                    { "id": "selected_split_left", "type": "Label", "text": "Navigation" },
+                    {
+                        "id": "selected_split_right",
+                        "type": "Table",
+                        "children": [
+                            { "id": "selected_split_text", "type": "Label", "text": "Split pane preview" },
+                            { "id": "selected_split_text_uk", "type": "Label", "text": "Попередній перегляд роздільника" }
+                        ]
+                    }
+                ]
+            },
+            { "id": "selected_slider", "type": "Slider", "style": "{selectedStyleName}", "value": 0.72 },
+            { "id": "selected_progress", "type": "ProgressBar", "style": "{selectedStyleName}", "value": 0.72 },
+            {
+                "id": "selected_tree",
+                "type": "Tree",
+                "style": "{selectedStyleName}",
+                "items": [ "UI", "UI/Buttons", "UI/Buttons/Primary", "UI/Dialogs", "Scenes" ]
+            },
+            { "id": "selected_tooltip", "type": "TextTooltip", "style": "{selectedStyleName}", "text": "Tooltip preview: KRender skin hint" },
+            {
+                "id": "selected_window",
+                "type": "Window",
+                "style": "{selectedStyleName}",
+                "text": "Selected Window Style",
+                "children": [
+                    { "id": "selected_window_text", "type": "Label", "text": "Window content preview" },
+                    { "id": "selected_window_action", "type": "TextButton", "text": "Close" }
+                ]
+            }
+        ]
+    }
+}

@@ -33,15 +33,81 @@ object StyleReferenceValidator : UiSceneValidationRule {
                 }
             }
 
+            UiSceneNodeType.Button -> {
+                if (styleName != null && styleName !in metadata.buttonStyles) {
+                    issues += missingStyle(nodeId, styleName, "Button", "style")
+                }
+            }
+
             UiSceneNodeType.TextButton -> {
                 if (styleName != null && styleName !in metadata.textButtonStyles) {
                     issues += missingStyle(nodeId, styleName, "TextButton", "style")
                 }
             }
 
+            UiSceneNodeType.CheckBox -> {
+                if (styleName != null && styleName !in metadata.checkBoxStyles) {
+                    issues += missingStyle(nodeId, styleName, "CheckBox", "style")
+                }
+            }
+
+            UiSceneNodeType.TextField -> {
+                if (styleName != null && styleName !in metadata.textFieldStyles) {
+                    issues += missingStyle(nodeId, styleName, "TextField", "style")
+                }
+            }
+
+            UiSceneNodeType.SelectBox -> {
+                if (styleName != null && styleName !in metadata.selectBoxStyles) {
+                    issues += missingStyle(nodeId, styleName, "SelectBox", "style")
+                }
+            }
+
+            UiSceneNodeType.List -> {
+                if (styleName != null && styleName !in metadata.listStyles) {
+                    issues += missingStyle(nodeId, styleName, "List", "style")
+                }
+            }
+
+            UiSceneNodeType.ScrollPane -> {
+                if (styleName != null && styleName !in metadata.scrollPaneStyles) {
+                    issues += missingStyle(nodeId, styleName, "ScrollPane", "style")
+                }
+            }
+
+            UiSceneNodeType.SplitPane -> {
+                if (styleName != null && styleName !in metadata.splitPaneStyles) {
+                    issues += missingStyle(nodeId, styleName, "SplitPane", "style")
+                }
+            }
+
+            UiSceneNodeType.Slider -> {
+                if (styleName != null && styleName !in metadata.sliderStyles) {
+                    issues += missingStyle(nodeId, styleName, "Slider", "style")
+                }
+            }
+
             UiSceneNodeType.ProgressBar -> {
                 if (styleName != null && styleName !in metadata.progressBarStyles) {
                     issues += missingStyle(nodeId, styleName, "ProgressBar", "style")
+                }
+            }
+
+            UiSceneNodeType.Tree -> {
+                if (styleName != null && styleName !in metadata.treeStyles) {
+                    issues += missingStyle(nodeId, styleName, "Tree", "style")
+                }
+            }
+
+            UiSceneNodeType.TextTooltip -> {
+                if (styleName != null && styleName !in metadata.textTooltipStyles) {
+                    issues += missingStyle(nodeId, styleName, "TextTooltip", "style")
+                }
+            }
+
+            UiSceneNodeType.Window -> {
+                if (styleName != null && styleName !in metadata.windowStyles) {
+                    issues += missingStyle(nodeId, styleName, "Window", "style")
                 }
             }
 

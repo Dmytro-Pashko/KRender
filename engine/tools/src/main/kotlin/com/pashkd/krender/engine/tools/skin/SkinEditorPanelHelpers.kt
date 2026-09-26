@@ -69,6 +69,11 @@ internal fun selectedResourceSummary(state: SkinEditorState): String? =
         "${resource.category}.${resource.name}${if (resource.resolved) "" else " (missing)"}"
     }
 
+internal fun styleFieldPreviewKey(
+    styleKey: StyleKey,
+    fieldName: String,
+): String = "${styleKey.type}.${styleKey.name}.$fieldName"
+
 internal fun drawSelectedResourcePreviewHint(state: SkinEditorState) {
     val selectedResourceKey = state.selectedResourceKey ?: return
     val resource =

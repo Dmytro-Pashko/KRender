@@ -36,7 +36,7 @@ object DocumentMetadataValidator : UiSceneValidationRule {
             issues +=
                 error(
                     code = UiSceneValidationCode.InvalidRootType,
-                    message = "Root node should be Stack, Table, or Container.",
+                    message = "Root node should be Stack, Table, Container, or Window.",
                     nodeId = document.root.id.takeIf(String::isNotBlank),
                     fieldName = "root.type",
                 )
@@ -45,4 +45,8 @@ object DocumentMetadataValidator : UiSceneValidationRule {
     }
 }
 
-private fun UiSceneNodeType.isRootContainer(): Boolean = this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container
+private fun UiSceneNodeType.isRootContainer(): Boolean =
+    this == UiSceneNodeType.Stack ||
+        this == UiSceneNodeType.Table ||
+        this == UiSceneNodeType.Container ||
+        this == UiSceneNodeType.Window

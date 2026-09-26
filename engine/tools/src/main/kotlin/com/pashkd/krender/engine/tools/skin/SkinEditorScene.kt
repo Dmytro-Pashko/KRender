@@ -35,7 +35,7 @@ class SkinEditorScene(
     private lateinit var reloadService: SkinReloadService
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
     private lateinit var operations: SkinEditorOperations
-    private val previewLayouts = PreviewLayoutRegistry()
+    private lateinit var previewLayouts: PreviewLayoutRegistry
     private var lastLoggedProblemsSignature: String? = null
 
     init {
@@ -46,6 +46,7 @@ class SkinEditorScene(
         engine.logger.info(TAG) { "Showing Skin Editor path='${editorState.currentInputPath ?: "<none>"}'" }
         preview = GdxSkinEditorPreview(engine.logger)
         resourcePreview = GdxSkinResourcePreview(engine.logger)
+        previewLayouts = PreviewLayoutRegistry(sceneFiles = engine.sceneFiles)
         reloadService =
             SkinReloadService(
                 logger = engine.logger,
@@ -109,6 +110,9 @@ class SkinEditorScene(
         val previousSelectedResourceKey = editorState.selectedResourceKey
         val pendingStatusOverride = editorState.pendingStatusAfterReload
         editorState.reloadRequested = false
+        if (::resourcePreview.isInitialized) {
+            resourcePreview.clearInlinePreviewCache()
+        }
         editorState.loadResult = reloadService.reload(editorState.currentInputPath)
         logProblemsIfChanged(context = "reload")
         editorState.statusMessage =
@@ -165,6 +169,7 @@ class SkinEditorScene(
                 .firstOrNull()
                 .takeIf { editorState.selectedStyleKey == null && editorState.selectedResourceKey == null }
         editorState.pendingPreviewPointerEvents.clear()
+        editorState.styleFieldResourcePreviewInfos.clear()
         editorState.previewSettings.interaction.hoveredActorPath = null
         editorState.previewSettings.interaction.focusedActorPath = null
         editorState.previewSettings.interaction.lastInputStatus = null
@@ -337,17 +342,24 @@ private class SkinEditorPreviewUpdateSystem(
                         logicalWidth = preset.width,
                         logicalHeight = preset.height,
                         scale = state.previewSettings.scale,
-                        fallbackIssueCount = buildResult.issues.size,
+                        fallbackIssueCount = layout.issues.size + buildResult.issues.size,
                     )
                 replacePreviewProblems(
                     if (state.previewSettings.showFallbackWarnings) {
-                        buildResult.issues.map { issue ->
+                        layout.issues.map { issue ->
                             SkinProblem(
                                 severity = SkinProblemSeverity.Warning,
                                 category = SkinProblemCategory.Preview,
-                                message = issue.message,
+                                message = issue,
                             )
-                        }
+                        } +
+                            buildResult.issues.map { issue ->
+                                SkinProblem(
+                                    severity = SkinProblemSeverity.Warning,
+                                    category = SkinProblemCategory.Preview,
+                                    message = issue.message,
+                                )
+                            }
                     } else {
                         emptyList()
                     },
@@ -424,8 +436,67 @@ private class SkinResourcePreviewUpdateSystem(
                 loadedSkin = reloadService.currentSkinHandle,
                 editSession = state.editSession,
             )
+        updateStyleFieldPreviews()
+    }
+
+    private fun updateStyleFieldPreviews() {
+        val style = state.editSession.findEditableStyle(state.selectedStyleKey)
+        if (style == null) {
+            state.styleFieldResourcePreviewInfos.clear()
+            return
+        }
+        val expectedKeys =
+            style.fields.values
+                .filter { field -> field.isReference && field.referenceCategory in PreviewableStyleFieldCategories && field.value.isNotBlank() }
+                .map { field -> styleFieldPreviewKey(style.key, field.name) }
+                .toSet()
+        state.styleFieldResourcePreviewInfos.keys.removeIf { key -> key !in expectedKeys }
+        style.fields.values.forEach { field ->
+            if (!field.isReference || field.referenceCategory !in PreviewableStyleFieldCategories || field.value.isBlank()) return@forEach
+            val resource = resolveStyleFieldPreviewResource(field.referenceCategory, field.value)
+            val key = styleFieldPreviewKey(style.key, field.name)
+            state.styleFieldResourcePreviewInfos[key] =
+                resourcePreview.updateInlinePreview(
+                    project = state.loadResult.project,
+                    resourceIndex = state.loadResult.resourceIndex,
+                    selectedResource = resource,
+                    previewState = state.resourceVisualPreview,
+                    loadedSkin = reloadService.currentSkinHandle,
+                    editSession = state.editSession,
+                )
+        }
+    }
+
+    private fun resolveStyleFieldPreviewResource(
+        category: SkinResourceCategory?,
+        name: String,
+    ): SkinResourceInfo? {
+        val resources =
+            when (category) {
+                SkinResourceCategory.Drawable ->
+                    state.loadResult.resourceIndex.atlasRegions +
+                        state.loadResult.resourceIndex.textures +
+                        state.loadResult.resourceIndex.drawables
+
+                SkinResourceCategory.Texture -> state.loadResult.resourceIndex.textures
+                else -> emptyList()
+            }
+        return resources
+            .filter { resource -> resource.resolved && resource.name == name }
+            .sortedWith(compareBy<SkinResourceInfo> { resource -> if (resource.ninePatchCapable()) 0 else 1 }.thenBy { resource -> resource.category.name })
+            .firstOrNull()
     }
 }
+
+private val PreviewableStyleFieldCategories =
+    setOf(
+        SkinResourceCategory.Drawable,
+        SkinResourceCategory.Texture,
+    )
+
+private fun SkinResourceInfo.ninePatchCapable(): Boolean =
+    details["split"]?.isNotBlank() == true ||
+        details["pad"]?.isNotBlank() == true
 
 private fun skinProblemsSignature(problems: List<SkinProblem>): String =
     problems.joinToString(separator = "\n") { problem ->

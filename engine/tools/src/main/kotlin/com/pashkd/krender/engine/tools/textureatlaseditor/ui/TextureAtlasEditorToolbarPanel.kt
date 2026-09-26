@@ -11,6 +11,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import com.pashkd.krender.engine.ui.editor.drawImGuiLayoutLockButton
 import imgui.ImGui
 
 class TextureAtlasEditorToolbarPanel(
@@ -43,6 +44,9 @@ class TextureAtlasEditorToolbarPanel(
             operations.restoreUiLayout()
         }
         tooltipOnHover("Restores the default panel layout.")
+        ImGui.sameLine()
+        drawImGuiLayoutLockButton(layoutTracker, "texture_atlas_editor")
+        tooltipOnHover("Toggle whether Texture Atlas Editor panels can be moved.")
         ImGui.sameLine()
         if (ImGui.button("Exit##texture_atlas_editor_exit")) {
             operations.requestExit()

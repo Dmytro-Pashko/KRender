@@ -15,6 +15,15 @@ class UiSceneSerializerTest {
             File("../assets/ui/scenes/woolboy_hud.krui"),
             File("../assets/ui/scenes/woolboy_final_results.krui"),
         )
+    private val skinPreviewSceneFiles =
+        listOf(
+            File("../assets/ui/scenes/skin-preview/all.krui"),
+            File("../assets/ui/scenes/skin-preview/table.krui"),
+            File("../assets/ui/scenes/skin-preview/list.krui"),
+            File("../assets/ui/scenes/skin-preview/form.krui"),
+            File("../assets/ui/scenes/skin-preview/dialog.krui"),
+            File("../assets/ui/scenes/skin-preview/selected-style.krui"),
+        )
 
     @Test
     fun `decodes example loading document`() {
@@ -206,6 +215,29 @@ class UiSceneSerializerTest {
     }
 
     @Test
+    fun `serializer preserves extended widget fields`() {
+        val document =
+            UiSceneDocument(
+                id = "extended_widgets",
+                skin = "ui/skins/default/uiskin.json",
+                root =
+                    UiSceneNode(
+                        id = "split",
+                        type = UiSceneNodeType.SplitPane,
+                        items = listOf("One", "Two"),
+                        splitAmount = 0.35f,
+                        vertical = true,
+                    ),
+            )
+
+        val decoded = serializer.decode(serializer.encode(document))
+
+        assertEquals(listOf("One", "Two"), decoded.root.items)
+        assertEquals(0.35f, decoded.root.splitAmount)
+        assertEquals(true, decoded.root.vertical)
+    }
+
+    @Test
     fun `binding helpers replace known placeholders and keep missing placeholders`() {
         val text =
             UiSceneBindings.bindText(
@@ -285,6 +317,17 @@ class UiSceneSerializerTest {
         val validator = UiSceneValidator()
 
         woolboySceneFiles.forEach { file ->
+            val document = serializer.decode(file.readText())
+
+            assertEquals(emptyList(), validator.validate(document), "Expected ${file.name} to be valid.")
+        }
+    }
+
+    @Test
+    fun `validator accepts Skin preview scene documents`() {
+        val validator = UiSceneValidator()
+
+        skinPreviewSceneFiles.forEach { file ->
             val document = serializer.decode(file.readText())
 
             assertEquals(emptyList(), validator.validate(document), "Expected ${file.name} to be valid.")

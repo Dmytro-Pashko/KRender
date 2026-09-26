@@ -1,0 +1,30 @@
+{
+    "schemaVersion": 1,
+    "id": "skin_preview_form",
+    "skin": "ui/skins/default/uiskin.json",
+    "bindings": [
+        { "key": "labelText", "type": "Text", "defaultValue": "Profile Settings" },
+        { "key": "buttonText", "type": "Text", "defaultValue": "Save" },
+        { "key": "textFieldPlaceholder", "type": "Text", "defaultValue": "Player name" }
+    ],
+    "root": {
+        "id": "form_window",
+        "type": "Window",
+        "text": "Profile Settings",
+        "spacing": 8,
+        "children": [
+            { "id": "form_title", "type": "Label", "text": "{labelText}" },
+            { "id": "form_ukrainian", "type": "Label", "text": "Налаштування профілю та робочого простору" },
+            { "id": "form_username", "type": "TextField", "text": "{textFieldPlaceholder}" },
+            { "id": "form_email", "type": "TextField", "text": "name@example.com" },
+            { "id": "form_quality", "type": "SelectBox", "items": [ "Low", "High", "Ultra", "Автоматично" ] },
+            { "id": "form_notifications", "type": "CheckBox", "text": "Enable notifications" },
+            { "id": "form_updates", "type": "CheckBox", "text": "Автоматично перевіряти оновлення" },
+            { "id": "form_volume", "type": "Slider", "value": 0.72 },
+            { "id": "form_storage", "type": "ProgressBar", "value": 0.72 },
+            { "id": "form_save", "type": "TextButton", "text": "{buttonText}" },
+            { "id": "form_cancel", "type": "TextButton", "text": "Cancel" },
+            { "id": "form_reset", "type": "TextButton", "text": "Reset" }
+        ]
+    }
+}

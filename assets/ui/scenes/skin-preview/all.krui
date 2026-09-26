@@ -1,0 +1,49 @@
+{
+    "schemaVersion": 1,
+    "id": "skin_preview_all",
+    "skin": "ui/skins/default/uiskin.json",
+    "bindings": [
+        { "key": "labelText", "type": "Text", "defaultValue": "KRender Skin Preview" },
+        { "key": "buttonText", "type": "Text", "defaultValue": "Apply" },
+        { "key": "textFieldPlaceholder", "type": "Text", "defaultValue": "Editable text" }
+    ],
+    "root": {
+        "id": "all_window",
+        "type": "Window",
+        "text": "KRender Skin Preview",
+        "spacing": 8,
+        "children": [
+            { "id": "all_header", "type": "Label", "text": "{labelText}" },
+            { "id": "all_ukrainian", "type": "Label", "text": "Український текст: Привіт, рушій!" },
+            { "id": "all_english", "type": "Label", "text": "The quick brown fox jumps over the lazy dog." },
+            { "id": "all_button", "type": "TextButton", "text": "{buttonText}" },
+            { "id": "all_checkbox", "type": "CheckBox", "text": "Enable preview" },
+            { "id": "all_text_field", "type": "TextField", "text": "{textFieldPlaceholder}" },
+            { "id": "all_select_box", "type": "SelectBox", "items": [ "Primary", "Secondary", "Danger" ] },
+            {
+                "id": "all_scroll_pane",
+                "type": "ScrollPane",
+                "height": 120,
+                "children": [
+                    {
+                        "id": "all_list",
+                        "type": "List",
+                        "items": [
+                            "KRender Skin Preview",
+                            "Український текст: Привіт, рушій!",
+                            "The quick brown fox jumps over the lazy dog."
+                        ]
+                    }
+                ]
+            },
+            { "id": "all_slider", "type": "Slider", "value": 0.72 },
+            { "id": "all_progress", "type": "ProgressBar", "value": 0.72 },
+            {
+                "id": "all_tree",
+                "type": "Tree",
+                "items": [ "UI", "UI/Buttons", "UI/Dialogs", "Scenes" ]
+            },
+            { "id": "all_tooltip", "type": "TextTooltip", "text": "Tooltip preview: KRender skin hint" }
+        ]
+    }
+}

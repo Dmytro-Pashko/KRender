@@ -46,9 +46,9 @@ class SkinEditorPreviewCanvasPanel(
         }
 
         val selectedPreset = SkinPreviewScreenPresets.presetOrDefault(state.previewSettings.screenPresetId)
-        ImGui.textUnformatted("Resolution:")
+        ImGui.textUnformatted("Resolution")
         ImGui.sameLine()
-        ImGui.setNextItemWidth(180f)
+        ImGui.setNextItemWidth(150f)
         if (ImGui.beginCombo("##skin_editor_canvas_resolution", selectedPreset.displayName)) {
             SkinPreviewScreenPresets.presets.forEach { preset ->
                 if (ImGui.selectable("${preset.displayName}##skin_editor_canvas_resolution_${preset.id}", preset.id == selectedPreset.id)) {
@@ -58,9 +58,10 @@ class SkinEditorPreviewCanvasPanel(
             ImGui.endCombo()
         }
         val selectedScale = PreviewScales.minBy { scale -> kotlin.math.abs(scale - state.previewSettings.scale) }
-        ImGui.textUnformatted("Scale:")
         ImGui.sameLine()
-        ImGui.setNextItemWidth(120f)
+        ImGui.textUnformatted("Scale")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(88f)
         if (ImGui.beginCombo("##skin_editor_canvas_scale", formatPreviewScale(selectedScale))) {
             PreviewScales.forEach { scale ->
                 if (ImGui.selectable("${formatPreviewScale(scale)}##skin_editor_canvas_scale_$scale", scale == selectedScale)) {
@@ -69,9 +70,10 @@ class SkinEditorPreviewCanvasPanel(
             }
             ImGui.endCombo()
         }
-        ImGui.textUnformatted("Zoom Mode:")
         ImGui.sameLine()
-        ImGui.setNextItemWidth(160f)
+        ImGui.textUnformatted("Zoom")
+        ImGui.sameLine()
+        ImGui.setNextItemWidth(120f)
         if (ImGui.beginCombo("##skin_editor_canvas_zoom_mode", formatPreviewZoomMode(state.previewSettings.zoomMode))) {
             CanvasZoomMode.entries.forEach { mode ->
                 if (ImGui.selectable("${formatPreviewZoomMode(mode)}##skin_editor_canvas_zoom_mode_$mode", mode == state.previewSettings.zoomMode)) {
@@ -89,25 +91,20 @@ class SkinEditorPreviewCanvasPanel(
             operations.resetPreviewCamera()
         }
         val showBounds = booleanArrayOf(state.previewSettings.showBounds)
-        ImGui.textUnformatted("Show Bounding Box:")
-        ImGui.sameLine()
-        if (ImGui.checkbox("##skin_editor_canvas_bounds", showBounds)) operations.setShowBounds(showBounds[0])
+        if (ImGui.checkbox("Bounds##skin_editor_canvas_bounds", showBounds)) operations.setShowBounds(showBounds[0])
         val showCheckerboard = booleanArrayOf(state.previewSettings.showCheckerboard)
-        ImGui.textUnformatted("Show Checkerboard:")
         ImGui.sameLine()
-        if (ImGui.checkbox("##skin_editor_canvas_checkerboard", showCheckerboard)) {
+        if (ImGui.checkbox("Checkerboard##skin_editor_canvas_checkerboard", showCheckerboard)) {
             operations.setPreviewCheckerboardEnabled(showCheckerboard[0])
         }
         val highlightSelectedStyle = booleanArrayOf(state.previewSettings.highlightSelectedStyle)
-        ImGui.textUnformatted("Highlight selected style:")
         ImGui.sameLine()
-        if (ImGui.checkbox("##skin_editor_canvas_highlight_style", highlightSelectedStyle)) {
+        if (ImGui.checkbox("Highlight selected##skin_editor_canvas_highlight_style", highlightSelectedStyle)) {
             operations.setHighlightSelectedStyle(highlightSelectedStyle[0])
         }
         val interactionEnabled = booleanArrayOf(state.previewSettings.interaction.inputEnabled)
-        ImGui.textUnformatted("Interact with widgets:")
         ImGui.sameLine()
-        if (ImGui.checkbox("##skin_editor_canvas_interact", interactionEnabled)) {
+        if (ImGui.checkbox("Interact##skin_editor_canvas_interact", interactionEnabled)) {
             operations.setCanvasInteractionEnabled(interactionEnabled[0])
         }
         ImGui.textUnformatted("Canvas: ${state.canvasRect.width.toInt()} x ${state.canvasRect.height.toInt()}")

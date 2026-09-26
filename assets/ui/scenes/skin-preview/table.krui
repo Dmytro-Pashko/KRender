@@ -1,0 +1,41 @@
+{
+    "schemaVersion": 1,
+    "id": "skin_preview_table",
+    "skin": "ui/skins/default/uiskin.json",
+    "bindings": [
+        { "key": "labelText", "type": "Text", "defaultValue": "Resource Table" },
+        { "key": "buttonText", "type": "Text", "defaultValue": "Open" }
+    ],
+    "root": {
+        "id": "table_window",
+        "type": "Window",
+        "text": "Resource Table",
+        "spacing": 8,
+        "children": [
+            { "id": "table_title", "type": "Label", "text": "{labelText}" },
+            { "id": "table_filter", "type": "SelectBox", "items": [ "All assets", "Models", "Textures", "UI" ] },
+            {
+                "id": "table_scroll",
+                "type": "ScrollPane",
+                "height": 180,
+                "children": [
+                    {
+                        "id": "table_list",
+                        "type": "List",
+                        "items": [
+                            "Name                 Type          Size",
+                            "player_idle.glb      Model         2.4 MB",
+                            "terrain_grass.png    Texture       1.1 MB",
+                            "main_menu.krui       UI Scene      18 KB",
+                            "default.uiskin       Skin          42 KB",
+                            "рушій_логотип.png    Texture       640 KB",
+                            "ambient_forest.ogg   Audio         6.8 MB"
+                        ]
+                    }
+                ]
+            },
+            { "id": "table_open", "type": "TextButton", "text": "{buttonText}" },
+            { "id": "table_refresh", "type": "TextButton", "text": "Refresh" }
+        ]
+    }
+}

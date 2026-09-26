@@ -10,13 +10,25 @@ object PlaceholderSyntaxValidator : UiSceneValidationRule {
     private fun validateNode(node: UiSceneNode): List<UiSceneValidationIssue> {
         val fields =
             when (node.type) {
-                UiSceneNodeType.Label -> listOf("text" to node.text)
+                UiSceneNodeType.Label,
+                UiSceneNodeType.Button,
+                UiSceneNodeType.CheckBox,
+                UiSceneNodeType.TextField,
+                UiSceneNodeType.TextTooltip,
+                UiSceneNodeType.Window,
+                -> listOf("text" to node.text)
                 UiSceneNodeType.TextButton -> listOf("text" to node.text, "action" to node.action)
                 UiSceneNodeType.Image -> listOf("texture" to node.texture)
                 UiSceneNodeType.Stack,
                 UiSceneNodeType.Table,
                 UiSceneNodeType.Container,
+                UiSceneNodeType.SelectBox,
+                UiSceneNodeType.List,
+                UiSceneNodeType.ScrollPane,
+                UiSceneNodeType.SplitPane,
+                UiSceneNodeType.Slider,
                 UiSceneNodeType.ProgressBar,
+                UiSceneNodeType.Tree,
                 UiSceneNodeType.Space,
                 -> emptyList()
             }

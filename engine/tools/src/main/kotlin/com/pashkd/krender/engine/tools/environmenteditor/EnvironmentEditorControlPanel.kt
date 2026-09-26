@@ -5,6 +5,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import com.pashkd.krender.engine.ui.editor.drawImGuiLayoutLockButton
 import imgui.ImGui
 
 /** Primary file/session controls and current manifest status. */
@@ -48,6 +49,9 @@ class EnvironmentEditorControlPanel(
             controller.restoreUiLayout()
         }
         tooltipOnHover("Restores the default Environment Editor panel layout.")
+        ImGui.sameLine()
+        drawImGuiLayoutLockButton(layoutTracker, "environment_editor")
+        tooltipOnHover("Toggle whether Environment Editor panels can be moved.")
         ImGui.sameLine()
         if (ImGui.button("Exit##environment_editor_exit")) {
             controller.requestExit()

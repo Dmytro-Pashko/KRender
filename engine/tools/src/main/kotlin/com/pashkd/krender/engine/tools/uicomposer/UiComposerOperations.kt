@@ -545,11 +545,28 @@ private fun UiSceneNodeType.defaultIdBase(): String =
         UiSceneNodeType.Stack -> "stack"
         UiSceneNodeType.Table -> "table"
         UiSceneNodeType.Container -> "container"
+        UiSceneNodeType.Window -> "window"
         UiSceneNodeType.Label -> "label"
+        UiSceneNodeType.Button -> "button"
         UiSceneNodeType.TextButton -> "button"
+        UiSceneNodeType.CheckBox -> "checkbox"
+        UiSceneNodeType.TextField -> "text_field"
+        UiSceneNodeType.SelectBox -> "select_box"
+        UiSceneNodeType.List -> "list"
+        UiSceneNodeType.ScrollPane -> "scroll_pane"
+        UiSceneNodeType.SplitPane -> "split_pane"
+        UiSceneNodeType.Slider -> "slider"
         UiSceneNodeType.ProgressBar -> "progress"
+        UiSceneNodeType.Tree -> "tree"
+        UiSceneNodeType.TextTooltip -> "tooltip"
         UiSceneNodeType.Image -> "image"
         UiSceneNodeType.Space -> "space"
     }
 
-private fun UiSceneNodeType.isContainerLike(): Boolean = this == UiSceneNodeType.Stack || this == UiSceneNodeType.Table || this == UiSceneNodeType.Container
+private fun UiSceneNodeType.isContainerLike(): Boolean =
+    this == UiSceneNodeType.Stack ||
+        this == UiSceneNodeType.Table ||
+        this == UiSceneNodeType.Container ||
+        this == UiSceneNodeType.Window ||
+        this == UiSceneNodeType.ScrollPane ||
+        this == UiSceneNodeType.SplitPane

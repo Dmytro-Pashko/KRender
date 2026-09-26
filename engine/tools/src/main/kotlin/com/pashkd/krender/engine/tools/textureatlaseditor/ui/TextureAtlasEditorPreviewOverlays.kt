@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.tools.textureatlaseditor.ui
 
 import com.pashkd.krender.engine.api.TexturePreviewHandle
+import com.pashkd.krender.engine.tools.common.ninepatch.NinePatchPreviewOverlays
 import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewOverlays
 import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewRegion
 import com.pashkd.krender.engine.tools.common.texturepreview.TexturePreviewRegionSelection
@@ -8,11 +9,9 @@ import com.pashkd.krender.engine.tools.textureatlaseditor.AtlasRegionId
 import com.pashkd.krender.engine.tools.textureatlaseditor.BitmapFontGlyph
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDocument
 import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchDraft
-import com.pashkd.krender.engine.tools.textureatlaseditor.NinePatchSegment
 import com.pashkd.krender.engine.tools.textureatlaseditor.SampleTextLayout
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasEditorCanvasRect
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchPreview
-import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasNinePatchStretchRect
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingPage
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasPackingRegion
 import com.pashkd.krender.engine.tools.textureatlaseditor.TextureAtlasRegion
@@ -58,49 +57,14 @@ internal object TextureAtlasEditorPreviewOverlays {
         document: NinePatchDocument,
         layout: TexturePreviewViewportLayout,
     ) {
-        val drawList = ImGui.windowDrawList
-        val drawableMinX = layout.imageX + layout.effectiveZoom
-        val drawableMinY = layout.imageY + layout.effectiveZoom
-        val drawableMaxX = layout.imageX + (document.imageWidth - 1) * layout.effectiveZoom
-        val drawableMaxY = layout.imageY + (document.imageHeight - 1) * layout.effectiveZoom
-        drawList.addRect(
-            ImVec2(drawableMinX, drawableMinY),
-            ImVec2(drawableMaxX, drawableMaxY),
-            NinePatchContentColor,
-            0f,
-            thickness = 2f,
-        )
-
-        document.stretchX.forEach { segment ->
-            drawHorizontalGuide(segment, layout.imageY + layout.effectiveZoom * 0.5f, NinePatchStretchXColor, layout)
-        }
-        document.paddingX?.let { segment ->
-            drawHorizontalGuide(segment, layout.imageY + (document.imageHeight - 0.5f) * layout.effectiveZoom, NinePatchPaddingColor, layout)
-        }
-        document.stretchY.forEach { segment ->
-            drawVerticalGuide(segment, layout.imageX + layout.effectiveZoom * 0.5f, NinePatchStretchYColor, layout)
-        }
-        document.paddingY?.let { segment ->
-            drawVerticalGuide(segment, layout.imageX + (document.imageWidth - 0.5f) * layout.effectiveZoom, NinePatchPaddingColor, layout)
-        }
+        NinePatchPreviewOverlays.drawSourceGuides(document, layout)
     }
 
     fun drawNinePatchDraftGuides(
         overlay: NinePatchDraftOverlay,
         highlightedHandle: NinePatchGuideHandleId? = null,
     ) {
-        val drawList = ImGui.windowDrawList
-        drawList.addRect(
-            ImVec2(overlay.contentMinX, overlay.contentMinY),
-            ImVec2(overlay.contentMaxX, overlay.contentMaxY),
-            NinePatchContentColor,
-            0f,
-            thickness = 2f,
-        )
-        drawDraftGuide(overlay.stretchX, highlightedHandle)
-        drawDraftGuide(overlay.stretchY, highlightedHandle)
-        overlay.paddingX?.let { guide -> drawDraftGuide(guide, highlightedHandle) }
-        overlay.paddingY?.let { guide -> drawDraftGuide(guide, highlightedHandle) }
+        NinePatchPreviewOverlays.drawDraftGuides(overlay, highlightedHandle)
     }
 
     fun drawNinePatchStretchOverlays(
@@ -110,273 +74,19 @@ internal object TextureAtlasEditorPreviewOverlays {
         showDestinationSlices: Boolean,
         showPaddingRect: Boolean,
     ) {
-        val drawList = ImGui.windowDrawList
-        drawList.addRect(
-            ImVec2(layout.imageX, layout.imageY),
-            ImVec2(layout.imageX + layout.imageWidth, layout.imageY + layout.imageHeight),
-            NinePatchContentColor,
-            0f,
-            thickness = 2f,
-        )
-        if (showDestinationSlices) {
-            preview.destinationVerticalCuts.forEach { cut ->
-                val x = layout.imageX + cut * layout.effectiveZoom
-                drawList.addLine(
-                    ImVec2(x, layout.imageY),
-                    ImVec2(x, layout.imageY + layout.imageHeight),
-                    NinePatchDestinationSliceColor,
-                    2f,
-                )
-            }
-            preview.destinationHorizontalCuts.forEach { cut ->
-                val y = layout.imageY + cut * layout.effectiveZoom
-                drawList.addLine(
-                    ImVec2(layout.imageX, y),
-                    ImVec2(layout.imageX + layout.imageWidth, y),
-                    NinePatchDestinationSliceColor,
-                    2f,
-                )
-            }
-        }
-        if (showPaddingRect) {
-            preview.paddingRect?.let { paddingRect ->
-                drawPaddingRect(paddingRect, layout)
-            }
-        }
-        if (showSourceGuides) {
-            val left = layout.imageX + preview.fixedLeft * layout.effectiveZoom
-            val right = layout.imageX + (preview.targetWidth - preview.fixedRight) * layout.effectiveZoom
-            val top = layout.imageY + preview.fixedTop * layout.effectiveZoom
-            val bottom = layout.imageY + (preview.targetHeight - preview.fixedBottom) * layout.effectiveZoom
-            drawList.addLine(ImVec2(left, layout.imageY), ImVec2(left, layout.imageY + layout.imageHeight), NinePatchStretchXColor, 1.5f)
-            drawList.addLine(ImVec2(right, layout.imageY), ImVec2(right, layout.imageY + layout.imageHeight), NinePatchStretchXColor, 1.5f)
-            drawList.addLine(ImVec2(layout.imageX, top), ImVec2(layout.imageX + layout.imageWidth, top), NinePatchStretchYColor, 1.5f)
-            drawList.addLine(ImVec2(layout.imageX, bottom), ImVec2(layout.imageX + layout.imageWidth, bottom), NinePatchStretchYColor, 1.5f)
-        }
+        NinePatchPreviewOverlays.drawStretchOverlays(preview, layout, showSourceGuides, showDestinationSlices, showPaddingRect)
     }
 
     fun buildNinePatchDraftOverlay(
         draft: NinePatchDraft,
         layout: TexturePreviewViewportLayout,
-    ): NinePatchDraftOverlay {
-        val contentMinX = layout.imageX
-        val contentMinY = layout.imageY
-        val contentMaxX = contentMinX + draft.contentWidth * layout.effectiveZoom
-        val contentMaxY = contentMinY + draft.contentHeight * layout.effectiveZoom
-        val lineOffset = (6f * layout.effectiveZoom).coerceIn(8f, 18f)
-        val handleSize = (8f * layout.effectiveZoom).coerceIn(8f, 16f)
-        return NinePatchDraftOverlay(
-            contentMinX = contentMinX,
-            contentMinY = contentMinY,
-            contentMaxX = contentMaxX,
-            contentMaxY = contentMaxY,
-            stretchX =
-                buildHorizontalDraftGuide(
-                    kind = NinePatchGuideKind.StretchX,
-                    segment = draft.stretchX,
-                    contentMinX = contentMinX,
-                    y = contentMinY - lineOffset,
-                    layout = layout,
-                    handleSize = handleSize,
-                ),
-            stretchY =
-                buildVerticalDraftGuide(
-                    kind = NinePatchGuideKind.StretchY,
-                    segment = draft.stretchY,
-                    contentMinY = contentMinY,
-                    x = contentMinX - lineOffset,
-                    layout = layout,
-                    handleSize = handleSize,
-                ),
-            paddingX =
-                draft.paddingX?.let { segment ->
-                    buildHorizontalDraftGuide(
-                        kind = NinePatchGuideKind.PaddingX,
-                        segment = segment,
-                        contentMinX = contentMinX,
-                        y = contentMaxY + lineOffset,
-                        layout = layout,
-                        handleSize = handleSize,
-                    )
-                },
-            paddingY =
-                draft.paddingY?.let { segment ->
-                    buildVerticalDraftGuide(
-                        kind = NinePatchGuideKind.PaddingY,
-                        segment = segment,
-                        contentMinY = contentMinY,
-                        x = contentMaxX + lineOffset,
-                        layout = layout,
-                        handleSize = handleSize,
-                    )
-                },
-        )
-    }
+    ): NinePatchDraftOverlay = NinePatchPreviewOverlays.buildDraftOverlay(draft, layout)
 
     fun hitTestNinePatchGuideHandle(
         overlay: NinePatchDraftOverlay,
         screenX: Float,
         screenY: Float,
-    ): NinePatchGuideHandleId? =
-        listOfNotNull(
-            overlay.stretchX,
-            overlay.stretchY,
-            overlay.paddingX,
-            overlay.paddingY,
-        ).asReversed()
-            .flatMap { guide -> listOf(guide.startHandle, guide.endHandle) }
-            .firstOrNull { handle ->
-                screenX >= handle.minX &&
-                    screenX <= handle.maxX &&
-                    screenY >= handle.minY &&
-                    screenY <= handle.maxY
-            }?.id
-
-    private fun drawDraftGuide(
-        guide: NinePatchGuideOverlay,
-        highlightedHandle: NinePatchGuideHandleId?,
-    ) {
-        val drawList = ImGui.windowDrawList
-        drawList.addLine(
-            ImVec2(guide.lineMinX, guide.lineMinY),
-            ImVec2(guide.lineMaxX, guide.lineMaxY),
-            guide.color,
-            3f,
-        )
-        drawDraftHandle(guide.startHandle, guide.color, highlightedHandle == guide.startHandle.id)
-        drawDraftHandle(guide.endHandle, guide.color, highlightedHandle == guide.endHandle.id)
-    }
-
-    private fun drawDraftHandle(
-        handle: NinePatchGuideHandleOverlay,
-        color: Int,
-        highlighted: Boolean,
-    ) {
-        val drawList = ImGui.windowDrawList
-        val fillColor = if (highlighted) SelectedColor else color
-        drawList.addRectFilled(ImVec2(handle.minX, handle.minY), ImVec2(handle.maxX, handle.maxY), fillColor, 2f)
-        drawList.addRect(ImVec2(handle.minX, handle.minY), ImVec2(handle.maxX, handle.maxY), LabelColor, 2f, thickness = 1.5f)
-    }
-
-    private fun drawPaddingRect(
-        rect: TextureAtlasNinePatchStretchRect,
-        layout: TexturePreviewViewportLayout,
-    ) {
-        val minX = layout.imageX + rect.x * layout.effectiveZoom
-        val minY = layout.imageY + rect.y * layout.effectiveZoom
-        val maxX = minX + rect.width * layout.effectiveZoom
-        val maxY = minY + rect.height * layout.effectiveZoom
-        val drawList = ImGui.windowDrawList
-        drawList.addRectFilled(ImVec2(minX, minY), ImVec2(maxX, maxY), NinePatchPaddingFillColor)
-        drawList.addRect(ImVec2(minX, minY), ImVec2(maxX, maxY), NinePatchPaddingColor, 0f, thickness = 2f)
-    }
-
-    private fun buildHorizontalDraftGuide(
-        kind: NinePatchGuideKind,
-        segment: NinePatchSegment,
-        contentMinX: Float,
-        y: Float,
-        layout: TexturePreviewViewportLayout,
-        handleSize: Float,
-    ): NinePatchGuideOverlay {
-        val startX = contentMinX + segment.start * layout.effectiveZoom
-        val endX = contentMinX + (segment.start + segment.length) * layout.effectiveZoom
-        return NinePatchGuideOverlay(
-            kind = kind,
-            orientation = NinePatchGuideOrientation.Horizontal,
-            segment = segment,
-            lineMinX = startX,
-            lineMinY = y,
-            lineMaxX = endX,
-            lineMaxY = y,
-            color = guideColor(kind),
-            startHandle =
-                NinePatchGuideHandleOverlay(
-                    id = NinePatchGuideHandleId(kind, NinePatchGuideHandleRole.Start),
-                    minX = startX - handleSize * 0.5f,
-                    minY = y - handleSize * 0.5f,
-                    maxX = startX + handleSize * 0.5f,
-                    maxY = y + handleSize * 0.5f,
-                ),
-            endHandle =
-                NinePatchGuideHandleOverlay(
-                    id = NinePatchGuideHandleId(kind, NinePatchGuideHandleRole.End),
-                    minX = endX - handleSize * 0.5f,
-                    minY = y - handleSize * 0.5f,
-                    maxX = endX + handleSize * 0.5f,
-                    maxY = y + handleSize * 0.5f,
-                ),
-        )
-    }
-
-    private fun buildVerticalDraftGuide(
-        kind: NinePatchGuideKind,
-        segment: NinePatchSegment,
-        contentMinY: Float,
-        x: Float,
-        layout: TexturePreviewViewportLayout,
-        handleSize: Float,
-    ): NinePatchGuideOverlay {
-        val startY = contentMinY + segment.start * layout.effectiveZoom
-        val endY = contentMinY + (segment.start + segment.length) * layout.effectiveZoom
-        return NinePatchGuideOverlay(
-            kind = kind,
-            orientation = NinePatchGuideOrientation.Vertical,
-            segment = segment,
-            lineMinX = x,
-            lineMinY = startY,
-            lineMaxX = x,
-            lineMaxY = endY,
-            color = guideColor(kind),
-            startHandle =
-                NinePatchGuideHandleOverlay(
-                    id = NinePatchGuideHandleId(kind, NinePatchGuideHandleRole.Start),
-                    minX = x - handleSize * 0.5f,
-                    minY = startY - handleSize * 0.5f,
-                    maxX = x + handleSize * 0.5f,
-                    maxY = startY + handleSize * 0.5f,
-                ),
-            endHandle =
-                NinePatchGuideHandleOverlay(
-                    id = NinePatchGuideHandleId(kind, NinePatchGuideHandleRole.End),
-                    minX = x - handleSize * 0.5f,
-                    minY = endY - handleSize * 0.5f,
-                    maxX = x + handleSize * 0.5f,
-                    maxY = endY + handleSize * 0.5f,
-                ),
-        )
-    }
-
-    private fun guideColor(kind: NinePatchGuideKind): Int =
-        when (kind) {
-            NinePatchGuideKind.StretchX -> NinePatchStretchXColor
-            NinePatchGuideKind.StretchY -> NinePatchStretchYColor
-            NinePatchGuideKind.PaddingX,
-            NinePatchGuideKind.PaddingY,
-            -> NinePatchPaddingColor
-        }
-
-    private fun drawHorizontalGuide(
-        segment: NinePatchSegment,
-        y: Float,
-        color: Int,
-        layout: TexturePreviewViewportLayout,
-    ) {
-        val startX = layout.imageX + (segment.start + 1f) * layout.effectiveZoom
-        val endX = layout.imageX + (segment.endInclusive + 2f) * layout.effectiveZoom
-        ImGui.windowDrawList.addLine(ImVec2(startX, y), ImVec2(endX, y), color, 3f)
-    }
-
-    private fun drawVerticalGuide(
-        segment: NinePatchSegment,
-        x: Float,
-        color: Int,
-        layout: TexturePreviewViewportLayout,
-    ) {
-        val startY = layout.imageY + (segment.start + 1f) * layout.effectiveZoom
-        val endY = layout.imageY + (segment.endInclusive + 2f) * layout.effectiveZoom
-        ImGui.windowDrawList.addLine(ImVec2(x, startY), ImVec2(x, endY), color, 3f)
-    }
+    ): NinePatchGuideHandleId? = NinePatchPreviewOverlays.hitTestGuideHandle(overlay, screenX, screenY)
 
     fun drawPackedAtlasPage(
         page: TextureAtlasPackingPage,
@@ -467,14 +177,7 @@ internal object TextureAtlasEditorPreviewOverlays {
     private val BoundsColor = packImColor(255, 214, 102, 180)
     private val HoverFillColor = packImColor(64, 173, 255, 56)
     private val SelectedFillColor = packImColor(255, 92, 92, 56)
-    private val SelectedColor = packImColor(255, 92, 92, 255)
     private val LabelColor = packImColor(255, 255, 255, 255)
-    private val NinePatchContentColor = packImColor(255, 255, 255, 180)
-    private val NinePatchStretchXColor = packImColor(255, 184, 77, 255)
-    private val NinePatchStretchYColor = packImColor(77, 184, 255, 255)
-    private val NinePatchPaddingColor = packImColor(111, 230, 153, 255)
-    private val NinePatchPaddingFillColor = packImColor(111, 230, 153, 48)
-    private val NinePatchDestinationSliceColor = packImColor(255, 255, 255, 120)
     private val PackedPageColor = packImColor(255, 255, 255, 220)
     private val PackedRegionColor = packImColor(77, 184, 255, 120)
     private val PackedHoverRegionColor = packImColor(111, 230, 153, 180)
@@ -620,56 +323,10 @@ internal data class PackedRegionScreenRect(
     val maxY: Float,
 )
 
-internal data class NinePatchDraftOverlay(
-    val contentMinX: Float,
-    val contentMinY: Float,
-    val contentMaxX: Float,
-    val contentMaxY: Float,
-    val stretchX: NinePatchGuideOverlay,
-    val stretchY: NinePatchGuideOverlay,
-    val paddingX: NinePatchGuideOverlay? = null,
-    val paddingY: NinePatchGuideOverlay? = null,
-)
-
-internal data class NinePatchGuideOverlay(
-    val kind: NinePatchGuideKind,
-    val orientation: NinePatchGuideOrientation,
-    val segment: NinePatchSegment,
-    val lineMinX: Float,
-    val lineMinY: Float,
-    val lineMaxX: Float,
-    val lineMaxY: Float,
-    val color: Int,
-    val startHandle: NinePatchGuideHandleOverlay,
-    val endHandle: NinePatchGuideHandleOverlay,
-)
-
-internal data class NinePatchGuideHandleOverlay(
-    val id: NinePatchGuideHandleId,
-    val minX: Float,
-    val minY: Float,
-    val maxX: Float,
-    val maxY: Float,
-)
-
-internal data class NinePatchGuideHandleId(
-    val kind: NinePatchGuideKind,
-    val role: NinePatchGuideHandleRole,
-)
-
-internal enum class NinePatchGuideKind {
-    StretchX,
-    StretchY,
-    PaddingX,
-    PaddingY,
-}
-
-internal enum class NinePatchGuideHandleRole {
-    Start,
-    End,
-}
-
-internal enum class NinePatchGuideOrientation {
-    Horizontal,
-    Vertical,
-}
+internal typealias NinePatchDraftOverlay = com.pashkd.krender.engine.tools.common.ninepatch.NinePatchDraftOverlay
+internal typealias NinePatchGuideOverlay = com.pashkd.krender.engine.tools.common.ninepatch.NinePatchGuideOverlay
+internal typealias NinePatchGuideHandleOverlay = com.pashkd.krender.engine.tools.common.ninepatch.NinePatchGuideHandleOverlay
+internal typealias NinePatchGuideHandleId = com.pashkd.krender.engine.tools.common.ninepatch.NinePatchGuideHandleId
+internal typealias NinePatchGuideKind = com.pashkd.krender.engine.tools.common.ninepatch.NinePatchGuideKind
+internal typealias NinePatchGuideHandleRole = com.pashkd.krender.engine.tools.common.ninepatch.NinePatchGuideHandleRole
+internal typealias NinePatchGuideOrientation = com.pashkd.krender.engine.tools.common.ninepatch.NinePatchGuideOrientation
