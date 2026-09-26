@@ -16,6 +16,7 @@ enum class CreatableAssetKind(
     Atlas("Texture Atlas", AssetType.Atlas, AssetCategory.Scene2D, "atlases", "atlas"),
     UiScene("UI Scene", AssetType.UiScene, AssetCategory.UI, "ui/scenes", "krui"),
     Terrain("Terrain", AssetType.Terrain, AssetCategory.Terrain, "terrains", "json"),
+    MaterialLibrary("Material Library", AssetType.Material, AssetCategory.Material, "materials", "json"),
     Scene("Scene", AssetType.Scene, AssetCategory.Scene, "scenes", "krscene"),
     BitmapFont("Bitmap Font", AssetType.Font, AssetCategory.Scene2D, "ui/fonts", "kfont.json"),
     Environment("Environment", AssetType.Environment, AssetCategory.Environment, "environments", "environment.json"),
@@ -83,6 +84,7 @@ internal fun defaultAssetBaseName(
         AssetType.Atlas -> "new_atlas"
         AssetType.UiScene -> "new_ui_scene"
         AssetType.Terrain -> "new_terrain"
+        AssetType.Material -> "new_material_library"
         AssetType.Scene -> "new_scene"
         AssetType.Font -> "new_bitmap_font"
         AssetType.Environment -> "new_environment"
@@ -116,6 +118,8 @@ internal fun createAssetDefaultParams(draft: CreateAssetDraft): List<String> =
                 "Vertex spacing: 1.0",
                 "Layers: 0",
             )
+
+        CreatableAssetKind.MaterialLibrary -> listOf("Materials: 1", "Texture: textures/t_grass_01_s.png")
 
         CreatableAssetKind.Scene ->
             listOf(

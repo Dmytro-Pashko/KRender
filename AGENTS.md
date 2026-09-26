@@ -348,6 +348,10 @@ validates source and generated IBL references, and previews them on bundled glTF
 `engine/tools/.../animationviewer/AnimationViewerScene.kt` (+ sibling files in `engine:tools`). Plays model animation clips and
 visualizes the skeleton/pose. → `docs/agents/tools/animation-viewer.md`
 
+### Material Editor
+
+`engine:tools/.../materialeditor/MaterialEditorScene.kt` edits terrain material libraries selected from Asset Browser. Its JSON format remains `materials[]` with per-material `albedoTexture`; renaming an ID updates terrain references in files using the library. See `docs/agents/tools/material-editor.md`.
+
 ### Terrain Editor
 `engine/tools/.../terraineditor/TerrainEditorScene.kt` (+ sibling editor files in `engine:tools`, shared terrain runtime in `core/.../engine/terrain/`). Generates and brush-edits heightfield
 terrain with layers, material preview baking, and persistence. → `docs/agents/tools/terrain-editor.md`

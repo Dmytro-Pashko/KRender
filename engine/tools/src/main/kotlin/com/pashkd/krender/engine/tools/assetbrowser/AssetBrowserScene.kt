@@ -53,6 +53,7 @@ class AssetBrowserScene : Scene("asset_browser") {
                 register(ModelViewerAssetTool())
                 register(AnimationViewerAssetTool())
                 register(TerrainEditorAssetTool())
+                register(MaterialEditorAssetTool())
                 register(TextureAtlasEditorAtlasAssetTool())
                 register(SkinEditorAssetTool())
                 register(UiComposerAssetTool())
@@ -332,6 +333,7 @@ private class SceneOperationsHandler(
                 ).toByteArray()
 
             AssetType.Terrain -> defaultTerrainContent(draft.name, draft.terrainSize()).toByteArray()
+            AssetType.Material -> defaultMaterialLibraryContent(draft.name).toByteArray()
             AssetType.Scene -> defaultSceneContent().toByteArray()
             else -> ByteArray(0)
         }
@@ -448,6 +450,24 @@ internal fun defaultTerrainContent(name: String, size: Int = 64): String {
     return "$encoded\n"
 }
 
+internal fun defaultMaterialLibraryContent(name: String): String {
+    val id = sanitizedAssetName(name, "new_material_library").replace(' ', '_')
+    return """
+        {
+          "formatVersion": 1,
+          "materials": [
+            {
+              "id": "terrain/$id",
+              "name": "New Material",
+              "albedoTexture": "textures/t_grass_01_s.png",
+              "fallbackColor": { "r": 1.0, "g": 1.0, "b": 1.0, "a": 1.0 },
+              "defaultTiling": 8.0
+            }
+          ]
+        }
+    """.trimIndent() + "\n"
+}
+
 /**
  * Opens model assets in a separate Model Viewer window.
  */
@@ -512,6 +532,18 @@ class TerrainEditorAssetTool : AssetTool {
 
     companion object {
         private const val TAG = "TerrainEditorAssetTool"
+    }
+}
+
+class MaterialEditorAssetTool : AssetTool {
+    override val id = "material-editor"
+    override val displayName = "Open in Material Editor"
+    override val supportedCategories = setOf(AssetCategory.Material)
+
+    override fun canOpen(asset: AssetDescriptor): Boolean = asset.type == AssetType.Material
+
+    override fun open(asset: AssetDescriptor, context: EngineContext) {
+        context.editorToolLauncher.launchMaterialEditor(normalizedAssetPath(asset))
     }
 }
 

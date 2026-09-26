@@ -36,6 +36,14 @@ class Lwjgl3EditorToolLauncher(
         )
     }
 
+    override fun launchMaterialEditor(materialPath: String) {
+        launch(
+            scene = "material-editor",
+            pathProperty = "krender.material.path" to normalizePath(materialPath),
+            failureMessage = "Material Editor launch failed",
+        )
+    }
+
     override fun launchSceneEditorWithScene(scenePath: String) {
         launch(
             scene = "scene-editor",

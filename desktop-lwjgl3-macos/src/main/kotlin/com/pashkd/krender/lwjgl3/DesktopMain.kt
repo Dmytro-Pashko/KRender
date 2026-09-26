@@ -31,11 +31,12 @@ class DesktopMain(
                 atlasPath = configuredTextureAtlasPath(),
                 fontPath = configuredFontPath(),
                 environmentPath = configuredEnvironmentPath(),
+                materialPath = configuredMaterialPath(),
             ) ?: ScenePlayerModule.createScene(
                 sceneName = requestedScene,
                 scenePath = scenePath,
             ) ?: throw IllegalArgumentException(
-                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, scene-player, scene-viewer, runtime-scene, model-viewer, animation-viewer, terrain-editor, skin-editor, texture-atlas-editor, ui-composer, bitmap-font-editor.",
+                "Unknown krender.scene '$requestedScene'. Supported scenes: asset-browser, scene-editor, scene-player, scene-viewer, runtime-scene, model-viewer, animation-viewer, terrain-editor, material-editor, skin-editor, texture-atlas-editor, ui-composer, bitmap-font-editor.",
             )
         },
         runtimeWindowLauncherFactory = runtimeWindowLauncherFactory,
@@ -65,5 +66,7 @@ class DesktopMain(
         fun configuredFontPath(): String? = System.getProperty("krender.font.path")?.takeIf(String::isNotBlank)
 
         fun configuredEnvironmentPath(): String? = System.getProperty("krender.environment.path")?.takeIf(String::isNotBlank)
+
+        fun configuredMaterialPath(): String? = System.getProperty("krender.material.path")?.takeIf(String::isNotBlank)
     }
 }

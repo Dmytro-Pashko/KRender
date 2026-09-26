@@ -47,11 +47,12 @@ Features:
 - Opens assets with registered tools:
     - models in Model Viewer or Animation Viewer;
     - terrains in Terrain Editor;
+    - material libraries in Material Editor;
     - `.krscene` files in Scene Editor or Runtime;
     - `.krui` files in UI Composer.
 - Provides context menu operations for opening, opening with a specific tool, renaming, duplicating, deleting, and
   revealing files.
-- Provides a focused Create Asset dialog for `UI Scene`, `Terrain`, and `Scene` assets only.
+- Provides a Create Asset dialog for UI Scene, Terrain, Material Library, and other supported editor resources.
 - Lets new `.krui` UI scenes select a discovered Scene2D Skin path while keeping the `.krui` schema path-based.
 - Shows a draft preview in the Create Asset dialog with final file path, existence state, and default parameters before
   creation. Terrain sizes are 64, 128, 256, 512, or a custom square size from 2 to 512.
@@ -273,6 +274,10 @@ Example:
 ```sh
 ./gradlew :desktop-lwjgl3-linux:run -Pkrender.scene=animation-viewer -Pkrender.model.path=model/example.glb
 ```
+
+### Material Editor
+
+Open a Material asset from Asset Browser, or start `material-editor` with `krender.material.path=<materials/file.json>`. Add or remove materials and edit each material's ID, name, texture, fallback color, and tiling. Texture choices come from indexed texture assets. Saving an ID change updates terrain files that use this library; an ambiguous legacy terrain binding blocks the save.
 
 ### Terrain Editor
 

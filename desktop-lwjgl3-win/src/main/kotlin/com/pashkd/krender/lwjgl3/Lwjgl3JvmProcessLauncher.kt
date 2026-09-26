@@ -61,6 +61,7 @@ internal class Lwjgl3JvmProcessLauncher(
             properties["krender.model.path"]
                 ?: properties["krender.texture.atlas.path"]
                 ?: properties["krender.terrain.path"]
+                ?: properties["krender.material.path"]
                 ?: properties["krender.scene.path"]
                 ?: "session"
         val timestamp = FILE_NAME_FORMATTER.format(Instant.now().atZone(ZoneId.systemDefault()))
@@ -146,6 +147,7 @@ internal class Lwjgl3JvmProcessLauncher(
                 "-Dkrender.model.path=",
                 "-Dkrender.texture.atlas.path=",
                 "-Dkrender.terrain.path=",
+                "-Dkrender.material.path=",
             )
 
         private fun sanitize(value: String): String =

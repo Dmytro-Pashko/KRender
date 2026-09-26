@@ -1,0 +1,18 @@
+{
+  "panels": {
+    "materialEditor": {
+      "title": "Material Editor",
+      "x": 16,
+      "y": 16,
+      "width": 780,
+      "height": 700
+    },
+    "runtimeLogs": {
+      "title": "Runtime Logs",
+      "x": 810,
+      "y": 16,
+      "width": 460,
+      "height": 700
+    }
+  }
+}

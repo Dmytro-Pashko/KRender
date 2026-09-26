@@ -10,6 +10,8 @@ interface EditorToolLauncher {
 
     fun launchTerrainEditor(terrainPath: String)
 
+    fun launchMaterialEditor(materialPath: String) { error("Material Editor launch is not supported") }
+
     fun launchSceneEditorWithScene(scenePath: String)
 
     fun launchSkinEditor(skinPath: String?)
