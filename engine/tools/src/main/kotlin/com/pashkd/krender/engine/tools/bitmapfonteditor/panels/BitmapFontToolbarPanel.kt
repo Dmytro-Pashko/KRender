@@ -8,6 +8,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import com.pashkd.krender.engine.ui.editor.drawImGuiLayoutLockButton
 import imgui.ImGui
 
 class BitmapFontToolbarPanel(
@@ -46,6 +47,9 @@ class BitmapFontToolbarPanel(
             controller.restoreUiLayout()
         }
         tooltipOnHover("Restores the default panel layout.")
+        ImGui.sameLine()
+        drawImGuiLayoutLockButton(layoutTracker, "bitmap_font_editor")
+        tooltipOnHover("Toggle whether Bitmap Font Editor panels can be moved.")
         ImGui.sameLine()
         if (ImGui.button("Exit##bfe_exit")) {
             controller.requestExit()

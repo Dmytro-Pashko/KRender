@@ -85,6 +85,8 @@ class SceneEditorToolbarPanel(
                 operations.restoreUiLayout()
             }
         }
+        ImGui.sameLine()
+        drawImGuiLayoutLockButton(layoutTracker, "scene_editor")
 
         ImGui.separator()
         ImGui.text("Scene: ${state.sceneName}")

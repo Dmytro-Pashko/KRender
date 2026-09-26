@@ -57,6 +57,9 @@ class ModelViewerToolbarPanel(
         }
         tooltipOnHover("Reset all Model Viewer panels to the default layout.")
         ImGui.sameLine()
+        drawImGuiLayoutLockButton(layoutTracker, "model_viewer")
+        tooltipOnHover("Toggle whether Model Viewer panels can be moved.")
+        ImGui.sameLine()
         with(dsl) {
             button("Reload##model_viewer_reload") {
                 operations.requestReload()

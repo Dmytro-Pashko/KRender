@@ -38,6 +38,8 @@ class AnimationViewerToolbarPanel(
             button("Reset UI to Default##animation_viewer_reset_ui") { operations.restoreUiLayout() }
         }
         ImGui.sameLine()
+        drawImGuiLayoutLockButton(layoutTracker, "animation_viewer")
+        ImGui.sameLine()
         with(dsl) {
             button("Reset Camera##animation_viewer_reset_camera") { operations.resetCamera() }
         }

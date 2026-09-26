@@ -68,6 +68,8 @@ class AssetControlsPanel(
             }
         }
         ImGui.sameLine()
+        drawImGuiLayoutLockButton(layoutTracker, panelId)
+        ImGui.sameLine()
         with(dsl) {
             button("Exit##${panelId}_exit") {
                 operations.exit()

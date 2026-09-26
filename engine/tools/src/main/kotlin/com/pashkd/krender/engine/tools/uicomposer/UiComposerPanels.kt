@@ -76,6 +76,8 @@ class UiComposerToolbarPanel(
             }
         }
         ImGui.sameLine()
+        drawImGuiLayoutLockButton(layoutTracker, "ui_composer")
+        ImGui.sameLine()
         if (state.pendingReloadConfirmation) {
             with(dsl) {
                 button("Confirm Reload##ui_composer_confirm_reload") {

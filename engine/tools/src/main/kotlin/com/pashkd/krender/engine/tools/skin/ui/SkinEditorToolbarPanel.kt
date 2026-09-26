@@ -9,6 +9,7 @@ import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import com.pashkd.krender.engine.ui.editor.drawImGuiLayoutLockButton
 import imgui.ImGui
 import imgui.dsl
 
@@ -44,6 +45,8 @@ class SkinEditorToolbarPanel(
         drawSaveChangesButton()
         drawToolbarButton("Save Panel Layout##skin_editor_save_layout") { operations.saveUiLayout() }
         drawToolbarButton("Reset Panel Layout##skin_editor_reset_layout") { operations.restoreUiLayout() }
+        drawImGuiLayoutLockButton(layoutTracker, "skin_editor")
+        ImGui.sameLine()
         drawToolbarButton("Exit##skin_editor_exit") { operations.requestExit() }
     }
 
