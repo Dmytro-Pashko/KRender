@@ -3,6 +3,7 @@ package com.pashkd.krender.engine.ui.editor
 import glm_.vec2.Vec2
 import imgui.Cond
 import imgui.ImGui
+import imgui.WindowFlag
 
 /**
  * Tracks live ImGui window positions and applies one-shot layout restores.
@@ -10,6 +11,8 @@ import imgui.ImGui
 class ImGuiLayoutRuntimeTracker(
     private val baseConfig: ImGuiLayoutConfig,
 ) {
+    var panelsLocked: Boolean = true
+
     private val currentPanels =
         linkedMapOf<String, ImGuiPanelLayout>().apply {
             putAll(baseConfig.panels)
@@ -89,9 +92,28 @@ fun beginImGuiPanel(
     val restoredLayout = tracker?.consumeRestoreLayout(panelId)
     val activeLayout = restoredLayout ?: layout
     applyImGuiPanelLayout(activeLayout, if (restoredLayout == null) Cond.FirstUseEver else Cond.Always)
-    val expanded = ImGui.begin(imGuiPanelWindowName(activeLayout.title, panelId))
+    val windowName = imGuiPanelWindowName(activeLayout.title, panelId)
+    val expanded =
+        if (tracker?.panelsLocked == true) {
+            ImGui.begin(windowName, flags_ = WindowFlag.NoMove)
+        } else {
+            ImGui.begin(windowName)
+        }
     tracker?.capture(panelId)
     return expanded
+}
+
+/**
+ * Draws a shared layout lock toggle button for tool control panels.
+ */
+fun drawImGuiLayoutLockButton(
+    tracker: ImGuiLayoutRuntimeTracker,
+    id: String,
+) {
+    val label = if (tracker.panelsLocked) "Unlock Layout" else "Lock Layout"
+    if (ImGui.button("$label##${id}_layout_lock")) {
+        tracker.panelsLocked = !tracker.panelsLocked
+    }
 }
 
 /**
