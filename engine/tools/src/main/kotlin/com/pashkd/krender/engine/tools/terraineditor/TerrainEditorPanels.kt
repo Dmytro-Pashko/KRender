@@ -7,12 +7,13 @@ import com.pashkd.krender.engine.terrain.TerrainLayerBlendMode
 import com.pashkd.krender.engine.terrain.TerrainLayerLimits
 import com.pashkd.krender.engine.terrain.TerrainLayerPaintMode
 import com.pashkd.krender.engine.terrain.TerrainPreviewMode
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
 import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
-import glm_.vec2.Vec2
-import imgui.Cond
+import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
+import com.pashkd.krender.engine.ui.editor.drawImGuiLayoutLockButton
 import imgui.ImGui
 import imgui.SliderFlag
 import imgui.api.colorButton
@@ -102,16 +103,14 @@ class TerrainEditorStatisticsPanel(
     private val runtimeStats: RuntimeStatsService,
     private val profiler: ProfilerService,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     /**
      * Draws the scene statistics window using the configured default layout.
      */
     override fun draw() {
-        val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Statistics)
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, TerrainEditorPanelIds.Statistics))
-        eventLogger.observe(TerrainEditorPanelIds.Statistics, layout.title)
+        val expanded = beginTerrainEditorPanel(TerrainEditorPanelIds.Statistics, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -146,6 +145,7 @@ class TerrainEditorStatisticsPanel(
 class TerrainEditorTerrainPanel(
     private val state: TerrainEditorState,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private var resolutionIndex: Int = DEFAULT_RESOLUTION_INDEX
@@ -155,10 +155,7 @@ class TerrainEditorTerrainPanel(
      */
     override fun draw() {
         syncResolutionIndex()
-        val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Terrain)
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, TerrainEditorPanelIds.Terrain))
-        eventLogger.observe(TerrainEditorPanelIds.Terrain, layout.title)
+        val expanded = beginTerrainEditorPanel(TerrainEditorPanelIds.Terrain, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -222,16 +219,14 @@ class TerrainEditorTerrainPanel(
 class TerrainEditorBrushPanel(
     private val state: TerrainEditorState,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     /**
      * Draws the brush settings window using the configured default layout.
      */
     override fun draw() {
-        val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Brush)
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, TerrainEditorPanelIds.Brush))
-        eventLogger.observe(TerrainEditorPanelIds.Brush, layout.title)
+        val expanded = beginTerrainEditorPanel(TerrainEditorPanelIds.Brush, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -291,6 +286,7 @@ class TerrainEditorBrushPanel(
 class TerrainEditorLayersPanel(
     private val state: TerrainEditorState,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private val selectedLayerNameBuffer = ByteArray(TEXT_INPUT_BUFFER_SIZE)
@@ -302,10 +298,7 @@ class TerrainEditorLayersPanel(
      */
     override fun draw() {
         syncTextBuffers()
-        val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Layers)
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, TerrainEditorPanelIds.Layers))
-        eventLogger.observe(TerrainEditorPanelIds.Layers, layout.title)
+        val expanded = beginTerrainEditorPanel(TerrainEditorPanelIds.Layers, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
@@ -513,20 +506,36 @@ class TerrainEditorLayersPanel(
 class TerrainEditorControlsPanel(
     private val state: TerrainEditorState,
     private val layoutConfig: ImGuiLayoutConfig,
+    private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
+    private val saveUiLayout: () -> Unit,
+    private val restoreUiLayout: () -> Unit,
 ) : UiPanel {
     /**
      * Draws the debug window using the configured default layout.
      */
     override fun draw() {
-        val layout = layoutConfig.panels.getValue(TerrainEditorPanelIds.Control)
-        applyWindowDefaults(layout)
-        val expanded = ImGui.begin(imguiWindowName(layout.title, TerrainEditorPanelIds.Control))
-        eventLogger.observe(TerrainEditorPanelIds.Control, layout.title)
+        val expanded = beginTerrainEditorPanel(TerrainEditorPanelIds.Control, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
         }
+
+        ImGui.text("Layout")
+        with(dsl) {
+            button("Save Layout##terrain_editor_save_layout") {
+                saveUiLayout()
+            }
+        }
+        ImGui.sameLine()
+        with(dsl) {
+            button("Reset Layout##terrain_editor_reset_layout") {
+                restoreUiLayout()
+            }
+        }
+        ImGui.sameLine()
+        drawImGuiLayoutLockButton(layoutTracker, "terrain_editor")
+        ImGui.separator()
 
         ImGui.text("Viewport")
         ImGui.text("Input focus: ${formatInputFocus(state.inputFocus)}")
@@ -673,18 +682,17 @@ class TerrainEditorControlsPanel(
     }
 }
 
-/**
- * Applies the initial ImGui window position and size from layout config.
- */
-private fun applyWindowDefaults(layout: ImGuiPanelLayout) {
-    ImGui.setNextWindowPos(Vec2(layout.x, layout.y), Cond.FirstUseEver, Vec2())
-    ImGui.setNextWindowSize(Vec2(layout.width, layout.height), Cond.FirstUseEver)
+private fun beginTerrainEditorPanel(
+    panelId: String,
+    layoutConfig: ImGuiLayoutConfig,
+    layoutTracker: ImGuiLayoutRuntimeTracker,
+    eventLogger: ImGuiWindowEventLogger,
+): Boolean {
+    val layout = layoutConfig.panels.getValue(panelId)
+    val expanded = beginImGuiPanel(panelId, layout, layoutTracker)
+    eventLogger.observe(panelId, layout.title)
+    return expanded
 }
-
-private fun imguiWindowName(
-    title: String,
-    id: String,
-): String = "$title###$id"
 
 private fun drawPersistenceControls(state: TerrainEditorState) {
     ImGui.text("Persistence")
