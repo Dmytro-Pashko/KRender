@@ -293,8 +293,9 @@ Features:
 - Use undo and redo while editing terrain.
 - Manage multiple terrain layers with materials, colors, visibility, tiling, and order.
 - Select a Material Library resource; its path is saved in the terrain asset and used during scene playback.
-- Preview terrain using layer colors, material colors, textures, or selected layer masks.
+- Preview terrain using layer colors, material colors, textures, selected layer masks, or wireframe.
 - Save and load terrain data.
+- Use Control Panel for New, Reload, Save, Regenerate, layout controls, and Exit; Controls, History, and Modes have separate panels. Scene Statistics shows FPS and used memory.
 - View mesh statistics, hover position, selected layer, preview state, and logs.
 
 Screenshots:

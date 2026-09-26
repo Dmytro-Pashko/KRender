@@ -667,6 +667,7 @@ object SceneDeserializer {
             TerrainPreviewMode.LayerColor -> TerrainPreviewMode.LayerColor
             TerrainPreviewMode.MaterialColor,
             TerrainPreviewMode.SelectedLayerMask,
+            TerrainPreviewMode.Wireframe,
             null,
             -> {
                 if (raw != null) {

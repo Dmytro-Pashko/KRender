@@ -189,7 +189,6 @@ class TerrainEditorScene(
             uiSystem.addPanel(
                 TerrainEditorStatisticsPanel(
                     engine.runtimeStats,
-                    engine.profiler,
                     layoutConfig,
                     layoutTracker,
                     panelEventLogger,
@@ -199,15 +198,19 @@ class TerrainEditorScene(
             uiSystem.addPanel(TerrainEditorBrushPanel(editorState, layoutConfig, layoutTracker, panelEventLogger))
             uiSystem.addPanel(TerrainEditorLayersPanel(editorState, layoutConfig, layoutTracker, panelEventLogger))
             uiSystem.addPanel(
-                TerrainEditorControlsPanel(
+                TerrainEditorControlPanel(
                     editorState,
                     layoutConfig,
                     layoutTracker,
                     panelEventLogger,
                     ::saveUiLayout,
                     ::restoreUiLayout,
+                    engine::requestExit,
                 ),
             )
+            uiSystem.addPanel(TerrainEditorControlsPanel(editorState, layoutConfig, layoutTracker, panelEventLogger))
+            uiSystem.addPanel(TerrainEditorHistoryPanel(editorState, layoutConfig, layoutTracker, panelEventLogger))
+            uiSystem.addPanel(TerrainEditorModesPanel(editorState, layoutConfig, layoutTracker, panelEventLogger))
             uiSystem.addPanel(LogsPanel(engine.logs, layoutConfig, panelEventLogger, layoutTracker = layoutTracker))
         }
 

@@ -47,7 +47,8 @@ material layers, preview blended materials, and persist the result to a terrain 
 ## UI Panels
 
 `TerrainEditorStatisticsPanel`, `TerrainEditorTerrainPanel`, `TerrainEditorBrushPanel`,
-`TerrainEditorLayersPanel`, `TerrainEditorControlsPanel`, `LogsPanel`.
+`TerrainEditorLayersPanel`, `TerrainEditorControlPanel`, `TerrainEditorControlsPanel`,
+`TerrainEditorHistoryPanel`, `TerrainEditorModesPanel`, and `LogsPanel`.
 
 ## Engine Services Used
 
@@ -83,7 +84,8 @@ Terrain files (default extension `.json` for terrain via Asset Browser create fl
 - Four generators (Flat, Perlin, Simplex, Fractal).
 - Brush sculpting with undo/redo history.
 - Multiple material layers with weights, blend mode, and layer color preview.
-- Editor preview modes (layer color, material color, material texture, selected-layer mask).
+- Editor preview modes (layer color, material color, material texture, selected-layer mask, wireframe).
+- The Control Panel owns New, Reload, Save, Regenerate, layout lock/reset, and Exit. Controls, History, and Modes are separate panels; Scene Statistics shows only FPS and used memory.
 - Material preview bake with stats + PNG export.
 - Save by name to the terrain file.
 

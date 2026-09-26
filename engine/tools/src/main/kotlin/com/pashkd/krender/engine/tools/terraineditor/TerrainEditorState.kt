@@ -82,6 +82,7 @@ data class TerrainEditorState(
     var showLayerColorPreview: Boolean = true,
     /** Active terrain material preview mode. */
     var terrainPreviewMode: TerrainPreviewMode = TerrainPreviewMode.MaterialColor,
+    var previousPreviewMode: TerrainPreviewMode = TerrainPreviewMode.MaterialColor,
     /** Color preview blend mode used by terrain mesh generation. */
     var layerBlendMode: TerrainLayerBlendMode = TerrainLayerBlendMode.WeightedAverage,
     /** CPU-baked material texture preview resolution. */
@@ -118,6 +119,7 @@ data class TerrainEditorState(
     var availableMaterialLibraries: List<String> = emptyList(),
     var materialLibraryChangeRequested: Boolean = false,
     var materialLibraryPathDirty: Boolean = false,
+    var structuralDirty: Boolean = false,
     /** Editable name mirrored from the selected terrain layer. */
     var selectedLayerName: String = "",
     /** Editable material id mirrored from the selected terrain layer. */

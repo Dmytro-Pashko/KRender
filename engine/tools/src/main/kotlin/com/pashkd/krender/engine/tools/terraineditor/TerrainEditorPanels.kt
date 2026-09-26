@@ -1,6 +1,5 @@
 package com.pashkd.krender.engine.tools.terraineditor
 
-import com.pashkd.krender.engine.api.ProfilerService
 import com.pashkd.krender.engine.api.RuntimeStatsService
 import com.pashkd.krender.engine.terrain.TerrainBrushMode
 import com.pashkd.krender.engine.terrain.TerrainLayerBlendMode
@@ -13,7 +12,6 @@ import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
-import com.pashkd.krender.engine.ui.editor.drawImGuiLayoutLockButton
 import imgui.ImGui
 import imgui.SliderFlag
 import imgui.api.colorButton
@@ -31,6 +29,9 @@ object TerrainEditorPanelIds {
     const val Brush = "brush"
     const val Layers = "layers"
     const val Control = "control"
+    const val Controls = "controls"
+    const val History = "history"
+    const val Modes = "modes"
     const val Logs = "runtimeLogs"
 }
 
@@ -47,50 +48,53 @@ object TerrainEditorUiLayoutDefaults {
                     TerrainEditorPanelIds.Statistics to
                         ImGuiPanelLayout(
                             title = "Scene Statistics",
-                            x = 16f,
-                            y = 16f,
-                            width = 320f,
-                            height = 360f,
+                            x = 5f,
+                            y = 5f,
+                            width = 200f,
+                            height = 90f,
                         ),
                     TerrainEditorPanelIds.Terrain to
                         ImGuiPanelLayout(
                             title = "Terrain",
-                            x = 16f,
-                            y = 392f,
-                            width = 320f,
-                            height = 500f,
+                            x = 1550f,
+                            y = 5f,
+                            width = 370f,
+                            height = 310f,
                         ),
                     TerrainEditorPanelIds.Brush to
                         ImGuiPanelLayout(
                             title = "Brush",
-                            x = 352f,
-                            y = 16f,
-                            width = 320f,
-                            height = 300f,
+                            x = 1550f,
+                            y = 325f,
+                            width = 370f,
+                            height = 320f,
                         ),
                     TerrainEditorPanelIds.Layers to
                         ImGuiPanelLayout(
                             title = "Layers",
-                            x = 16f,
-                            y = 392f,
-                            width = 320f,
-                            height = 300f,
+                            x = 1490f,
+                            y = 660f,
+                            width = 430f,
+                            height = 522f,
                         ),
                     TerrainEditorPanelIds.Control to
                         ImGuiPanelLayout(
-                            title = "Control",
-                            x = 352f,
-                            y = 348f,
-                            width = 320f,
-                            height = 300f,
+                            title = "Control Panel",
+                            x = 5f,
+                            y = 95f,
+                            width = 340f,
+                            height = 195f,
                         ),
+                    TerrainEditorPanelIds.Controls to ImGuiPanelLayout("Controls", 5f, 300f, 340f, 360f),
+                    TerrainEditorPanelIds.History to ImGuiPanelLayout("History", 5f, 670f, 340f, 180f),
+                    TerrainEditorPanelIds.Modes to ImGuiPanelLayout("Modes", 348f, 5f, 370f, 620f),
                     TerrainEditorPanelIds.Logs to
                         ImGuiPanelLayout(
                             title = "Runtime Logs",
-                            x = 688f,
-                            y = 16f,
-                            width = 560f,
-                            height = 632f,
+                            x = 348f,
+                            y = 1060f,
+                            width = 1140f,
+                            height = 218f,
                         ),
                 ),
         )
@@ -101,7 +105,6 @@ object TerrainEditorUiLayoutDefaults {
  */
 class TerrainEditorStatisticsPanel(
     private val runtimeStats: RuntimeStatsService,
-    private val profiler: ProfilerService,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
@@ -116,24 +119,8 @@ class TerrainEditorStatisticsPanel(
             return
         }
 
-        runtimeStats.metrics.forEach { metric ->
-            ImGui.text("${metric.label}: ${metric.value}")
-        }
-
-        runtimeStats.lastCompletedFrame?.let { frame ->
-            ImGui.separator()
-            ImGui.text("Frame timing")
-            ImGui.text("Delta: ${"%.2f".format(frame.deltaSeconds * 1000f)} ms")
-            ImGui.text("Fixed updates: ${frame.fixedUpdates}")
-        }
-
-        profiler.lastCompletedFrame?.timings?.takeIf(List<*>::isNotEmpty)?.let { timings ->
-            ImGui.separator()
-            ImGui.text("Profiler")
-            timings.forEach { timing ->
-                ImGui.text("${timing.name}: ${"%.2f".format(timing.millis)} ms")
-            }
-        }
+        ImGui.text("FPS: ${runtimeStats.metrics.firstOrNull { it.label == "FPS" }?.value ?: "--"}")
+        ImGui.text("Memory: ${runtimeStats.metrics.firstOrNull { it.label == "Used" }?.value ?: "--"}")
 
         ImGui.end()
     }
@@ -148,13 +135,11 @@ class TerrainEditorTerrainPanel(
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
-    private var resolutionIndex: Int = DEFAULT_RESOLUTION_INDEX
 
     /**
      * Draws the terrain settings window using the configured default layout.
      */
     override fun draw() {
-        syncResolutionIndex()
         val expanded = beginTerrainEditorPanel(TerrainEditorPanelIds.Terrain, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
@@ -162,18 +147,7 @@ class TerrainEditorTerrainPanel(
         }
 
         ImGui.text("Mesh")
-        if (
-            slider(
-                "Resolution",
-                ::resolutionIndex,
-                0,
-                RESOLUTION_OPTIONS.lastIndex,
-                RESOLUTION_LABELS[resolutionIndex],
-                SliderFlag.AlwaysClamp,
-            )
-        ) {
-            state.terrainResolution = RESOLUTION_OPTIONS[resolutionIndex]
-        }
+        slider("Resolution", state::terrainResolution, 2, 512, "%d", SliderFlag.AlwaysClamp)
         slider("Vertex spacing", state::vertexSpacing, 0.25f, 4f, "%.2f", SliderFlag.AlwaysClamp)
         ImGui.text("Material library")
         if (ImGui.beginCombo("##terrain_material_library", state.materialLibraryPath)) {
@@ -193,34 +167,7 @@ class TerrainEditorTerrainPanel(
         ImGui.text("Vertices: %d", state.vertices)
         ImGui.text("Triangles: %d", state.triangles)
 
-        ImGui.separator()
-        ImGui.text("Actions")
-        with(dsl) {
-            button("Regenerate terrain") {
-                state.regenerateRequested = true
-            }
-        }
-
-        ImGui.separator()
-        drawPersistenceControls(state)
-
         ImGui.end()
-    }
-
-    /**
-     * Mirrors the state resolution into the local slider index.
-     */
-    private fun syncResolutionIndex() {
-        resolutionIndex = RESOLUTION_OPTIONS
-            .indexOf(state.terrainResolution)
-            .takeIf { it >= 0 }
-            ?: DEFAULT_RESOLUTION_INDEX
-    }
-
-    companion object {
-        private val RESOLUTION_OPTIONS = intArrayOf(64, 128, 256)
-        private val RESOLUTION_LABELS = arrayOf("64", "128", "256")
-        private const val DEFAULT_RESOLUTION_INDEX = 1
     }
 }
 
@@ -514,50 +461,28 @@ class TerrainEditorLayersPanel(
 /**
  * Presents terrain statistics, viewport toggles, and editor hints.
  */
-class TerrainEditorControlsPanel(
+class TerrainEditorModesPanel(
     private val state: TerrainEditorState,
     private val layoutConfig: ImGuiLayoutConfig,
     private val layoutTracker: ImGuiLayoutRuntimeTracker,
     private val eventLogger: ImGuiWindowEventLogger,
-    private val saveUiLayout: () -> Unit,
-    private val restoreUiLayout: () -> Unit,
 ) : UiPanel {
     /**
      * Draws the debug window using the configured default layout.
      */
     override fun draw() {
-        val expanded = beginTerrainEditorPanel(TerrainEditorPanelIds.Control, layoutConfig, layoutTracker, eventLogger)
+        val expanded = beginTerrainEditorPanel(TerrainEditorPanelIds.Modes, layoutConfig, layoutTracker, eventLogger)
         if (!expanded) {
             ImGui.end()
             return
         }
 
-        ImGui.text("Layout")
-        with(dsl) {
-            button("Save Layout##terrain_editor_save_layout") {
-                saveUiLayout()
-            }
-        }
-        ImGui.sameLine()
-        with(dsl) {
-            button("Reset Layout##terrain_editor_reset_layout") {
-                restoreUiLayout()
-            }
-        }
-        ImGui.sameLine()
-        drawImGuiLayoutLockButton(layoutTracker, "terrain_editor")
-        ImGui.separator()
-
-        ImGui.text("Viewport")
-        ImGui.text("Input focus: ${formatInputFocus(state.inputFocus)}")
-        ImGui.text("Tab toggles UI/viewport focus")
-
-        ImGui.separator()
         ImGui.text("[Preview Mode]")
         previewModeButton("Layer Color", TerrainPreviewMode.LayerColor)
         previewModeButton("Material Color", TerrainPreviewMode.MaterialColor)
         previewModeButton("Material Texture", TerrainPreviewMode.MaterialTexture)
         previewModeButton("Selected Layer Mask", TerrainPreviewMode.SelectedLayerMask)
+        previewModeButton("Wireframe", TerrainPreviewMode.Wireframe)
         ImGui.text("[Blend Mode]")
         blendModeButton("Weighted Average", TerrainLayerBlendMode.WeightedAverage)
         blendModeButton("Ordered Alpha", TerrainLayerBlendMode.OrderedAlpha)
@@ -598,54 +523,6 @@ class TerrainEditorControlsPanel(
             ImGui.text("Preview status: ${state.previewMessage}")
         }
 
-        ImGui.separator()
-        ImGui.text("Controls")
-        ImGui.bulletText("F1 - Raise")
-        ImGui.bulletText("F2 - Lower")
-        ImGui.bulletText("F3 - Flatten")
-        ImGui.bulletText("F4 - Smooth")
-        ImGui.bulletText("F5 - Paint selected layer")
-        ImGui.bulletText("Mouse drag - Apply brush")
-        ImGui.bulletText("Ctrl + Z - Undo")
-        ImGui.bulletText("Ctrl + Y / Ctrl + Shift + Z - Redo")
-        ImGui.bulletText("Mouse wheel - Brush radius")
-        ImGui.bulletText("Shift + Mouse wheel - Brush strength")
-        ImGui.bulletText("W/A/S/D - Pan camera")
-        ImGui.bulletText("R/F - Move camera up/down")
-        ImGui.bulletText("Q/E - Rotate camera")
-
-        ImGui.separator()
-        ImGui.text("History")
-        ImGui.text("Unsaved changes: ${formatBoolean(state.hasUnsavedChanges)}")
-        ImGui.text("Undo Stack: ${state.undoCount}")
-        ImGui.text("Redo Stack: ${state.redoCount}")
-        ImGui.text("Next undo: ${state.undoLabel ?: "none"}")
-        ImGui.text("Next redo: ${state.redoLabel ?: "none"}")
-        ImGui.text("History memory: ${formatHistoryMemory(state.historyMemoryBytes)}")
-        ImGui.beginDisabled(!state.canUndo)
-        with(dsl) {
-            button("Undo") {
-                state.undoRequested = true
-            }
-        }
-        ImGui.endDisabled()
-        ImGui.sameLine()
-        ImGui.beginDisabled(!state.canRedo)
-        with(dsl) {
-            button("Redo") {
-                state.redoRequested = true
-            }
-        }
-        ImGui.endDisabled()
-        ImGui.sameLine()
-        ImGui.beginDisabled(!state.canUndo && !state.canRedo)
-        with(dsl) {
-            button("Clear History") {
-                state.clearHistoryRequested = true
-            }
-        }
-        ImGui.endDisabled()
-
         ImGui.end()
     }
 
@@ -666,6 +543,8 @@ class TerrainEditorControlsPanel(
     ) {
         if (ImGui.selectable("$label##terrain_preview_$mode", state.terrainPreviewMode == mode)) {
             state.terrainPreviewMode = mode
+            if (mode != TerrainPreviewMode.Wireframe) state.previousPreviewMode = mode
+            state.wireframeEnabled = mode == TerrainPreviewMode.Wireframe
             state.showLayerColorPreview =
                 mode == TerrainPreviewMode.LayerColor ||
                 mode == TerrainPreviewMode.MaterialColor
@@ -705,37 +584,6 @@ private fun beginTerrainEditorPanel(
     return expanded
 }
 
-private fun drawPersistenceControls(state: TerrainEditorState) {
-    ImGui.text("Persistence")
-    ImGui.text("Path: ${state.terrainFilePath}")
-    ImGui.text("File exists: ${formatBoolean(state.terrainFileExists)}")
-    ImGui.text("Unsaved changes: ${formatBoolean(state.hasUnsavedChanges)}")
-    with(dsl) {
-        button("New Terrain") {
-            state.createTerrainRequested = true
-        }
-    }
-    ImGui.sameLine()
-    with(dsl) {
-        button("Save Terrain") {
-            state.saveTerrainRequested = true
-        }
-    }
-    ImGui.sameLine()
-    ImGui.beginDisabled(state.terrainFilePath.isBlank())
-    with(dsl) {
-        button("Load Terrain") {
-            state.loadTerrainRequested = true
-        }
-    }
-    ImGui.endDisabled()
-    if (state.persistenceMessage.isNotBlank()) {
-        ImGui.text("Status: ${state.persistenceMessage}")
-    }
-}
-
-private fun formatBoolean(value: Boolean): String = if (value) "yes" else "no"
-
 private fun formatPaintMode(mode: TerrainLayerPaintMode): String =
     when (mode) {
         TerrainLayerPaintMode.Add -> "Add"
@@ -748,12 +596,7 @@ private fun formatPreviewMode(mode: TerrainPreviewMode): String =
         TerrainPreviewMode.MaterialColor -> "Material Color"
         TerrainPreviewMode.MaterialTexture -> "Material Texture"
         TerrainPreviewMode.SelectedLayerMask -> "Selected Layer Mask"
-    }
-
-private fun formatInputFocus(focus: TerrainEditorInputFocus): String =
-    when (focus) {
-        TerrainEditorInputFocus.Ui -> "UI"
-        TerrainEditorInputFocus.Viewport -> "Viewport"
+        TerrainPreviewMode.Wireframe -> "Wireframe"
     }
 
 private fun formatPreviewResolution(resolution: Int): String =
@@ -768,13 +611,6 @@ private fun formatBlendMode(mode: TerrainLayerBlendMode): String =
         TerrainLayerBlendMode.WeightedAverage -> "Weighted Average"
         TerrainLayerBlendMode.OrderedAlpha -> "Ordered Alpha"
         TerrainLayerBlendMode.MaxWeight -> "Max Weight"
-    }
-
-private fun formatHistoryMemory(bytes: Long): String =
-    if (bytes < 1024L) {
-        "$bytes B"
-    } else {
-        "%.1f KB".format(bytes / 1024f)
     }
 
 private fun formatPreviewTiming(milliseconds: Float): String = "%.2f ms".format(milliseconds)

@@ -159,7 +159,17 @@ class TerrainEditorSystem(
         val mouseAvailable = viewportFocus || !snapshot.uiCapturesMouse
 
         if (keyboardAvailable && snapshot.wasPressed(Key.G)) {
-            state.wireframeEnabled = !state.wireframeEnabled
+            if (state.terrainPreviewMode == TerrainPreviewMode.Wireframe) {
+                state.terrainPreviewMode = state.previousPreviewMode
+                state.wireframeEnabled = false
+            } else {
+                state.previousPreviewMode = state.terrainPreviewMode
+                state.terrainPreviewMode = TerrainPreviewMode.Wireframe
+                state.wireframeEnabled = true
+            }
+            state.showLayerColorPreview = state.terrainPreviewMode == TerrainPreviewMode.LayerColor ||
+                state.terrainPreviewMode == TerrainPreviewMode.MaterialColor
+            state.previewSettingsChanged = true
         }
 
         updateBrushBindings(snapshot, keyboardAvailable, mouseAvailable)
@@ -337,7 +347,6 @@ class TerrainEditorSystem(
         state.vertices = renderer.vertexCount
         state.triangles = renderer.triangleCount
         state.terrainSize = "${terrain.data.width} x ${terrain.data.height}"
-        state.wireframeEnabled = renderer.displayMode == TerrainDisplayMode.Wireframe
         if (state.selectedLayerId !in layers.map(TerrainLayer::id)) {
             state.selectedLayerId = layers.firstOrNull()?.id
         }
@@ -375,7 +384,7 @@ class TerrainEditorSystem(
         state.undoCount = editHistory.undoCount()
         state.redoCount = editHistory.redoCount()
         state.historyMemoryBytes = editHistory.estimatedMemoryBytes()
-        state.hasUnsavedChanges = editHistory.hasUnsavedChanges() || state.materialLibraryPathDirty
+        state.hasUnsavedChanges = editHistory.hasUnsavedChanges() || state.materialLibraryPathDirty || state.structuralDirty
         state.currentHistoryRevision = editHistory.currentRevision()
         state.cleanHistoryRevision = editHistory.cleanRevision()
     }
@@ -529,6 +538,7 @@ class TerrainEditorSystem(
                 }"
             }
             regenerateTerrain(terrain, renderer)
+            state.structuralDirty = true
             state.persistenceMessage = "Created terrain: ${state.terrainSaveName}"
             state.persistenceError = false
             logger.info(TAG) { "Created terrain '${state.terrainSaveName}' (${terrain.data.describeTerrain()})" }
@@ -555,6 +565,7 @@ class TerrainEditorSystem(
                     tiling = material.defaultTiling,
                 )
             state.selectedLayerId = layer.id
+            state.structuralDirty = true
             markPreviewDirty(terrain)
             state.layerMessage = "Added layer: ${layer.name}"
         }
@@ -566,6 +577,7 @@ class TerrainEditorSystem(
             val selectedLayerId = state.selectedLayerId
             val selectedIndex = terrain.data.allLayers().indexOfFirst { it.id == selectedLayerId }
             if (selectedLayerId != null && terrain.data.removeLayer(selectedLayerId)) {
+                state.structuralDirty = true
                 val remainingLayers = terrain.data.allLayers()
                 state.selectedLayerId =
                     remainingLayers.getOrNull(selectedIndex.coerceIn(0, remainingLayers.lastIndex.coerceAtLeast(0)))?.id
@@ -581,6 +593,7 @@ class TerrainEditorSystem(
                 finishBrushStroke()
                 editHistory.clear()
                 if (terrain.data.moveLayerUp(selectedLayerId)) {
+                    state.structuralDirty = true
                     markPreviewDirty(terrain)
                     state.layerMessage = "Moved layer"
                 }
@@ -594,6 +607,7 @@ class TerrainEditorSystem(
                 finishBrushStroke()
                 editHistory.clear()
                 if (terrain.data.moveLayerDown(selectedLayerId)) {
+                    state.structuralDirty = true
                     markPreviewDirty(terrain)
                     state.layerMessage = "Moved layer"
                 }
@@ -614,6 +628,7 @@ class TerrainEditorSystem(
                 }"
             }
             regenerateTerrain(terrain, renderer)
+            state.structuralDirty = true
             logger.info(TAG) { "Regenerated terrain (${terrain.data.describeTerrain()})" }
         }
     }
@@ -645,6 +660,7 @@ class TerrainEditorSystem(
                 editHistory.markClean()
                 savedMaterialLibraryPath = state.materialLibraryPath
                 state.materialLibraryPathDirty = false
+                state.structuralDirty = false
                 state.terrainFileExists = true
                 state.persistenceMessage = "Saved terrain: ${state.terrainFilePath}"
                 state.persistenceError = false
@@ -664,6 +680,12 @@ class TerrainEditorSystem(
                 logger.info(TAG) { "Load terrain requested path='${state.terrainFilePath}'" }
                 val descriptor = terrainPersistence.loadDescriptor(state.terrainFilePath)
                 val loaded = TerrainData.fromDescriptor(descriptor.terrain)
+                val loadedLibraryPath = descriptor.materialLibraryPath ?: DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH
+                materialLibrary.load(loadedLibraryPath)
+                terrainMaterialsById = materialLibrary.all().associateBy { it.id }
+                state.terrainMaterials = materialLibrary.all().map { material ->
+                    TerrainMaterialOption(material.id, material.name, material.albedoTexture, material.fallbackColor, material.defaultTiling)
+                }
                 logger.debug(TAG) { "Applying loaded terrain '${descriptor.name}' (${loaded.describeTerrain()})" }
 
                 terrain.data = loaded
@@ -680,18 +702,11 @@ class TerrainEditorSystem(
                 state.terrainResolution = loaded.width
                 state.vertexSpacing = loaded.vertexSpacing
                 state.terrainSaveName = descriptor.name
-                val loadedLibraryPath = descriptor.materialLibraryPath ?: DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH
-                if (loadedLibraryPath != state.materialLibraryPath) {
-                    materialLibrary.load(loadedLibraryPath)
-                    terrainMaterialsById = materialLibrary.all().associateBy { it.id }
-                    state.terrainMaterials = materialLibrary.all().map { material ->
-                        TerrainMaterialOption(material.id, material.name, material.albedoTexture, material.fallbackColor, material.defaultTiling)
-                    }
-                    state.materialLibraryPath = loadedLibraryPath
-                }
+                state.materialLibraryPath = loadedLibraryPath
                 activeMaterialLibraryPath = loadedLibraryPath
                 savedMaterialLibraryPath = loadedLibraryPath
                 state.materialLibraryPathDirty = false
+                state.structuralDirty = false
                 state.terrainFileExists = true
                 state.persistenceMessage = "Loaded terrain: ${state.terrainFilePath}"
                 state.persistenceError = false
@@ -846,6 +861,7 @@ class TerrainEditorSystem(
         }
 
         if (changed) {
+            state.structuralDirty = true
             markPreviewDirty(terrain)
             state.layerMessage = "Updated layer"
         }
@@ -1031,7 +1047,8 @@ class TerrainEditorMeshSyncSystem(
                     data = terrain.data,
                     materialColorResolver =
                         when (previewMode) {
-                            TerrainPreviewMode.LayerColor -> { _: String? -> null }
+                            TerrainPreviewMode.LayerColor,
+                            TerrainPreviewMode.Wireframe -> { _: String? -> null }
                             TerrainPreviewMode.MaterialColor,
                             TerrainPreviewMode.MaterialTexture,
                             TerrainPreviewMode.SelectedLayerMask,
@@ -1139,6 +1156,7 @@ class TerrainEditorMeshSyncSystem(
 
                     TerrainPreviewMode.LayerColor,
                     TerrainPreviewMode.MaterialColor,
+                    TerrainPreviewMode.Wireframe,
                     -> error("Unsupported texture preview mode: $previewMode")
                 }
             val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
@@ -1162,6 +1180,7 @@ class TerrainEditorMeshSyncSystem(
                     TerrainPreviewMode.SelectedLayerMask -> "Selected layer mask baked: ${resolution}x$resolution"
                     TerrainPreviewMode.LayerColor,
                     TerrainPreviewMode.MaterialColor,
+                    TerrainPreviewMode.Wireframe,
                     -> ""
                 },
             )
@@ -1208,6 +1227,7 @@ class TerrainEditorMeshSyncSystem(
 
                     TerrainPreviewMode.LayerColor,
                     TerrainPreviewMode.MaterialColor,
+                    TerrainPreviewMode.Wireframe,
                     -> error("Unsupported texture preview mode: $previewMode")
                 }
             val elapsedMs = (java.lang.System.nanoTime() - startNs) / 1_000_000f
@@ -1797,6 +1817,7 @@ private fun formatPreviewMode(mode: TerrainPreviewMode): String =
         TerrainPreviewMode.MaterialColor -> "Material Color"
         TerrainPreviewMode.MaterialTexture -> "Material Texture"
         TerrainPreviewMode.SelectedLayerMask -> "Selected Layer Mask"
+        TerrainPreviewMode.Wireframe -> "Wireframe"
     }
 
 /**
