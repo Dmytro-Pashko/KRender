@@ -42,7 +42,7 @@ material layers, preview blended materials, and persist the result to a terrain 
 | `TerrainEditorSystem` | Input, brush strokes, layer editing, history, persistence, UI sync. |
 | `TerrainEditorMeshSyncSystem` | Editor adapter around `TerrainMeshBuilder` + preview material bake. |
 | `TerrainRenderSystem` | Selects active terrain texture and emits `DrawDynamicModel`. |
-| `TerrainMaterialLibrary` | Loads `materials/terrain_materials.json`. |
+| `TerrainMaterialLibrary` | Loads the library selected by the terrain file, falling back to `materials/terrain_materials.json`. |
 
 ## UI Panels
 
@@ -75,7 +75,7 @@ five systems, then creates camera, lights, and the terrain entity. `dispose()` d
 ## Supported Asset Types
 
 Terrain files (default extension `.json` for terrain via Asset Browser create flow; loaded via
-`TerrainPersistence`). Terrain material library JSON (`materials/terrain_materials.json`).
+`TerrainPersistence`). Terrain material library JSON (the terrain file's `materialLibraryPath`, or `materials/terrain_materials.json` for older files).
 **Terrain is not loaded through `AssetService`** — it has its own persistence/runtime path.
 
 ## Current Features

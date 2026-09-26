@@ -287,6 +287,7 @@ Features:
 - Adjust brush radius, strength, falloff, and paint/erase behavior.
 - Use undo and redo while editing terrain.
 - Manage multiple terrain layers with materials, colors, visibility, tiling, and order.
+- Select a Material Library resource; its path is saved in the terrain asset and used during scene playback.
 - Preview terrain using layer colors, material colors, textures, or selected layer masks.
 - Save and load terrain data.
 - View mesh statistics, hover position, selected layer, preview state, and logs.

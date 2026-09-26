@@ -42,14 +42,10 @@ class TerrainAssetSyncSystem(
  */
 class TerrainAssetRuntimeSync(
     private val logger: com.pashkd.krender.engine.api.Logger? = null,
-    materialLibraryPath: String = DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH,
+    private val materialLibraryPath: String = DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH,
 ) {
     private val terrainPersistence = TerrainPersistence(logger)
-    private val materialLibrary =
-        TerrainMaterialLibrary(logger).also { library ->
-            library.load(materialLibraryPath)
-        }
-    private val bakeService = TerrainMaterialBakeService(materialLibrary, logger)
+    private val bakeServices = mutableMapOf<String, TerrainMaterialBakeService>()
     private val failedPaths = mutableSetOf<String>()
 
     fun update(world: SceneWorld) {
@@ -69,7 +65,9 @@ class TerrainAssetRuntimeSync(
             }
 
             try {
-                val data = terrainPersistence.load(path)
+                val descriptor = terrainPersistence.loadDescriptor(path)
+                val data = TerrainData.fromDescriptor(descriptor.terrain)
+                val libraryPath = descriptor.materialLibraryPath ?: materialLibraryPath
                 val usesTexturePreview = previewMode == TerrainPreviewMode.MaterialTexture
                 val mesh =
                     TerrainMeshBuilder.build(
@@ -96,6 +94,11 @@ class TerrainAssetRuntimeSync(
                 nextRenderer.previewMode = previewMode
                 nextRenderer.previewResolution = if (usesTexturePreview) bakedTextureResolution else 0
                 if (usesTexturePreview) {
+                    val bakeService = bakeServices.getOrPut(libraryPath) {
+                        val library = TerrainMaterialLibrary(logger)
+                        library.load(libraryPath)
+                        TerrainMaterialBakeService(library, logger)
+                    }
                     val texture =
                         bakeService.bakeFinalSplatTexture(
                             terrain = data,

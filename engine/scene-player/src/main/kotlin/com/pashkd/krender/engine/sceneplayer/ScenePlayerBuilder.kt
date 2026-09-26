@@ -24,6 +24,7 @@ import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
 import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 import com.pashkd.krender.engine.terrain.TerrainRuntimeLoader
+import com.pashkd.krender.engine.terrain.TerrainComponent
 
 data class ScenePlayerBuildRequest(
     val scenePath: String,
@@ -78,7 +79,12 @@ class ScenePlayerBuilder(
 
         val terrainMaterialLibrary =
             RuntimeTerrainMaterialLibraryService(engine.sceneFiles, engine.logger).loadRequired(
-                request.descriptor.settings.terrain.materialLibraryPath,
+                request.descriptor.settings.activeTerrainEntityId?.let(world::getEntity)
+                    ?.get<TerrainComponent>()
+                    ?.terrain
+                    ?.path
+                    ?.let { TerrainPersistence(logger = engine.logger, files = engine.sceneFiles).loadDescriptor(it).materialLibraryPath }
+                    ?: request.descriptor.settings.terrain.materialLibraryPath,
             )
         val materialBakeService =
             TerrainMaterialBakeService(

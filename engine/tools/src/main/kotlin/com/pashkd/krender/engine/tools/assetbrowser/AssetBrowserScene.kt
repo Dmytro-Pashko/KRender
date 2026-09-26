@@ -10,6 +10,7 @@ import com.pashkd.krender.engine.assets.importing.FileDialogService
 import com.pashkd.krender.engine.assets.importing.LocalAssetImportService
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
+import com.pashkd.krender.engine.scene.DefaultTerrainMaterialLibraryPath
 import com.pashkd.krender.engine.terrain.TerrainData
 import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.tools.assetbrowser.creation.createAtlasAsset
@@ -442,6 +443,7 @@ internal fun defaultTerrainContent(name: String, size: Int = 64): String {
                     vertexSpacing = 1f,
                 ),
             name = terrainName,
+            materialLibraryPath = DefaultTerrainMaterialLibraryPath,
         )
     return "$encoded\n"
 }

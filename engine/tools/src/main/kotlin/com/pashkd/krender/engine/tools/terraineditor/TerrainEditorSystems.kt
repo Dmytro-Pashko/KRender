@@ -36,8 +36,11 @@ class TerrainEditorSystem(
         listOf(FlatTerrainGenerator()).associateBy(
             TerrainGenerator::id,
         ),
-    private val terrainMaterialsById: Map<String, TerrainMaterialDescriptor> = emptyMap(),
+    private val materialLibrary: TerrainMaterialLibrary,
 ) : System() {
+    private var terrainMaterialsById: Map<String, TerrainMaterialDescriptor> = materialLibrary.all().associateBy { it.id }
+    private var savedMaterialLibraryPath: String = state.materialLibraryPath
+    private var activeMaterialLibraryPath: String = state.materialLibraryPath
     /**
      * Latest terrain hit under the mouse cursor, if any.
      */
@@ -108,6 +111,24 @@ class TerrainEditorSystem(
                     return
                 }
         val snapshot = input.snapshot()
+        if (state.materialLibraryChangeRequested) {
+            state.materialLibraryChangeRequested = false
+            try {
+                materialLibrary.load(state.materialLibraryPath)
+                activeMaterialLibraryPath = state.materialLibraryPath
+                terrainMaterialsById = materialLibrary.all().associateBy { it.id }
+                state.terrainMaterials = materialLibrary.all().map { material ->
+                    TerrainMaterialOption(material.id, material.name, material.albedoTexture, material.fallbackColor, material.defaultTiling)
+                }
+                state.materialLibraryPathDirty = state.materialLibraryPath != savedMaterialLibraryPath
+                state.materialMessage = "Loaded material library: ${state.materialLibraryPath}"
+                markPreviewDirty(terrain)
+            } catch (error: Exception) {
+                state.materialLibraryPath = activeMaterialLibraryPath
+                state.materialMessage = "Material library load failed: ${error.message}"
+                logger.error(TAG, error) { state.materialMessage }
+            }
+        }
         // Tab swaps keyboard/mouse ownership between UI widgets and the viewport.
         // If focus leaves the viewport mid-stroke, the stroke is committed first.
         if (snapshot.wasPressed(Key.Tab)) {
@@ -354,7 +375,7 @@ class TerrainEditorSystem(
         state.undoCount = editHistory.undoCount()
         state.redoCount = editHistory.redoCount()
         state.historyMemoryBytes = editHistory.estimatedMemoryBytes()
-        state.hasUnsavedChanges = editHistory.hasUnsavedChanges()
+        state.hasUnsavedChanges = editHistory.hasUnsavedChanges() || state.materialLibraryPathDirty
         state.currentHistoryRevision = editHistory.currentRevision()
         state.cleanHistoryRevision = editHistory.cleanRevision()
     }
@@ -619,8 +640,11 @@ class TerrainEditorSystem(
                     data = terrain.data,
                     filePath = state.terrainFilePath,
                     name = state.terrainSaveName,
+                    materialLibraryPath = state.materialLibraryPath,
                 )
                 editHistory.markClean()
+                savedMaterialLibraryPath = state.materialLibraryPath
+                state.materialLibraryPathDirty = false
                 state.terrainFileExists = true
                 state.persistenceMessage = "Saved terrain: ${state.terrainFilePath}"
                 state.persistenceError = false
@@ -656,6 +680,18 @@ class TerrainEditorSystem(
                 state.terrainResolution = loaded.width
                 state.vertexSpacing = loaded.vertexSpacing
                 state.terrainSaveName = descriptor.name
+                val loadedLibraryPath = descriptor.materialLibraryPath ?: DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH
+                if (loadedLibraryPath != state.materialLibraryPath) {
+                    materialLibrary.load(loadedLibraryPath)
+                    terrainMaterialsById = materialLibrary.all().associateBy { it.id }
+                    state.terrainMaterials = materialLibrary.all().map { material ->
+                        TerrainMaterialOption(material.id, material.name, material.albedoTexture, material.fallbackColor, material.defaultTiling)
+                    }
+                    state.materialLibraryPath = loadedLibraryPath
+                }
+                activeMaterialLibraryPath = loadedLibraryPath
+                savedMaterialLibraryPath = loadedLibraryPath
+                state.materialLibraryPathDirty = false
                 state.terrainFileExists = true
                 state.persistenceMessage = "Loaded terrain: ${state.terrainFilePath}"
                 state.persistenceError = false

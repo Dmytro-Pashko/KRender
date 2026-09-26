@@ -3,6 +3,8 @@ package com.pashkd.krender.engine.tools.terraineditor
 import com.pashkd.krender.engine.api.Color
 import com.pashkd.krender.engine.api.Scene
 import com.pashkd.krender.engine.api.Vec3
+import com.pashkd.krender.engine.assets.AssetCategory
+import com.pashkd.krender.engine.assets.AssetType
 import com.pashkd.krender.engine.material.TerrainMaterialLibrary
 import com.pashkd.krender.engine.render3d.LightComponent
 import com.pashkd.krender.engine.render3d.LightType
@@ -10,6 +12,7 @@ import com.pashkd.krender.engine.render3d.Material
 import com.pashkd.krender.engine.render3d.PerspectiveCameraComponent
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
+import com.pashkd.krender.engine.scene.DefaultTerrainMaterialLibraryPath
 import com.pashkd.krender.engine.terrain.FlatTerrainGenerator
 import com.pashkd.krender.engine.terrain.FractalNoiseGenerator
 import com.pashkd.krender.engine.terrain.PerlinNoiseGenerator
@@ -49,11 +52,11 @@ class TerrainEditorScene(
      */
     override fun show() {
         terrainPersistence = TerrainPersistence(engine.logger)
+        val initialTerrain = loadInitialTerrainData()
         terrainMaterialLibrary =
             TerrainMaterialLibrary(engine.logger).also { library ->
-                library.load("materials/terrain_materials.json")
+                library.load(initialTerrain.materialLibraryPath)
             }
-        val initialTerrain = loadInitialTerrainData()
         engine.logger.info(TAG) {
             "Showing terrain editor path='$terrainFilePath' resolution=${initialTerrain.data.width} spacing=${
                 "%.2f".format(
@@ -79,6 +82,11 @@ class TerrainEditorScene(
                 materialPreviewExportPath = terrainMaterialPreviewExportPath(terrainFilePath),
                 terrainSaveName = initialTerrain.name,
                 terrainFileExists = true,
+                materialLibraryPath = initialTerrain.materialLibraryPath,
+                availableMaterialLibraries = engine.assetRegistry.scanSnapshot().assets
+                    .filter { it.category == AssetCategory.Material && it.type == AssetType.Material }
+                    .map { it.path }
+                    .sorted(),
                 terrainMaterials =
                     terrainMaterialLibrary.all().map { material ->
                         TerrainMaterialOption(
@@ -98,7 +106,7 @@ class TerrainEditorScene(
                 engine.logger,
                 editorState,
                 terrainGenerators.associateBy(TerrainGenerator::id),
-                terrainMaterialLibrary.all().associateBy { it.id },
+                terrainMaterialLibrary,
             )
 
         world.systems.add(
@@ -304,6 +312,7 @@ class TerrainEditorScene(
                 data = data,
                 name = descriptor.name,
                 message = "Loaded terrain: $terrainFilePath",
+                materialLibraryPath = descriptor.materialLibraryPath ?: DefaultTerrainMaterialLibraryPath,
             )
         } catch (error: Exception) {
             engine.logger.error(TAG, error) {
@@ -336,6 +345,7 @@ private data class InitialTerrainData(
     val data: TerrainData,
     val name: String,
     val message: String,
+    val materialLibraryPath: String,
 )
 
 private fun TerrainData.describeTerrain(): String =

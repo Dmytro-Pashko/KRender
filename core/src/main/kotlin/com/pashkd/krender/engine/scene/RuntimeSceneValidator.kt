@@ -187,10 +187,7 @@ object RuntimeSceneValidator {
         }
 
         val hasTerrain = descriptor.entities.any { entity -> entity.hasComponent(SceneComponentTypes.Terrain) }
-        if (hasTerrain &&
-            descriptor.settings.terrain.materialLibraryPath
-                .normalizedValidationPath() == null
-        ) {
+        if (hasTerrain && dependencyGraph.dependencies.none { it.kind == SceneDependencyKind.TerrainMaterialLibrary }) {
             issues +=
                 SceneValidationIssue(
                     severity = SceneValidationSeverity.Error,

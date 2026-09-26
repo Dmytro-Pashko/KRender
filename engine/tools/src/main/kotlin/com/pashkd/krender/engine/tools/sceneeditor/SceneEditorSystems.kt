@@ -202,13 +202,21 @@ class SceneEditorDocumentTerrainSyncSystem(
     private val document: SceneEditorDocument,
     logger: Logger,
 ) : System() {
-    private val terrainSync = TerrainAssetRuntimeSync(logger)
+    private val logger = logger
+    private var materialLibraryPath: String? = null
+    private var terrainSync: TerrainAssetRuntimeSync? = null
 
     override fun update(
         world: SceneWorld,
         dt: Float,
     ) {
-        terrainSync.update(document.world)
+        val path = document.descriptor?.settings?.terrain?.materialLibraryPath
+            ?: com.pashkd.krender.engine.scene.DefaultTerrainMaterialLibraryPath
+        if (terrainSync == null || materialLibraryPath != path) {
+            materialLibraryPath = path
+            terrainSync = TerrainAssetRuntimeSync(logger, path)
+        }
+        terrainSync?.update(document.world)
     }
 }
 

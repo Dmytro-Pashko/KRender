@@ -175,6 +175,17 @@ class TerrainEditorTerrainPanel(
             state.terrainResolution = RESOLUTION_OPTIONS[resolutionIndex]
         }
         slider("Vertex spacing", state::vertexSpacing, 0.25f, 4f, "%.2f", SliderFlag.AlwaysClamp)
+        ImGui.text("Material library")
+        if (ImGui.beginCombo("##terrain_material_library", state.materialLibraryPath)) {
+            state.availableMaterialLibraries.forEach { path ->
+                if (ImGui.selectable(path, path == state.materialLibraryPath)) {
+                    state.materialLibraryPath = path
+                    state.materialLibraryChangeRequested = true
+                }
+            }
+            ImGui.endCombo()
+        }
+        if (state.materialMessage.isNotBlank()) ImGui.textUnformatted(state.materialMessage)
 
         ImGui.separator()
         ImGui.text("Statistics")

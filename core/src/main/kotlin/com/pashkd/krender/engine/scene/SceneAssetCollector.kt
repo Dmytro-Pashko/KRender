@@ -1,6 +1,7 @@
 package com.pashkd.krender.engine.scene
 
 import com.pashkd.krender.engine.api.AssetRef
+import com.pashkd.krender.engine.terrain.TerrainPersistence
 
 enum class SceneDependencyKind {
     Model,
@@ -135,18 +136,27 @@ class SceneDependencyCollector(
         dependencies: MutableMap<Pair<SceneDependencyKind, String>, SceneDependency>,
     ) {
         if (!descriptor.hasTerrain()) return
-        descriptor.settings.terrain.materialLibraryPath
-            .normalizedDependencyPath()
-            ?.let { path ->
+        val terrainPersistence = TerrainPersistence(files = sceneFiles)
+        descriptor.entities.forEach { entity ->
+            val terrainPath = entity.components.firstOrNull { it.type == SceneComponentTypes.Terrain }
+                ?.properties?.get("terrain")?.normalizedDependencyPath() ?: return@forEach
+            val explicitLibraryPath = if (sceneFiles.exists(terrainPath)) {
+                runCatching { terrainPersistence.loadDescriptor(terrainPath).materialLibraryPath }.getOrNull()
+            } else null
+            (explicitLibraryPath ?: descriptor.settings.terrain.materialLibraryPath)
+                .normalizedDependencyPath()
+                ?.let { path ->
                 dependencies.merge(
                     SceneDependency(
                         kind = SceneDependencyKind.TerrainMaterialLibrary,
                         path = path,
-                        requirement = SceneDependencyRequirement.Required,
-                        sourceComponentType = "SceneSettingsDescriptor.terrain",
+                        requirement = terrainRequirement(entity.id, descriptor.settings.activeTerrainEntityId),
+                        sourceEntityId = entity.id,
+                        sourceComponentType = SceneComponentTypes.Terrain,
                     ),
                 )
             }
+        }
     }
 
     private fun collectEnvironmentDependency(

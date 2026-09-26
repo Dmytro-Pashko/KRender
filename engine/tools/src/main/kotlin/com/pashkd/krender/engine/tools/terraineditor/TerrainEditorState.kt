@@ -114,6 +114,10 @@ data class TerrainEditorState(
     var layers: List<TerrainLayerOption> = emptyList(),
     /** Terrain material definitions available for layer assignment. */
     var terrainMaterials: List<TerrainMaterialOption> = emptyList(),
+    var materialLibraryPath: String = "materials/terrain_materials.json",
+    var availableMaterialLibraries: List<String> = emptyList(),
+    var materialLibraryChangeRequested: Boolean = false,
+    var materialLibraryPathDirty: Boolean = false,
     /** Editable name mirrored from the selected terrain layer. */
     var selectedLayerName: String = "",
     /** Editable material id mirrored from the selected terrain layer. */

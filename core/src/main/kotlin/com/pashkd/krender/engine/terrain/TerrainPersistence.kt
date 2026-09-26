@@ -12,6 +12,7 @@ data class TerrainFileDescriptor(
     val formatVersion: Int = TerrainFileFormat.CurrentVersion,
     val name: String = "terrain",
     val terrain: TerrainDataDescriptor,
+    val materialLibraryPath: String? = null,
 )
 
 /**
@@ -44,9 +45,10 @@ class TerrainPersistence(
         data: TerrainData,
         filePath: String,
         name: String = "terrain",
+        materialLibraryPath: String? = null,
     ) {
         logger?.info(TAG) { "Saving terrain '$name' to '$filePath' (${data.describeTerrain()})" }
-        val encoded = encode(data, name)
+        val encoded = encode(TerrainFileDescriptor(name = name, terrain = data.toDescriptor(), materialLibraryPath = materialLibraryPath))
         files.ensureDirectories(filePath)
         files.writeText(filePath, encoded)
         logger?.info(TAG) { "Saved terrain '$name' to '$filePath' (${encoded.length} chars)" }
@@ -95,12 +97,14 @@ class TerrainPersistence(
     fun encode(
         data: TerrainData,
         name: String = "terrain",
+        materialLibraryPath: String? = null,
     ): String =
         encode(
             TerrainFileDescriptor(
                 formatVersion = TerrainFileFormat.CurrentVersion,
                 name = name,
                 terrain = data.toDescriptor(),
+                materialLibraryPath = materialLibraryPath,
             ),
         )
 
@@ -146,6 +150,7 @@ class TerrainPersistence(
                 formatVersion = root.intOrDefault("formatVersion", TerrainFileFormat.CurrentVersion),
                 name = root.stringOrDefault("name", "terrain"),
                 terrain = readTerrainData(root.requiredObject("terrain")),
+                materialLibraryPath = root.stringOrNull("materialLibraryPath"),
             )
         validate(descriptor)
         logger?.debug(TAG) {
@@ -191,6 +196,9 @@ class TerrainPersistence(
         require(descriptor.formatVersion == TerrainFileFormat.CurrentVersion) {
             "Unsupported terrain format version: ${descriptor.formatVersion}"
         }
+        require(descriptor.materialLibraryPath == null || descriptor.materialLibraryPath.isNotBlank()) {
+            "Terrain materialLibraryPath must not be blank"
+        }
 
         val terrain = descriptor.terrain
         require(terrain.width >= 2) { "Terrain width must be >= 2" }
@@ -220,6 +228,7 @@ class TerrainPersistence(
         buildJsonObject {
             put("formatVersion", JsonPrimitive(formatVersion))
             put("name", JsonPrimitive(name))
+            materialLibraryPath?.let { put("materialLibraryPath", JsonPrimitive(it)) }
             put("terrain", terrain.toJsonObject())
         }
 
