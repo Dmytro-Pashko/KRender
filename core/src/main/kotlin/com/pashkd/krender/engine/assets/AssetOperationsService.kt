@@ -659,6 +659,7 @@ class LocalAssetOperationsService(
             when (type) {
                 AssetType.UiScene -> "new_ui_scene"
                 AssetType.Terrain -> "new_terrain"
+                AssetType.Material -> "new_material_library"
                 AssetType.Scene -> "new_scene"
                 else -> error("Unsupported asset creation type=$type category=$category")
             }

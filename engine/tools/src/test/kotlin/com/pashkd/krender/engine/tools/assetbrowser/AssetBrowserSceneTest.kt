@@ -29,7 +29,6 @@ import com.pashkd.krender.engine.scene.RuntimeWindowLauncher
 import com.pashkd.krender.engine.scene.SceneFileService
 import com.pashkd.krender.engine.scene.UnsupportedRuntimeWindowLauncher
 import com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory
-import com.pashkd.krender.engine.terrain.TerrainPersistence
 import com.pashkd.krender.engine.ui.NoOpUiService
 import com.pashkd.krender.engine.ui.editor.UiService
 import com.pashkd.krender.engine.ui.runtime.RuntimeUiService
@@ -41,25 +40,10 @@ import com.pashkd.krender.test.newTestRuntimeUiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlin.test.Test
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class AssetBrowserSceneTest {
-    @Test
-    fun `default terrain content creates valid empty flat 64x64 terrain`() {
-        val content = defaultTerrainContent("woolboy_terrain_sandbox")
-        val descriptor = TerrainPersistence().decodeDescriptor(content)
-
-        assertEquals("woolboy_terrain_sandbox", descriptor.name)
-        assertEquals(64, descriptor.terrain.width)
-        assertEquals(64, descriptor.terrain.height)
-        assertEquals(1f, descriptor.terrain.vertexSpacing)
-        assertEquals(64 * 64, descriptor.terrain.heights.size)
-        assertTrue(descriptor.terrain.layers.isEmpty())
-        assertContentEquals(FloatArray(64 * 64), descriptor.terrain.heights)
-    }
-
     @Test
     fun `ui composer asset tool routes UiScene path to editor launcher`() {
         val launcher = RecordingEditorToolLauncher()

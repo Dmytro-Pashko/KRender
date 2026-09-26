@@ -332,6 +332,7 @@ class EngineRuntime(
     private val gameLoop = GameLoop(this, backend, config)
     private var running = false
     private var exitRequested = false
+    private var disposed = false
 
     /** Starts the runtime and schedules the initial scene. */
     fun start(scene: Scene) {
@@ -391,6 +392,8 @@ class EngineRuntime(
 
     /** Disposes scenes and backend services owned by the runtime. */
     fun dispose() {
+        if (disposed) return
+        disposed = true
         running = false
         scenes.disposeAll()
         backend.renderer.dispose()

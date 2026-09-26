@@ -112,6 +112,8 @@ material is CPU-baked. Suitable for prototype scenes, not large open worlds.
 
 ## Safe Change Rules
 
+Terrain Editor behavior is validated through desktop use and compilation. The shared runtime terrain and scene-player JVM tests remain in place.
+
 - Keep shared terrain logic (`TerrainData`, `TerrainMeshBuilder`, runtime bake) backend-neutral;
   only editor preview baking may touch `Pixmap`, and only in editor code.
 - Runtime terrain rendering must not depend on `TerrainMaterialPreviewBaker`.

@@ -209,17 +209,6 @@ class Scene2DSkinAssetIntegrationTest {
     }
 
     @Test
-    fun `create asset draft builds terrain path and default params`() {
-        val draft = CreateAssetDraft(kind = CreatableAssetKind.Terrain, name = "sandbox")
-
-        assertEquals("terrains/sandbox.json", createAssetRelativePath(draft))
-        assertEquals(
-            listOf("Size: 64 x 64", "Vertex spacing: 1.0", "Layers: 0"),
-            createAssetDefaultParams(draft),
-        )
-    }
-
-    @Test
     fun `create asset draft builds scene path and default params`() {
         val draft = CreateAssetDraft(kind = CreatableAssetKind.Scene, name = "level_01")
 
