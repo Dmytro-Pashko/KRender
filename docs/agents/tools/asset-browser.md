@@ -92,6 +92,7 @@ resources. Scanned roots: `model`, `textures`, `atlases`, `skyboxes`, `environme
   (skybox, scene, terrain, `.krui`, material templates).
 - The Create Asset flow now includes `Environment`, creating an empty
   `environments/<name>/<name>.environment.json` manifest that can be filled in later inside Environment Editor.
+- Terrain creation accepts 64, 128, 256, 512, or a custom square resolution from 2 to 512.
 - HDR source (`.exr` / `.hdr`) context actions still create a new Environment manifest and open the result in Environment Editor, but the manifest itself no longer stores source variants.
 - Generated Environment resources expose `Open Parent Environment`, which locates the closest
   surrounding `.environment.json` and launches Environment Editor for that manifest.

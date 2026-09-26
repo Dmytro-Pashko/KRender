@@ -54,7 +54,7 @@ Features:
 - Provides a focused Create Asset dialog for `UI Scene`, `Terrain`, and `Scene` assets only.
 - Lets new `.krui` UI scenes select a discovered Scene2D Skin path while keeping the `.krui` schema path-based.
 - Shows a draft preview in the Create Asset dialog with final file path, existence state, and default parameters before
-  creation.
+  creation. Terrain sizes are 64, 128, 256, 512, or a custom square size from 2 to 512.
 - Keeps managed asset files and `.krmeta` sidecars in sync during create, rename, duplicate, and delete operations.
 - Keeps visible-only `Other` files indexed without promoting them into managed assets or creating `.krmeta`.
 - Deletes Scene2D Skin assets as a folder-scoped operation when they live under `ui/skins/<skinFolder>/...`: the skin

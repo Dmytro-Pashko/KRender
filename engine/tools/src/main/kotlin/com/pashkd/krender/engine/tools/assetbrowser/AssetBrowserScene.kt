@@ -330,7 +330,7 @@ private class SceneOperationsHandler(
                     normalizeUiSceneSkinPath(draft.uiSceneSkinPath),
                 ).toByteArray()
 
-            AssetType.Terrain -> defaultTerrainContent(draft.name).toByteArray()
+            AssetType.Terrain -> defaultTerrainContent(draft.name, draft.terrainSize()).toByteArray()
             AssetType.Scene -> defaultSceneContent().toByteArray()
             else -> ByteArray(0)
         }
@@ -430,14 +430,15 @@ internal fun defaultUiSceneContent(
 
 private fun normalizeUiSceneSkinPath(path: String): String = path.trim().replace('\\', '/').ifBlank { DefaultUiSceneSkinPath }
 
-internal fun defaultTerrainContent(name: String): String {
+internal fun defaultTerrainContent(name: String, size: Int = 64): String {
+    require(size in 2..512) { "Terrain size must be between 2 and 512" }
     val terrainName = name.trim().ifBlank { "terrain" }
     val encoded =
         TerrainPersistence().encode(
             data =
                 TerrainData(
-                    width = 64,
-                    height = 64,
+                    width = size,
+                    height = size,
                     vertexSpacing = 1f,
                 ),
             name = terrainName,

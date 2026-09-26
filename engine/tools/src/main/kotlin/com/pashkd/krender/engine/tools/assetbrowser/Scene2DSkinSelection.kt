@@ -27,7 +27,12 @@ data class CreateAssetDraft(
     val uiSceneSkinPath: String = DefaultUiSceneSkinPath,
     val atlasWidth: Int = 1024,
     val atlasHeight: Int = 1024,
+    val terrainSizePreset: Int = 64,
+    val terrainCustomSize: Int = 64,
 )
+
+internal fun CreateAssetDraft.terrainSize(): Int =
+    if (terrainSizePreset == 0) terrainCustomSize else terrainSizePreset
 
 internal fun defaultCreateAssetDraft(assets: List<AssetDescriptor>): CreateAssetDraft = CreateAssetDraft(uiSceneSkinPath = defaultUiSceneSkinPath(assets))
 
@@ -107,7 +112,7 @@ internal fun createAssetDefaultParams(draft: CreateAssetDraft): List<String> =
 
         CreatableAssetKind.Terrain ->
             listOf(
-                "Size: 64 x 64",
+                "Size: ${draft.terrainSize()} x ${draft.terrainSize()}",
                 "Vertex spacing: 1.0",
                 "Layers: 0",
             )

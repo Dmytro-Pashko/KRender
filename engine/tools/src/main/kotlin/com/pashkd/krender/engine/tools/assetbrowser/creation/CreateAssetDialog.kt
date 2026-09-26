@@ -9,6 +9,7 @@ import com.pashkd.krender.engine.tools.assetbrowser.assetBrowserWriteBuffer
 import com.pashkd.krender.engine.tools.assetbrowser.createAssetDefaultParams
 import com.pashkd.krender.engine.tools.assetbrowser.createAssetRelativePath
 import com.pashkd.krender.engine.tools.assetbrowser.discoveredScene2DSkinAssets
+import com.pashkd.krender.engine.tools.assetbrowser.terrainSize
 import com.pashkd.krender.engine.tools.assetbrowser.withSyncedDefaults
 import glm_.vec2.Vec2
 import imgui.Cond
@@ -24,6 +25,7 @@ class CreateAssetDialog(
     private val panelId: String,
 ) {
     private val createNameByteBuffer = ByteArray(TextInputBufferSize)
+    private val customSizeBuffer = ByteArray(8)
     private var createBufferSynced = false
 
     fun resetForOpen() {
@@ -34,6 +36,7 @@ class CreateAssetDialog(
         if (!state.showCreateDialog) return
         if (!createBufferSynced) {
             assetBrowserWriteBuffer(createNameByteBuffer, state.createDraft.name)
+            assetBrowserWriteBuffer(customSizeBuffer, state.createDraft.terrainCustomSize.toString())
             createBufferSynced = true
         }
         ImGui.openPopup("Create Asset##${panelId}_create")
@@ -51,10 +54,12 @@ class CreateAssetDialog(
         ImGui.sameLine()
         assetBrowserTextLine(".${state.createDraft.kind.extension}")
         drawCreateAtlasSizeSelector()
+        drawCreateTerrainSizeSelector()
         drawCreateUiSceneSkinSelector()
 
         ImGui.separator()
-        val canCreate = true
+        val canCreate = state.createDraft.kind != CreatableAssetKind.Terrain ||
+            state.createDraft.terrainSize() in 2..512
         if (!canCreate) ImGui.beginDisabled(true)
         with(dsl) {
             button("Create##${panelId}_create_ok") {
@@ -132,6 +137,27 @@ class CreateAssetDialog(
         }
     }
 
+    private fun drawCreateTerrainSizeSelector() {
+        if (state.createDraft.kind != CreatableAssetKind.Terrain) return
+        val preset = state.createDraft.terrainSizePreset
+        if (ImGui.beginCombo("Size##${panelId}_terrain_size", if (preset == 0) "Custom" else preset.toString())) {
+            TerrainSizeOptions.forEach { option ->
+                if (ImGui.selectable(if (option == 0) "Custom" else option.toString(), preset == option)) {
+                    state.createDraft = state.createDraft.copy(terrainSizePreset = option)
+                }
+            }
+            ImGui.endCombo()
+        }
+        if (state.createDraft.terrainSizePreset == 0) {
+            if (ImGui.inputText("Custom size##${panelId}_terrain_custom_size", customSizeBuffer)) {
+                state.createDraft = state.createDraft.copy(
+                    terrainCustomSize = assetBrowserReadBuffer(customSizeBuffer).toIntOrNull() ?: 0,
+                )
+            }
+            if (state.createDraft.terrainCustomSize !in 2..512) ImGui.text("Enter a size from 2 to 512")
+        }
+    }
+
     private fun drawPageSizeCombo(
         label: String,
         selected: Int,
@@ -162,5 +188,6 @@ class CreateAssetDialog(
     companion object {
         private const val TextInputBufferSize = 256
         private val PageSizeOptions = intArrayOf(128, 256, 512, 1024, 2048, 4096)
+        private val TerrainSizeOptions = intArrayOf(64, 128, 256, 512, 0)
     }
 }
