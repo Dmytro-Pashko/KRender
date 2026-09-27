@@ -1,18 +1,32 @@
 {
   "panels": {
-    "materialEditor": {
-      "title": "Material Editor",
-      "x": 16,
-      "y": 16,
-      "width": 780,
-      "height": 700
+    "materialEditorControl": {
+      "title": "Material Editor Control Panel",
+      "x": 2,
+      "y": 3,
+      "width": 1126,
+      "height": 123
+    },
+    "materials": {
+      "title": "Materials",
+      "x": 2,
+      "y": 129,
+      "width": 334,
+      "height": 617
+    },
+    "materialProperties": {
+      "title": "Material Properties",
+      "x": 341,
+      "y": 130,
+      "width": 787,
+      "height": 616
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
-      "x": 810,
-      "y": 16,
-      "width": 460,
-      "height": 700
+      "x": 2,
+      "y": 750,
+      "width": 1125,
+      "height": 270
     }
   }
 }

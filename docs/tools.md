@@ -277,7 +277,7 @@ Example:
 
 ### Material Editor
 
-Open a Material asset from Asset Browser, or start `material-editor` with `krender.material.path=<materials/file.json>`. Add or remove materials and edit each material's ID, name, texture, fallback color, and tiling. Texture choices come from indexed texture assets. Saving an ID change updates terrain files that use this library; an ambiguous legacy terrain binding blocks the save.
+Open a Material asset from Asset Browser, or start `material-editor` with `krender.material.path=<materials/file.json>`. The Control Panel provides Save, Reload, layout save/restore, layout lock, and Exit. Use Materials to add, remove, and select entries; Material Properties edits the selected material's ID, name, texture, fallback color, and tiling and previews its texture. Texture choices come from indexed texture assets. Saving an ID change updates terrain files that use this library; an ambiguous legacy terrain binding blocks the save.
 
 ### Terrain Editor
 

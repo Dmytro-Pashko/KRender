@@ -20,4 +20,6 @@ class MaterialEditorState(val path: String) {
     var confirmExit = false
     var texturePaths: List<String> = emptyList()
     var loadedIds: Set<String> = emptySet()
+    var previewError: String? = null
+    var previewLoading = false
 }

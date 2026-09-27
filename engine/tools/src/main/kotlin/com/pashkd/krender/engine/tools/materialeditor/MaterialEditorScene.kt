@@ -1,156 +1,123 @@
 package com.pashkd.krender.engine.tools.materialeditor
 
+import com.pashkd.krender.engine.api.AssetRef
+import com.pashkd.krender.engine.api.EngineContext
 import com.pashkd.krender.engine.api.Scene
+import com.pashkd.krender.engine.api.SceneWorld
+import com.pashkd.krender.engine.api.System
+import com.pashkd.krender.engine.api.TextureAsset
 import com.pashkd.krender.engine.scene.SceneConfig
 import com.pashkd.krender.engine.scene.SceneConfigPresets
-import com.pashkd.krender.engine.terrain.TerrainLayerColorDescriptor
+import com.pashkd.krender.engine.tools.common.EditorTexturePreviewService
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfig
+import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigCodec
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutConfigLoader
 import com.pashkd.krender.engine.ui.editor.ImGuiLayoutRuntimeTracker
 import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
 import com.pashkd.krender.engine.ui.editor.ImGuiWindowEventLogger
 import com.pashkd.krender.engine.ui.editor.LogsPanel
-import com.pashkd.krender.engine.ui.editor.UiPanel
 import com.pashkd.krender.engine.ui.editor.UiSystem
-import com.pashkd.krender.engine.ui.editor.beginImGuiPanel
-import imgui.ImGui
-import imgui.SliderFlag
-import imgui.api.colorEdit4
-import imgui.api.slider
-import java.nio.charset.StandardCharsets
 
 class MaterialEditorScene(private val path: String) : Scene("material_editor") {
-    override val config: SceneConfig = SceneConfigPresets.EditorTool
+    override val config: SceneConfig = SceneConfigPresets.MaterialEditor
+
+    private lateinit var editorState: MaterialEditorState
+    private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
+    private lateinit var previewSystem: MaterialEditorTexturePreviewSystem
 
     override fun show() {
-        val state = MaterialEditorState(path)
-        val controller = MaterialEditorController(state, engine)
+        editorState = MaterialEditorState(path)
+        val controller = MaterialEditorController(editorState, engine)
         controller.reload()
-        val layout = ImGuiLayoutConfigLoader("ui/material_editor_layout.json", Defaults,).load(engine.logger, engine.sceneFiles)
-        val tracker = ImGuiLayoutRuntimeTracker(layout)
+        val loadedLayout = ImGuiLayoutConfigLoader(LayoutPath, Defaults).load(engine.logger, engine.sceneFiles)
+        val layout = ImGuiLayoutConfig(loadedLayout.panels.filterKeys { it in Defaults.panels })
+        layoutTracker = ImGuiLayoutRuntimeTracker(layout)
         val events = ImGuiWindowEventLogger(engine.logger, "MaterialEditorUi")
+        previewSystem = MaterialEditorTexturePreviewSystem(editorState, engine)
+        world.systems.add(previewSystem)
         world.systems.add(UiSystem(engine.ui).also { ui ->
-            ui.addPanel(MaterialEditorPanel(state, controller, layout, tracker, events) { engine.requestExit() })
-            ui.addPanel(LogsPanel(engine.logs, layout, events, layoutTracker = tracker))
+            ui.addPanel(MaterialEditorControlPanel(
+                editorState, controller, layout, layoutTracker, events,
+                ::saveUiLayout, ::restoreUiLayout, engine::requestExit,
+            ))
+            ui.addPanel(MaterialsPanel(editorState, controller, layout, layoutTracker, events))
+            ui.addPanel(MaterialPropertiesPanel(
+                editorState, EditorTexturePreviewService(engine.assets), engine.ui,
+                layout, layoutTracker, events,
+            ))
+            ui.addPanel(LogsPanel(engine.logs, layout, events, layoutTracker = layoutTracker))
         })
     }
 
+    override fun hide() {
+        if (::previewSystem.isInitialized) previewSystem.release()
+    }
+
+    private fun saveUiLayout() {
+        runCatching { ImGuiLayoutConfigCodec.save(LayoutPath, layoutTracker.currentConfig(), engine.sceneFiles) }
+            .onSuccess { editorState.status = "Panel layout saved" }
+            .onFailure { error ->
+                editorState.status = "Layout save failed: ${error.message}"
+                engine.logger.error(TAG, error) { editorState.status }
+            }
+    }
+
+    private fun restoreUiLayout() {
+        layoutTracker.requestRestore(Defaults)
+        editorState.status = "Default panel layout restored"
+    }
+
     companion object {
-        private val Defaults = ImGuiLayoutConfig(mapOf(
-            "materialEditor" to ImGuiPanelLayout("Material Editor", 16f, 16f, 780f, 700f),
-            "runtimeLogs" to ImGuiPanelLayout("Runtime Logs", 810f, 16f, 460f, 700f),
+        private const val TAG = "MaterialEditorScene"
+        private const val LayoutPath = "ui/material_editor_layout.json"
+
+        private val Defaults = ImGuiLayoutConfig(linkedMapOf(
+            MaterialEditorPanelIds.Control to ImGuiPanelLayout("Material Editor Control Panel", 16f, 16f, 1740f, 110f),
+            MaterialEditorPanelIds.Materials to ImGuiPanelLayout("Materials", 16f, 140f, 350f, 880f),
+            MaterialEditorPanelIds.Properties to ImGuiPanelLayout("Material Properties", 380f, 140f, 850f, 880f),
+            "runtimeLogs" to ImGuiPanelLayout("Runtime Logs", 1244f, 140f, 512f, 880f),
         ))
     }
 }
 
-private class MaterialEditorPanel(
+internal object MaterialEditorPanelIds {
+    const val Control = "materialEditorControl"
+    const val Materials = "materials"
+    const val Properties = "materialProperties"
+}
+
+private class MaterialEditorTexturePreviewSystem(
     private val state: MaterialEditorState,
-    private val controller: MaterialEditorController,
-    private val layout: ImGuiLayoutConfig,
-    private val tracker: ImGuiLayoutRuntimeTracker,
-    private val events: ImGuiWindowEventLogger,
-    private val exit: () -> Unit,
-) : UiPanel {
-    private val idBuffer = ByteArray(256)
-    private val nameBuffer = ByteArray(256)
-    private var bufferedMaterial: MaterialDraft? = null
+    private val engine: EngineContext,
+) : System() {
+    private var activePath: String? = null
+    private var queuedRef: AssetRef<TextureAsset>? = null
 
-    override fun draw() {
-        val panel = layout.panels.getValue("materialEditor")
-        val expanded = beginImGuiPanel("materialEditor", panel, tracker)
-        events.observe("materialEditor", panel.title)
-        if (!expanded) { ImGui.end(); return }
-        if (ImGui.button("Save")) controller.save()
-        ImGui.sameLine()
-        if (ImGui.button("Reload")) {
-            if (state.dirty) state.confirmReload = true else controller.reload()
-        }
-        ImGui.sameLine()
-        if (ImGui.button("Exit")) {
-            if (state.dirty) state.confirmExit = true else exit()
-        }
-        ImGui.textUnformatted("File: ${state.path}")
-        ImGui.textUnformatted("Status: ${state.status}")
-        ImGui.separator()
-        ImGui.textUnformatted("Materials")
-        state.materials.forEachIndexed { index, material ->
-            if (ImGui.selectable("${material.name} (${material.id})##material_$index", state.selectedIndex == index)) {
-                state.selectedIndex = index
-            }
-        }
-        if (ImGui.button("Add Material")) controller.add()
-        ImGui.sameLine()
-        if (ImGui.button("Remove Material")) controller.removeSelected()
-        ImGui.separator()
-        state.materials.getOrNull(state.selectedIndex)?.let(::drawSelected)
-        drawConfirmations()
-        ImGui.end()
-    }
-
-    private fun drawSelected(material: MaterialDraft) {
-        if (bufferedMaterial !== material) {
-            bufferedMaterial = material
-            write(idBuffer, material.id)
-            write(nameBuffer, material.name)
-        }
-        if (ImGui.inputText("ID", idBuffer)) {
-            material.id = read(idBuffer)
-            state.dirty = true
-        }
-        if (ImGui.inputText("Name", nameBuffer)) {
-            material.name = read(nameBuffer)
-            state.dirty = true
-        }
-        if (ImGui.beginCombo("Texture", material.albedoTexture)) {
-            state.texturePaths.forEach { texture ->
-                if (ImGui.selectable(texture, texture == material.albedoTexture)) {
-                    material.albedoTexture = texture
-                    state.dirty = true
+    override fun update(world: SceneWorld, dt: Float) {
+        val selectedPath = state.materials.getOrNull(state.selectedIndex)?.albedoTexture?.trim()?.takeIf(String::isNotBlank)
+        if (selectedPath != activePath) {
+            release()
+            activePath = selectedPath
+            state.previewError = null
+            if (selectedPath != null) {
+                val ref = AssetRef.texture(selectedPath)
+                if (!engine.assets.isLoaded(ref)) {
+                    runCatching { engine.assets.queue(ref) }
+                        .onSuccess { queuedRef = ref }
+                        .onFailure { error -> state.previewError = error.message ?: "Texture could not be queued" }
                 }
             }
-            ImGui.endCombo()
         }
-        val color = material.fallbackColor
-        if (colorEdit4("Fallback color", color.r, color.g, color.b, color.a) { r, g, b, a ->
-                material.fallbackColor = TerrainLayerColorDescriptor(r, g, b, a)
-            }) state.dirty = true
-        if (slider("Default tiling", material::defaultTiling, 0.1f, 128f, "%.2f", SliderFlag.AlwaysClamp)) {
-            state.dirty = true
+        if (selectedPath != null && state.previewError == null) {
+            state.previewError = engine.assets.loadFailure(AssetRef.texture(selectedPath))
         }
+        state.previewLoading = selectedPath != null && state.previewError == null &&
+            !engine.assets.isLoaded(AssetRef.texture(selectedPath))
     }
 
-    private fun drawConfirmations() {
-        if (state.confirmReload) ImGui.openPopup("Discard changes and reload?##material_editor_reload")
-        if (ImGui.beginPopupModal("Discard changes and reload?##material_editor_reload")) {
-            if (ImGui.button("Discard and Reload")) {
-                state.confirmReload = false
-                controller.reload()
-                bufferedMaterial = null
-                ImGui.closeCurrentPopup()
-            }
-            ImGui.sameLine()
-            if (ImGui.button("Cancel##reload")) {
-                state.confirmReload = false
-                ImGui.closeCurrentPopup()
-            }
-            ImGui.endPopup()
-        }
-        if (state.confirmExit) ImGui.openPopup("Discard changes and exit?##material_editor_exit")
-        if (ImGui.beginPopupModal("Discard changes and exit?##material_editor_exit")) {
-            if (ImGui.button("Discard and Exit")) exit()
-            ImGui.sameLine()
-            if (ImGui.button("Cancel##exit")) {
-                state.confirmExit = false
-                ImGui.closeCurrentPopup()
-            }
-            ImGui.endPopup()
-        }
-    }
-
-    private fun read(buffer: ByteArray): String = String(buffer, 0, buffer.indexOf(0).takeIf { it >= 0 } ?: buffer.size, StandardCharsets.UTF_8)
-
-    private fun write(buffer: ByteArray, value: String) {
-        buffer.fill(0)
-        value.toByteArray(StandardCharsets.UTF_8).copyInto(buffer, endIndex = minOf(value.toByteArray(StandardCharsets.UTF_8).size, buffer.size - 1))
+    fun release() {
+        queuedRef?.let(engine.assets::unload)
+        queuedRef = null
+        activePath = null
     }
 }

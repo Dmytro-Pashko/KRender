@@ -4,6 +4,8 @@ The Material Editor opens a JSON library under `assets/materials/` in its own de
 
 The UI edits the existing `formatVersion: 1` structure: each material has `id`, `name`, `albedoTexture`, `fallbackColor`, and `defaultTiling`. Textures remain asset paths within each material; there is no separate texture catalogue. The editor loads texture choices from the asset registry.
 
+The Control Panel holds Save, Reload, Save UI Layout, Restore UI Layout, Lock UI, and Exit. Materials lists the library entries with Add/Remove actions. Material Properties edits the selected entry and previews its texture through `AssetService.texturePreviewHandle` and `UiService.drawTexturePreview`. Only the selected texture is queued for preview; loading and failure states are shown in the panel. The layout is stored at `ui/material_editor_layout.json`; older `materialEditor` panel entries are ignored.
+
 Saving validates IDs, fields, and texture paths. When an ID changes, the controller scans terrain assets and scene bindings, then updates terrain layer references only for files using this library. Ambiguous legacy bindings block the save. The library and affected terrain files are staged before replacement; failed replacement attempts restore earlier files.
 
 Terrain files can store `materialLibraryPath`. Scene Player and Scene Editor use that path ahead of the scene setting. Older terrain files without it use the scene setting or the default library path.
