@@ -1,4 +1,4 @@
-# KRender Desktop LWJGL3 Windows Host
+ KRender Desktop LWJGL3 Windows Host
 
 `desktop-lwjgl3-win` is the Windows desktop launcher for the KRender SDK.
 

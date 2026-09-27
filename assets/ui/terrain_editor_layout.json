@@ -1,67 +1,67 @@
 {
   "panels": {
+    "sceneStatistics": {
+      "title": "Scene Statistics",
+      "x": 3,
+      "y": 182,
+      "width": 326,
+      "height": 84
+    },
     "terrain": {
       "title": "Terrain",
-      "x": 1550,
-      "y": 5,
-      "width": 370,
+      "x": 1578,
+      "y": 4,
+      "width": 341,
       "height": 310
     },
     "brush": {
       "title": "Brush",
-      "x": 1550,
-      "y": 325,
-      "width": 370,
-      "height": 320
+      "x": 1577,
+      "y": 315,
+      "width": 342,
+      "height": 315
     },
     "layers": {
       "title": "Layers",
-      "x": 1490,
-      "y": 660,
-      "width": 430,
-      "height": 522
+      "x": 1577,
+      "y": 631,
+      "width": 342,
+      "height": 648
     },
     "control": {
       "title": "Control Panel",
-      "x": 5,
-      "y": 95,
-      "width": 340,
-      "height": 195
+      "x": 2,
+      "y": 6,
+      "width": 329,
+      "height": 173
     },
     "controls": {
       "title": "Controls",
-      "x": 5,
-      "y": 300,
-      "width": 340,
-      "height": 360
+      "x": 0,
+      "y": 265,
+      "width": 330,
+      "height": 373
     },
     "history": {
       "title": "History",
-      "x": 5,
-      "y": 670,
-      "width": 340,
-      "height": 180
+      "x": 2,
+      "y": 641,
+      "width": 329,
+      "height": 162
     },
     "modes": {
       "title": "Modes",
-      "x": 348,
-      "y": 5,
-      "width": 370,
-      "height": 620
+      "x": 2,
+      "y": 805,
+      "width": 331,
+      "height": 471
     },
     "runtimeLogs": {
       "title": "Runtime Logs",
-      "x": 348,
-      "y": 1060,
-      "width": 1140,
-      "height": 218
-    },
-    "sceneStatistics": {
-      "title": "Scene Statistics",
-      "x": 5,
-      "y": 5,
-      "width": 200,
-      "height": 85
+      "x": 336,
+      "y": 1011,
+      "width": 1239,
+      "height": 266
     }
   }
 }
