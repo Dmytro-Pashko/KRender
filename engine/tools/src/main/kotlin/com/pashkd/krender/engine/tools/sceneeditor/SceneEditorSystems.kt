@@ -201,8 +201,13 @@ class SceneEditorBoundingBoxSystem(
 class SceneEditorDocumentTerrainSyncSystem(
     private val document: SceneEditorDocument,
     logger: Logger,
+    private val sceneFiles: SceneFileService,
+    textureSamplerFactory: com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory?,
 ) : System() {
     private val logger = logger
+    private val textureSamplerFactory = textureSamplerFactory
+    private var observedDocumentWorld: SceneWorld? = null
+    private var terrainAssetPath: String? = null
     private var materialLibraryPath: String? = null
     private var terrainSync: TerrainAssetRuntimeSync? = null
 
@@ -210,14 +215,29 @@ class SceneEditorDocumentTerrainSyncSystem(
         world: SceneWorld,
         dt: Float,
     ) {
-        val path = document.descriptor?.settings?.terrain?.materialLibraryPath
-            ?: com.pashkd.krender.engine.scene.DefaultTerrainMaterialLibraryPath
-        if (terrainSync == null || materialLibraryPath != path) {
-            materialLibraryPath = path
-            terrainSync = TerrainAssetRuntimeSync(logger, path)
+        val settings = document.descriptor?.settings?.terrain ?: return
+        val terrainPath = settings.terrainAssetPath
+        if (terrainPath == null) {
+            terrainAssetPath = null
+            terrainSync = null
+            return
+        }
+        if (terrainSync == null || observedDocumentWorld !== document.world || terrainAssetPath != terrainPath || materialLibraryPath != settings.materialLibraryPath) {
+            observedDocumentWorld = document.world
+            terrainAssetPath = terrainPath
+            materialLibraryPath = settings.materialLibraryPath
+            val libraryPath = runCatching {
+                resolveSceneTerrainMaterialLibraryPath(terrainPath, settings.materialLibraryPath, sceneFiles)
+            }.getOrElse { error ->
+                logger.warn(TAG, error) { "Could not read Terrain material library from '$terrainPath'; using scene fallback." }
+                settings.materialLibraryPath
+            }
+            terrainSync = TerrainAssetRuntimeSync(logger, libraryPath, textureSamplerFactory)
         }
         terrainSync?.update(document.world)
     }
+
+    companion object { private const val TAG = "SceneEditorDocumentTerrainSyncSystem" }
 }
 
 class SceneEditorMirroredLightComponent(
@@ -358,13 +378,11 @@ class SceneEditorSelectionSystem(
 
         if (selected == null) {
             state.selectedEntityId = null
-            state.statusMessage = "Selection cleared."
             logger.debug(TAG) { "Scene Editor viewport selection cleared" }
             return
         }
 
         state.selectedEntityId = selected.id
-        state.statusMessage = "Selected ${selected.name}."
         logger.info(TAG) { "Selected scene entity id=${selected.id} name='${selected.name}' from viewport" }
     }
 

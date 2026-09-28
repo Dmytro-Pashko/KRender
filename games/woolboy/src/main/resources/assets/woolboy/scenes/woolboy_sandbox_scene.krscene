@@ -1,39 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "scene:new",
   "name": "Untitled Scene",
   "entities": [
-    {
-      "id": 1,
-      "name": "Woolboy Sandbox Scene",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "Woolboy Sandbox Scene"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "0.0,0.0,0.0",
-            "rotation": "0.0,0.0,0.0",
-            "scale": "1.0,1.0,1.0"
-          }
-        },
-        {
-          "type": "TerrainComponent",
-          "properties": {
-            "terrain": "assets/woolboy/terrains/woolboy_sandbox_scene.json",
-            "visible": "true",
-            "previewMode": "MaterialTexture",
-            "bakedTextureResolution": "2048"
-          }
-        }
-      ]
-    },
     {
       "id": 2,
       "name": "light_01",
@@ -222,7 +191,6 @@
   ],
   "settings": {
     "activeCameraEntityId": 7,
-    "activeTerrainEntityId": 1,
     "lighting": {
       "ambientColor": "0.45,0.5,0.58,1.0",
       "ambientIntensity": 0.55
@@ -231,7 +199,14 @@
       "environmentAssetPath": "assets/woolboy/environments/default/default.environment.json"
     },
     "terrain": {
-      "materialLibraryPath": "assets/woolboy/materials/terrain_materials.json"
+      "terrainAssetPath": "assets/woolboy/terrains/woolboy_sandbox_scene.json",
+      "visible": true,
+      "previewMode": "MaterialTexture",
+      "bakedTextureResolution": 2048,
+      "materialLibraryPath": "assets/woolboy/materials/terrain_materials.json",
+      "position": "0.0,0.0,0.0",
+      "rotation": "0.0,0.0,0.0",
+      "scale": "1.0,1.0,1.0"
     }
   }
 }

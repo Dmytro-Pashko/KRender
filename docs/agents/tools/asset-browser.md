@@ -137,6 +137,6 @@ resources. Scanned roots: `model`, `textures`, `atlases`, `skyboxes`, `environme
 ## Related Code Patterns
 
 - Background-scan-then-post pattern: `AssetBrowserSystem.requestScan`.
-- The same `LocalAssetRegistryService` is reused by the Scene Editor asset panel
+- The same `LocalAssetRegistryService` is reused by Scene Editor's compact resource selectors
   (`SceneAssetBrowserModel` in `SceneEditorScene`).
 - The state+operations+panels recipe mirrors Model Viewer / Terrain Editor / Scene Editor.

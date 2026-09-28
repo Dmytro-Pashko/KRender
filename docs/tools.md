@@ -21,7 +21,7 @@ Convenience launch scripts are available in `engine/tools/scripts/`:
 - `model_viewer_launcher.sh [model/path.glb]` launches the Model Viewer, defaulting to `model/wool_boy_animated.glb`.
 - `animation_viewer_launcher.sh [model/path.glb]` launches the Animation Viewer, defaulting to `model/wool_boy_animated.glb`.
 - `terrain_editor_launcher.sh [terrains/file.json]` launches the Terrain Editor, defaulting to `terrains/terrain_02_small_flat.json`.
-- `scene_editor_launcher.sh [scenes/file.krscene]` launches the Scene Editor, optionally opening a scene file.
+- `scene_editor_launcher.sh scenes/file.krscene` launches the Scene Editor for an existing scene file.
 - `ui_composer_launcher.sh [ui/scenes/file.krui]` launches the UI Composer, defaulting to `ui/scenes/test_scene_01.krui`.
 
 ## Tools
@@ -318,19 +318,17 @@ Example:
 
 ### Scene Editor
 
-The Scene Editor is the `.krscene` authoring tool. It supports hierarchy and inspector workflows, asset placement, selection, transforms, camera/light setup, editor gizmos, and launching a saved scene into the runtime player.
-It is currently an MVP editor focused on the core scene-building workflow: placing assets, editing transforms, configuring cameras and lights, selecting objects, and running the scene in a separate runtime window.
+The Scene Editor edits an existing `.krscene` selected in Asset Browser. The schema v2 scene settings hold one optional Terrain, the Environment, ambient lighting and the default active camera.
 
 Features:
 
-- Create new scene files with default camera and light setup.
-- Open, save, and save-as `.krscene` documents.
-- Place model and terrain assets into the scene.
-- Create empty entities, cameras, directional lights, and point lights.
-- Edit entity names, active state, transforms, cameras, and light properties.
+- Save and Reload the selected `.krscene`; Reload offers Save, Discard and Cancel for unsaved changes.
+- Add empty, model, camera, directional light and point light entities from the hierarchy selector.
+- Edit entity names, active state and registered components in Entity Properties.
+- Select or remove one optional Terrain resource in Scene Inspector, switch between Color and Texture preview, and choose a preset bake resolution up to 8192. Terrain placement and material library are managed outside this panel; the library is selected by the Terrain file.
 - Select entities from the viewport.
-- Use hierarchy, inspector, asset placement, toolbar, viewport, and logs panels.
-- Configure active camera settings and align camera/view when needed.
+- Use Scene Editor Control, hierarchy, scene inspector, entity properties, viewport and logs panels.
+- Configure the scene's default active camera.
 - Configure scene lighting, including ambient light, directional lights, and point lights.
 - Render scene models and terrain assets in the editor viewport.
 - Display editor helpers such as grid, axes, selected bounds, and light gizmos.
@@ -344,12 +342,8 @@ Screenshots:
 
 Required properties:
 
-- `krender.scene=scene-editor`
-
-Optional properties:
-
 - `krender.scene.path=<path>`
-- `krender.scene.name=<name>`
+- `krender.scene=scene-editor`
 
 Example:
 

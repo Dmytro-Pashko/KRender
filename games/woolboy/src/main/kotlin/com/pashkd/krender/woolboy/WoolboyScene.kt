@@ -22,6 +22,8 @@ import com.pashkd.krender.engine.scene.SceneConfigPresets
 import com.pashkd.krender.engine.scene.SceneDependencyCollector
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
+import com.pashkd.krender.engine.scene.SceneTerrainFactory
+import com.pashkd.krender.engine.scene.resolveSceneTerrainMaterialLibraryPath
 import com.pashkd.krender.engine.terrain.TerrainAssetSyncSystem
 import com.pashkd.krender.engine.terrain.TerrainRenderSystem
 
@@ -82,10 +84,15 @@ class WoolboyScene : Scene(SceneId) {
         }
         engine.logger.info(TAG) { "WoolboyScene show start scene='$SceneAssetPath'" }
         SceneSerializer.applyToWorld(descriptor, world, engine.logger)
+        SceneTerrainFactory.create(world, descriptor.settings.terrain)
         markAuthoredCameraActive(descriptor)
         installAmbientLight(descriptor)
         createPlayer()
-        createSystems(environmentCache ?: loadEnvironment(descriptor).also { environmentCache = it })
+        val terrainSettings = descriptor.settings.terrain
+        val terrainMaterialLibraryPath = terrainSettings.terrainAssetPath?.let { path ->
+            resolveSceneTerrainMaterialLibraryPath(path, terrainSettings.materialLibraryPath, engine.sceneFiles)
+        } ?: terrainSettings.materialLibraryPath
+        createSystems(environmentCache ?: loadEnvironment(descriptor).also { environmentCache = it }, terrainMaterialLibraryPath)
         engine.logger.info(TAG) { "WoolboyScene show complete entities=${world.all().size}" }
     }
 
@@ -111,12 +118,13 @@ class WoolboyScene : Scene(SceneId) {
         engine.logger.info(TAG) { "Woolboy player created id=${player.id} model='$WoolboyModelPath'" }
     }
 
-    private fun createSystems(environment: Environment?) {
+    private fun createSystems(environment: Environment?, terrainMaterialLibraryPath: String) {
         addSystem(
             "TerrainAssetSyncSystem",
             TerrainAssetSyncSystem(
                 logger = engine.logger,
-                materialLibraryPath = TerrainMaterialLibraryPath,
+                materialLibraryPath = terrainMaterialLibraryPath,
+                textureSamplerFactory = engine.terrainTextureSamplerFactory,
             ),
         )
         addSystem(
@@ -162,7 +170,7 @@ class WoolboyScene : Scene(SceneId) {
                 ?: world.query<PerspectiveCameraComponent>().firstOrNull()
         camera?.add(ActiveCameraComponent())
         engine.logger.info(TAG) {
-            "Woolboy authored scene loaded path='$SceneAssetPath' terrainEntityId=${descriptor.settings.activeTerrainEntityId ?: "<none>"} " +
+            "Woolboy authored scene loaded path='$SceneAssetPath' terrain='${descriptor.settings.terrain.terrainAssetPath ?: "<none>"}' " +
                 "cameraEntityId=${camera?.id ?: "<none>"} lights=${world.query<LightComponent>().size}"
         }
     }

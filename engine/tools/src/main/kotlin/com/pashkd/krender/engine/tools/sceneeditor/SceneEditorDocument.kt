@@ -9,4 +9,6 @@ import com.pashkd.krender.engine.scene.SceneDescriptor
 class SceneEditorDocument(
     var world: SceneWorld,
     var descriptor: SceneDescriptor? = null,
-)
+) {
+    var terrainPreviewEntityId: Long? = null
+}

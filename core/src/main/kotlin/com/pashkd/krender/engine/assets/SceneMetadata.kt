@@ -104,16 +104,7 @@ object SceneAssetMetadataReader {
         val validationReport = RuntimeSceneValidator.validate(descriptor, dependencyGraph)
         val entities = descriptor.entities
         val lightEntities = entities.filter { entity -> entity.hasComponent(SceneComponentTypes.Light) }
-        val activeTerrainEntity =
-            descriptor.settings.activeTerrainEntityId?.let { id ->
-                entities.firstOrNull { entity -> entity.id == id }
-            }
-        val activeTerrainPath =
-            activeTerrainEntity
-                ?.component(SceneComponentTypes.Terrain)
-                ?.properties
-                ?.get("terrain")
-                ?.normalizeAssetPath()
+        val activeTerrainPath = descriptor.settings.terrain.terrainAssetPath?.normalizeAssetPath()
         val activeTerrainMetadata =
             activeTerrainPath
                 ?.let { path -> resolveSceneFile(baseDirectory, path) }
@@ -147,31 +138,31 @@ object SceneAssetMetadataReader {
                         .equals("Point", ignoreCase = true)
                 },
             modelCount = entities.count { entity -> entity.hasComponent(SceneComponentTypes.Model) },
-            terrainCount = entities.count { entity -> entity.hasComponent(SceneComponentTypes.Terrain) },
+            terrainCount = if (activeTerrainPath == null) 0 else 1,
             sceneBounds = sceneBounds,
             activeCameraName =
                 descriptor.settings.activeCameraEntityId?.let { id ->
                     entities.firstOrNull { entity -> entity.id == id }?.name
                 },
-            activeTerrainName = activeTerrainEntity?.name,
+            activeTerrainName = activeTerrainPath?.let { "Scene Terrain" },
             activeTerrainPath = activeTerrainPath,
             activeTerrainSize = activeTerrainMetadata?.size,
             activeTerrainLayerCount = activeTerrainMetadata?.layerCount,
-            activeTerrainBakedResolution =
-                activeTerrainEntity
-                    ?.component(SceneComponentTypes.Terrain)
-                    ?.properties
-                    ?.get("bakedTextureResolution")
-                    ?.trim()
-                    ?.toIntOrNull(),
+            activeTerrainBakedResolution = activeTerrainPath?.let { descriptor.settings.terrain.bakedTextureResolution },
             environmentAssetPath =
                 descriptor.settings.environment.environmentAssetPath
                     ?.normalizeAssetPath(),
             ambientIntensity = descriptor.settings.lighting.ambientIntensity,
             terrainMaterialLibraryPath =
-                descriptor.settings.terrain.materialLibraryPath
-                    .normalizeAssetPath()
-                    .orEmpty(),
+                activeTerrainPath?.let { path ->
+                    runCatching {
+                        com.pashkd.krender.engine.scene.resolveSceneTerrainMaterialLibraryPath(
+                            path,
+                            descriptor.settings.terrain.materialLibraryPath,
+                            sceneFiles,
+                        )
+                    }.getOrDefault(descriptor.settings.terrain.materialLibraryPath).normalizeAssetPath()
+                }.orEmpty(),
             dependencyCount = dependencyGraph.dependencies.size,
             missingDependencyCount = dependencyGraph.missing.size,
             validationErrorCount = validationReport.errors.size,

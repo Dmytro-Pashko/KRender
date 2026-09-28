@@ -42,7 +42,7 @@ class ScenePlayerScene(
         engine.logger.info(TAG) {
             "ScenePlayer show scene='$scenePath' id='${descriptor.id}' name='${descriptor.name}' entities=${descriptor.entities.size} " +
                 "activeCameraEntityId=${descriptor.settings.activeCameraEntityId ?: "<none>"} " +
-                "activeTerrainEntityId=${descriptor.settings.activeTerrainEntityId ?: "<none>"} " +
+                "terrain='${descriptor.settings.terrain.terrainAssetPath ?: "<none>"}' " +
                 "environment='${descriptor.settings.environment.environmentAssetPath ?: "<none>"}'"
         }
 

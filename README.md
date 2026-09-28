@@ -225,7 +225,7 @@ Adjust exposure, rotation, diffuse/specular intensity, and background mode; insp
 <details>
 <summary><strong>Scene Editor</strong></summary>
 
-<p><code>.krscene</code> authoring with entity hierarchy, transforms, cameras, and lights.</p>
+<p><code>.krscene</code> editing from Asset Browser with scene settings, entity components, and one optional Terrain.</p>
 
 <img src="engine/tools/docs/screenshots/scene_editor/scene-editor_camera_selected.png" alt="Scene Editor preview" />
 

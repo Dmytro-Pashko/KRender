@@ -1,39 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "scene:new",
   "name": "Untitled Scene",
   "entities": [
-    {
-      "id": 1,
-      "name": "Woolboy Sandbox Scene",
-      "active": true,
-      "parentId": null,
-      "components": [
-        {
-          "type": "NameComponent",
-          "properties": {
-            "name": "Woolboy Sandbox Scene"
-          }
-        },
-        {
-          "type": "TransformComponent",
-          "properties": {
-            "position": "0.0,0.0,0.0",
-            "rotation": "0.0,0.0,0.0",
-            "scale": "1.0,1.0,1.0"
-          }
-        },
-        {
-          "type": "TerrainComponent",
-          "properties": {
-            "terrain": "terrains/woolboy_sandbox_scene.json",
-            "visible": "true",
-            "previewMode": "MaterialTexture",
-            "bakedTextureResolution": "2048"
-          }
-        }
-      ]
-    },
     {
       "id": 2,
       "name": "light_01",
@@ -88,10 +57,10 @@
         {
           "type": "LightComponent",
           "properties": {
-            "type": "Point",
-            "intensity": "29.44",
+            "type": "Directional",
+            "intensity": "0.52",
             "color": "0.02691274,0.119049326,0.5490196,1.0",
-            "direction": "-0.45,-0.8,-0.35"
+            "direction": "-0.45,-1.1,-0.35"
           }
         }
       ]
@@ -222,16 +191,22 @@
   ],
   "settings": {
     "activeCameraEntityId": 7,
-    "activeTerrainEntityId": 1,
     "lighting": {
       "ambientColor": "0.45,0.5,0.58,1.0",
       "ambientIntensity": 0.55
     },
     "environment": {
-      "environmentAssetPath": "environments/meadow/meadow.environment.json"
+      "environmentAssetPath": "environments/default/default.environment.json"
     },
     "terrain": {
-      "materialLibraryPath": "materials/terrain_materials.json"
+      "terrainAssetPath": "terrains/woolboy_sandbox_scene.json",
+      "visible": true,
+      "previewMode": "LayerColor",
+      "bakedTextureResolution": 2046,
+      "materialLibraryPath": "materials/terrain_materials.json",
+      "position": "0.0,0.0,0.0",
+      "rotation": "0.0,0.0,0.0",
+      "scale": "1.0,1.0,1.0"
     }
   }
 }

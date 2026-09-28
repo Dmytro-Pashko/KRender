@@ -50,11 +50,11 @@ data class RuntimeTerrainSetupResult(
 )
 
 /**
- * Prepares the scene's active terrain entity for runtime rendering.
+ * Prepares the scene's generated terrain entity for runtime rendering.
  *
- * The service validates the active terrain reference through
+ * The service validates the scene terrain settings through
  * [RuntimeSceneValidator], loads the referenced [TerrainData], attaches
- * [TerrainDataComponent] and [TerrainRendererComponent] to the active terrain
+ * [TerrainDataComponent] and [TerrainRendererComponent] to the generated terrain
  * entity, and initializes the renderer material so
  * [RuntimeTerrainMeshSystem] can later build the final runtime mesh and baked
  * texture.
@@ -67,8 +67,7 @@ class RuntimeTerrainService(
     /**
      * Loads and initializes the active runtime terrain described by [descriptor].
      *
-     * Only the entity referenced by `descriptor.settings.activeTerrainEntityId` is
-     * modified. Other terrain entities in [world] are left untouched.
+     * Exactly one terrain entity generated from `descriptor.settings.terrain` is modified.
      *
      * @return a summary of the prepared runtime terrain entity and generated ids
      * @throws IllegalStateException when the active terrain reference is invalid,
@@ -82,7 +81,7 @@ class RuntimeTerrainService(
         val terrainComponent =
             entity.get<TerrainComponent>()
                 ?: throw IllegalStateException(
-                    "Runtime scene activeTerrainEntityId=${descriptor.settings.activeTerrainEntityId} does not reference an entity with TerrainComponent.",
+                    "Runtime scene has no generated TerrainComponent for '${descriptor.settings.terrain.terrainAssetPath}'.",
                 )
         val terrainPath =
             terrainComponent.terrain.path

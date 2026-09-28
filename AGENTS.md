@@ -358,7 +358,7 @@ terrain with layers, material preview baking, and persistence. → `docs/agents/
 
 ### Scene Editor
 `engine/tools/.../sceneeditor/SceneEditorScene.kt` (+ sibling editor files and bounds helpers in `engine:tools`). Composes engine scene documents
-(`.krscene`): hierarchy, inspector, selection, gizmos, environment, asset panel.
+(`.krscene`, schema v2): hierarchy, scene settings, entity properties, selection, gizmos, and environment. It requires a scene path from Asset Browser; the control offers Save and Reload. Terrain is one optional scene setting rather than an entity in the file.
 → `docs/agents/tools/scene-editor.md`
 
 ### Skin Editor
@@ -506,17 +506,16 @@ See `docs/agents/logging.md` for detail. Conventions in code:
   semantics.
 - The core/backend boundary is enforced by `BackendBoundaryTest` (four rules: LibGDX imports,
   glTF imports, engine.api→backend, non-backend→backend). New violations fail the build.
-- Run the JVM tests after engine/tool changes (`core:test`, `engine:scene-player:test`); they cover serialization,
-  viewport, terrain runtime, scene player validation, scene editor systems, UI scene validation, and more.
+- Run the remaining JVM tests after engine/tool changes (`core:test`, `engine:scene-player:test`).
 
 ---
 
 ## 19. Testing / Validation Rules
 
 - Tests live in `core/src/test/kotlin` and are pure-JVM (no GL context). Examples:
-  `RuntimeViewportTest`, `SceneSerializerTest`, `TerrainRuntimePipelineTest`,
-  `SceneEditor*SystemTest`, `UiSceneSerializerTest`, `AssetBrowserSceneTest`,
-  `ModelViewerTextureChannelResolverTest`. Scene Player tests live in `engine/scene-player/src/test/kotlin`.
+  `RuntimeViewportTest`, `TerrainRuntimePipelineTest`,
+  `UiSceneSerializerTest`, `AssetBrowserSceneTest`,
+  `ModelViewerTextureChannelResolverTest`. The previous Scene Editor, `.krscene`, and Scene Player Builder unit tests were removed during the schema v2 editor update.
 - Prefer adding/adjusting tests in the same package as the code under test.
 - Things requiring a real OpenGL context (renderer, ImGui, texture upload) are **not** unit
   tested — validate those manually by running the relevant scene.
@@ -526,7 +525,8 @@ See `docs/agents/logging.md` for detail. Conventions in code:
   - `./gradlew :desktop-lwjgl3-win:run` / `:desktop-lwjgl3-macos:run` / `:desktop-lwjgl3-linux:run` — run the default scene (Asset Browser) on the matching platform.
   - Run a specific tool/scene with system properties, e.g.
     `-Dkrender.scene=model-viewer -Dkrender.model.path=model/...` or
-    `-Dkrender.scene=scene-player -Dkrender.scene.path=scenes/...`.
+    `-Dkrender.scene=scene-player -Dkrender.scene.path=scenes/...`. Scene Editor requires
+    `-Dkrender.scene=scene-editor -Dkrender.scene.path=scenes/example.krscene`.
 
 ---
 

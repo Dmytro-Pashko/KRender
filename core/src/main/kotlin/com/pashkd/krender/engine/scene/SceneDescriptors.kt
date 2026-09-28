@@ -24,7 +24,7 @@ data class SceneDescriptor(
     val settings: SceneSettingsDescriptor = SceneSettingsDescriptor(),
 ) {
     companion object {
-        const val CurrentSchemaVersion = 1
+        const val CurrentSchemaVersion = 2
     }
 }
 
@@ -60,12 +60,18 @@ data class SceneEnvironmentDescriptor(
 )
 
 data class SceneTerrainSettingsDescriptor(
+    val terrainAssetPath: String? = null,
+    val visible: Boolean = true,
+    val previewMode: String = "LayerColor",
+    val bakedTextureResolution: Int = 8192,
     val materialLibraryPath: String = DefaultTerrainMaterialLibraryPath,
+    val position: String = "0.0,0.0,0.0",
+    val rotation: String = "0.0,0.0,0.0",
+    val scale: String = "1.0,1.0,1.0",
 )
 
 data class SceneSettingsDescriptor(
     val activeCameraEntityId: Long? = null,
-    val activeTerrainEntityId: Long? = null,
     val lighting: SceneLightingDescriptor = SceneLightingDescriptor(),
     val environment: SceneEnvironmentDescriptor = SceneEnvironmentDescriptor(),
     val terrain: SceneTerrainSettingsDescriptor = SceneTerrainSettingsDescriptor(),

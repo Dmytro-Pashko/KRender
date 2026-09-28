@@ -162,12 +162,8 @@ class MaterialEditorController(
         Files.walk(sceneDir).use { paths ->
             paths.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith(".krscene") }.forEach { file ->
                 val scene = SceneSerializer.decode(Files.readString(file, StandardCharsets.UTF_8))
-                scene.entities.forEach { entity ->
-                    entity.components.filter { it.type == SceneComponentTypes.Terrain }.forEach { component ->
-                        component.properties["terrain"]?.replace('\\', '/')?.let { path ->
-                            result.getOrPut(path) { mutableSetOf() }.add(scene.settings.terrain.materialLibraryPath)
-                        }
-                    }
+                scene.settings.terrain.terrainAssetPath?.replace('\\', '/')?.let { path ->
+                    result.getOrPut(path) { mutableSetOf() }.add(scene.settings.terrain.materialLibraryPath)
                 }
             }
         }

@@ -14,6 +14,8 @@ import com.pashkd.krender.engine.scene.RuntimeTerrainMaterialLibraryService
 import com.pashkd.krender.engine.scene.SceneDependencyCollector
 import com.pashkd.krender.engine.scene.SceneDescriptor
 import com.pashkd.krender.engine.scene.SceneSerializer
+import com.pashkd.krender.engine.scene.SceneTerrainFactory
+import com.pashkd.krender.engine.scene.resolveSceneTerrainMaterialLibraryPath
 import com.pashkd.krender.engine.scene.SceneValidationReport
 import com.pashkd.krender.engine.terrain.RuntimeTerrainMeshSystem
 import com.pashkd.krender.engine.terrain.RuntimeTerrainService
@@ -52,6 +54,7 @@ class ScenePlayerBuilder(
         RuntimeSceneValidator.requireValid(request.descriptor, validationReport)
 
         SceneSerializer.applyToWorld(request.descriptor, world, engine.logger)
+        SceneTerrainFactory.create(world, request.descriptor.settings.terrain)
         val activeCamera = RuntimeSceneValidator.requireActiveCamera(world, request.descriptor)
         activeCamera.add(ActiveCameraComponent())
         installAmbientLight(world, request.descriptor)
@@ -73,18 +76,11 @@ class ScenePlayerBuilder(
         request: ScenePlayerBuildRequest,
         activeCamera: Entity,
     ): TerrainMaterialBakeService? {
-        if (request.descriptor.settings.activeTerrainEntityId == null) {
-            return null
-        }
+        val terrainPath = request.descriptor.settings.terrain.terrainAssetPath ?: return null
 
         val terrainMaterialLibrary =
             RuntimeTerrainMaterialLibraryService(engine.sceneFiles, engine.logger).loadRequired(
-                request.descriptor.settings.activeTerrainEntityId?.let(world::getEntity)
-                    ?.get<TerrainComponent>()
-                    ?.terrain
-                    ?.path
-                    ?.let { TerrainPersistence(logger = engine.logger, files = engine.sceneFiles).loadDescriptor(it).materialLibraryPath }
-                    ?: request.descriptor.settings.terrain.materialLibraryPath,
+                resolveSceneTerrainMaterialLibraryPath(terrainPath, request.descriptor.settings.terrain.materialLibraryPath, engine.sceneFiles),
             )
         val materialBakeService =
             TerrainMaterialBakeService(

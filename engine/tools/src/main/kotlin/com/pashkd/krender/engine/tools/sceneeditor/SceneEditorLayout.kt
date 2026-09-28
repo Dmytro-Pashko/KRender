@@ -7,10 +7,10 @@ import com.pashkd.krender.engine.ui.editor.ImGuiPanelLayout
  * Stable panel ids used by the Scene Editor scene.
  */
 object SceneEditorPanelIds {
-    const val Toolbar = "sceneToolbar"
+    const val Control = "sceneEditorControl"
     const val Hierarchy = "sceneHierarchy"
-    const val Assets = "sceneAssets"
     const val Inspector = "sceneInspector"
+    const val Properties = "entityProperties"
     const val Viewport = "sceneViewport"
     const val Logs = "runtimeLogs"
 }
@@ -25,9 +25,9 @@ object SceneEditorUiLayoutDefaults {
         ImGuiLayoutConfig(
             panels =
                 mapOf(
-                    SceneEditorPanelIds.Toolbar to
+                    SceneEditorPanelIds.Control to
                         ImGuiPanelLayout(
-                            title = "Scene Toolbar",
+                            title = "Scene Editor Control",
                             x = 16f,
                             y = 16f,
                             width = 1232f,
@@ -39,15 +39,7 @@ object SceneEditorUiLayoutDefaults {
                             x = 16f,
                             y = 128f,
                             width = 320f,
-                            height = 224f,
-                        ),
-                    SceneEditorPanelIds.Assets to
-                        ImGuiPanelLayout(
-                            title = "Assets",
-                            x = 16f,
-                            y = 368f,
-                            width = 320f,
-                            height = 240f,
+                            height = 480f,
                         ),
                     SceneEditorPanelIds.Viewport to
                         ImGuiPanelLayout(
@@ -56,6 +48,14 @@ object SceneEditorUiLayoutDefaults {
                             y = 128f,
                             width = 560f,
                             height = 480f,
+                        ),
+                    SceneEditorPanelIds.Properties to
+                        ImGuiPanelLayout(
+                            title = "Entity Properties",
+                            x = 928f,
+                            y = 624f,
+                            width = 320f,
+                            height = 240f,
                         ),
                     SceneEditorPanelIds.Inspector to
                         ImGuiPanelLayout(
@@ -70,7 +70,7 @@ object SceneEditorUiLayoutDefaults {
                             title = "Runtime Logs",
                             x = 16f,
                             y = 624f,
-                            width = 1232f,
+                            width = 896f,
                             height = 240f,
                         ),
                 ),

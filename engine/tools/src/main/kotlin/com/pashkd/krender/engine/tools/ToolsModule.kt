@@ -38,7 +38,7 @@ object ToolsModule {
                     terrainPath ?: throw missingProperty("krender.terrain.path", sceneName),
                 )
             "material-editor" -> MaterialEditorScene(materialPath ?: throw missingProperty("krender.material.path", sceneName))
-            "scene-editor" -> SceneEditorScene(scenePath = scenePath, initialSceneName = sceneNameOverride)
+            "scene-editor" -> SceneEditorScene(scenePath ?: throw missingProperty("krender.scene.path", sceneName))
             "skin-editor" -> SkinEditorScene(initialSkinPath = skinPath)
             "texture-atlas-editor" -> TextureAtlasEditorScene(initialAtlasPath = atlasPath, fileDialogService = AwtFileDialogService())
             "ui-composer" -> UiComposerScene(uiScenePath ?: throw missingProperty("krender.ui.scene.path", sceneName))

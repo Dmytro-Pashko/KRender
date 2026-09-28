@@ -26,8 +26,9 @@ private const val MAX_MATERIAL_PREVIEW_RESOLUTION = 8192
 class TerrainAssetSyncSystem(
     private val logger: com.pashkd.krender.engine.api.Logger? = null,
     materialLibraryPath: String = DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH,
+    textureSamplerFactory: TerrainMaterialTextureSamplerFactory? = null,
 ) : System() {
-    private val sync = TerrainAssetRuntimeSync(logger, materialLibraryPath)
+    private val sync = TerrainAssetRuntimeSync(logger, materialLibraryPath, textureSamplerFactory)
 
     override fun update(
         world: SceneWorld,
@@ -43,6 +44,7 @@ class TerrainAssetSyncSystem(
 class TerrainAssetRuntimeSync(
     private val logger: com.pashkd.krender.engine.api.Logger? = null,
     private val materialLibraryPath: String = DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH,
+    private val textureSamplerFactory: TerrainMaterialTextureSamplerFactory? = null,
 ) {
     private val terrainPersistence = TerrainPersistence(logger)
     private val bakeServices = mutableMapOf<String, TerrainMaterialBakeService>()
@@ -67,13 +69,13 @@ class TerrainAssetRuntimeSync(
             try {
                 val descriptor = terrainPersistence.loadDescriptor(path)
                 val data = TerrainData.fromDescriptor(descriptor.terrain)
-                val libraryPath = descriptor.materialLibraryPath ?: materialLibraryPath
+                val libraryPath = materialLibraryPath
                 val usesTexturePreview = previewMode == TerrainPreviewMode.MaterialTexture
                 val mesh =
                     TerrainMeshBuilder.build(
                         data = data,
                         materialColorResolver = { null },
-                        blendMode = TerrainLayerBlendMode.OrderedAlpha,
+                        blendMode = if (usesTexturePreview) TerrainLayerBlendMode.OrderedAlpha else TerrainLayerBlendMode.WeightedAverage,
                         enableLayerColorPreview = !usesTexturePreview,
                     )
                 val nextRenderer =
@@ -97,7 +99,7 @@ class TerrainAssetRuntimeSync(
                     val bakeService = bakeServices.getOrPut(libraryPath) {
                         val library = TerrainMaterialLibrary(logger)
                         library.load(libraryPath)
-                        TerrainMaterialBakeService(library, logger)
+                        TerrainMaterialBakeService(library, logger, textureSamplerFactory)
                     }
                     val texture =
                         bakeService.bakeFinalSplatTexture(

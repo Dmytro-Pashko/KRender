@@ -20,11 +20,13 @@ enum class SceneValidationIssueCode {
     ActiveTerrainWithoutTerrainComponent,
     MissingTerrainAsset,
     InvalidTerrainBakeResolution,
+    InvalidTerrainSettings,
     MissingTerrainMaterialLibrary,
     MissingModelAsset,
     DuplicateEntityId,
     BrokenParentReference,
     UnsupportedComponent,
+    InvalidComponentProperties,
 }
 
 data class SceneValidationIssue(
@@ -86,7 +88,8 @@ object RuntimeSceneValidator {
                     )
             }
             entity.components.forEach { component ->
-                if (component.type !in SupportedComponentTypes) {
+                val definition = SceneComponentRegistry.find(component.type)
+                if (definition == null) {
                     issues +=
                         SceneValidationIssue(
                             severity = SceneValidationSeverity.Warning,
@@ -94,6 +97,22 @@ object RuntimeSceneValidator {
                             message = "Unsupported scene component '${component.type}' on entityId=${entity.id}.",
                             entityId = entity.id,
                         )
+                }
+                definition?.validate?.invoke(component.properties)?.let { error ->
+                    issues += SceneValidationIssue(
+                        severity = SceneValidationSeverity.Error,
+                        code = SceneValidationIssueCode.InvalidComponentProperties,
+                        message = "Invalid ${component.type} on entityId=${entity.id}: $error",
+                        entityId = entity.id,
+                    )
+                }
+                if (definition?.requiresTransform == true && !entity.hasComponent(SceneComponentTypes.Transform)) {
+                    issues += SceneValidationIssue(
+                        severity = SceneValidationSeverity.Error,
+                        code = SceneValidationIssueCode.InvalidComponentProperties,
+                        message = "${component.type} on entityId=${entity.id} requires Transform.",
+                        entityId = entity.id,
+                    )
                 }
                 if (component.type == SceneComponentTypes.Model) {
                     val modelPath = component.properties["model"].normalizedValidationPath()
@@ -139,54 +158,17 @@ object RuntimeSceneValidator {
             }
         }
 
-        val activeTerrainEntityId = descriptor.settings.activeTerrainEntityId
-        val activeTerrain = activeTerrainEntityId?.let(entitiesById::get)
-        if (activeTerrainEntityId != null && activeTerrain == null) {
-            issues +=
-                SceneValidationIssue(
-                    severity = SceneValidationSeverity.Error,
-                    code = SceneValidationIssueCode.MissingActiveTerrainEntity,
-                    message = "Scene activeTerrainEntityId=$activeTerrainEntityId does not reference an existing entity.",
-                    entityId = activeTerrainEntityId,
-                )
+        val terrain = descriptor.settings.terrain
+        val hasTerrain = terrain.terrainAssetPath != null
+        if (hasTerrain && terrain.terrainAssetPath.normalizedValidationPath() == null) {
+            issues += SceneValidationIssue(SceneValidationSeverity.Error, SceneValidationIssueCode.MissingTerrainAsset, "Scene Terrain path is blank.")
         }
-        if (activeTerrain != null) {
-            val terrainComponent = activeTerrain.component(SceneComponentTypes.Terrain)
-            if (terrainComponent == null) {
-                issues +=
-                    SceneValidationIssue(
-                        severity = SceneValidationSeverity.Error,
-                        code = SceneValidationIssueCode.ActiveTerrainWithoutTerrainComponent,
-                        message = "Scene activeTerrainEntityId=${activeTerrain.id} does not reference an entity with TerrainComponent.",
-                        entityId = activeTerrain.id,
-                    )
-            } else {
-                val terrainPath = terrainComponent.properties["terrain"].normalizedValidationPath()
-                if (terrainPath == null) {
-                    issues +=
-                        SceneValidationIssue(
-                            severity = SceneValidationSeverity.Error,
-                            code = SceneValidationIssueCode.MissingTerrainAsset,
-                            message = "Scene terrain entityId=${activeTerrain.id} has blank terrain asset path.",
-                            entityId = activeTerrain.id,
-                        )
-                }
-                val bakedTextureResolution =
-                    terrainComponent.properties["bakedTextureResolution"]?.trim()?.toIntOrNull()
-                        ?: DefaultTerrainBakeResolution
-                if (bakedTextureResolution !in 2..8192) {
-                    issues +=
-                        SceneValidationIssue(
-                            severity = SceneValidationSeverity.Error,
-                            code = SceneValidationIssueCode.InvalidTerrainBakeResolution,
-                            message = "Scene terrain entityId=${activeTerrain.id} has invalid bakedTextureResolution=$bakedTextureResolution.",
-                            entityId = activeTerrain.id,
-                        )
-                }
-            }
+        if (hasTerrain && terrain.bakedTextureResolution !in 2..8192) {
+            issues += SceneValidationIssue(SceneValidationSeverity.Error, SceneValidationIssueCode.InvalidTerrainBakeResolution, "Invalid Scene Terrain bakedTextureResolution=${terrain.bakedTextureResolution}.")
         }
-
-        val hasTerrain = descriptor.entities.any { entity -> entity.hasComponent(SceneComponentTypes.Terrain) }
+        if (hasTerrain && terrain.previewMode !in setOf("LayerColor", "MaterialTexture")) {
+            issues += SceneValidationIssue(SceneValidationSeverity.Error, SceneValidationIssueCode.InvalidTerrainSettings, "Invalid Scene Terrain previewMode='${terrain.previewMode}'.")
+        }
         if (hasTerrain && dependencyGraph.dependencies.none { it.kind == SceneDependencyKind.TerrainMaterialLibrary }) {
             issues +=
                 SceneValidationIssue(
@@ -289,19 +271,12 @@ object RuntimeSceneValidator {
         world: SceneWorld,
         descriptor: SceneDescriptor,
     ): Entity {
-        val activeTerrainEntityId =
-            descriptor.settings.activeTerrainEntityId
-                ?: throw IllegalStateException("Runtime scene '${descriptor.name}' has no activeTerrainEntityId.")
-        val entity =
-            world.getEntity(activeTerrainEntityId)
-                ?: throw IllegalStateException(
-                    "Runtime scene activeTerrainEntityId=$activeTerrainEntityId does not reference an existing entity.",
-                )
+        require(descriptor.settings.terrain.terrainAssetPath != null) { "Runtime scene '${descriptor.name}' has no Terrain." }
+        val entity = world.query<TerrainComponent>().singleOrNull()
+            ?: throw IllegalStateException("Runtime scene must contain exactly one generated Terrain entity.")
         val terrain =
             entity.get<TerrainComponent>()
-                ?: throw IllegalStateException(
-                    "Runtime scene activeTerrainEntityId=$activeTerrainEntityId does not reference an entity with TerrainComponent.",
-                )
+                ?: throw IllegalStateException("Runtime terrain component missing.")
         val path = terrain.terrain.path.normalizedValidationPath()
         if (path == null) {
             throw IllegalStateException("Runtime terrain entityId=${entity.id} has blank terrain asset path.")
@@ -322,18 +297,6 @@ object RuntimeSceneValidator {
 
     private fun EntityDescriptor.component(type: String): ComponentDescriptor? = components.firstOrNull { component -> component.type == type }
 
-    private val SupportedComponentTypes =
-        setOf(
-            SceneComponentTypes.Name,
-            SceneComponentTypes.Transform,
-            SceneComponentTypes.Parent,
-            SceneComponentTypes.Camera,
-            SceneComponentTypes.Light,
-            SceneComponentTypes.Model,
-            SceneComponentTypes.Terrain,
-        )
-
-    private const val DefaultTerrainBakeResolution = 8192
 }
 
 private fun String?.normalizedValidationPath(): String? =

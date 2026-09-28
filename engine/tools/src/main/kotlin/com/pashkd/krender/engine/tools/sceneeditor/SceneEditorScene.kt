@@ -13,21 +13,19 @@ import com.pashkd.krender.engine.ui.editor.*
  * MVP foundation scene for composing and inspecting engine scene data.
  */
 class SceneEditorScene(
-    private val scenePath: String? = null,
-    private val initialSceneName: String? = null,
+    private val scenePath: String,
 ) : Scene("scene_editor") {
     override val config: SceneConfig = SceneConfigPresets.EditorTool
 
     private lateinit var editorState: SceneEditorState
-    private lateinit var assetPanelState: SceneAssetPanelState
-    private lateinit var assetBrowser: SceneAssetBrowserModel
+    private lateinit var assetCatalog: SceneEditorAssetCatalog
     private lateinit var document: SceneEditorDocument
     private lateinit var operations: SceneEditorOperations
     private lateinit var layoutTracker: ImGuiLayoutRuntimeTracker
     private lateinit var environmentState: SceneEditorEnvironmentState
 
     override fun show() {
-        engine.logger.info(TAG) { "Showing Scene Editor scene path='${scenePath ?: "<memory>"}'" }
+        engine.logger.info(TAG) { "Showing Scene Editor scene path='$scenePath'" }
         engine.logger.info(TAG) { "Initializing Scene Editor runtime world" }
         val layoutConfig =
             ImGuiLayoutConfigLoader(
@@ -37,39 +35,19 @@ class SceneEditorScene(
         val panelEventLogger = ImGuiWindowEventLogger(engine.logger, "SceneEditorUi")
         layoutTracker = ImGuiLayoutRuntimeTracker(layoutConfig)
 
-        editorState =
-            SceneEditorState(
-                currentScenePath = scenePath,
-                sceneName =
-                    initialSceneName ?: scenePath
-                        ?.substringAfterLast('/')
-                        ?.substringAfterLast('\\')
-                        ?.substringBeforeLast('.')
-                        ?.takeIf(String::isNotBlank)
-                        ?: SceneEditorState().sceneName,
-            )
-        assetPanelState = SceneAssetPanelState()
+        editorState = SceneEditorState(currentScenePath = scenePath)
         document = SceneEditorDocument(world = SceneWorld())
         environmentState = SceneEditorEnvironmentState()
         operations = SceneEditorOperations(document, editorState, engine, layoutTracker)
-        assetBrowser =
-            SceneAssetBrowserModel(
-                registry = engine.assetRegistry,
-                tasks = engine.tasks,
-                logger = engine.logger,
-                state = assetPanelState,
-            )
+        assetCatalog = SceneEditorAssetCatalog(engine.assetRegistry, engine.tasks, engine.logger)
         engine.logger.info(TAG) { "Initializing Scene Editor document world" }
-        operations.createNewScene()
-        scenePath?.let { path ->
-            operations.open(path)
-        }
+        operations.open(scenePath)
 
         createEditorCamera()
         val boundsProvider = SceneEditorBoundsProvider(AssetServiceModelBoundsService(engine.assets))
 
         world.systems.add(SceneEditorViewportGuideSystem(editorState))
-        world.systems.add(SceneAssetBrowserSystem(assetBrowser))
+        world.systems.add(SceneEditorAssetCatalogSystem(assetCatalog))
         world.systems.add(createUiSystem(layoutConfig, panelEventLogger))
         world.systems.add(EditorViewportCameraSystem(engine.input, editorState.camera, editorState.viewport))
         world.systems.add(
@@ -84,7 +62,7 @@ class SceneEditorScene(
         world.systems.add(SceneEditorBoundingBoxSystem(document, editorState, boundsProvider))
         world.systems.add(SceneEditorLightGizmoSystem(document, editorState))
         world.systems.add(SceneEditorLightSyncSystem(document, engine.logger))
-        world.systems.add(SceneEditorDocumentTerrainSyncSystem(document, engine.logger))
+        world.systems.add(SceneEditorDocumentTerrainSyncSystem(document, engine.logger, engine.sceneFiles, engine.terrainTextureSamplerFactory))
         world.systems.add(SceneEditorEnvironmentSyncSystem(document, environmentState, engine.sceneFiles, engine.logger))
         world.systems.add(SceneEditorDocumentRenderSystem(document, environmentState))
     }
@@ -99,7 +77,7 @@ class SceneEditorScene(
     ): UiSystem =
         UiSystem(engine.ui).also { uiSystem ->
             uiSystem.addPanel(
-                SceneEditorToolbarPanel(
+                SceneEditorControlPanel(
                     editorState,
                     operations,
                     layoutConfig,
@@ -112,19 +90,7 @@ class SceneEditorScene(
                     editorState,
                     document,
                     operations,
-                    layoutConfig,
-                    layoutTracker,
-                    panelEventLogger,
-                    engine.logger,
-                ),
-            )
-            uiSystem.addPanel(
-                SceneAssetPanel(
-                    assetPanelState,
-                    editorState,
-                    assetBrowser,
-                    operations,
-                    engine,
+                    assetCatalog,
                     layoutConfig,
                     layoutTracker,
                     panelEventLogger,
@@ -134,19 +100,18 @@ class SceneEditorScene(
                 SceneInspectorPanel(
                     editorState,
                     document,
-                    assetBrowser,
                     operations,
+                    assetCatalog,
                     layoutConfig,
                     layoutTracker,
                     panelEventLogger,
-                    engine.logger,
                 ),
             )
+            uiSystem.addPanel(EntityPropertiesPanel(editorState, document, operations, assetCatalog, layoutConfig, layoutTracker, panelEventLogger))
             uiSystem.addPanel(
                 SceneViewportPanel(
                     editorState,
                     document,
-                    operations,
                     layoutConfig,
                     layoutTracker,
                     panelEventLogger,

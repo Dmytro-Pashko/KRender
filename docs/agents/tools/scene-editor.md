@@ -1,141 +1,25 @@
 # Scene Editor — Agent Context
 
-> Read `AGENTS.md` first. This file covers only the Scene Editor tool.
+Read `AGENTS.md` first. The Scene Editor opens an existing `.krscene` chosen in Asset Browser. `ToolsModule` requires `krender.scene.path`; there is no empty-document route.
 
-## Purpose
+## Document and runtime
 
-Compose and inspect engine scene documents (`.krscene`): build an entity hierarchy, place
-models/lights/terrain, edit transforms and properties in an inspector, select objects in a
-viewport with gizmos, and configure scene environment. Described in code as the "MVP foundation
-scene for composing and inspecting engine scene data".
+- `SceneEditorScene` owns the editor world; `SceneEditorDocument` owns a separate world for authored entities. The editor camera and terrain preview are never serialized.
+- `.krscene` schema v2 stores one optional Terrain under `settings.terrain`, including asset path, visibility, preview mode, baked resolution and legacy transform values. Scene Player and Woolboy create a runtime Terrain entity from these settings. The Terrain file selects its material library; the scene's existing material library path is only a fallback for older Terrain files.
+- Texture preview baking uses `engine.terrainTextureSamplerFactory` through `SceneEditorDocumentTerrainSyncSystem`. Without that sampler, the bake falls back to material colors instead of sampling albedo textures.
+- `SceneSerializer.decode` migrates a v1 terrain entity. A legacy file with multiple Terrain entities is rejected for manual migration.
+- The authored active camera remains in scene settings. A host scene may override it after loading.
+- `SceneComponentRegistry` in core defines serializable component types, factories, codecs, validation and backend-neutral field descriptions. `SceneComponentFieldRenderer` maps field kinds to ImGui controls; custom editors may be registered for complex types. Components contain data, while systems implement behavior.
 
-## Current Implementation
+## Panels
 
-- Scene: `engine/tools/.../sceneeditor/SceneEditorScene.kt`.
-- Tool internals: `engine/tools/.../sceneeditor/`.
-- Bounds helpers reused by other tools live in `engine/tools/.../sceneeditor/SceneEditorBounds.kt`.
-- Launched as a separate JVM window by `Lwjgl3EditorToolLauncher.launchSceneEditorWithScene(path)`
-  (`krender.scene=scene-editor`, `krender.scene.path=<path>`). Can also open empty (in-memory).
-- Note the two-world design: the scene's own `world` hosts editor systems/camera, while
-  `SceneEditorDocument` wraps a **separate** `SceneWorld` holding the edited scene data.
+`Scene Editor Control` offers Save, Reload, Play and UI layout controls. Reload prompts for Save, Discard or Cancel when there are unsaved changes. `Scene Hierarchy` adds Empty, Model, Camera, Directional Light and Point Light entities, and offers Duplicate and Delete. `Scene Inspector` edits scene settings and diagnostics, with one optional Terrain, Color/Texture preview and preset bake resolutions. `Entity Properties` edits the selected entity and addable components. `Scene Viewport` and `LogsPanel` remain.
 
-## Main Files
+The old embedded Assets panel is removed. `SceneEditorAssetCatalog` performs an initial background scan of the shared `AssetRegistryService`; compact asset selectors in the panels consume its options. Preserve the scan/apply main-thread boundary.
 
-| File | Responsibility |
-|---|---|
-| `engine/tools/.../sceneeditor/SceneEditorScene.kt` | Composition: editor camera, document, operations, systems, panels. |
-| `engine/tools/.../sceneeditor/SceneEditorDocument.kt` | Holds the edited scene's `SceneWorld` + document model. |
-| `engine/tools/.../sceneeditor/SceneEditorOperations.kt` | New/open/save, entity add/remove, edits. |
-| `engine/tools/.../sceneeditor/SceneEditorState.kt` | Editor UI state (selection, camera, scene name/path). |
-| `engine/tools/.../sceneeditor/SceneEditorSystems.kt` | Selection, bounding box, light gizmo/sync, terrain sync, environment sync, document render systems. |
-| `engine/tools/.../sceneeditor/SceneEditorComponents.kt` | `EditorOnlyComponent` + editor components. |
-| `engine/tools/.../sceneeditor/SceneEditorBounds.kt` | `SceneEditorBoundsProvider` + bounds services. |
-| `engine/tools/.../sceneeditor/SceneEditorPanels.kt` | Toolbar, hierarchy, inspector, viewport panels. |
-| `engine/tools/.../sceneeditor/SceneAssetPanel.kt` | Asset panel + `SceneAssetBrowserModel`. |
-| `engine/scene/SceneSerializer.kt`, `SceneDescriptors.kt`, `SceneAssetCollector.kt` | `.krscene` (de)serialization + asset collection. |
+## Safe change rules
 
-## Main Classes
-
-| Class | Responsibility |
-|---|---|
-| `SceneEditorScene` | Composition + lifecycle. |
-| `SceneEditorDocument` | Owns the edited scene world + data model. |
-| `SceneEditorOperations` | All mutating operations (create/open/save/edit). |
-| `SceneEditorSelectionSystem` | Ray/picking selection driven by input + bounds. |
-| `SceneEditorBoundingBoxSystem` | Selection bounds rendering. |
-| `SceneEditorLightSyncSystem` / `SceneEditorLightGizmoSystem` | Light data sync + gizmos. |
-| `SceneEditorDocumentTerrainSyncSystem` | Terrain entity sync within the document. |
-| `SceneEditorEnvironmentSyncSystem` | Resolves the selected `.environment.json` asset and exposes backend-neutral glTF renderer settings for viewport rendering. |
-| `SceneEditorDocumentRenderSystem` | Emits draw commands for document entities. |
-
-## UI Panels
-
-`SceneEditorToolbarPanel`, `SceneHierarchyPanel`, `SceneAssetPanel`, `SceneInspectorPanel`,
-`SceneViewportPanel`, `LogsPanel`.
-
-## Engine Services Used
-
-`engine.input` (camera + picking), `engine.assets` (model bounds via
-`AssetServiceModelBoundsService`), `engine.sceneFiles` (read/write `.krscene`),
-`engine.tasks` (asset panel scan), `engine.logger`/`engine.logs`, `engine.ui`.
-
-## Data Flow
-
-1. `show()` creates the editor camera (tagged `EditorOnlyComponent`, not part of scene data),
-   builds the `SceneEditorDocument` (separate world), and `operations.createNewScene()`; if a
-   path was provided, `operations.open(path)`.
-2. The asset panel (`SceneAssetBrowserModel`) reuses `LocalAssetRegistryService` to list assets;
-   the user adds them to the document via `SceneEditorOperations`.
-3. Editor systems read input → update selection/gizmos; sync systems mirror document data into
-   renderable state; document render emits `DrawModel` commands and attaches glTF environment settings
-   for `.glb` / `.gltf` models when a scene Environment asset is configured.
-4. Save serializes the document via `SceneSerializer` through `engine.sceneFiles`.
-
-## Lifecycle
-
-`show()` builds layout, state, document, operations, asset browser model, creates the editor
-camera, then adds systems in a deliberate order (guide, asset browser, UI, camera, selection,
-bounding box, light gizmo, light sync, terrain sync, environment sync, document render).
-`hide()` releases cursor capture. Uses `SceneConfigPresets.EditorTool`.
-
-## Supported Asset Types
-
-`.krscene` scene documents (read/write). Within a scene: models, lights, terrain references,
-and `.environment.json` environment asset references. Asset panel surfaces all registry categories
-for placement.
-
-## Current Features
-
-- New / open / save `.krscene` documents.
-- Entity hierarchy + inspector editing.
-- Viewport selection with bounding boxes and light gizmos.
-- Environment asset selection and glTF viewport preview integration.
-- Terrain entity sync within a scene.
-- Asset panel backed by the shared asset registry.
-
-## Missing / Incomplete Features
-
-- Described as an "MVP foundation" — transform gizmo manipulation, multi-select, copy/paste,
-  and richer property editing are limited or absent (verify against current panels before
-  relying on them).
-- No undo/redo stack comparable to the Terrain Editor's history (verify in `SceneEditorOperations`).
-
-> Needs verification: the exact set of inspector-editable properties and whether interactive
-> transform gizmos exist should be confirmed in `SceneEditorPanels.kt` / `SceneEditorSystems.kt`
-> before documenting them as complete.
-
-## Known Problems
-
-- **Two-world design** (`scene.world` for editor + `SceneEditorDocument.world` for data) is
-  powerful but easy to confuse; changes must be clear about which world they target.
-- The scene wires 11 systems with strict ordering; reordering can silently break selection or
-  rendering.
-
-## Extension Points
-
-- Add a component type to scenes: extend the serializer (`SceneSerializer`/`SceneDescriptors`)
-  + document handling + an inspector section.
-- Add an editor gizmo/behavior: add a `System` to the document world and register it in
-  `show()` at the correct position.
-- Add a panel via `UiSystem.addPanel`.
-
-## Safe Change Rules
-
-- Be explicit about which world you mutate (editor vs document). Editor-only entities must carry
-  `EditorOnlyComponent` and must not be serialized into the scene.
-- Keep serialization changes backward-compatible (there are `SceneSerializerTest`s and
-  `schemaVersion` fields).
-- Persist only through `engine.sceneFiles`; do not touch the filesystem directly.
-
-## Recommended Improvements
-
-- A unified undo/redo stack for document operations.
-- Interactive transform gizmos (translate/rotate/scale).
-- Consolidate the system-ordering contract into a documented constant or builder.
-
-## Related Code Patterns
-
-- Asset panel reuses the Asset Browser's `LocalAssetRegistryService`.
-- `EditorViewportCameraSystem` is shared with the Model/Animation viewers.
-- Serialization round-trip pattern: `SceneSerializerTest`, `SceneAssetCollectorTest`,
-  `RuntimeSceneValidatorTest`.
+- Keep the editor and document worlds distinct. Only authored entities are serialized. The generated Terrain preview is tagged `EditorOnlyComponent` and excluded from picking and persistence.
+- Extend `SceneComponentRegistry` for a new serializable component, then add a specialized field editor only when the generic typed controls are insufficient. Update runtime systems, dependency collection and validation when the component introduces a new asset or behavior.
+- Save through `engine.sceneFiles`. Retain unknown component descriptors when saving an edited entity, and never silently discard legacy Terrain data.
+- Preserve the core/backend boundary and system order in `SceneEditorScene.show()`.

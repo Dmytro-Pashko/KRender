@@ -1,7 +1,6 @@
 package com.pashkd.krender.engine.scene
 
 import com.pashkd.krender.engine.api.AssetRef
-import com.pashkd.krender.engine.terrain.TerrainPersistence
 
 enum class SceneDependencyKind {
     Model,
@@ -54,6 +53,7 @@ class SceneDependencyCollector(
         val dependencies = linkedMapOf<Pair<SceneDependencyKind, String>, SceneDependency>()
         val warnings = mutableListOf<String>()
         collectEntityDependencies(descriptor, dependencies, warnings)
+        collectTerrainDependency(descriptor.settings.terrain, dependencies)
         collectTerrainMaterialDependency(descriptor, dependencies)
         collectEnvironmentDependency(descriptor, dependencies)
         val orderedDependencies = dependencies.values.toList()
@@ -70,19 +70,13 @@ class SceneDependencyCollector(
         dependencies: MutableMap<Pair<SceneDependencyKind, String>, SceneDependency>,
         warnings: MutableList<String>,
     ) {
-        val activeTerrainEntityId = descriptor.settings.activeTerrainEntityId
         descriptor.entities.forEach { entity ->
             entity.components.forEach { component ->
                 when (component.type) {
                     SceneComponentTypes.Model -> collectModelDependency(entity, component, dependencies)
-                    SceneComponentTypes.Terrain -> collectTerrainDependency(entity, component, activeTerrainEntityId, dependencies)
-                    SceneComponentTypes.Name,
-                    SceneComponentTypes.Transform,
-                    SceneComponentTypes.Parent,
-                    SceneComponentTypes.Camera,
-                    SceneComponentTypes.Light,
-                    -> Unit
-                    else -> warnings += "Unsupported scene component '${component.type}' on entityId=${entity.id}."
+                    else -> if (SceneComponentRegistry.find(component.type) == null) {
+                        warnings += "Unsupported scene component '${component.type}' on entityId=${entity.id}."
+                    }
                 }
             }
         }
@@ -110,21 +104,18 @@ class SceneDependencyCollector(
     }
 
     private fun collectTerrainDependency(
-        entity: EntityDescriptor,
-        component: ComponentDescriptor,
-        activeTerrainEntityId: Long?,
+        terrain: SceneTerrainSettingsDescriptor,
         dependencies: MutableMap<Pair<SceneDependencyKind, String>, SceneDependency>,
     ) {
-        component.properties["terrain"]
+        terrain.terrainAssetPath
             .normalizedDependencyPath()
             ?.let { path ->
                 dependencies.merge(
                     SceneDependency(
                         kind = SceneDependencyKind.Terrain,
                         path = path,
-                        requirement = terrainRequirement(entity.id, activeTerrainEntityId),
-                        sourceEntityId = entity.id,
-                        sourceComponentType = component.type,
+                        requirement = SceneDependencyRequirement.Required,
+                        sourceComponentType = "SceneSettingsDescriptor.terrain",
                         schedulableAsset = AssetRef.terrain(path),
                     ),
                 )
@@ -135,28 +126,22 @@ class SceneDependencyCollector(
         descriptor: SceneDescriptor,
         dependencies: MutableMap<Pair<SceneDependencyKind, String>, SceneDependency>,
     ) {
-        if (!descriptor.hasTerrain()) return
-        val terrainPersistence = TerrainPersistence(files = sceneFiles)
-        descriptor.entities.forEach { entity ->
-            val terrainPath = entity.components.firstOrNull { it.type == SceneComponentTypes.Terrain }
-                ?.properties?.get("terrain")?.normalizedDependencyPath() ?: return@forEach
-            val explicitLibraryPath = if (sceneFiles.exists(terrainPath)) {
-                runCatching { terrainPersistence.loadDescriptor(terrainPath).materialLibraryPath }.getOrNull()
-            } else null
-            (explicitLibraryPath ?: descriptor.settings.terrain.materialLibraryPath)
-                .normalizedDependencyPath()
-                ?.let { path ->
+        val terrainPath = descriptor.settings.terrain.terrainAssetPath.normalizedDependencyPath() ?: return
+        if (!sceneFiles.exists(terrainPath)) return
+        runCatching {
+            resolveSceneTerrainMaterialLibraryPath(terrainPath, descriptor.settings.terrain.materialLibraryPath, sceneFiles)
+        }.getOrNull()
+            .normalizedDependencyPath()
+            ?.let { path ->
                 dependencies.merge(
                     SceneDependency(
                         kind = SceneDependencyKind.TerrainMaterialLibrary,
                         path = path,
-                        requirement = terrainRequirement(entity.id, descriptor.settings.activeTerrainEntityId),
-                        sourceEntityId = entity.id,
-                        sourceComponentType = SceneComponentTypes.Terrain,
+                        requirement = SceneDependencyRequirement.Required,
+                        sourceComponentType = "SceneSettingsDescriptor.terrain",
                     ),
                 )
             }
-        }
     }
 
     private fun collectEnvironmentDependency(
@@ -189,16 +174,6 @@ class SceneDependencyCollector(
             }
         }
 
-    private fun terrainRequirement(
-        entityId: Long,
-        activeTerrainEntityId: Long?,
-    ): SceneDependencyRequirement =
-        if (entityId == activeTerrainEntityId) {
-            SceneDependencyRequirement.Required
-        } else {
-            SceneDependencyRequirement.Optional
-        }
-
     private fun MutableMap<Pair<SceneDependencyKind, String>, SceneDependency>.merge(dependency: SceneDependency) {
         val key = dependency.kind to dependency.path
         val existing = this[key]
@@ -214,8 +189,6 @@ class SceneDependencyCollector(
         this[key] = existing.copy(requirement = SceneDependencyRequirement.Required)
     }
 }
-
-private fun SceneDescriptor.hasTerrain(): Boolean = entities.any { entity -> entity.components.any { component -> component.type == SceneComponentTypes.Terrain } }
 
 private fun String?.normalizedDependencyPath(): String? =
     this
