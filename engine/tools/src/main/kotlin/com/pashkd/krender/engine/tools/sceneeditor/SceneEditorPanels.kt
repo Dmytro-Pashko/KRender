@@ -20,6 +20,7 @@ class SceneEditorControlPanel(
     private val eventLogger: ImGuiWindowEventLogger,
 ) : UiPanel {
     private var reloadRequested = false
+    private var exitRequested = false
 
     override fun draw() {
         if (beginSceneEditorPanel(SceneEditorPanelIds.Control, layoutConfig, layoutTracker, eventLogger)) {
@@ -36,13 +37,34 @@ class SceneEditorControlPanel(
             panelButton("Restore UI##scene_restore_ui") { operations.restoreUiLayout() }
             ImGui.sameLine()
             drawImGuiLayoutLockButton(layoutTracker, "scene_editor")
+            ImGui.sameLine()
+            panelButton("Exit##scene_exit") {
+                if (state.hasUnsavedChanges) exitRequested = true else operations.exit()
+            }
             ImGui.separator()
             ImGui.text("Scene: ${state.sceneName}")
             ImGui.text("Path: ${state.currentScenePath ?: "<missing>"}")
         }
         ImGui.end()
         drawReloadDialog()
+        drawExitDialog()
         drawErrorDialog()
+    }
+
+    private fun drawExitDialog() {
+        if (!exitRequested) return
+        ImGui.openPopup("Exit Scene Editor##scene_exit_confirm")
+        if (!ImGui.beginPopupModal("Exit Scene Editor##scene_exit_confirm")) return
+        ImGui.textWrapped("The scene has unsaved changes. Save them before exiting?")
+        panelButton("Save##exit_save") {
+            if (operations.save()) { exitRequested = false; operations.exit() }
+        }
+        ImGui.sameLine()
+        panelButton("Discard##exit_discard") { exitRequested = false; operations.exit() }
+        ImGui.sameLine()
+        panelButton("Cancel##exit_cancel") { exitRequested = false }
+        if (!exitRequested) ImGui.closeCurrentPopup()
+        ImGui.endPopup()
     }
 
     private fun drawReloadDialog() {
@@ -186,12 +208,28 @@ class SceneInspectorPanel(
         panelButton("Remove Terrain##scene_terrain_remove") { operations.removeTerrain() }
         val visible = booleanArrayOf(terrain.visible)
         if (ImGui.checkbox("Visible##scene_terrain_visible", visible)) operations.setTerrain(terrain.copy(visible = visible[0]))
-        val previewModes = listOf("LayerColor" to "Color", "MaterialTexture" to "Texture")
-        if (ImGui.beginCombo("Preview##scene_terrain_preview", previewModes.firstOrNull { it.first == terrain.previewMode }?.second ?: terrain.previewMode)) {
+        val previewModes = listOf("MaterialColor" to "Color", "MaterialTexture" to "Texture", "Wireframe" to "Wireframe")
+        val currentPreview = if (state.terrainWireframe) "Wireframe" else if (terrain.previewMode == "MaterialTexture") "Texture" else "Color"
+        if (ImGui.beginCombo("Preview##scene_terrain_preview", currentPreview)) {
             previewModes.forEach { (mode, label) ->
-                if (ImGui.selectable(label, terrain.previewMode == mode)) operations.setTerrain(terrain.copy(previewMode = mode))
+                if (ImGui.selectable(label, currentPreview == label)) {
+                    if (mode == "Wireframe") state.terrainWireframe = true
+                    else {
+                        state.terrainWireframe = false
+                        if (terrain.previewMode != mode) operations.setTerrain(terrain.copy(previewMode = mode))
+                    }
+                }
             }
             ImGui.endCombo()
+        }
+        ImGui.text("Texture Preview Resolution")
+        listOf(256, 512, 1024, 4096, 8192).forEachIndexed { index, resolution ->
+            if (index > 0) ImGui.sameLine()
+            ImGui.beginDisabled(state.terrainPreviewResolution == resolution)
+            panelButton("${if (resolution >= 1024) "${resolution / 1024}K" else "$resolution"}##scene_preview_resolution_$resolution") {
+                state.terrainPreviewResolution = resolution
+            }
+            ImGui.endDisabled()
         }
         if (ImGui.beginCombo("Baked Resolution##scene_terrain_resolution", "${terrain.bakedTextureResolution} x ${terrain.bakedTextureResolution}")) {
             bakedResolutions.forEach { resolution ->
@@ -293,16 +331,18 @@ class EntityPropertiesPanel(
         ImGui.separator()
         entity.components.all().forEach { component ->
             val definition = SceneComponentRegistry.find(component) ?: return@forEach
-            if (!definition.addable) return@forEach
+            if (!definition.addable && definition.type != SceneComponentTypes.Transform) return@forEach
             ImGui.text(definition.type)
-            ImGui.sameLine()
-            val blocked = definition.type == SceneComponentTypes.Transform && entity.components.all().any {
-                SceneComponentRegistry.find(it)?.requiresTransform == true
+            if (definition.type != SceneComponentTypes.Transform) {
+                ImGui.sameLine()
+                panelButton("Remove##${entity.id}_${definition.type}") { operations.removeComponent(entity.id, definition.type) }
             }
-            ImGui.beginDisabled(blocked)
-            panelButton("Remove##${entity.id}_${definition.type}") { operations.removeComponent(entity.id, definition.type) }
-            ImGui.endDisabled()
             fields.draw(entity, definition, component, operations)
+            if (definition.type == SceneComponentTypes.Camera) {
+                panelButton("Camera To View##${entity.id}") { operations.cameraToView(entity.id) }
+                ImGui.sameLine()
+                panelButton("View To Camera##${entity.id}") { operations.viewToCamera(entity.id) }
+            }
             ImGui.separator()
         }
         val available = SceneComponentRegistry.definitions.filter { it.addable && entity.get(it.componentClass) == null }

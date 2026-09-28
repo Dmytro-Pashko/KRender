@@ -62,7 +62,7 @@ data class SceneEnvironmentDescriptor(
 data class SceneTerrainSettingsDescriptor(
     val terrainAssetPath: String? = null,
     val visible: Boolean = true,
-    val previewMode: String = "LayerColor",
+    val previewMode: String = "MaterialColor",
     val bakedTextureResolution: Int = 8192,
     val materialLibraryPath: String = DefaultTerrainMaterialLibraryPath,
     val position: String = "0.0,0.0,0.0",

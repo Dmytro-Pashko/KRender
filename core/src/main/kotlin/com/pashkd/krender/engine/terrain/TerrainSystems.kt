@@ -45,6 +45,7 @@ class TerrainAssetRuntimeSync(
     private val logger: com.pashkd.krender.engine.api.Logger? = null,
     private val materialLibraryPath: String = DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH,
     private val textureSamplerFactory: TerrainMaterialTextureSamplerFactory? = null,
+    private val textureResolutionOverride: (() -> Int?)? = null,
 ) {
     private val terrainPersistence = TerrainPersistence(logger)
     private val bakeServices = mutableMapOf<String, TerrainMaterialBakeService>()
@@ -61,7 +62,8 @@ class TerrainAssetRuntimeSync(
             if (path.isBlank()) return@forEach
             val renderer = entity.get<TerrainRendererComponent>()
             val previewMode = sceneTerrainPreviewMode(component.previewMode)
-            val bakedTextureResolution = component.bakedTextureResolution.coerceIn(2, MAX_MATERIAL_PREVIEW_RESOLUTION)
+            val bakedTextureResolution = (textureResolutionOverride?.invoke() ?: component.bakedTextureResolution)
+                .coerceIn(2, MAX_MATERIAL_PREVIEW_RESOLUTION)
             if (renderer?.isSyncedForSceneTerrain(path, previewMode, bakedTextureResolution) == true) {
                 return@forEach
             }
@@ -69,14 +71,15 @@ class TerrainAssetRuntimeSync(
             try {
                 val descriptor = terrainPersistence.loadDescriptor(path)
                 val data = TerrainData.fromDescriptor(descriptor.terrain)
-                val libraryPath = materialLibraryPath
+                val libraryPath = descriptor.materialLibraryPath?.trim()?.takeIf(String::isNotBlank) ?: materialLibraryPath
+                val library = TerrainMaterialLibrary(logger).also { it.load(libraryPath) }
                 val usesTexturePreview = previewMode == TerrainPreviewMode.MaterialTexture
                 val mesh =
-                    TerrainMeshBuilder.build(
+                    TerrainMeshBuilder.buildPreview(
                         data = data,
-                        materialColorResolver = { null },
+                        previewMode = previewMode,
+                        materialColorResolver = { materialId -> library.find(materialId)?.fallbackColor },
                         blendMode = if (usesTexturePreview) TerrainLayerBlendMode.OrderedAlpha else TerrainLayerBlendMode.WeightedAverage,
-                        enableLayerColorPreview = !usesTexturePreview,
                     )
                 val nextRenderer =
                     renderer ?: TerrainRendererComponent(
@@ -97,8 +100,6 @@ class TerrainAssetRuntimeSync(
                 nextRenderer.previewResolution = if (usesTexturePreview) bakedTextureResolution else 0
                 if (usesTexturePreview) {
                     val bakeService = bakeServices.getOrPut(libraryPath) {
-                        val library = TerrainMaterialLibrary(logger)
-                        library.load(libraryPath)
                         TerrainMaterialBakeService(library, logger, textureSamplerFactory)
                     }
                     val texture =
@@ -156,7 +157,7 @@ class TerrainAssetRuntimeSync(
         if (mode == TerrainPreviewMode.MaterialTexture) {
             TerrainPreviewMode.MaterialTexture
         } else {
-            TerrainPreviewMode.LayerColor
+            TerrainPreviewMode.MaterialColor
         }
 
     private fun modelId(path: String): String = "terrain_asset_" + path.replace(Regex("[^A-Za-z0-9_\\-]+"), "_")

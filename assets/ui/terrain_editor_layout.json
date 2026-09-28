@@ -23,10 +23,10 @@
     },
     "layers": {
       "title": "Layers",
-      "x": 1577,
-      "y": 631,
-      "width": 342,
-      "height": 648
+      "x": 1509,
+      "y": 634,
+      "width": 409,
+      "height": 643
     },
     "control": {
       "title": "Control Panel",
@@ -59,9 +59,9 @@
     "runtimeLogs": {
       "title": "Runtime Logs",
       "x": 336,
-      "y": 1011,
-      "width": 1239,
-      "height": 266
+      "y": 1009,
+      "width": 1170,
+      "height": 265
     }
   }
 }

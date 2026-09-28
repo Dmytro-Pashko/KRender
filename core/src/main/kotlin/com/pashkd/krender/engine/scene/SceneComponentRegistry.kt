@@ -46,7 +46,7 @@ object SceneComponentRegistry {
                 SceneFieldDescriptor("rotation", "Rotation", SceneFieldKind.Vec3),
                 SceneFieldDescriptor("scale", "Scale", SceneFieldKind.Vec3),
             ),
-            mapOf("position" to "0,0,0", "rotation" to "0,0,0", "scale" to "1,1,1"),
+            mapOf("position" to "0,0,0", "rotation" to "0,0,0", "scale" to "1,1,1"), addable = false,
             encode = { component ->
                 val value = component as TransformComponent
                 mapOf("position" to value.position.csv(), "rotation" to value.eulerDegrees.csv(), "scale" to value.scale.csv())

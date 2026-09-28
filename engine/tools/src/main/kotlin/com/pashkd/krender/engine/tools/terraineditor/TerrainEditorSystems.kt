@@ -1043,19 +1043,12 @@ class TerrainEditorMeshSyncSystem(
             // mode, so the mesh build and preview bake must use the same mode.
             val blendMode = bindings.blendModeProvider()
             val mesh =
-                TerrainMeshBuilder.build(
+                TerrainMeshBuilder.buildPreview(
                     data = terrain.data,
-                    materialColorResolver =
-                        when (previewMode) {
-                            TerrainPreviewMode.LayerColor,
-                            TerrainPreviewMode.Wireframe -> { _: String? -> null }
-                            TerrainPreviewMode.MaterialColor,
-                            TerrainPreviewMode.MaterialTexture,
-                            TerrainPreviewMode.SelectedLayerMask,
-                            -> bindings.materialColorResolver
-                        },
+                    previewMode = previewMode,
+                    materialColorResolver = bindings.materialColorResolver,
                     blendMode = blendMode,
-                    enableLayerColorPreview = !previewMode.usesTexturePreview() && bindings.layerColorPreviewProvider(),
+                    showLayerColors = bindings.layerColorPreviewProvider(),
                 )
             renderer.meshRevision += 1L
             renderer.model =
@@ -1252,201 +1245,6 @@ class TerrainEditorMeshSyncSystem(
     }
 }
 
-/**
- * Keeps file-backed terrain asset entities ready for the shared dynamic terrain renderer.
- */
-class TerrainAssetSyncSystem(
-    private val logger: Logger? = null,
-    materialLibraryPath: String = DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH,
-) : System() {
-    private val sync = TerrainAssetRuntimeSync(logger, materialLibraryPath)
-
-    override fun update(
-        world: SceneWorld,
-        dt: Float,
-    ) {
-        sync.update(world)
-    }
-}
-
-/**
- * Reusable terrain asset loader used by both runtime worlds and embedded editor document worlds.
- */
-@Suppress("LongMethod")
-class TerrainAssetRuntimeSync(
-    private val logger: Logger? = null,
-    materialLibraryPath: String = DEFAULT_TERRAIN_MATERIAL_LIBRARY_PATH,
-) {
-    private val terrainPersistence = TerrainPersistence(logger)
-    private val materialLibrary =
-        TerrainMaterialLibrary(logger).also { library ->
-            library.load(materialLibraryPath)
-        }
-    private val bakeService = TerrainMaterialBakeService(materialLibrary, logger)
-    private val failedPaths = mutableSetOf<String>()
-
-    fun update(world: SceneWorld) {
-        world.query<TransformComponent, TerrainComponent>().forEach { entity ->
-            if (!entity.active) return@forEach
-            val component = entity.get<TerrainComponent>() ?: return@forEach
-            val path =
-                component.terrain.path
-                    .trim()
-                    .replace('\\', '/')
-            if (path.isBlank()) return@forEach
-            val renderer = entity.get<TerrainRendererComponent>()
-            val previewMode = sceneTerrainPreviewMode(component.previewMode)
-            val bakedTextureResolution = component.bakedTextureResolution.coerceIn(2, MAX_MATERIAL_PREVIEW_RESOLUTION)
-            if (renderer?.isSyncedForSceneTerrain(path, previewMode, bakedTextureResolution) == true) {
-                return@forEach
-            }
-
-            try {
-                val data = terrainPersistence.load(path)
-                val usesTexturePreview = previewMode == TerrainPreviewMode.MaterialTexture
-                val mesh =
-                    TerrainMeshBuilder.build(
-                        data = data,
-                        materialColorResolver = { null },
-                        blendMode = TerrainLayerBlendMode.OrderedAlpha,
-                        enableLayerColorPreview = !usesTexturePreview,
-                    )
-                val nextRenderer =
-                    renderer ?: TerrainRendererComponent(
-                        modelId = modelId(path),
-                        material = Material(),
-                    ).also(entity::add)
-                nextRenderer.modelId = modelId(path)
-                nextRenderer.meshRevision += 1L
-                nextRenderer.model =
-                    DynamicModel(
-                        id = nextRenderer.modelId,
-                        mesh = mesh.toDynamicMesh(),
-                        revision = nextRenderer.meshRevision,
-                    )
-                nextRenderer.vertexCount = mesh.vertexCount
-                nextRenderer.triangleCount = mesh.triangleCount
-                nextRenderer.previewMode = previewMode
-                nextRenderer.previewResolution = if (usesTexturePreview) bakedTextureResolution else 0
-                if (usesTexturePreview) {
-                    val texture =
-                        bakeService.bakeFinalSplatTexture(
-                            terrain = data,
-                            resolution = bakedTextureResolution,
-                            textureId = "runtime:scene-terrain-preview:${nextRenderer.modelId}",
-                            revision = nextRenderer.meshRevision * 31L + bakedTextureResolution,
-                            blendMode = TerrainLayerBlendMode.OrderedAlpha,
-                        )
-                    nextRenderer.replacePreviewDiffuseTexture(texture)
-                    nextRenderer.material =
-                        Material(
-                            baseColor = Color.white(),
-                            diffuseTextureRef =
-                                MaterialTextureRef(
-                                    id = texture.id,
-                                    channel = "diffuse",
-                                    uvChannel = 0,
-                                ),
-                        )
-                } else {
-                    nextRenderer.replacePreviewDiffuseTexture(null)
-                    nextRenderer.material = Material()
-                }
-                failedPaths.remove(path)
-                logger?.info(TAG) {
-                    "Loaded terrain asset '$path' for entityId=${entity.id} previewMode=$previewMode " +
-                        "bakedTextureResolution=${if (usesTexturePreview) bakedTextureResolution else "<none>"}"
-                }
-            } catch (error: Exception) {
-                if (failedPaths.add(path)) {
-                    logger?.warn(TAG) { "Failed to load terrain asset '$path' for entityId=${entity.id}: ${error.message}" }
-                }
-            }
-        }
-    }
-
-    private fun TerrainRendererComponent.isSyncedForSceneTerrain(
-        path: String,
-        previewMode: TerrainPreviewMode,
-        bakedTextureResolution: Int,
-    ): Boolean {
-        if (model == null || modelId != this@TerrainAssetRuntimeSync.modelId(path) || this.previewMode != previewMode) {
-            return false
-        }
-        return if (previewMode == TerrainPreviewMode.MaterialTexture) {
-            previewDiffuseTexture != null && previewResolution == bakedTextureResolution
-        } else {
-            previewDiffuseTexture == null
-        }
-    }
-
-    private fun sceneTerrainPreviewMode(mode: TerrainPreviewMode): TerrainPreviewMode =
-        if (mode == TerrainPreviewMode.MaterialTexture) {
-            TerrainPreviewMode.MaterialTexture
-        } else {
-            TerrainPreviewMode.LayerColor
-        }
-
-    private fun modelId(path: String): String = "terrain_asset_" + path.replace(Regex("[^A-Za-z0-9_\\-]+"), "_")
-
-    companion object {
-        private const val TAG = "TerrainAssetRuntimeSync"
-    }
-}
-
-/**
- * Shared terrain draw-command emission for runtime worlds and editor document worlds.
- *
- * Final runtime material takes priority over editor preview texture. When a
- * texture is selected, the material receives a [MaterialTextureRef] whose id
- * matches the submitted [RuntimeTextureData], allowing backend upload and bind
- * to happen without exposing backend texture types to terrain code.
- */
-object TerrainRenderCommands {
-    fun submit(
-        world: SceneWorld,
-        submit: (DrawDynamicModel) -> Unit,
-    ) {
-        world.query<TransformComponent, TerrainRendererComponent>().forEach { entity ->
-            if (!entity.active) return@forEach
-            val terrainAsset = entity.get<TerrainComponent>()
-            if (terrainAsset != null && !terrainAsset.visible) return@forEach
-            val transform = entity.get<TransformComponent>() ?: return@forEach
-            val renderer = entity.get<TerrainRendererComponent>() ?: return@forEach
-            val model = renderer.model ?: return@forEach
-            val textureForMaterial = renderer.finalSplatTexture ?: renderer.previewDiffuseTexture
-            val material =
-                if (textureForMaterial != null) {
-                    renderer.material.copy(
-                        baseColor = Color.white(),
-                        diffuseTextureRef =
-                            MaterialTextureRef(
-                                id = textureForMaterial.id,
-                                channel = "baseColor",
-                                uvChannel = 0,
-                            ),
-                    )
-                } else if (model.mesh.colors != null) {
-                    renderer.material.copy(
-                        baseColor = Color.white(),
-                        diffuseTextureRef = null,
-                    )
-                } else {
-                    renderer.material.copy(diffuseTextureRef = null)
-                }
-            submit(
-                DrawDynamicModel(
-                    entityId = entity.id,
-                    model = model,
-                    transform = transform.snapshot(),
-                    material = material,
-                    runtimeTextures = listOfNotNull(textureForMaterial),
-                ),
-            )
-        }
-    }
-}
-
 private fun runtimeTerrainPreviewTexture(
     renderer: TerrainRendererComponent,
     pixmap: com.badlogic.gdx.graphics.Pixmap,
@@ -1471,29 +1269,6 @@ private fun runtimeTerrainPreviewTexture(
         uWrap = RuntimeTextureWrap.ClampToEdge,
         vWrap = RuntimeTextureWrap.ClampToEdge,
     )
-}
-
-/**
- * Submits terrain dynamic mesh draw commands to the render pipeline.
- *
- * The renderer is shared by editor and runtime terrain flows. Runtime final
- * splat textures are preferred; editor preview textures are used only when no
- * final material texture exists; otherwise vertex colors or the base material
- * color render the terrain without crashing.
- */
-class TerrainRenderSystem : System() {
-    /**
-     * Emits one draw command per renderable terrain entity.
-     *
-     * Material selection is intentionally lightweight here: this system assumes
-     * mesh generation and preview baking have already prepared the correct data.
-     */
-    override fun render(
-        world: SceneWorld,
-        alpha: Float,
-    ) {
-        TerrainRenderCommands.submit(world, world.renderCommands::submit)
-    }
 }
 
 /** Returns `true` when the preview mode requires a baked texture image. */

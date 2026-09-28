@@ -166,7 +166,7 @@ object RuntimeSceneValidator {
         if (hasTerrain && terrain.bakedTextureResolution !in 2..8192) {
             issues += SceneValidationIssue(SceneValidationSeverity.Error, SceneValidationIssueCode.InvalidTerrainBakeResolution, "Invalid Scene Terrain bakedTextureResolution=${terrain.bakedTextureResolution}.")
         }
-        if (hasTerrain && terrain.previewMode !in setOf("LayerColor", "MaterialTexture")) {
+        if (hasTerrain && terrain.previewMode !in setOf("LayerColor", "MaterialColor", "MaterialTexture")) {
             issues += SceneValidationIssue(SceneValidationSeverity.Error, SceneValidationIssueCode.InvalidTerrainSettings, "Invalid Scene Terrain previewMode='${terrain.previewMode}'.")
         }
         if (hasTerrain && dependencyGraph.dependencies.none { it.kind == SceneDependencyKind.TerrainMaterialLibrary }) {

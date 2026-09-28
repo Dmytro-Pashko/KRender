@@ -18,6 +18,8 @@ data class SceneEditorState(
     var selectedEntityId: EntityId? = null,
     /** True when in-memory scene data differs from the last saved file, used to prompt unsaved-changes warnings. */
     var hasUnsavedChanges: Boolean = false,
+    var terrainWireframe: Boolean = false,
+    var terrainPreviewResolution: Int = 512,
     /** Non-null when the last save attempt failed; displayed in the UI as an error notice. */
     var saveErrorMessage: String? = null,
     /** Non-null when the last open attempt failed; displayed in the UI as an error notice. */

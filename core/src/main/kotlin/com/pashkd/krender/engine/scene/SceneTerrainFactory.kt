@@ -31,7 +31,7 @@ object SceneTerrainFactory {
                 terrain = AssetRef.terrain(path),
                 visible = settings.visible,
                 previewMode = TerrainPreviewMode.entries.firstOrNull { it.name == settings.previewMode }
-                    ?: TerrainPreviewMode.LayerColor,
+                    ?: TerrainPreviewMode.MaterialColor,
                 bakedTextureResolution = settings.bakedTextureResolution,
             ),
         )

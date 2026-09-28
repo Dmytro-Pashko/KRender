@@ -203,6 +203,7 @@ class SceneEditorDocumentTerrainSyncSystem(
     logger: Logger,
     private val sceneFiles: SceneFileService,
     textureSamplerFactory: com.pashkd.krender.engine.terrain.TerrainMaterialTextureSamplerFactory?,
+    private val editorState: SceneEditorState,
 ) : System() {
     private val logger = logger
     private val textureSamplerFactory = textureSamplerFactory
@@ -232,9 +233,16 @@ class SceneEditorDocumentTerrainSyncSystem(
                 logger.warn(TAG, error) { "Could not read Terrain material library from '$terrainPath'; using scene fallback." }
                 settings.materialLibraryPath
             }
-            terrainSync = TerrainAssetRuntimeSync(logger, libraryPath, textureSamplerFactory)
+            terrainSync = TerrainAssetRuntimeSync(logger, libraryPath, textureSamplerFactory) { editorState.terrainPreviewResolution }
         }
         terrainSync?.update(document.world)
+        val renderer = document.terrainPreviewEntityId?.let(document.world::getEntity)
+            ?.get<com.pashkd.krender.engine.terrain.TerrainRendererComponent>()
+        val displayMode = if (editorState.terrainWireframe) com.pashkd.krender.engine.terrain.TerrainDisplayMode.Wireframe
+            else com.pashkd.krender.engine.terrain.TerrainDisplayMode.Solid
+        if (renderer != null && (renderer.displayMode != displayMode || renderer.material.wireframe != editorState.terrainWireframe)) {
+            renderer.setDisplayMode(displayMode)
+        }
     }
 
     companion object { private const val TAG = "SceneEditorDocumentTerrainSyncSystem" }

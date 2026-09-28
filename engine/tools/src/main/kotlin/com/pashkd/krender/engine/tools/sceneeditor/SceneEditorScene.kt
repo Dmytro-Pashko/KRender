@@ -62,7 +62,7 @@ class SceneEditorScene(
         world.systems.add(SceneEditorBoundingBoxSystem(document, editorState, boundsProvider))
         world.systems.add(SceneEditorLightGizmoSystem(document, editorState))
         world.systems.add(SceneEditorLightSyncSystem(document, engine.logger))
-        world.systems.add(SceneEditorDocumentTerrainSyncSystem(document, engine.logger, engine.sceneFiles, engine.terrainTextureSamplerFactory))
+        world.systems.add(SceneEditorDocumentTerrainSyncSystem(document, engine.logger, engine.sceneFiles, engine.terrainTextureSamplerFactory, editorState))
         world.systems.add(SceneEditorEnvironmentSyncSystem(document, environmentState, engine.sceneFiles, engine.logger))
         world.systems.add(SceneEditorDocumentRenderSystem(document, environmentState))
     }

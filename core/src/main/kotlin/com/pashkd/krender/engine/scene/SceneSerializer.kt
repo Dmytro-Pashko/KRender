@@ -92,7 +92,7 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
         val terrain = settings.terrain.copy(
             terrainAssetPath = component.properties["terrain"],
             visible = component.properties["visible"]?.toBooleanStrictOrNull() ?: true,
-            previewMode = component.properties["previewMode"] ?: "LayerColor",
+            previewMode = component.properties["previewMode"] ?: "MaterialColor",
             bakedTextureResolution = component.properties["bakedTextureResolution"]?.toIntOrNull() ?: 8192,
             position = transform["position"] ?: "0.0,0.0,0.0",
             rotation = transform["rotation"] ?: "0.0,0.0,0.0",
@@ -206,7 +206,7 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
             SceneTerrainSettingsDescriptor(
                 terrainAssetPath = terrainNode?.stringOrNull("terrainAssetPath"),
                 visible = terrainNode?.booleanOrDefault("visible", true) ?: true,
-                previewMode = terrainNode?.stringOrDefault("previewMode", "LayerColor") ?: "LayerColor",
+                previewMode = terrainNode?.stringOrDefault("previewMode", "MaterialColor") ?: "MaterialColor",
                 bakedTextureResolution = terrainNode?.intOrDefault("bakedTextureResolution", 8192) ?: 8192,
                 materialLibraryPath =
                     terrainNode
@@ -290,7 +290,7 @@ object SceneSerializer : KRenderSerializer<SceneDescriptor> {
                 buildJsonObject {
                     put("terrainAssetPath", terrain.terrainAssetPath?.let(::JsonPrimitive) ?: JsonNull)
                     put("visible", JsonPrimitive(terrain.visible))
-                    put("previewMode", JsonPrimitive(terrain.previewMode))
+                    put("previewMode", JsonPrimitive(if (terrain.previewMode == "LayerColor") "MaterialColor" else terrain.previewMode))
                     put("bakedTextureResolution", JsonPrimitive(terrain.bakedTextureResolution))
                     put("materialLibraryPath", JsonPrimitive(terrain.materialLibraryPath))
                     put("position", JsonPrimitive(terrain.position))
@@ -349,9 +349,6 @@ object SceneDeserializer {
         descriptor.entities.forEach { entityDescriptor ->
             val entity = world.createEntityWithId(entityDescriptor.id, entityDescriptor.name)
             entity.active = entityDescriptor.active
-            if (entityDescriptor.components.none { it.type == SceneComponentTypes.Transform }) {
-                entity.remove(TransformComponent::class)
-            }
             applyComponents(entityDescriptor, entity, logger)
             if (entity.get<ParentComponent>() == null) {
                 entityDescriptor.parentId?.let { parentId -> entity.add(ParentComponent(parentId)) }

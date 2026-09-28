@@ -39,6 +39,8 @@ class SceneEditorOperations(
 
     fun reload(): Boolean = state.currentScenePath?.let(::open) ?: false
 
+    fun exit() = context.requestExit()
+
     fun save(): Boolean = try {
         requireNotNull(document.descriptor) { "Load a scene before saving." }
         val path = requireNotNull(state.currentScenePath) { "Scene file path is missing." }
@@ -187,11 +189,9 @@ class SceneEditorOperations(
     }
 
     fun removeComponent(id: EntityId, type: String): Boolean {
+        if (type == SceneComponentTypes.Transform) return false
         val entity = editable(id) ?: return false
         val definition = SceneComponentRegistry.find(type)?.takeIf { it.addable } ?: return false
-        if (type == SceneComponentTypes.Transform && entity.components.all().any { component ->
-                SceneComponentRegistry.find(component)?.requiresTransform == true
-            }) return false
         if (entity.remove(definition.componentClass) == null) return false
         if (type == SceneComponentTypes.Camera && document.descriptor?.settings?.activeCameraEntityId == id) {
             document.descriptor = document.descriptor?.copy(settings = document.descriptor!!.settings.copy(activeCameraEntityId = null))
@@ -215,6 +215,21 @@ class SceneEditorOperations(
     fun setActiveCamera(id: EntityId) {
         if (editable(id)?.get<PerspectiveCameraComponent>() == null) return
         editSettings { it.copy(activeCameraEntityId = id) }
+    }
+
+    fun cameraToView(id: EntityId) {
+        val camera = editable(id)?.takeIf { it.get<PerspectiveCameraComponent>() != null } ?: return
+        val transform = camera.get<TransformComponent>() ?: return
+        state.camera.pendingPosition = transform.position.copy()
+        state.camera.pendingEulerDegrees = transform.eulerDegrees.copy()
+    }
+
+    fun viewToCamera(id: EntityId) {
+        val camera = editable(id)?.takeIf { it.get<PerspectiveCameraComponent>() != null } ?: return
+        val transform = camera.get<TransformComponent>() ?: return
+        transform.position = state.camera.position.copy()
+        transform.eulerDegrees = state.camera.eulerDegrees.copy()
+        changed()
     }
 
     fun setSceneName(name: String) {

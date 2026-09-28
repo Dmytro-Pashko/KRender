@@ -21,6 +21,14 @@ enum class TerrainPreviewMode {
     Wireframe,
 }
 
+private fun TerrainPreviewMode.meshColorResolver(
+    materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
+): (String?) -> TerrainLayerColorDescriptor? =
+    when (this) {
+        TerrainPreviewMode.LayerColor, TerrainPreviewMode.Wireframe -> { _: String? -> null }
+        TerrainPreviewMode.MaterialColor, TerrainPreviewMode.MaterialTexture, TerrainPreviewMode.SelectedLayerMask -> materialColorResolver
+    }
+
 /**
  * CPU-side mesh representation generated from [TerrainData].
  */
@@ -81,6 +89,20 @@ data class TerrainMeshBuildResult(
  * bindings are owned by terrain synchronization/render systems.
  */
 object TerrainMeshBuilder {
+    fun buildPreview(
+        data: TerrainData,
+        previewMode: TerrainPreviewMode,
+        materialColorResolver: (String?) -> TerrainLayerColorDescriptor?,
+        blendMode: TerrainLayerBlendMode,
+        showLayerColors: Boolean = true,
+    ): TerrainMeshData = build(
+        data = data,
+        materialColorResolver = previewMode.meshColorResolver(materialColorResolver),
+        blendMode = blendMode,
+        enableLayerColorPreview = showLayerColors && previewMode != TerrainPreviewMode.MaterialTexture &&
+            previewMode != TerrainPreviewMode.SelectedLayerMask,
+    )
+
     /**
      * Builds a renderable dynamic model for shared editor/runtime terrain use.
      */
