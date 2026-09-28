@@ -41,7 +41,7 @@ material layers, preview blended materials, and persist the result to a terrain 
 | `TerrainEditorState` | Editor state: brush, layers, preview mode, persistence, stats. |
 | `TerrainEditorSystem` | Input, brush strokes, layer editing, history, persistence, UI sync. |
 | `TerrainEditorMeshSyncSystem` | Editor adapter around `TerrainMeshBuilder` + preview material bake. |
-| `TerrainRenderSystem` | Selects active terrain texture and emits `DrawDynamicModel`. |
+| `TerrainRenderSystem` (core) | Selects active terrain texture and emits `DrawDynamicModel`. |
 | `TerrainMaterialLibrary` | Loads the library selected by the terrain file, falling back to `materials/terrain_materials.json`. |
 
 ## UI Panels
@@ -64,7 +64,7 @@ System order: `TerrainCameraControllerSystem → TerrainEditorSystem → Terrain
 1. `TerrainEditorSystem` applies brush/layer/generator edits to `TerrainDataComponent`.
 2. `TerrainEditorMeshSyncSystem` rebuilds the dynamic mesh (with editor preview vertex colors)
    and bakes editor preview textures (`RuntimeTextureData`), tracking bake stats.
-3. `TerrainRenderSystem` emits `DrawDynamicModel` carrying the active texture + material.
+3. The shared core `TerrainRenderSystem` emits `DrawDynamicModel` carrying the active texture + material.
 4. The backend uploads `runtimeTextures` and draws the dynamic model.
 
 ## Lifecycle
@@ -119,6 +119,7 @@ Terrain Editor behavior is validated through desktop use and compilation. The sh
 - Runtime terrain rendering must not depend on `TerrainMaterialPreviewBaker`.
 - Runtime texture `id`s must be unique per terrain entity (backend caches key on id) — use the
   existing id generator.
+- Use the shared core preview color resolver with `TerrainMeshBuilder`; Scene Editor Color uses the same material fallback colors and default Weighted Average blend as Material Color here.
 - Respect the documented system order; mesh sync must run before render.
 
 ## Recommended Improvements

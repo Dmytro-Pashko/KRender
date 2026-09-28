@@ -358,7 +358,7 @@ terrain with layers, material preview baking, and persistence. → `docs/agents/
 
 ### Scene Editor
 `engine/tools/.../sceneeditor/SceneEditorScene.kt` (+ sibling editor files and bounds helpers in `engine:tools`). Composes engine scene documents
-(`.krscene`, schema v2): hierarchy, scene settings, entity properties, selection, gizmos, and environment. It requires a scene path from Asset Browser; the control offers Save and Reload. Terrain is one optional scene setting rather than an entity in the file.
+(`.krscene`, schema v2): hierarchy, scene settings, entity properties, selection, gizmos, and environment. It requires a scene path from Asset Browser; the control offers Save, Reload, Play and Exit. Terrain is one optional scene setting rather than an entity in the file. Color uses material fallback colors; Wireframe and Texture Preview Resolution are editor-only, while Baked Resolution is persisted.
 → `docs/agents/tools/scene-editor.md`
 
 ### Skin Editor

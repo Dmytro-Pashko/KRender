@@ -256,11 +256,6 @@ class SceneEditorOperations(
         syncTerrainPreview()
     }
 
-    fun removeTerrain() {
-        val terrain = document.descriptor?.settings?.terrain ?: return
-        setTerrain(terrain.copy(terrainAssetPath = null))
-    }
-
     fun openTerrainInEditor(path: String) {
         try {
             context.editorToolLauncher.launchTerrainEditor(path)

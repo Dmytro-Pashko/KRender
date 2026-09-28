@@ -134,13 +134,16 @@ class SceneHierarchyPanel(
         panelButton("Delete##hierarchy_delete") { selected?.let { operations.deleteEntity(it.id) } }
         ImGui.endDisabled()
         ImGui.separator()
-        ImGui.text("Entities: ${document.world.all().count { it.get<EditorOnlyComponent>() == null }}")
-        document.world.all().filter { it.get<EditorOnlyComponent>() == null }.forEach { entity ->
+        val entities = document.world.all().filter { it.get<EditorOnlyComponent>() == null }
+        ImGui.text("Entities: ${entities.size}")
+        ImGui.beginChild("scene_hierarchy_entities", ImVec2(0f, 0f), true)
+        entities.forEach { entity ->
             val activeCamera = if (document.descriptor?.settings?.activeCameraEntityId == entity.id) " [Active Camera]" else ""
             if (ImGui.selectable("${entity.name}$activeCamera##entity_${entity.id}", selected?.id == entity.id)) {
                 state.selectedEntityId = entity.id
             }
         }
+        ImGui.endChild()
         ImGui.end()
     }
 }
@@ -205,7 +208,6 @@ class SceneInspectorPanel(
         val path = drawAssetCombo("Terrain Asset##scene_terrain", terrain.terrainAssetPath, assets.terrains(), allowNone = true)
         if (path != terrain.terrainAssetPath) operations.setTerrain(terrain.copy(terrainAssetPath = path))
         if (terrain.terrainAssetPath == null) return
-        panelButton("Remove Terrain##scene_terrain_remove") { operations.removeTerrain() }
         val visible = booleanArrayOf(terrain.visible)
         if (ImGui.checkbox("Visible##scene_terrain_visible", visible)) operations.setTerrain(terrain.copy(visible = visible[0]))
         val previewModes = listOf("MaterialColor" to "Color", "MaterialTexture" to "Texture", "Wireframe" to "Wireframe")
@@ -223,21 +225,14 @@ class SceneInspectorPanel(
             ImGui.endCombo()
         }
         ImGui.text("Texture Preview Resolution")
-        listOf(256, 512, 1024, 4096, 8192).forEachIndexed { index, resolution ->
-            if (index > 0) ImGui.sameLine()
-            ImGui.beginDisabled(state.terrainPreviewResolution == resolution)
-            panelButton("${if (resolution >= 1024) "${resolution / 1024}K" else "$resolution"}##scene_preview_resolution_$resolution") {
-                state.terrainPreviewResolution = resolution
-            }
-            ImGui.endDisabled()
+        drawResolutionButtons("scene_preview_resolution", listOf(256, 512, 1024, 4096, 8192), state.terrainPreviewResolution) {
+            state.terrainPreviewResolution = it
         }
-        if (ImGui.beginCombo("Baked Resolution##scene_terrain_resolution", "${terrain.bakedTextureResolution} x ${terrain.bakedTextureResolution}")) {
-            bakedResolutions.forEach { resolution ->
-                if (ImGui.selectable("$resolution x $resolution", terrain.bakedTextureResolution == resolution)) {
-                    operations.setTerrain(terrain.copy(bakedTextureResolution = resolution))
-                }
-            }
-            ImGui.endCombo()
+        ImGui.text("Baked Resolution")
+        val availableResolutions = if (terrain.bakedTextureResolution in bakedResolutions) bakedResolutions
+            else (bakedResolutions + terrain.bakedTextureResolution).sorted()
+        drawResolutionButtons("scene_baked_resolution", availableResolutions, terrain.bakedTextureResolution) { resolution ->
+            operations.setTerrain(terrain.copy(bakedTextureResolution = resolution))
         }
         val terrainPath = terrain.terrainAssetPath
         panelButton("Open in Terrain Editor##scene_terrain_open") { terrainPath?.let(operations::openTerrainInEditor) }
@@ -421,6 +416,17 @@ class SceneViewportPanel(
 }
 
 private fun panelButton(label: String, action: () -> Unit) { with(dsl) { button(label) { action() } } }
+
+private fun drawResolutionButtons(id: String, resolutions: List<Int>, selected: Int, onSelect: (Int) -> Unit) {
+    resolutions.forEachIndexed { index, resolution ->
+        if (index > 0) ImGui.sameLine()
+        val isSelected = resolution == selected
+        if (isSelected) ImGui.beginDisabled(true)
+        val label = if (resolution >= 1024 && resolution % 1024 == 0) "${resolution / 1024}K" else "$resolution"
+        if (ImGui.smallButton("${if (isSelected) "[$label]" else label}##${id}_$resolution") && !isSelected) onSelect(resolution)
+        if (isSelected) ImGui.endDisabled()
+    }
+}
 
 private fun drawAssetCombo(label: String, selectedPath: String?, options: List<EditorAssetPickerOption>, allowNone: Boolean = false): String? {
     var selected = selectedPath
